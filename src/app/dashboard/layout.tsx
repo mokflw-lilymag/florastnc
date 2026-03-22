@@ -11,19 +11,20 @@ export default async function DashboardLayout({ children }: { children: React.Re
     redirect("/login");
   }
 
-  // Fetch the role from the Profiles table server-side
+  // Fetch the role and tenant plan from the Profiles table server-side
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, tenant_id")
+    .select("role, tenant_id, tenants(plan)")
     .eq("id", user.id)
     .maybeSingle();
 
   const isSuperAdmin = profile?.role === "super_admin";
+  const plan = (profile as any)?.tenants?.plan || "free";
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">
       {/* Sidebar is fixed on the left */}
-      <Sidebar isSuperAdmin={isSuperAdmin} />
+      <Sidebar isSuperAdmin={isSuperAdmin} plan={plan} />
       
       {/* Main content area */}
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden relative">

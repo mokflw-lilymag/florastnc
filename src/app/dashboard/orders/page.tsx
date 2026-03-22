@@ -28,8 +28,14 @@ import { OrderDetailDialog } from "./components/order-detail-dialog";
 import { OrderEditDialog } from "./components/order-edit-dialog";
 import { MessagePrintDialog } from "./components/message-print-dialog";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useAuth } from "@/hooks/use-auth";
+import { AccessDenied } from "@/components/access-denied";
 
 export default function OrdersPage() {
+  const { profile, isLoading: authLoading } = useAuth();
+  const plan = profile?.tenants?.plan || "free";
+  const isSuperAdmin = profile?.role === 'super_admin';
+
   const { 
     orders, 
     loading, 
@@ -38,6 +44,10 @@ export default function OrdersPage() {
     deleteOrder, 
     cancelOrder 
   } = useOrders();
+
+  if (!authLoading && !isSuperAdmin && !['pro', 'erp_only'].includes(plan)) {
+    return <AccessDenied requiredTier="ERP" />;
+  }
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("all");

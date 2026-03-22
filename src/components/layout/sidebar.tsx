@@ -12,9 +12,10 @@ import Image from "next/image";
 
 interface SidebarProps {
   isSuperAdmin: boolean;
+  plan: string;
 }
 
-export function Sidebar({ isSuperAdmin }: SidebarProps) {
+export function Sidebar({ isSuperAdmin, plan }: SidebarProps) {
   const pathname = usePathname();
 
   // Navigation schema based on role
@@ -28,14 +29,20 @@ export function Sidebar({ isSuperAdmin }: SidebarProps) {
 
   const tenantLinks = [
     { name: "화원 대시보드", href: "/dashboard", icon: LayoutDashboard },
-    { name: "🖨️ 리본 프린터", href: "/dashboard/printer", icon: Printer },
-    { name: "주문 및 배차 관리", href: "/dashboard/orders", icon: Truck },
-    { name: "상품/꽃 카탈로그", href: "/dashboard/catalog", icon: Boxes },
-    { name: "고객 관리(CRM)", href: "/dashboard/customers", icon: Users },
+    { name: "🖨️ 리본 프린터", href: "/dashboard/printer", icon: Printer, tier: ['pro', 'ribbon_only'] },
+    { name: "주문 및 배차 관리", href: "/dashboard/orders", icon: Truck, tier: ['pro', 'erp_only'] },
+    { name: "상품/꽃 카탈로그", href: "/dashboard/products", icon: Boxes, tier: ['pro', 'erp_only'] },
+    { name: "고객 관리(CRM)", href: "/dashboard/customers", icon: Users, tier: ['pro', 'erp_only'] },
     { name: "플랜 및 환경 설정", href: "/dashboard/settings", icon: Settings },
   ];
 
-  const links = isSuperAdmin ? adminLinks : tenantLinks;
+  const filteredTenantLinks = tenantLinks.filter(link => {
+    if (isSuperAdmin) return true;
+    if (!link.tier) return true;
+    return link.tier.includes(plan);
+  });
+
+  const links = isSuperAdmin ? adminLinks : filteredTenantLinks;
 
   return (
     <aside className="hidden lg:flex w-64 flex-col bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-r border-slate-200 dark:border-slate-800 h-full z-20">

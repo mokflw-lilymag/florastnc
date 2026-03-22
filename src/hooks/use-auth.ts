@@ -6,6 +6,7 @@ import { createClient } from "@/utils/supabase/client";
 export function useAuth() {
   const supabase = createClient();
   const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
   const [tenantId, setTenantId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -20,14 +21,15 @@ export function useAuth() {
         
         setUser(user);
 
-        // Fetch user's tenant_id from profiles
+        // Fetch user's profile with tenant plan
         const { data, error: profileError } = await supabase
           .from("profiles")
-          .select("tenant_id")
+          .select("*, tenants(plan, name)")
           .eq("id", user.id)
           .maybeSingle();
           
         if (!profileError && data) {
+          setProfile(data);
           setTenantId(data.tenant_id);
         }
       } catch (error) {
@@ -40,5 +42,5 @@ export function useAuth() {
     fetchUser();
   }, []);
 
-  return { user, tenantId, isLoading };
+  return { user, profile, tenantId, isLoading };
 }
