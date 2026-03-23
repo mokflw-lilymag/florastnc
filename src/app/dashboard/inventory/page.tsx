@@ -18,9 +18,11 @@ import {
   Activity,
   Download,
   Upload,
-  Settings2
+  Settings2,
+  RefreshCw
 } from 'lucide-react';
 import { useMaterials, Material } from '@/hooks/use-materials';
+import { SAMPLE_MATERIALS } from "@/utils/sample-data";
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -47,7 +49,6 @@ export default function InventoryPage() {
     mid: { "생화": [], "식물": [], "부자재": [], "포장재": [], "기타": [] }
   };
 
-  // Form states
   const [formData, setFormData] = useState<Partial<Material>>({
     name: "",
     main_category: CATEGORIES.main[0] || "생화",
@@ -93,13 +94,25 @@ export default function InventoryPage() {
     }
   };
 
-  const filteredMaterials = useMemo(() => {
-    return materials.filter(m => 
-      m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      m.main_category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      m.supplier?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [materials, searchTerm]);
+  const handleLoadSamples = async () => {
+    if (materials.length > 0) {
+      if (!window.confirm("현재 자재가 이미 존재합니다. 샘플 데이터를 추가로 불러오시겠습니까?")) return;
+    }
+    
+    setIsImporting(true);
+    try {
+      let count = 0;
+      for (const sample of SAMPLE_MATERIALS) {
+        await addMaterial(sample);
+        count++;
+      }
+      toast.success(`${count}개의 샘플 자재가 등록되었습니다.`);
+    } catch (err) {
+      toast.error("샘플 데이터 로딩 중 오류가 발생했습니다.");
+    } finally {
+      setIsImporting(false);
+    }
+  };
 
   const handleSave = async () => {
     if (editingMaterial) {
@@ -111,7 +124,7 @@ export default function InventoryPage() {
     setEditingMaterial(null);
     setFormData({
       name: "",
-      main_category: "생화",
+      main_category: CATEGORIES.main[0] || "생화",
       unit: "ea",
       price: 0,
       stock: 0,
@@ -119,6 +132,14 @@ export default function InventoryPage() {
       memo: ""
     });
   };
+
+  const filteredMaterials = useMemo(() => {
+    return materials.filter(m => 
+      m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      m.main_category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      m.supplier?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [materials, searchTerm]);
 
   const openEdit = (m: Material) => {
     setEditingMaterial(m);
@@ -134,7 +155,6 @@ export default function InventoryPage() {
         icon={Layers}
       >
         <div className="flex flex-wrap items-center justify-end gap-2">
-          {/* Settings Link */}
           <Link href="/dashboard/settings/categories">
             <Button variant="ghost" size="sm" className="hidden sm:flex text-slate-500 hover:text-slate-900 border border-transparent hover:border-slate-200">
               <Settings2 className="h-4 w-4 mr-2" />
@@ -142,7 +162,6 @@ export default function InventoryPage() {
             </Button>
           </Link>
 
-          {/* Export/Import Buttons */}
           <Button 
             variant="outline" 
             size="sm" 
@@ -283,13 +302,40 @@ export default function InventoryPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredMaterials.length === 0 ? (
+                  {materials.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="h-96 text-center text-muted-foreground font-medium">
+                        <div className="flex flex-col items-center justify-center space-y-6 py-12">
+                           <div className="p-6 bg-slate-50 rounded-full border border-dashed border-slate-200">
+                             <Layers className="w-16 h-16 text-slate-300" />
+                           </div>
+                           <div className="space-y-2">
+                             <h3 className="text-xl font-bold text-slate-800">등록된 자재가 없네요!</h3>
+                             <p className="max-w-md text-slate-500">
+                               처음 시작이 막막하시다면 클릭 한 번으로 기본 샘플 데이터(꽃, 꽃바구니 등)를 불러올 수 있습니다.
+                             </p>
+                           </div>
+                           <div className="flex gap-3">
+                              <Button onClick={handleLoadSamples} variant="outline" className="border-slate-300">
+                                <RefreshCw className="w-4 h-4 mr-2 text-orange-500" />
+                                샘플 데이터 불러오기
+                              </Button>
+                              <Button onClick={() => {
+                                setEditingMaterial(null);
+                                setFormData({ name: "", main_category: CATEGORIES.main[0] || "생화", unit: "ea", price: 0, stock: 0, supplier: "", memo: "" });
+                                setIsAddDialogOpen(true);
+                              }} className="bg-primary hover:bg-primary/90">
+                                <Plus className="w-4 h-4 mr-2" />
+                                첫 자재 등록하기
+                              </Button>
+                           </div>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : filteredMaterials.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={7} className="h-64 text-center text-muted-foreground font-medium">
-                        <div className="flex flex-col items-center justify-center space-y-2">
-                           <Package className="w-12 h-12 text-gray-200" />
-                           <p>등록된 자재가 없거나 검색 결과가 없습니다.</p>
-                        </div>
+                         <p>검색 결과가 없습니다.</p>
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -333,7 +379,9 @@ export default function InventoryPage() {
                               variant="ghost" 
                               size="icon" 
                               className="h-8 w-8 hover:text-red-600 hover:bg-red-50"
-                              onClick={() => deleteMaterial(material.id)}
+                              onClick={() => {
+                                if(window.confirm("정말 삭제하시겠습니까?")) deleteMaterial(material.id);
+                              }}
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </Button>
@@ -349,7 +397,6 @@ export default function InventoryPage() {
         </CardContent>
       </Card>
 
-      {/* Add/Edit Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent className="sm:max-w-[425px] border-none shadow-2xl bg-white">
           <DialogHeader>

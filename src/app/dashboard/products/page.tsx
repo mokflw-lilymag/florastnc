@@ -18,6 +18,7 @@ import { downloadTemplate, parseExcel } from "@/utils/excel";
 import { useSettings } from "@/hooks/use-settings";
 import { Download, Upload, Settings2 } from "lucide-react";
 import Link from "next/link";
+import { SAMPLE_PRODUCTS } from "@/utils/sample-data";
 
 export default function ProductsPage() {
   const { profile, isLoading: authLoading } = useAuth();
@@ -128,6 +129,26 @@ export default function ProductsPage() {
       if (success) toast.success("상품이 삭제되었습니다.");
     } catch (error) {
       toast.error("삭제 중 오류가 발생했습니다.");
+    }
+  };
+
+  const handleLoadSamples = async () => {
+    if (products.length > 0) {
+      if (!window.confirm("현재 상품이 이미 존재합니다. 샘플 데이터를 추가로 불러오시겠습니까?")) return;
+    }
+    
+    setIsImporting(true);
+    try {
+      let count = 0;
+      for (const sample of SAMPLE_PRODUCTS) {
+        await addProduct(sample);
+        count++;
+      }
+      toast.success(`${count}개의 샘플 상품이 등록되었습니다.`);
+    } catch (err) {
+      toast.error("샘플 데이터 로딩 중 오류가 발생했습니다.");
+    } finally {
+      setIsImporting(false);
     }
   };
 
@@ -257,12 +278,38 @@ export default function ProductsPage() {
       </div>
 
       {/* Product Table */}
-      <ProductTable
-        products={filteredProducts}
-        onSelectionChange={setSelectedIds}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-      />
+      {products.length === 0 && !loading ? (
+        <Card className="border-dashed border-2 border-slate-200 bg-slate-50/50">
+          <CardContent className="flex flex-col items-center justify-center py-20 text-center space-y-4">
+            <div className="p-4 bg-white rounded-full shadow-sm">
+              <Package className="h-10 w-10 text-slate-300" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-slate-700">등록된 상품이 없습니다</h3>
+              <p className="text-slate-500 max-w-xs mx-auto">
+                상품을 직접 추가하거나 엑셀로 업로드할 수 있습니다. 시스템이 처음이라면 샘플 데이터를 먼저 확인해보세요.
+              </p>
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button onClick={handleLoadSamples} variant="outline" className="bg-white">
+                <RefreshCw className="h-4 w-4 mr-2 text-blue-500" />
+                샘플 데이터 불러오기
+              </Button>
+              <Button onClick={handleCreateNew} className="bg-blue-600 hover:bg-blue-700">
+                <Plus className="h-4 w-4 mr-2" />
+                첫 상품 등록하기
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <ProductTable
+          products={filteredProducts}
+          onSelectionChange={setSelectedIds}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+        />
+      )}
 
       <ProductForm
         isOpen={isFormOpen}
