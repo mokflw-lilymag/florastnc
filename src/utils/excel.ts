@@ -14,8 +14,9 @@ export function downloadTemplate(type: 'product' | 'material') {
     sample = [['P01', '축하화환 3단', '경조사화환', '축하화환', 100000, 10, '자체제작', 'active']];
     filename = '상품등록_양식.xlsx';
   } else {
-    headers = ['자재명', '대분류', '중분류', '단위', '규격', '단가', '재고', '공급처', '메모'];
-    sample = [['대형 리본(핑크)', '부자재', '리본', '롤', '10cm*50m', 5000, 20, 'ABC상사', '']];
+    // Matches the user's requested order for materials
+    headers = ['번호', '자재ID', '자재명', '대분류', '중분류', '단위', '규격', '가격', '색상', '재고', '공급업체', '메모'];
+    sample = [['1', '', '대형 리본(핑크)', '부자재', '리본', '롤', '10cm*50m', 5000, '핑크', 20, 'ABC상사', '']];
     filename = '자재등록_양식.xlsx';
   }
 
@@ -50,14 +51,17 @@ export function exportDataToExcel(type: 'product' | 'material', list: any[]) {
     ]);
     filename = `상품목록_${new Date().toISOString().split('T')[0]}.xlsx`;
   } else {
-    headers = ['자재명', '대분류', '중분류', '단위', '규격', '단가', '재고', '공급처', '메모'];
-    dataRows = list.map(m => [
+    headers = ['번호', '자재ID', '자재명', '대분류', '중분류', '단위', '규격', '가격', '색상', '재고', '공급업체', '메모'];
+    dataRows = list.map((m, idx) => [
+      idx + 1,
+      m.id || '',
       m.name || '',
       m.main_category || '',
       m.mid_category || '',
       m.unit || '',
       m.spec || '',
       m.price || 0,
+      m.color || '',
       m.stock || 0,
       m.supplier || '',
       m.memo || ''

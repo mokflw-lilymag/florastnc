@@ -13,6 +13,7 @@ export interface Material {
     unit: string;
     spec?: string;
     price: number;
+    color?: string;
     stock: number;
     supplier?: string;
     memo?: string;

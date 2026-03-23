@@ -37,8 +37,11 @@ export const SAMPLE_MATERIALS = [
     main_category: "부자재",
     mid_category: "리본",
     unit: "롤",
-    stock: 12,
+    spec: "10cm*50m",
     price: 5000,
+    color: "핑크",
+    stock: 12,
+    supplier: "리본상사",
     memo: "화환용 대형 리본",
   },
   {
@@ -46,8 +49,11 @@ export const SAMPLE_MATERIALS = [
     main_category: "생화",
     mid_category: "장미",
     unit: "송이",
-    stock: 100,
+    spec: "50-60cm",
     price: 1200,
+    color: "연분홍",
+    stock: 100,
+    supplier: "양재동 도매",
     memo: "연분홍색 장미",
   },
   {
@@ -55,8 +61,11 @@ export const SAMPLE_MATERIALS = [
     main_category: "생화",
     mid_category: "필러",
     unit: "단",
-    stock: 15,
+    spec: "S등급",
     price: 15000,
+    color: "화이트",
+    stock: 15,
+    supplier: "고속터미널 도매",
     memo: "화이트 안개꽃",
   }
 ];
