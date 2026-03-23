@@ -149,6 +149,25 @@ export default function NewOrderPage() {
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [deliveryAddressDetail, setDeliveryAddressDetail] = useState("");
 
+  // Sync recipient info when "Same as Orderer" is checked
+  useEffect(() => {
+    if (isSameAsOrderer) {
+      setRecipientName(ordererName);
+      setRecipientContact(ordererContact);
+    }
+  }, [isSameAsOrderer, ordererName, ordererContact]);
+
+  // Load Daum Postcode script
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = "//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js";
+    script.async = true;
+    document.body.appendChild(script);
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
+
   // Message
   const [messageType, setMessageType] = useState<MessageType>("card");
   const [messageContent, setMessageContent] = useState("");
@@ -319,7 +338,10 @@ export default function NewOrderPage() {
         type: messageType,
         content: messageContent
       } as any,
-      memo: specialRequest
+      memo: specialRequest,
+      extra_data: {
+        isAnonymous
+      }
     };
 
     try {
@@ -388,11 +410,26 @@ export default function NewOrderPage() {
           <ProductSection
             allProducts={allProducts}
             categories={dynamicCategories}
-            onAddProduct={(p: Product) => setOrderItems(prev => {
-              const idx = prev.findIndex(item => item.id === p.id);
-              if (idx > -1) return prev.map((item, i) => i === idx ? { ...item, quantity: item.quantity + 1 } : item);
-              return [...prev, { ...p, quantity: 1 }];
-            })}
+            onAddProduct={(p: Product) => {
+              // 1. Add/Update order items
+              setOrderItems(prev => {
+                const idx = prev.findIndex(item => item.id === p.id);
+                if (idx > -1) return prev.map((item, i) => i === idx ? { ...item, quantity: item.quantity + 1 } : item);
+                return [...prev, { ...p, quantity: 1 }];
+              });
+
+              // 2. Auto-set size and ribbon if provided in extra_data
+              if (p.extra_data?.item_size) {
+                setItemSize(p.extra_data.item_size);
+              }
+              if (p.extra_data?.ribbon_size) {
+                if (p.extra_data.ribbon_size !== 'none') {
+                  setMessageType('ribbon');
+                } else {
+                  setMessageType('card');
+                }
+              }
+            }}
             onOpenCustomProductDialog={() => setIsCustomProductDialogOpen(true)}
           />
 

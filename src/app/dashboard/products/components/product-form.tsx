@@ -60,7 +60,11 @@ export function ProductForm({ isOpen, onOpenChange, onSubmit, product }: Product
     stock: 0,
     supplier: "",
     code: "",
-    status: "active"
+    status: "active",
+    extra_data: {
+      item_size: "medium",
+      ribbon_size: "70mm"
+    }
   });
 
   useEffect(() => {
@@ -73,7 +77,11 @@ export function ProductForm({ isOpen, onOpenChange, onSubmit, product }: Product
         stock: product.stock,
         supplier: product.supplier || "",
         code: product.code || "",
-        status: product.status
+        status: product.status,
+        extra_data: product.extra_data || {
+          item_size: "medium",
+          ribbon_size: "70mm"
+        }
       });
     } else {
       setFormData({
@@ -84,7 +92,11 @@ export function ProductForm({ isOpen, onOpenChange, onSubmit, product }: Product
         stock: 0,
         supplier: "",
         code: "",
-        status: "active"
+        status: "active",
+        extra_data: {
+          item_size: "medium",
+          ribbon_size: "70mm"
+        }
       });
     }
   }, [product, isOpen]);
@@ -205,6 +217,48 @@ export function ProductForm({ isOpen, onOpenChange, onSubmit, product }: Product
                   onChange={e => setFormData(prev => ({ ...prev, supplier: e.target.value }))}
                   placeholder="예: 양재꽃시장 A"
                 />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 pb-4 border-b border-dashed border-slate-100 mb-4">
+              <div className="space-y-2">
+                <Label className="text-[11px] font-bold text-blue-600 uppercase">기본 상품 규격 (배송비 자동용)</Label>
+                <Select 
+                  value={formData.extra_data?.item_size || "medium"} 
+                  onValueChange={val => setFormData(prev => ({ 
+                    ...prev, 
+                    extra_data: { ...prev.extra_data, item_size: val } 
+                  }))}
+                >
+                  <SelectTrigger className="h-9 rounded-xl border-blue-100 bg-blue-50/30 text-xs shadow-none">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="small">소형 (꽃다발/꽃함)</SelectItem>
+                    <SelectItem value="medium">중형 (꽃바구니/난)</SelectItem>
+                    <SelectItem value="large">대형 (화환/대형관엽)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[11px] font-bold text-indigo-600 uppercase">기본 리본 선정 (출력 설정용)</Label>
+                <Select 
+                  value={formData.extra_data?.ribbon_size || "70mm"} 
+                  onValueChange={val => setFormData(prev => ({ 
+                    ...prev, 
+                    extra_data: { ...prev.extra_data, ribbon_size: val } 
+                  }))}
+                >
+                  <SelectTrigger className="h-9 rounded-xl border-indigo-100 bg-indigo-50/30 text-xs shadow-none">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="38mm">38mm (슬림형)</SelectItem>
+                    <SelectItem value="70mm">70mm (표준 리본)</SelectItem>
+                    <SelectItem value="100mm">100mm (화환용 와이드)</SelectItem>
+                    <SelectItem value="none">사용 안함 (카드)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 

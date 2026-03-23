@@ -74,12 +74,12 @@ export class PrintableOrder extends React.Component<PrintableOrderProps> {
                             <td className="border border-black p-1 font-bold w-[8%] text-center">주문자</td>
                             <td className="border border-black p-1 w-[28%]">
                                 {(() => {
-                                    if (data.isAnonymous && isReceipt) return '익명';
+                                    if (data.isAnonymous && isReceipt) return '';
                                     return data.ordererCompany ? `${data.ordererCompany} / ${data.ordererName}` : data.ordererName;
                                 })()}
                             </td>
                             <td className="border border-black p-1 font-bold w-[8%] text-center">연락처</td>
-                            <td className="border border-black p-1 w-[24%]">{data.isAnonymous && isReceipt ? '-' : data.ordererContact}</td>
+                            <td className="border border-black p-1 w-[24%]">{data.isAnonymous && isReceipt ? '' : data.ordererContact}</td>
                         </tr>
                         <tr>
                             <td className="border border-black p-1 font-bold align-top h-12 text-center">항목/수량</td>

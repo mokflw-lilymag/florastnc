@@ -36,10 +36,14 @@ import { AccessDenied } from "@/components/access-denied";
 
 import { OrderOutsourceDialog } from "./components/order-outsource-dialog";
 
+import { exportOrdersToExcel } from "@/lib/excel-export";
+import { createClient } from "@/utils/supabase/client";
+
 export default function OrdersPage() {
   const { profile, isLoading: authLoading } = useAuth();
   const plan = profile?.tenants?.plan || "free";
   const isSuperAdmin = profile?.role === 'super_admin';
+  const supabase = createClient();
 
   const { 
     orders, 
@@ -54,6 +58,7 @@ export default function OrdersPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedReceiptType, setSelectedReceiptType] = useState("all");
+  const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
   const [isOrderDetailOpen, setIsOrderDetailOpen] = useState(false);
   const [isOrderEditOpen, setIsOrderEditOpen] = useState(false);
   const [isOutsourceOpen, setIsOutsourceOpen] = useState(false);
@@ -61,9 +66,90 @@ export default function OrdersPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isMessagePrintOpen, setIsMessagePrintOpen] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
+  const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
   
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  const handleToggleSelectAll = () => {
+    if (selectedOrderIds.length === filteredOrders.length) {
+      setSelectedOrderIds([]);
+    } else {
+      setSelectedOrderIds(filteredOrders.map(o => o.id));
+    }
+  };
+
+  const handleToggleSelectOne = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedOrderIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkStatusChange = async (status: 'completed' | 'processing') => {
+    if (selectedOrderIds.length === 0) return;
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ status })
+        .in('id', selectedOrderIds);
+      
+      if (error) throw error;
+      toast.success(`${selectedOrderIds.length}건의 주문 상태가 변경되었습니다.`);
+      setSelectedOrderIds([]);
+      // Refresh
+      const start = new Date(new Date().getFullYear(), 0, 1);
+      const end = new Date(new Date().getFullYear(), 11, 31);
+      fetchOrdersByRange(start, end);
+    } catch (e) {
+      toast.error("상태 변경에 실패했습니다.");
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedOrderIds.length === 0) return;
+    try {
+      for (const id of selectedOrderIds) {
+        await deleteOrder(id);
+      }
+      toast.success(`${selectedOrderIds.length}건의 주문이 삭제되었습니다.`);
+      setSelectedOrderIds([]);
+    } catch (e) {
+      toast.error("삭제에 실패했습니다.");
+    } finally {
+      setIsBulkDeleteDialogOpen(false);
+    }
+  };
+
+  // 5. 자동 주문 완료 처리 (과거 주문)
+  useEffect(() => {
+    const autoClose = async () => {
+      // 1일 경과된 '준비중' 주문을 자동으로 '완료' 처리
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const limit = yesterday.toISOString().split('T')[0];
+
+      const { data: pastOrders } = await supabase
+        .from('orders')
+        .select('id, status, order_date')
+        .eq('status', 'processing')
+        .lte('order_date', limit);
+
+      if (pastOrders && pastOrders.length > 0) {
+        for (const order of pastOrders) {
+          await supabase.from('orders').update({ status: 'completed' }).eq('id', order.id);
+        }
+        console.log(`${pastOrders.length}개의 과거 주문이 자동 완료 처리되었습니다.`);
+        // Refresh orders if any were updated
+        const start = new Date(new Date().getFullYear(), 0, 1);
+        const end = new Date(new Date().getFullYear(), 11, 31);
+        fetchOrdersByRange(start, end);
+      }
+    };
+    if (orders.length > 0 && !loading) {
+      autoClose();
+    }
+  }, [orders.length, loading, fetchOrdersByRange]);
 
   useEffect(() => {
     // Handle returning from print preview with openMessagePrint param
@@ -172,6 +258,19 @@ export default function OrdersPage() {
     }
   };
 
+  const handleExcelExport = () => {
+    try {
+      if (filteredOrders.length === 0) {
+        toast.error("내보낼 주문 데이터가 없습니다.");
+        return;
+      }
+      exportOrdersToExcel(filteredOrders);
+      toast.success("엑셀 파일이 다운로드되었습니다.");
+    } catch (error) {
+      toast.error("엑셀 내보내기 중 오류가 발생했습니다.");
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'completed': return <Badge variant="default" className="bg-emerald-500 rounded-full px-3 text-[11px] font-light">완료</Badge>;
@@ -269,42 +368,61 @@ export default function OrdersPage() {
         <CardHeader className="pb-3 border-b border-gray-50 bg-gray-50/30">
           <div className="flex flex-col md:flex-row gap-4 justify-between items-center sm:items-end">
             <div className="flex flex-wrap gap-2 w-full md:w-auto">
-              <div className="relative w-full md:w-80">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-slate-700" />
-                <Input
-                  type="search"
-                  placeholder="주문자, 받는분, 연락처, 주문번호 검색"
-                  className="pl-10 h-10 rounded-xl border-gray-200 focus:ring-primary/20 text-xs font-medium"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              <Select value={selectedStatus} onValueChange={(val) => val && setSelectedStatus(val)}>
-                <SelectTrigger className="w-[120px] h-10 rounded-xl border-gray-200 text-xs font-light">
-                  <SelectValue placeholder="상태" />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl">
-                  <SelectItem value="all" className="text-xs font-medium">전체 상태</SelectItem>
-                  <SelectItem value="processing" className="text-xs font-medium">준비중</SelectItem>
-                  <SelectItem value="completed" className="text-xs font-medium">완료</SelectItem>
-                  <SelectItem value="canceled" className="text-xs font-medium">취소</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={selectedReceiptType} onValueChange={(val) => val && setSelectedReceiptType(val)}>
-                <SelectTrigger className="w-[120px] h-10 rounded-xl border-gray-200 text-xs font-light">
-                  <SelectValue placeholder="수령방식" />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl">
-                  <SelectItem value="all" className="text-xs font-medium">전체 수령</SelectItem>
-                  <SelectItem value="delivery_reservation" className="text-xs font-medium">배송</SelectItem>
-                  <SelectItem value="pickup_reservation" className="text-xs font-medium">픽업</SelectItem>
-                  <SelectItem value="store_pickup" className="text-xs font-medium">매장픽업</SelectItem>
-                </SelectContent>
-              </Select>
+              {selectedOrderIds.length > 0 ? (
+                <div className="flex items-center gap-2 animate-in slide-in-from-left-2 transition-all">
+                  <span className="text-xs font-bold text-slate-900 bg-white px-3 h-10 flex items-center rounded-xl border border-slate-200">
+                    {selectedOrderIds.length}건 선택됨
+                  </span>
+                  <Button variant="outline" size="sm" onClick={() => handleBulkStatusChange('completed')} className="text-emerald-600 border-emerald-200 hover:bg-emerald-50 h-10 rounded-xl px-4 text-xs">
+                    <CheckCircle2 className="w-4 h-4 mr-2" /> 완료 처리
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setIsBulkDeleteDialogOpen(true)} className="text-rose-600 border-rose-200 hover:bg-rose-50 h-10 rounded-xl px-4 text-xs">
+                    <Trash2 className="w-4 h-4 mr-2" /> 취소/삭제
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => setSelectedOrderIds([])} className="h-10 px-3 hover:bg-white rounded-xl text-slate-400">
+                    <XCircle className="w-4 h-4 shadow-none" />
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <div className="relative w-full md:w-80">
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-slate-700 font-light" />
+                    <Input
+                      type="search"
+                      placeholder="주문자, 받는분, 연락처, 주문번호 검색"
+                      className="pl-10 h-10 rounded-xl border-gray-200 focus:ring-primary/20 text-xs font-medium"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </div>
+                  <Select value={selectedStatus} onValueChange={(val) => val && setSelectedStatus(val)}>
+                    <SelectTrigger className="w-[120px] h-10 rounded-xl border-gray-200 text-xs font-light">
+                      <SelectValue placeholder="상태" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      <SelectItem value="all" className="text-xs font-medium">전체 상태</SelectItem>
+                      <SelectItem value="processing" className="text-xs font-medium">준비중</SelectItem>
+                      <SelectItem value="completed" className="text-xs font-medium">완료</SelectItem>
+                      <SelectItem value="canceled" className="text-xs font-medium">취소</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={selectedReceiptType} onValueChange={(val) => val && setSelectedReceiptType(val)}>
+                    <SelectTrigger className="w-[120px] h-10 rounded-xl border-gray-200 text-xs font-light">
+                      <SelectValue placeholder="수령방식" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      <SelectItem value="all" className="text-xs font-medium">전체 수령</SelectItem>
+                      <SelectItem value="delivery_reservation" className="text-xs font-medium">배송</SelectItem>
+                      <SelectItem value="pickup_reservation" className="text-xs font-medium">픽업</SelectItem>
+                      <SelectItem value="store_pickup" className="text-xs font-medium">매장픽업</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </>
+              )}
             </div>
             <div className="flex gap-2">
-                <Button variant="ghost" size="sm" className="text-slate-700 h-10 px-3 hover:bg-gray-100 rounded-xl">
-                   <Download className="w-4 h-4 mr-2" /> 엑셀
+                <Button variant="ghost" size="sm" onClick={handleExcelExport} className="text-slate-700 h-10 px-3 hover:bg-gray-100 rounded-xl">
+                    <Download className="w-4 h-4 mr-2 shadow-none" /> 엑셀 다운로드
                 </Button>
             </div>
           </div>
@@ -317,9 +435,17 @@ export default function OrdersPage() {
           ) : (
             <div className="overflow-x-auto">
               <Table>
-                <TableHeader className="bg-slate-50 border-y border-slate-100/50">
+                <TableHeader className="bg-white border-y border-slate-100">
                   <TableRow className="hover:bg-transparent border-none">
-                    <TableHead className="text-slate-900 font-medium py-4 px-6 text-[12px] uppercase tracking-wider">주문일시</TableHead>
+                    <TableHead className="w-[50px] px-6">
+                      <input 
+                        type="checkbox" 
+                        className="rounded border-slate-200 h-4 w-4"
+                        checked={selectedOrderIds.length > 0 && selectedOrderIds.length === filteredOrders.length}
+                        onChange={handleToggleSelectAll}
+                      />
+                    </TableHead>
+                    <TableHead className="text-slate-900 font-medium py-4 text-[12px] uppercase tracking-wider">주문일시</TableHead>
                     <TableHead className="text-slate-900 font-medium py-4 text-[12px] uppercase tracking-wider">주문번호</TableHead>
                     <TableHead className="text-slate-900 font-medium py-4 text-[12px] uppercase tracking-wider">주문자/수령인</TableHead>
                     <TableHead className="text-slate-900 font-medium py-4 text-center text-[12px] uppercase tracking-wider">수령방식</TableHead>
@@ -331,19 +457,30 @@ export default function OrdersPage() {
                 <TableBody>
                   {filteredOrders.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="h-40 text-center text-slate-700 font-medium font-light">검색된 주문 내역이 없습니다.</TableCell>
+                      <TableCell colSpan={7} className="h-40 text-center text-slate-700 font-light">검색된 주문 내역이 없습니다.</TableCell>
                     </TableRow>
                   ) : (
                     filteredOrders.map((order) => (
                       <TableRow 
                         key={order.id} 
-                        className="cursor-pointer hover:bg-gray-50/80 transition-colors border-b last:border-0 h-16"
+                        className={cn(
+                          "cursor-pointer hover:bg-gray-50/80 transition-colors border-b last:border-0 h-16",
+                          selectedOrderIds.includes(order.id) && "bg-indigo-50/40 hover:bg-indigo-50/60"
+                        )}
                         onClick={() => handleRowClick(order)}
                       >
-                        <TableCell className="px-6 py-3">
+                        <TableCell className="px-6 py-3" onClick={(e) => handleToggleSelectOne(order.id, e)}>
+                          <input 
+                            type="checkbox" 
+                            className="rounded border-slate-200 h-4 w-4"
+                            checked={selectedOrderIds.includes(order.id)}
+                            readOnly
+                          />
+                        </TableCell>
+                        <TableCell className="py-3">
                            <div className="flex flex-col">
-                              <span className="font-light text-gray-900 text-xs">{format(parseDate(order.order_date), 'MM/dd')}</span>
-                              <span className="text-[10px] text-slate-700 font-light">{format(parseDate(order.order_date), 'HH:mm')}</span>
+                              <span className="font-light text-gray-900 text-xs">{format(parseISO(order.order_date), 'MM/dd')}</span>
+                              <span className="text-[10px] text-slate-700 font-light">{format(parseISO(order.order_date), 'HH:mm')}</span>
                            </div>
                         </TableCell>
                         <TableCell>
@@ -386,6 +523,9 @@ export default function OrdersPage() {
                               <DropdownMenuItem onClick={() => handlePrintClick(order)} className="rounded-xl gap-2 font-light py-2.5 text-xs">
                                 <Printer className="h-4 w-4 text-emerald-500" /> 메시지/카드 인쇄
                               </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => router.push(`/dashboard/orders/print-ribbon?orderId=${order.id}`)} className="rounded-xl gap-2 font-light py-2.5 text-xs">
+                                <Target className="h-4 w-4 text-indigo-500" /> 리본 출력
+                              </DropdownMenuItem>
                               <DropdownMenuSeparator className="mx-1 bg-gray-50" />
                               <DropdownMenuItem onClick={() => handleEditClick(order)} className="rounded-xl gap-2 font-light py-2.5 text-xs">
                                 <PlusCircle className="h-4 w-4 text-blue-500" /> 주문 정보 수정
@@ -397,7 +537,7 @@ export default function OrdersPage() {
                                 {order.status === 'completed' ? <Loader2 className="h-4 w-4 text-amber-500" /> : <CheckCircle2 className="h-4 w-4 text-emerald-500 font-light" />}
                                 {order.status === 'completed' ? '준비중으로 복구' : '완료 처리'}
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleOutsourceClick(order)} className="rounded-xl gap-2 font-light py-2.5 text-indigo-600 text-xs">
+                              <DropdownMenuItem onClick={() => handleOutsourceClick(order)} className="rounded-xl gap-2 font-light py-2.5 text-indigo-600 text-xs text-xs">
                                 <Package className="h-4 w-4" /> 외부 연합 발주
                               </DropdownMenuItem>
                               <DropdownMenuSeparator className="mx-1 bg-gray-50" />
@@ -464,6 +604,24 @@ export default function OrdersPage() {
           <AlertDialogFooter className="pt-4">
             <AlertDialogCancel className="rounded-xl font-light h-11">아니오, 취소함</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} className="bg-rose-600 hover:bg-rose-700 rounded-xl font-light h-11 border-none">네, 삭제하겠습니다</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={isBulkDeleteDialogOpen} onOpenChange={setIsBulkDeleteDialogOpen}>
+        <AlertDialogContent className="rounded-3xl border-none shadow-2xl">
+          <AlertDialogHeader>
+            <div className="w-12 h-12 bg-rose-100 rounded-full flex items-center justify-center mb-4">
+               <AlertCircle className="w-6 h-6 text-rose-600" />
+            </div>
+            <AlertDialogTitle className="text-xl font-light text-slate-900">선택된 {selectedOrderIds.length}건을 삭제하시겠습니까?</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-500 font-light pt-2">
+              이 작업은 되돌릴 수 없으며, 선택된 모든 주문이 영구적으로 삭제됩니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="pt-4">
+            <AlertDialogCancel className="rounded-xl font-light h-11">취소</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBulkDelete} className="bg-rose-600 hover:bg-rose-700 rounded-xl font-light h-11 border-none">네, 모두 삭제합니다</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

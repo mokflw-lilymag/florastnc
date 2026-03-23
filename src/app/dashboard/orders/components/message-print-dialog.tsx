@@ -69,9 +69,23 @@ export function MessagePrintDialog({ isOpen, onOpenChange, onSubmit, order }: Me
 
   useEffect(() => {
     if (isOpen && order) {
-      const parts = (order.memo || "").split('\n---\n');
-      setMessageContent(parts[0] || "");
-      setSenderName(parts.length > 1 ? parts[1] : "");
+      // 1. Check order level message first
+      if (order.message && order.message.content) {
+        const fullContent = order.message.content;
+        if (fullContent.includes(' / ')) {
+          const parts = fullContent.split(' / ');
+          setMessageContent(parts[0] || "");
+          setSenderName(parts.slice(1).join(' / ') || "");
+        } else {
+          setMessageContent(fullContent);
+          setSenderName(order.orderer?.name || "");
+        }
+      } else {
+        // Fallback or legacy (memo check)
+        const parts = (order.memo || "").split('\n---\n');
+        setMessageContent(parts[0] || "");
+        setSenderName(parts.length > 1 ? parts[1] : (order.orderer?.name || ""));
+      }
     }
   }, [isOpen, order]);
 
