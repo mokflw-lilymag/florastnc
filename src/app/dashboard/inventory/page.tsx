@@ -166,7 +166,7 @@ export default function InventoryPage() {
             variant="outline" 
             size="sm" 
             onClick={() => exportDataToExcel('material', filteredMaterials)}
-            className="border-slate-200"
+            className="border-slate-200 text-slate-900 font-medium"
           >
             <Download className="h-4 w-4 mr-2 text-green-600" />
             데이터 다운로드
@@ -176,9 +176,9 @@ export default function InventoryPage() {
             variant="outline" 
             size="sm" 
             onClick={() => downloadTemplate('material')}
-            className="border-slate-200"
+            className="border-slate-200 text-slate-900 font-medium"
           >
-            <Download className="h-4 w-4 mr-2" />
+            <Download className="h-4 w-4 mr-2 text-slate-500" />
             양식 다운로드
           </Button>
 
