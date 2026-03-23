@@ -34,18 +34,46 @@ export default function CategorySettingsPage() {
   const [newMatMid, setNewMatMid] = useState("");
 
   useEffect(() => {
-    if (productCategories) setProdCats(JSON.parse(JSON.stringify(productCategories)));
-    if (materialCategories) setMatCats(JSON.parse(JSON.stringify(materialCategories)));
-  }, [productCategories, materialCategories]);
+    if (productCategories && !prodCats) setProdCats(JSON.parse(JSON.stringify(productCategories)));
+    if (materialCategories && !matCats) setMatCats(JSON.parse(JSON.stringify(materialCategories)));
+  }, [productCategories, materialCategories, prodCats, matCats]);
 
-  if (loading && !prodCats && !matCats) {
-    return (
-      <div className="p-6 space-y-6">
-        <Skeleton className="h-12 w-64" />
-        <Skeleton className="h-96 w-full" />
-      </div>
-    );
-  }
+  // Handle empty state gracefully
+  const ensureProdCats = () => {
+    if (!prodCats) return { main: [], mid: {} };
+    return prodCats;
+  };
+  
+  const ensureMatCats = () => {
+    if (!matCats) return { main: [], mid: {} };
+    return matCats;
+  };
+
+  const handleAddProdMain = () => {
+    if (!newProdMain) return;
+    const current = ensureProdCats();
+    if (current.main.includes(newProdMain)) return toast.error("이미 존재하는 카테고리입니다.");
+    
+    setProdCats({
+      main: [...current.main, newProdMain],
+      mid: { ...current.mid, [newProdMain]: [] }
+    });
+    setNewProdMain("");
+    setSelectedProdMain(newProdMain);
+  };
+
+  const handleAddMatMain = () => {
+    if (!newMatMain) return;
+    const current = ensureMatCats();
+    if (current.main.includes(newMatMain)) return toast.error("이미 존재하는 카테고리입니다.");
+    
+    setMatCats({
+      main: [...current.main, newMatMain],
+      mid: { ...current.mid, [newMatMain]: [] }
+    });
+    setNewMatMain("");
+    setSelectedMatMain(newMatMain);
+  };
 
   return (
     <div className="max-w-7xl mx-auto space-y-10 pb-20">
@@ -93,20 +121,11 @@ export default function CategorySettingsPage() {
                   placeholder="새 상품 대분류 입력" 
                   value={newProdMain} 
                   onChange={(e) => setNewProdMain(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && newProdMain && prodCats) {
-                      if (prodCats.main.includes(newProdMain)) return toast.error("이미 존재합니다.");
-                      setProdCats({...prodCats, main: [...prodCats.main, newProdMain], mid: {...prodCats.mid, [newProdMain]: []}});
-                      setNewProdMain("");
-                    }
-                  }}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddProdMain()}
                 />
-                <Button onClick={() => {
-                  if (!newProdMain || !prodCats) return;
-                  if (prodCats.main.includes(newProdMain)) return toast.error("이미 존재합니다.");
-                  setProdCats({...prodCats, main: [...prodCats.main, newProdMain], mid: {...prodCats.mid, [newProdMain]: []}});
-                  setNewProdMain("");
-                }} size="icon" className="shrink-0 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"><Plus className="h-4 w-4" /></Button>
+                <Button onClick={handleAddProdMain} size="icon" className="shrink-0 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50">
+                  <Plus className="h-4 w-4" />
+                </Button>
               </div>
               <div className="space-y-1 max-h-[400px] overflow-y-auto pr-1">
                 {prodCats?.main.map(cat => (
@@ -146,19 +165,21 @@ export default function CategorySettingsPage() {
                       value={newProdMid} 
                       onChange={(e) => setNewProdMid(e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter' && newProdMid && prodCats) {
-                          const list = prodCats.mid[selectedProdMain] || [];
+                        if (e.key === 'Enter' && newProdMid && selectedProdMain) {
+                          const current = ensureProdCats();
+                          const list = current.mid[selectedProdMain] || [];
                           if (list.includes(newProdMid)) return toast.error("이미 존재합니다.");
-                          setProdCats({...prodCats, mid: {...prodCats.mid, [selectedProdMain]: [...list, newProdMid]}});
+                          setProdCats({...current, mid: {...current.mid, [selectedProdMain]: [...list, newProdMid]}});
                           setNewProdMid("");
                         }
                       }}
                     />
                     <Button onClick={() => {
-                      if (newProdMid && prodCats) {
-                        const list = prodCats.mid[selectedProdMain] || [];
+                      if (newProdMid && selectedProdMain) {
+                        const current = ensureProdCats();
+                        const list = current.mid[selectedProdMain] || [];
                         if (list.includes(newProdMid)) return toast.error("이미 존재합니다.");
-                        setProdCats({...prodCats, mid: {...prodCats.mid, [selectedProdMain]: [...list, newProdMid]}});
+                        setProdCats({...current, mid: {...current.mid, [selectedProdMain]: [...list, newProdMid]}});
                         setNewProdMid("");
                       }
                     }} size="icon" className="shrink-0"><Plus className="h-4 w-4" /></Button>
@@ -224,20 +245,11 @@ export default function CategorySettingsPage() {
                   placeholder="새 자재 대분류 입력" 
                   value={newMatMain} 
                   onChange={(e) => setNewMatMain(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && newMatMain && matCats) {
-                      if (matCats.main.includes(newMatMain)) return toast.error("이미 존재합니다.");
-                      setMatCats({...matCats, main: [...matCats.main, newMatMain], mid: {...matCats.mid, [newMatMain]: []}});
-                      setNewMatMain("");
-                    }
-                  }}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddMatMain()}
                 />
-                <Button onClick={() => {
-                  if (!newMatMain || !matCats) return;
-                  if (matCats.main.includes(newMatMain)) return toast.error("이미 존재합니다.");
-                  setMatCats({...matCats, main: [...matCats.main, newMatMain], mid: {...matCats.mid, [newMatMain]: []}});
-                  setNewMatMain("");
-                }} size="icon" className="shrink-0 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"><Plus className="h-4 w-4" /></Button>
+                <Button onClick={handleAddMatMain} size="icon" className="shrink-0 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50">
+                  <Plus className="h-4 w-4" />
+                </Button>
               </div>
               <div className="space-y-1 max-h-[400px] overflow-y-auto pr-1">
                 {matCats?.main.map(cat => (
@@ -277,19 +289,21 @@ export default function CategorySettingsPage() {
                       value={newMatMid} 
                       onChange={(e) => setNewMatMid(e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter' && newMatMid && matCats) {
-                          const list = matCats.mid[selectedMatMain] || [];
+                        if (e.key === 'Enter' && newMatMid && selectedMatMain) {
+                          const current = ensureMatCats();
+                          const list = current.mid[selectedMatMain] || [];
                           if (list.includes(newMatMid)) return toast.error("이미 존재합니다.");
-                          setMatCats({...matCats, mid: {...matCats.mid, [selectedMatMain]: [...list, newMatMid]}});
+                          setMatCats({...current, mid: {...current.mid, [selectedMatMain]: [...list, newMatMid]}});
                           setNewMatMid("");
                         }
                       }}
                     />
                     <Button onClick={() => {
-                      if (newMatMid && matCats) {
-                        const list = matCats.mid[selectedMatMain] || [];
+                      if (newMatMid && selectedMatMain) {
+                        const current = ensureMatCats();
+                        const list = current.mid[selectedMatMain] || [];
                         if (list.includes(newMatMid)) return toast.error("이미 존재합니다.");
-                        setMatCats({...matCats, mid: {...matCats.mid, [selectedMatMain]: [...list, newMatMid]}});
+                        setMatCats({...current, mid: {...current.mid, [selectedMatMain]: [...list, newMatMid]}});
                         setNewMatMid("");
                       }
                     }} size="icon" className="shrink-0"><Plus className="h-4 w-4" /></Button>
