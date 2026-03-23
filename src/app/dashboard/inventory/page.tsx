@@ -19,16 +19,17 @@ import {
   Download,
   Upload,
   Settings2,
-  RefreshCw
+  RefreshCw,
+  Building2
 } from 'lucide-react';
 import { useMaterials, Material } from '@/hooks/use-materials';
+import { useSuppliers } from '@/hooks/use-suppliers';
 import { SAMPLE_MATERIALS } from "@/utils/sample-data";
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { format } from 'date-fns';
 import { downloadTemplate, parseExcel, exportDataToExcel } from "@/utils/excel";
 import { useSettings } from "@/hooks/use-settings";
 import Link from 'next/link';
@@ -36,8 +37,9 @@ import { toast } from 'sonner';
 
 export default function InventoryPage() {
   const { materials, loading: materialsLoading, stats, addMaterial, updateMaterial, deleteMaterial } = useMaterials();
+  const { suppliers, loading: suppliersLoading } = useSuppliers();
   const { materialCategories, loading: settingsLoading } = useSettings();
-  const loading = materialsLoading || settingsLoading;
+  const loading = materialsLoading || settingsLoading || suppliersLoading;
   
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -59,6 +61,7 @@ export default function InventoryPage() {
     color: "",
     stock: 0,
     supplier: "",
+    supplier_id: "",
     memo: ""
   });
 
@@ -71,7 +74,6 @@ export default function InventoryPage() {
       const data = await parseExcel(file);
       let successCount = 0;
       for (const row of data) {
-        // Handle mapping from headers to payload
         const payload: Partial<Material> = {
           name: row['자재명']?.toString() || '',
           main_category: row['대분류']?.toString() || '',
@@ -138,6 +140,7 @@ export default function InventoryPage() {
       color: "",
       stock: 0,
       supplier: "",
+      supplier_id: "",
       memo: ""
     });
   };
@@ -148,14 +151,22 @@ export default function InventoryPage() {
       m.main_category.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (m.mid_category && m.mid_category.toLowerCase().includes(searchTerm.toLowerCase())) ||
       m.supplier?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (m.supplier_id && suppliers.find(s => s.id === m.supplier_id)?.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
       m.id.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }, [materials, searchTerm]);
+  }, [materials, searchTerm, suppliers]);
 
   const openEdit = (m: Material) => {
     setEditingMaterial(m);
     setFormData(m);
     setIsAddDialogOpen(true);
+  };
+
+  const getSupplierName = (m: Material) => {
+      if (m.supplier_id) {
+          return suppliers.find(s => s.id === m.supplier_id)?.name || m.supplier || "-";
+      }
+      return m.supplier || "-";
   };
 
   return (
@@ -166,10 +177,10 @@ export default function InventoryPage() {
         icon={Layers}
       >
         <div className="flex flex-wrap items-center justify-end gap-2">
-          <Link href="/dashboard/settings/categories">
+          <Link href="/dashboard/suppliers">
             <Button variant="ghost" size="sm" className="hidden sm:flex text-slate-500 hover:text-slate-900 border border-transparent hover:border-slate-200">
-              <Settings2 className="h-4 w-4 mr-2" />
-              카테고리 설정
+              <Building2 className="h-4 w-4 mr-2" />
+              거래처 관리
             </Button>
           </Link>
 
@@ -215,7 +226,7 @@ export default function InventoryPage() {
             className="bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20 transition-all active:scale-95"
             onClick={() => {
               setEditingMaterial(null);
-              setFormData({ name: "", main_category: CATEGORIES.main[0] || "생화", mid_category: "", unit: "ea", spec: "", price: 0, color: "", stock: 0, supplier: "", memo: "" });
+              setFormData({ name: "", main_category: CATEGORIES.main[0] || "생화", mid_category: "", unit: "ea", spec: "", price: 0, color: "", stock: 0, supplier: "", supplier_id: "", memo: "" });
               setIsAddDialogOpen(true);
             }}
           >
@@ -344,7 +355,7 @@ export default function InventoryPage() {
                               </Button>
                               <Button onClick={() => {
                                 setEditingMaterial(null);
-                                setFormData({ name: "", main_category: CATEGORIES.main[0] || "생화", mid_category: "", unit: "ea", spec: "", price: 0, color: "", stock: 0, supplier: "", memo: "" });
+                                setFormData({ name: "", main_category: CATEGORIES.main[0] || "생화", mid_category: "", unit: "ea", spec: "", price: 0, color: "", stock: 0, supplier: "", supplier_id: "", memo: "" });
                                 setIsAddDialogOpen(true);
                               }} className="bg-primary hover:bg-primary/90 text-white font-bold">
                                 <Plus className="w-4 h-4 mr-2" />
@@ -405,7 +416,7 @@ export default function InventoryPage() {
                             {material.stock.toLocaleString()}
                           </span>
                         </TableCell>
-                        <TableCell className="text-gray-500 text-sm">{material.supplier || '-'}</TableCell>
+                        <TableCell className="text-gray-500 text-sm">{getSupplierName(material)}</TableCell>
                         <TableCell className="text-gray-400 text-xs max-w-[120px] truncate">{material.memo || '-'}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -445,13 +456,13 @@ export default function InventoryPage() {
             <DialogTitle className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-orange-500">
               {editingMaterial ? "자재 정보 수정" : "새 자재 등록"}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-slate-500">
               재고 관리를 위해 자재의 상세 정보를 입력해 주세요.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right font-semibold">자재명</Label>
+              <Label htmlFor="name" className="text-right font-semibold text-slate-700">자재명</Label>
               <Input
                 id="name"
                 value={formData.name}
@@ -461,7 +472,7 @@ export default function InventoryPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid grid-cols-2 items-center gap-2">
-                <Label className="text-right font-semibold">대분류</Label>
+                <Label className="text-right font-semibold text-slate-700">대분류</Label>
                 <Select 
                   value={formData.main_category || ""} 
                   onValueChange={(val) => setFormData({...formData, main_category: val as string})}
@@ -487,7 +498,7 @@ export default function InventoryPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
                <div className="grid grid-cols-2 items-center gap-2">
-                 <Label className="text-right font-semibold">단위</Label>
+                 <Label className="text-right font-semibold text-slate-700">단위</Label>
                  <Input
                    value={formData.unit}
                    onChange={(e) => setFormData({...formData, unit: e.target.value})}
@@ -495,7 +506,7 @@ export default function InventoryPage() {
                  />
                </div>
                <div className="grid grid-cols-2 items-center gap-2">
-                  <Label className="text-right font-semibold">규격</Label>
+                  <Label className="text-right font-semibold text-slate-700">규격</Label>
                   <Input
                     value={formData.spec || ""}
                     onChange={(e) => setFormData({...formData, spec: e.target.value})}
@@ -504,7 +515,7 @@ export default function InventoryPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid grid-cols-2 items-center gap-2">
-                <Label className="text-right font-semibold">가격</Label>
+                <Label className="text-right font-semibold text-slate-700">가격</Label>
                 <Input
                   type="number"
                   value={formData.price}
@@ -512,7 +523,7 @@ export default function InventoryPage() {
                 />
               </div>
               <div className="grid grid-cols-2 items-center gap-2">
-                <Label className="text-right font-semibold">색상</Label>
+                <Label className="text-right font-semibold text-slate-700">색상</Label>
                 <Input
                   value={formData.color || ""}
                   onChange={(e) => setFormData({...formData, color: e.target.value})}
@@ -521,7 +532,7 @@ export default function InventoryPage() {
               </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="stock" className="text-right font-semibold">현재 재고</Label>
+              <Label htmlFor="stock" className="text-right font-semibold text-slate-700">현재 재고</Label>
               <Input
                 id="stock"
                 type="number"
@@ -531,16 +542,31 @@ export default function InventoryPage() {
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="supplier" className="text-right font-semibold">공급업체</Label>
-              <Input
-                id="supplier"
-                value={formData.supplier || ""}
-                onChange={(e) => setFormData({...formData, supplier: e.target.value})}
-                className="col-span-3"
-              />
+              <Label htmlFor="supplier_select" className="text-right font-semibold text-slate-700">공급업체</Label>
+              <div className="col-span-3 space-y-2">
+                  <Select 
+                    value={formData.supplier_id || "none"} 
+                    onValueChange={(val: string | null) => setFormData({...formData, supplier_id: val === "none" || !val ? "" : val})}
+                  >
+                    <SelectTrigger id="supplier_select">
+                      <SelectValue placeholder="등록된 거래처 선택" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">직접 입력 또는 선택안함</SelectItem>
+                      {suppliers.map(s => (
+                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    placeholder="직접 입력 (위에서 선택하지 않은 경우)"
+                    value={formData.supplier || ""}
+                    onChange={(e) => setFormData({...formData, supplier: e.target.value})}
+                  />
+              </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="memo" className="text-right font-semibold">메모</Label>
+              <Label htmlFor="memo" className="text-right font-semibold text-slate-700">메모</Label>
               <Input
                 id="memo"
                 value={formData.memo || ""}

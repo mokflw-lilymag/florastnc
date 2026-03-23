@@ -162,11 +162,11 @@ export function OrderOutsourceDialog({
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
+                    <DialogTitle className="flex items-center gap-2 text-slate-900">
                         <Package className="h-5 w-5" />
                         {isEditMode ? "외부 발주 수정" : "외부 발주 위탁 처리"}
                     </DialogTitle>
-                    <DialogDescription>
+                    <DialogDescription className="text-slate-500">
                         타 업체에 주문을 위탁하고 지출을 자동으로 관리합니다.
                     </DialogDescription>
                 </DialogHeader>
@@ -184,7 +184,7 @@ export function OrderOutsourceDialog({
                     </div>
 
                     <div className="space-y-3">
-                        <Label className="font-light">위탁처 (파트너) 선택 *</Label>
+                        <Label className="font-light text-slate-700">위탁처 (파트너) 선택 *</Label>
                         
                         <div className="relative">
                             <Button
@@ -250,7 +250,7 @@ export function OrderOutsourceDialog({
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="partnerPrice" className="font-light">발주 금액 *</Label>
+                        <Label htmlFor="partnerPrice" className="font-light text-slate-700">발주 금액 *</Label>
                         <div className="relative">
                             <span className="absolute left-3 top-1/2 -translate-y-1/2 font-light text-slate-400">₩</span>
                             <Input
@@ -295,7 +295,7 @@ export function OrderOutsourceDialog({
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="notes" className="font-light">비고 (위탁처 전달 사항)</Label>
+                        <Label htmlFor="notes" className="font-light text-slate-700">비고 (위탁처 전달 사항)</Label>
                         <Textarea
                             id="notes"
                             placeholder="특이사항 입력"

@@ -417,7 +417,7 @@ export default function TenantsPage() {
           <div className="grid gap-6 py-4">
             <div className="grid gap-2">
               <Label className="font-normal text-slate-600 text-xs ml-1 border-0">서비스 플랜 선택</Label>
-              <Select value={editPlan} onValueChange={setEditPlan}>
+              <Select value={editPlan} onValueChange={(val) => setEditPlan(val || 'free')}>
                 <SelectTrigger className="rounded-2xl h-12 font-normal bg-slate-50/50 border-slate-100 text-slate-900 focus:bg-white border">
                   <SelectValue placeholder="플랜 선택" />
                 </SelectTrigger>
@@ -460,7 +460,7 @@ export default function TenantsPage() {
             <div className="grid grid-cols-2 gap-4 items-start border-0">
               <div className="grid gap-2 border-0">
                 <Label className="font-normal text-slate-600 text-xs ml-1 border-0">계정 상태</Label>
-                <Select value={editStatus} onValueChange={setEditStatus}>
+                <Select value={editStatus} onValueChange={(val) => setEditStatus(val || 'active')}>
                   <SelectTrigger className="rounded-2xl h-12 font-normal bg-slate-50/50 border-slate-100 text-slate-900 focus:bg-white border">
                     <SelectValue placeholder="상태 선택" />
                   </SelectTrigger>

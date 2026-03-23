@@ -807,7 +807,7 @@ export default function SettingsPage() {
                       <DialogTitle className="flex items-center gap-2 text-rose-600">
                         <AlertCircle className="h-5 w-5" /> {initConfirmStep === 0 ? "경고: 정말 초기화하시겠습니까?" : initConfirmStep === 1 ? "마지막 경고입니다." : "최종 확인"}
                       </DialogTitle>
-                      <DialogDescription className="py-2">
+                      <DialogDescription className="py-2 text-slate-500">
                         {initConfirmStep === 0 && "초기화 시 주문/고객/상품 모든 자료가 삭제됩니다."}
                         {initConfirmStep === 1 && "이 작업은 취소할 수 없습니다. 계속하시려면 아래 확인을 진행하세요."}
                         {initConfirmStep === 2 && `초기화를 원하시면 입력창에 [ ${storeName} 초기화 ] 를 정확히 입력하세요.`}

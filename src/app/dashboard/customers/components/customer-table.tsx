@@ -151,8 +151,8 @@ export function CustomerTable({ customers, onEdit, onDelete, onRowClick }: Custo
                       </DropdownMenu>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>고객 삭제</AlertDialogTitle>
-                          <AlertDialogDescription>
+                          <AlertDialogTitle className="text-slate-900">고객 삭제</AlertDialogTitle>
+                          <AlertDialogDescription className="text-slate-500">
                             정말로 '{customer.name}' 고객 정보를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
                           </AlertDialogDescription>
                         </AlertDialogHeader>

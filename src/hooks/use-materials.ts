@@ -16,6 +16,7 @@ export interface Material {
     color?: string;
     stock: number;
     supplier?: string;
+    supplier_id?: string;
     memo?: string;
     updated_at: string;
 }

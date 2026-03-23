@@ -1,0 +1,22 @@
+src/app/dashboard/orders/new/components/CustomerSection.tsx(8,65): error TS2307: Cannot find module '@/components/ui/command' or its corresponding type declarations.
+src/app/dashboard/orders/new/components/CustomerSection.tsx(12,24): error TS2307: Cannot find module '@/hooks/use-branches' or its corresponding type declarations.
+src/app/dashboard/orders/new/components/FulfillmentSection.tsx(15,10): error TS2614: Module '"@/components/ui/textarea"' has no exported member 'Textarea'. Did you mean to use 'import Textarea from "@/components/ui/textarea"' instead?
+src/app/dashboard/orders/new/components/FulfillmentSection.tsx(318,60): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+src/app/dashboard/orders/new/components/ProductSection.tsx(150,69): error TS2339: Property 'docId' does not exist on type 'Product'.
+src/app/dashboard/orders/new/components/ProductSection.tsx(161,56): error TS2339: Property 'docId' does not exist on type 'Product'.
+src/app/dashboard/orders/new/components/ProductSection.tsx(161,72): error TS2339: Property 'docId' does not exist on type 'Product'.
+src/app/dashboard/orders/new/page.tsx(71,23): error TS2451: Cannot redeclare block-scoped variable 'setIsAnonymous'.
+src/app/dashboard/orders/new/page.tsx(102,10): error TS2451: Cannot redeclare block-scoped variable 'setIsAnonymous'.
+src/app/dashboard/orders/new/page.tsx(288,38): error TS2339: Property 'branch' does not exist on type 'Product'.
+src/app/dashboard/orders/new/page.tsx(381,71): error TS2339: Property 'branch' does not exist on type 'Product'.
+src/app/dashboard/orders/new/page.tsx(398,9): error TS2349: This expression is not callable.
+  No constituent of type 'OrderType' is callable.
+src/app/dashboard/orders/new/page.tsx(606,19): error TS2345: Argument of type '(prevItems: OrderItem[]) => OrderItem[] | undefined' is not assignable to parameter of type 'SetStateAction<OrderItem[]>'.
+  Type '(prevItems: OrderItem[]) => OrderItem[] | undefined' is not assignable to type '(prevState: OrderItem[]) => OrderItem[]'.
+    Type 'OrderItem[] | undefined' is not assignable to type 'OrderItem[]'.
+      Type 'undefined' is not assignable to type 'OrderItem[]'.
+src/app/dashboard/orders/new/page.tsx(636,7): error TS2353: Object literal may only specify known properties, and 'size' does not exist in type 'OrderItem'.
+src/app/dashboard/orders/new/page.tsx(719,46): error TS2304: Cannot find name 'foundOrder'.
+src/app/dashboard/orders/new/page.tsx(719,63): error TS2353: Object literal may only specify known properties, and 'orderType' does not exist in type 'OrderData'.
+src/app/dashboard/orders/new/page.tsx(773,7): error TS1117: An object literal cannot have multiple properties with the same name.
+src/app/dashboard/orders/new/page.tsx(810,7): error TS1117: An object literal cannot have multiple properties with the same name.

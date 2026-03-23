@@ -478,15 +478,15 @@ export default function NewOrderPage() {
       <Dialog open={isCustomProductDialogOpen} onOpenChange={setIsCustomProductDialogOpen}>
         <DialogContent className="rounded-3xl">
           <DialogHeader>
-            <DialogTitle>수동 상품 추가</DialogTitle>
+            <DialogTitle className="text-slate-900">수동 상품 추가</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-               <Label>상품명</Label>
+               <Label className="text-slate-700">상품명</Label>
                <Input value={customProductName} onChange={e => setCustomProductName(e.target.value)} />
             </div>
             <div className="space-y-2">
-               <Label>가격</Label>
+               <Label className="text-slate-700">가격</Label>
                <Input type="number" value={customProductPrice} onChange={e => setCustomProductPrice(e.target.value)} />
             </div>
           </div>
@@ -507,7 +507,7 @@ export default function NewOrderPage() {
             <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
               <Check className="w-10 h-10 text-green-600" />
             </div>
-            <DialogTitle className="text-center text-2xl font-bold">주문 접수 완료!</DialogTitle>
+            <DialogTitle className="text-center text-2xl font-bold text-slate-900">주문 접수 완료!</DialogTitle>
             <DialogDescription className="text-center font-mono text-primary font-bold">
               {lastOrderNumber}
             </DialogDescription>

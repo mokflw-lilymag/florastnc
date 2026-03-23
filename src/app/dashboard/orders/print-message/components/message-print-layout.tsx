@@ -4,12 +4,12 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
 import { Printer, ArrowLeft } from "lucide-react";
 import { useRouter } from 'next/navigation';
-import type { SerializableOrder } from '../page';
+import { Order } from "@/types/order";
 import { cn } from "@/lib/utils";
 import { FONT_CATALOG } from "@/lib/font-catalog";
 
 interface MessagePrintLayoutProps {
-  order: SerializableOrder;
+  order: Order;
   labelType: string;
   startPosition: number;
   messageFont: string;

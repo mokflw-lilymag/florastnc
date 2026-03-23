@@ -147,7 +147,7 @@ export function ProductSection({
                             />
                         </div>
                         <Select onValueChange={(val) => {
-                            const p = allProducts.find(prod => prod.docId === val);
+                            const p = allProducts.find(prod => prod.id === val);
                             if (p) {
                                 onAddProduct(p);
                                 setSearchTerm("");
@@ -158,7 +158,7 @@ export function ProductSection({
                             </SelectTrigger>
                             <SelectContent>
                                 {filteredAllProducts.slice(0, 50).map(p => (
-                                    <SelectItem key={p.docId} value={p.docId} disabled={p.stock <= 0}>
+                                    <SelectItem key={p.id} value={p.id} disabled={p.stock <= 0}>
                                         {p.name} ({p.price.toLocaleString()}원)
                                     </SelectItem>
                                 ))}

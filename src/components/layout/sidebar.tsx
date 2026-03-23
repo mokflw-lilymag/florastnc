@@ -41,6 +41,7 @@ export function Sidebar({ isSuperAdmin, plan, className }: SidebarProps) {
     { name: "📦 재고 관리", href: "/dashboard/inventory", icon: Boxes, tier: ['pro', 'erp_only'] },
     { name: "🌷 상품 카탈로그", href: "/dashboard/products", icon: Boxes, tier: ['pro', 'erp_only'] },
     { name: "👥 고객 관리(CRM)", href: "/dashboard/customers", icon: Users, tier: ['pro', 'erp_only'] },
+    { name: "🤝 거래처 관리", href: "/dashboard/suppliers", icon: Store, tier: ['pro', 'erp_only'] },
     { name: "⚙️ 환경 설정", href: "/dashboard/settings", icon: Settings },
   ];
 

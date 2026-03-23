@@ -7,6 +7,7 @@ export interface Product {
   price: number;
   stock: number;
   supplier: string | null;
+  supplier_id: string | null;
   code: string | null;
   status: 'active' | 'inactive' | 'sold_out';
   extra_data?: any;
@@ -21,6 +22,7 @@ export interface ProductData {
   price?: number;
   stock?: number;
   supplier?: string;
+  supplier_id?: string;
   code?: string;
   status?: 'active' | 'inactive' | 'sold_out';
   extra_data?: any;

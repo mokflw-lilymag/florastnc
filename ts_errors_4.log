@@ -1,0 +1,42 @@
+src/app/dashboard/orders/new/components/CustomerSection.tsx(7,65): error TS2307: Cannot find module '@/components/ui/command' or its corresponding type declarations.
+src/app/dashboard/orders/new/components/CustomerSection.tsx(11,24): error TS2307: Cannot find module '@/hooks/use-branches' or its corresponding type declarations.
+src/app/dashboard/orders/new/components/CustomerSection.tsx(25,28): error TS2304: Cannot find name 'Customer'.
+src/app/dashboard/orders/new/components/CustomerSection.tsx(27,34): error TS2304: Cannot find name 'Customer'.
+src/app/dashboard/orders/new/components/FulfillmentSection.tsx(15,10): error TS2614: Module '"@/components/ui/textarea"' has no exported member 'Textarea'. Did you mean to use 'import Textarea from "@/components/ui/textarea"' instead?
+src/app/dashboard/orders/new/components/FulfillmentSection.tsx(151,49): error TS2322: Type '{ children: Element; asChild: true; }' is not assignable to type 'IntrinsicAttributes & NativeButtonProps & Omit<WithBaseUIEvent<DetailedHTMLProps<ButtonHTMLAttributes<HTMLButtonElement>, HTMLButtonElement>>, "className" | ... 2 more ... | "defaultChecked"> & { ...; } & { ...; }'.
+  Property 'asChild' does not exist on type 'IntrinsicAttributes & NativeButtonProps & Omit<WithBaseUIEvent<DetailedHTMLProps<ButtonHTMLAttributes<HTMLButtonElement>, HTMLButtonElement>>, "className" | ... 2 more ... | "defaultChecked"> & { ...; } & { ...; }'.
+src/app/dashboard/orders/new/components/FulfillmentSection.tsx(175,58): error TS2322: Type '(time: string) => void' is not assignable to type '(value: string | null, eventDetails: SelectRootChangeEventDetails) => void'.
+  Types of parameters 'time' and 'value' are incompatible.
+    Type 'string | null' is not assignable to type 'string'.
+      Type 'null' is not assignable to type 'string'.
+src/app/dashboard/orders/new/components/FulfillmentSection.tsx(318,60): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+src/app/dashboard/orders/new/components/OrderSummarySide.tsx(19,29): error TS2304: Cannot find name 'Product'.
+src/app/dashboard/orders/new/components/ProductSection.tsx(16,15): error TS2304: Cannot find name 'Product'.
+src/app/dashboard/orders/new/components/ProductSection.tsx(21,18): error TS2304: Cannot find name 'Product'.
+src/app/dashboard/orders/new/components/ProductSection.tsx(22,29): error TS2304: Cannot find name 'Product'.
+src/app/dashboard/orders/new/components/ProductSection.tsx(67,52): error TS2304: Cannot find name 'Product'.
+src/app/dashboard/orders/new/page.tsx(38,3): error TS2300: Duplicate identifier 'mid_category'.
+src/app/dashboard/orders/new/page.tsx(39,3): error TS2300: Duplicate identifier 'mid_category'.
+src/app/dashboard/orders/new/page.tsx(39,3): error TS2717: Subsequent property declarations must have the same type.  Property 'mid_category' must be of type 'string | null | undefined', but here has type 'string | undefined'.
+src/app/dashboard/orders/new/page.tsx(68,23): error TS2451: Cannot redeclare block-scoped variable 'setIsAnonymous'.
+src/app/dashboard/orders/new/page.tsx(97,10): error TS2451: Cannot redeclare block-scoped variable 'setIsAnonymous'.
+src/app/dashboard/orders/new/page.tsx(278,23): error TS2554: Expected 0 arguments, but got 1.
+src/app/dashboard/orders/new/page.tsx(283,38): error TS2339: Property 'branch' does not exist on type 'Product'.
+src/app/dashboard/orders/new/page.tsx(375,23): error TS2345: Argument of type '{ quantity: number; id: string; name: string; price: number; source?: "manual" | "excel_upload" | undefined; originalData?: string | undefined; tenant_id: string; main_category: string | null; ... 7 more ...; updated_at: string; }[]' is not assignable to parameter of type 'SetStateAction<OrderItem[]>'.
+  Type '{ quantity: number; id: string; name: string; price: number; source?: "manual" | "excel_upload" | undefined; originalData?: string | undefined; tenant_id: string; main_category: string | null; ... 7 more ...; updated_at: string; }[]' is not assignable to type 'OrderItem[]'.
+    Type '{ quantity: number; id: string; name: string; price: number; source?: "excel_upload" | "manual"; originalData?: string; tenant_id: string; main_category: string | null; mid_category: string | null; ... 6 more ...; updated_at: string; }' is not assignable to type 'OrderItem'.
+      Types of property 'supplier' are incompatible.
+        Type 'string | null' is not assignable to type 'string | undefined'.
+          Type 'null' is not assignable to type 'string | undefined'.
+src/app/dashboard/orders/new/page.tsx(376,71): error TS2339: Property 'branch' does not exist on type 'Product'.
+src/app/dashboard/orders/new/page.tsx(393,9): error TS2349: This expression is not callable.
+  No constituent of type 'OrderType' is callable.
+src/app/dashboard/orders/new/page.tsx(601,19): error TS2345: Argument of type '(prevItems: OrderItem[]) => (OrderItem | { quantity: number; isCustomProduct: false; id: string; tenant_id: string; name: string; main_category: string | null; ... 8 more ...; updated_at: string; })[] | undefined' is not assignable to parameter of type 'SetStateAction<OrderItem[]>'.
+  Type '(prevItems: OrderItem[]) => (OrderItem | { quantity: number; isCustomProduct: false; id: string; tenant_id: string; name: string; main_category: string | null; ... 8 more ...; updated_at: string; })[] | undefined' is not assignable to type '(prevState: OrderItem[]) => OrderItem[]'.
+    Type '(OrderItem | { quantity: number; isCustomProduct: false; id: string; tenant_id: string; name: string; main_category: string | null; mid_category: string | null; price: number; ... 6 more ...; updated_at: string; })[] | undefined' is not assignable to type 'OrderItem[]'.
+      Type 'undefined' is not assignable to type 'OrderItem[]'.
+src/app/dashboard/orders/new/page.tsx(623,7): error TS2353: Object literal may only specify known properties, and 'docId' does not exist in type 'OrderItem'.
+src/app/dashboard/orders/new/page.tsx(714,39): error TS2353: Object literal may only specify known properties, and 'isAnonymous' does not exist in type 'OrderData'.
+src/app/dashboard/orders/new/page.tsx(729,24): error TS2304: Cannot find name 'discountSettings'.
+src/app/dashboard/orders/new/page.tsx(768,7): error TS1117: An object literal cannot have multiple properties with the same name.
+src/app/dashboard/orders/new/page.tsx(920,31): error TS2304: Cannot find name 'discountSettings'.

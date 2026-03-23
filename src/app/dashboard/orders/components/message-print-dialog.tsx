@@ -104,8 +104,8 @@ export function MessagePrintDialog({ isOpen, onOpenChange, onSubmit, order }: Me
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-6xl max-h-[95vh] h-[90vh] overflow-hidden flex flex-col p-4 md:p-6">
         <DialogHeader>
-          <DialogTitle>메시지 인쇄 옵션</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-slate-900">메시지 인쇄 옵션</DialogTitle>
+          <DialogDescription className="text-slate-500">
             내용을 입력하고 인쇄될 위치를 선택하세요.
           </DialogDescription>
         </DialogHeader>
@@ -129,7 +129,7 @@ export function MessagePrintDialog({ isOpen, onOpenChange, onSubmit, order }: Me
             <div className="space-y-4 border p-3 rounded-md bg-muted/20">
               <Label className="font-bold text-xs uppercase text-gray-500">2. 내용 입력</Label>
               <div className="space-y-2">
-                <Label htmlFor="message-content" className="text-xs">메시지 본문</Label>
+                <Label htmlFor="message-content" className="text-xs text-slate-700">메시지 본문</Label>
                 <Textarea
                   id="message-content"
                   value={messageContent}
@@ -139,7 +139,7 @@ export function MessagePrintDialog({ isOpen, onOpenChange, onSubmit, order }: Me
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="sender-name" className="text-xs">보내는 분</Label>
+                <Label htmlFor="sender-name" className="text-xs text-slate-700">보내는 분</Label>
                 <Input
                   id="sender-name"
                   value={senderName}
@@ -154,11 +154,11 @@ export function MessagePrintDialog({ isOpen, onOpenChange, onSubmit, order }: Me
               <Label className="font-bold text-xs uppercase text-gray-500">3. 스타일 설정</Label>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="space-y-2">
-                    <Label className="text-xs">본문 폰트</Label>
+                    <Label className="text-xs text-slate-700">본문 폰트</Label>
                     <FontSelector value={messageFont} onValueChange={setMessageFont} />
                 </div>
                 <div className="space-y-2">
-                    <Label className="text-xs">본문 크기 (pt)</Label>
+                    <Label className="text-xs text-slate-700">본문 크기 (pt)</Label>
                     <Input
                         type="number"
                         value={messageFontSize}
@@ -167,11 +167,11 @@ export function MessagePrintDialog({ isOpen, onOpenChange, onSubmit, order }: Me
                     />
                 </div>
                 <div className="space-y-2">
-                    <Label className="text-xs">작성자 폰트</Label>
+                    <Label className="text-xs text-slate-700">작성자 폰트</Label>
                     <FontSelector value={senderFont} onValueChange={setSenderFont} />
                 </div>
                 <div className="space-y-2">
-                    <Label className="text-xs">작성자 크기 (pt)</Label>
+                    <Label className="text-xs text-slate-700">작성자 크기 (pt)</Label>
                     <Input
                         type="number"
                         value={senderFontSize}

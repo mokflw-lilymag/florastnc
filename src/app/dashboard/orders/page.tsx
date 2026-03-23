@@ -456,7 +456,7 @@ export default function OrdersPage() {
             <div className="w-12 h-12 bg-rose-100 rounded-full flex items-center justify-center mb-4">
                <AlertCircle className="w-6 h-6 text-rose-600" />
             </div>
-            <AlertDialogTitle className="text-xl font-light">주문을 영구 삭제하시겠습니까?</AlertDialogTitle>
+            <AlertDialogTitle className="text-xl font-light text-slate-900">주문을 영구 삭제하시겠습니까?</AlertDialogTitle>
             <AlertDialogDescription className="text-gray-500 font-light pt-2">
               이 작업은 되돌릴 수 없으며, 모든 매출 통계에서 해당 주문 데이터가 삭제됩니다.
             </AlertDialogDescription>

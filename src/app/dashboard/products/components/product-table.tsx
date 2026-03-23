@@ -189,8 +189,8 @@ export function ProductTable({
                         </DropdownMenu>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>상품 삭제</AlertDialogTitle>
-                            <AlertDialogDescription>
+                            <AlertDialogTitle className="text-slate-900">상품 삭제</AlertDialogTitle>
+                            <AlertDialogDescription className="text-slate-500">
                               정말로 '{product.name}' 상품을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
                             </AlertDialogDescription>
                           </AlertDialogHeader>

@@ -83,7 +83,7 @@ export function CustomerForm({ isOpen, onOpenChange, onSubmit, customer }: Custo
           <DialogTitle className="text-xl font-bold text-slate-900">
             {customer ? "고객 정보 수정" : "새 고객 등록"}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-slate-500">
             고객의 이름, 연락처, 유형 등 상세 정보를 입력해주세요.
           </DialogDescription>
         </DialogHeader>

@@ -303,18 +303,18 @@ export default function LoginPage() {
         <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
           <DialogContent className="sm:max-w-md rounded-2xl">
             <DialogHeader>
-              <DialogTitle className="text-xl font-bold flex items-center gap-2">
+              <DialogTitle className="text-xl font-bold flex items-center gap-2 text-slate-900">
                 <Lock className="h-5 w-5 text-blue-500" />
                 비밀번호 찾기
               </DialogTitle>
-              <DialogDescription>
+              <DialogDescription className="text-slate-500">
                 가입하신 이메일 주소를 입력해 주세요. <br />
                 비밀번호 재설정 링크를 보내드립니다.
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleResetPassword} className="space-y-4 pt-2">
               <div className="space-y-2">
-                <Label htmlFor="reset-email">이메일 주소</Label>
+                <Label htmlFor="reset-email" className="text-slate-700">이메일 주소</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                   <Input

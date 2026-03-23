@@ -107,7 +107,7 @@ export function ProductForm({ isOpen, onOpenChange, onSubmit, product }: Product
           <DialogTitle className="text-xl font-bold text-slate-900">
             {product ? "상품 정보 수정" : "새 상품 등록"}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-slate-500">
             상품의 이름, 가격, 카테고리 등 상세 정보를 입력해주세요.
           </DialogDescription>
         </DialogHeader>
@@ -130,7 +130,7 @@ export function ProductForm({ isOpen, onOpenChange, onSubmit, product }: Product
                 <Label htmlFor="main_category" className="text-slate-700 font-medium">대분류 <span className="text-red-500">*</span></Label>
                 <Select
                   value={formData.main_category || ""}
-                  onValueChange={(value) => setFormData({ ...formData, main_category: value, mid_category: "" })}
+                  onValueChange={(value: string | null) => setFormData({ ...formData, main_category: value || undefined, mid_category: "" })}
                 >
                   <SelectTrigger className="border-slate-200 focus:ring-blue-500/20">
                     <SelectValue placeholder="선택" />
@@ -147,7 +147,7 @@ export function ProductForm({ isOpen, onOpenChange, onSubmit, product }: Product
                 <Label htmlFor="mid_category" className="text-slate-700 font-medium">중분류</Label>
                 <Select
                   value={formData.mid_category || ""}
-                  onValueChange={(value) => setFormData({ ...formData, mid_category: value })}
+                  onValueChange={(value: string | null) => setFormData({ ...formData, mid_category: value || undefined })}
                   disabled={!formData.main_category}
                 >
                   <SelectTrigger className="border-slate-200 focus:ring-blue-500/20">

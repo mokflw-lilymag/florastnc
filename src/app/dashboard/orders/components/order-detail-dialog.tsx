@@ -176,7 +176,7 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
         <DialogHeader className="p-8 pb-0">
           <div className="flex items-center justify-between">
             <div>
-              <DialogTitle className="text-2xl font-black tracking-tight flex items-center gap-3">
+              <DialogTitle className="text-2xl font-black tracking-tight flex items-center gap-3 text-slate-900">
                 <div className="p-2 bg-slate-100 rounded-xl">
                   <Package className="h-6 w-6 text-slate-700" />
                 </div>
@@ -216,7 +216,7 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-[10px] font-bold text-red-400 uppercase">결제 수단</Label>
-                      <Select value={editPaymentMethod} onValueChange={setEditPaymentMethod}>
+                      <Select value={editPaymentMethod} onValueChange={(val) => setEditPaymentMethod(val || "")}>
                         <SelectTrigger className="h-9 bg-white"><SelectValue /></SelectTrigger>
                         <SelectContent>
                            {['card', 'cash', 'transfer', 'kakao'].map(m => (
@@ -362,8 +362,8 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
         </div>
 
         <div className="p-8 pt-0 flex justify-end gap-3 sticky bottom-0 bg-white/80 backdrop-blur-md rounded-b-3xl">
-          <DialogClose asChild>
-            <Button variant="ghost" className="rounded-2xl h-12 px-8 font-bold text-slate-500 hover:bg-slate-100">닫기</Button>
+          <DialogClose render={<Button variant="ghost" className="rounded-2xl h-12 px-8 font-bold text-slate-500 hover:bg-slate-100" />}>
+            닫기
           </DialogClose>
           <Button variant="outline" onClick={() => onPrintMessage?.(order)} className={cn(buttonVariants({ variant: "outline" }), "rounded-2xl h-12 px-8 font-bold border-2 border-slate-200 hover:bg-slate-50 text-slate-700 gap-2")}>
             <Printer className="h-4 w-4" /> 리본/카드 출력

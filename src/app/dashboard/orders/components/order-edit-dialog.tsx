@@ -190,11 +190,11 @@ export function OrderEditDialog({ isOpen, onOpenChange, order }: OrderEditDialog
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2 text-slate-900">
             <Package className="h-5 w-5" />
             주문 수정 ({order.order_number})
           </DialogTitle>
-          <DialogDescription>주문 정보를 수정합니다.</DialogDescription>
+          <DialogDescription className="text-slate-500">주문 정보를 수정합니다.</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -202,15 +202,15 @@ export function OrderEditDialog({ isOpen, onOpenChange, order }: OrderEditDialog
             <CardHeader><CardTitle className="text-base flex items-center gap-2"><User className="h-4 w-4" /> 주문자 정보</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>주문자명</Label>
+                <Label className="text-slate-700">주문자명</Label>
                 <Input value={formData.orderer.name} onChange={(e) => handleInputChange('orderer', 'name', e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label>연락처</Label>
+                <Label className="text-slate-700">연락처</Label>
                 <Input value={formData.orderer.contact} onChange={(e) => handleInputChange('orderer', 'contact', e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label>회사명</Label>
+                <Label className="text-slate-700">회사명</Label>
                 <Input value={formData.orderer.company} onChange={(e) => handleInputChange('orderer', 'company', e.target.value)} />
               </div>
             </CardContent>
@@ -220,7 +220,7 @@ export function OrderEditDialog({ isOpen, onOpenChange, order }: OrderEditDialog
             <CardHeader><CardTitle className="text-base flex items-center gap-2"><Truck className="h-4 w-4" /> 수령 정보</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>수령 방법</Label>
+                <Label className="text-slate-700">수령 방법</Label>
                 <Select value={formData.receipt_type} onValueChange={(val) => val && handleInputChange('receipt_type', '', val)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -232,17 +232,17 @@ export function OrderEditDialog({ isOpen, onOpenChange, order }: OrderEditDialog
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>수령자명</Label>
+                  <Label className="text-slate-700">수령자명</Label>
                   <Input value={formData.recipient.name} onChange={(e) => handleInputChange('recipient', 'name', e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label>수령자 연락처</Label>
+                  <Label className="text-slate-700">수령자 연락처</Label>
                   <Input value={formData.recipient.contact} onChange={(e) => handleInputChange('recipient', 'contact', e.target.value)} />
                 </div>
               </div>
               {formData.receipt_type === 'delivery_reservation' && (
                 <div className="space-y-2">
-                  <Label>배송 주소</Label>
+                  <Label className="text-slate-700">배송 주소</Label>
                   <Textarea value={formData.address} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleInputChange('address', '', e.target.value)} />
                 </div>
               )}
@@ -255,15 +255,15 @@ export function OrderEditDialog({ isOpen, onOpenChange, order }: OrderEditDialog
               {formData.items.map((item, index) => (
                 <div key={item.id} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end border p-4 rounded-lg">
                   <div className="md:col-span-2 space-y-2">
-                    <Label>상품명</Label>
+                    <Label className="text-slate-700">상품명</Label>
                     <Input value={item.name} onChange={(e) => handleItemChange(index, 'name', e.target.value)} />
                   </div>
                   <div className="space-y-2">
-                    <Label>수량</Label>
+                    <Label className="text-slate-700">수량</Label>
                     <Input type="number" value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', parseInt(e.target.value) || 1)} />
                   </div>
                   <div className="space-y-2">
-                    <Label>단가</Label>
+                    <Label className="text-slate-700">단가</Label>
                     <Input type="number" value={item.price} onChange={(e) => handleItemChange(index, 'price', parseInt(e.target.value) || 0)} />
                   </div>
                   <Button variant="ghost" size="sm" onClick={() => removeItem(index)} className="text-red-500"><Minus className="h-4 w-4" /></Button>
@@ -277,7 +277,7 @@ export function OrderEditDialog({ isOpen, onOpenChange, order }: OrderEditDialog
             <CardHeader><CardTitle className="text-base flex items-center gap-2"><Clock className="h-4 w-4" /> 상태 및 결제</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>주문 상태</Label>
+                <Label className="text-slate-700">주문 상태</Label>
                 <Select value={formData.status} onValueChange={(val) => val && handleInputChange('status', '', val)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -288,7 +288,7 @@ export function OrderEditDialog({ isOpen, onOpenChange, order }: OrderEditDialog
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>결제 방법</Label>
+                <Label className="text-slate-700">결제 방법</Label>
                 <Select value={formData.payment.method} onValueChange={(val) => val && handleInputChange('payment', 'method', val)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
