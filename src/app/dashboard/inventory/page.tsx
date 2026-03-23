@@ -191,13 +191,12 @@ export default function InventoryPage() {
               disabled={isImporting}
             />
             <Button 
-              variant="outline" 
               size="sm" 
               disabled={isImporting}
-              className="border-slate-200"
+              className="bg-slate-800 hover:bg-slate-900 text-white shadow-sm transition-all"
             >
               <Upload className={`h-4 w-4 mr-2 ${isImporting ? 'animate-pulse' : ''}`} />
-              {isImporting ? '업로드 중...' : '엑셀 업로드'}
+              {isImporting ? '가져오는 중...' : '데이터 가져오기'}
             </Button>
           </div>
 
@@ -326,7 +325,7 @@ export default function InventoryPage() {
                              </p>
                            </div>
                            <div className="flex gap-3">
-                              <Button onClick={handleLoadSamples} variant="outline" className="border-slate-300">
+                              <Button onClick={handleLoadSamples} variant="outline" className="bg-white border-orange-200 text-orange-700 hover:bg-orange-50">
                                 <RefreshCw className="w-4 h-4 mr-2 text-orange-500" />
                                 샘플 데이터 불러오기
                               </Button>
@@ -334,7 +333,7 @@ export default function InventoryPage() {
                                 setEditingMaterial(null);
                                 setFormData({ name: "", main_category: CATEGORIES.main[0] || "생화", unit: "ea", price: 0, stock: 0, supplier: "", memo: "" });
                                 setIsAddDialogOpen(true);
-                              }} className="bg-primary hover:bg-primary/90">
+                              }} className="bg-primary hover:bg-primary/90 text-white font-bold">
                                 <Plus className="w-4 h-4 mr-2" />
                                 첫 자재 등록하기
                               </Button>
@@ -431,7 +430,7 @@ export default function InventoryPage() {
               <Label htmlFor="category" className="text-right font-semibold">카테고리</Label>
               <Select 
                 value={formData.main_category || ""} 
-                onValueChange={(val) => setFormData({...formData, main_category: val})}
+                onValueChange={(val) => setFormData({...formData, main_category: val as string})}
               >
                 <SelectTrigger className="col-span-3">
                   <SelectValue placeholder="카테고리 선택" />

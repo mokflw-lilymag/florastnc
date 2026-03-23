@@ -202,13 +202,12 @@ export default function ProductsPage() {
               disabled={isImporting}
             />
             <Button 
-              variant="outline" 
               size="sm" 
               disabled={isImporting}
-              className="border-slate-200"
+              className="bg-slate-800 hover:bg-slate-900 text-white shadow-sm transition-all"
             >
               <Upload className={`h-4 w-4 mr-2 ${isImporting ? 'animate-pulse' : ''}`} />
-              {isImporting ? '업로드 중...' : '엑셀 업로드'}
+              {isImporting ? '가져오는 중...' : '데이터 가져오기'}
             </Button>
           </div>
 
@@ -301,11 +300,11 @@ export default function ProductsPage() {
               </p>
             </div>
             <div className="flex gap-2 pt-2">
-              <Button onClick={handleLoadSamples} variant="outline" className="bg-white">
+              <Button onClick={handleLoadSamples} variant="outline" className="bg-white border-blue-200 text-blue-700 hover:bg-blue-50">
                 <RefreshCw className="h-4 w-4 mr-2 text-blue-500" />
                 샘플 데이터 불러오기
               </Button>
-              <Button onClick={handleCreateNew} className="bg-blue-600 hover:bg-blue-700">
+              <Button onClick={handleCreateNew} className="bg-blue-600 hover:bg-blue-700 text-white font-bold">
                 <Plus className="h-4 w-4 mr-2" />
                 첫 상품 등록하기
               </Button>
