@@ -29,7 +29,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from 'date-fns';
-import { downloadTemplate, parseExcel } from "@/utils/excel";
+import { downloadTemplate, parseExcel, exportDataToExcel } from "@/utils/excel";
 import { useSettings } from "@/hooks/use-settings";
 import Link from 'next/link';
 import { toast } from 'sonner';
@@ -161,6 +161,16 @@ export default function InventoryPage() {
               카테고리 설정
             </Button>
           </Link>
+
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => exportDataToExcel('material', filteredMaterials)}
+            className="border-slate-200"
+          >
+            <Download className="h-4 w-4 mr-2 text-green-600" />
+            데이터 다운로드
+          </Button>
 
           <Button 
             variant="outline" 

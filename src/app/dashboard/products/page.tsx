@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { AccessDenied } from "@/components/access-denied";
 import { Skeleton } from "@/components/ui/skeleton";
-import { downloadTemplate, parseExcel } from "@/utils/excel";
+import { downloadTemplate, parseExcel, exportDataToExcel } from "@/utils/excel";
 import { useSettings } from "@/hooks/use-settings";
 import { Download, Upload, Settings2 } from "lucide-react";
 import Link from "next/link";
@@ -173,6 +173,16 @@ export default function ProductsPage() {
           </Link>
 
           {/* Export/Import Buttons */}
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => exportDataToExcel('product', filteredProducts)}
+            className="border-slate-200"
+          >
+            <Download className="h-4 w-4 mr-2 text-green-600" />
+            데이터 다운로드
+          </Button>
+
           <Button 
             variant="outline" 
             size="sm" 

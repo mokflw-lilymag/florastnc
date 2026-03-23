@@ -11,21 +11,67 @@ export function downloadTemplate(type: 'product' | 'material') {
 
   if (type === 'product') {
     headers = ['상품코드', '상품명', '대분류', '중분류', '판매가', '재고', '공급처', '상태(active/inactive)'];
-    sample = [['P00001', '장미꽃다발', '꽃다발', '기본형', 35000, 10, '자체제작', 'active']];
-    filename = '상품등록_템플릿.xlsx';
+    sample = [['P01', '축하화환 3단', '경조사화환', '축하화환', 100000, 10, '자체제작', 'active']];
+    filename = '상품등록_양식.xlsx';
   } else {
     headers = ['자재명', '대분류', '중분류', '단위', '규격', '단가', '재고', '공급처', '메모'];
-    sample = [['포장지(핑크)', '포장자재', '포장지', '롤', '60cm*10m', 5000, 20, 'ABC상사', '']];
-    filename = '자재등록_템플릿.xlsx';
+    sample = [['대형 리본(핑크)', '부자재', '리본', '롤', '10cm*50m', 5000, 20, 'ABC상사', '']];
+    filename = '자재등록_양식.xlsx';
   }
 
   const worksheet = XLSX.utils.aoa_to_sheet([headers, ...sample]);
   const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "템플릿");
+  XLSX.utils.book_append_sheet(workbook, worksheet, "양식");
   
   const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
   const data = new Blob([excelBuffer], { type: 'application/octet-stream' });
   saveAs(data, filename);
+}
+
+/**
+ * Export actual data to Excel.
+ */
+export function exportDataToExcel(type: 'product' | 'material', list: any[]) {
+  let headers: string[] = [];
+  let dataRows: any[] = [];
+  let filename = '';
+
+  if (type === 'product') {
+    headers = ['상품코드', '상품명', '대분류', '중분류', '판매가', '재고', '공급처', '상태'];
+    dataRows = list.map(p => [
+      p.code || '',
+      p.name || '',
+      p.main_category || '',
+      p.mid_category || '',
+      p.price || 0,
+      p.stock || 0,
+      p.supplier || '',
+      p.status || ''
+    ]);
+    filename = `상품목록_${new Date().toISOString().split('T')[0]}.xlsx`;
+  } else {
+    headers = ['자재명', '대분류', '중분류', '단위', '규격', '단가', '재고', '공급처', '메모'];
+    dataRows = list.map(m => [
+      m.name || '',
+      m.main_category || '',
+      m.mid_category || '',
+      m.unit || '',
+      m.spec || '',
+      m.price || 0,
+      m.stock || 0,
+      m.supplier || '',
+      m.memo || ''
+    ]);
+    filename = `자재목록_${new Date().toISOString().split('T')[0]}.xlsx`;
+  }
+
+  const worksheet = XLSX.utils.aoa_to_sheet([headers, ...dataRows]);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "데이터");
+  
+  const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+  const dataBlob = new Blob([excelBuffer], { type: 'application/octet-stream' });
+  saveAs(dataBlob, filename);
 }
 
 /**
