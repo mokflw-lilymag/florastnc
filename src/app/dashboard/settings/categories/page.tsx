@@ -89,6 +89,56 @@ export default function CategorySettingsPage() {
     }
   };
 
+  const handleSaveProd = async () => {
+    if (!prodCats) return;
+    if (window.confirm("상품 카테고리 설정을 저장하시겠습니까?\n이후 상품 등록 시 이 카테고리 목록이 적용됩니다.")) {
+      await updateProductCategories(prodCats);
+    }
+  };
+
+  const handleSaveMat = async () => {
+    if (!matCats) return;
+    if (window.confirm("자재 카테고리 설정을 저장하시겠습니까?")) {
+      await updateMaterialCategories(matCats);
+    }
+  };
+
+  const handleDeleteProdMain = (cat: string) => {
+    if (!prodCats) return;
+    if (window.confirm(`'${cat}' 대분류를 삭제하시겠습니까?\n연결된 중분류 목록도 모두 사라집니다.`)) {
+      const nextMain = prodCats.main.filter(m => m !== cat);
+      const nextMid = {...prodCats.mid};
+      delete nextMid[cat];
+      setProdCats({...prodCats, main: nextMain, mid: nextMid});
+      if (selectedProdMain === cat) setSelectedProdMain("");
+    }
+  };
+
+  const handleDeleteProdMid = (cat: string) => {
+    if (!prodCats || !selectedProdMain) return;
+    if (window.confirm(`'${cat}' 중분류를 삭제하시겠습니까?`)) {
+      setProdCats({...prodCats, mid: {...prodCats.mid, [selectedProdMain]: prodCats.mid[selectedProdMain].filter(m => m !== cat)}});
+    }
+  };
+
+  const handleDeleteMatMain = (cat: string) => {
+    if (!matCats) return;
+    if (window.confirm(`'${cat}' 자재 대분류를 삭제하시겠습니까?\n하위 중분류도 함께 삭제됩니다.`)) {
+      const nextMain = matCats.main.filter(m => m !== cat);
+      const nextMid = {...matCats.mid};
+      delete nextMid[cat];
+      setMatCats({...matCats, main: nextMain, mid: nextMid});
+      if (selectedMatMain === cat) setSelectedMatMain("");
+    }
+  };
+
+  const handleDeleteMatMid = (cat: string) => {
+    if (!matCats || !selectedMatMain) return;
+    if (window.confirm(`'${cat}' 자재 중분류를 삭제하시겠습니까?`)) {
+      setMatCats({...matCats, mid: {...matCats.mid, [selectedMatMain]: matCats.mid[selectedMatMain].filter(m => m !== cat)}});
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto space-y-10 pb-20">
       <PageHeader
@@ -127,7 +177,7 @@ export default function CategorySettingsPage() {
             </Button>
             <Button 
               disabled={loading}
-              onClick={() => prodCats && updateProductCategories(prodCats)} 
+              onClick={handleSaveProd} 
               className="bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200"
             >
               <Save className="h-4 w-4 mr-2" />
@@ -163,12 +213,7 @@ export default function CategorySettingsPage() {
                     <span className="font-semibold">{cat}</span>
                     <Button variant="ghost" size="icon" className={`h-8 w-8 ${selectedProdMain === cat ? 'text-white hover:text-red-200' : 'text-slate-300 hover:text-red-500'}`} onClick={(e) => {
                       e.stopPropagation();
-                      if (!prodCats) return;
-                      const nextMain = prodCats.main.filter(m => m !== cat);
-                      const nextMid = {...prodCats.mid};
-                      delete nextMid[cat];
-                      setProdCats({...prodCats, main: nextMain, mid: nextMid});
-                      if (selectedProdMain === cat) setSelectedProdMain("");
+                      handleDeleteProdMain(cat);
                     }}><Trash2 className="h-4 w-4" /></Button>
                   </div>
                 ))}
@@ -214,10 +259,9 @@ export default function CategorySettingsPage() {
                     {prodCats?.mid[selectedProdMain]?.map(cat => (
                       <div key={cat} className="flex items-center justify-between p-2 pl-3 rounded-lg border border-slate-100 bg-slate-50/50 group">
                         <span className="text-sm font-medium text-slate-600">{cat}</span>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-300 opacity-0 group-hover:opacity-100 hover:text-red-500 transition-all" onClick={() => {
-                          if (!prodCats) return;
-                          setProdCats({...prodCats, mid: {...prodCats.mid, [selectedProdMain]: prodCats.mid[selectedProdMain].filter(m => m !== cat)}});
-                        }}><Trash2 className="h-3.5 w-3.5" /></Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-300 opacity-0 group-hover:opacity-100 hover:text-red-500 transition-all" onClick={() => handleDeleteProdMid(cat)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
                       </div>
                     ))}
                     {prodCats?.mid[selectedProdMain]?.length === 0 && (
@@ -263,7 +307,7 @@ export default function CategorySettingsPage() {
             </Button>
             <Button 
               disabled={loading}
-              onClick={() => matCats && updateMaterialCategories(matCats)} 
+              onClick={handleSaveMat} 
               className="bg-orange-600 hover:bg-orange-700 shadow-lg shadow-orange-200"
             >
               <Save className="h-4 w-4 mr-2" />
@@ -299,12 +343,7 @@ export default function CategorySettingsPage() {
                     <span className="font-semibold">{cat}</span>
                     <Button variant="ghost" size="icon" className={`h-8 w-8 ${selectedMatMain === cat ? 'text-white hover:text-red-200' : 'text-slate-300 hover:text-red-500'}`} onClick={(e) => {
                       e.stopPropagation();
-                      if (!matCats) return;
-                      const nextMain = matCats.main.filter(m => m !== cat);
-                      const nextMid = {...matCats.mid};
-                      delete nextMid[cat];
-                      setMatCats({...matCats, main: nextMain, mid: nextMid});
-                      if (selectedMatMain === cat) setSelectedMatMain("");
+                      handleDeleteMatMain(cat);
                     }}><Trash2 className="h-4 w-4" /></Button>
                   </div>
                 ))}
@@ -350,10 +389,9 @@ export default function CategorySettingsPage() {
                     {matCats?.mid[selectedMatMain]?.map(cat => (
                       <div key={cat} className="flex items-center justify-between p-2 pl-3 rounded-lg border border-slate-100 bg-slate-50/50 group">
                         <span className="text-sm font-medium text-slate-600">{cat}</span>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-300 opacity-0 group-hover:opacity-100 hover:text-red-500 transition-all" onClick={() => {
-                          if (!matCats) return;
-                          setMatCats({...matCats, mid: {...matCats.mid, [selectedMatMain]: matCats.mid[selectedMatMain].filter(m => m !== cat)}});
-                        }}><Trash2 className="h-3.5 w-3.5" /></Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-300 opacity-0 group-hover:opacity-100 hover:text-red-500 transition-all" onClick={() => handleDeleteMatMid(cat)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
                       </div>
                     ))}
                     {matCats?.mid[selectedMatMain]?.length === 0 && (
