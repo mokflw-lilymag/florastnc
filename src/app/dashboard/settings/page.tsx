@@ -70,6 +70,13 @@ export default function SettingsPage() {
   // Local State for Management
   const [storeName, setStoreName] = useState("");
   const [plan, setPlan] = useState("free");
+  
+  // Local state for Store Info to avoid IME issues with immediate save
+  const [localRep, setLocalRep] = useState("");
+  const [localBizNo, setLocalBizNo] = useState("");
+  const [localPhone, setLocalPhone] = useState("");
+  const [localAddress, setLocalAddress] = useState("");
+  
   const [newRegion, setNewRegion] = useState("");
   const [newFee, setNewFee] = useState("");
 
@@ -110,6 +117,16 @@ export default function SettingsPage() {
     checkBridgeStatus();
   }, []);
 
+  // Sync local state when global settings load
+  useEffect(() => {
+    if (settings) {
+      setLocalRep(settings.representative || "");
+      setLocalBizNo(settings.businessNumber || "");
+      setLocalPhone(settings.contactPhone || "");
+      setLocalAddress(settings.address || "");
+    }
+  }, [settings]);
+
   useEffect(() => {
     async function loadTenantData() {
       if (!tenantId) {
@@ -142,13 +159,28 @@ export default function SettingsPage() {
     if (!tenantId) return;
     setSaving(true);
     try {
-      const { error } = await supabase
+      // 1. Update tenants table (storeName)
+      const { error: tenantError } = await supabase
         .from("tenants")
         .update({ name: storeName })
         .eq("id", tenantId);
-      if (error) throw error;
+      if (tenantError) throw tenantError;
+
+      // 2. Update system_settings table (other info)
+      const updatedSettings = {
+          ...settings,
+          representative: localRep,
+          businessNumber: localBizNo,
+          contactPhone: localPhone,
+          address: localAddress
+      };
+      
+      const saved = await saveSettings(updatedSettings);
+      if (!saved) throw new Error("Failed to save settings");
+
       toast.success("상점 정보가 저장되었습니다.");
     } catch (err) {
+      console.error(err);
       toast.error("저장 중 오류가 발생했습니다.");
     } finally {
       setSaving(false);
@@ -334,20 +366,40 @@ export default function SettingsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="rep">대표자 (Representative)</Label>
-                  <Input id="rep" value={settings.representative} onChange={e => saveSettings({...settings, representative: e.target.value})} />
+                  <Input 
+                    id="rep" 
+                    value={localRep} 
+                    onChange={e => setLocalRep(e.target.value)} 
+                    placeholder="예: 홍길동"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="bizNo">사업자 등록번호</Label>
-                  <Input id="bizNo" value={settings.businessNumber} onChange={e => saveSettings({...settings, businessNumber: e.target.value})} />
+                  <Input 
+                    id="bizNo" 
+                    value={localBizNo} 
+                    onChange={e => setLocalBizNo(e.target.value)} 
+                    placeholder="000-00-00000"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="phone">연락처</Label>
-                  <Input id="phone" value={settings.contactPhone} onChange={e => saveSettings({...settings, contactPhone: e.target.value})} />
+                  <Input 
+                    id="phone" 
+                    value={localPhone} 
+                    onChange={e => setLocalPhone(e.target.value)} 
+                    placeholder="010-0000-0000"
+                  />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="address">주소</Label>
-                <Input id="address" value={settings.address} onChange={e => saveSettings({...settings, address: e.target.value})} />
+                <Input 
+                  id="address" 
+                  value={localAddress} 
+                  onChange={e => setLocalAddress(e.target.value)} 
+                  placeholder="예: 서울특별시 서초구 ..."
+                />
               </div>
             </CardContent>
             <CardFooter className="bg-slate-50/50 px-6 py-4 rounded-b-lg">

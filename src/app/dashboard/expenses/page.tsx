@@ -22,23 +22,28 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useExpenses } from "@/hooks/use-expenses";
 import { useSuppliers } from "@/hooks/use-suppliers";
+import { useMaterials } from "@/hooks/use-materials";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { toast } from 'sonner';
 
 interface NewExpenseData {
   category: string;
+  sub_category: string;
   amount: number;
   description: string;
   expense_date: string;
   payment_method: string;
   supplier_id: string;
+  material_id?: string;
+  quantity?: number;
 }
 
 export default function ExpensesPage() {
   const { expenses, loading: expensesLoading, addExpense, deleteExpense } = useExpenses();
   const { suppliers, loading: suppliersLoading } = useSuppliers();
-  const loading = expensesLoading || suppliersLoading;
+  const { materials, loading: materialsLoading } = useMaterials();
+  const loading = expensesLoading || suppliersLoading || materialsLoading;
 
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -46,11 +51,14 @@ export default function ExpensesPage() {
   // New Expense State with explicit typing
   const [newExpense, setNewExpense] = useState<NewExpenseData>({
     category: "materials",
+    sub_category: "",
     amount: 0,
     description: "",
     expense_date: format(new Date(), "yyyy-MM-dd"),
     payment_method: "card",
-    supplier_id: "none"
+    supplier_id: "none",
+    material_id: "none",
+    quantity: 0
   });
 
   const filteredExpenses = expenses.filter(e => 
@@ -92,21 +100,27 @@ export default function ExpensesPage() {
     
     await addExpense({
       category: newExpense.category,
+      sub_category: newExpense.sub_category,
       amount: newExpense.amount,
       description: newExpense.description,
       expense_date: new Date(newExpense.expense_date).toISOString(),
       payment_method: newExpense.payment_method,
-      supplier_id: newExpense.supplier_id === "none" ? undefined : newExpense.supplier_id
+      supplier_id: newExpense.supplier_id === "none" ? undefined : newExpense.supplier_id,
+      material_id: newExpense.material_id === "none" ? undefined : newExpense.material_id,
+      quantity: newExpense.quantity
     });
 
     setIsDialogOpen(false);
     setNewExpense({
       category: "materials",
+      sub_category: "",
       amount: 0,
       description: "",
       expense_date: format(new Date(), "yyyy-MM-dd"),
       payment_method: "card",
-      supplier_id: "none"
+      supplier_id: "none",
+      material_id: "none",
+      quantity: 0
     });
   };
 
@@ -135,11 +149,13 @@ export default function ExpensesPage() {
       >
         <div className="flex items-center gap-2">
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger>
-                <Button className="bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20">
-                <PlusCircle className="h-4 w-4 mr-2" /> 지출 내역 등록
-                </Button>
-            </DialogTrigger>
+            <DialogTrigger 
+                render={
+                    <Button className="bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20">
+                        <PlusCircle className="h-4 w-4 mr-2" /> 지출 내역 등록
+                    </Button>
+                } 
+            />
             <DialogContent className="sm:max-w-[450px]">
                 <DialogHeader>
                 <DialogTitle className="text-xl font-bold text-slate-900">새 지출 등록</DialogTitle>
@@ -192,6 +208,55 @@ export default function ExpensesPage() {
                     </SelectContent>
                     </Select>
                 </div>
+
+                {newExpense.category === "materials" && (
+                  <>
+                    <div className="grid grid-cols-4 items-center gap-4 animate-in slide-in-from-top-2">
+                        <Label htmlFor="material" className="text-right font-semibold text-blue-700">품목 선택</Label>
+                        <Select 
+                            value={newExpense.material_id} 
+                            onValueChange={(v: string | null) => {
+                                const mat = materials.find(m => m.id === v);
+                                setNewExpense(prev => ({ 
+                                    ...prev, 
+                                    material_id: v || "none",
+                                    sub_category: (mat?.mid_category ?? "") as string,
+                                    description: mat ? `${mat.name} 사입` : prev.description,
+                                    supplier_id: mat?.supplier_id || prev.supplier_id
+                                }));
+                            }}
+                        >
+                            <SelectTrigger className="col-span-3 border-blue-200 bg-blue-50/30">
+                                <SelectValue placeholder="사입한 자재/꽃 선택" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="none">선택 안함 (직접 입력)</SelectItem>
+                                {materials.map(m => (
+                                    <SelectItem key={m.id} value={m.id}>
+                                        [{m.mid_category ? `${m.main_category}>${m.mid_category}` : m.main_category}] {m.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="qty" className="text-right font-semibold text-blue-700">수량</Label>
+                        <div className="col-span-3 flex items-center gap-3">
+                            <Input 
+                                id="qty" 
+                                type="number" 
+                                placeholder="0" 
+                                value={newExpense.quantity}
+                                onChange={e => setNewExpense(prev => ({ ...prev, quantity: parseFloat(e.target.value) || 0 }))}
+                                className="flex-1 border-blue-200"
+                            />
+                            <span className="text-sm text-slate-500 font-medium">
+                                {materials.find(m => m.id === newExpense.material_id)?.unit || "ea"}
+                            </span>
+                        </div>
+                    </div>
+                  </>
+                )}
                 <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="desc" className="text-right font-semibold text-slate-700">내용</Label>
                     <Input 

@@ -16,6 +16,9 @@ export interface Expense {
   payment_method: string;
   supplier_id?: string;
   related_order_id?: string;
+  material_id?: string;
+  quantity?: number;
+  unit?: string;
   created_at: string;
 }
 

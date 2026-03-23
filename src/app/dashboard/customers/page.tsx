@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CustomerTable } from "./components/customer-table";
 import { CustomerForm } from "./components/customer-form";
+import { CustomerDetailDialog } from "./components/customer-detail-dialog";
+import { StatementDialog } from "./components/statement-dialog";
 import { useCustomers } from "@/hooks/use-customers";
 import { Customer, CustomerData } from "@/types/customer";
 import { Plus, Search, RefreshCw, Users, UserCheck, Star, Clock } from "lucide-react";
@@ -34,6 +36,10 @@ export default function CustomersPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isStatementOpen, setIsStatementOpen] = useState(false);
+  const [isReceiptOpen, setIsReceiptOpen] = useState(false);
 
   const filteredCustomers = useMemo(() => {
     if (!searchTerm) return customers;
@@ -67,6 +73,11 @@ export default function CustomersPage() {
   const handleEdit = (customer: Customer) => {
     setEditingCustomer(customer);
     setIsFormOpen(true);
+  };
+
+  const handleRowClick = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setIsDetailOpen(true);
   };
 
   const handleFormSubmit = async (data: CustomerData) => {
@@ -184,6 +195,35 @@ export default function CustomersPage() {
         customers={filteredCustomers}
         onEdit={handleEdit}
         onDelete={handleDelete}
+        onRowClick={handleRowClick}
+      />
+
+      <CustomerDetailDialog
+        customer={selectedCustomer}
+        isOpen={isDetailOpen}
+        onOpenChange={setIsDetailOpen}
+        onIssueStatement={(c) => {
+          setSelectedCustomer(c);
+          setIsStatementOpen(true);
+        }}
+        onIssueReceipt={(c) => {
+          setSelectedCustomer(c);
+          setIsReceiptOpen(true);
+        }}
+      />
+
+      <StatementDialog 
+        customer={selectedCustomer} 
+        isOpen={isStatementOpen} 
+        onOpenChange={setIsStatementOpen} 
+        type="statement"
+      />
+
+      <StatementDialog 
+        customer={selectedCustomer} 
+        isOpen={isReceiptOpen} 
+        onOpenChange={setIsReceiptOpen} 
+        type="receipt"
       />
 
       <CustomerForm
