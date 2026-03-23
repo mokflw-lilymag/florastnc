@@ -116,10 +116,11 @@ export default function CategorySettingsPage() {
           </div>
           <div className="flex gap-2">
             <Button 
-              variant="outline"
+              variant="secondary"
               size="sm"
               onClick={handleRestoreProd}
-              disabled={loading || !productCategories}
+              disabled={loading}
+              className="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 transition-all font-semibold"
             >
               <RotateCcw className="h-4 w-4 mr-2" />
               상품 카테고리 복구
@@ -251,10 +252,11 @@ export default function CategorySettingsPage() {
           </div>
           <div className="flex gap-2">
             <Button 
-              variant="outline"
+              variant="secondary"
               size="sm"
               onClick={handleRestoreMat}
-              disabled={loading || !materialCategories}
+              disabled={loading}
+              className="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 transition-all font-semibold"
             >
               <RotateCcw className="h-4 w-4 mr-2" />
               자재 카테고리 복구
