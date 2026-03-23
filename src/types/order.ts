@@ -69,10 +69,25 @@ export interface Order {
   } | null;
   memo?: string;
   message?: {
+    type?: 'none' | 'card' | 'ribbon';
     content?: string;
     sender?: string;
   };
+  actual_delivery_cost?: number;
+  actual_delivery_cost_cash?: number;
+  outsource_info?: {
+    isOutsourced: boolean;
+    partnerId: string;
+    partnerName: string;
+    partnerPrice: number;
+    profit: number;
+    status: 'pending' | 'completed' | 'canceled';
+    notes?: string;
+    outsourcedAt: string;
+    updatedAt: string;
+  } | null;
   extra_data?: any;
+  completionPhotoUrl?: string; // 제작 완료 사진 URL
   created_at?: string;
   updated_at?: string;
   completed_at?: string;

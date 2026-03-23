@@ -1,0 +1,427 @@
+"use client";
+
+import React, { useState, useMemo } from 'react';
+import { PageHeader } from '@/components/page-header';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { 
+  Plus, 
+  Search, 
+  Package, 
+  AlertTriangle, 
+  Info, 
+  Trash2, 
+  Edit2, 
+  Layers, 
+  Activity,
+  Download,
+  Upload,
+  Settings2
+} from 'lucide-react';
+import { useMaterials, Material } from '@/hooks/use-materials';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { format } from 'date-fns';
+import { downloadTemplate, parseExcel } from "@/utils/excel";
+import { useSettings } from "@/hooks/use-settings";
+import Link from 'next/link';
+import { toast } from 'sonner';
+
+export default function InventoryPage() {
+  const { materials, loading: materialsLoading, stats, addMaterial, updateMaterial, deleteMaterial } = useMaterials();
+  const { materialCategories, loading: settingsLoading } = useSettings();
+  const loading = materialsLoading || settingsLoading;
+  
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+
+  const CATEGORIES = materialCategories || {
+    main: ["생화", "식물", "부자재", "포장재", "기타"],
+    mid: { "생화": [], "식물": [], "부자재": [], "포장재": [], "기타": [] }
+  };
+
+  // Form states
+  const [formData, setFormData] = useState<Partial<Material>>({
+    name: "",
+    main_category: CATEGORIES.main[0] || "생화",
+    unit: "ea",
+    price: 0,
+    stock: 0,
+    supplier: "",
+    memo: ""
+  });
+
+  const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    try {
+      const data = await parseExcel(file);
+      let successCount = 0;
+      for (const row of data) {
+        const payload: Partial<Material> = {
+          name: row['자재명']?.toString() || '',
+          main_category: row['대분류']?.toString() || '',
+          mid_category: row['중분류']?.toString() || '',
+          unit: row['단위']?.toString() || 'ea',
+          price: Number(row['단가']) || 0,
+          stock: Number(row['재고']) || 0,
+          supplier: row['공급처']?.toString() || '',
+          memo: row['메모']?.toString() || '',
+        };
+
+        if (payload.name) {
+          await addMaterial(payload);
+          successCount++;
+        }
+      }
+      toast.success(`${successCount}개의 자재가 등록되었습니다.`);
+    } catch (err) {
+      console.error(err);
+      toast.error("엑셀 파일 파싱에 실패했습니다.");
+    } finally {
+      setIsImporting(false);
+      e.target.value = '';
+    }
+  };
+
+  const filteredMaterials = useMemo(() => {
+    return materials.filter(m => 
+      m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      m.main_category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      m.supplier?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [materials, searchTerm]);
+
+  const handleSave = async () => {
+    if (editingMaterial) {
+      await updateMaterial(editingMaterial.id, formData);
+    } else {
+      await addMaterial(formData);
+    }
+    setIsAddDialogOpen(false);
+    setEditingMaterial(null);
+    setFormData({
+      name: "",
+      main_category: "생화",
+      unit: "ea",
+      price: 0,
+      stock: 0,
+      supplier: "",
+      memo: ""
+    });
+  };
+
+  const openEdit = (m: Material) => {
+    setEditingMaterial(m);
+    setFormData(m);
+    setIsAddDialogOpen(true);
+  };
+
+  return (
+    <div className="p-6 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500">
+      <PageHeader 
+        title="재고 관리" 
+        description="자재 및 상품의 실시간 재고를 관리하고 입출고 내역을 확인합니다."
+        icon={Layers}
+      >
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {/* Settings Link */}
+          <Link href="/dashboard/settings/categories">
+            <Button variant="ghost" size="sm" className="hidden sm:flex text-slate-500 hover:text-slate-900 border border-transparent hover:border-slate-200">
+              <Settings2 className="h-4 w-4 mr-2" />
+              카테고리 설정
+            </Button>
+          </Link>
+
+          {/* Export/Import Buttons */}
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => downloadTemplate('material')}
+            className="border-slate-200"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            양식 다운로드
+          </Button>
+
+          <div className="relative">
+            <input
+              type="file"
+              accept=".xlsx, .xls"
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              onChange={handleImportExcel}
+              disabled={isImporting}
+            />
+            <Button 
+              variant="outline" 
+              size="sm" 
+              disabled={isImporting}
+              className="border-slate-200"
+            >
+              <Upload className={`h-4 w-4 mr-2 ${isImporting ? 'animate-pulse' : ''}`} />
+              {isImporting ? '업로드 중...' : '엑셀 업로드'}
+            </Button>
+          </div>
+
+          <Button 
+            className="bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20 transition-all active:scale-95"
+            onClick={() => {
+              setEditingMaterial(null);
+              setFormData({ name: "", main_category: CATEGORIES.main[0] || "생화", unit: "ea", price: 0, stock: 0, supplier: "", memo: "" });
+              setIsAddDialogOpen(true);
+            }}
+          >
+            <Plus className="w-4 h-4 mr-2" /> 새 자재 등록
+          </Button>
+        </div>
+      </PageHeader>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="border-none shadow-md bg-gradient-to-br from-blue-50 to-white overflow-hidden group hover:shadow-lg transition-all border-l-4 border-l-blue-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-blue-600 flex items-center gap-2">
+              <Package className="w-4 h-4" /> 전체 품목
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-blue-500">
+              {stats.totalTypes} <span className="text-sm font-normal text-muted-foreground ml-1">종</span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">등록된 총 자재 종류</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-none shadow-md bg-gradient-to-br from-green-50 to-white overflow-hidden group hover:shadow-lg transition-all border-l-4 border-l-green-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-green-600 flex items-center gap-2">
+              <Activity className="w-4 h-4" /> 총 재고량
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-700 to-green-500">
+              {stats.totalStock.toLocaleString()} <span className="text-sm font-normal text-muted-foreground ml-1">ea</span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">모든 품목의 수량 합계</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-none shadow-md bg-gradient-to-br from-orange-50 to-white overflow-hidden group hover:shadow-lg transition-all border-l-4 border-l-orange-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-orange-600 flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4" /> 재고 부족
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-orange-700 to-orange-500 text-orange-600 font-bold">
+              {stats.lowStock} <span className="text-sm font-normal text-muted-foreground ml-1">종</span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">수량 10개 미만 품목</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-none shadow-md bg-gradient-to-br from-red-50 to-white overflow-hidden group hover:shadow-lg transition-all border-l-4 border-l-red-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-red-600 flex items-center gap-2">
+              <Info className="w-4 h-4" /> 품절 품목
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-red-700 to-red-500 text-red-600 font-bold">
+              {stats.outOfStock} <span className="text-sm font-normal text-muted-foreground ml-1">종</span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">재고 0인 품목</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Main Content */}
+      <Card className="border-none shadow-xl bg-white/80 backdrop-blur-md">
+        <CardHeader className="flex flex-row items-center justify-between pb-4 space-y-0">
+          <div>
+            <CardTitle className="text-xl font-bold text-gray-800">자재 현황</CardTitle>
+            <CardDescription>검색 및 필터를 통해 재고를 관리하세요</CardDescription>
+          </div>
+          <div className="flex items-center gap-2 w-full max-w-sm">
+            <div className="relative w-full group">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              <Input 
+                placeholder="자재명, 카테고리, 거래처 검색..." 
+                className="pl-9 bg-gray-50 border-gray-200 focus:bg-white transition-all ring-offset-background"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+             <div className="space-y-3">
+               {[1,2,3,4,5].map(i => <Skeleton key={i} className="h-12 w-full rounded-lg" />)}
+             </div>
+          ) : (
+            <div className="rounded-xl border border-gray-100 overflow-hidden shadow-sm">
+              <Table>
+                <TableHeader className="bg-gray-50/50">
+                  <TableRow className="hover:bg-transparent border-b">
+                    <TableHead className="font-bold text-gray-600 w-[20%]">품목명</TableHead>
+                    <TableHead className="font-bold text-gray-600">카테고리</TableHead>
+                    <TableHead className="font-bold text-gray-600">거래처</TableHead>
+                    <TableHead className="font-bold text-gray-600 text-right">단가</TableHead>
+                    <TableHead className="font-bold text-gray-600 text-center">현재 재고</TableHead>
+                    <TableHead className="font-bold text-gray-600">최근 수정</TableHead>
+                    <TableHead className="font-bold text-gray-600 text-right">관리</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredMaterials.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="h-64 text-center text-muted-foreground font-medium">
+                        <div className="flex flex-col items-center justify-center space-y-2">
+                           <Package className="w-12 h-12 text-gray-200" />
+                           <p>등록된 자재가 없거나 검색 결과가 없습니다.</p>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredMaterials.map((material) => (
+                      <TableRow key={material.id} className="group hover:bg-gray-50/50 transition-colors">
+                        <TableCell className="font-semibold text-gray-800 tracking-tight">
+                          {material.name}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="bg-white border-primary/20 text-primary px-2 py-0.5">
+                            {material.main_category}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-gray-500 text-sm">{material.supplier || '-'}</TableCell>
+                        <TableCell className="text-right font-medium text-gray-700">
+                          ₩{material.price.toLocaleString()}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-bold shadow-sm ${
+                            material.stock === 0 ? "bg-red-50 text-red-700 border border-red-100" :
+                            material.stock < 10 ? "bg-orange-50 text-orange-700 border border-orange-100" :
+                            "bg-green-50 text-green-700 border border-green-100"
+                          }`}>
+                            {material.stock.toLocaleString()} {material.unit}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-gray-400 text-xs">
+                          {format(new Date(material.updated_at), 'MM/dd HH:mm')}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 hover:text-blue-600 hover:bg-blue-50"
+                              onClick={() => openEdit(material)}
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 hover:text-red-600 hover:bg-red-50"
+                              onClick={() => deleteMaterial(material.id)}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Add/Edit Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent className="sm:max-w-[425px] border-none shadow-2xl bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-orange-500">
+              {editingMaterial ? "자재 정보 수정" : "새 자재 등록"}
+            </DialogTitle>
+            <DialogDescription>
+              재고 관리를 위해 자재의 상세 정보를 입력해 주세요.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="name" className="text-right font-semibold">품목명</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                className="col-span-3 border-gray-200 focus:ring-primary"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="category" className="text-right font-semibold">카테고리</Label>
+              <Select 
+                value={formData.main_category || ""} 
+                onValueChange={(val) => setFormData({...formData, main_category: val})}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="카테고리 선택" />
+                </SelectTrigger>
+                <SelectContent>
+                  {CATEGORIES.main.map(cat => (
+                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="price" className="text-right font-semibold">입고 단가</Label>
+              <Input
+                id="price"
+                type="number"
+                value={formData.price}
+                onChange={(e) => setFormData({...formData, price: Number(e.target.value)})}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="stock" className="text-right font-semibold">현재 재고</Label>
+              <Input
+                id="stock"
+                type="number"
+                value={formData.stock}
+                onChange={(e) => setFormData({...formData, stock: Number(e.target.value)})}
+                className="col-span-3 font-bold text-primary"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="supplier" className="text-right font-semibold">거래처</Label>
+              <Input
+                id="supplier"
+                value={formData.supplier}
+                onChange={(e) => setFormData({...formData, supplier: e.target.value})}
+                className="col-span-3"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)} className="active:scale-95 transition-all">취소</Button>
+            <Button onClick={handleSave} className="bg-primary hover:bg-primary/90 text-white font-bold px-8 active:scale-95 transition-all shadow-lg shadow-primary/20">저장하기</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

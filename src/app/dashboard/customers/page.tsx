@@ -30,10 +30,7 @@ export default function CustomersPage() {
     deleteCustomer 
   } = useCustomers();
 
-  if (!authLoading && !isSuperAdmin && !['pro', 'erp_only'].includes(plan)) {
-    return <AccessDenied requiredTier="ERP" />;
-  }
-
+  const hasAccess = authLoading || isSuperAdmin || ['pro', 'erp_only'].includes(plan);
   const [searchTerm, setSearchTerm] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
@@ -95,6 +92,10 @@ export default function CustomersPage() {
       toast.error("삭제 중 오류가 발생했습니다.");
     }
   };
+
+  if (!hasAccess) {
+    return <AccessDenied requiredTier="ERP" />;
+  }
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">

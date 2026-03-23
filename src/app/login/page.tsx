@@ -8,7 +8,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from 'sonner';
-import { Loader2, Eye, EyeOff, Lock, Mail, Building } from 'lucide-react';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle 
+} from "@/components/ui/dialog";
+import { Loader2, Eye, EyeOff, Lock, Mail, Building, Info } from 'lucide-react';
 import Image from 'next/image';
 
 export default function LoginPage() {
@@ -27,6 +35,37 @@ export default function LoginPage() {
   const [regShopName, setRegShopName] = useState('');
   const [showRegPassword, setShowRegPassword] = useState(false);
   const [regLoading, setRegLoading] = useState(false);
+
+  // Forgot Password State
+  const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetEmail) {
+      toast.error('이메일을 입력해 주세요.');
+      return;
+    }
+
+    setResetLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      });
+
+      if (error) throw error;
+      
+      toast.success('비밀번호 재설정 메일 발송', {
+        description: '입력하신 이메일로 재설정 링크가 전송되었습니다.'
+      });
+      setIsResetDialogOpen(false);
+    } catch (error: any) {
+      toast.error('발송 실패', { description: error.message });
+    } finally {
+      setResetLoading(false);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -147,6 +186,13 @@ export default function LoginPage() {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <Label htmlFor="password">비밀번호</Label>
+                      <button 
+                        type="button"
+                        onClick={() => setIsResetDialogOpen(true)}
+                        className="text-xs font-medium text-blue-600 hover:text-blue-500 hover:underline transition-all"
+                      >
+                        비밀번호를 잊으셨나요?
+                      </button>
                     </div>
                     <div className="relative">
                       <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
@@ -252,6 +298,52 @@ export default function LoginPage() {
             </Tabs>
           </CardContent>
         </Card>
+
+        {/* Password Reset Dialog */}
+        <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+          <DialogContent className="sm:max-w-md rounded-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold flex items-center gap-2">
+                <Lock className="h-5 w-5 text-blue-500" />
+                비밀번호 찾기
+              </DialogTitle>
+              <DialogDescription>
+                가입하신 이메일 주소를 입력해 주세요. <br />
+                비밀번호 재설정 링크를 보내드립니다.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleResetPassword} className="space-y-4 pt-2">
+              <div className="space-y-2">
+                <Label htmlFor="reset-email">이메일 주소</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                  <Input
+                    id="reset-email"
+                    type="email"
+                    placeholder="example@flower.com"
+                    required
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    className="pl-10 h-11"
+                  />
+                </div>
+              </div>
+              <div className="p-3 bg-blue-50 rounded-xl border border-blue-100 flex items-start gap-3">
+                <Info className="h-4 w-4 text-blue-500 mt-0.5" />
+                <p className="text-[11px] text-blue-800 leading-relaxed font-medium">
+                  이메일이 기억나지 않으시거나 다른 문제가 있다면 <br />
+                  <strong>시스템 관리자(lily@flower.com)</strong>에게 직접 문의해 주세요.
+                </p>
+              </div>
+              <DialogFooter className="sm:justify-end gap-2">
+                <Button type="button" variant="ghost" onClick={() => setIsResetDialogOpen(false)}>취소</Button>
+                <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={resetLoading}>
+                  {resetLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : '재설정 링크 받기'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

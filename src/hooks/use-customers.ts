@@ -91,11 +91,16 @@ export function useCustomers(initialFetch = true) {
   };
 
   useEffect(() => {
-    if (initialFetch && tenantId) {
-      fetchCustomers();
+    if (authLoading) return;
+
+    if (!tenantId) {
+      setLoading(false);
+      return;
     }
 
-    if (!tenantId) return;
+    if (initialFetch) {
+      fetchCustomers();
+    }
 
     const channel = supabase
       .channel(`customers-tenant-${tenantId}`)
@@ -126,7 +131,7 @@ export function useCustomers(initialFetch = true) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [tenantId, initialFetch, fetchCustomers, supabase]);
+  }, [tenantId, authLoading, initialFetch, fetchCustomers, supabase]);
 
   return {
     customers,

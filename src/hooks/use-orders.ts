@@ -113,6 +113,48 @@ export function useOrders(initialFetch = true) {
         .single();
 
       if (error) throw error;
+
+      // --- AUTO-GENERATE EXPENSE FOR DELIVERY ---
+      if (orderData.receipt_type === 'delivery_reservation' && orderData.summary.deliveryFee > 0) {
+        await supabase.from('expenses').insert([{
+           tenant_id: tenantId,
+           category: '운송비',
+           amount: orderData.summary.deliveryFee,
+           description: `배송비 자동 생성 - ${orderData.orderer.name}`,
+           expense_date: orderData.order_date || new Date().toISOString(),
+           payment_method: '기타'
+        }]);
+      }
+
+      // --- [NEW] UPDATE PRODUCT STOCK ---
+      try {
+        for (const item of orderData.items) {
+          if (item.id && !item.id.startsWith('custom_')) {
+            const { data: p } = await supabase.from('products').select('stock').eq('id', item.id).single();
+            if (p) {
+               await supabase.from('products').update({ 
+                 stock: Math.max(0, p.stock - item.quantity) 
+               }).eq('id', item.id);
+            }
+          }
+        }
+      } catch (stockErr) {
+        console.error('Stock update failed:', stockErr);
+      }
+
+      // --- [NEW] UPDATE CUSTOMER POINTS ---
+      if (orderData.orderer.id) {
+        try {
+          const { data: c } = await supabase.from('customers').select('points').eq('id', orderData.orderer.id).single();
+          if (c) {
+             const newPoints = (c.points || 0) + (orderData.summary.pointsEarned || 0) - (orderData.summary.pointsUsed || 0);
+             await supabase.from('customers').update({ points: Math.max(0, newPoints) }).eq('id', orderData.orderer.id);
+          }
+        } catch (pointErr) {
+          console.error('Point update failed:', pointErr);
+        }
+      }
+
       return data.id;
     } catch (error) {
       console.error('Error adding order:', error);
@@ -170,7 +212,14 @@ export function useOrders(initialFetch = true) {
   };
 
   useEffect(() => {
-    if (initialFetch && tenantId) {
+    if (authLoading) return;
+
+    if (!tenantId) {
+      setLoading(false);
+      return;
+    }
+
+    if (initialFetch) {
       fetchOrders();
     }
 
@@ -203,7 +252,7 @@ export function useOrders(initialFetch = true) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [tenantId, initialFetch, fetchOrders, mapRowToOrder, supabase]);
+  }, [tenantId, authLoading, initialFetch, fetchOrders, mapRowToOrder, supabase]);
 
   return {
     orders,

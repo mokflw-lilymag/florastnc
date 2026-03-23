@@ -739,7 +739,7 @@ const RibbonCanvas = ({
 // ==========================================
 import type { Session } from '@supabase/supabase-js';
 
-export default function App({ session, isAdmin, onShowAdmin }: { session?: Session; isAdmin?: boolean; onShowAdmin?: () => void }) {
+export default function App({ session, isAdmin, onShowAdmin, initialLeftText, initialRightText }: { session?: Session; isAdmin?: boolean; onShowAdmin?: () => void; initialLeftText?: string; initialRightText?: string }) {
   const mainRef = useRef<HTMLElement>(null);
   const printAreaRef = useRef<HTMLDivElement>(null);
 
@@ -768,6 +768,7 @@ export default function App({ session, isAdmin, onShowAdmin }: { session?: Sessi
   const [printers, setPrinters] = useState<any[]>([]);
   const [selectedPrinter, setSelectedPrinter] = useState('');
   const [isPrinting, setIsPrinting] = useState(false);
+  const [isBridgeConnected, setIsBridgeConnected] = useState(false);
 
   // User Print Settings
   const [printTarget, setPrintTarget] = useState<'both' | 'left' | 'right'>('both');
@@ -789,7 +790,7 @@ export default function App({ session, isAdmin, onShowAdmin }: { session?: Sessi
   const [marginBottom, setMarginBottom] = useState(50);
 
   // Left Ribbon State
-  const [leftText, setLeftText] = useState('祝發展');
+  const [leftText, setLeftText] = useState(initialLeftText || '祝發展');
   const [leftFontConfig, setLeftFontConfig] = useState<FontConfig>({
     ko: 'font-chosun',
     en: 'font-chosun',
@@ -803,7 +804,7 @@ export default function App({ session, isAdmin, onShowAdmin }: { session?: Sessi
   const [leftSpacing, setLeftSpacing] = useState(0); // 0 = auto
 
   // Right Ribbon State
-  const [rightText, setRightText] = useState('(주)릴리맥플라워랩 [CEO] 홍길동');
+  const [rightText, setRightText] = useState(initialRightText || '(주)릴리맥플라워랩 [CEO] 홍길동');
   const [rightFontConfig, setRightFontConfig] = useState<FontConfig>({
     ko: 'font-chosun',
     en: 'font-chosun',
@@ -950,12 +951,17 @@ export default function App({ session, isAdmin, onShowAdmin }: { session?: Sessi
     fetch('http://localhost:8000/api/printers')
       .then(res => res.json())
       .then(res => {
+        setIsBridgeConnected(true);
         if (res.status === 'success' && Array.isArray(res.data)) {
           setPrinters(res.data);
           if (res.data.length > 0) setSelectedPrinter(res.data[0].name);
         }
       })
-      .catch(err => console.error("Failed to fetch printers", err));
+      .catch(err => {
+        console.error("Failed to fetch printers", err);
+        setIsBridgeConnected(false);
+        setPrinters([]);
+      });
 
     // Auto-Pair Cloud Print Agent with Local Bridge
     if (session?.user?.id) {
@@ -1360,10 +1366,17 @@ export default function App({ session, isAdmin, onShowAdmin }: { session?: Sessi
             <div className="flex items-center justify-between mb-1">
               <label className="text-xs text-slate-400">출력 프린터</label>
               <div className="flex items-center gap-1.5">
-                <div className={cn("w-2 h-2 rounded-full animate-pulse", printers.length > 0 ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" : "bg-red-500")} />
+                <div className={cn("w-2 h-2 rounded-full animate-pulse", isBridgeConnected ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" : "bg-red-500")} />
                 <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-tighter">Live Agent</span>
               </div>
             </div>
+            {!isBridgeConnected && (
+              <div className="mb-2 p-2 bg-red-500/10 border border-red-500/20 rounded-lg">
+                <p className="text-[10px] text-red-400 leading-tight">
+                  ⚠️ 프린트 브리지가 실행 중이지 않습니다. 브리지를 실행 후 새로고침해 주세요.
+                </p>
+              </div>
+            )}
             <div className="flex gap-2">
               <select 
                 value={selectedPrinter} 
@@ -1381,7 +1394,14 @@ export default function App({ session, isAdmin, onShowAdmin }: { session?: Sessi
                 onClick={() => {
                   fetch('http://localhost:8000/api/printers')
                     .then(res => res.json())
-                    .then(res => res.status === 'success' && setPrinters(res.data));
+                    .then(res => {
+                      setIsBridgeConnected(true);
+                      if (res.status === 'success') setPrinters(res.data);
+                    })
+                    .catch(() => {
+                      setIsBridgeConnected(false);
+                      setPrinters([]);
+                    });
                 }}
                 title="목록 갱신"
                 className="p-2 bg-slate-800 border border-slate-700 rounded-lg hover:bg-slate-700 transition"

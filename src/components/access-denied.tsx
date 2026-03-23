@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useRouter } from "next/navigation";
 
 interface AccessDeniedProps {
-  requiredTier: "Ribbon" | "ERP" | "Pro";
+  requiredTier: "Ribbon" | "ERP" | "Pro" | "System Admin";
 }
 
 export function AccessDenied({ requiredTier }: AccessDeniedProps) {

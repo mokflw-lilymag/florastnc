@@ -90,11 +90,16 @@ export function useProducts(initialFetch = true) {
   };
 
   useEffect(() => {
-    if (initialFetch && tenantId) {
-      fetchProducts();
+    if (authLoading) return;
+
+    if (!tenantId) {
+      setLoading(false);
+      return;
     }
 
-    if (!tenantId) return;
+    if (initialFetch) {
+      fetchProducts();
+    }
 
     const channel = supabase
       .channel(`products-tenant-${tenantId}`)
@@ -121,7 +126,7 @@ export function useProducts(initialFetch = true) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [tenantId, initialFetch, fetchProducts, supabase]);
+  }, [tenantId, authLoading, initialFetch, fetchProducts, supabase]);
 
   return {
     products,

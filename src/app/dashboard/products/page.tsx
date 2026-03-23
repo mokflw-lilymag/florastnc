@@ -14,6 +14,10 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { AccessDenied } from "@/components/access-denied";
 import { Skeleton } from "@/components/ui/skeleton";
+import { downloadTemplate, parseExcel } from "@/utils/excel";
+import { useSettings } from "@/hooks/use-settings";
+import { Download, Upload, Settings2 } from "lucide-react";
+import Link from "next/link";
 
 export default function ProductsPage() {
   const { profile, isLoading: authLoading } = useAuth();
@@ -30,14 +34,14 @@ export default function ProductsPage() {
     deleteProduct 
   } = useProducts();
 
-  if (!authLoading && !isSuperAdmin && !['pro', 'erp_only'].includes(plan)) {
-    return <AccessDenied requiredTier="ERP" />;
-  }
+  const { productCategories } = useSettings();
 
+  const hasAccess = authLoading || isSuperAdmin || ['pro', 'erp_only'].includes(plan);
   const [searchTerm, setSearchTerm] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isImporting, setIsImporting] = useState(false);
 
   const filteredProducts = useMemo(() => {
     if (!searchTerm) return products;
@@ -67,6 +71,42 @@ export default function ProductsPage() {
     setIsFormOpen(true);
   };
 
+  const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    try {
+      const data = await parseExcel(file);
+      let successCount = 0;
+      for (const row of data) {
+        // Map excel columns to database fields
+        const payload: ProductData = {
+          code: row['상품코드']?.toString() || '',
+          name: row['상품명']?.toString() || '',
+          main_category: row['대분류']?.toString() || '',
+          mid_category: row['중분류']?.toString() || '',
+          price: Number(row['판매가']) || 0,
+          stock: Number(row['재고']) || 0,
+          supplier: row['공급처']?.toString() || '',
+          status: (row['상태(active/inactive)']?.toString().toLowerCase() === 'inactive' ? 'inactive' : 'active') as any,
+        };
+
+        if (payload.name) {
+          const id = await addProduct(payload);
+          if (id) successCount++;
+        }
+      }
+      toast.success(`${successCount}개의 상품이 등록되었습니다.`);
+    } catch (err) {
+      console.error(err);
+      toast.error("엑셀 파일 파싱에 실패했습니다.");
+    } finally {
+      setIsImporting(false);
+      e.target.value = ''; // Reset input
+    }
+  };
+
   const handleFormSubmit = async (data: ProductData) => {
     try {
       if (editingProduct) {
@@ -91,6 +131,10 @@ export default function ProductsPage() {
     }
   };
 
+  if (!hasAccess) {
+    return <AccessDenied requiredTier="ERP" />;
+  }
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       <PageHeader
@@ -98,7 +142,45 @@ export default function ProductsPage() {
         description="판매 상품의 목록과 재고를 실시간으로 관리하고 카테고리를 분류합니다."
         icon={Package}
       >
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {/* Settings Link */}
+          <Link href="/dashboard/settings/categories">
+            <Button variant="ghost" size="sm" className="hidden sm:flex text-slate-500 hover:text-slate-900 border border-transparent hover:border-slate-200">
+              <Settings2 className="h-4 w-4 mr-2" />
+              카테고리 설정
+            </Button>
+          </Link>
+
+          {/* Export/Import Buttons */}
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => downloadTemplate('product')}
+            className="border-slate-200"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            양식 다운로드
+          </Button>
+
+          <div className="relative">
+            <input
+              type="file"
+              accept=".xlsx, .xls"
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              onChange={handleImportExcel}
+              disabled={isImporting}
+            />
+            <Button 
+              variant="outline" 
+              size="sm" 
+              disabled={isImporting}
+              className="border-slate-200"
+            >
+              <Upload className={`h-4 w-4 mr-2 ${isImporting ? 'animate-pulse' : ''}`} />
+              {isImporting ? '업로드 중...' : '엑셀 업로드'}
+            </Button>
+          </div>
+
           <Button 
             variant="outline" 
             size="sm" 
@@ -109,6 +191,7 @@ export default function ProductsPage() {
             <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
             새로고침
           </Button>
+          
           <Button 
             onClick={handleCreateNew}
             size="sm"

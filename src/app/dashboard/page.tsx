@@ -1,251 +1,295 @@
-import { useAuth } from "@/hooks/use-auth";
-import { useOrders } from "@/hooks/use-orders";
-import { useProducts } from "@/hooks/use-products";
+"use client";
+
+import { useMemo } from "react";
 import { 
-  ShieldCheck, Store, Users, ArrowRight, Printer, AlertCircle, 
-  ShoppingCart, Package, TrendingUp, CreditCard, Clock, ChevronRight,
-  Plus, Calendar
+  ShoppingCart, 
+  Users, 
+  Package, 
+  Printer, 
+  TrendingUp, 
+  Clock, 
+  AlertCircle,
+  Truck,
+  ScrollText,
+  Boxes,
+  BarChart3,
+  Calendar,
+  Wallet,
+  ArrowUpRight,
+  ArrowDownRight,
+  CheckCircle2
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/page-header";
+import { useAuth } from "@/hooks/use-auth";
+import { useOrders } from "@/hooks/use-orders";
+import { useProducts } from "@/hooks/use-products";
+import { useExpenses } from "@/hooks/use-expenses";
 import { Skeleton } from "@/components/ui/skeleton";
-import { format } from "date-fns";
-import { parseDate } from "@/lib/date-utils";
-import Link from "next/link";
+import { format, isToday, startOfToday, endOfToday } from "date-fns";
+import { Badge } from "@/components/ui/badge";
 
 export default function DashboardPage() {
   const { profile, isLoading: authLoading } = useAuth();
   const { orders, loading: ordersLoading } = useOrders();
   const { products, loading: productsLoading } = useProducts();
+  const { expenses, loading: expensesLoading } = useExpenses();
 
-  const isSuperAdmin = profile?.role === 'super_admin';
-  const plan = profile?.tenants?.plan || "free";
+  const isLoading = authLoading || ordersLoading || productsLoading || expensesLoading;
+  
+  const stats = useMemo(() => {
+    if (isLoading) return null;
 
-  if (authLoading) {
+    // --- TODAY STATS ---
+    const todayOrders = orders.filter(o => o.order_date && isToday(new Date(o.order_date)));
+    const todayRevenue = todayOrders
+      .filter(o => o.status !== 'canceled')
+      .reduce((sum, o) => sum + (o.summary?.total || 0), 0);
+    
+    const todayExpenses = expenses
+      .filter(e => e.expense_date && isToday(new Date(e.expense_date)))
+      .reduce((sum, e) => sum + (e.amount || 0), 0);
+
+    // --- OVERALL STATS ---
+    const totalOrders = orders.length;
+    const processingOrders = orders.filter(o => o.status === 'processing').length;
+    const completedOrders = orders.filter(o => o.status === 'completed').length;
+    
+    const totalRevenue = orders
+      .filter(o => o.status === 'completed')
+      .reduce((sum, o) => sum + (o.summary?.total || 0), 0);
+
+    const outOfStockProducts = products.filter(p => (p.stock || 0) <= 0).length;
+    const lowStockProducts = products.filter(p => (p.stock || 0) > 0 && (p.stock || 0) < 10).length;
+
+    // Recent orders (top 5)
+    const recentOrders = [...orders].sort((a, b) => 
+      new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+    ).slice(0, 5);
+
+    return {
+      totalOrders,
+      processingOrders,
+      completedOrders,
+      totalRevenue,
+      outOfStockProducts,
+      lowStockProducts,
+      totalProducts: products.length,
+      todayCount: todayOrders.length,
+      todayRevenue,
+      todayExpenses,
+      recentOrders
+    };
+  }, [orders, products, expenses, isLoading]);
+
+  if (isLoading) {
     return (
-      <div className="space-y-6">
-        <Skeleton className="h-12 w-1/3" />
+      <div className="p-6 space-y-6">
+        <Skeleton className="h-10 w-1/4" />
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-32 w-full" />)}
+          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-32 w-full rounded-2xl" />)}
         </div>
-        <div className="grid gap-4 md:grid-cols-7">
-          <Skeleton className="col-span-4 h-96 w-full" />
-          <Skeleton className="col-span-3 h-96 w-full" />
+        <div className="grid gap-4 md:grid-cols-3">
+          <Skeleton className="col-span-2 h-[400px] rounded-2xl" />
+          <Skeleton className="col-span-1 h-[400px] rounded-2xl" />
         </div>
       </div>
     );
   }
 
-  // Stats calculation
-  const totalSales = orders
-    .filter(o => o.status !== 'canceled')
-    .reduce((sum, o) => sum + (o.summary?.total || 0), 0);
-  
-  const pendingOrders = orders.filter(o => o.status === 'processing').length;
-  const lowStockItems = products.filter(p => p.stock < 10 && p.stock > 0);
-  const totalCustomers = 0; // Placeholder until CRM is fully linked
-
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      {/* Welcome Header */}
+    <div className="p-6 space-y-6 max-w-7xl mx-auto animate-in fade-in duration-700 pb-12 font-light">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-3">
-            {isSuperAdmin ? (
-              <><ShieldCheck className="text-blue-600 h-8 w-8" /> 시스템 관제 센터</>
-            ) : (
-              <><Store className="text-indigo-600 h-8 w-8" /> {profile?.tenants?.name || "화원"} 대시보드</>
-            )}
-          </h1>
-          <p className="text-slate-500 mt-1">
-            {isSuperAdmin 
-              ? "글로벌 화원 관리 및 시스템 인프라 현황입니다."
-              : `${format(new Date(), 'yyyy년 MM월 dd일')} 오늘의 실시간 비즈니스 현황입니다.`
-            }
-          </p>
+           <h1 className="text-3xl font-medium text-gray-900 tracking-tight">
+             안녕하세요, <span className="text-primary">{profile?.full_name || '사용자'}</span>님!
+           </h1>
+           <p className="text-slate-600 font-medium text-sm">오늘 {format(new Date(), 'yyyy년 MM월 dd일')}의 현황입니다.</p>
         </div>
-        {!isSuperAdmin && (
-          <div className="flex items-center gap-2">
-            <Link href="/dashboard/orders">
-              <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md">
-                <Plus className="h-4 w-4 mr-2" /> 새 주문 등록
-              </Button>
-            </Link>
-          </div>
-        )}
+        <div className="bg-white p-1 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-1">
+           <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-100 font-light px-3 py-1 text-[11px]">
+              실시간 동기화 활성
+           </Badge>
+           <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-100 font-light px-3 py-1 text-[11px]">
+              SaaS {profile?.tenants?.plan || 'Free'}
+           </Badge>
+        </div>
       </div>
 
-      {/* Primary Metrics */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="relative overflow-hidden border-none shadow-md bg-white dark:bg-slate-900 group">
+      {/* Daily Settlement Quick View */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="border-none shadow-lg shadow-blue-50 bg-gradient-to-br from-white to-blue-50/30 overflow-hidden relative group rounded-3xl">
           <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:scale-110 transition-transform">
-            <TrendingUp className="h-12 w-12 text-emerald-500" />
+             <ShoppingCart className="w-12 h-12 text-blue-600" />
           </div>
           <CardHeader className="pb-2">
-            <CardDescription className="text-xs font-semibold uppercase tracking-wider text-slate-500">누적 매출 (VAT 포함)</CardDescription>
-            <CardTitle className="text-2xl font-bold">₩{totalSales.toLocaleString()}</CardTitle>
+            <CardTitle className="text-xs font-medium text-blue-600 uppercase tracking-widest">오늘 주문 건수</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center text-xs text-emerald-600 font-medium">
-              <TrendingUp className="h-3 w-3 mr-1" />
-              <span>실시간 동기화 중</span>
+            <div className="text-3xl font-medium text-slate-900">{stats?.todayCount} <span className="text-lg font-light">건</span></div>
+            <div className="flex items-center gap-1 text-[11px] text-blue-600 font-light mt-2 bg-blue-100/50 w-fit px-2 py-0.5 rounded-full">
+               <ArrowUpRight className="w-3 h-3" /> 실시간 집계 중
             </div>
           </CardContent>
         </Card>
 
-        <Card className="relative overflow-hidden border-none shadow-md bg-white dark:bg-slate-900 group">
+        <Card className="border-none shadow-lg shadow-emerald-50 bg-gradient-to-br from-white to-emerald-50/30 overflow-hidden relative group rounded-3xl">
           <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:scale-110 transition-transform">
-            <ShoppingCart className="h-12 w-12 text-blue-500" />
+             <Wallet className="w-12 h-12 text-emerald-600" />
           </div>
           <CardHeader className="pb-2">
-            <CardDescription className="text-xs font-semibold uppercase tracking-wider text-slate-500">배송/준비중 주문</CardDescription>
-            <CardTitle className="text-2xl font-bold">{pendingOrders}건</CardTitle>
+            <CardTitle className="text-xs font-medium text-emerald-600 uppercase tracking-widest">오늘 매출액</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center text-xs text-blue-600 font-medium">
-              <Clock className="h-3 w-3 mr-1" />
-              <span>오늘 처리 필요</span>
-            </div>
+            <div className="text-3xl font-medium text-slate-900">₩{stats?.todayRevenue.toLocaleString()}</div>
+            <div className="text-[11px] text-slate-700 font-medium mt-1.5">취소 건 제외 실매출</div>
           </CardContent>
         </Card>
 
-        <Card className="relative overflow-hidden border-none shadow-md bg-white dark:bg-slate-900 group">
+        <Card className="border-none shadow-lg shadow-rose-50 bg-gradient-to-br from-white to-rose-50/30 overflow-hidden relative group rounded-3xl">
           <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:scale-110 transition-transform">
-            <Package className="h-12 w-12 text-amber-500" />
+             <ArrowDownRight className="w-12 h-12 text-rose-600" />
           </div>
           <CardHeader className="pb-2">
-            <CardDescription className="text-xs font-semibold uppercase tracking-wider text-slate-500">재고 경보 (10개 미만)</CardDescription>
-            <CardTitle className="text-2xl font-bold">{lowStockItems.length}종</CardTitle>
+            <CardTitle className="text-xs font-medium text-rose-600 uppercase tracking-widest">오늘 지출액</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center text-xs text-amber-600 font-medium">
-              <AlertCircle className="h-3 w-3 mr-1" />
-              <span>발주 검토 필요</span>
-            </div>
+            <div className="text-3xl font-medium text-slate-900">₩{stats?.todayExpenses.toLocaleString()}</div>
+            <div className="text-[11px] text-slate-700 font-medium mt-1.5">배송비 및 매입 포함</div>
           </CardContent>
         </Card>
 
-        <Card className="relative overflow-hidden border-none shadow-md bg-white dark:bg-slate-900 group">
+        <Card className="border-none shadow-lg shadow-amber-50 bg-gradient-to-br from-white to-amber-50/30 overflow-hidden relative group text-amber-900 rounded-3xl">
           <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:scale-110 transition-transform">
-            <CreditCard className="h-12 w-12 text-purple-500" />
+             <Package className="w-12 h-12 text-amber-600" />
           </div>
           <CardHeader className="pb-2">
-            <CardDescription className="text-xs font-semibold uppercase tracking-wider text-slate-500">현재 이용 플랜</CardDescription>
-            <CardTitle className="text-2xl font-bold uppercase">{plan.replace('_', ' ')}</CardTitle>
+            <CardTitle className="text-xs font-medium text-amber-600 uppercase tracking-widest">예상 당기 순이익</CardTitle>
           </CardHeader>
           <CardContent>
-            <Link href="/dashboard/settings" className="text-xs text-purple-600 font-medium hover:underline flex items-center">
-              <span>플랜 상세 보기</span>
-              <ChevronRight className="h-3 w-3 ml-0.5" />
-            </Link>
+            <div className="text-3xl font-medium text-slate-900">₩{(stats!.todayRevenue - stats!.todayExpenses).toLocaleString()}</div>
+            <div className="text-[11px] text-slate-700 font-medium mt-1.5">매출 - 지출 합계</div>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
-        {/* Recent Orders Cockpit */}
-        <Card className="lg:col-span-4 shadow-md border-slate-100 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
-          <CardHeader className="flex flex-row items-center justify-between">
+      <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
+        {/* Recent Orders List */}
+        <Card className="lg:col-span-2 border-none shadow-sm rounded-3xl bg-white/80 overflow-hidden">
+          <CardHeader className="flex flex-row items-center justify-between border-b border-gray-50 pb-4">
             <div>
-              <CardTitle className="text-lg">최근 주문 현황</CardTitle>
-              <CardDescription>가장 최근 접수된 5개의 주문입니다.</CardDescription>
+              <CardTitle className="text-lg font-light">최근 주문 내역</CardTitle>
+              <CardDescription className="text-xs font-medium">새로 접수된 5개의 주문입니다</CardDescription>
             </div>
-            <Link href="/dashboard/orders">
-              <Button variant="ghost" size="sm" className="text-slate-500 text-xs">전체보기</Button>
-            </Link>
+            <a href="/dashboard/orders" className="text-primary text-[11px] font-medium hover:underline uppercase tracking-tighter">전체보기</a>
           </CardHeader>
-          <CardContent>
-            {ordersLoading ? (
-              <div className="space-y-4">
-                {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}
-              </div>
-            ) : orders.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center space-y-3">
-                <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded-full">
-                  <ShoppingCart className="h-8 w-8 text-slate-400" />
-                </div>
-                <p className="text-slate-500 text-sm">아직 접수된 주문이 없습니다.</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {orders.slice(0, 5).map((order) => (
-                  <div key={order.id} className="flex items-center justify-between p-3 rounded-lg border border-slate-50 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-indigo-100 dark:hover:border-indigo-900 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <div className="bg-slate-100 dark:bg-slate-800 p-2 rounded-md">
-                        <Calendar className="h-4 w-4 text-slate-500" />
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-sm font-semibold">{order.orderer.name}</span>
-                        <span className="text-[10px] text-slate-400">{format(parseDate(order.order_date), 'MM/dd HH:mm')}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <span className="text-sm font-bold">₩{order.summary.total.toLocaleString()}</span>
-                      <Badge variant={order.status === 'completed' ? 'default' : 'secondary'} className="text-[10px] px-1.5 h-5">
-                        {order.status === 'completed' ? '완료' : '처리중'}
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+          <CardContent className="p-0">
+             <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                   <thead className="bg-gray-50/50 text-slate-400 font-medium uppercase text-[11px] tracking-widest">
+                      <tr>
+                         <th className="px-6 py-4">주문번호</th>
+                         <th className="px-6 py-4">주문자</th>
+                         <th className="px-6 py-4">상품</th>
+                         <th className="px-6 py-4 text-right">금액</th>
+                         <th className="px-6 py-4 text-center">상태</th>
+                      </tr>
+                   </thead>
+                   <tbody className="divide-y divide-gray-50">
+                      {stats?.recentOrders.map((order) => (
+                        <tr key={order.id} className="hover:bg-gray-50/50 transition-colors">
+                           <td className="px-6 py-4 font-mono text-[11px] font-light text-primary uppercase">{order.order_number}</td>
+                           <td className="px-6 py-4 font-light text-slate-800 text-xs">{order.orderer.name}</td>
+                           <td className="px-6 py-4 text-gray-600 truncate max-w-[150px] text-xs font-medium">
+                              {order.items[0]?.name} {order.items.length > 1 ? `외 ${order.items.length - 1}건` : ''}
+                           </td>
+                           <td className="px-6 py-4 text-right font-medium text-slate-900 text-sm">
+                              ₩{order.summary?.total.toLocaleString()}
+                           </td>
+                           <td className="px-6 py-4 text-center">
+                              <Badge 
+                                variant="outline" 
+                                className={`rounded-lg px-2 py-0.5 text-[11px] font-medium border-none ${
+                                  order.status === 'completed' ? 'bg-emerald-100 text-emerald-700' :
+                                  order.status === 'processing' ? 'bg-amber-100 text-amber-700' :
+                                  'bg-red-100 text-red-700'
+                                }`}
+                              >
+                                {order.status === 'completed' ? '완료' : order.status === 'processing' ? '준비중' : '취소'}
+                              </Badge>
+                           </td>
+                        </tr>
+                      ))}
+                      {stats?.recentOrders.length === 0 && (
+                        <tr><td colSpan={5} className="px-6 py-20 text-center text-gray-400 font-medium italic">접수된 주문이 없습니다.</td></tr>
+                      )}
+                   </tbody>
+                </table>
+             </div>
           </CardContent>
         </Card>
 
-        {/* Action Center & Alerts */}
-        <div className="lg:col-span-3 space-y-6">
-          {/* Quick Actions */}
-          <Card className="shadow-md border-slate-100 dark:border-slate-800">
-            <CardHeader>
-              <CardTitle className="text-lg">빠른 실행</CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 gap-2">
-              <Link href="/dashboard/printer">
-                <Button variant="outline" className="w-full justify-between h-12 border-slate-200 hover:border-indigo-200 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/20 group transition-all">
-                  <div className="flex items-center gap-3"><Printer className="h-4 w-4 text-indigo-500" /> 리본 캔버스 앱</div>
-                  <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-indigo-400 transform group-hover:translate-x-1 transition-all" />
-                </Button>
-              </Link>
-              <Link href="/dashboard/products">
-                <Button variant="outline" className="w-full justify-between h-12 border-slate-200 group transition-all">
-                  <div className="flex items-center gap-3"><Package className="h-4 w-4 text-emerald-500" /> 재고 및 규격 관리</div>
-                  <ChevronRight className="h-4 w-4 text-slate-300 transform group-hover:translate-x-1 transition-all" />
-                </Button>
-              </Link>
-              <Link href="/dashboard/customers">
-                <Button variant="outline" className="w-full justify-between h-12 border-slate-200 group transition-all">
-                  <div className="flex items-center gap-3"><Users className="h-4 w-4 text-blue-500" /> 단골 고객 관리</div>
-                  <ChevronRight className="h-4 w-4 text-slate-300 transform group-hover:translate-x-1 transition-all" />
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-
-          {/* Stock Alerts */}
-          {lowStockItems.length > 0 && (
-            <Card className="shadow-md border-red-100 bg-red-50/30 dark:bg-red-950/10 dark:border-red-900/30 overflow-hidden">
-              <div className="h-1 bg-red-400" />
+        {/* Quick Actions & Status */}
+        <div className="space-y-6">
+           <Card className="border-none shadow-sm rounded-3xl overflow-hidden bg-slate-900 text-white">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-bold text-red-700 flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4" /> 재고 부족 알림
-                </CardTitle>
+                 <CardTitle className="text-lg font-light flex items-center gap-2">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                    빠른 작업
+                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2">
-                {lowStockItems.slice(0, 3).map(p => (
-                  <div key={p.id} className="flex justify-between items-center text-xs p-2 rounded-md bg-white dark:bg-slate-900 border border-red-50 dark:border-red-900/20">
-                    <span className="font-medium">{p.name}</span>
-                    <span className="text-red-600 font-bold">{p.stock}개 남음</span>
-                  </div>
-                ))}
-                {lowStockItems.length > 3 && (
-                  <p className="text-[10px] text-slate-400 text-center uppercase tracking-tighter">외 {lowStockItems.length - 3}개의 품목 더 있음</p>
-                )}
+              <CardContent className="grid grid-cols-2 gap-3 pt-2">
+                 <DashboardIconButton icon={ShoppingCart} label="주문등록" href="/dashboard/orders/new" color="bg-primary" />
+                 <DashboardIconButton icon={Printer} label="리본출력" href="/dashboard/orders" color="bg-indigo-500" />
+                 <DashboardIconButton icon={Truck} label="배송관리" href="/dashboard/delivery" color="bg-blue-500" />
+                 <DashboardIconButton icon={Boxes} label="재고관리" href="/dashboard/inventory" color="bg-amber-500" />
               </CardContent>
-            </Card>
-          )}
+           </Card>
+
+           <Card className="border-none shadow-sm rounded-3xl bg-white/80">
+              <CardHeader className="pb-2 border-b border-gray-50 mb-2">
+                 <CardTitle className="text-lg font-light flex items-center gap-2">
+                    <AlertCircle className="w-5 h-5 text-amber-500" />
+                    재고 알림
+                 </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 pt-2">
+                 <div className="flex items-center justify-between p-3 bg-red-50 rounded-2xl border border-red-100/50">
+                    <div className="flex items-center gap-2">
+                       <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+                       <span className="text-xs font-light text-red-700">품절 상품</span>
+                    </div>
+                    <span className="text-lg font-medium text-red-900">{stats?.outOfStockProducts}건</span>
+                 </div>
+                 <div className="flex items-center justify-between p-3 bg-amber-50 rounded-2xl border border-amber-100/50">
+                    <div className="flex items-center gap-2">
+                       <div className="h-2 w-2 rounded-full bg-amber-500" />
+                       <span className="text-xs font-light text-amber-700">재고 부족 (10개 미만)</span>
+                    </div>
+                    <span className="text-lg font-medium text-amber-900">{stats?.lowStockProducts}건</span>
+                 </div>
+                 <a href="/dashboard/inventory" className="w-full">
+                    <Button variant="ghost" className="w-full rounded-2xl text-[11px] font-medium text-gray-400 hover:bg-gray-50 h-10 uppercase tracking-widest">
+                       재고 관리 바로가기
+                    </Button>
+                 </a>
+              </CardContent>
+           </Card>
         </div>
       </div>
     </div>
+  );
+}
+
+function DashboardIconButton({ icon: Icon, label, href, color = "bg-white/10" }: { icon: any, label: string, href: string, color?: string }) {
+  return (
+    <a 
+      href={href}
+      className={`flex flex-col items-center justify-center p-3 rounded-2xl ${color} hover:brightness-110 transition-all group backdrop-blur-md border border-white/5`}
+    >
+      <Icon className="h-6 w-6 text-white mb-2 group-hover:scale-110 transition-transform" />
+      <span className="text-[11px] font-medium text-white/90">{label}</span>
+    </a>
   );
 }

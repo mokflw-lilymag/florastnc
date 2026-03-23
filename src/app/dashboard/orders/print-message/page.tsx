@@ -4,59 +4,15 @@ import { Suspense, useEffect, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { MessagePrintLayout } from './components/message-print-layout';
-import type { Order } from '@/types/order';
 import { useAuth } from '@/hooks/use-auth';
 import { useSearchParams } from 'next/navigation';
+import { Order } from '@/types/order';
 
-export interface SerializableOrder extends Omit<Order, 'orderDate' | 'id'> {
-    id: string;
-    orderDate: string; // ISO string format
-}
-
-const toLocalDate = (dateVal: any): Date => {
-    if (!dateVal) return new Date();
-    if (typeof dateVal === 'string') return new Date(dateVal);
-    if (typeof dateVal === 'number') return new Date(dateVal);
-    if (dateVal instanceof Date) return dateVal;
-    return new Date(dateVal);
-};
-
-async function getOrder(supabase: any, orderId: string): Promise<SerializableOrder | null> {
-    try {
-        const { data, error: fetchError } = await supabase
-            .from('orders')
-            .select('*')
-            .eq('id', orderId)
-            .maybeSingle();
-
-        if (fetchError) throw fetchError;
-
-        if (data) {
-            const orderDateIso = toLocalDate(data.order_date).toISOString();
-            return {
-                ...data,
-                id: data.id,
-                orderDate: orderDateIso,
-                items: data.items || [],
-                summary: data.summary || {},
-                orderer: data.orderer || {},
-                is_anonymous: data.is_anonymous || false,
-                payment: data.payment || {},
-                message: data.message || {},
-            } as SerializableOrder;
-        }
-        return null;
-    } catch (error) {
-        console.error("Error fetching order:", error);
-        return null;
-    }
-}
-
-function PrintMessageContent() {
+export default function PrintMessagePage() {
+    const { profile, isLoading: authLoading, tenantId } = useAuth();
     const supabase = createClient();
-    const { tenantId, isLoading: authLoading } = useAuth();
     const searchParams = useSearchParams();
-    const [orderData, setOrderData] = useState<SerializableOrder | null>(null);
+    const [orderData, setOrderData] = useState<Order | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -79,51 +35,75 @@ function PrintMessageContent() {
                 setIsLoading(false);
                 return;
             }
+
+            if (!tenantId && !authLoading) {
+                setError('로그인이 필요합니다.');
+                setIsLoading(false);
+                return;
+            }
+
             if (tenantId) {
                 try {
-                    const data = await getOrder(supabase, orderId);
+                    const { data, error: fetchError } = await supabase
+                        .from('orders')
+                        .select('*')
+                        .eq('id', orderId)
+                        .eq('tenant_id', tenantId)
+                        .maybeSingle();
+
+                    if (fetchError) throw fetchError;
                     if (data) {
-                        setOrderData(data);
+                        setOrderData(data as Order);
                     } else {
                         setError('주문을 찾을 수 없습니다.');
                     }
                 } catch (err) {
                     setError('주문 데이터를 가져오는 중 오류가 발생했습니다.');
+                    console.error('Error fetching order:', err);
                 } finally {
                     setIsLoading(false);
                 }
-            } else if (!authLoading) {
-                setError('로그인이 필요합니다.');
-                setIsLoading(false);
             }
         };
-        fetchOrder();
-    }, [orderId, tenantId, authLoading, supabase]);
 
-    if (authLoading || isLoading) return <div className="p-6"><Skeleton className="h-96 w-full" /></div>;
-    if (error) return <div className="p-6 text-center text-red-600 font-bold">{error}</div>;
-    if (!orderData) return <div className="p-6 text-center">주문을 찾을 수 없습니다.</div>;
+        if (!authLoading) {
+            fetchOrder();
+        }
+    }, [orderId, tenantId, authLoading]);
+
+    if (authLoading || isLoading) {
+        return (
+            <div className="max-w-4xl mx-auto p-6">
+                <Skeleton className="h-96 w-full" />
+            </div>
+        );
+    }
+
+    if (error || !orderData) {
+        return (
+            <div className="max-w-4xl mx-auto p-6">
+                <div className="text-center">
+                    <h2 className="text-2xl font-bold text-red-600 mb-4">오류 발생</h2>
+                    <p className="text-gray-600 font-light">{error || '주문 정보가 없습니다.'}</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
-        <MessagePrintLayout
-            order={orderData}
-            labelType={labelType}
-            startPosition={startPosition}
-            messageFont={messageFont}
-            messageFontSize={messageFontSize}
-            senderFont={senderFont}
-            senderFontSize={senderFontSize}
-            messageContent={messageContent}
-            senderName={senderName}
-            selectedPositions={selectedPositions}
-        />
-    );
-}
-
-export default function PrintMessagePage() {
-    return (
-        <Suspense fallback={<div className="p-6 text-center">불러오는 중...</div>}>
-            <PrintMessageContent />
+        <Suspense fallback={<div className="max-w-4xl mx-auto p-6"><Skeleton className="h-96 w-full" /></div>}>
+            <MessagePrintLayout
+                order={orderData}
+                labelType={labelType}
+                startPosition={startPosition}
+                messageFont={messageFont}
+                messageFontSize={messageFontSize}
+                senderFont={senderFont}
+                senderFontSize={senderFontSize}
+                messageContent={messageContent}
+                senderName={senderName}
+                selectedPositions={selectedPositions}
+            />
         </Suspense>
     );
 }

@@ -22,6 +22,8 @@ import {
 import { Label } from "@/components/ui/label";
 import { Product, ProductData } from "@/types/product";
 
+import { useSettings } from "@/hooks/use-settings";
+
 interface ProductFormProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -29,13 +31,21 @@ interface ProductFormProps {
   product?: Product | null;
 }
 
-const CATEGORIES = {
-  main: ['꽃다발', '꽃바구니', '식물/화분', '경조사화환', '부자재', '기타'],
+const DEFAULT_CATEGORIES = {
+  main: ['꽃다발', '꽃바구니', '식물/화분', '경조사화환', '어버이날상품', '기프트상품', '서양란', '동양란', '웨딩상품', '플라워', '플랜트', '화병/화기', '부자재', '기타'],
   mid: {
     '꽃다발': ['기본형', '대형', '한송이', '돈꽃다발'],
     '꽃바구니': ['S사이즈', 'M사이즈', 'L사이즈', '오색꽃바구니'],
     '식물/화분': ['공기정화', '관엽', '다육/선인장', '난'],
     '경조사화환': ['축하화환', '근조화환', '오브제'],
+    '어버이날상품': ['어버이날컬렉션'],
+    '기프트상품': ['기프트컬렉션'],
+    '서양란': ['서양란'],
+    '동양란': ['동양란'],
+    '웨딩상품': ['웨딩컬렉션'],
+    '플라워': ['경조화환', '꽃다발', '꽃바구니', '센터피스', '플라워박스', '행사용꽃'],
+    '플랜트': ['대품', '동서양난', '소품', '중품'],
+    '화병/화기': ['화병/화기'],
     '부자재': ['포장지', '리본', '박스', '기타'],
     '기타': ['기타']
   }
@@ -79,13 +89,16 @@ export function ProductForm({ isOpen, onOpenChange, onSubmit, product }: Product
     }
   }, [product, isOpen]);
 
+  const { productCategories } = useSettings();
+  const CATEGORIES = productCategories || DEFAULT_CATEGORIES;
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(formData);
   };
 
-  const mainCategory = formData.main_category as keyof typeof CATEGORIES.mid;
-  const subCategories = mainCategory ? CATEGORIES.mid[mainCategory] : [];
+  const mainCategory = formData.main_category as keyof typeof DEFAULT_CATEGORIES.mid;
+  const subCategories = (mainCategory && CATEGORIES.mid[mainCategory]) || [];
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -100,47 +113,48 @@ export function ProductForm({ isOpen, onOpenChange, onSubmit, product }: Product
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-5 py-4">
           <div className="grid gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="product-name" className="text-slate-700 font-medium">상품명 <span className="text-red-500">*</span></Label>
-              <Input 
-                id="product-name"
-                value={formData.name} 
-                onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="예: 릴리 화이트 장미 다발"
+            <div className="grid gap-2">
+              <Label htmlFor="name" className="text-slate-700 font-medium">상품명 <span className="text-red-500">*</span></Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="예: 장미 꽃다발 (M)"
+                className="border-slate-200 focus:ring-blue-500/20"
                 required
-                className="focus:ring-2 focus:ring-blue-500/20"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-slate-700 font-medium">대분류 <span className="text-red-500">*</span></Label>
-                <Select 
-                  value={formData.main_category || ""} 
-                  onValueChange={val => setFormData(prev => ({ ...prev, main_category: val, mid_category: "" }))}
+              <div className="grid gap-2">
+                <Label htmlFor="main_category" className="text-slate-700 font-medium">대분류 <span className="text-red-500">*</span></Label>
+                <Select
+                  value={formData.main_category || ""}
+                  onValueChange={(value) => setFormData({ ...formData, main_category: value, mid_category: "" })}
                 >
-                  <SelectTrigger className="bg-white">
-                    <SelectValue placeholder="분류 선택" />
+                  <SelectTrigger className="border-slate-200 focus:ring-blue-500/20">
+                    <SelectValue placeholder="선택" />
                   </SelectTrigger>
                   <SelectContent>
-                    {CATEGORIES.main.map(cat => (
+                    {CATEGORIES.main.map((cat: string) => (
                       <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label className="text-slate-700 font-medium">중분류</Label>
-                <Select 
-                  value={formData.mid_category || ""} 
-                  onValueChange={val => setFormData(prev => ({ ...prev, mid_category: val }))}
+
+              <div className="grid gap-2">
+                <Label htmlFor="mid_category" className="text-slate-700 font-medium">중분류</Label>
+                <Select
+                  value={formData.mid_category || ""}
+                  onValueChange={(value) => setFormData({ ...formData, mid_category: value })}
                   disabled={!formData.main_category}
                 >
-                  <SelectTrigger className="bg-white">
-                    <SelectValue placeholder="중분류 선택" />
+                  <SelectTrigger className="border-slate-200 focus:ring-blue-500/20">
+                    <SelectValue placeholder="선택" />
                   </SelectTrigger>
                   <SelectContent>
-                    {subCategories.map(cat => (
+                    {subCategories.map((cat: string) => (
                       <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                     ))}
                   </SelectContent>

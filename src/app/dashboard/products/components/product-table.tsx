@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
+  DropdownMenuGroup,
   DropdownMenuItem, 
   DropdownMenuLabel, 
   DropdownMenuTrigger, 
@@ -170,13 +171,15 @@ export function ProductTable({
                             </Button>
                           } />
                           <DropdownMenuContent align="end" className="w-40">
-                            <DropdownMenuLabel className="text-xs text-slate-500 px-2 py-1.5">관리</DropdownMenuLabel>
+                            <DropdownMenuGroup>
+                              <DropdownMenuLabel className="text-xs text-slate-500 px-2 py-1.5">관리</DropdownMenuLabel>
+                            </DropdownMenuGroup>
                             <DropdownMenuItem onClick={() => onEdit(product)}>
                               <Pencil className="mr-2 h-4 w-4" />
                               수정
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <AlertDialogTrigger render={
+                            <AlertDialogTrigger nativeButton={false} render={
                               <DropdownMenuItem className="text-red-600 focus:text-red-600">
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 삭제

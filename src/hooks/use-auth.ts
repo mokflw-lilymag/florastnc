@@ -29,8 +29,22 @@ export function useAuth() {
           .maybeSingle();
           
         if (!profileError && data) {
+          // ✅ lilymag0301@gmail.com 사용자에 대해 하드코딩 권한 부여
+          if (user.email === 'lilymag0301@gmail.com') {
+            data.role = 'super_admin';
+            if (!data.tenants) data.tenants = { plan: 'pro', name: 'LilyMag Admin' };
+            else data.tenants.plan = 'pro';
+          }
           setProfile(data);
           setTenantId(data.tenant_id);
+        } else if (user.email === 'lilymag0301@gmail.com') {
+          // 프로필이 없는 경우에도 관리자 정보는 반환
+          const mockProfile = {
+            role: 'super_admin',
+            email: user.email,
+            tenants: { plan: 'pro', name: 'LilyMag Admin' }
+          };
+          setProfile(mockProfile);
         }
       } catch (error) {
         console.error("Error fetching user session:", error);
