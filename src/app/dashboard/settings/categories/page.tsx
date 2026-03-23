@@ -75,6 +75,20 @@ export default function CategorySettingsPage() {
     setSelectedMatMain(newMatMain);
   };
 
+  const handleRestoreProd = () => {
+    if (productCategories) {
+      setProdCats(JSON.parse(JSON.stringify(productCategories)));
+      toast.success("상품 카테고리가 마지막 저장 상태로 복구되었습니다.");
+    }
+  };
+
+  const handleRestoreMat = () => {
+    if (materialCategories) {
+      setMatCats(JSON.parse(JSON.stringify(materialCategories)));
+      toast.success("자재 카테고리가 마지막 저장 상태로 복구되었습니다.");
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto space-y-10 pb-20">
       <PageHeader
@@ -100,14 +114,25 @@ export default function CategorySettingsPage() {
               <p className="text-sm text-slate-500">판매용 상품의 분류 체계입니다.</p>
             </div>
           </div>
-          <Button 
-            disabled={loading}
-            onClick={() => prodCats && updateProductCategories(prodCats)} 
-            className="bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200"
-          >
-            <Save className="h-4 w-4 mr-2" />
-            상품 카테고리 저장
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline"
+              size="sm"
+              onClick={handleRestoreProd}
+              disabled={loading || !productCategories}
+            >
+              <RotateCcw className="h-4 w-4 mr-2" />
+              상품 카테고리 복구
+            </Button>
+            <Button 
+              disabled={loading}
+              onClick={() => prodCats && updateProductCategories(prodCats)} 
+              className="bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              상품 카테고리 저장
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -224,14 +249,25 @@ export default function CategorySettingsPage() {
               <p className="text-sm text-slate-500">부자재, 생화 등 자적 수급 분류입니다.</p>
             </div>
           </div>
-          <Button 
-            disabled={loading}
-            onClick={() => matCats && updateMaterialCategories(matCats)} 
-            className="bg-orange-600 hover:bg-orange-700 shadow-lg shadow-orange-200"
-          >
-            <Save className="h-4 w-4 mr-2" />
-            자재 카테고리 저장
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline"
+              size="sm"
+              onClick={handleRestoreMat}
+              disabled={loading || !materialCategories}
+            >
+              <RotateCcw className="h-4 w-4 mr-2" />
+              자재 카테고리 복구
+            </Button>
+            <Button 
+              disabled={loading}
+              onClick={() => matCats && updateMaterialCategories(matCats)} 
+              className="bg-orange-600 hover:bg-orange-700 shadow-lg shadow-orange-200"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              자재 카테고리 저장
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
