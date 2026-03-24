@@ -17,8 +17,15 @@ import {
   Wallet,
   ArrowUpRight,
   ArrowDownRight,
-  CheckCircle2
+  CheckCircle2,
+  ShieldCheck,
+  Store,
+  Gem,
+  Zap,
+  Settings,
+  CreditCard
 } from "lucide-react";
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
@@ -29,19 +36,51 @@ import { useExpenses } from "@/hooks/use-expenses";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format, isToday, startOfToday, endOfToday } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import { useState, useEffect } from "react";
+import { createClient } from "@/utils/supabase/client";
+import { cn } from "@/lib/utils";
 
 export default function DashboardPage() {
+  const supabase = createClient();
   const { profile, isLoading: authLoading } = useAuth();
+  
+  // Data for Tenants/Admin
+  const [tenantStats, setTenantStats] = useState<{ total: number, active: number, pro: number, recent: any[] } | null>(null);
+  const [adminLoading, setAdminLoading] = useState(false);
+
   const { orders, loading: ordersLoading } = useOrders();
   const { products, loading: productsLoading } = useProducts();
   const { expenses, loading: expensesLoading } = useExpenses();
 
-  const isLoading = authLoading || ordersLoading || productsLoading || expensesLoading;
+  const isSuperAdmin = profile?.role === 'super_admin';
+  const isLoading = authLoading || ordersLoading || productsLoading || expensesLoading || adminLoading;
+
+  useEffect(() => {
+    if (isSuperAdmin) {
+      const fetchAdminStats = async () => {
+        try {
+          setAdminLoading(true);
+          const { data: allTenants, error } = await supabase.from('tenants').select('*').order('created_at', { ascending: false });
+          if (!error && allTenants) {
+            setTenantStats({
+              total: allTenants.length,
+              active: allTenants.filter((t: any) => t.status === 'active').length,
+              pro: allTenants.filter((t: any) => t.plan === 'pro').length,
+              recent: allTenants.slice(0, 5)
+            });
+          }
+        } finally {
+          setAdminLoading(false);
+        }
+      };
+      fetchAdminStats();
+    }
+  }, [isSuperAdmin]);
   
   const stats = useMemo(() => {
-    if (isLoading) return null;
+    if (isLoading || isSuperAdmin) return null;
 
-    // --- TODAY STATS ---
+    // --- TODAY STATS (FOR REGULAR USERS) ---
     const todayOrders = orders.filter(o => o.order_date && isToday(new Date(o.order_date)));
     const todayRevenue = todayOrders
       .filter(o => o.status !== 'canceled')
@@ -81,7 +120,7 @@ export default function DashboardPage() {
       todayExpenses,
       recentOrders
     };
-  }, [orders, products, expenses, isLoading]);
+  }, [orders, products, expenses, isLoading, isSuperAdmin]);
 
   if (isLoading) {
     return (
@@ -98,6 +137,122 @@ export default function DashboardPage() {
     );
   }
 
+  // --- SUPER ADMIN VIEW ---
+  if (isSuperAdmin) {
+    return (
+      <div className="p-6 space-y-8 max-w-7xl mx-auto animate-in fade-in duration-700 pb-12 font-light">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+             <h1 className="text-3xl font-medium text-gray-900 tracking-tight">
+               관리 시스템 <span className="text-indigo-600 font-bold">통합 관제</span>
+             </h1>
+             <p className="text-slate-600 font-medium text-sm">시스템 어드민 <span className="text-black">{profile?.full_name}</span>님, 환영합니다.</p>
+          </div>
+          <div className="bg-white p-1 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-1 text-[11px] font-bold px-3 py-1 uppercase tracking-widest text-indigo-500">
+             <ShieldCheck className="w-4 h-4 mr-1" /> System Admin Mode
+          </div>
+        </div>
+
+        {/* Admin Stats Cards */}
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <AdminStatCard icon={Store} label="전체 화원사" value={tenantStats?.total || 0} unit="개소" color="bg-indigo-600" />
+          <AdminStatCard icon={CheckCircle2} label="활성 서비스 중" value={tenantStats?.active || 0} unit="개소" color="bg-emerald-600" />
+          <AdminStatCard icon={Gem} label="PRO 플랜 이용" value={tenantStats?.pro || 0} unit="개소" color="bg-blue-600" />
+          <AdminStatCard icon={Calendar} label="오늘 날짜" value={format(new Date(), 'MM/dd')} unit="" color="bg-slate-800" />
+        </div>
+
+        <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
+          {/* Recent Tenant Signups */}
+          <Card className="lg:col-span-2 border-none shadow-sm rounded-3xl bg-white overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between border-b border-gray-50 pb-4">
+              <div>
+                <CardTitle className="text-lg font-light">최근 신규 가입 화원사</CardTitle>
+                <CardDescription className="text-xs font-medium">SaaS 시스템에 새로 합류한 파트너사 목록입니다</CardDescription>
+              </div>
+              <a href="/dashboard/tenants" className="text-indigo-600 text-[11px] font-bold hover:underline uppercase tracking-tighter">전체 회원사 관리</a>
+            </CardHeader>
+            <CardContent className="p-0">
+               <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                     <thead className="bg-gray-50/50 text-slate-400 font-medium uppercase text-[11px] tracking-widest leading-none">
+                        <tr>
+                           <th className="px-6 py-4">상호명</th>
+                           <th className="px-6 py-4">플랜</th>
+                           <th className="px-6 py-4">상태</th>
+                           <th className="px-6 py-4 text-right">등록일</th>
+                        </tr>
+                     </thead>
+                     <tbody className="divide-y divide-gray-50">
+                        {tenantStats?.recent.map((tenant) => (
+                          <tr key={tenant.id} className="hover:bg-slate-50/50 transition-colors">
+                             <td className="px-6 py-5">
+                               <div className="flex flex-col">
+                                 <span className="font-bold text-slate-800">{tenant.name}</span>
+                                 <span className="text-[10px] text-slate-400 font-mono uppercase">{tenant.id.substring(0,8)}</span>
+                               </div>
+                             </td>
+                             <td className="px-6 py-5">
+                                <Badge variant="outline" className="bg-indigo-50 text-indigo-600 border-indigo-100 uppercase text-[10px]">
+                                  {tenant.plan}
+                                </Badge>
+                             </td>
+                             <td className="px-6 py-5">
+                                <Badge variant="outline" className={cn(
+                                  "border-none px-2 py-0.5 text-[10px]",
+                                  tenant.status === 'active' ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
+                                )}>
+                                  {tenant.status === 'active' ? '정상' : '정지'}
+                                </Badge>
+                             </td>
+                             <td className="px-6 py-5 text-right font-light text-slate-400 text-xs">
+                                {format(new Date(tenant.created_at), 'yyyy-MM-dd')}
+                             </td>
+                          </tr>
+                        ))}
+                     </tbody>
+                  </table>
+               </div>
+            </CardContent>
+          </Card>
+
+          {/* System Quick Actions */}
+          <div className="space-y-6">
+             <Card className="border-none shadow-sm rounded-3xl overflow-hidden bg-slate-900 text-white">
+                <CardHeader className="pb-2">
+                   <CardTitle className="text-lg font-light flex items-center gap-2 text-indigo-400">
+                      <ShieldCheck className="w-5 h-5" />
+                      시스템 퀵 관리
+                   </CardTitle>
+                </CardHeader>
+                <CardContent className="grid grid-cols-2 gap-3 pt-2">
+                   <DashboardIconButton icon={Store} label="회원사 관리" href="/dashboard/tenants" color="bg-indigo-600" />
+                   <DashboardIconButton icon={ScrollText} label="공지사항" href="/dashboard/announcements" color="bg-slate-700" />
+                   <DashboardIconButton icon={CreditCard} label="결제 모니터" href="/dashboard/billing-admin" color="bg-emerald-600" />
+                   <DashboardIconButton icon={Settings} label="전역 설정" href="/dashboard/system-settings" color="bg-blue-600" />
+                </CardContent>
+             </Card>
+
+             <Card className="border-none shadow-sm rounded-3xl bg-white border border-indigo-50 overflow-hidden">
+                <CardHeader className="bg-indigo-50/30 border-b border-indigo-50/50">
+                   <CardTitle className="text-sm font-bold flex items-center gap-2 text-indigo-700">
+                      <Zap className="w-4 h-4" /> 시스템 바로가기
+                   </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 space-y-2">
+                   <Link href="/dashboard/settings" className="w-full">
+                      <Button variant="ghost" className="w-full justify-start text-xs font-medium text-slate-600 hover:bg-slate-50">
+                         ⚙️ 관리자 환경설정 바로가기
+                      </Button>
+                   </Link>
+                </CardContent>
+             </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --- REGULAR TENANT VIEW ---
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto animate-in fade-in duration-700 pb-12 font-light">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -279,6 +434,23 @@ export default function DashboardPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function AdminStatCard({ icon: Icon, label, value, unit, color }: { icon: any, label: string, value: string | number, unit: string, color: string }) {
+  return (
+    <Card className="border-none shadow-lg shadow-slate-100 bg-white overflow-hidden relative group rounded-3xl">
+      <div className={`absolute top-0 right-0 p-3 opacity-10 group-hover:scale-110 transition-transform ${color.replace('bg-', 'text-')}`}>
+         <Icon className="w-12 h-12" />
+      </div>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{label}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="text-3xl font-medium text-slate-900">{value} <span className="text-lg font-light">{unit}</span></div>
+        <div className={`h-1 w-12 ${color} rounded-full mt-3`} />
+      </CardContent>
+    </Card>
   );
 }
 

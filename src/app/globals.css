@@ -2,6 +2,12 @@
 @import url('https://fonts.googleapis.com/css2?family=Nanum+Brush+Script&family=Black+Han+Sans&family=East+Sea+Dokdo&family=Song+Myung&family=Gowun+Batang:wght@400;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@400;700&family=LXGW+WenKai+Mono+TC:wght@400;700&family=Klee+One:wght@400;600&family=Yuji+Syuku&family=Yuji+Boku&family=Yuji+Mai&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=UoqMunThenKhung&family=Iansui&family=Kaisei+HarunoUmi:wght@400;700&family=Zen+Antique+Soft&display=swap');
+@font-face {
+    font-family: 'GmarketSansBold';
+    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansBold.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+}
 
 @import "tailwindcss";
 @import "tw-animate-css";
@@ -194,6 +200,37 @@ input[type="text"], input[type="number"], textarea, select {
 .font-nanum-myeongjo { font-family: 'Nanum Myeongjo', serif; }
 .font-nanum-gothic { font-family: 'Nanum Gothic', sans-serif; }
 .font-brush { font-family: 'Nanum Brush Script', cursive; }
-.font-bold { font-family: 'Black Han Sans', sans-serif; }
+/* .font-bold 클래스는 Tailwind의 font-weight 속성을 덮어씌워 레이아웃을 크게 훼손하므로 고유 클래스로 변경 */
+.font-black-han { font-family: 'Black Han Sans', sans-serif; }
 
-/* ... existing logic omitted for brevity in rewrite ... */
+/* 시니어 사용자/노안 배려: 미세 폰트 및 UI 텍스트 가독성 강제 적용 */
+@layer utilities {
+  /* xs, sm 사이즈를 기본보다 10~15% 키우고 굵기는 가늘게(300~400) 강제 적용 */
+  .text-xs {
+    font-size: 0.85rem !important; /* 약 13.6px (기존 12px) */
+    font-weight: 400 !important;
+    letter-spacing: -0.01em;
+  }
+  .text-sm {
+    font-size: 0.95rem !important; /* 약 15.2px (기존 14px) */
+    font-weight: 400 !important;
+    letter-spacing: -0.01em;
+  }
+  /* px 단위로 하드코딩된 아주 작은 글씨들도 최소 읽을 수 있는 크기(12px이상)로 방어 */
+  .text-\[8px\], .text-\[9px\], .text-\[10px\], .text-\[11px\] {
+    font-size: 0.8rem !important; /* 무조건 최소 약 12.8px 보장 */
+    font-weight: 400 !important;
+  }
+  /* font-bold, font-semibold가 테일윈드 기본값(700, 600) 혹은 Black Hans로 너무 굵어지는 것 방지 (가독성 최적화) */
+  .font-bold {
+    font-weight: 600 !important; 
+  }
+  .font-semibold {
+    font-weight: 500 !important;
+  }
+  /* 페이지 제목용 최적화 폰트 (시인성, 디자인 동시 충족) */
+  .font-title {
+    font-family: 'GmarketSansBold', sans-serif !important;
+    letter-spacing: -0.02em;
+  }
+}

@@ -516,7 +516,9 @@ export default function OrdersPage() {
                               <MoreHorizontal className="h-5 w-5 text-slate-700" />
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48 p-1 rounded-2xl shadow-2xl border-none">
-                              <DropdownMenuLabel className="text-[10px] font-light text-slate-700 uppercase px-3 py-2">동작 관리</DropdownMenuLabel>
+                                <DropdownMenuGroup>
+                                    <DropdownMenuLabel className="text-[10px] font-light text-slate-700 uppercase px-3 py-2">동작 관리</DropdownMenuLabel>
+                                </DropdownMenuGroup>
                               <DropdownMenuItem onClick={() => router.push(`/dashboard/orders/print-preview/${order.id}`)} className="rounded-xl gap-2 font-light py-2.5 text-xs">
                                 <FileText className="h-4 w-4 text-primary" /> 주문서 출력
                               </DropdownMenuItem>

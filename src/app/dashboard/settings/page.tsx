@@ -84,11 +84,18 @@ export default function SettingsPage() {
   const [isInitDialogOpen, setIsInitDialogOpen] = useState(false);
   const [initConfirmStep, setInitConfirmStep] = useState(0); // 0 -> 1 -> 2
   const [initInputValue, setInitInputValue] = useState("");
+  
+  // Partner Network State
+  const [canReceiveOrders, setCanReceiveOrders] = useState(false);
+  const [isStorefrontPublic, setIsStorefrontPublic] = useState(false);
+  const [partnerRegion, setPartnerRegion] = useState("");
+  const [partnerCategory, setPartnerCategory] = useState("");
+  const [partnerDescription, setPartnerDescription] = useState("");
 
   // Printer Settings State
   const [bridgeStatus, setBridgeStatus] = useState<boolean>(false);
   const [checkingBridge, setCheckingBridge] = useState(false);
-
+  const [logoUrl, setLogoUrl] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const checkBridgeStatus = async () => {
@@ -140,8 +147,13 @@ export default function SettingsPage() {
           .eq("id", tenantId)
           .maybeSingle();
         if (data) {
-          setStoreName(data.name || "");
           setPlan(data.plan || "free");
+          setLogoUrl(data.logo_url || "");
+          setCanReceiveOrders(data.can_receive_orders || false);
+          setIsStorefrontPublic(data.is_storefront_public || false);
+          setPartnerRegion(data.partner_region || "");
+          setPartnerCategory(data.partner_category || "");
+          setPartnerDescription(data.partner_description || "");
         }
       } catch (err) {
         console.error("Failed to load tenant data:", err);
@@ -162,7 +174,7 @@ export default function SettingsPage() {
       // 1. Update tenants table (storeName)
       const { error: tenantError } = await supabase
         .from("tenants")
-        .update({ name: storeName })
+        .update({ name: storeName, logo_url: logoUrl })
         .eq("id", tenantId);
       if (tenantError) throw tenantError;
 
@@ -344,6 +356,9 @@ export default function SettingsPage() {
           <TabsTrigger value="account" className="flex items-center gap-2 px-6 py-2.5">
             <ShieldCheck className="h-4 w-4" /> 멤버십/보안
           </TabsTrigger>
+          <TabsTrigger value="partner-network" className="flex items-center gap-2 px-6 py-2.5 bg-blue-50/50 text-blue-700 data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-xl">
+            <Share2 className="h-4 w-4" /> 협력사 네트워크
+          </TabsTrigger>
         </TabsList>
 
         {/* --- Store Info --- */}
@@ -400,6 +415,42 @@ export default function SettingsPage() {
                   onChange={e => setLocalAddress(e.target.value)} 
                   placeholder="예: 서울특별시 서초구 ..."
                 />
+              </div>
+
+              <div className="space-y-4 pt-4 border-t">
+                <div className="flex items-center gap-4">
+                  <div className="h-24 w-24 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden">
+                    {logoUrl ? (
+                      <img src={logoUrl} alt="Store Logo" className="h-full w-full object-contain" />
+                    ) : (
+                      <div className="flex flex-col items-center text-slate-400 gap-1">
+                        <ImageIcon className="h-6 w-6" />
+                        <span className="text-[10px]">Logo</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    <Label className="text-sm font-bold">꽃집 로고 (Logo)</Label>
+                    <div className="flex items-center gap-2">
+                      <Input 
+                        placeholder="로고 이미지 URL" 
+                        value={logoUrl}
+                        onChange={(e) => setLogoUrl(e.target.value)}
+                      />
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          const url = prompt("이미지 주소를 입력하거나, 아래 갤러리 연동 후 업로드한 주소를 입력하세요.");
+                          if (url) setLogoUrl(url);
+                        }}
+                      >
+                        주소 입력
+                      </Button>
+                    </div>
+                    <p className="text-[10px] text-slate-400">발주사로서 주문서 인쇄물에 표시될 로고입니다.</p>
+                  </div>
+                </div>
               </div>
             </CardContent>
             <CardFooter className="bg-slate-50/50 px-6 py-4 rounded-b-lg">
@@ -970,6 +1021,139 @@ export default function SettingsPage() {
                </div>
              </CardContent>
            </Card>
+        </TabsContent>
+        {/* --- Partner Network Settings --- */}
+        <TabsContent value="partner-network" className="space-y-6">
+          <Card className="border-0 shadow-lg ring-1 ring-blue-100 bg-blue-50/5 overflow-hidden">
+            <CardHeader className="bg-blue-600 text-white pb-8">
+               <div className="flex items-center justify-between">
+                 <div className="space-y-1">
+                   <CardTitle className="text-2xl flex items-center gap-2">
+                     <Share2 className="h-6 w-6" /> 플로라싱크 협력사 네트워크
+                   </CardTitle>
+                   <CardDescription className="text-blue-100">
+                     전국의 다른 회원사들로부터 주문을 위탁받고 수익을 창출하세요.
+                   </CardDescription>
+                 </div>
+                 <Switch 
+                   className="data-[state=checked]:bg-white data-[state=checked]:text-blue-600"
+                   checked={canReceiveOrders}
+                   onCheckedChange={async (checked) => {
+                     setCanReceiveOrders(checked);
+                     try {
+                        const { error } = await supabase
+                          .from('tenants')
+                          .update({ can_receive_orders: checked })
+                          .eq('id', tenantId);
+                        if (error) throw error;
+                        toast.success(checked ? "협력사 네트워크 참여가 활성화되었습니다." : "협력사 참여가 해제되었습니다.");
+                     } catch (err) {
+                        toast.error("설정 변경 중 오류가 발생했습니다.");
+                        setCanReceiveOrders(!checked);
+                     }
+                   }}
+                 />
+               </div>
+            </CardHeader>
+            <CardContent className="pt-6 space-y-8">
+              <div className="bg-white p-6 rounded-2xl border border-blue-100 shadow-sm space-y-6">
+                <div className="flex items-start gap-4 p-4 bg-blue-50 rounded-xl border border-blue-100">
+                  <div className="p-3 bg-white rounded-full text-blue-600 shadow-sm">
+                    <Percent className="h-6 w-6" />
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="font-bold text-blue-900">수주 정산 정책 (79% 모델)</h4>
+                    <p className="text-sm text-blue-700 leading-relaxed">
+                      네트워크를 통해 들어온 외부 주문을 수주할 경우, **고객 결제 금액의 79%**를 정산받게 됩니다. 
+                      (발주사 19%, 플랫폼 수수료 2% 별도)
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-slate-400" /> 수주 가능 지역
+                    </Label>
+                    <Input 
+                      placeholder="예: 서울 강남구 전 지역, 경기 성남시" 
+                      value={partnerRegion}
+                      onChange={(e) => setPartnerRegion(e.target.value)}
+                      disabled={!canReceiveOrders}
+                    />
+                    <p className="text-[10px] text-slate-400">발주사들이 이 정보를 바탕으로 지역을 검색합니다.</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold flex items-center gap-2">
+                      <LayoutGrid className="h-4 w-4 text-slate-400" /> 전문 분야 (카테고리)
+                    </Label>
+                    <Input 
+                      placeholder="예: 축하화환 전문, 동양란/서양란 전문" 
+                      value={partnerCategory}
+                      onChange={(e) => setPartnerCategory(e.target.value)}
+                      disabled={!canReceiveOrders}
+                    />
+                  </div>
+                </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold">파트너 한줄 소개 (회원사 전용)</Label>
+                    <Input 
+                      placeholder="다른 회원사들에게 노출될 소개글을 입력하세요." 
+                      value={partnerDescription}
+                      onChange={(e) => setPartnerDescription(e.target.value)}
+                      disabled={!canReceiveOrders}
+                    />
+                  </div>
+
+                  <Separator />
+
+                  <div className="flex items-center justify-between p-4 bg-white rounded-xl border border-blue-100 italic">
+                    <div className="space-y-1">
+                      <Label className="text-sm font-bold flex items-center gap-2">
+                        <LayoutGrid className="h-4 w-4 text-blue-600" /> 쇼핑몰 형태 공개 여부
+                      </Label>
+                      <p className="text-xs text-slate-500">다른 회원사들이 내 상품 목록을 보고 직접 발주할 수 있게 합니다.</p>
+                    </div>
+                    <Switch 
+                      checked={isStorefrontPublic}
+                      onCheckedChange={(checked) => setIsStorefrontPublic(checked)}
+                      disabled={!canReceiveOrders}
+                    />
+                  </div>
+                </div>
+
+              {canReceiveOrders && (
+                <div className="flex justify-end">
+                   <Button 
+                     className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-8"
+                     onClick={async () => {
+                        try {
+                          setSaving(true);
+                          const { error } = await supabase
+                            .from('tenants')
+                            .update({ 
+                              partner_region: partnerRegion,
+                              partner_category: partnerCategory,
+                              partner_description: partnerDescription,
+                              is_storefront_public: isStorefrontPublic
+                            })
+                            .eq('id', tenantId);
+                          if (error) throw error;
+                          toast.success("파트너 프로필이 업데이트되었습니다.");
+                        } catch (err) {
+                          toast.error("업데이트 중 오류가 발생했습니다.");
+                        } finally {
+                          setSaving(false);
+                        }
+                     }}
+                   >
+                     프로필 정보 저장
+                   </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>

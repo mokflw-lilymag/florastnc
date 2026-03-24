@@ -107,13 +107,14 @@ export function PrintPreviewClient({ orderId }: PrintPreviewClientProps) {
             : "매장 수령 (픽업)",
         message: order.message?.content || "",
         messageType: order.message?.type === 'ribbon' ? 'ribbon' : 'card',
-        isAnonymous: order.extra_data?.isAnonymous || false,
+        isAnonymous: order.outsource_info?.hideCustomerInfo || false,
         shopInfo: {
-            name: profile?.tenants?.name || "플로라싱크",
-            address: profile?.tenants?.address || "",
-            contact: profile?.tenants?.phone || "",
+            name: order.outsource_info?.sender_branding?.name || profile?.tenants?.name || "플로라싱크",
+            address: order.outsource_info?.sender_branding?.address || profile?.tenants?.address || "",
+            contact: order.outsource_info?.sender_branding?.contact || profile?.tenants?.contact_phone || "",
             account: profile?.tenants?.account || "",
-        }
+        },
+        logoUrl: order.outsource_info?.sender_branding?.logo_url || profile?.tenants?.logo_url || ""
     };
 
     return (

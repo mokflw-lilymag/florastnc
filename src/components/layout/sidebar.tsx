@@ -7,7 +7,7 @@ import {
   Printer, ScrollText, Users, Store, 
   Settings, LayoutDashboard, ShieldCheck,
   CreditCard, Boxes, Truck, BarChart3,
-  Zap, ArrowRight, Gem
+  Zap, ArrowRight, Gem, Share2
 } from "lucide-react";
 import Image from "next/image";
 
@@ -15,14 +15,18 @@ interface SidebarProps {
   isSuperAdmin: boolean;
   plan: string;
   className?: string;
+  logoUrl?: string;
+  storeName?: string;
 }
 
-export function Sidebar({ isSuperAdmin, plan, className }: SidebarProps) {
+export function Sidebar({ isSuperAdmin, plan, className, logoUrl, storeName }: SidebarProps) {
   const pathname = usePathname();
 
   // Navigation schema based on role
   const adminLinks = [
     { name: "시스템 통합 대시보드", href: "/dashboard", icon: LayoutDashboard },
+    { name: "본사 직원(Staff) 관리", href: "/dashboard/admin/staff", icon: Users },
+    { name: "일일 업무 체크리스트", href: "/dashboard/admin/checklist", icon: ShieldCheck },
     { name: "전국 화원사(Tenant) 관리", href: "/dashboard/tenants", icon: Store },
     { name: "구독/결제 관제", href: "/dashboard/billing-admin", icon: CreditCard },
     { name: "글로벌 공지사항", href: "/dashboard/announcements", icon: ScrollText },
@@ -36,6 +40,7 @@ export function Sidebar({ isSuperAdmin, plan, className }: SidebarProps) {
     { name: "🖨️ 리본 프린터", href: "/dashboard/printer", icon: Printer, tier: ['pro', 'ribbon_only'] },
     { name: "🚚 배송 및 픽업 관리", href: "/dashboard/delivery", icon: Truck, tier: ['pro', 'erp_only'] },
     { name: "📜 주문 목록", href: "/dashboard/orders", icon: ScrollText, tier: ['pro', 'erp_only'] },
+    { name: "🤝 협력사 수발주", href: "/dashboard/external-orders", icon: Share2, tier: ['pro', 'erp_only'] },
     { name: "📊 정산 및 보고서", href: "/dashboard/reports", icon: BarChart3, tier: ['pro', 'erp_only'] },
     { name: "💰 지출 관리", href: "/dashboard/expenses", icon: CreditCard, tier: ['pro', 'erp_only'] },
     { name: "📦 재고 관리", href: "/dashboard/inventory", icon: Boxes, tier: ['pro', 'erp_only'] },

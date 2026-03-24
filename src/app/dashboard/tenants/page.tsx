@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Store, Plus, Search, Filter, ShieldCheck, Mail, Calendar as CalendarIcon, Loader2, MoreHorizontal, RefreshCw, Clock, CheckCircle2, XCircle, ChevronRight } from "lucide-react";
+import { Store, Plus, Search, Filter, ShieldCheck, Mail, Calendar as CalendarIcon, Loader2, MoreHorizontal, RefreshCw, Clock, CheckCircle2, XCircle, ChevronRight, MessageSquare } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
@@ -358,6 +358,14 @@ export default function TenantsPage() {
                             }}
                           >
                             구독 및 기한 관리
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            className="font-normal text-sm p-2.5 cursor-pointer text-indigo-600 font-bold hover:text-indigo-700"
+                            onClick={() => window.dispatchEvent(new CustomEvent('open-chat', { detail: { partnerId: tenant.id, partnerName: tenant.name } }))}
+                          >
+                            <MessageSquare className="h-4 w-4 mr-2" />
+                            실시간 채팅 시작
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>

@@ -1,6 +1,6 @@
 "use client";
 
-import { Menu, User, LogOut, Settings, Bell } from "lucide-react";
+import { Menu, User, LogOut, Settings, Bell, BookOpen } from "lucide-react";
 import { MobileSidebar } from "./mobile-sidebar";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,9 +21,11 @@ interface HeaderProps {
   userEmail: string;
   isSuperAdmin: boolean;
   plan: string;
+  logoUrl?: string;
+  storeName?: string;
 }
 
-export function Header({ userEmail, isSuperAdmin, plan }: HeaderProps) {
+export function Header({ userEmail, isSuperAdmin, plan, logoUrl, storeName }: HeaderProps) {
   const router = useRouter();
   const supabase = createClient();
 
@@ -37,10 +39,34 @@ export function Header({ userEmail, isSuperAdmin, plan }: HeaderProps) {
     <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl px-4 md:px-6 shadow-sm">
       <div className="flex items-center gap-4">
         {/* Mobile Sidebar Toggle */}
-        <MobileSidebar isSuperAdmin={isSuperAdmin} plan={plan} />
+        <MobileSidebar isSuperAdmin={isSuperAdmin} plan={plan} logoUrl={logoUrl} storeName={storeName} />
+        {storeName && !isSuperAdmin && (
+          <div className="flex items-center gap-3">
+            <span className="h-4 w-[1px] bg-slate-200 dark:bg-slate-700 mx-1 hidden md:block"></span>
+            {logoUrl && (
+              <img src={logoUrl} alt="Logo" className="h-7 w-auto object-contain hidden md:block" />
+            )}
+            <h1 className="text-sm font-bold text-slate-800 dark:text-slate-100 hidden md:block">
+              {storeName}
+            </h1>
+          </div>
+        )}
       </div>
 
       <div className="flex items-center gap-4">
+        {/* HQ Manual Button - Only for Super Admins */}
+        {isSuperAdmin && (
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+            onClick={() => router.push("/dashboard/admin/manual")}
+            title="본사 직무 매뉴얼"
+          >
+            <BookOpen className="h-5 w-5" />
+          </Button>
+        )}
+
         {/* Notification Bell */}
         <Button variant="ghost" size="icon" className="relative text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
           <Bell className="h-5 w-5" />

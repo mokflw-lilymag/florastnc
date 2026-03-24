@@ -176,14 +176,14 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
         <DialogHeader className="p-8 pb-0">
           <div className="flex items-center justify-between">
             <div>
-              <DialogTitle className="text-2xl font-black tracking-tight flex items-center gap-3 text-slate-900">
+              <DialogTitle className="text-xl font-bold tracking-tight flex items-center gap-3 text-slate-900">
                 <div className="p-2 bg-slate-100 rounded-xl">
-                  <Package className="h-6 w-6 text-slate-700" />
+                  <Package className="h-5 w-5 text-slate-700" />
                 </div>
                 주문 상세 정보
               </DialogTitle>
               <DialogDescription className="mt-2 text-slate-500">
-                주문번호: <span className="font-mono font-bold text-slate-900">{order.order_number}</span>
+                주문번호: <span className="font-mono font-semibold text-slate-900">{order.order_number}</span>
               </DialogDescription>
             </div>
             <div className="flex gap-2">
@@ -198,11 +198,11 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
           {isAdmin && (
             <Card className="border-red-100 bg-red-50/30 overflow-hidden rounded-2xl">
               <CardHeader className="py-4 border-b border-red-100/50">
-                <CardTitle className="text-sm font-bold flex items-center justify-between text-red-800">
+                <CardTitle className="text-sm font-semibold flex items-center justify-between text-red-800">
                    <div className="flex items-center gap-2">
                      <AlertCircle className="h-4 w-4" /> 데이터 관리자 정정
                    </div>
-                   <Button variant="ghost" size="sm" onClick={() => setIsDateEditing(!isDateEditing)} className="h-8 text-xs text-red-600 font-bold hover:bg-red-100/50">
+                   <Button variant="ghost" size="sm" onClick={() => setIsDateEditing(!isDateEditing)} className="h-8 text-xs text-red-600 font-semibold hover:bg-red-100/50">
                      {isDateEditing ? "취소" : "정정하기"}
                    </Button>
                 </CardTitle>
@@ -238,21 +238,21 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
               <section className="space-y-3">
                 <div className="flex items-center gap-2 text-slate-900">
                   <User className="h-4 w-4 text-slate-400" />
-                  <h3 className="font-bold">주문자 및 수령 정보</h3>
+                  <h3 className="font-semibold">주문자 및 수령 정보</h3>
                 </div>
                 <div className="bg-slate-50/80 rounded-2xl p-4 border border-slate-100 space-y-3">
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-slate-500">주문자</span>
-                    <span className="font-bold">{order.orderer.name} ({order.orderer.contact})</span>
+                    <span className="font-semibold">{order.orderer.name} ({order.orderer.contact})</span>
                   </div>
                   <Separator className="bg-slate-100" />
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-slate-500">수령인</span>
-                    <span className="font-bold">{isDelivery ? order.delivery_info?.recipientName : order.pickup_info?.pickerName}</span>
+                    <span className="font-semibold">{isDelivery ? order.delivery_info?.recipientName : order.pickup_info?.pickerName}</span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-slate-500">연락처</span>
-                    <span className="font-bold">{isDelivery ? order.delivery_info?.recipientContact : order.pickup_info?.pickerContact}</span>
+                    <span className="font-semibold">{isDelivery ? order.delivery_info?.recipientContact : order.pickup_info?.pickerContact}</span>
                   </div>
                   {isDelivery && (
                     <div className="pt-2">
@@ -266,12 +266,12 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
               <section className="space-y-3">
                 <div className="flex items-center gap-2 text-slate-900">
                   <Calendar className="h-4 w-4 text-slate-400" />
-                  <h3 className="font-bold">일정 및 메시지</h3>
+                  <h3 className="font-semibold">일정 및 메시지</h3>
                 </div>
                 <div className="bg-slate-50/80 rounded-2xl p-4 border border-slate-100 space-y-3">
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-slate-500">수령/배송일</span>
-                    <span className="font-black text-blue-600">{info?.date || '-'} {info?.time || '-'}</span>
+                    <span className="font-bold text-blue-600">{info?.date || '-'} {info?.time || '-'}</span>
                   </div>
                   {order.message?.type !== 'none' && (
                     <div className="pt-2">
@@ -314,11 +314,11 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
 
                     <div className="bg-amber-50/50 rounded-2xl p-4 border border-amber-100 space-y-3">
                        <div className="flex items-center justify-between">
-                         <span className="text-xs font-bold text-amber-800">카카오톡 전송</span>
+                         <span className="text-xs font-semibold text-amber-800">카카오톡 전송</span>
                          <Badge variant="outline" className="text-[10px] bg-white text-amber-600 border-amber-200">배송 완료 안내</Badge>
                        </div>
                        <Button 
-                         className="w-full h-10 bg-[#FEE500] hover:bg-[#FADB00] text-[#191919] font-black text-xs gap-2 rounded-xl"
+                         className="w-full h-10 bg-[#FEE500] hover:bg-[#FADB00] text-[#191919] font-bold text-xs gap-2 rounded-xl"
                          onClick={handleSendKakao}
                        >
                          <MessageCircle className="h-4 w-4 fill-[#191919]" /> 카톡 알림 발송
@@ -362,13 +362,13 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
         </div>
 
         <div className="p-8 pt-0 flex justify-end gap-3 sticky bottom-0 bg-white/80 backdrop-blur-md rounded-b-3xl">
-          <DialogClose render={<Button variant="ghost" className="rounded-2xl h-12 px-8 font-bold text-slate-500 hover:bg-slate-100" />}>
+          <DialogClose render={<Button variant="ghost" className="rounded-2xl h-12 px-8 font-semibold text-slate-500 hover:bg-slate-100" />}>
             닫기
           </DialogClose>
-          <Button variant="outline" onClick={() => onPrintMessage?.(order)} className={cn(buttonVariants({ variant: "outline" }), "rounded-2xl h-12 px-8 font-bold border-2 border-slate-200 hover:bg-slate-50 text-slate-700 gap-2")}>
+          <Button variant="outline" onClick={() => onPrintMessage?.(order)} className={cn(buttonVariants({ variant: "outline" }), "rounded-2xl h-12 px-8 font-semibold border-2 border-slate-200 hover:bg-slate-50 text-slate-700 gap-2")}>
             <Printer className="h-4 w-4" /> 리본/카드 출력
           </Button>
-          <Button className="rounded-2xl h-12 px-10 font-black bg-slate-900 hover:bg-black text-white shadow-xl shadow-slate-200 gap-2">
+          <Button className="rounded-2xl h-12 px-10 font-bold bg-slate-900 hover:bg-black text-white shadow-xl shadow-slate-200 gap-2">
             <RefreshCw className="h-4 w-4" /> 주문 상태 변경
           </Button>
         </div>

@@ -20,6 +20,7 @@ interface CategoryData {
 interface ProductSectionProps {
     categories: CategoryData[];
     allProducts: Product[]; // Full list of products for the branch
+    initialCategory?: string;
     onAddProduct: (product: Product) => void;
     onOpenCustomProductDialog: () => void;
     onTabChange?: (tab: string) => void;
@@ -28,19 +29,24 @@ interface ProductSectionProps {
 export function ProductSection({
     categories,
     allProducts,
+    initialCategory,
     onAddProduct,
     onOpenCustomProductDialog,
     onTabChange
 }: ProductSectionProps) {
-    const [activeTab, setActiveTab] = useState(categories[0]?.name || "");
+    const [activeTab, setActiveTab] = useState(initialCategory || (categories[0]?.name || ""));
     const [searchTerm, setSearchTerm] = useState("");
 
     // Update active tab if categories change and current tab is invalid
     React.useEffect(() => {
+        if (initialCategory && categories.find(c => c.name === initialCategory)) {
+            setActiveTab(initialCategory);
+            return;
+        }
         if (categories.length > 0 && (!activeTab || !categories.find(c => c.name === activeTab))) {
             setActiveTab(categories[0].name);
         }
-    }, [categories, activeTab]);
+    }, [categories, activeTab, initialCategory]);
 
     const filteredAllProducts = allProducts.filter(p => {
         const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -51,12 +57,12 @@ export function ProductSection({
             const midCat = p.mid_category || "";
             const name = p.name || "";
 
-            if (activeTab === '화환') {
+            if (activeTab === '화환' || activeTab === '축하화환' || activeTab === '근조화환') {
                 matchesCategory = mCat.includes('화환') || midCat.includes('화환') || name.includes('화환') || name.includes('근조') || name.includes('축하');
-            } else if (activeTab === '동서양란') {
+            } else if (activeTab === '동서양란' || activeTab === '동양란/서양란') {
                 matchesCategory = mCat.includes('란') || midCat.includes('란') || name.includes('란') || mCat.includes('난') || midCat.includes('난') || name.includes('난') || name.includes('동양란') || name.includes('서양란') || name.includes('호접란');
-            } else if (activeTab === '플랜트') {
-                matchesCategory = mCat.includes('플랜트') || mCat.includes('관엽') || mCat.includes('공기정화');
+            } else if (activeTab === '플랜트' || activeTab === '식물/분재' || activeTab === '관엽식물') {
+                matchesCategory = mCat.includes('플랜트') || mCat.includes('관엽') || mCat.includes('공기정화') || mCat.includes('분재') || mCat.includes('식물');
             } else {
                 matchesCategory = mCat.includes(activeTab) || midCat.includes(activeTab) || name.includes(activeTab);
             }

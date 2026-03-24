@@ -16,7 +16,7 @@ import {
   DialogHeader, 
   DialogTitle 
 } from "@/components/ui/dialog";
-import { Loader2, Eye, EyeOff, Lock, Mail, Building, Info } from 'lucide-react';
+import { Loader2, Eye, EyeOff, Lock, Mail, Building, Info, Shield } from 'lucide-react';
 import Image from 'next/image';
 
 export default function LoginPage() {
@@ -64,6 +64,34 @@ export default function LoginPage() {
       toast.error('발송 실패', { description: error.message });
     } finally {
       setResetLoading(false);
+    }
+  };
+
+  const handleQuickLogin = async (type: 'admin' | 'partner') => {
+    setLoading(true);
+    const demoEmail = type === 'admin' ? 'lilymag0301@gmail.com' : 'lilymagnc@gmail.com';
+    const demoPassword = '102938';
+    
+    setEmail(demoEmail);
+    setPassword(demoPassword);
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: demoEmail,
+        password: demoPassword,
+      });
+
+      if (error) throw error;
+
+      if (data.user) {
+        toast.success(`${type === 'admin' ? '관리자' : '화원사'} 데모 로그인 성공!`);
+        router.push('/dashboard');
+        router.refresh();
+      }
+    } catch (error: any) {
+      toast.error('데모 로그인 실패', { description: error.message });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -223,6 +251,42 @@ export default function LoginPage() {
                     {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> 로그인 중...</> : '로그인'}
                   </Button>
                 </form>
+
+                <div className="relative my-6">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-slate-200 dark:border-slate-800"></div>
+                  </div>
+                  <div className="relative flex justify-center text-[10px] uppercase font-bold tracking-widest">
+                    <span className="bg-white dark:bg-slate-900 px-3 text-slate-400">Quick Demo Access</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <Button 
+                    variant="outline" 
+                    className="h-auto py-3 px-4 flex flex-col items-center gap-1.5 border-slate-200 hover:border-blue-500 hover:bg-blue-50 transition-all rounded-2xl group"
+                    onClick={() => handleQuickLogin('admin')}
+                    disabled={loading}
+                  >
+                    <Shield className="w-5 h-5 text-blue-500 group-hover:animate-bounce" />
+                    <div className="flex flex-col text-center">
+                      <span className="text-[11px] font-black text-slate-900 leading-none mb-0.5">Admin 로그인</span>
+                      <span className="text-[8px] font-bold text-slate-400">본사 통합 관리</span>
+                    </div>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="h-auto py-3 px-4 flex flex-col items-center gap-1.5 border-slate-200 hover:border-indigo-500 hover:bg-indigo-50 transition-all rounded-2xl group"
+                    onClick={() => handleQuickLogin('partner')}
+                    disabled={loading}
+                  >
+                    <Building className="w-5 h-5 text-indigo-500 group-hover:animate-bounce" />
+                    <div className="flex flex-col text-center">
+                      <span className="text-[11px] font-black text-slate-900 leading-none mb-0.5">Shop 로그인</span>
+                      <span className="text-[8px] font-bold text-slate-400">화원사 테스트</span>
+                    </div>
+                  </Button>
+                </div>
               </TabsContent>
 
               {/* REGISTER TAB */}

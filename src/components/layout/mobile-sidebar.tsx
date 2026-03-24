@@ -9,9 +9,11 @@ import { cn } from '@/lib/utils';
 interface MobileSidebarProps {
   isSuperAdmin: boolean;
   plan: string;
+  logoUrl?: string;
+  storeName?: string;
 }
 
-export function MobileSidebar({ isSuperAdmin, plan }: MobileSidebarProps) {
+export function MobileSidebar({ isSuperAdmin, plan, logoUrl, storeName }: MobileSidebarProps) {
   return (
     <Sheet>
       <SheetTrigger className={cn(
@@ -28,7 +30,7 @@ export function MobileSidebar({ isSuperAdmin, plan }: MobileSidebarProps) {
          <div className="h-full">
             {/* We can directly render the Sidebar component here, 
                 it already has the full menu logic */}
-            <Sidebar isSuperAdmin={isSuperAdmin} plan={plan} />
+            <Sidebar isSuperAdmin={isSuperAdmin} plan={plan} logoUrl={logoUrl} storeName={storeName} />
          </div>
       </SheetContent>
     </Sheet>

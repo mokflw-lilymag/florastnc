@@ -80,9 +80,19 @@ export interface Order {
     partnerId: string;
     partnerName: string;
     partnerPrice: number;
-    profit: number;
+    platformFee?: number;
+    senderProfit?: number;
+    hideCustomerInfo?: boolean;
+    isNetworkPartner?: boolean;
+    profit?: number;
     status: 'pending' | 'completed' | 'canceled';
     notes?: string;
+    sender_branding?: {
+      name: string;
+      logo_url: string;
+      contact: string;
+      address: string;
+    };
     outsourcedAt: string;
     updatedAt: string;
   } | null;

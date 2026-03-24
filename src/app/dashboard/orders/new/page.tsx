@@ -98,6 +98,7 @@ export default function NewOrderPage() {
   const [selectedDistrict, setSelectedDistrict] = useState<string | null>(null);
   const [itemSize, setItemSize] = useState<'small' | 'medium' | 'large'>('small');
   const [isExpress, setIsExpress] = useState(false);
+  const [externalVendor, setExternalVendor] = useState<any | null>(null);
 
   // Customer & Orderer
   const [ordererName, setOrdererName] = useState("");
@@ -208,6 +209,43 @@ export default function NewOrderPage() {
     return result;
   };
 
+  // --- AUTO-FILL LOGIC FROM URL ---
+  const supabase = createClient();
+  const [initialCategory, setInitialCategory] = useState<string | null>(null);
+
+  useEffect(() => {
+    const outsourceId = searchParams.get('outsource');
+    const productId = searchParams.get('productId');
+    const category = searchParams.get('category');
+
+    if (outsourceId) {
+      // Fetch the partner details
+      supabase.from('tenants').select('id, name').eq('id', outsourceId).single()
+        .then(({ data }) => {
+          if (data) setExternalVendor(data);
+        });
+    }
+
+    if (category) {
+      setInitialCategory(category);
+    }
+
+    if (productId && allProducts.length > 0) {
+      const targetProduct = allProducts.find(p => p.id === productId);
+      if (targetProduct) {
+        setOrderItems([{
+          id: targetProduct.id,
+          name: targetProduct.name,
+          price: targetProduct.price,
+          stock: targetProduct.stock || 999,
+          quantity: 1
+        }]);
+        // Set other product-specific defaults
+        if (targetProduct.extra_data?.item_size) setItemSize(targetProduct.extra_data.item_size as any);
+      }
+    }
+  }, [searchParams, allProducts, supabase]);
+
   const timeOptions = useMemo(() => {
     const options = [];
     for (let h = 7; h <= 22; h++) {
@@ -293,9 +331,7 @@ export default function NewOrderPage() {
     const orderPayload: OrderData = {
       status: existingOrder?.status || 'processing',
       receipt_type,
-      order_date: (scheduleDate && (receipt_type === 'pickup_reservation' || receipt_type === 'delivery_reservation')) 
-                  ? scheduleDate.toISOString() 
-                  : new Date().toISOString(),
+      order_date: existingOrder ? existingOrder.order_date : new Date().toISOString(),
       items: orderItems.map(({ id, name, quantity, price }) => ({ id, name, quantity, price })),
       summary: {
         ...orderSummary,
@@ -340,25 +376,34 @@ export default function NewOrderPage() {
       } as any,
       memo: specialRequest,
       extra_data: {
-        isAnonymous
+        isAnonymous,
+        outsource_tenant_id: externalVendor?.id,
+        outsource_tenant_name: externalVendor?.name
       }
     };
 
     try {
       if (existingOrder) {
-        await updateOrder(existingOrder.id, orderPayload);
-        toast.success("주문이 수정되었습니다.");
-        router.push("/dashboard/orders");
+        const success = await updateOrder(existingOrder.id, orderPayload);
+        if (success) {
+          toast.success("주문이 수정되었습니다.");
+          router.push("/dashboard/orders");
+        } else {
+          toast.error("주문 수정에 실패했습니다.");
+        }
       } else {
         const resultId = await addOrder(orderPayload);
         if (resultId) {
           setLastOrderId(resultId);
           setLastOrderNumber(orderPayload.order_number || `ORD-${Date.now()}`);
           setShowSuccessDialog(true);
+        } else {
+          toast.error("주문 저장에 실패했습니다. 데이터를 다시 확인해주세요.");
         }
       }
     } catch (error) {
        console.error(error);
+       toast.error("주문 저장 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
     } finally {
        setIsSubmitting(false);
     }
@@ -367,10 +412,10 @@ export default function NewOrderPage() {
   return (
     <div className="h-full flex flex-col bg-gray-50/30">
       <PageHeader
-        title={existingOrder ? "주문 수정" : "새 주문 등록"}
+        title={existingOrder ? "주문 수정" : (externalVendor ? `협력사 발주 (${externalVendor.name})` : "새 주문 등록")}
         description={existingOrder 
           ? "기존 주문 정보를 수정합니다." 
-          : `${profile?.tenants?.name || "새로운 화원"}의 새로운 주문을 접수합니다.`}
+          : (externalVendor ? `${externalVendor.name}님에게 보낼 상품을 선택하고 정보를 입력하세요.` : `${profile?.tenants?.name || "새로운 화원"}의 새로운 주문을 접수합니다.`)}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6 p-6 h-[calc(100vh-140px)]">
@@ -410,6 +455,7 @@ export default function NewOrderPage() {
           <ProductSection
             allProducts={allProducts}
             categories={dynamicCategories}
+            initialCategory={initialCategory || undefined}
             onAddProduct={(p: Product) => {
               // 1. Add/Update order items
               setOrderItems(prev => {
@@ -554,13 +600,22 @@ export default function NewOrderPage() {
               주문 현황 보기
             </Button>
             {lastOrderId && (
-              <Button 
-                variant="outline" 
-                className="w-full rounded-2xl h-12 font-bold border-primary text-primary hover:bg-primary/5" 
-                onClick={() => router.push(`/dashboard/orders?openMessagePrint=true&orderId=${lastOrderId}`)}
-              >
-                <Printer className="w-4 h-4 mr-2" /> 리본/카드 인쇄
-              </Button>
+              <div className="flex flex-col gap-2 w-full">
+                <Button 
+                  variant="outline" 
+                  className="w-full rounded-2xl h-12 font-bold border-primary text-primary hover:bg-primary/5 flex items-center justify-center gap-2" 
+                  onClick={() => router.push(`/dashboard/orders/print-preview/${lastOrderId}`)}
+                >
+                  <Printer className="w-4 h-4" /> 주문서 출력 (필수)
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  className="w-full rounded-2xl h-10 font-bold text-slate-500 flex items-center justify-center gap-2" 
+                  onClick={() => router.push(`/dashboard/orders?openMessagePrint=true&orderId=${lastOrderId}`)}
+                >
+                  <Printer className="w-4 h-4" /> 리본/카드 추가 인쇄
+                </Button>
+              </div>
             )}
             <Button variant="ghost" className="w-full rounded-2xl h-12 font-bold text-gray-500" onClick={() => window.location.reload()}>
               새 주문 계속 등록

@@ -38,6 +38,7 @@ export interface SystemSettings {
   messageColor: string;
   messageTemplate: string;
   availableFonts: string[];
+  isStorefrontPublic: boolean;
 }
 
 export const defaultSettings: SystemSettings = {
@@ -69,6 +70,7 @@ export const defaultSettings: SystemSettings = {
   messageColor: "#000000",
   messageTemplate: "안녕하세요! {고객명}님의 주문이 {상태}되었습니다. 감사합니다.",
   availableFonts: ["Noto Sans KR", "Nanum Gothic", "Nanum Myeongjo", "Gaegu"],
+  isStorefrontPublic: false,
 };
 
 export function useSettings() {

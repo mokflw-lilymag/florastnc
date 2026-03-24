@@ -26,6 +26,7 @@ export interface OrderPrintData {
         contact: string;
         account: string;
     };
+    logoUrl?: string;
 }
 
 interface PrintableOrderProps {
@@ -61,8 +62,11 @@ export class PrintableOrder extends React.Component<PrintableOrderProps> {
 
         const renderSection = (title: string, isReceipt: boolean) => (
             <div className="mb-4">
-                <div className="text-center mb-4">
-                    <h1 className="text-2xl font-bold mt-2">
+                <div className="flex flex-col items-center mb-6">
+                    {data.logoUrl && (
+                        <img src={data.logoUrl} alt="Store Logo" className="h-12 w-auto mb-2 object-contain" />
+                    )}
+                    <h1 className="text-2xl font-bold">
                         {data.shopInfo.name} {title}
                     </h1>
                 </div>
@@ -141,16 +145,31 @@ export class PrintableOrder extends React.Component<PrintableOrderProps> {
         );
 
         return (
-            <div className="p-4 bg-white text-black font-sans px-[10mm]">
+            <div className="p-4 bg-white text-black font-sans px-[15mm]">
                 {renderSection('주문서', false)}
                 <div className="border-t-2 border-dashed border-gray-400 my-8"></div>
                 {renderSection('인수증', true)}
-                <div className="mt-8 text-xs">
-                    <div className="flex justify-between border-t border-black pt-2">
-                        <span>{data.shopInfo.name}</span>
-                        <span>{data.shopInfo.contact}</span>
-                        <span>{data.shopInfo.address}</span>
+                <div className="mt-8 text-xs border-t border-black pt-3">
+                    <div className="grid grid-cols-3 gap-4">
+                        <div className="flex flex-col">
+                            <span className="font-bold text-[10px] text-gray-500 uppercase">상호명</span>
+                            <span className="text-sm">{data.shopInfo.name}</span>
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="font-bold text-[10px] text-gray-500 uppercase">연락처</span>
+                            <span className="text-sm">{data.shopInfo.contact || "연락처 미등록"}</span>
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="font-bold text-[10px] text-gray-500 uppercase">주소</span>
+                            <span className="text-sm leading-tight">{data.shopInfo.address || "주소 미등록"}</span>
+                        </div>
                     </div>
+                    {data.shopInfo.account && (
+                        <div className="mt-2 text-right">
+                            <span className="font-bold text-[10px] text-gray-500 uppercase mr-2">입금계좌:</span>
+                            <span className="text-sm font-medium">{data.shopInfo.account}</span>
+                        </div>
+                    )}
                 </div>
             </div>
         );

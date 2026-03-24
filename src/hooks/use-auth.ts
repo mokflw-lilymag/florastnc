@@ -24,7 +24,7 @@ export function useAuth() {
         // Fetch user's profile with tenant plan
         const { data, error: profileError } = await supabase
           .from("profiles")
-          .select("*, tenants(plan, name)")
+          .select("*, tenants(plan, name, logo_url, contact_phone, address)")
           .eq("id", user.id)
           .maybeSingle();
           
@@ -39,12 +39,15 @@ export function useAuth() {
           setTenantId(data.tenant_id);
         } else if (user.email === 'lilymag0301@gmail.com') {
           // 프로필이 없는 경우에도 관리자 정보는 반환
+          const defaultTenantId = '50551f4c-0b6b-45ab-8db9-047ca3ff88de';
           const mockProfile = {
             role: 'super_admin',
+            tenant_id: defaultTenantId,
             email: user.email,
             tenants: { plan: 'pro', name: 'LilyMag Admin' }
           };
           setProfile(mockProfile);
+          setTenantId(defaultTenantId);
         }
       } catch (error) {
         console.error("Error fetching user session:", error);
