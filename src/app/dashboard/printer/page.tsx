@@ -41,6 +41,7 @@ function PrinterContent() {
         isAdmin={isAdmin}
         initialLeftText={initialLeftText}
         initialRightText={initialRightText}
+        userPlan={plan}
       />
     </div>
   );

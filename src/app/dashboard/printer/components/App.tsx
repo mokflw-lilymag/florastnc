@@ -165,7 +165,7 @@ const DEFAULT_PHRASE_CATEGORIES = [
   {
     name: '🎉 환갑/칠순/팔순/행사',
     phrases: [
-      { text: '祝生日', desc: '축생일' }, { text: '祝생辰', desc: '축생신' }, { text: '祝華甲', desc: '축화갑(60)' },
+      { text: '祝生日', desc: '축생일' }, { text: '祝生辰', desc: '축생신' }, { text: '祝華甲', desc: '축화갑(60)' },
       { text: '祝壽宴', desc: '축수연(60)' }, { text: '祝回甲', desc: '축회갑(60)' }, { text: '祝古稀', desc: '축고희(70)' },
       { text: '祝七旬', desc: '축칠순(70)' }, { text: '祝喜壽', desc: '축희수(77)' }, { text: '祝八旬', desc: '축팔순(80)' },
       { text: '祝傘壽', desc: '축산수(80)' }, { text: '祝米壽', desc: '축미수(88)' }, { text: '祝白壽', desc: '축백수(99)' },
@@ -740,7 +740,7 @@ const RibbonCanvas = ({
 // ==========================================
 import type { Session } from '@supabase/supabase-js';
 
-export default function App({ session, isAdmin, onShowAdmin, initialLeftText, initialRightText }: { session?: Session; isAdmin?: boolean; onShowAdmin?: () => void; initialLeftText?: string; initialRightText?: string }) {
+export default function App({ session, isAdmin, onShowAdmin, initialLeftText, initialRightText, userPlan }: { session?: Session; isAdmin?: boolean; onShowAdmin?: () => void; initialLeftText?: string; initialRightText?: string; userPlan?: string }) {
   const mainRef = useRef<HTMLElement>(null);
   const printAreaRef = useRef<HTMLDivElement>(null);
 
@@ -758,7 +758,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
       return;
     }
 
-    if (isAdmin || subscription.isActive) {
+    if (isAdmin || subscription.isActive || userPlan === 'pro' || userPlan === 'ribbon_only' || userPlan === 'print_only') {
       action();
     } else {
       setShowPaywall(true);
@@ -1271,18 +1271,18 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
             <p className="text-[10px] text-blue-400/80 mt-1 truncate" title={session.user.email}>👤 {session.user.email}</p>
           )}
           {/* Subscription Badge */}
-          {!subLoading && (
+          {(!subLoading || userPlan === 'pro' || userPlan === 'ribbon_only' || userPlan === 'print_only') && (
             <div className={`mt-2 px-2 py-1.5 rounded-lg text-[10px] font-medium text-center border tracking-wide ${
               isAdmin
                 ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
-                : subscription.isActive 
+                : (subscription.isActive || userPlan === 'pro' || userPlan === 'ribbon_only' || userPlan === 'print_only')
                   ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' 
                   : 'bg-red-500/15 text-red-400 border-red-500/30'
             }`}>
               {isAdmin
                 ? '🛡️ 관리자 - 모든 기능 가능'
-                : subscription.isActive 
-                  ? `✅ ${subscription.plan === 'yearly' ? '연간' : subscription.plan === 'quarterly' ? '3개월' : subscription.plan === 'half_yearly' ? '6개월' : subscription.plan === 'event' ? '이벤트' : '월간'} 구독중 (잔여: ${getRemainingDays(subscription.expiresAt)}일)`
+                : (subscription.isActive || userPlan === 'pro' || userPlan === 'ribbon_only' || userPlan === 'print_only')
+                  ? `✅ ${userPlan === 'pro' ? 'Pro 요금제' : (userPlan === 'ribbon_only' || userPlan === 'print_only') ? '프린트 전용' : (subscription.plan === 'yearly' ? '연간' : subscription.plan === 'quarterly' ? '3개월' : subscription.plan === 'half_yearly' ? '6개월' : subscription.plan === 'event' ? '이벤트' : '월간')} 구독중${subscription.isActive ? ` (잔여: ${getRemainingDays(subscription.expiresAt)}일)` : ''}`
                   : '🔓 무료 체험 중 (인쇄 제한)'}
             </div>
           )}
