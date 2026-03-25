@@ -108,6 +108,7 @@ export default function ExpensesPage() {
   const [filterDateFrom, setFilterDateFrom] = useState<string>("");
   const [filterDateTo, setFilterDateTo] = useState<string>("");
   const [isMaterialOpen, setIsMaterialOpen] = useState(false);
+  const [activeItemPopover, setActiveItemPopover] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<ExpenseFormData>({ ...defaultFormData });
 
@@ -419,212 +420,285 @@ export default function ExpensesPage() {
               </DialogDescription>
             </DialogHeader>
           </div>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="date" className="text-right font-semibold text-slate-700">날짜</Label>
-              <Input
-                id="date"
-                type="date"
-                className="col-span-3"
-                value={formData.expense_date}
-                onChange={e => setFormData(prev => ({ ...prev, expense_date: e.target.value }))}
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="supplier" className="text-right font-semibold text-slate-700">거래처</Label>
-              <Select
-                value={formData.supplier_id}
-                onValueChange={(v: string | null) => setFormData(prev => ({ ...prev, supplier_id: v || "none" }))}
-              >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="거래처 선택 (선택사항)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">선택 안함</SelectItem>
-                  {suppliers.map(s => (
-                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="category" className="text-right font-semibold text-slate-700">분류</Label>
-              <Select
-                value={formData.category}
-                onValueChange={(v: string | null) => setFormData(prev => ({ ...prev, category: v || "materials" }))}
-              >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="materials">자재/꽃 사입</SelectItem>
-                  <SelectItem value="transportation">운송비 (배송비/기름값/주차비 등)</SelectItem>
-                  <SelectItem value="rent">임대료</SelectItem>
-                  <SelectItem value="utility">공과금</SelectItem>
-                  <SelectItem value="labor">인건비</SelectItem>
-                  <SelectItem value="marketing">마케팅</SelectItem>
-                  <SelectItem value="etc">기타</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {formData.category === "transportation" && (
-              <div className="grid grid-cols-4 items-center gap-4 animate-in slide-in-from-top-2">
-                <Label className="text-right font-semibold text-indigo-700">세부 분류</Label>
-                <Select
-                  value={formData.sub_category || "delivery_fee"}
-                  onValueChange={(v: string | null) => setFormData(prev => ({ ...prev, sub_category: v || "delivery_fee" }))}
-                >
-                  <SelectTrigger className="col-span-3 border-indigo-200 bg-indigo-50/30">
-                    <SelectValue placeholder="운송비 세부 분류 선택" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="delivery_fee">배송비 (배달 대행)</SelectItem>
-                    <SelectItem value="gas">기름값 (유류비)</SelectItem>
-                    <SelectItem value="parking">주차비</SelectItem>
-                    <SelectItem value="toll">통행료 / 톨비</SelectItem>
-                    <SelectItem value="vehicle_maintenance">차량 유지비</SelectItem>
-                    <SelectItem value="etc_transport">기타 운송 비용</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            {formData.category === "materials" && (
-              <>
-                <div className="grid grid-cols-4 items-center gap-4 animate-in slide-in-from-top-2">
-                  <Label htmlFor="material" className="text-right font-semibold text-blue-700">품목 선택</Label>
-                  <div className="col-span-3">
-                    <Popover open={isMaterialOpen} onOpenChange={setIsMaterialOpen}>
-                      <PopoverTrigger 
-                        render={
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            className="w-full justify-between border-blue-200 bg-blue-50/30 font-normal h-9"
-                          />
-                        }
-                      >
-                        {formData.material_id && formData.material_id !== "none"
-                          ? (() => {
-                              const m = materials.find(m => m.id === formData.material_id);
-                              return m ? `[${m.mid_category || m.main_category}] ${m.name}` : "품목 선택";
-                            })()
-                          : "품목 선택 (직접 입력 가능)"}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
-                        <Command>
-                          <CommandInput placeholder="품목명, 카테고리 검색..." />
-                          <CommandList>
-                            <CommandEmpty>검색 결과가 없습니다.</CommandEmpty>
-                            <CommandGroup>
+          <div className="p-6 overflow-y-auto max-h-[75vh]">
+            <div className="grid gap-6">
+              {/* Basic Info Section */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="date" className="text-sm font-bold text-slate-700">날짜</Label>
+                  <Input
+                    id="date"
+                    type="date"
+                    value={formData.expense_date}
+                    onChange={e => setFormData(prev => ({ ...prev, expense_date: e.target.value }))}
+                    className="bg-white border-slate-200"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="supplier" className="text-sm font-bold text-slate-700">거래처</Label>
+                  <Popover>
+                    <PopoverTrigger
+                      render={
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          className="w-full justify-between bg-white border-slate-200 font-normal"
+                        />
+                      }
+                    >
+                      {formData.supplier_id && formData.supplier_id !== "none"
+                        ? suppliers.find(s => s.id === formData.supplier_id)?.name
+                        : "거래처 선택 (선택사항)"}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[300px] p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="거래처 검색..." />
+                        <CommandList>
+                          <CommandEmpty>결과 없음.</CommandEmpty>
+                          <CommandGroup>
+                            <CommandItem
+                              onSelect={() => setFormData(prev => ({ ...prev, supplier_id: "none" }))}
+                            >
+                              <Check className={cn("mr-2 h-4 w-4", formData.supplier_id === "none" ? "opacity-100" : "opacity-0")} />
+                              선택 안함
+                            </CommandItem>
+                            {suppliers.map(s => (
                               <CommandItem
-                                value="none"
-                                onSelect={() => {
-                                  setFormData(prev => ({ ...prev, material_id: "none" }));
-                                  setIsMaterialOpen(false);
-                                }}
+                                key={s.id}
+                                onSelect={() => setFormData(prev => ({ ...prev, supplier_id: s.id }))}
                               >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    formData.material_id === "none" ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                                선택 안함 (직접 입력)
+                                <Check className={cn("mr-2 h-4 w-4", formData.supplier_id === s.id ? "opacity-100" : "opacity-0")} />
+                                {s.name}
                               </CommandItem>
-                              {materials.map((m) => (
-                                <CommandItem
-                                  key={m.id}
-                                  value={`${m.main_category} ${m.mid_category} ${m.name}`}
-                                  onSelect={() => {
-                                    setFormData(prev => ({
-                                      ...prev,
-                                      material_id: m.id,
-                                      sub_category: m.mid_category as string,
-                                      description: `${m.name} 사입`,
-                                      supplier_id: m.supplier_id || prev.supplier_id
-                                    }));
-                                    setIsMaterialOpen(false);
-                                  }}
-                                >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      formData.material_id === m.id ? "opacity-100" : "opacity-0"
-                                    )}
-                                  />
-                                  <div className="flex flex-col">
-                                    <span className="text-xs text-slate-400">[{m.main_category} &gt; {m.mid_category || '-'}]</span>
-                                    <span>{m.name}</span>
-                                  </div>
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="qty" className="text-right font-semibold text-blue-700">수량</Label>
-                  <div className="col-span-3 flex items-center gap-3">
-                    <Input
-                      id="qty"
-                      type="number"
-                      placeholder="0"
-                      value={formData.quantity}
-                      onChange={e => setFormData(prev => ({ ...prev, quantity: parseFloat(e.target.value) || 0 }))}
-                      className="flex-1 border-blue-200"
-                    />
-                    <span className="text-sm text-slate-500 font-medium">
-                      {materials.find(m => m.id === formData.material_id)?.unit || "ea"}
-                    </span>
-                  </div>
-                </div>
-              </>
-            )}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="desc" className="text-right font-semibold text-slate-700">내용</Label>
-              <Input
-                id="desc"
-                placeholder="예: 생화 사입(장미 10단), 월세 등"
-                className="col-span-3"
-                value={formData.description}
-                onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="amount" className="text-right font-semibold text-slate-700">금액</Label>
-              <div className="col-span-3 relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">₩</span>
-                <Input
-                  id="amount"
-                  type="number"
-                  className="pl-8 font-bold text-red-600"
-                  value={formData.amount}
-                  onChange={e => setFormData(prev => ({ ...prev, amount: parseInt(e.target.value) || 0 }))}
-                />
               </div>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="method" className="text-right font-semibold text-slate-700">수단</Label>
-              <Select
-                value={formData.payment_method}
-                onValueChange={(v: string | null) => setFormData(prev => ({ ...prev, payment_method: v || "card" }))}
-              >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="card">카드</SelectItem>
-                  <SelectItem value="cash">현금</SelectItem>
-                  <SelectItem value="transfer">이체</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="category" className="text-sm font-bold text-slate-700">분류</Label>
+                  <Select
+                    value={formData.category}
+                    onValueChange={(v: string | null) => setFormData(prev => ({ ...prev, category: v || "materials" }))}
+                  >
+                    <SelectTrigger className="bg-white border-slate-200">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="materials">자재/꽃 사입</SelectItem>
+                      <SelectItem value="transportation">운송비</SelectItem>
+                      <SelectItem value="rent">임대료</SelectItem>
+                      <SelectItem value="utility">공과금</SelectItem>
+                      <SelectItem value="labor">인건비</SelectItem>
+                      <SelectItem value="marketing">마케팅</SelectItem>
+                      <SelectItem value="etc">기타</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="method" className="text-sm font-bold text-slate-700">결제 수단</Label>
+                  <Select
+                    value={formData.payment_method}
+                    onValueChange={(v: string | null) => setFormData(prev => ({ ...prev, payment_method: v || "card" }))}
+                  >
+                    <SelectTrigger className="bg-white border-slate-200">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="card">카드</SelectItem>
+                      <SelectItem value="cash">현금</SelectItem>
+                      <SelectItem value="transfer">이체</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Items List Section (Bulk Mode) */}
+              {!editingExpense && (
+                <div className="space-y-4 pt-2">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-black text-slate-800 flex items-center gap-2">
+                      <div className="w-1 h-4 bg-primary rounded-full" />
+                      영수증 품목 리스트
+                      <span className="text-[10px] font-normal text-slate-400 ml-2">여러 품목을 한 번에 입력하려면 항목을 추가하세요.</span>
+                    </h3>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={addReceiptItem}
+                      className="h-8 gap-1 font-bold border-indigo-200 text-indigo-600 hover:bg-indigo-50"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> 항목 추가
+                    </Button>
+                  </div>
+
+                  {formData.items.length > 0 ? (
+                    <div className="border rounded-xl bg-white shadow-sm overflow-hidden">
+                      <div className="grid grid-cols-12 gap-2 px-3 py-2 bg-slate-50 border-b text-[10px] font-bold text-slate-500 uppercase">
+                        <div className="col-span-5">품목명 / 상세내용</div>
+                        <div className="col-span-2 text-center">수량</div>
+                        <div className="col-span-2 text-right">단가</div>
+                        <div className="col-span-2 text-right">금액</div>
+                        <div className="col-span-1"></div>
+                      </div>
+                      <div className="divide-y max-h-[400px] overflow-y-auto">
+                        {formData.items.map((item) => (
+                          <div key={item.id} className="grid grid-cols-12 gap-2 items-center p-3 animate-in fade-in slide-in-from-left-2 duration-300">
+                            <div className="col-span-5">
+                              <Popover 
+                                open={activeItemPopover === item.id} 
+                                onOpenChange={(open) => setActiveItemPopover(open ? item.id : null)}
+                              >
+                                <PopoverTrigger
+                                  render={
+                                    <Button
+                                      variant="ghost"
+                                      className="w-full justify-between h-9 text-xs font-normal border border-transparent hover:border-slate-200 px-2"
+                                    />
+                                  }
+                                >
+                                  <span className="truncate text-slate-700">
+                                    {item.material_id && item.material_id !== "none" 
+                                      ? item.material_name 
+                                      : item.description || "품목 선택 또는 직접 입력"}
+                                  </span>
+                                  <Search className="ml-1 h-3 w-3 shrink-0 opacity-30" />
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[350px] p-0" align="start">
+                                  <Command>
+                                    <CommandInput placeholder="품목 검색..." onValueChange={(v) => updateReceiptItem(item.id, { description: v })} />
+                                    <CommandList className="max-h-[300px]">
+                                      <CommandEmpty>
+                                        <div className="p-4 text-center">
+                                          <p className="text-xs text-slate-500">검색 결과가 없습니다.</p>
+                                          <Button 
+                                            variant="link" 
+                                            size="sm" 
+                                            className="text-[10px]"
+                                            onClick={() => setActiveItemPopover(null)}
+                                          >
+                                            현재 입력값으로 적용
+                                          </Button>
+                                        </div>
+                                      </CommandEmpty>
+                                      <CommandGroup heading="등록된 품목">
+                                        {materials.map(m => (
+                                          <CommandItem
+                                            key={m.id}
+                                            value={`${m.name} ${m.main_category}`}
+                                            onSelect={() => {
+                                              updateReceiptItem(item.id, { 
+                                                material_id: m.id, 
+                                                material_name: m.name,
+                                                unit: m.unit || "ea",
+                                                unit_price: m.price || 0,
+                                                description: `${m.name} 사입`
+                                              });
+                                              setActiveItemPopover(null);
+                                            }}
+                                          >
+                                            <Check className={cn("mr-2 h-4 w-4 text-primary", item.material_id === m.id ? "opacity-100" : "opacity-0")} />
+                                            <div className="flex flex-col">
+                                              <span className="font-medium">{m.name}</span>
+                                              <span className="text-[10px] text-slate-400">{m.main_category} &gt; {m.mid_category}</span>
+                                            </div>
+                                            <div className="ml-auto text-[10px] font-bold text-slate-400">₩{(m.price || 0).toLocaleString()}</div>
+                                          </CommandItem>
+                                        ))}
+                                      </CommandGroup>
+                                    </CommandList>
+                                  </Command>
+                                </PopoverContent>
+                              </Popover>
+                            </div>
+                            <div className="col-span-2">
+                              <Input 
+                                type="number" 
+                                className="h-8 px-2 text-center text-xs border-slate-100 focus:border-indigo-200" 
+                                value={item.quantity}
+                                onChange={e => updateReceiptItem(item.id, { quantity: parseFloat(e.target.value) || 0 })}
+                              />
+                            </div>
+                            <div className="col-span-2">
+                              <Input 
+                                type="number" 
+                                className="h-8 px-2 text-right text-xs border-slate-100 focus:border-indigo-200" 
+                                value={item.unit_price}
+                                onChange={e => updateReceiptItem(item.id, { unit_price: parseInt(e.target.value) || 0 })}
+                              />
+                            </div>
+                            <div className="col-span-2 text-right font-bold text-slate-700 text-xs truncate px-1">
+                              ₩{(item.amount || 0).toLocaleString()}
+                            </div>
+                            <div className="col-span-1 flex justify-end">
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-7 w-7 text-slate-300 hover:text-red-500 hover:bg-red-50"
+                                onClick={() => removeReceiptItem(item.id)}
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="p-4 bg-slate-50 flex justify-between items-center border-t">
+                         <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Receipt Summary</div>
+                         <div className="flex items-center gap-3">
+                            <span className="text-xs text-slate-500 font-medium">총 {formData.items.length}개 품목 합계:</span>
+                            <span className="text-xl font-black text-indigo-700 tracking-tight">₩{totalItemsAmount.toLocaleString()}</span>
+                         </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="group cursor-pointer text-center py-10 border-2 border-dashed border-slate-200 rounded-2xl hover:border-indigo-200 hover:bg-indigo-50/20 transition-all duration-300"
+                         onClick={addReceiptItem}>
+                      <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-slate-100 group-hover:bg-indigo-100 transition-colors mb-2">
+                        <Plus className="w-5 h-5 text-slate-400 group-hover:text-indigo-500" />
+                      </div>
+                      <p className="text-xs text-slate-400 font-medium group-hover:text-indigo-600 transition-colors">클릭하여 영수증 내 품목을 추가하세요.</p>
+                      <p className="text-[10px] text-slate-300 mt-1">단일 항목으로 등록하려면 하단 내용을 입력하세요.</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Single / Description Section */}
+              {(formData.items.length === 0 || editingExpense) && (
+                <div className="space-y-4 pt-2 animate-in fade-in slide-in-from-top-4 duration-500">
+                  <div className="space-y-2">
+                    <Label htmlFor="desc" className="text-sm font-bold text-slate-700">지출 내용</Label>
+                    <Input
+                      id="desc"
+                      placeholder="예: 생화 사입(장미 10단), 월세 등"
+                      value={formData.description}
+                      onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                      className="bg-white border-slate-200"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="amount" className="text-sm font-bold text-slate-700">금액</Label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">₩</span>
+                      <Input
+                        id="amount"
+                        type="number"
+                        className="pl-10 h-12 text-lg font-black text-indigo-700 bg-white border-slate-200"
+                        value={formData.amount}
+                        onChange={e => setFormData(prev => ({ ...prev, amount: parseInt(e.target.value) || 0 }))}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Receipt File Section */}
               <div className="pt-4 border-t border-slate-100">
@@ -649,6 +723,7 @@ export default function ExpensesPage() {
                   * 한 번에 업로드된 모든 품목은 동일한 영수증 링크를 공유합니다.
                 </p>
               </div>
+            </div>
           </div>
           <div className="p-6 bg-slate-50 border-t flex justify-end gap-3">
             <Button variant="ghost" onClick={() => setIsDialogOpen(false)} className="font-bold text-slate-500">취소</Button>
