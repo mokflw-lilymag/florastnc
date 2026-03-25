@@ -127,7 +127,7 @@ export default function ExpensesPage() {
     };
     setFormData(prev => ({
       ...prev,
-      items: [...prev.items, newItem]
+      items: [newItem, ...prev.items]
     }));
   };
 
