@@ -112,6 +112,41 @@ export default function ExpensesPage() {
   const [isMaterialOpen, setIsMaterialOpen] = useState(false);
   const [activeItemPopover, setActiveItemPopover] = useState<string | null>(null);
 
+  const [itemSearchText, setItemSearchText] = useState("");
+  const itemSearchList = useMemo(() => {
+    if (!materials) return [];
+    if (!itemSearchText) return materials.slice(0, 50);
+    const search = itemSearchText.toLowerCase();
+    return materials.filter(m => 
+      m.name?.toLowerCase().includes(search) || 
+      m.main_category?.toLowerCase().includes(search) ||
+      m.mid_category?.toLowerCase().includes(search)
+    ).slice(0, 50);
+  }, [materials, itemSearchText]);
+
+  const categoryLabels: Record<string, string> = {
+    all: "전체 분류",
+    materials: "자재/꽃 사입",
+    transportation: "운송비",
+    rent: "임대료",
+    utility: "공과금",
+    labor: "인건비",
+    marketing: "마케팅",
+    etc: "기타"
+  };
+
+  const methodLabels: Record<string, string> = {
+    all: "전체 수단",
+    card: "카드",
+    cash: "현금",
+    transfer: "이체"
+  };
+
+  const supplierLabels: Record<string, string> = {
+    all: "전체 거래처",
+    none: "거래처 없음"
+  };
+
   const [formData, setFormData] = useState<ExpenseFormData>({ ...defaultFormData });
 
   // Add Item to Receipt
@@ -509,7 +544,7 @@ export default function ExpensesPage() {
                     onValueChange={(v: string | null) => setFormData(prev => ({ ...prev, category: v || "materials" }))}
                   >
                     <SelectTrigger className="bg-white border-slate-200">
-                      <SelectValue />
+                      <SelectValue>{categoryLabels[formData.category] || formData.category}</SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="materials">자재/꽃 사입</SelectItem>
@@ -529,7 +564,7 @@ export default function ExpensesPage() {
                     onValueChange={(v: string | null) => setFormData(prev => ({ ...prev, payment_method: v || "card" }))}
                   >
                     <SelectTrigger className="bg-white border-slate-200">
-                      <SelectValue />
+                      <SelectValue>{methodLabels[formData.payment_method] || formData.payment_method}</SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="card">카드</SelectItem>
@@ -601,8 +636,15 @@ export default function ExpensesPage() {
                                 </PopoverTrigger>
                                 <PopoverContent className="w-[350px] p-0" align="start">
                                   {activeItemPopover === item.id && (
-                                    <Command>
-                                      <CommandInput placeholder="품목 검색..." onValueChange={(v) => updateReceiptItem(item.id, { description: v })} />
+                                    <Command shouldFilter={false}>
+                                      <CommandInput 
+                                        placeholder="품목 검색..." 
+                                        value={itemSearchText}
+                                        onValueChange={(v) => {
+                                          setItemSearchText(v);
+                                          updateReceiptItem(item.id, { description: v });
+                                        }} 
+                                      />
                                       <CommandList className="max-h-[300px]">
                                         <CommandEmpty>
                                           <div className="p-4 text-center">
@@ -611,14 +653,17 @@ export default function ExpensesPage() {
                                               variant="link" 
                                               size="sm" 
                                               className="text-[10px]"
-                                              onClick={() => setActiveItemPopover(null)}
+                                              onClick={() => {
+                                                setActiveItemPopover(null);
+                                                setItemSearchText("");
+                                              }}
                                             >
                                               현재 입력값으로 적용
                                             </Button>
                                           </div>
                                         </CommandEmpty>
-                                        <CommandGroup heading="등록된 품목">
-                                          {materials.map(m => (
+                                        <CommandGroup heading="검색 결과 (최대 50개)">
+                                          {itemSearchList.map(m => (
                                             <CommandItem
                                               key={m.id}
                                               value={`${m.name} ${m.main_category}`}
@@ -633,6 +678,7 @@ export default function ExpensesPage() {
                                                   mid_category: m.mid_category || ""
                                                 });
                                                 setActiveItemPopover(null);
+                                                setItemSearchText("");
                                               }}
                                             >
                                               <Check className={cn("mr-2 h-4 w-4 text-primary", item.material_id === m.id ? "opacity-100" : "opacity-0")} />
@@ -869,7 +915,7 @@ export default function ExpensesPage() {
 
             <Select value={filterCategory} onValueChange={(v: string | null) => setFilterCategory(v || "all")}>
               <SelectTrigger className="h-8 w-[120px] text-xs border-slate-200 rounded-lg">
-                <SelectValue placeholder="분류" />
+                <SelectValue placeholder="분류">{categoryLabels[filterCategory]}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">전체 분류</SelectItem>
@@ -885,7 +931,9 @@ export default function ExpensesPage() {
 
             <Select value={filterSupplier} onValueChange={(v: string | null) => setFilterSupplier(v || "all")}>
               <SelectTrigger className="h-8 w-[130px] text-xs border-slate-200 rounded-lg">
-                <SelectValue placeholder="거래처" />
+                <SelectValue placeholder="거래처">
+                  {supplierLabels[filterSupplier] || suppliers.find(s => s.id === filterSupplier)?.name || filterSupplier}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">전체 거래처</SelectItem>
@@ -899,7 +947,7 @@ export default function ExpensesPage() {
 
             <Select value={filterMethod} onValueChange={(v: string | null) => setFilterMethod(v || "all")}>
               <SelectTrigger className="h-8 w-[110px] text-xs border-slate-200 rounded-lg">
-                <SelectValue placeholder="결제수단" />
+                <SelectValue placeholder="결제수단">{methodLabels[filterMethod]}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">전체 수단</SelectItem>
