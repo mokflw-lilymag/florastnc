@@ -28,6 +28,7 @@ import { ManualDialog } from './ManualDialog';
 import { FolderOpen, Settings as SettingsIcon, BookOpen } from 'lucide-react';
 import { supabase } from './lib/supabase';
 import { type CustomFontInfo, getAllCustomFonts, getHiddenFonts } from './lib/font-store';
+import { BridgeOnboardingDialog } from './BridgeOnboardingDialog';
 import { useSubscription } from './lib/use-subscription';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -835,6 +836,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const [isLoadDialogOpen, setIsLoadDialogOpen] = useState(false);
   const [phraseCategories, setPhraseCategories] = useState(DEFAULT_PHRASE_CATEGORIES);
+  const [isBridgeOnboardingOpen, setIsBridgeOnboardingOpen] = useState(false);
 
   // Panning State
   const [isDragging, setIsDragging] = useState(false);
@@ -961,6 +963,8 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
         console.error("Failed to fetch printers", err);
         setIsBridgeConnected(false);
         setPrinters([]);
+        // Show onboarding if bridge is not found
+        setIsBridgeOnboardingOpen(true);
       });
 
     // Auto-Pair Cloud Print Agent with Local Bridge
@@ -1211,7 +1215,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
   };
 
   return (
-    <div className="flex bg-slate-900 text-slate-200 h-screen w-screen overflow-hidden text-sm">
+    <div className="flex bg-slate-900 text-slate-200 h-full w-full overflow-hidden text-sm">
       
       {/* 1. Left Panel: Config Sidebar (Mobile/Desktop Sync) */}
       <aside className={cn(
@@ -2051,6 +2055,27 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
         onClose={() => setIsLoadDialogOpen(false)}
         onLoad={onLoadConfig}
         userId={session?.user?.id}
+      />
+
+      {/* Bridge Onboarding & Installation Dialog */}
+      <BridgeOnboardingDialog
+        isOpen={isBridgeOnboardingOpen}
+        onClose={() => setIsBridgeOnboardingOpen(false)}
+        onCheckStatus={async () => {
+          try {
+            // Check printers endpoint which returns status: 'success'
+            const res = await fetch('http://localhost:8000/api/printers');
+            const data = await res.json();
+            if (data.status === 'success') {
+              setIsBridgeConnected(true);
+              if (Array.isArray(data.data)) setPrinters(data.data);
+              return true;
+            }
+          } catch (e) {
+            console.warn("Bridge not responding yet...", e);
+          }
+          return false;
+        }}
       />
     </div>
   );

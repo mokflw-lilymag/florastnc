@@ -5,6 +5,7 @@ import { GlobalQuickNav } from "@/components/layout/global-quick-nav";
 import { redirect } from "next/navigation";
 
 import { QuickChat } from "@/components/chat/quick-chat";
+import { DashboardMain } from "@/components/layout/dashboard-main";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -55,12 +56,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
         {/* Quick access for all modules */}
         <GlobalQuickNav />
         
-        {/* Central main canvas background similar to Shadcn default */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 bg-zinc-50 dark:bg-zinc-950/50 relative z-0">
-          <div className="mx-auto w-full max-w-7xl">
-            {children}
-          </div>
-        </main>
+        <DashboardMain>
+          {children}
+        </DashboardMain>
 
         <QuickChat />
       </div>
