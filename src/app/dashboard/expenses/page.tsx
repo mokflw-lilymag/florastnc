@@ -53,6 +53,8 @@ interface ReceiptItem {
   unit_price: number;
   amount: number;
   sub_category: string;
+  main_category: string;
+  mid_category: string;
 }
 
 interface ExpenseFormData {
@@ -123,7 +125,9 @@ export default function ExpensesPage() {
       unit: "ea",
       unit_price: 0,
       amount: 0,
-      sub_category: ""
+      sub_category: "",
+      main_category: "",
+      mid_category: ""
     };
     setFormData(prev => ({
       ...prev,
@@ -281,7 +285,24 @@ export default function ExpensesPage() {
 
   const openCreateDialog = () => {
     setEditingExpense(null);
-    setFormData({ ...defaultFormData, expense_date: format(new Date(), "yyyy-MM-dd") });
+    const initialItem: ReceiptItem = {
+      id: crypto.randomUUID(),
+      material_id: "none",
+      material_name: "",
+      description: "",
+      quantity: 1,
+      unit: "ea",
+      unit_price: 0,
+      amount: 0,
+      sub_category: "",
+      main_category: "",
+      mid_category: ""
+    };
+    setFormData({ 
+      ...defaultFormData, 
+      expense_date: format(new Date(), "yyyy-MM-dd"),
+      items: [initialItem] 
+    });
     setIsDialogOpen(true);
   };
 
@@ -539,7 +560,7 @@ export default function ExpensesPage() {
                     </Button>
                   </div>
 
-                  {formData.items.length > 0 ? (
+                  {(!editingExpense || formData.items.length > 0) && (
                     <div className="border rounded-xl bg-white shadow-sm overflow-hidden">
                       <div className="grid grid-cols-12 gap-2 px-3 py-2 bg-slate-50 border-b text-[10px] font-bold text-slate-500 uppercase">
                         <div className="col-span-5">품목명 / 상세내용</div>
@@ -560,61 +581,72 @@ export default function ExpensesPage() {
                                   render={
                                     <Button
                                       variant="ghost"
-                                      className="w-full justify-between h-9 text-xs font-normal border border-transparent hover:border-slate-200 px-2"
+                                      className="w-full justify-between h-auto py-1 text-xs font-normal border border-transparent hover:border-slate-200 px-2"
                                     />
                                   }
                                 >
-                                  <span className="truncate text-slate-700">
-                                    {item.material_id && item.material_id !== "none" 
-                                      ? item.material_name 
-                                      : item.description || "품목 선택 또는 직접 입력"}
-                                  </span>
+                                  <div className="flex flex-col text-left overflow-hidden">
+                                    <span className="truncate text-slate-700 font-medium leading-none mb-1">
+                                      {item.material_id && item.material_id !== "none" 
+                                        ? item.material_name 
+                                        : item.description || "품목 선택 또는 직접 입력"}
+                                    </span>
+                                    {item.main_category && (
+                                      <span className="text-[10px] text-slate-400 truncate leading-none">
+                                        {item.main_category} &gt; {item.mid_category}
+                                      </span>
+                                    )}
+                                  </div>
                                   <Search className="ml-1 h-3 w-3 shrink-0 opacity-30" />
                                 </PopoverTrigger>
                                 <PopoverContent className="w-[350px] p-0" align="start">
-                                  <Command>
-                                    <CommandInput placeholder="품목 검색..." onValueChange={(v) => updateReceiptItem(item.id, { description: v })} />
-                                    <CommandList className="max-h-[300px]">
-                                      <CommandEmpty>
-                                        <div className="p-4 text-center">
-                                          <p className="text-xs text-slate-500">검색 결과가 없습니다.</p>
-                                          <Button 
-                                            variant="link" 
-                                            size="sm" 
-                                            className="text-[10px]"
-                                            onClick={() => setActiveItemPopover(null)}
-                                          >
-                                            현재 입력값으로 적용
-                                          </Button>
-                                        </div>
-                                      </CommandEmpty>
-                                      <CommandGroup heading="등록된 품목">
-                                        {materials.map(m => (
-                                          <CommandItem
-                                            key={m.id}
-                                            value={`${m.name} ${m.main_category}`}
-                                            onSelect={() => {
-                                              updateReceiptItem(item.id, { 
-                                                material_id: m.id, 
-                                                material_name: m.name,
-                                                unit: m.unit || "ea",
-                                                unit_price: m.price || 0,
-                                                description: `${m.name} 사입`
-                                              });
-                                              setActiveItemPopover(null);
-                                            }}
-                                          >
-                                            <Check className={cn("mr-2 h-4 w-4 text-primary", item.material_id === m.id ? "opacity-100" : "opacity-0")} />
-                                            <div className="flex flex-col">
-                                              <span className="font-medium">{m.name}</span>
-                                              <span className="text-[10px] text-slate-400">{m.main_category} &gt; {m.mid_category}</span>
-                                            </div>
-                                            <div className="ml-auto text-[10px] font-bold text-slate-400">₩{(m.price || 0).toLocaleString()}</div>
-                                          </CommandItem>
-                                        ))}
-                                      </CommandGroup>
-                                    </CommandList>
-                                  </Command>
+                                  {activeItemPopover === item.id && (
+                                    <Command>
+                                      <CommandInput placeholder="품목 검색..." onValueChange={(v) => updateReceiptItem(item.id, { description: v })} />
+                                      <CommandList className="max-h-[300px]">
+                                        <CommandEmpty>
+                                          <div className="p-4 text-center">
+                                            <p className="text-xs text-slate-500">검색 결과가 없습니다.</p>
+                                            <Button 
+                                              variant="link" 
+                                              size="sm" 
+                                              className="text-[10px]"
+                                              onClick={() => setActiveItemPopover(null)}
+                                            >
+                                              현재 입력값으로 적용
+                                            </Button>
+                                          </div>
+                                        </CommandEmpty>
+                                        <CommandGroup heading="등록된 품목">
+                                          {materials.map(m => (
+                                            <CommandItem
+                                              key={m.id}
+                                              value={`${m.name} ${m.main_category}`}
+                                              onSelect={() => {
+                                                updateReceiptItem(item.id, { 
+                                                  material_id: m.id, 
+                                                  material_name: m.name,
+                                                  unit: m.unit || "ea",
+                                                  unit_price: m.price || 0,
+                                                  description: `${m.name} 사입`,
+                                                  main_category: m.main_category || "",
+                                                  mid_category: m.mid_category || ""
+                                                });
+                                                setActiveItemPopover(null);
+                                              }}
+                                            >
+                                              <Check className={cn("mr-2 h-4 w-4 text-primary", item.material_id === m.id ? "opacity-100" : "opacity-0")} />
+                                              <div className="flex flex-col">
+                                                <span className="font-medium">{m.name}</span>
+                                                <span className="text-[10px] text-slate-400">{m.main_category} &gt; {m.mid_category}</span>
+                                              </div>
+                                              <div className="ml-auto text-[10px] font-bold text-slate-400">₩{(m.price || 0).toLocaleString()}</div>
+                                            </CommandItem>
+                                          ))}
+                                        </CommandGroup>
+                                      </CommandList>
+                                    </Command>
+                                  )}
                                 </PopoverContent>
                               </Popover>
                             </div>
@@ -658,21 +690,12 @@ export default function ExpensesPage() {
                          </div>
                       </div>
                     </div>
-                  ) : (
-                    <div className="group cursor-pointer text-center py-10 border-2 border-dashed border-slate-200 rounded-2xl hover:border-indigo-200 hover:bg-indigo-50/20 transition-all duration-300"
-                         onClick={addReceiptItem}>
-                      <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-slate-100 group-hover:bg-indigo-100 transition-colors mb-2">
-                        <Plus className="w-5 h-5 text-slate-400 group-hover:text-indigo-500" />
-                      </div>
-                      <p className="text-xs text-slate-400 font-medium group-hover:text-indigo-600 transition-colors">클릭하여 영수증 내 품목을 추가하세요.</p>
-                      <p className="text-[10px] text-slate-300 mt-1">단일 항목으로 등록하려면 하단 내용을 입력하세요.</p>
-                    </div>
                   )}
                 </div>
               )}
 
               {/* Single / Description Section */}
-              {(formData.items.length === 0 || editingExpense) && (
+              {editingExpense && (
                 <div className="space-y-4 pt-2 animate-in fade-in slide-in-from-top-4 duration-500">
                   <div className="space-y-2">
                     <Label htmlFor="desc" className="text-sm font-bold text-slate-700">지출 내용</Label>
