@@ -12,6 +12,7 @@ export interface Supplier {
     email?: string;
     address?: string;
     business_number?: string;
+    supplier_type?: string;
     memo?: string;
     created_at: string;
     updated_at: string;

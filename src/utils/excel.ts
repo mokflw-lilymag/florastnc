@@ -4,7 +4,7 @@ import { saveAs } from 'file-saver';
 /**
  * Download a template for product/material registration.
  */
-export function downloadTemplate(type: 'product' | 'material') {
+export function downloadTemplate(type: 'product' | 'material' | 'supplier') {
   let headers: string[] = [];
   let sample: any[] = [];
   let filename = '';
@@ -13,6 +13,10 @@ export function downloadTemplate(type: 'product' | 'material') {
     headers = ['상품코드', '상품명', '대분류', '중분류', '판매가', '재고', '공급처', '상태(active/inactive)'];
     sample = [['P01', '축하화환 3단', '경조사화환', '축하화환', 100000, 10, '자체제작', 'active']];
     filename = '상품등록_양식.xlsx';
+  } else if (type === 'supplier') {
+    headers = ['거래처명', '유형', '연락처', '담당자', '이메일', '주소', '메모'];
+    sample = [['(주)꽃도매상사', '생화', '02-123-4567', '김담당', 'contact@flower.com', '서울 서초구 양재동', '오전 배송 전용']];
+    filename = '거래처등록_양식.xlsx';
   } else {
     // Matches the user's requested order for materials
     headers = ['번호', '자재ID', '자재명', '대분류', '중분류', '단위', '규격', '가격', '색상', '재고', '공급업체', '메모'];
@@ -32,7 +36,7 @@ export function downloadTemplate(type: 'product' | 'material') {
 /**
  * Export actual data to Excel.
  */
-export function exportDataToExcel(type: 'product' | 'material', list: any[]) {
+export function exportDataToExcel(type: 'product' | 'material' | 'supplier', list: any[]) {
   let headers: string[] = [];
   let dataRows: any[] = [];
   let filename = '';
@@ -50,6 +54,17 @@ export function exportDataToExcel(type: 'product' | 'material', list: any[]) {
       p.status || ''
     ]);
     filename = `상품목록_${new Date().toISOString().split('T')[0]}.xlsx`;
+  } else if (type === 'supplier') {
+    headers = ['업체명', '연락처', '이메일', '사업자번호', '주소', '메모'];
+    dataRows = list.map((s) => [
+      s.name || '',
+      s.contact || '',
+      s.email || '',
+      s.business_number || '',
+      s.address || '',
+      s.memo || ''
+    ]);
+    filename = `거래처목록_${new Date().toISOString().split('T')[0]}.xlsx`;
   } else {
     headers = ['번호', '자재ID', '자재명', '대분류', '중분류', '단위', '규격', '가격', '색상', '재고', '공급업체', '메모'];
     dataRows = list.map((m, idx) => [
