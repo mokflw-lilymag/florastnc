@@ -20,6 +20,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 
 import { useOrders } from "@/hooks/use-orders";
+import { useExpenses } from "@/hooks/use-expenses";
+import { useSettings } from "@/hooks/use-settings";
 import { Order, OrderItem } from "@/types/order";
 import { parseDate } from "@/lib/date-utils";
 
@@ -31,6 +33,8 @@ interface OrderEditDialogProps {
 
 export function OrderEditDialog({ isOpen, onOpenChange, order }: OrderEditDialogProps) {
   const { updateOrder } = useOrders();
+  const { settings } = useSettings();
+  const { updateExpenseByOrderId, addExpense, deleteExpenseByOrderId } = useExpenses();
   const [isLoading, setIsLoading] = useState(false);
   
   const [formData, setFormData] = useState({
@@ -58,7 +62,11 @@ export function OrderEditDialog({ isOpen, onOpenChange, order }: OrderEditDialog
       method: 'card' as Order['payment']['method'],
       status: 'pending' as Order['payment']['status']
     },
-    memo: ''
+    memo: '',
+    driverAffiliation: '',
+    actual_delivery_cost: 0,
+    actual_delivery_payment_method: 'card' as Order['actual_delivery_payment_method'],
+    customer_paid_delivery_fee: 0
   });
 
   useEffect(() => {
@@ -88,7 +96,11 @@ export function OrderEditDialog({ isOpen, onOpenChange, order }: OrderEditDialog
           method: (order.payment?.method || 'card') as Order['payment']['method'],
           status: (order.payment?.status || 'pending') as Order['payment']['status']
         },
-        memo: order.memo || ''
+        memo: order.memo || '',
+        driverAffiliation: order.delivery_info?.driverAffiliation || '',
+        actual_delivery_cost: order.actual_delivery_cost || 0,
+        actual_delivery_payment_method: order.actual_delivery_payment_method || 'card',
+        customer_paid_delivery_fee: order.summary?.deliveryFee || 0
       });
     }
   }, [order, isOpen]);
@@ -160,8 +172,11 @@ export function OrderEditDialog({ isOpen, onOpenChange, order }: OrderEditDialog
           recipientName: formData.recipient.name,
           recipientContact: formData.recipient.contact,
           address: formData.address,
-          date: formData.order_date // Should ideally have its own field
+          date: formData.order_date, // Should ideally have its own field
+          driverAffiliation: formData.driverAffiliation
         };
+        updates.actual_delivery_cost = formData.actual_delivery_cost;
+        updates.actual_delivery_payment_method = formData.actual_delivery_payment_method;
         updates.pickup_info = null;
       } else {
         updates.pickup_info = {
@@ -171,9 +186,32 @@ export function OrderEditDialog({ isOpen, onOpenChange, order }: OrderEditDialog
           date: formData.order_date
         };
         updates.delivery_info = null;
+        updates.actual_delivery_cost = 0;
       }
 
       await updateOrder(order.id, updates);
+      
+      // Handle expense synchronization for delivery costs
+      if (formData.receipt_type === 'delivery_reservation' && formData.actual_delivery_cost > 0) {
+        const expenseData = {
+          category: "transportation",
+          sub_category: "delivery_fee",
+          amount: formData.actual_delivery_cost,
+          description: `[배송비] ${order.order_number} (${formData.driverAffiliation || '자체배송'})`,
+          expense_date: formData.order_date ? new Date(formData.order_date).toISOString() : new Date().toISOString(),
+          payment_method: formData.actual_delivery_payment_method || "card",
+        };
+        const updateSuccess = await updateExpenseByOrderId(order.id, expenseData, "delivery_fee");
+        if (!updateSuccess) {
+          await addExpense({
+            ...expenseData,
+            related_order_id: order.id
+          });
+        }
+      } else if (order.actual_delivery_cost && order.actual_delivery_cost > 0) {
+        await deleteExpenseByOrderId(order.id, "delivery_fee");
+      }
+
       toast.success("주문이 수정되었습니다.");
       onOpenChange(false);
     } catch (e) {
@@ -241,10 +279,71 @@ export function OrderEditDialog({ isOpen, onOpenChange, order }: OrderEditDialog
                 </div>
               </div>
               {formData.receipt_type === 'delivery_reservation' && (
-                <div className="space-y-2">
-                  <Label className="text-slate-700">배송 주소</Label>
-                  <Textarea value={formData.address} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleInputChange('address', '', e.target.value)} />
-                </div>
+                <>
+                  <div className="space-y-2">
+                    <Label className="text-slate-700">배송 주소</Label>
+                    <Textarea value={formData.address} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleInputChange('address', '', e.target.value)} />
+                  </div>
+                    <div className="space-y-2">
+                      <Label className="text-slate-700">고객 결제 배송비</Label>
+                      <div className="h-10 flex items-center px-3 bg-slate-50 border border-slate-200 rounded-md text-slate-600 font-medium">
+                        ₩{(formData.customer_paid_delivery_fee || 0).toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-slate-700">배송업체</Label>
+                      <Select 
+                        value={formData.driverAffiliation || ""} 
+                        onValueChange={(val) => handleInputChange('driverAffiliation', '', val)}
+                      >
+                        <SelectTrigger><SelectValue placeholder="배송업체 선택" /></SelectTrigger>
+                        <SelectContent>
+                          {(settings?.deliveryCarriers || []).map((carrier) => (
+                            <SelectItem key={carrier} value={carrier}>{carrier}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-slate-700 font-bold text-indigo-600 flex items-center gap-1">
+                        실제 배송비 지출
+                        {formData.customer_paid_delivery_fee > 0 && formData.actual_delivery_cost > 0 && (
+                          <Badge variant="outline" className={`ml-2 text-[10px] ${formData.customer_paid_delivery_fee - formData.actual_delivery_cost >= 0 ? 'text-emerald-600 border-emerald-200 bg-emerald-50' : 'text-rose-600 border-rose-200 bg-rose-50'}`}>
+                            손익: ₩{(formData.customer_paid_delivery_fee - formData.actual_delivery_cost).toLocaleString()}
+                          </Badge>
+                        )}
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        <div className="relative flex-1">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">₩</span>
+                          <Input 
+                            type="number"
+                            className="pl-8"
+                            value={formData.actual_delivery_cost === 0 ? "" : formData.actual_delivery_cost} 
+                            onChange={(e) => handleInputChange('actual_delivery_cost', '', e.target.value ? parseInt(e.target.value) : 0)} 
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          variant={formData.actual_delivery_payment_method === 'card' ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => handleInputChange('actual_delivery_payment_method', '', 'card')}
+                        >
+                          카드
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={formData.actual_delivery_payment_method === 'cash' ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => handleInputChange('actual_delivery_payment_method', '', 'cash')}
+                        >
+                          현금
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>

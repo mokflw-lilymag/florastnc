@@ -19,6 +19,9 @@ export interface Expense {
   material_id?: string;
   quantity?: number;
   unit?: string;
+  receipt_url?: string;
+  receipt_file_id?: string;
+  storage_provider?: string;
   created_at: string;
 }
 
@@ -77,6 +80,26 @@ export function useExpenses() {
     }
   };
 
+  const addExpenses = async (items: Omit<Expense, 'id' | 'tenant_id' | 'created_at'>[]) => {
+    if (!tenantId || items.length === 0) return null;
+
+    try {
+      const payloads = items.map(item => ({ ...item, tenant_id: tenantId }));
+      const { data: inserted, error } = await supabase
+        .from('expenses')
+        .insert(payloads)
+        .select();
+
+      if (error) throw error;
+      setExpenses(prev => [...(inserted || []), ...prev]);
+      toast.success(`${inserted?.length}건의 지출이 등록되었습니다.`);
+      return inserted;
+    } catch (e) {
+      toast.error('지출 등록에 실패했습니다.');
+      return null;
+    }
+  };
+
   const deleteExpense = async (id: string) => {
     try {
       const { error } = await supabase
@@ -91,6 +114,28 @@ export function useExpenses() {
     } catch (e) {
       toast.error('지출 삭제에 실패했습니다.');
       return false;
+    }
+  };
+
+  const updateExpense = async (id: string, data: Partial<Omit<Expense, 'id' | 'tenant_id' | 'created_at'>>) => {
+    if (!tenantId) return null;
+
+    try {
+      const { data: updated, error } = await supabase
+        .from('expenses')
+        .update({ ...data, tenant_id: tenantId })
+        .eq('id', id)
+        .eq('tenant_id', tenantId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      setExpenses(prev => prev.map(e => e.id === id ? updated : e));
+      toast.success('지출이 수정되었습니다.');
+      return updated;
+    } catch (e) {
+      toast.error('지출 수정에 실패했습니다.');
+      return null;
     }
   };
 
@@ -159,6 +204,8 @@ export function useExpenses() {
     loading: loading || authLoading,
     fetchExpenses,
     addExpense,
+    addExpenses,
+    updateExpense,
     deleteExpense,
     updateExpenseByOrderId,
     deleteExpenseByOrderId

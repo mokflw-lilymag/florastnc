@@ -65,7 +65,7 @@ export default function SettingsPage() {
   
   // Settings & Fees Hooks
   const { settings, saveSettings, loading: settingsLoading } = useSettings();
-  const { fees: regionFees, addFee, deleteFee, loading: feesLoading } = useDeliveryFees();
+  const { fees: regionFees, addFee, deleteFee, updateFee, importFees, loading: feesLoading } = useDeliveryFees();
 
   // Local State for Management
   const [storeName, setStoreName] = useState("");
@@ -468,13 +468,56 @@ export default function SettingsPage() {
             <CardHeader>
               <div className="flex items-center gap-2 text-violet-600 mb-1">
                 <Coins className="h-5 w-5" />
-                <span className="text-xs font-bold uppercase tracking-wider">Loyalty Policy</span>
+                <span className="text-xs font-bold uppercase tracking-wider">Loyalty & Revenue Policy</span>
               </div>
-              <CardTitle>포인트 적립 및 사용 설정</CardTitle>
-              <CardDescription>단골 고객 관리를 위한 포인트 정책을 설정합니다.</CardDescription>
+              <CardTitle>포인트 및 매출 인식 설정</CardTitle>
+              <CardDescription>포인트 정책과 매출을 집계하는 기준을 설정합니다.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-4 p-5 rounded-2xl border-2 border-slate-100 bg-slate-50/10 mb-2">
+                 <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                       <Label className="text-sm font-bold flex items-center gap-2">
+                         <RefreshCw className="h-4 w-4 text-emerald-600" /> 매출 집계 기준 (Revenue Recognition)
+                       </Label>
+                       <p className="text-[11px] text-slate-500">대시보드 차트와 보고서에서 매출로 잡는 기준을 정합니다.</p>
+                    </div>
+                 </div>
+                 <div className="grid grid-cols-2 gap-3 pt-2">
+                    <Button 
+                      variant={settings.revenueRecognitionBasis === 'order_date' ? 'default' : 'outline'}
+                      className={cn(
+                        "h-20 flex-col gap-2 rounded-2xl border-2 transition-all",
+                        settings.revenueRecognitionBasis === 'order_date' ? "bg-slate-900 text-white" : "border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-400"
+                      )}
+                      onClick={() => saveSettings({...settings, revenueRecognitionBasis: 'order_date'})}
+                    >
+                      <Building2 className="h-5 w-5" />
+                      <div className="flex flex-col items-center">
+                        <span className="text-sm font-bold">당일 주문일 기준</span>
+                        <span className="text-[10px] opacity-70">주문이 생성되면 매출로 인정</span>
+                      </div>
+                    </Button>
+                    <Button 
+                      variant={settings.revenueRecognitionBasis === 'payment_completed' ? 'default' : 'outline'}
+                      className={cn(
+                        "h-20 flex-col gap-2 rounded-2xl border-2 transition-all",
+                        settings.revenueRecognitionBasis === 'payment_completed' ? "bg-slate-900 text-white" : "border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-400"
+                      )}
+                      onClick={() => saveSettings({...settings, revenueRecognitionBasis: 'payment_completed'})}
+                    >
+                      <CreditCard className="h-5 w-5" />
+                      <div className="flex flex-col items-center">
+                        <span className="text-sm font-bold">결제 완료 기준</span>
+                        <span className="text-[10px] opacity-70">결제 완료된 주문만 매출로 인정</span>
+                      </div>
+                    </Button>
+                 </div>
+              </div>
+
+              <Separator />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-2">
                 <div className="space-y-3 p-4 rounded-xl bg-violet-50/50 border border-violet-100">
                   <Label className="text-violet-900">기본 포인트 적립률 (%)</Label>
                   <div className="flex items-center gap-3">
@@ -582,63 +625,117 @@ export default function SettingsPage() {
 
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                   <Label className="text-sm font-bold">지역별 추가 배송비</Label>
-                   <span className="text-xs text-slate-400">구역별로 다른 비용이 발생할 시 설정하세요.</span>
+                   <div className="space-y-1">
+                      <Label className="text-sm font-bold">지역별 추가 배송비</Label>
+                      <p className="text-xs text-slate-400">구역별로 다른 비용이 발생할 시 설정하세요.</p>
+                   </div>
+                   {regionFees.length === 0 && settings.districtDeliveryFees && settings.districtDeliveryFees.length > 0 && (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="text-xs border-indigo-200 text-indigo-600 hover:bg-indigo-50"
+                        onClick={() => importFees(settings.districtDeliveryFees)}
+                      >
+                        광화문점 기준 배송비 자동 적용하기
+                      </Button>
+                   )}
                 </div>
-                <div className="flex items-end gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-200">
-                  <div className="grid gap-1.5 flex-1">
-                    <Label className="text-xs">지역명 (예: 강남구, 서초동)</Label>
-                    <Input 
-                      placeholder="강남구" 
-                      value={newRegion} 
-                      onChange={e => setNewRegion(e.target.value)}
-                    />
+                <div className="border rounded-xl text-sm bg-white shadow-sm overflow-hidden flex flex-col">
+                  {/* 통합된 입력/헤더 영역 */}
+                  <div className="bg-slate-50 border-b p-4 space-y-3 sticky top-0 z-20">
+                    <div className="flex items-end gap-3">
+                      <div className="grid gap-1.5 flex-1">
+                        <Label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">새 지역 등록</Label>
+                        <Input 
+                          placeholder="지역명 (예: 강남구, 서초동)" 
+                          value={newRegion} 
+                          onChange={e => setNewRegion(e.target.value)}
+                          className="h-9 bg-white"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && newRegion && newFee) {
+                              addFee(newRegion, parseInt(newFee));
+                              setNewRegion("");
+                              setNewFee("");
+                            }
+                          }}
+                        />
+                      </div>
+                      <div className="grid gap-1.5 w-32">
+                        <Label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">배송비 (₩)</Label>
+                        <Input 
+                          type="number" 
+                          placeholder="10000" 
+                          value={newFee}
+                          onChange={e => setNewFee(e.target.value)}
+                          className="h-9 bg-white"
+                        />
+                      </div>
+                      <Button 
+                        size="sm"
+                        onClick={() => {
+                          if (!newRegion || !newFee) return;
+                          addFee(newRegion, parseInt(newFee));
+                          setNewRegion("");
+                          setNewFee("");
+                        }} 
+                        className="h-9 bg-slate-900 text-slate-50 px-4"
+                      >
+                        <Plus className="h-4 w-4 mr-1" /> 추가
+                      </Button>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2">
+                       <div className="text-[11px] text-slate-400 font-medium">
+                         등록된 지역: <span className="text-slate-900 font-bold">{regionFees.length}</span>개
+                       </div>
+                       <div className="flex items-center gap-4 text-slate-500 font-semibold flex-1 justify-end">
+                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px 80px', width: '100%', maxWidth: '400px' }}>
+                           <div className="px-4">지역/구역</div>
+                           <div className="text-right">배송비</div>
+                           <div className="text-center">관리</div>
+                         </div>
+                       </div>
+                    </div>
                   </div>
-                  <div className="grid gap-1.5 w-32">
-                    <Label className="text-xs">배송비 (₩)</Label>
-                    <Input 
-                      type="number" 
-                      placeholder="10000" 
-                      value={newFee}
-                      onChange={e => setNewFee(e.target.value)}
-                    />
+                  <div className="max-h-[500px] overflow-y-auto no-scrollbar">
+                    <table className="w-full text-left border-collapse table-fixed">
+                      <tbody className="divide-y divide-slate-100">
+                        {regionFees.length === 0 ? (
+                          <tr>
+                            <td colSpan={3} className="px-4 py-20 text-center text-slate-400 bg-slate-50/20">
+                              <MapPin className="h-10 w-10 mx-auto mb-3 opacity-20" />
+                              <p>등록된 지역별 배송비가 없습니다.</p>
+                            </td>
+                          </tr>
+                        ) : regionFees.map(fee => (
+                          <tr key={fee.id} className="hover:bg-blue-50/30 transition-colors group" style={{ display: 'grid', gridTemplateColumns: '1fr 120px 80px' }}>
+                            <td className="px-4 py-2 flex items-center font-medium text-slate-600 truncate">{fee.region_name}</td>
+                            <td className="px-4 py-2 text-right">
+                              <div className="relative inline-block w-full">
+                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs">₩</span>
+                                <Input 
+                                  type="number" 
+                                  defaultValue={fee.fee}
+                                  className="h-8 py-1 pl-6 pr-2 text-right font-semibold border-transparent group-hover:border-slate-200 focus:border-indigo-500 bg-transparent group-hover:bg-white transition-all tabular-nums"
+                                  onBlur={(e) => {
+                                     const newVal = parseInt(e.target.value);
+                                     if (newVal !== fee.fee) {
+                                        updateFee(fee.id, newVal);
+                                     }
+                                  }}
+                                />
+                              </div>
+                            </td>
+                            <td className="px-4 py-2 flex items-center justify-center">
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-300 hover:text-rose-500 hover:bg-rose-50 opacity-40 group-hover:opacity-100 transition-opacity" onClick={() => deleteFee(fee.id)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                  <Button onClick={() => {
-                    if (!newRegion || !newFee) return;
-                    addFee(newRegion, parseInt(newFee));
-                    setNewRegion("");
-                    setNewFee("");
-                  }} className="bg-slate-900 text-slate-50">
-                    <Plus className="h-4 w-4 mr-1" /> 추가
-                  </Button>
-                </div>
-                <div className="border rounded-xl overflow-hidden text-sm bg-white">
-                  <table className="w-full text-left">
-                    <thead className="bg-slate-50 border-b">
-                      <tr>
-                        <th className="px-4 py-2.5 font-medium">지역/구역</th>
-                        <th className="px-4 py-2.5 font-medium text-right">배송비</th>
-                        <th className="px-4 py-2.5 text-center w-20">관리</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {regionFees.length === 0 ? (
-                        <tr>
-                          <td colSpan={3} className="px-4 py-10 text-center text-slate-400">등록된 지역별 배송비가 없습니다.</td>
-                        </tr>
-                      ) : regionFees.map(fee => (
-                        <tr key={fee.id} className="hover:bg-slate-50/50 transition-colors">
-                          <td className="px-4 py-4 font-medium">{fee.region_name}</td>
-                          <td className="px-4 py-4 text-right tabular-nums">₩{fee.fee.toLocaleString()}</td>
-                          <td className="px-4 py-4 text-center">
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-300 hover:text-rose-500 hover:bg-rose-50" onClick={() => deleteFee(fee.id)}>
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
                 </div>
               </div>
             </CardContent>
@@ -657,16 +754,14 @@ export default function SettingsPage() {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-4">
-                   <Label className="text-sm font-bold">저장소 방식 선택</Label>
-                   <div className="grid grid-cols-3 gap-3">
-                      <Button 
-                        variant={settings.photoStorageType === 'supabase' ? 'default' : 'outline'}
-                        className="h-20 flex-col gap-2 rounded-2xl"
-                        onClick={() => saveSettings({...settings, photoStorageType: 'supabase'})}
-                      >
-                        <ShieldCheck className="h-5 w-5" />
-                        <span className="text-xs">기본 저장소</span>
-                      </Button>
+                   <div className="flex items-center justify-between">
+                     <Label className="text-sm font-bold flex items-center gap-2">
+                       <FileImage className="h-5 w-5 text-emerald-600" /> 사진 저장소 설정 (Google Drive 권장)
+                     </Label>
+                     <Badge variant="outline" className="text-emerald-600 bg-emerald-50 border-emerald-200">연동 권장</Badge>
+                   </div>
+                   
+                   <div className="grid grid-cols-2 gap-3">
                       <Button 
                         variant={settings.photoStorageType === 'google_drive' ? 'default' : 'outline'}
                         className="h-20 flex-col gap-2 rounded-2xl border-emerald-200 hover:bg-emerald-50"
@@ -686,22 +781,22 @@ export default function SettingsPage() {
                    </div>
                 </div>
 
-                {settings.photoStorageType === 'google_drive' && (
-                  <div className="p-4 bg-white rounded-xl border border-emerald-100 space-y-4">
-                    <div className="space-y-2">
-                       <Label className="text-xs font-bold text-slate-500 uppercase">Google Drive Folder ID</Label>
+                <div className="p-5 bg-emerald-50/50 rounded-2xl border border-emerald-100 space-y-4">
+                     <div className="space-y-2">
+                       <Label className="text-[10px] font-bold text-slate-500 uppercase px-1">Google Drive Folder ID</Label>
                        <Input 
-                         placeholder="예: 1XYZ... (전용 폴더 ID)" 
+                         placeholder="구글 드라이브 폴더 ID를 입력하세요" 
                          value={settings.googleDriveFolderId}
                          onChange={e => saveSettings({...settings, googleDriveFolderId: e.target.value})}
+                         className="h-9 mt-1 bg-white"
                        />
-                       <p className="text-[10px] text-slate-400 italic">연결 버튼을 클릭하여 본인의 구글 드라이브에 전용 폴더를 자동 생성할 수 있습니다.</p>
-                       <Button size="sm" variant="outline" className="w-full text-xs gap-2">
-                          <RefreshCw className="h-3 w-3" /> 드라이브 권한 연동하기
-                       </Button>
-                    </div>
+                       <p className="text-[10px] text-slate-400 px-1">폴더 공유 → '링크가 있는 모든 사용자'로 설정 후 주소창의 폴더 ID를 입력하세요.</p>
+                     </div>
+
+                     <Button size="sm" variant="outline" className="w-full text-[11px] h-8 gap-2 bg-white border-emerald-200 mt-2 text-emerald-600">
+                        <RefreshCw className="h-3 w-3" /> 연동 상태 체크하기
+                     </Button>
                   </div>
-                )}
 
                 <Separator />
 
@@ -777,33 +872,92 @@ export default function SettingsPage() {
 
                 {settings.useKakaoTalk && (
                   <div className="space-y-4 animate-in fade-in slide-in-from-right-4">
+                    <div className="p-4 bg-amber-50 rounded-xl border border-amber-100 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-amber-700 font-bold text-xs uppercase tracking-wider">
+                          <Info className="h-3.5 w-3.5" /> 카카오 알림톡 연동 매뉴얼
+                        </div>
+                        <Badge variant="ghost" className="text-[10px] bg-white text-amber-600 border-amber-100">Solapi 공식 연동</Badge>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-white p-4 rounded-xl border border-amber-100 space-y-4 shadow-sm">
+                          <div className="space-y-1.5 border-b border-slate-50 pb-2">
+                            <p className="text-[11px] font-bold text-slate-700 flex items-center gap-2">
+                              <span className="w-4 h-4 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-[9px]">1</span>
+                              솔라피(Solapi) 가입 및 인증
+                            </p>
+                            <p className="text-[10px] text-slate-500 leading-relaxed px-1 pl-6">
+                              <b>solapi.com</b> 가입 후 카카오 채널을 연동하고 API Key/Secret을 생성하세요.
+                            </p>
+                          </div>
+
+                          <div className="space-y-1.5 border-b border-slate-50 pb-2">
+                            <p className="text-[11px] font-bold text-slate-700 flex items-center gap-2">
+                              <span className="w-4 h-4 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-[9px]">2</span>
+                              알림톡 템플릿 등록
+                            </p>
+                            <p className="text-[10px] text-slate-500 leading-relaxed px-1 pl-6">
+                              솔라피에서 템플릿을 등록하세요. <code className="text-[9px] text-amber-600 bg-amber-50 px-1">#{"{주문자명}"}</code> 변수 사용 시 자동 치환됩니다.
+                            </p>
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <p className="text-[11px] font-bold text-slate-700 flex items-center gap-2">
+                              <span className="w-4 h-4 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-[9px]">3</span>
+                              앱에 정보 입력
+                            </p>
+                            <p className="text-[10px] text-slate-500 leading-relaxed px-1 pl-6">
+                              API Key 칸에 <b>Key:Secret</b> 형식으로, 채널 ID에 <b>@아이디</b>를 입력하세요.
+                            </p>
+                          </div>
+                          
+                          <div className="mt-2 p-2 bg-slate-50 rounded-lg text-[9px] text-slate-400 italic">
+                            💡 Tip: 솔라피는 알림톡 1건당 약 8원의 비용이 발생하며, 충전 후 사용 가능합니다.
+                          </div>
+                        </div>
+                        
+                        <div className="flex flex-col items-center justify-center bg-white/50 rounded-xl border border-dashed border-amber-200 p-2">
+                          <img 
+                            src="https://rzyppdqawepbsjmtjvuo.supabase.co/storage/v1/object/public/assets/guides/kakao_solapi_guide.png" 
+                            alt="카카오 알림톡 연동 가이드" 
+                            className="max-h-[160px] w-auto drop-shadow-md rounded-lg"
+                          />
+                          <p className="text-[9px] text-slate-400 mt-2">플로라싱크 x 솔라피 연동 시스템</p>
+                        </div>
+                      </div>
+                    </div>
+
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-2">
-                        <Label className="text-xs font-bold text-slate-500 uppercase">API Key (Solapi/BizMsg)</Label>
+                        <Label className="text-[10px] font-bold text-slate-500 uppercase px-1">API Key (Key:Secret)</Label>
                         <Input 
                           type="password"
                           value={settings.kakaoApiKey}
                           onChange={e => saveSettings({...settings, kakaoApiKey: e.target.value})}
+                          placeholder="Key:Secret 형식으로 입력"
+                          className="h-9 bg-white"
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-xs font-bold text-slate-500 uppercase">발신 번호/ID</Label>
+                        <Label className="text-[10px] font-bold text-slate-500 uppercase px-1">발신 채널 ID (@아이디)</Label>
                         <Input 
-                          placeholder="010-0000-0000"
+                          placeholder="@플로라싱크"
                           value={settings.kakaoSenderId}
                           onChange={e => saveSettings({...settings, kakaoSenderId: e.target.value})}
+                          className="h-9 bg-white"
                         />
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-xs font-bold text-slate-500 uppercase">기본 전송 메시지 템플릿</Label>
-                      <textarea 
-                        className="w-full min-h-[120px] rounded-xl border-slate-200 text-sm p-3 focus:ring-2 focus:ring-amber-200 focus:border-amber-400 outline-none"
+                      <Label className="text-[10px] font-bold text-slate-500 uppercase px-1">알림톡 템플릿 코드</Label>
+                      <Input 
+                        placeholder="솔라피에서 발급받은 템플릿 코드"
                         value={settings.kakaoDefaultMessage}
                         onChange={e => saveSettings({...settings, kakaoDefaultMessage: e.target.value})}
-                        placeholder="{고객명}님, {업체명}에서 배송하였습니다."
+                        className="h-9 bg-white"
                       />
-                      <p className="text-[10px] text-slate-400">`{`{고객명}, {상태}, {주문번호}`}` 등의 변수를 사용할 수 있습니다.</p>
+                      <p className="text-[10px] text-slate-400 italic px-1">등록된 템플릿 코드를 입력해야 자동발송이 활성화됩니다.</p>
                     </div>
                   </div>
                 )}
@@ -813,7 +967,7 @@ export default function SettingsPage() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <Label className="text-sm font-bold flex items-center gap-2">
-                      <FileSpreadsheet className="h-4 w-4 text-emerald-600" /> 구글 시트 연동 (Google Sheets)
+                      <FileSpreadsheet className="h-4 w-4 text-emerald-600" /> 구글 시트 내보내기 (Google Sheets)
                     </Label>
                     <Switch 
                       checked={settings.useGoogleSheets}
@@ -821,23 +975,46 @@ export default function SettingsPage() {
                     />
                   </div>
                   {settings.useGoogleSheets && (
-                    <div className="space-y-3 p-4 bg-emerald-50 rounded-xl border border-emerald-100">
-                      <div className="space-y-2">
-                        <Label className="text-xs font-bold text-emerald-700">Spreadsheet ID</Label>
-                        <Input 
-                          value={settings.googleSheetId}
-                          onChange={e => saveSettings({...settings, googleSheetId: e.target.value})}
-                          className="bg-white"
-                        />
+                    <div className="space-y-4 p-4 bg-emerald-50 rounded-xl border border-emerald-100 animate-in fade-in slide-in-from-right-4">
+                      <div className="bg-white p-3 rounded-lg border border-emerald-100 space-y-2 shadow-sm">
+                        <p className="text-[11px] font-bold text-emerald-700 flex items-center gap-2">
+                          <Info className="h-3.5 w-3.5" /> 사용 방법
+                        </p>
+                        <p className="text-[10px] text-slate-500 leading-relaxed px-1">
+                          1. Google Sheets에서 빈 스프레드시트를 생성하세요.<br/>
+                          2. 주소창의 <code className="text-[9px] bg-emerald-50 text-emerald-600 px-1">spreadsheets/d/<b>ID부분</b>/edit</code> 에서 ID를 복사하세요.<br/>
+                          3. 아래 칸에 ID를 입력하면, 내보내기 시 <b>새로운 시트 탭</b>이 자동 생성됩니다.<br/>
+                          4. 시트 탭 이름은 <code className="text-[9px] bg-emerald-50 text-emerald-600 px-1">주문_2026-03-01_03-25</code> 형태로 자동 설정됩니다.
+                        </p>
                       </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs font-bold text-emerald-700">시트 이름 (Tab Name)</Label>
-                        <Input 
-                          value={settings.googleSheetName}
-                          onChange={e => saveSettings({...settings, googleSheetName: e.target.value})}
-                          className="bg-white"
-                        />
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="space-y-2 p-3 bg-white rounded-lg border border-emerald-100">
+                          <Label className="text-[10px] font-bold text-emerald-700 uppercase flex items-center gap-1.5">
+                            <FileSpreadsheet className="h-3 w-3" /> 주문 내역 Spreadsheet ID
+                          </Label>
+                          <Input
+                            placeholder="주문 내역을 내보낼 스프레드시트 ID"
+                            value={settings.googleSheetOrdersId}
+                            onChange={e => saveSettings({...settings, googleSheetOrdersId: e.target.value})}
+                            className="h-8 text-xs bg-white"
+                          />
+                        </div>
+                        <div className="space-y-2 p-3 bg-white rounded-lg border border-emerald-100">
+                          <Label className="text-[10px] font-bold text-emerald-700 uppercase flex items-center gap-1.5">
+                            <Coins className="h-3 w-3" /> 지출 관리 Spreadsheet ID
+                          </Label>
+                          <Input
+                            placeholder="지출 내역을 내보낼 스프레드시트 ID"
+                            value={settings.googleSheetExpensesId}
+                            onChange={e => saveSettings({...settings, googleSheetExpensesId: e.target.value})}
+                            className="h-8 text-xs bg-white"
+                          />
+                        </div>
                       </div>
+                      <p className="text-[9px] text-slate-400 italic px-1">
+                        💡 주문/지출 관리 페이지에서 기간을 선택 후 &quot;구글 시트로 내보내기&quot; 버튼을 사용하세요.
+                      </p>
                     </div>
                   )}
                 </div>

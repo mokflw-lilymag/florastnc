@@ -224,7 +224,7 @@ export function CustomerDetailDialog({
                                                </div>
                                             )}
                                          </div>
-                                         <Button variant="ghost" size="sm" className="h-7 text-[10px] gap-1 opacity-0 group-hover:opacity-100 transition-all text-blue-600 font-black">
+                                         <Button variant="ghost" size="sm" className="h-7 text-[10px] gap-1 opacity-40 group-hover:opacity-100 transition-all text-blue-600 font-black">
                                             주문상세 <ChevronRight className="h-3 w-3" />
                                          </Button>
                                       </div>

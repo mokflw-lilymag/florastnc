@@ -20,7 +20,9 @@ import {
   Upload,
   Settings2,
   RefreshCw,
-  Building2
+  Building2,
+  Check,
+  ChevronsUpDown
 } from 'lucide-react';
 import { useMaterials, Material } from '@/hooks/use-materials';
 import { useSuppliers } from '@/hooks/use-suppliers';
@@ -29,6 +31,9 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { downloadTemplate, parseExcel, exportDataToExcel } from "@/utils/excel";
 import { useSettings } from "@/hooks/use-settings";
@@ -42,7 +47,10 @@ export default function InventoryPage() {
   const loading = materialsLoading || settingsLoading || suppliersLoading;
   
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedMidCategory, setSelectedMidCategory] = useState("all");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isSupplierOpen, setIsSupplierOpen] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
   const [isImporting, setIsImporting] = useState(false);
 
@@ -145,16 +153,43 @@ export default function InventoryPage() {
     });
   };
 
-  const filteredMaterials = useMemo(() => {
-    return materials.filter(m => 
-      m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      m.main_category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (m.mid_category && m.mid_category.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      m.supplier?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (m.supplier_id && suppliers.find(s => s.id === m.supplier_id)?.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      m.id.toLowerCase().includes(searchTerm.toLowerCase())
+  const midCategoriesForSelected = useMemo(() => {
+    if (selectedCategory === "all") return [];
+    const uniqueMids = new Set(
+      materials
+        .filter(m => m.main_category === selectedCategory)
+        .map(m => m.mid_category)
+        .filter(Boolean)
     );
-  }, [materials, searchTerm, suppliers]);
+    return Array.from(uniqueMids).sort() as string[];
+  }, [materials, selectedCategory]);
+
+  const filteredMaterials = useMemo(() => {
+    return materials.filter(m => {
+      // Main category filter
+      if (selectedCategory !== "all" && m.main_category !== selectedCategory) {
+        return false;
+      }
+
+      // Mid category filter
+      if (selectedMidCategory !== "all" && m.mid_category !== selectedMidCategory) {
+        return false;
+      }
+
+      // Search term filter
+      if (!searchTerm) return true;
+      
+      const searchLower = searchTerm.toLowerCase();
+      return (
+        m.name.toLowerCase().includes(searchLower) ||
+        m.main_category.toLowerCase().includes(searchLower) ||
+        (m.mid_category && m.mid_category.toLowerCase().includes(searchLower)) ||
+        m.supplier?.toLowerCase().includes(searchLower) ||
+        (m.supplier_id && suppliers.find(s => s.id === m.supplier_id)?.name.toLowerCase().includes(searchLower)) ||
+        m.id.toLowerCase().includes(searchLower)
+      );
+    });
+  }, [materials, searchTerm, selectedCategory, selectedMidCategory, suppliers]);
 
   const openEdit = (m: Material) => {
     setEditingMaterial(m);
@@ -297,12 +332,49 @@ export default function InventoryPage() {
             <CardTitle className="text-xl font-bold text-gray-800">자재 현황</CardTitle>
             <CardDescription>재고 관리 항목을 효율적으로 관리하세요</CardDescription>
           </div>
-          <div className="flex items-center gap-2 w-full max-w-sm">
-            <div className="relative w-full group">
+          <div className="flex flex-wrap items-center gap-2 w-full max-w-4xl">
+            {/* Primary Category Filter */}
+            <Select 
+              value={selectedCategory} 
+              onValueChange={(val: string | null) => {
+                setSelectedCategory(val || "all");
+                setSelectedMidCategory("all"); // Reset mid-category when main-category changes
+              }}
+            >
+              <SelectTrigger className="w-[150px] bg-slate-50 border-slate-200 text-xs h-9 rounded-xl">
+                <SelectValue placeholder="대분류" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">전체 (대분류)</SelectItem>
+                {CATEGORIES.main.map(cat => (
+                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Secondary Category Filter */}
+            <Select 
+              value={selectedMidCategory} 
+              onValueChange={(val: string | null) => setSelectedMidCategory(val || "all")}
+              disabled={selectedCategory === "all" || midCategoriesForSelected.length === 0}
+            >
+              <SelectTrigger className="w-[150px] bg-slate-50 border-slate-200 text-xs h-9 rounded-xl">
+                <SelectValue placeholder="중분류" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">전체 (중분류)</SelectItem>
+                {midCategoriesForSelected.map(cat => (
+                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Search Input */}
+            <div className="relative flex-1 min-w-[200px] group">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
               <Input 
-                placeholder="자재명, 카테고리, 거래처 검색..." 
-                className="pl-9 bg-gray-50 border-gray-200 focus:bg-white transition-all ring-offset-background"
+                placeholder="자재명, 중분류, 거래처 검색..." 
+                className="pl-9 bg-slate-50 border-slate-200 h-9 rounded-xl focus:bg-white transition-all ring-offset-background text-xs"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -419,7 +491,7 @@ export default function InventoryPage() {
                         <TableCell className="text-gray-500 text-sm">{getSupplierName(material)}</TableCell>
                         <TableCell className="text-gray-400 text-xs max-w-[120px] truncate">{material.memo || '-'}</TableCell>
                         <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex items-center justify-end gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
                             <Button 
                               variant="ghost" 
                               size="icon" 
@@ -475,7 +547,7 @@ export default function InventoryPage() {
                 <Label className="text-right font-semibold text-slate-700">대분류</Label>
                 <Select 
                   value={formData.main_category || ""} 
-                  onValueChange={(val) => setFormData({...formData, main_category: val as string})}
+                  onValueChange={(val: string | null) => setFormData({...formData, main_category: val || ""})}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="선택" />
@@ -544,20 +616,66 @@ export default function InventoryPage() {
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="supplier_select" className="text-right font-semibold text-slate-700">공급업체</Label>
               <div className="col-span-3 space-y-2">
-                  <Select 
-                    value={formData.supplier_id || "none"} 
-                    onValueChange={(val: string | null) => setFormData({...formData, supplier_id: val === "none" || !val ? "" : val})}
-                  >
-                    <SelectTrigger id="supplier_select">
-                      <SelectValue placeholder="등록된 거래처 선택" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">직접 입력 또는 선택안함</SelectItem>
-                      {suppliers.map(s => (
-                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover open={isSupplierOpen} onOpenChange={setIsSupplierOpen}>
+                    <PopoverTrigger 
+                      render={
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={isSupplierOpen}
+                          className="w-full justify-between font-normal"
+                        />
+                      }
+                    >
+                      {formData.supplier_id
+                        ? suppliers.find((s) => s.id === formData.supplier_id)?.name
+                        : "공급업체 선택"}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[400px] p-0">
+                      <Command>
+                        <CommandInput placeholder="거래처 검색..." />
+                        <CommandList>
+                          <CommandEmpty>검색 결과가 없습니다.</CommandEmpty>
+                          <CommandGroup>
+                            <CommandItem
+                              value="none"
+                              onSelect={() => {
+                                setFormData({ ...formData, supplier_id: "" });
+                                setIsSupplierOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  !formData.supplier_id ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              직접 입력 또는 선택안함
+                            </CommandItem>
+                            {suppliers.map((s) => (
+                              <CommandItem
+                                key={s.id}
+                                value={s.name}
+                                onSelect={() => {
+                                  setFormData({ ...formData, supplier_id: s.id, supplier: s.name });
+                                  setIsSupplierOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    formData.supplier_id === s.id ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {s.name}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                   <Input
                     placeholder="직접 입력 (위에서 선택하지 않은 경우)"
                     value={formData.supplier || ""}

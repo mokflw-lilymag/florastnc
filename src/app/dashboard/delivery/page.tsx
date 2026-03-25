@@ -1,6 +1,8 @@
 "use client";
-import React, { useState, useMemo } from 'react';
+import * as React from 'react';
+import { useState, useMemo } from 'react';
 import { PageHeader } from '@/components/page-header';
+import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,8 +24,14 @@ import {
   ExternalLink,
   Loader2,
   Info,
-  Calendar as CalendarIcon
+  Calendar as CalendarIcon,
+  Settings,
+  Plus,
+  Trash2,
+  TrendingUp
 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useSettings } from '@/hooks/use-settings';
 import { useOrders } from '@/hooks/use-orders';
 import { Badge } from '@/components/ui/badge';
 import { format, isToday, parseISO, addDays, isSameDay } from 'date-fns';
@@ -41,8 +49,10 @@ import { toast } from 'sonner';
 
 export default function DeliveryManagementPage() {
   const { orders, loading, updateOrder } = useOrders();
+  const { settings, saveSettings } = useSettings();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<"all" | "delivery" | "pickup">("all");
+  const [newCarrier, setNewCarrier] = useState("");
   
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [dateFilterMode, setDateFilterMode] = useState<"today" | "tomorrow" | "all" | "custom">("today");
@@ -103,7 +113,71 @@ export default function DeliveryManagementPage() {
         title="배송 및 픽업 관리" 
         description="오늘의 배송 및 픽업 일정을 확인하고 진행 상태를 관리합니다."
         icon={Truck}
-      />
+      >
+        <Link 
+          href="/dashboard/delivery/profit" 
+          className={cn(buttonVariants({ variant: "outline" }), "gap-2 font-bold shadow-sm rounded-xl border-gray-200")}
+        >
+          <TrendingUp className="w-4 h-4 text-emerald-600" /> 배송비 정산 내역
+        </Link>
+        <Dialog>
+          <DialogTrigger render={<Button variant="outline" className="gap-2 font-bold shadow-sm rounded-xl border-gray-200" />}>
+            <Settings className="w-4 h-4" /> 배송업체 관리
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>배송업체 항목 관리</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="flex items-center gap-2">
+                <Input 
+                  placeholder="새 배송업체 입력" 
+                  value={newCarrier}
+                  onChange={(e) => setNewCarrier(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && newCarrier) {
+                      saveSettings({
+                        ...settings,
+                        deliveryCarriers: [...(settings.deliveryCarriers || []), newCarrier]
+                      });
+                      setNewCarrier("");
+                    }
+                  }}
+                />
+                <Button onClick={() => {
+                  if (newCarrier) {
+                    saveSettings({
+                      ...settings,
+                      deliveryCarriers: [...(settings.deliveryCarriers || []), newCarrier]
+                    });
+                    setNewCarrier("");
+                  }
+                }}>
+                  <Plus className="w-4 h-4" /> 추가
+                </Button>
+              </div>
+              <div className="border rounded-md divide-y max-h-60 overflow-y-auto">
+                {(settings?.deliveryCarriers || []).map((carrier: string, idx: number) => (
+                  <div key={idx} className="flex items-center justify-between p-3">
+                    <span className="font-medium text-sm">{carrier}</span>
+                    <Button variant="ghost" size="sm" onClick={() => {
+                      saveSettings({
+                        ...settings,
+                        deliveryCarriers: settings.deliveryCarriers.filter((_, i) => i !== idx)
+                      });
+                    }}>
+                      <Trash2 className="w-4 h-4 text-red-500" />
+                    </Button>
+                  </div>
+                ))}
+                {(!settings?.deliveryCarriers || settings.deliveryCarriers.length === 0) && (
+                  <div className="p-4 text-center text-sm text-gray-500">등록된 배송업체가 없습니다.</div>
+                )}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </PageHeader>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -354,7 +428,7 @@ export default function DeliveryManagementPage() {
                                </Badge>
                             </TableCell>
                             <TableCell className="pr-6 text-right">
-                               <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
+                               <div className="flex items-center justify-end gap-2 opacity-40 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
                                   <Button 
                                     size="sm" 
                                     variant="outline" 

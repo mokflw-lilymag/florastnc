@@ -10,13 +10,14 @@ import { Label } from "@/components/ui/label";
 import { 
   Calendar, Target, DollarSign, ArrowRightLeft, 
   RefreshCw, ChevronLeft, ChevronRight, FileText, 
-  XCircle, Download, Save, ShoppingCart, Loader2, Package, TrendingUp
+  XCircle, Download, CheckCircle2, ShoppingCart, Loader2, Package, TrendingUp
 } from "lucide-react";
 import { format, subDays, addDays, startOfDay, endOfDay, differenceInDays } from "date-fns";
 import { useOrders } from "@/hooks/use-orders";
 import { useAuth } from "@/hooks/use-auth";
 import { useDailySettlements, DailySettlementRecord } from "@/hooks/use-daily-settlements";
 import { useExpenses } from "@/hooks/use-expenses";
+import { useSettings } from "@/hooks/use-settings";
 import { PageHeader } from "@/components/page-header";
 import Link from 'next/link';
 import { Order } from "@/types/order";
@@ -27,6 +28,7 @@ export default function DailySettlementPage() {
     const { orders, fetchOrdersByRange, loading: ordersLoading } = useOrders();
     const { expenses, fetchExpenses, loading: expensesLoading } = useExpenses();
     const { getSettlement, saveSettlement, findLastSettlementBefore, loading: settlementLoading } = useDailySettlements();
+    const { settings } = useSettings();
     const { profile } = useAuth();
 
     const [reportDate, setReportDate] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -38,14 +40,14 @@ export default function DailySettlementPage() {
     // Initial load
     useEffect(() => {
         const loadData = async () => {
-            const dateFrom = startOfDay(new Date(reportDate));
-            const dateTo = endOfDay(new Date(reportDate));
+            const dateFromFetch = subDays(startOfDay(new Date(reportDate)), 30);
+            const dateToFetch = endOfDay(new Date(reportDate));
             const prevDate = format(subDays(new Date(reportDate), 1), 'yyyy-MM-dd');
 
-            // Load data for the selected day
+            // Load data for the selected day + 30 days back to catch previous payments
             await Promise.all([
-                fetchOrdersByRange(dateFrom, dateTo),
-                fetchExpenses(dateFrom, dateTo),
+                fetchOrdersByRange(dateFromFetch, dateToFetch),
+                fetchExpenses(startOfDay(new Date(reportDate)), dateToFetch),
                 (async () => {
                     const res = await getSettlement(reportDate);
                     setSettlementRecord(res);
@@ -97,7 +99,6 @@ export default function DailySettlementPage() {
         let transferSales = 0;
         let otherSales = 0;
         let totalSales = 0;
-        let deliveryCostCash = 0;
         
         const paidOrdersToday: Order[] = [];
         const pendingOrdersToday: Order[] = [];
@@ -117,15 +118,16 @@ export default function DailySettlementPage() {
 
             const p = order.payment;
             let settleAmountToday = 0;
-            const orderDateStr = format(new Date(order.order_date), 'yyyy-MM-dd');
+            const dateToParse = order.order_date || order.created_at || new Date().toISOString();
+            const orderDateStr = format(new Date(dateToParse), 'yyyy-MM-dd');
             const isTodayOrder = orderDateStr === reportDate;
 
             // Handle payments occurring today
-            const firstDate = p.firstPaymentDate ? new Date(p.firstPaymentDate) : null;
-            const secondDate = p.secondPaymentDate ? new Date(p.secondPaymentDate) : null;
-            const completedAt = p.completedAt ? new Date(p.completedAt) : null;
+            const firstDate = p?.firstPaymentDate ? new Date(p.firstPaymentDate) : null;
+            const secondDate = p?.secondPaymentDate ? new Date(p.secondPaymentDate) : null;
+            const completedAt = p?.completedAt ? new Date(p.completedAt) : null;
 
-            if (p.isSplitPayment) {
+            if (p?.isSplitPayment) {
                 // First Payment Today
                 if (firstDate && firstDate >= todayFrom && firstDate <= todayTo) {
                     const amt = p.firstPaymentAmount || 0;
@@ -144,6 +146,8 @@ export default function DailySettlementPage() {
                     let isSecondToday = false;
                     if (secondDate && secondDate >= todayFrom && secondDate <= todayTo) isSecondToday = true;
                     else if (!secondDate && completedAt && completedAt >= todayFrom && completedAt <= todayTo) isSecondToday = true;
+                    // Fallback: If it's a today's order and it's paid, and we don't have second date yet, assume it was paid today
+                    else if (isTodayOrder && !secondDate && !completedAt && (p.status === 'paid' || p.status === 'completed')) isSecondToday = true;
 
                     if (isSecondToday) {
                         const amt = p.secondPaymentAmount || ( (order.summary?.total || 0) - (p.firstPaymentAmount || 0) );
@@ -174,10 +178,13 @@ export default function DailySettlementPage() {
                 }
             } else {
                 // Regular Payment Today
-                if (completedAt && completedAt >= todayFrom && completedAt <= todayTo) {
+                const wasPaidToday = (completedAt && completedAt >= todayFrom && completedAt <= todayTo) || 
+                                    (isTodayOrder && (p?.status === 'paid' || p?.status === 'completed'));
+
+                if (wasPaidToday) {
                     const amt = order.summary?.total || 0;
                     settleAmountToday += amt;
-                    const method = (p.method || 'cash').toLowerCase() as keyof typeof paymentStats;
+                    const method = (p?.method || 'cash').toLowerCase() as keyof typeof paymentStats;
                     if (paymentStats[method]) {
                         paymentStats[method].amount += amt;
                         paymentStats[method].count++;
@@ -185,7 +192,7 @@ export default function DailySettlementPage() {
                         paymentStats.others.amount += amt;
                         paymentStats.others.count++;
                     }
-                } else if (isTodayOrder && p.status === 'pending') {
+                } else if (isTodayOrder && (!p?.status || (p.status as string) === 'pending' || (p.status as string) === 'partial')) {
                     pendingOrdersToday.push(order);
                     pendingAmountToday += order.summary?.total || 0;
                 }
@@ -200,21 +207,27 @@ export default function DailySettlementPage() {
                     paidOrdersToday.push(order);
                 }
             }
-
-            // Delivery Cash Expense (Accrued by delivery date)
-            const deliveryDate = order.delivery_info?.date || order.pickup_info?.date;
-            if (deliveryDate === reportDate && order.actual_delivery_cost_cash) {
-                deliveryCostCash += order.actual_delivery_cost_cash;
-            }
         });
 
+        // Revenue logic based on settings for the total sales card
+        let displayTotalSales = totalSales;
+        if (settings.revenueRecognitionBasis === 'order_date') {
+            displayTotalSales = orders
+                .filter(o => o.status !== 'canceled')
+                .filter(o => {
+                    const dateVal = o.order_date || o.created_at || new Date().toISOString();
+                    const oDateStr = format(new Date(dateVal), 'yyyy-MM-dd');
+                    return oDateStr === reportDate;
+                })
+                .reduce((sum, o) => sum + (o.summary?.total || 0), 0);
+        }
+
         return {
-            totalSales,
+            totalSales: displayTotalSales,
             cashSales: paymentStats.cash.amount,
             cardSales: paymentStats.card.amount,
             transferSales: paymentStats.transfer.amount,
             otherSales: paymentStats.others.amount,
-            deliveryCostCash,
             orderCount: orders.length,
             paidOrdersToday,
             pendingOrdersToday,
@@ -223,7 +236,7 @@ export default function DailySettlementPage() {
             previousOrderPayments,
             paymentStats
         };
-    }, [orders, reportDate]);
+    }, [orders, reportDate, settings.revenueRecognitionBasis]);
 
     const cashExpensesFlow = useMemo(() => {
         // From Expenses hook
@@ -232,23 +245,29 @@ export default function DailySettlementPage() {
             .reduce((sum, e) => sum + (e.amount || 0), 0);
         
         const otherCash = expenses
-            .filter(e => e.payment_method === 'cash' && e.category !== '자재' && e.category !== 'material' && e.category !== '운송' && e.category !== 'transport')
+            .filter(e => e.payment_method === 'cash' && e.sub_category !== 'delivery' && e.sub_category !== 'delivery_fee' && e.category !== '자재' && e.category !== 'material' && e.category !== '운송' && e.category !== 'transport' && e.category !== 'transportation')
             .reduce((sum, e) => sum + (e.amount || 0), 0);
         
+        // Exclude delivery from other cash expense to prevent double counting in UI
         const totalCashExpense = expenses
-            .filter(e => e.payment_method === 'cash')
+            .filter(e => e.payment_method === 'cash' && e.sub_category !== 'delivery' && e.sub_category !== 'delivery_fee')
+            .reduce((sum, e) => sum + (e.amount || 0), 0);
+
+        const deliveryCostCash = expenses
+            .filter(e => e.payment_method === 'cash' && (e.sub_category === 'delivery' || e.sub_category === 'delivery_fee'))
             .reduce((sum, e) => sum + (e.amount || 0), 0);
 
         return {
             materialCash,
             otherCash,
-            totalCashExpense
+            totalCashExpense,
+            deliveryCostCash
         };
     }, [expenses]);
 
     const vaultCash = useMemo(() => {
         const cashSales = stats?.paymentStats?.cash?.amount || 0;
-        const deliveryCostCash = stats?.deliveryCostCash || 0;
+        const deliveryCostCash = cashExpensesFlow.deliveryCostCash || 0;
         const cashExpenses = cashExpensesFlow.totalCashExpense;
         
         // Previous balance logic
@@ -303,22 +322,37 @@ export default function DailySettlementPage() {
                 title="일일 마감 정산"
                 description={`${reportDate} 기준 지점 정산 및 금고 관리`}
             >
-                <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" onClick={() => setReportDate(format(subDays(new Date(reportDate), 1), 'yyyy-MM-dd'))} className="rounded-xl">
-                        <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <Input
-                        type="date"
-                        value={reportDate}
-                        onChange={(e) => setReportDate(e.target.value)}
-                        className="h-9 w-40 rounded-xl border-slate-200"
-                    />
-                    <Button variant="outline" size="sm" onClick={() => setReportDate(format(addDays(new Date(reportDate), 1), 'yyyy-MM-dd'))} className="rounded-xl">
-                        <ChevronRight className="h-4 w-4" />
-                    </Button>
-                    <Button onClick={handleSave} disabled={loading} className="font-light rounded-xl shadow-lg shadow-indigo-500/20 bg-indigo-600 hover:bg-indigo-700">
-                        {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                        저장하기
+                <div className="flex items-center gap-3">
+                    <div className="hidden lg:flex flex-col items-end mr-2">
+                        <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest">오늘 정산 마감</span>
+                        <span className="text-[9px] text-slate-400 font-light">금고 잔액 확정 및 이월</span>
+                    </div>
+                    <div className="flex items-center gap-1 bg-white p-1 rounded-2xl border border-slate-100 shadow-sm">
+                        <Button variant="ghost" size="icon" onClick={() => setReportDate(format(subDays(new Date(reportDate), 1), 'yyyy-MM-dd'))} className="h-8 w-8 rounded-xl hover:bg-slate-50">
+                            <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <Input
+                            type="date"
+                            value={reportDate}
+                            onChange={(e) => setReportDate(e.target.value)}
+                            className="h-8 w-32 border-none shadow-none font-medium text-xs bg-transparent focus-visible:ring-0"
+                        />
+                        <Button variant="ghost" size="icon" onClick={() => setReportDate(format(addDays(new Date(reportDate), 1), 'yyyy-MM-dd'))} className="h-8 w-8 rounded-xl hover:bg-slate-50">
+                            <ChevronRight className="h-4 w-4" />
+                        </Button>
+                    </div>
+                    
+                    <Button 
+                        onClick={handleSave} 
+                        disabled={loading} 
+                        className="font-medium rounded-xl shadow-lg shadow-indigo-500/20 bg-indigo-600 hover:bg-indigo-700 px-6 h-10 group"
+                    >
+                        {loading ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                            <CheckCircle2 className="mr-2 h-4 w-4 group-hover:scale-110 transition-transform" />
+                        )}
+                        일일 정산 마감
                     </Button>
                 </div>
             </PageHeader>
@@ -489,7 +523,7 @@ export default function DailySettlementPage() {
                                     <TableRow key={`${order.id}-${idx}`} className="group hover:bg-slate-50/50 transition-colors border-b border-slate-50/50">
                                         <TableCell className="px-6 py-4">
                                             <div className="flex flex-col">
-                                                <span className="text-[10px] text-slate-400 font-medium">{format(new Date(order.order_date), 'HH:mm:ss')}</span>
+                                                <span className="text-[10px] text-slate-400 font-medium">{format(new Date(order.order_date || order.created_at || new Date().toISOString()), 'HH:mm:ss')}</span>
                                                 <span className="font-mono text-[10px] text-slate-700 uppercase">{order.order_number}</span>
                                             </div>
                                         </TableCell>

@@ -36,14 +36,17 @@ import { AccessDenied } from "@/components/access-denied";
 
 import { OrderOutsourceDialog } from "./components/order-outsource-dialog";
 
-import { exportOrdersToExcel } from "@/lib/excel-export";
+import { exportOrdersToExcel, prepareOrdersForGoogleSheet, exportToGoogleSheet } from "@/lib/excel-export";
 import { createClient } from "@/utils/supabase/client";
+import { useSettings } from "@/hooks/use-settings";
+import { FileSpreadsheet } from "lucide-react";
 
 export default function OrdersPage() {
   const { profile, isLoading: authLoading } = useAuth();
   const plan = profile?.tenants?.plan || "free";
   const isSuperAdmin = profile?.role === 'super_admin';
   const supabase = createClient();
+  const { settings } = useSettings();
 
   const { 
     orders, 
@@ -67,6 +70,11 @@ export default function OrdersPage() {
   const [isMessagePrintOpen, setIsMessagePrintOpen] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
+
+  // Google Sheets export date range
+  const [exportStartDate, setExportStartDate] = useState(() => format(startOfMonth(new Date()), 'yyyy-MM-dd'));
+  const [exportEndDate, setExportEndDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
+  const [isExporting, setIsExporting] = useState(false);
   
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -271,6 +279,44 @@ export default function OrdersPage() {
     }
   };
 
+  const handleGoogleSheetExport = async () => {
+    if (!exportStartDate || !exportEndDate) {
+      toast.error("시작/종료 날짜를 선택하세요.");
+      return;
+    }
+    setIsExporting(true);
+    try {
+      const data = prepareOrdersForGoogleSheet(orders, exportStartDate, exportEndDate);
+      if (data.count === 0) {
+        toast.error("선택 기간에 주문 데이터가 없습니다.");
+        setIsExporting(false);
+        return;
+      }
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const session = await supabase.auth.getSession();
+      const accessToken = session.data.session?.access_token;
+
+      const result = await exportToGoogleSheet(
+        'orders',
+        data,
+        exportStartDate,
+        exportEndDate,
+        settings.googleSheetOrdersId || undefined,
+        supabaseUrl || undefined,
+        accessToken || undefined
+      );
+      if (result.success) {
+        toast.success(result.message);
+      } else {
+        toast.error(result.message);
+      }
+    } catch (err) {
+      toast.error("내보내기 중 오류가 발생했습니다.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'completed': return <Badge variant="default" className="bg-emerald-500 rounded-full px-3 text-[11px] font-light">완료</Badge>;
@@ -420,9 +466,15 @@ export default function OrdersPage() {
                 </>
               )}
             </div>
-            <div className="flex gap-2">
-                <Button variant="ghost" size="sm" onClick={handleExcelExport} className="text-slate-700 h-10 px-3 hover:bg-gray-100 rounded-xl">
-                    <Download className="w-4 h-4 mr-2 shadow-none" /> 엑셀 다운로드
+            <div className="flex items-center gap-2">
+                <Input type="date" value={exportStartDate} onChange={e => setExportStartDate(e.target.value)} className="h-9 w-[130px] text-[11px] rounded-xl border-gray-200" />
+                <span className="text-xs text-slate-400">~</span>
+                <Input type="date" value={exportEndDate} onChange={e => setExportEndDate(e.target.value)} className="h-9 w-[130px] text-[11px] rounded-xl border-gray-200" />
+                <Button variant="ghost" size="sm" onClick={handleExcelExport} className="text-slate-700 h-9 px-3 hover:bg-gray-100 rounded-xl text-xs">
+                    <Download className="w-3.5 h-3.5 mr-1.5 shadow-none" /> 엑셀
+                </Button>
+                <Button variant="ghost" size="sm" onClick={handleGoogleSheetExport} disabled={isExporting} className="text-emerald-600 h-9 px-3 hover:bg-emerald-50 rounded-xl text-xs">
+                    {isExporting ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />} 시트 내보내기
                 </Button>
             </div>
           </div>

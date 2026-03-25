@@ -30,6 +30,8 @@ export interface SystemSettings {
   useGoogleSheets: boolean;
   googleSheetId: string;
   googleSheetName: string;
+  googleSheetOrdersId: string;
+  googleSheetExpensesId: string;
   siteName: string;
   siteDescription: string;
   contactEmail: string;
@@ -39,6 +41,9 @@ export interface SystemSettings {
   messageTemplate: string;
   availableFonts: string[];
   isStorefrontPublic: boolean;
+  deliveryCarriers: string[];
+  districtDeliveryFees: Array<{ district: string, fee: number }>;
+  revenueRecognitionBasis: 'order_date' | 'payment_completed';
 }
 
 export const defaultSettings: SystemSettings = {
@@ -62,6 +67,8 @@ export const defaultSettings: SystemSettings = {
   useGoogleSheets: false,
   googleSheetId: "",
   googleSheetName: "",
+  googleSheetOrdersId: "",
+  googleSheetExpensesId: "",
   siteName: "FloraSync SaaS",
   siteDescription: "플라워샵 통합 관리 시스템",
   contactEmail: "",
@@ -71,6 +78,36 @@ export const defaultSettings: SystemSettings = {
   messageTemplate: "안녕하세요! {고객명}님의 주문이 {상태}되었습니다. 감사합니다.",
   availableFonts: ["Noto Sans KR", "Nanum Gothic", "Nanum Myeongjo", "Gaegu"],
   isStorefrontPublic: false,
+  deliveryCarriers: ["자체배송"],
+  districtDeliveryFees: [
+    { district: "종로구", fee: 10000 },
+    { district: "동작구", fee: 18000 },
+    { district: "중구", fee: 10000 },
+    { district: "광진구", fee: 18000 },
+    { district: "서대문구", fee: 13000 },
+    { district: "중랑구", fee: 18000 },
+    { district: "성북구", fee: 13000 },
+    { district: "강북구", fee: 20000 },
+    { district: "성동구", fee: 13000 },
+    { district: "송파구", fee: 20000 },
+    { district: "용산구", fee: 14000 },
+    { district: "강동구", fee: 20000 },
+    { district: "동대문구", fee: 14000 },
+    { district: "구로구", fee: 20000 },
+    { district: "영등포구", fee: 15000 },
+    { district: "강서구", fee: 20000 },
+    { district: "은평구", fee: 15000 },
+    { district: "관악구", fee: 20000 },
+    { district: "마포구", fee: 16000 },
+    { district: "노원구", fee: 20000 },
+    { district: "양천구", fee: 18000 },
+    { district: "도봉구", fee: 20000 },
+    { district: "강남구", fee: 18000 },
+    { district: "금천구", fee: 20000 },
+    { district: "서초구", fee: 18000 },
+    { district: "기타", fee: 25000 }
+  ],
+  revenueRecognitionBasis: 'order_date',
 };
 
 export function useSettings() {

@@ -4,11 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Check, ChevronsUpDown } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 
@@ -152,29 +154,51 @@ export function ProductSection({
                                 className="pl-9"
                             />
                         </div>
-                        <Select onValueChange={(val) => {
-                            const p = allProducts.find(prod => prod.id === val);
-                            if (p) {
-                                onAddProduct(p);
-                                setSearchTerm("");
-                            }
-                        }}>
-                            <SelectTrigger className="w-[200px]">
-                                <SelectValue placeholder="상품 목록 선택" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {filteredAllProducts.slice(0, 50).map(p => (
-                                    <SelectItem key={p.id} value={p.id} disabled={p.stock <= 0}>
-                                        {p.name} ({p.price.toLocaleString()}원)
-                                    </SelectItem>
-                                ))}
-                                {filteredAllProducts.length > 50 && (
-                                    <div className="p-2 text-xs text-center text-muted-foreground">
-                                        검색 결과가 너무 많습니다. 검색어를 입력해주세요.
-                                    </div>
-                                )}
-                            </SelectContent>
-                        </Select>
+                    <Popover>
+                      <PopoverTrigger 
+                        render={
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className="w-[300px] justify-between h-9"
+                          />
+                        }
+                      >
+                        상품 전체 목록에서 선택...
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[300px] p-0">
+                        <Command>
+                          <CommandInput placeholder="상품명 검색..." />
+                          <CommandList>
+                            <CommandEmpty>결과가 없습니다.</CommandEmpty>
+                            <CommandGroup>
+                              {allProducts.map((p) => (
+                                <CommandItem
+                                  key={p.id}
+                                  value={p.name}
+                                  disabled={p.stock <= 0}
+                                  onSelect={() => {
+                                    onAddProduct(p);
+                                    setSearchTerm("");
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4 opacity-0"
+                                    )}
+                                  />
+                                  <div className="flex flex-col">
+                                    <span>{p.name}</span>
+                                    <span className="text-xs text-muted-foreground">{p.price.toLocaleString()}원</span>
+                                  </div>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                     </div>
                     {searchTerm && (
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">

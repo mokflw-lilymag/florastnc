@@ -259,7 +259,7 @@ export default function CategorySettingsPage() {
                     {prodCats?.mid[selectedProdMain]?.map(cat => (
                       <div key={cat} className="flex items-center justify-between p-2 pl-3 rounded-lg border border-slate-100 bg-slate-50/50 group">
                         <span className="text-sm font-medium text-slate-600">{cat}</span>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-300 opacity-0 group-hover:opacity-100 hover:text-red-500 transition-all" onClick={() => handleDeleteProdMid(cat)}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-300 opacity-40 group-hover:opacity-100 hover:text-red-500 transition-all" onClick={() => handleDeleteProdMid(cat)}>
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
@@ -389,7 +389,7 @@ export default function CategorySettingsPage() {
                     {matCats?.mid[selectedMatMain]?.map(cat => (
                       <div key={cat} className="flex items-center justify-between p-2 pl-3 rounded-lg border border-slate-100 bg-slate-50/50 group">
                         <span className="text-sm font-medium text-slate-600">{cat}</span>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-300 opacity-0 group-hover:opacity-100 hover:text-red-500 transition-all" onClick={() => handleDeleteMatMid(cat)}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-300 opacity-40 group-hover:opacity-100 hover:text-red-500 transition-all" onClick={() => handleDeleteMatMid(cat)}>
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>

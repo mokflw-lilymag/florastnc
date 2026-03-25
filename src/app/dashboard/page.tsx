@@ -23,8 +23,14 @@ import {
   Gem,
   Zap,
   Settings,
-  CreditCard
+  CreditCard,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, Legend, AreaChart, Area, LineChart, Line, Cell
+} from "recharts";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,8 +39,10 @@ import { useAuth } from "@/hooks/use-auth";
 import { useOrders } from "@/hooks/use-orders";
 import { useProducts } from "@/hooks/use-products";
 import { useExpenses } from "@/hooks/use-expenses";
+import { useSettings } from "@/hooks/use-settings";
 import { Skeleton } from "@/components/ui/skeleton";
-import { format, isToday, startOfToday, endOfToday } from "date-fns";
+import { format, isToday, startOfToday, endOfToday, subDays, subMonths, subYears, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, isSameDay, isSameWeek, isSameMonth, isSameYear, getWeekOfMonth } from "date-fns";
+import { ko } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
@@ -43,6 +51,7 @@ import { cn } from "@/lib/utils";
 export default function DashboardPage() {
   const supabase = createClient();
   const { profile, isLoading: authLoading } = useAuth();
+  const { settings, loading: settingsLoading } = useSettings();
   
   // Data for Tenants/Admin
   const [tenantStats, setTenantStats] = useState<{ total: number, active: number, pro: number, recent: any[] } | null>(null);
@@ -51,9 +60,11 @@ export default function DashboardPage() {
   const { orders, loading: ordersLoading } = useOrders();
   const { products, loading: productsLoading } = useProducts();
   const { expenses, loading: expensesLoading } = useExpenses();
+  
+  const [chartPeriod, setChartPeriod] = useState<"daily" | "weekly" | "monthly" | "yearly">("daily");
 
   const isSuperAdmin = profile?.role === 'super_admin';
-  const isLoading = authLoading || ordersLoading || productsLoading || expensesLoading || adminLoading;
+  const isLoading = authLoading || ordersLoading || productsLoading || expensesLoading || adminLoading || settingsLoading;
 
   useEffect(() => {
     if (isSuperAdmin) {
@@ -80,14 +91,32 @@ export default function DashboardPage() {
   const stats = useMemo(() => {
     if (isLoading || isSuperAdmin) return null;
 
+    const basis = settings?.revenueRecognitionBasis || 'order_date';
+    
+    // Revenue filtering function
+    const isRevenue = (o: any) => {
+      if (o.status === 'canceled') return false;
+      if (basis === 'payment_completed') {
+        return o.payment?.status === 'paid';
+      }
+      return true;
+    };
+
     // --- TODAY STATS (FOR REGULAR USERS) ---
-    const todayOrders = orders.filter(o => o.order_date && isToday(new Date(o.order_date)));
+    const todayOrders = orders.filter(o => {
+      const dateStr = o.order_date || o.created_at;
+      return dateStr && isToday(new Date(dateStr));
+    });
+
     const todayRevenue = todayOrders
-      .filter(o => o.status !== 'canceled')
+      .filter(isRevenue)
       .reduce((sum, o) => sum + (o.summary?.total || 0), 0);
     
     const todayExpenses = expenses
-      .filter(e => e.expense_date && isToday(new Date(e.expense_date)))
+      .filter(e => {
+        const d = e.expense_date || e.created_at;
+        return d && isToday(new Date(d));
+      })
       .reduce((sum, e) => sum + (e.amount || 0), 0);
 
     // --- OVERALL STATS ---
@@ -96,7 +125,7 @@ export default function DashboardPage() {
     const completedOrders = orders.filter(o => o.status === 'completed').length;
     
     const totalRevenue = orders
-      .filter(o => o.status === 'completed')
+      .filter(isRevenue)
       .reduce((sum, o) => sum + (o.summary?.total || 0), 0);
 
     const outOfStockProducts = products.filter(p => (p.stock || 0) <= 0).length;
@@ -120,7 +149,91 @@ export default function DashboardPage() {
       todayExpenses,
       recentOrders
     };
-  }, [orders, products, expenses, isLoading, isSuperAdmin]);
+  }, [orders, products, expenses, isLoading, isSuperAdmin, settings]);
+
+  const chartData = useMemo(() => {
+    if (isLoading || isSuperAdmin) return [];
+
+    let data: any[] = [];
+    const now = new Date();
+    const basis = settings?.revenueRecognitionBasis || 'order_date';
+
+    const isRevenue = (o: any) => {
+      if (o.status === 'canceled') return false;
+      if (basis === 'payment_completed') {
+        return o.payment?.status === 'paid';
+      }
+      return true;
+    };
+
+    if (chartPeriod === "daily") {
+      const days = eachDayOfInterval({ start: subDays(now, 13), end: now });
+      data = days.map(day => {
+        const dStart = startOfDay(day);
+        const dEnd = endOfDay(day);
+        const label = format(day, "MM.dd");
+        
+        const rev = orders.filter(o => {
+            const dateStr = o.order_date || o.created_at;
+            if (!dateStr) return false;
+            const od = new Date(dateStr);
+            return od >= dStart && od <= dEnd && isRevenue(o);
+        }).reduce((sum, o) => sum + (o.summary?.total || 0), 0);
+        
+        return { name: label, 매출: rev };
+      });
+    } else if (chartPeriod === "weekly") {
+      const weeks = eachWeekOfInterval({ start: subMonths(now, 2), end: now });
+      data = weeks.map(week => {
+        const wStart = startOfWeek(week);
+        const wEnd = endOfWeek(week);
+        const label = `${format(wStart, "M월", { locale: ko })} ${getWeekOfMonth(wStart)}주`;
+
+        const rev = orders.filter(o => {
+            const dateStr = o.order_date || o.created_at;
+            if (!dateStr) return false;
+            const od = new Date(dateStr);
+            return od >= wStart && od <= wEnd && isRevenue(o);
+        }).reduce((sum, o) => sum + (o.summary?.total || 0), 0);
+
+        return { name: label, 매출: rev };
+      });
+    } else if (chartPeriod === "monthly") {
+      const months = eachMonthOfInterval({ start: subMonths(now, 5), end: now });
+      data = months.map(month => {
+        const mStart = startOfMonth(month);
+        const mEnd = endOfMonth(month);
+        const label = format(month, "M월", { locale: ko });
+
+        const rev = orders.filter(o => {
+            const dateStr = o.order_date || o.created_at;
+            if (!dateStr) return false;
+            const od = new Date(dateStr);
+            return od >= mStart && od <= mEnd && isRevenue(o);
+        }).reduce((sum, o) => sum + (o.summary?.total || 0), 0);
+
+        return { name: label, 매출: rev };
+      });
+    } else if (chartPeriod === "yearly") {
+      const years = [subYears(now, 2), subYears(now, 1), now];
+      data = years.map(year => {
+        const yStart = startOfYear(year);
+        const yEnd = endOfYear(year);
+        const label = format(year, "yyyy년");
+
+        const rev = orders.filter(o => {
+            const dateStr = o.order_date || o.created_at;
+            if (!dateStr) return false;
+            const od = new Date(dateStr);
+            return od >= yStart && od <= yEnd && isRevenue(o);
+        }).reduce((sum, o) => sum + (o.summary?.total || 0), 0);
+
+        return { name: label, 매출: rev };
+      });
+    }
+
+    return data;
+  }, [orders, chartPeriod, isLoading, isSuperAdmin, settings]);
 
   if (isLoading) {
     return (
@@ -273,7 +386,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Daily Settlement Quick View */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2">
         <Card className="border-none shadow-lg shadow-blue-50 bg-gradient-to-br from-white to-blue-50/30 overflow-hidden relative group rounded-3xl">
           <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:scale-110 transition-transform">
              <ShoppingCart className="w-12 h-12 text-blue-600" />
@@ -301,35 +414,81 @@ export default function DashboardPage() {
             <div className="text-[11px] text-slate-700 font-medium mt-1.5">취소 건 제외 실매출</div>
           </CardContent>
         </Card>
-
-        <Card className="border-none shadow-lg shadow-rose-50 bg-gradient-to-br from-white to-rose-50/30 overflow-hidden relative group rounded-3xl">
-          <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:scale-110 transition-transform">
-             <ArrowDownRight className="w-12 h-12 text-rose-600" />
-          </div>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-rose-600 uppercase tracking-widest">오늘 지출액</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-medium text-slate-900">₩{stats?.todayExpenses.toLocaleString()}</div>
-            <div className="text-[11px] text-slate-700 font-medium mt-1.5">배송비 및 매입 포함</div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-none shadow-lg shadow-amber-50 bg-gradient-to-br from-white to-amber-50/30 overflow-hidden relative group text-amber-900 rounded-3xl">
-          <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:scale-110 transition-transform">
-             <Package className="w-12 h-12 text-amber-600" />
-          </div>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-amber-600 uppercase tracking-widest">예상 당기 순이익</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-medium text-slate-900">₩{(stats!.todayRevenue - stats!.todayExpenses).toLocaleString()}</div>
-            <div className="text-[11px] text-slate-700 font-medium mt-1.5">매출 - 지출 합계</div>
-          </CardContent>
-        </Card>
       </div>
 
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
+        {/* Performance Chart */}
+        <Card className="lg:col-span-3 border-none shadow-sm rounded-3xl bg-white overflow-hidden">
+          <CardHeader className="flex flex-row items-center justify-between border-b border-gray-50 pb-4">
+            <div>
+              <CardTitle className="text-lg font-light flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-indigo-500" />
+                매출 지표 추이
+              </CardTitle>
+              <CardDescription className="text-xs font-medium">실시간 매출 데이터 흐름을 분석합니다</CardDescription>
+            </div>
+            <div className="flex bg-slate-50 p-1 rounded-xl gap-1">
+              {(["daily", "weekly", "monthly", "yearly"] as const).map((p) => (
+                <Button 
+                  key={p}
+                  variant="ghost" 
+                  size="sm" 
+                  className={cn(
+                    "text-[10px] h-7 px-3 rounded-lg font-bold transition-all",
+                    chartPeriod === p ? "bg-white shadow-sm text-indigo-600" : "text-slate-400"
+                  )}
+                  onClick={() => setChartPeriod(p)}
+                >
+                  {p === 'daily' ? '일별' : p === 'weekly' ? '주간별' : p === 'monthly' ? '월별' : '년별'}
+                </Button>
+              ))}
+            </div>
+          </CardHeader>
+          <CardContent className="pt-6 h-[350px]">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+              <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis 
+                  dataKey="name" 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fontSize: 10, fill: '#94a3b8' }} 
+                  dy={10}
+                />
+                <YAxis 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fontSize: 10, fill: '#94a3b8' }}
+                  tickFormatter={(v) => `₩${(v / 10000).toFixed(0)}만`}
+                />
+                <Tooltip 
+                  cursor={{ fill: '#f8fafc' }}
+                  content={({ active, payload, label }) => {
+                    if (active && payload && payload.length) {
+                      return (
+                        <div className="bg-white/95 backdrop-blur-md shadow-xl rounded-2xl p-4 border border-slate-100 min-w-[150px]">
+                          <p className="text-xs font-bold text-slate-800 mb-2 border-b border-slate-50 pb-2">{label}</p>
+                          {payload.map((entry: any, i: number) => (
+                            <div key={i} className="flex items-center justify-between gap-4 mt-1.5">
+                              <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
+                                <span className="text-[11px] text-slate-600 font-medium">{entry.name}</span>
+                              </div>
+                              <span className="text-[11px] font-bold text-slate-900">₩{entry.value.toLocaleString()}</span>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+                <Bar dataKey="매출" fill="#4f46e5" radius={[6, 6, 0, 0]} barSize={chartPeriod === 'yearly' ? 40 : 24} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
         {/* Recent Orders List */}
         <Card className="lg:col-span-2 border-none shadow-sm rounded-3xl bg-white/80 overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between border-b border-gray-50 pb-4">

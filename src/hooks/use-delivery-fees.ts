@@ -75,9 +75,50 @@ export function useDeliveryFees() {
         }
     };
 
+    const importFees = async (feeList: Array<{ district: string, fee: number }>) => {
+        if (!tenantId) return;
+        try {
+            setLoading(true);
+            const { error } = await supabase
+                .from('delivery_fees_by_region')
+                .upsert(
+                    feeList.map(f => ({
+                        tenant_id: tenantId,
+                        region_name: f.district,
+                        fee: f.fee
+                    })), 
+                    { onConflict: 'tenant_id, region_name' }
+                );
+            
+            if (error) throw error;
+            toast.success('배송비 리스트가 성공적으로 적용되었습니다.');
+            await fetchFees();
+        } catch (err) {
+            console.error('Error importing delivery fees:', err);
+            toast.error('배송비 리스트 적용 중 오류가 발생했습니다.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const updateFee = async (id: string, fee: number) => {
+        try {
+            const { error } = await supabase
+                .from('delivery_fees_by_region')
+                .update({ fee })
+                .eq('id', id);
+            
+            if (error) throw error;
+            fetchFees();
+        } catch (err) {
+            console.error('Error updating delivery fee:', err);
+            toast.error('배송비 수정 중 오류가 발생했습니다.');
+        }
+    };
+
     useEffect(() => {
         fetchFees();
     }, [fetchFees]);
 
-    return { fees, loading, addFee, deleteFee, refresh: fetchFees };
+    return { fees, loading, addFee, deleteFee, updateFee, importFees, refresh: fetchFees };
 }
