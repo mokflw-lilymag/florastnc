@@ -1,63 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { createClient } from "@/utils/supabase/client";
+import { useEffect } from "react";
+import { useAuthStore } from "@/stores/auth-store";
 
+/**
+ * useAuth — Zustand 싱글톤 스토어 래퍼
+ * 
+ * 기존과 동일한 인터페이스 { user, profile, tenantId, isLoading }를 반환합니다.
+ * 내부적으로 Zustand 스토어를 사용하여 getUser()와 profiles 쿼리를
+ * 앱 전체에서 딱 1번만 호출합니다.
+ * 
+ * 이전: 각 hook이 useAuth()를 호출할 때마다 supabase.auth.getUser() 발생 (4~6번)
+ * 이후: 첫 호출 시 1번만 발생, 이후는 캐시된 상태 반환
+ */
 export function useAuth() {
-  const supabase = createClient();
-  const [user, setUser] = useState<any>(null);
-  const [profile, setProfile] = useState<any>(null);
-  const [tenantId, setTenantId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { user, profile, tenantId, isLoading, initialize } = useAuthStore();
 
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const { data: { user }, error } = await supabase.auth.getUser();
-        if (error || !user) {
-          setIsLoading(false);
-          return;
-        }
-        
-        setUser(user);
-
-        // Fetch user's profile with tenant plan
-        const { data, error: profileError } = await supabase
-          .from("profiles")
-          .select("*, tenants(plan, name, logo_url, contact_phone, address)")
-          .eq("id", user.id)
-          .maybeSingle();
-          
-        if (!profileError && data) {
-          // ✅ lilymag0301@gmail.com 사용자에 대해 하드코딩 권한 부여
-          if (user.email === 'lilymag0301@gmail.com') {
-            data.role = 'super_admin';
-            if (!data.tenants) data.tenants = { plan: 'pro', name: 'LilyMag Admin' };
-            else data.tenants.plan = 'pro';
-          }
-          setProfile(data);
-          setTenantId(data.tenant_id);
-        } else if (user.email === 'lilymag0301@gmail.com') {
-          // 프로필이 없는 경우에도 관리자 정보는 반환
-          const defaultTenantId = '50551f4c-0b6b-45ab-8db9-047ca3ff88de';
-          const mockProfile = {
-            role: 'super_admin',
-            tenant_id: defaultTenantId,
-            email: user.email,
-            tenants: { plan: 'pro', name: 'LilyMag Admin' }
-          };
-          setProfile(mockProfile);
-          setTenantId(defaultTenantId);
-        }
-      } catch (error) {
-        console.error("Error fetching user session:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchUser();
-  }, []);
+    initialize();
+  }, [initialize]);
 
   return { user, profile, tenantId, isLoading };
 }

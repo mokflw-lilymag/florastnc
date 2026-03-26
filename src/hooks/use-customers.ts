@@ -47,7 +47,10 @@ export function useCustomers(initialFetch = true) {
         .single();
 
       if (error) throw error;
-      return data.id;
+      
+      const newCustomer = data as Customer;
+      setCustomers(prev => [newCustomer, ...prev].sort((a, b) => a.name.localeCompare(b.name)));
+      return newCustomer.id;
     } catch (error) {
       console.error('Error adding customer:', error);
       return null;
@@ -58,13 +61,19 @@ export function useCustomers(initialFetch = true) {
     if (!tenantId) return false;
 
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('customers')
         .update(updates)
         .eq('id', id)
-        .eq('tenant_id', tenantId);
+        .eq('tenant_id', tenantId)
+        .select()
+        .single();
 
       if (error) throw error;
+      
+      if (data) {
+        setCustomers(prev => prev.map(c => c.id === id ? { ...c, ...(data as Customer) } : c));
+      }
       return true;
     } catch (error) {
       console.error('Error updating customer:', error);
@@ -83,6 +92,8 @@ export function useCustomers(initialFetch = true) {
         .eq('tenant_id', tenantId);
 
       if (error) throw error;
+      
+      setCustomers(prev => prev.filter(c => c.id !== id));
       return true;
     } catch (error) {
       console.error('Error deleting customer:', error);

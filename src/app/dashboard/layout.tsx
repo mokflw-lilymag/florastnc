@@ -1,7 +1,6 @@
 import { createClient } from "@/utils/supabase/server";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
-import { GlobalQuickNav } from "@/components/layout/global-quick-nav";
 import { redirect } from "next/navigation";
 
 import { QuickChat } from "@/components/chat/quick-chat";
@@ -52,9 +51,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
             logoUrl={logoUrl}
             storeName={storeName}
         />
-        
-        {/* Quick access for all modules */}
-        <GlobalQuickNav />
         
         <DashboardMain>
           {children}

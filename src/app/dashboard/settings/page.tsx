@@ -56,8 +56,10 @@ import { Separator } from "@/components/ui/separator";
 
 import { useDeliveryFees } from "@/hooks/use-delivery-fees";
 import { useSettings } from "@/hooks/use-settings";
+import { useRouter } from "next/navigation";
 
 export default function SettingsPage() {
+  const router = useRouter();
   const supabase = createClient();
   const { user, profile, tenantId, isLoading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -147,6 +149,7 @@ export default function SettingsPage() {
           .eq("id", tenantId)
           .maybeSingle();
         if (data) {
+          setStoreName(data.name || "");
           setPlan(data.plan || "free");
           setLogoUrl(data.logo_url || "");
           setCanReceiveOrders(data.can_receive_orders || false);
@@ -181,6 +184,7 @@ export default function SettingsPage() {
       // 2. Update system_settings table (other info)
       const updatedSettings = {
           ...settings,
+          siteName: storeName,
           representative: localRep,
           businessNumber: localBizNo,
           contactPhone: localPhone,
@@ -191,6 +195,7 @@ export default function SettingsPage() {
       if (!saved) throw new Error("Failed to save settings");
 
       toast.success("상점 정보가 저장되었습니다.");
+      router.refresh();
     } catch (err) {
       console.error(err);
       toast.error("저장 중 오류가 발생했습니다.");

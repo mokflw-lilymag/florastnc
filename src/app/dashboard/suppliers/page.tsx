@@ -359,7 +359,7 @@ export default function SuppliersPage() {
               <div className="col-span-3">
                 <Select
                   value={formData.supplier_type || "unassigned"}
-                  onValueChange={(val) => setFormData({ ...formData, supplier_type: val === "unassigned" ? "" : val })}
+                  onValueChange={(val: any) => setFormData({ ...formData, supplier_type: val === "unassigned" ? "" : (val || "") })}
                 >
                   <SelectTrigger className="border-gray-200">
                     <SelectValue placeholder="주요품목(유형) 선택" />

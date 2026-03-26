@@ -41,12 +41,12 @@ export function Header({ userEmail, isSuperAdmin, plan, logoUrl, storeName }: He
         {/* Mobile Sidebar Toggle */}
         <MobileSidebar isSuperAdmin={isSuperAdmin} plan={plan} logoUrl={logoUrl} storeName={storeName} />
         {storeName && !isSuperAdmin && (
-          <div className="flex items-center gap-3">
-            <span className="h-4 w-[1px] bg-slate-200 dark:bg-slate-700 mx-1 hidden md:block"></span>
+          <div className="flex items-center gap-2 md:gap-3">
+            <span className="h-4 w-[1px] bg-slate-200 dark:bg-slate-700 mx-1 block"></span>
             {logoUrl && (
-              <img src={logoUrl} alt="Logo" className="h-7 w-auto object-contain hidden md:block" />
+              <img src={logoUrl} alt="Logo" className="h-6 md:h-7 w-auto object-contain" />
             )}
-            <h1 className="text-sm font-bold text-slate-800 dark:text-slate-100 hidden md:block">
+            <h1 className="text-xs md:text-sm font-bold text-slate-800 dark:text-slate-100 max-w-[120px] md:max-w-none truncate">
               {storeName}
             </h1>
           </div>

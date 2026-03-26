@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect, useRef } from "react";
+import dynamic from "next/dynamic";
 import { 
   PlusCircle, Search, MoreHorizontal, MessageSquare, 
   Upload, Download, FileText, ShoppingCart, 
@@ -27,15 +28,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useOrders } from "@/hooks/use-orders";
 import { Order } from "@/types/order";
 import { parseDate } from "@/lib/date-utils";
-import { OrderDetailDialog } from "./components/order-detail-dialog";
-import { OrderEditDialog } from "./components/order-edit-dialog";
-import { MessagePrintDialog } from "./components/message-print-dialog";
-import { useRouter, useSearchParams } from "next/navigation";
+const OrderDetailDialog = dynamic(() => import("./components/order-detail-dialog").then(mod => mod.OrderDetailDialog), { ssr: false });
+const OrderEditDialog = dynamic(() => import("./components/order-edit-dialog").then(mod => mod.OrderEditDialog), { ssr: false });
+const MessagePrintDialog = dynamic(() => import("./components/message-print-dialog").then(mod => mod.MessagePrintDialog), { ssr: false });
+const OrderOutsourceDialog = dynamic(() => import("./components/order-outsource-dialog").then(mod => mod.OrderOutsourceDialog), { ssr: false });
+
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import Link from "next/link";
 import { useAuth } from "@/hooks/use-auth";
 import { AccessDenied } from "@/components/access-denied";
-
-import { OrderOutsourceDialog } from "./components/order-outsource-dialog";
-
 import { exportOrdersToExcel, prepareOrdersForGoogleSheet, exportToGoogleSheet } from "@/lib/excel-export";
 import { createClient } from "@/utils/supabase/client";
 import { useSettings } from "@/hooks/use-settings";
@@ -43,6 +44,7 @@ import { FileSpreadsheet, Settings as SettingsIcon } from "lucide-react";
 
 export default function OrdersPage() {
   const { profile, isLoading: authLoading, tenantId } = useAuth();
+  const pathname = usePathname();
   const plan = profile?.tenants?.plan || "free";
   const isSuperAdmin = profile?.role === 'super_admin';
   const supabase = createClient();
@@ -100,6 +102,25 @@ export default function OrdersPage() {
   
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [currentPeriod, setCurrentPeriod] = useState<string | null>(searchParams.get('period') || '2months');
+
+  useEffect(() => {
+    const periodFromUrl = searchParams.get('period') || '2months';
+    if (currentPeriod !== periodFromUrl) {
+      const current = new URLSearchParams(searchParams.toString());
+      current.set('period', currentPeriod || '2months');
+      const target = (pathname || "") + "?" + current.toString();
+      (router.push as any)(target);
+      
+      // Fetch data based on period
+      if (currentPeriod === '2months') fetchOrdersByRange(subDays(new Date(), 60), new Date());
+      else if (currentPeriod === '3months') fetchOrdersByRange(subDays(new Date(), 90), new Date());
+      else if (currentPeriod === '6months') fetchOrdersByRange(subDays(new Date(), 180), new Date());
+      else if (currentPeriod === '1year') fetchOrdersByRange(subDays(new Date(), 365), new Date());
+      else if (currentPeriod === 'all') fetchOrdersByRange(new Date(2000, 0, 1), new Date());
+    }
+  }, [currentPeriod, searchParams, pathname, router, fetchOrdersByRange]);
+
 
   const handleToggleSelectAll = () => {
     if (selectedOrderIds.length === filteredOrders.length) {
@@ -306,31 +327,41 @@ export default function OrdersPage() {
   return (
     <div className="space-y-8 p-8 bg-[#F8FAFC]">
       <PageHeader 
-        title="주문 현황" 
-        description="실시간 주문 관리 및 처리 상태를 확인하세요"
+        title="주문 관리" 
+        description="전체 주문 내역을 실시간으로 확인하고 관리할 수 있습니다."
       >
-        <div className="flex gap-3">
+        <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto mt-4 lg:mt-0 px-2 lg:px-0">
+          <Button 
+            variant="outline" 
+            onClick={() => router.push('/dashboard/orders/daily-settlement')}
+            className="flex-1 lg:flex-none h-11 lg:h-12 px-6 rounded-2xl border-2 border-slate-100 bg-white hover:bg-slate-50 font-bold transition-all shadow-sm gap-2 whitespace-nowrap"
+          >
+            <DollarSign className="h-4 w-4 text-emerald-500" />
+            <span>일일마감정산</span>
+          </Button>
           <Button 
             variant="outline" 
             onClick={() => exportOrdersToExcel(orders)}
-            className="rounded-2xl h-12 px-6 font-semibold border-2 border-slate-200 hover:bg-slate-50 text-slate-700 shadow-sm"
+            className="flex-1 lg:flex-none h-11 lg:h-12 px-6 rounded-2xl border-2 border-slate-100 bg-white hover:bg-slate-50 font-bold transition-all shadow-sm gap-2"
           >
-            <Download className="h-4 w-4 mr-2" /> 엑셀 다운로드
+            <Download className="h-4 w-4 text-slate-400" /> 
+            <span>엑셀</span>
           </Button>
           <Button 
             variant="outline" 
             onClick={handleGoogleSheetExport}
             disabled={isExporting}
-            className="rounded-2xl h-12 px-6 font-semibold border-2 border-emerald-100 bg-emerald-50/30 hover:bg-emerald-50 text-emerald-700 shadow-sm"
+            className="flex-1 lg:flex-none h-11 lg:h-12 px-6 rounded-2xl border-2 border-emerald-100 bg-emerald-50/20 hover:bg-emerald-50 text-emerald-700 font-bold transition-all shadow-sm gap-2"
           >
-            {isExporting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileSpreadsheet className="h-4 w-4 mr-2" />} 
-            구글 시트 전송
+            {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />} 
+            <span>구글 시트</span>
           </Button>
           <Button 
+            className="w-full lg:w-auto h-11 lg:h-12 px-8 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl shadow-lg shadow-slate-200 transition-all gap-2"
             onClick={() => router.push('/dashboard/orders/new')}
-            className="rounded-2xl h-12 px-8 font-bold bg-slate-900 hover:bg-black text-white shadow-xl shadow-slate-200 transition-all hover:scale-[1.02]"
           >
-            <PlusCircle className="h-5 w-5 mr-2" /> 새 주문 등록
+            <PlusCircle className="h-4 w-4" /> 
+            <span>새 주문 등록</span>
           </Button>
         </div>
       </PageHeader>
@@ -396,8 +427,8 @@ export default function OrdersPage() {
 
       <Card className="rounded-[40px] border-none shadow-2xl shadow-slate-200/50 bg-white overflow-hidden">
         <CardHeader className="p-8 border-b border-slate-50">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="flex items-center bg-slate-100/50 rounded-3xl px-6 py-2 border border-slate-200/50 w-full md:w-[450px]">
+          <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
+            <div className="flex items-center bg-slate-100/50 rounded-3xl px-6 py-2 border border-slate-200/50 w-full xl:w-[450px]">
               <Search className="h-5 w-5 text-slate-400 mr-3" />
               <input 
                 type="text" 
@@ -408,24 +439,12 @@ export default function OrdersPage() {
               />
             </div>
             
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-nowrap overflow-x-auto no-scrollbar items-center gap-3 w-full xl:w-auto pb-2 -mx-2 px-2 xl:pb-0 xl:mx-0 xl:px-0">
               <Select 
-                value={searchParams.get('period') || '2months'} 
-                onValueChange={(val) => {
-                  const current = new URLSearchParams(Array.from(searchParams.entries()));
-                  current.set('period', val);
-                  const pathname = typeof window !== 'undefined' ? window.location.pathname : '/dashboard/orders';
-                  router.push(`${pathname}?${current.toString()}`);
-                  
-                  // Fetch data based on period
-                  if (val === '2months') fetchOrdersByRange(subDays(new Date(), 60), new Date());
-                  else if (val === '3months') fetchOrdersByRange(subDays(new Date(), 90), new Date());
-                  else if (val === '6months') fetchOrdersByRange(subDays(new Date(), 180), new Date());
-                  else if (val === '1year') fetchOrdersByRange(subDays(new Date(), 365), new Date());
-                  else if (val === 'all') fetchOrdersByRange(new Date(2000, 0, 1), new Date());
-                }}
+                value={currentPeriod || '2months'} 
+                onValueChange={(val) => setCurrentPeriod(val)}
               >
-                <SelectTrigger className="w-[150px] rounded-2xl h-12 border-2 border-slate-100 bg-white font-bold text-slate-700 shadow-sm">
+                <SelectTrigger className="w-[130px] lg:w-[150px] flex-shrink-0 rounded-2xl h-11 lg:h-12 border-2 border-slate-100 bg-white font-bold text-slate-700 shadow-sm">
                    <div className="flex items-center gap-2">
                      <CalendarIcon className="h-4 w-4 text-slate-400" />
                      <SelectValue>{periodLabels[searchParams.get('period') || '2months']}</SelectValue>
@@ -439,7 +458,7 @@ export default function OrdersPage() {
               </Select>
               
               <Select value={selectedStatus} onValueChange={(val: any) => setSelectedStatus(val)}>
-                <SelectTrigger className="w-[140px] rounded-2xl h-12 border-2 border-slate-100 bg-white font-bold text-slate-700 shadow-sm">
+                <SelectTrigger className="w-[110px] lg:w-[140px] flex-shrink-0 rounded-2xl h-11 lg:h-12 border-2 border-slate-100 bg-white font-bold text-slate-700 shadow-sm">
                   <SelectValue>{statusLabels[selectedStatus]}</SelectValue>
                 </SelectTrigger>
                 <SelectContent className="rounded-2xl border-none shadow-2xl">
@@ -450,7 +469,7 @@ export default function OrdersPage() {
               </Select>
 
               <Select value={selectedReceiptType} onValueChange={(val: any) => setSelectedReceiptType(val)}>
-                <SelectTrigger className="w-[140px] rounded-2xl h-12 border-2 border-slate-100 bg-white font-bold text-slate-700 shadow-sm">
+                <SelectTrigger className="w-[110px] lg:w-[140px] flex-shrink-0 rounded-2xl h-11 lg:h-12 border-2 border-slate-100 bg-white font-bold text-slate-700 shadow-sm">
                   <SelectValue>{receiptTypeLabels[selectedReceiptType]}</SelectValue>
                 </SelectTrigger>
                 <SelectContent className="rounded-2xl border-none shadow-2xl">
@@ -462,17 +481,19 @@ export default function OrdersPage() {
 
               {selectedOrderIds.length > 0 && (
                 <DropdownMenu>
-                  <DropdownMenuTrigger className="inline-flex items-center justify-center rounded-2xl h-12 bg-amber-500 hover:bg-amber-600 text-white font-bold shadow-lg shadow-amber-100 gap-2 animate-in slide-in-from-top-2 px-6 transition-all">
-                    <SettingsIcon className="h-4 w-4" /> 일괄 작업 ({selectedOrderIds.length})
+                  <DropdownMenuTrigger className="inline-flex items-center justify-center rounded-2xl h-11 lg:h-12 bg-amber-500 hover:bg-amber-600 text-white font-bold shadow-lg shadow-amber-100 gap-2 animate-in slide-in-from-top-2 px-6 transition-all flex-shrink-0">
+                    <SettingsIcon className="h-4 w-4" /> 일괄 ({selectedOrderIds.length})
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent className="rounded-2xl border-none shadow-2xl min-w-[200px]">
-                    <DropdownMenuLabel className="font-bold text-xs text-slate-400 uppercase py-3 px-4">선택 작업</DropdownMenuLabel>
-                    <DropdownMenuItem onClick={() => handleBulkStatusChange('completed')} className="rounded-xl py-3 font-bold gap-2 focus:bg-emerald-50 focus:text-emerald-700">
-                      <CheckCircle2 className="h-4 w-4" /> 완료 처리
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleBulkStatusChange('processing')} className="rounded-xl py-3 font-bold gap-2">
-                      <RefreshCw className="h-4 w-4" /> 준비중 변경
-                    </DropdownMenuItem>
+                  <DropdownMenuContent className="rounded-2xl border-none shadow-2xl min-w-[200px] p-2">
+                    <DropdownMenuGroup>
+                      <DropdownMenuLabel className="font-bold text-xs text-slate-400 uppercase py-3 px-4">선택 작업</DropdownMenuLabel>
+                      <DropdownMenuItem onClick={() => handleBulkStatusChange('completed')} className="rounded-xl py-3 font-bold gap-2 focus:bg-emerald-50 focus:text-emerald-700">
+                        <CheckCircle2 className="h-4 w-4" /> 완료 처리
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleBulkStatusChange('processing')} className="rounded-xl py-3 font-bold gap-2 focus:bg-amber-50 focus:text-amber-700">
+                        <RefreshCw className="h-4 w-4" /> 준비중 변경
+                      </DropdownMenuItem>
+                    </DropdownMenuGroup>
                     <DropdownMenuSeparator className="bg-slate-50" />
                     <DropdownMenuItem onClick={() => setIsBulkDeleteDialogOpen(true)} className="rounded-xl py-3 font-bold gap-2 text-rose-600 focus:bg-rose-50 focus:text-rose-700">
                       <Trash2 className="h-4 w-4" /> 일괄 삭제
@@ -485,141 +506,293 @@ export default function OrdersPage() {
         </CardHeader>
         <CardContent className="p-0">
           {loading ? (
-            <div className="p-12 space-y-4">
+            <div className="p-8 space-y-4">
               {[...Array(5)].map((_, i) => (
-                <Skeleton key={i} className="h-16 w-full rounded-2xl bg-slate-50/50" />
+                <Skeleton key={i} className="h-24 w-full rounded-2xl bg-slate-50/50" />
               ))}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader className="bg-slate-50/50">
-                  <TableRow className="border-none hover:bg-transparent">
-                    <TableHead className="w-14 pl-8 py-5">
-                      <div className="flex items-center justify-center">
-                        <input 
-                          type="checkbox" 
-                          className="w-4 h-4 rounded-md border-2 border-slate-300 accent-slate-900 cursor-pointer"
-                          checked={selectedOrderIds.length === filteredOrders.length && filteredOrders.length > 0}
-                          onChange={handleToggleSelectAll}
-                        />
-                      </div>
-                    </TableHead>
-                    <TableHead className="text-slate-500 font-bold uppercase tracking-wider text-[11px] py-5">주문 정보</TableHead>
-                    <TableHead className="text-slate-500 font-bold uppercase tracking-wider text-[11px] py-5">주문자/수령인</TableHead>
-                    <TableHead className="text-slate-500 font-bold uppercase tracking-wider text-[11px] py-5">수령/배송일</TableHead>
-                    <TableHead className="text-slate-500 font-bold uppercase tracking-wider text-[11px] py-5">금액/결제</TableHead>
-                    <TableHead className="text-slate-500 font-bold uppercase tracking-wider text-[11px] py-5">상태</TableHead>
-                    <TableHead className="w-16 pr-8 py-5 text-right"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredOrders.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={7} className="h-96 text-center">
-                         <div className="flex flex-col items-center justify-center space-y-4 opacity-30">
-                           <ShoppingCart className="h-20 w-20 text-slate-300" />
-                           <p className="text-xl font-medium text-slate-500">검색 결과가 없습니다.</p>
-                         </div>
-                      </TableCell>
+            <>
+              {/* Desktop Table View */}
+              <div className="hidden lg:block overflow-x-auto no-scrollbar">
+                <Table className="min-w-[1000px] border-separate border-spacing-0">
+                  <TableHeader className="bg-slate-50/50">
+                    <TableRow className="border-none hover:bg-transparent">
+                      <TableHead className="w-14 pl-8 py-5">
+                        <div className="flex items-center justify-center">
+                          <input 
+                            type="checkbox" 
+                            className="w-4 h-4 rounded-md border-2 border-slate-300 accent-slate-900 cursor-pointer"
+                            checked={selectedOrderIds.length === filteredOrders.length && filteredOrders.length > 0}
+                            onChange={handleToggleSelectAll}
+                          />
+                        </div>
+                      </TableHead>
+                      <TableHead className="text-slate-500 font-bold uppercase tracking-wider text-[11px] py-5">주문 정보</TableHead>
+                      <TableHead className="text-slate-500 font-bold uppercase tracking-wider text-[11px] py-5">주문자/수령인</TableHead>
+                      <TableHead className="text-slate-500 font-bold uppercase tracking-wider text-[11px] py-5">수령/배송일</TableHead>
+                      <TableHead className="text-slate-500 font-bold uppercase tracking-wider text-[11px] py-5">금액/결제</TableHead>
+                      <TableHead className="text-slate-500 font-bold uppercase tracking-wider text-[11px] py-5">상태</TableHead>
+                      <TableHead className="w-16 pr-8 py-5 text-right"></TableHead>
                     </TableRow>
-                  ) : (
-                    filteredOrders.map((order) => (
-                      <TableRow 
-                        key={order.id}
-                        className="group border-b border-slate-50 hover:bg-slate-50/50 transition-colors cursor-pointer"
-                        onClick={() => handleOrderClick(order)}
-                      >
-                        <TableCell className="pl-8 py-6" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex items-center justify-center">
-                            <input 
-                              type="checkbox" 
-                              className="w-4 h-4 rounded-md border-2 border-slate-200 accent-slate-900 cursor-pointer"
-                              checked={selectedOrderIds.includes(order.id)}
-                              onChange={(e) => {
-                                e.stopPropagation();
-                                handleToggleSelectOne(order.id, e as any);
-                              }}
-                            />
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-6">
-                          <div className="space-y-1">
-                            <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">{order.order_number}</span>
-                            <div className="font-bold text-slate-900 truncate max-w-[200px]">{order.items[0]?.name || "기타 상품"} {order.items.length > 1 ? `외 ${order.items.length - 1}건` : ""}</div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-6">
-                           <div className="space-y-1">
-                             <div className="flex items-center gap-2">
-                               <span className="text-sm font-bold text-slate-900">{order.orderer.name}</span>
-                               <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-bold">Sender</span>
-                             </div>
-                             <div className="text-xs text-slate-400 font-medium">{order.delivery_info?.recipientName || order.pickup_info?.pickerName || "-"} (수령)</div>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredOrders.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="h-96 text-center">
+                           <div className="flex flex-col items-center justify-center space-y-4 opacity-30">
+                             <ShoppingCart className="h-20 w-20 text-slate-300" />
+                             <p className="text-xl font-medium text-slate-500">검색 결과가 없습니다.</p>
                            </div>
                         </TableCell>
-                        <TableCell className="py-6">
-                           <div className="space-y-1">
-                             <div className="flex items-center gap-1.5 text-sm font-bold text-slate-900">
-                               <CalendarIcon className="h-3.5 w-3.5 text-slate-400" />
-                               {format(parseISO(order.order_date), 'yyyy-MM-dd HH:mm')}
+                      </TableRow>
+                    ) : (
+                      filteredOrders.map((order) => (
+                        <TableRow 
+                          key={order.id}
+                          className="group border-b border-slate-50 hover:bg-slate-50/50 transition-colors"
+                        >
+                          <TableCell className="pl-8 py-6" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center justify-center">
+                              <input 
+                                type="checkbox" 
+                                className="w-4 h-4 rounded-md border-2 border-slate-200 accent-slate-900 cursor-pointer"
+                                checked={selectedOrderIds.includes(order.id)}
+                                onChange={(e) => {
+                                  e.stopPropagation();
+                                  handleToggleSelectOne(order.id, e as any);
+                                }}
+                              />
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-6 cursor-pointer" onClick={() => handleOrderClick(order)}>
+                            <div className="space-y-1">
+                              <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">{order.order_number}</span>
+                              <div className="font-bold text-slate-900 truncate max-w-[200px]">{order.items[0]?.name || "기타 상품"} {order.items.length > 1 ? `외 ${order.items.length - 1}건` : ""}</div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-6 cursor-pointer" onClick={() => handleOrderClick(order)}>
+                             <div className="space-y-1">
+                               <div className="flex items-center gap-2">
+                                 <span className="text-sm font-bold text-slate-900">{order.orderer.name}</span>
+                                 <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-bold">Sender</span>
+                               </div>
+                               <div className="text-xs text-slate-400 font-medium">{order.delivery_info?.recipientName || order.pickup_info?.pickerName || "-"} (수령)</div>
                              </div>
-                             <Badge variant="outline" className={cn(
-                               "text-[10px] border-none font-black px-0 uppercase tracking-tighter",
-                               order.receipt_type === 'delivery_reservation' ? "text-blue-500" : "text-amber-500"
+                          </TableCell>
+                          <TableCell className="py-6 cursor-pointer" onClick={() => handleOrderClick(order)}>
+                             <div className="space-y-1">
+                               <div className="flex items-center gap-1.5 text-sm font-bold text-slate-900">
+                                 <CalendarIcon className="h-3.5 w-3.5 text-slate-400" />
+                                 {format(parseISO(order.order_date), 'yyyy-MM-dd HH:mm')}
+                               </div>
+                               <Badge variant="outline" className={cn(
+                                 "text-[10px] border-none font-black px-0 uppercase tracking-tighter",
+                                 order.receipt_type === 'delivery_reservation' ? "text-blue-500" : "text-amber-500"
+                               )}>
+                                 {receiptTypeLabels[order.receipt_type] || order.receipt_type}
+                               </Badge>
+                             </div>
+                          </TableCell>
+                          <TableCell className="py-6">
+                            <div className="space-y-1">
+                              <div className="text-sm font-black text-slate-900">₩{order.summary.total.toLocaleString()}</div>
+                              <div className="text-[10px] font-bold text-slate-400 uppercase">{order.payment?.method || "-"}</div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-6">
+                             <Badge className={cn(
+                               "rounded-xl px-4 py-1.5 font-bold text-xs border-none shadow-sm",
+                               order.status === 'completed' ? "bg-emerald-50 text-emerald-600" : 
+                               order.status === 'processing' ? "bg-amber-50 text-amber-600" : 
+                               "bg-rose-50 text-rose-600"
                              )}>
-                               {receiptTypeLabels[order.receipt_type] || order.receipt_type}
+                               {statusLabels[order.status] || order.status}
                              </Badge>
-                           </div>
-                        </TableCell>
-                        <TableCell className="py-6">
-                          <div className="space-y-1">
-                            <div className="text-sm font-black text-slate-900">₩{order.summary.total.toLocaleString()}</div>
-                            <div className="text-[10px] font-bold text-slate-400 uppercase">{order.payment?.method || "-"}</div>
+                          </TableCell>
+                          <TableCell className="pr-8 py-6 text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger className="inline-flex items-center justify-center h-10 w-10 p-0 rounded-2xl hover:bg-white hover:shadow-md transition-all text-slate-400">
+                                <MoreHorizontal className="h-5 w-5" />
+                              </DropdownMenuTrigger>
+                               <DropdownMenuContent align="end" className="rounded-3xl border-none shadow-2xl min-w-[180px] p-2">
+                                <DropdownMenuGroup>
+                                  <DropdownMenuLabel className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">주문 관리</DropdownMenuLabel>
+                                  <DropdownMenuItem className="rounded-xl gap-2 font-bold py-3 px-4 focus:bg-slate-50" onClick={(e) => handleOrderClick(order)}>
+                                    <ClipboardList className="h-4 w-4" /> 상세 보기
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem className="rounded-xl gap-2 font-bold py-3 px-4 focus:bg-slate-50" onClick={(e) => handleEditClick(order, e)}>
+                                    <PlusCircle className="h-4 w-4" /> 주문 수정
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem className="rounded-xl gap-2 font-bold py-3 px-4 focus:bg-slate-50" onClick={(e) => handlePrintClick(order, e)}>
+                                    <Printer className="h-4 w-4" /> 리본/카드 출력
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem className="rounded-xl gap-2 font-bold py-3 px-4 focus:bg-slate-50" onClick={(e) => handleOutsourceClick(order, e)}>
+                                    <Share2 className="h-4 w-4" /> 아웃소싱 전송
+                                  </DropdownMenuItem>
+                                </DropdownMenuGroup>
+                                <DropdownMenuSeparator className="mx-1 bg-gray-50" />
+                                <DropdownMenuItem className="text-rose-600 rounded-xl gap-2 font-bold py-3 px-4 hover:bg-rose-50 focus:bg-rose-50 focus:text-rose-700" onClick={() => handleDeleteClick(order.id)}>
+                                  <Trash2 className="h-4 w-4" /> 주문 내역 삭제
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile Card List View */}
+              <div className="lg:hidden space-y-4 p-4 pb-20">
+                {filteredOrders.length > 0 && (
+                  <div className="flex justify-between items-center px-2 mb-2">
+                    <span className="text-xs font-bold text-slate-400">Total {filteredOrders.length}건</span>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="text-xs font-bold text-indigo-600 hover:bg-indigo-50 rounded-xl h-8"
+                      onClick={handleToggleSelectAll}
+                    >
+                      {selectedOrderIds.length === filteredOrders.length ? "선택 해제" : "전체 선택"}
+                    </Button>
+                  </div>
+                )}
+                {filteredOrders.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center space-y-4 opacity-30 py-20">
+                    <ShoppingCart className="h-16 w-16 text-slate-300" />
+                    <p className="font-medium text-slate-500">검색 결과가 없습니다.</p>
+                  </div>
+                ) : (
+                  filteredOrders.map((order) => (
+                    <Card 
+                      key={order.id} 
+                      className={cn(
+                        "rounded-2xl border-none shadow-sm shadow-slate-200/50 overflow-hidden active:scale-[0.98] transition-all relative",
+                        selectedOrderIds.includes(order.id) ? "bg-indigo-50 border-2 border-indigo-200 ring-2 ring-indigo-100" : "bg-white"
+                      )}
+                    >
+                      <CardContent className="p-4 cursor-pointer" onClick={() => handleOrderClick(order)}>
+                        <div className="flex justify-between items-start mb-3 gap-3">
+                          <div className="flex items-center gap-3">
+                            <div onClick={(e) => e.stopPropagation()} className="flex items-center justify-center">
+                              <input 
+                                type="checkbox" 
+                                className="w-5 h-5 rounded-lg border-2 border-slate-200 accent-slate-900 cursor-pointer"
+                                checked={selectedOrderIds.includes(order.id)}
+                                onChange={(e) => {
+                                  e.stopPropagation();
+                                  handleToggleSelectOne(order.id, e as any);
+                                }}
+                              />
+                            </div>
+                            <div className="space-y-0.5">
+                              <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">{order.order_number}</span>
+                              <div className="font-bold text-slate-900">{order.items[0]?.name || "기타 상품"} {order.items.length > 1 ? `외 ${order.items.length - 1}건` : ""}</div>
+                            </div>
                           </div>
-                        </TableCell>
-                        <TableCell className="py-6">
-                           <Badge className={cn(
-                             "rounded-xl px-4 py-1.5 font-bold text-xs border-none shadow-sm",
-                             order.status === 'completed' ? "bg-emerald-50 text-emerald-600" : 
-                             order.status === 'processing' ? "bg-amber-50 text-amber-600" : 
-                             "bg-rose-50 text-rose-600"
-                           )}>
-                             {statusLabels[order.status] || order.status}
-                           </Badge>
-                        </TableCell>
-                        <TableCell className="pr-8 py-6 text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger className="inline-flex items-center justify-center h-10 w-10 p-0 rounded-2xl hover:bg-white hover:shadow-md transition-all text-slate-400">
-                              <MoreHorizontal className="h-5 w-5" />
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="rounded-3xl border-none shadow-2xl min-w-[180px] p-2">
-                              <DropdownMenuLabel className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">주문 관리</DropdownMenuLabel>
-                              <DropdownMenuItem className="rounded-xl gap-2 font-bold py-3 px-4 focus:bg-slate-50" onClick={(e) => handleOrderClick(order)}>
+                          <Badge className={cn(
+                            "rounded-full px-3 py-0.5 font-bold text-[10px] border-none shadow-none",
+                            order.status === 'completed' ? "bg-emerald-50 text-emerald-600" : 
+                            order.status === 'processing' ? "bg-amber-50 text-amber-600" : 
+                            "bg-rose-50 text-rose-600"
+                          )}>
+                            {statusLabels[order.status] || order.status}
+                          </Badge>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4 mb-4">
+                          <div className="space-y-1">
+                            <div className="text-[10px] font-bold text-slate-400 uppercase">주문자/수령인</div>
+                            <div className="text-xs font-bold text-slate-900">{order.orderer.name}</div>
+                            <div className="text-[10px] text-slate-500">{order.delivery_info?.recipientName || order.pickup_info?.pickerName || "-"}님</div>
+                          </div>
+                          <div className="space-y-1">
+                            <div className="text-[10px] font-bold text-slate-400 uppercase">금액</div>
+                            <div className="text-xs font-black text-slate-900">₩{order.summary.total.toLocaleString()}</div>
+                            <div className="text-[10px] text-slate-500 uppercase">{order.payment?.method || "-"}</div>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-between items-center pt-3 border-t border-slate-50">
+                          <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
+                            <CalendarIcon className="h-3 w-3" />
+                            {format(parseISO(order.order_date), 'MM/dd HH:mm')}
+                            <span className="mx-1">•</span>
+                            <span className={cn(
+                              order.receipt_type === 'delivery_reservation' ? "text-blue-500" : "text-amber-500"
+                            )}>
+                              {receiptTypeLabels[order.receipt_type] || order.receipt_type}
+                            </span>
+                          </div>
+                          
+                          <div onClick={(e) => e.stopPropagation()} className="relative z-10">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger className="inline-flex items-center justify-center h-8 w-8 p-0 rounded-lg hover:bg-slate-50 text-slate-400">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="rounded-2xl border-none shadow-2xl min-w-[160px] p-1.5">
+                              <DropdownMenuItem className="rounded-xl gap-2 font-bold py-2.5 px-3 focus:bg-slate-50" onClick={(e) => { e.stopPropagation(); handleOrderClick(order); }}>
                                 <ClipboardList className="h-4 w-4" /> 상세 보기
                               </DropdownMenuItem>
-                              <DropdownMenuItem className="rounded-xl gap-2 font-bold py-3 px-4 focus:bg-slate-50" onClick={(e) => handleEditClick(order, e)}>
-                                <PlusCircle className="h-4 w-4" /> 주문 수정
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="rounded-xl gap-2 font-bold py-3 px-4 focus:bg-slate-50" onClick={(e) => handlePrintClick(order, e)}>
-                                <Printer className="h-4 w-4" /> 리본/카드 출력
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="rounded-xl gap-2 font-bold py-3 px-4 focus:bg-slate-50" onClick={(e) => handleOutsourceClick(order, e)}>
-                                <Share2 className="h-4 w-4" /> 아웃소싱 전송
+                              <DropdownMenuItem className="rounded-xl gap-2 font-bold py-2.5 px-3 focus:bg-slate-50" onClick={(e) => { e.stopPropagation(); handleEditClick(order, e as any); }}>
+                                <PlusCircle className="h-4 w-4" /> 수정
                               </DropdownMenuItem>
                               <DropdownMenuSeparator className="mx-1 bg-gray-50" />
-                              <DropdownMenuItem className="text-rose-600 rounded-xl gap-2 font-bold py-3 px-4 hover:bg-rose-50 focus:bg-rose-50 focus:text-rose-700" onClick={() => handleDeleteClick(order.id)}>
-                                <Trash2 className="h-4 w-4" /> 주문 내역 삭제
+                              <DropdownMenuItem className="text-rose-600 rounded-xl gap-2 font-bold py-2.5 px-3 hover:bg-rose-50 focus:bg-rose-50 focus:text-rose-700" onClick={(e) => { e.stopPropagation(); handleDeleteClick(order.id); }}>
+                                <Trash2 className="h-4 w-4" /> 삭제
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                    </Card>
+                  ))
+                )}
+              </div>
+
+              {/* Mobile Bulk Action Bar */}
+              {selectedOrderIds.length > 0 && (
+                <div className="lg:hidden fixed bottom-6 left-4 right-4 z-50 animate-in fade-in slide-in-from-bottom-8 duration-300">
+                  <div className="bg-slate-900 text-white rounded-3xl shadow-2xl p-4 flex items-center justify-between border border-slate-800">
+                    <div className="flex flex-col px-2">
+                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Selected</span>
+                       <span className="text-sm font-bold">{selectedOrderIds.length}건 선 택 중</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        className="h-10 rounded-xl hover:bg-slate-800 text-slate-400"
+                        onClick={() => setSelectedOrderIds([])}
+                      >
+                        취소
+                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger className="h-10 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl px-4 font-bold text-xs flex items-center gap-2 shadow-lg shadow-indigo-500/20">
+                          상태 변경
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="rounded-2xl border-none shadow-2xl min-w-[160px] p-1.5 mb-2">
+                          <DropdownMenuItem className="rounded-xl gap-2 font-bold py-2.5 px-3" onClick={() => handleBulkStatusChange('completed')}>
+                            <CheckCircle2 className="h-4 w-4 text-emerald-500" /> 완료로 변경
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="rounded-xl gap-2 font-bold py-2.5 px-3" onClick={() => handleBulkStatusChange('processing')}>
+                            <Loader2 className="h-4 w-4 text-amber-500" /> 처리중으로 변경
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator className="mx-1 bg-gray-50" />
+                          <DropdownMenuItem className="text-rose-600 rounded-xl gap-2 font-bold py-2.5 px-3" onClick={() => setIsBulkDeleteDialogOpen(true)}>
+                            <Trash2 className="h-4 w-4" /> 일괄 삭제
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>

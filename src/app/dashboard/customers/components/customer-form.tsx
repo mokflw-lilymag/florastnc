@@ -40,6 +40,7 @@ export function CustomerForm({ isOpen, onOpenChange, onSubmit, customer }: Custo
     email: "",
     address: "",
     grade: "일반",
+    points: 0,
     memo: ""
   });
 
@@ -54,6 +55,7 @@ export function CustomerForm({ isOpen, onOpenChange, onSubmit, customer }: Custo
         email: customer.email || "",
         address: customer.address || "",
         grade: customer.grade || "일반",
+        points: customer.points || 0,
         memo: customer.memo || ""
       });
     } else {
@@ -66,6 +68,7 @@ export function CustomerForm({ isOpen, onOpenChange, onSubmit, customer }: Custo
         email: "",
         address: "",
         grade: "일반",
+        points: 0,
         memo: ""
       });
     }
@@ -190,6 +193,16 @@ export function CustomerForm({ isOpen, onOpenChange, onSubmit, customer }: Custo
                     <SelectItem value="GOLD">GOLD</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="customer-points" className="text-slate-700 font-medium">포인트 (선입금 잔액)</Label>
+                <Input 
+                  id="customer-points"
+                  type="number"
+                  value={formData.points === undefined ? "" : formData.points} 
+                  onChange={e => setFormData(prev => ({ ...prev, points: e.target.value ? parseInt(e.target.value) : 0 }))}
+                  placeholder="예: 50000"
+                />
               </div>
             </div>
 

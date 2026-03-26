@@ -19,7 +19,7 @@ export function useOrders(initialFetch = true) {
     days?: number;
     start?: Date;
     end?: Date;
-  }>({ type: 'default', days: 60 });
+  }>({ type: 'default', days: 30 });
 
   const mapRowToOrder = useCallback((row: any): Order => ({
     id: row.id,
@@ -44,7 +44,7 @@ export function useOrders(initialFetch = true) {
     completionPhotoUrl: row.completionphotourl
   }), []);
 
-  const fetchOrders = useCallback(async (days: number = 60) => {
+  const fetchOrders = useCallback(async (days: number = 30) => {
     if (!tenantId) return;
 
     try {
@@ -151,16 +151,31 @@ export function useOrders(initialFetch = true) {
         console.error('Stock update failed:', stockErr);
       }
 
-      // --- [NEW] UPDATE CUSTOMER POINTS ---
-      if (orderData.orderer.id) {
+      // --- [NEW] UPDATE CUSTOMER STATS & POINTS ---
+      if (orderData.orderer.id && orderData.orderer.id !== "") {
         try {
-          const { data: c } = await supabase.from('customers').select('points').eq('id', orderData.orderer.id).single();
+          // Fetch current stats and points in one go
+          const { data: c } = await supabase
+            .from('customers')
+            .select('points, total_spent, order_count')
+            .eq('id', orderData.orderer.id)
+            .single();
+
           if (c) {
              const newPoints = (c.points || 0) + (orderData.summary.pointsEarned || 0) - (orderData.summary.pointsUsed || 0);
-             await supabase.from('customers').update({ points: Math.max(0, newPoints) }).eq('id', orderData.orderer.id);
+             const newTotalSpent = (Number(c.total_spent) || 0) + (orderData.summary.total || 0);
+             const newOrderCount = (c.order_count || 0) + 1;
+             const newLastOrderDate = orderData.order_date || new Date().toISOString();
+
+             await supabase.from('customers').update({ 
+               points: Math.max(0, newPoints),
+               total_spent: newTotalSpent,
+               order_count: newOrderCount,
+               last_order_date: newLastOrderDate
+             }).eq('id', orderData.orderer.id);
           }
-        } catch (pointErr) {
-          console.error('Point update failed:', pointErr);
+        } catch (statErr) {
+          console.error('Customer data update failed:', statErr);
         }
       }
 

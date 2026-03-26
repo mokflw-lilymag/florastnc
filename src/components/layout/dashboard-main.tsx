@@ -12,7 +12,7 @@ export function DashboardMain({ children }: { children: React.ReactNode }) {
   return (
     <main 
       className={cn(
-        "flex-1 overflow-y-auto bg-zinc-50 dark:bg-zinc-950/50 relative z-0 transition-all duration-300",
+        "flex-1 overflow-y-auto bg-zinc-50 dark:bg-zinc-950/50 relative z-0 transition-all duration-300 pb-24 lg:pb-0",
         isPrinterPage ? "p-0" : "p-4 md:p-6 lg:p-8"
       )}
     >

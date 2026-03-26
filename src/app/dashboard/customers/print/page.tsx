@@ -9,23 +9,110 @@ import { createClient } from "@/utils/supabase/client";
 function PrintContent() {
   const searchParams = useSearchParams();
   const supabase = createClient();
-  const [orders, setOrders] = useState<any[]>([]);
+  const [items, setItems] = useState<any[]>([]);
   const [recipient, setRecipient] = useState("");
+  const [recipientCompany, setRecipientCompany] = useState("");
+  const [recipientContact, setRecipientContact] = useState("");
+  const [recipientEmail, setRecipientEmail] = useState("");
   const [type, setType] = useState<string | null>("");
   const [loading, setLoading] = useState(true);
+  const [useVat, setUseVat] = useState(false);
+  const [businessInfo, setBusinessInfo] = useState({
+    name: "FloraSync Florist Group",
+    representative: "김미화",
+    address: "서울특별시 서초구 꽃시장길 12",
+    contact: "02-1234-5678",
+    businessNumber: "123-45-67890"
+  });
 
   useEffect(() => {
     const ids = searchParams.get("ids")?.split(",") || [];
+    const manualItemsBase64 = searchParams.get("manual_items");
     const recipientParam = searchParams.get("recipient") || "";
+    const companyParam = searchParams.get("company") || "";
+    const contactParam = searchParams.get("contact") || "";
+    const emailParam = searchParams.get("email") || "";
     const typeParam = searchParams.get("type");
+    const vatParam = searchParams.get("use_vat") === "true";
     
     setRecipient(recipientParam);
+    setRecipientCompany(companyParam);
+    setRecipientContact(contactParam);
+    setRecipientEmail(emailParam);
     setType(typeParam);
+    setUseVat(vatParam);
 
-    if (ids.length > 0) {
-      fetchOrders(ids);
-    }
+    const init = async () => {
+      try {
+        if (manualItemsBase64) {
+             const decoded = JSON.parse(decodeURIComponent(atob(manualItemsBase64)));
+             setItems(decoded.map((item: any) => ({
+                 order_date: new Date().toISOString(),
+                 items: [{ name: item.name, quantity: item.quantity, price: item.price }],
+                 summary: { total: item.quantity * item.price }
+             })));
+        } else if (ids.length > 0) {
+          await fetchOrders(ids);
+        }
+        
+        await fetchBusinessInfo();
+
+        // Auto-trigger print
+        setTimeout(() => {
+          window.print();
+        }, 800);
+      } catch (err) {
+        console.error("Print init error:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    init();
   }, [searchParams]);
+
+  const fetchBusinessInfo = async () => {
+     try {
+       const { data: { user } } = await supabase.auth.getUser();
+       if (!user) return;
+       
+       const { data: profile } = await supabase
+         .from('profiles')
+         .select('tenant_id')
+         .eq('id', user.id)
+         .single();
+       
+       if (profile?.tenant_id) {
+         // Fetch from tenants for the store name
+         const { data: tenant } = await supabase
+           .from('tenants')
+           .select('name')
+           .eq('id', profile.tenant_id)
+           .single();
+
+         const { data: settings } = await supabase
+           .from('system_settings')
+           .select('data')
+           .eq('id', `settings_${profile.tenant_id}`)
+           .single();
+         
+         if (settings?.data) {
+           const d = settings.data;
+           setBusinessInfo({
+             name: tenant?.name || d.siteName || "FloraSync Florist Group",
+             representative: d.representative || "김미화",
+             address: d.address || "서울특별시 서초구 꽃시장길 12",
+             contact: d.contactPhone || "02-1234-5678",
+             businessNumber: d.businessNumber || "123-45-67890"
+           });
+         } else if (tenant?.name) {
+           setBusinessInfo(prev => ({ ...prev, name: tenant.name }));
+         }
+       }
+     } catch (err) {
+       console.error("Error fetching business info:", err);
+     }
+  };
 
   const fetchOrders = async (ids: string[]) => {
     try {
@@ -36,64 +123,130 @@ function PrintContent() {
         .order("order_date", { ascending: true });
 
       if (error) throw error;
-      setOrders(data || []);
+      setItems(data || []);
       
-      // Auto-trigger print after a short delay to ensure rendering
-      setTimeout(() => {
-        window.print();
-      }, 500);
+      // If we have orders, try simple logic to get customer info for recipient header if not in params
+      if (data && data[0] && !recipient) {
+         const customerId = data[0].customer_id;
+         if (customerId) {
+            const { data: customer } = await supabase.from('customers').select('*').eq('id', customerId).single();
+            if (customer) {
+               setRecipient(customer.name);
+               setRecipientCompany(customer.company_name || "");
+               setRecipientContact(customer.contact || "");
+               setRecipientEmail(customer.email || "");
+            }
+         }
+      }
     } catch (err) {
       console.error("Error fetching print data:", err);
-    } finally {
-      setLoading(false);
     }
   };
 
   if (loading) return <div className="p-10 text-center">인쇄 대기 중...</div>;
 
-  const totalAmount = orders.reduce((sum, o) => sum + (o.summary?.total || 0), 0);
+  const flattenedItems = items.flatMap(order => {
+    const products = (order.items || []).map((item: any) => ({
+      date: order.order_date,
+      name: item.name,
+      quantity: item.quantity,
+      price: item.price,
+      amount: item.price * item.quantity,
+      order_number: order.order_number
+    }));
+
+    if (order.summary?.deliveryFee > 0) {
+      products.push({
+        date: order.order_date,
+        name: "배송비",
+        quantity: 1,
+        price: order.summary.deliveryFee,
+        amount: order.summary.deliveryFee,
+        order_number: order.order_number
+      });
+    }
+
+    if (order.summary?.discountAmount > 0) {
+      products.push({
+        date: order.order_date,
+        name: "할인",
+        quantity: 1,
+        price: -order.summary.discountAmount,
+        amount: -order.summary.discountAmount,
+        order_number: order.order_number
+      });
+    }
+
+    return products;
+  });
+
+  const subtotal = flattenedItems.reduce((sum, item) => sum + item.amount, 0);
+  const vat = useVat ? Math.floor(subtotal * 0.1) : 0;
+  const totalAmount = subtotal + vat;
 
   return (
     <div className="p-8 max-w-[800px] mx-auto bg-white text-slate-900 font-sans">
       <div className="flex justify-between items-start border-b-2 border-slate-900 pb-4 mb-8">
         <div>
           <h1 className="text-3xl font-black tracking-tighter mb-1">
-            {type === 'statement' ? '거 래 명 세 서' : '간 이 영 수 증'}
+            {type === 'statement' ? '거 래 명 세 서' : type === 'estimate' ? '견 적 서' : '간 이 영 수 증'}
           </h1>
-          <p className="text-sm font-bold text-slate-500 italic">FloraSync Integrated ERP System</p>
         </div>
         <div className="text-right">
-          <p className="text-sm font-bold uppercase tracking-widest text-slate-400">발행일자</p>
-          <p className="text-lg font-black">{format(new Date(), 'yyyy년 MM월 dd일')}</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">발행일자</p>
+          <p className="text-sm font-black">{format(new Date(), 'yyyy년 MM월 dd일')}</p>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-12 mb-10">
         <div className="space-y-4">
-          <div>
-            <span className="text-[10px] font-black uppercase text-slate-400 block mb-1">귀하 (수신)</span>
-            <div className="text-xl font-black border-b-2 border-slate-200 pb-2 flex items-baseline gap-2">
-              {recipient} <span className="text-xs font-medium text-slate-500">님 귀하</span>
+          <div className="space-y-1">
+            <span className="text-[10px] font-black uppercase text-slate-400 block">귀하 (수신)</span>
+            <div className="text-xl font-black border-b-2 border-slate-200 pb-2 mb-2">
+              {recipientCompany && <p className="mb-0.5">{recipientCompany}</p>}
+              <div className="flex items-baseline gap-2">
+                 <span className="text-sm font-bold text-slate-500">담당자:</span>
+                 {recipient} <span className="text-xs font-medium text-slate-500">님 귀하</span>
+              </div>
             </div>
+            {(recipientContact || recipientEmail) && (
+              <div className="flex flex-col gap-0.5 text-[10px] font-medium text-slate-400">
+                {recipientContact && <p>연락처: {recipientContact}</p>}
+                {recipientEmail && <p>이메일: {recipientEmail}</p>}
+              </div>
+            )}
           </div>
-          <p className="text-xs leading-relaxed text-slate-500">
-            아래와 같이 거래 내역을 명세하오니 확인하여 주시기 바랍니다.<br />
+          <p className="text-xs leading-relaxed text-slate-500 italic font-bold">
+            {type === 'estimate' 
+              ? '아래와 같이 품목 및 규격에 따른 견적을 제출하오니 검토하여 주시기 바랍니다.'
+              : '아래와 같이 거래 내역을 명세하오니 확인하여 주시기 바랍니다.'
+            }<br />
             항상 저희를 믿고 거래해 주셔서 깊은 감사를 드립니다.
           </p>
         </div>
         
-        <div className="border-2 border-slate-900 p-4 rounded-sm relative overflow-hidden">
+        <div className="border-2 border-slate-900 p-4 rounded-sm relative overflow-hidden flex flex-col justify-between">
            {/* Mock Stamp */}
            <div className="absolute top-2 right-2 w-12 h-12 border-4 border-red-500/30 rounded-full flex items-center justify-center text-red-500/30 font-black text-[10px] rotate-12 -z-0">
              (인)
            </div>
            
-           <div className="space-y-2 relative z-10">
+           <div className="space-y-2 relative z-10 w-full">
               <span className="text-[10px] font-black uppercase text-slate-400 block">공급자 (발행)</span>
-              <p className="text-sm font-black">FloraSync Florist Group</p>
-              <p className="text-[10px] text-slate-600">대표이사: 김미화</p>
-              <p className="text-[10px] text-slate-600">사업장: 서울특별시 서초구 꽃시장길 12</p>
-              <p className="text-[10px] text-slate-600">연락처: 02-1234-5678</p>
+              <p className="text-sm font-black">{businessInfo.name}</p>
+              <p className="text-[10px] text-slate-600 flex gap-2">
+                <span className="text-slate-400 w-14 shrink-0">등록번호</span> {businessInfo.businessNumber}
+              </p>
+              <p className="text-[10px] text-slate-600 flex gap-2">
+                <span className="text-slate-400 w-14 shrink-0">대 표</span> {businessInfo.representative}
+              </p>
+              <div className="text-[10px] text-slate-600 flex gap-2">
+                <span className="text-slate-400 w-14 shrink-0">사업장</span> 
+                <span className="leading-tight break-keep">{businessInfo.address}</span>
+              </div>
+              <p className="text-[10px] text-slate-600 flex gap-2">
+                <span className="text-slate-400 w-14 shrink-0">연락처</span> {businessInfo.contact}
+              </p>
            </div>
         </div>
       </div>
@@ -109,24 +262,36 @@ function PrintContent() {
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-200">
-          {orders.map((order) => (
-            <tr key={order.id} className="text-xs font-medium">
-              <td className="p-3 text-slate-500">{format(new Date(order.order_date), 'MM-dd')}</td>
+          {flattenedItems.map((item, idx) => (
+            <tr key={idx} className="text-xs font-medium">
+              <td className="p-3 text-slate-500">{format(new Date(item.date), 'MM-dd')}</td>
               <td className="p-3">
-                <div className="font-bold text-slate-900">
-                   {order.items?.map((i: any) => i.name).join(', ')}
-                </div>
-                <div className="text-[10px] text-slate-400 mt-0.5 font-mono">#{order.order_number}</div>
+                <div className="font-bold text-slate-900">{item.name}</div>
+                {item.order_number && <div className="text-[10px] text-slate-400 mt-0.5 font-mono">#{item.order_number}</div>}
               </td>
-              <td className="p-3 text-center">{order.items?.reduce((s: number, i: any) => s + (i.quantity || 1), 0)}</td>
-              <td className="p-3 text-right">₩{((order.summary?.total || 0) / (order.items?.reduce((s: number, i: any) => s + (i.quantity || 1), 0) || 1)).toLocaleString()}</td>
-              <td className="p-3 text-right font-bold">₩{(order.summary?.total || 0).toLocaleString()}</td>
+              <td className="p-3 text-center">{item.quantity}</td>
+              <td className="p-3 text-right">₩{item.price.toLocaleString()}</td>
+              <td className="p-3 text-right font-bold">₩{item.amount.toLocaleString()}</td>
             </tr>
           ))}
         </tbody>
         <tfoot>
+          {useVat && (
+            <>
+              <tr className="bg-slate-50 text-[11px] font-bold">
+                <td colSpan={3} className="p-2 text-center border-t border-slate-200">공 급 가 액</td>
+                <td colSpan={2} className="p-2 text-right border-t border-slate-200">₩{subtotal.toLocaleString()}</td>
+              </tr>
+              <tr className="bg-slate-50 text-[11px] font-bold">
+                <td colSpan={3} className="p-2 text-center border-t border-slate-200">부 가 세 (10%)</td>
+                <td colSpan={2} className="p-2 text-right border-t border-slate-200">₩{vat.toLocaleString()}</td>
+              </tr>
+            </>
+          )}
           <tr className="bg-slate-50 font-black border-t-2 border-slate-900">
-            <td colSpan={3} className="p-4 text-center text-lg">합 계 금 액</td>
+            <td colSpan={3} className="p-4 text-center text-lg uppercase tracking-widest">
+              합 계 금 액 {!useVat && <span className="text-[10px] font-medium text-slate-400 ml-2">(부가세 면세)</span>}
+            </td>
             <td colSpan={2} className="p-4 text-right text-2xl italic tracking-tighter">
               ₩{totalAmount.toLocaleString()}
             </td>
@@ -134,9 +299,8 @@ function PrintContent() {
         </tfoot>
       </table>
 
-      <div className="grid grid-cols-2 gap-8 text-[10px] text-slate-400 border-t pt-4 italic">
-        <p>* 본 명세서는 시스템에서 자동 발행되었으며, 실물 영수증과 동일한 효력을 가집니다.</p>
-        <p className="text-right">Powered by FloraSync ERP v1.0</p>
+      <div className="border-t pt-4 italic">
+        {/* Footnotes removed as requested */}
       </div>
 
       <style jsx global>{`

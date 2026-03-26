@@ -3,11 +3,18 @@ import { Inter, Noto_Sans_KR } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const inter = Inter({ 
+  subsets: ["latin"], 
+  variable: "--font-inter",
+  display: "swap",
+  preload: true,
+});
 const noto = Noto_Sans_KR({ 
   subsets: ["latin"], 
-  weight: ["300", "400", "500", "700", "900"],
-  variable: "--font-noto-sans"
+  weight: ["400", "700"],
+  variable: "--font-noto-sans",
+  display: "swap",
+  preload: true,
 });
 
 export const metadata: Metadata = {
@@ -23,7 +30,16 @@ export default function RootLayout({
   return (
     <html lang="ko" className={`${inter.variable} ${noto.variable}`}>
       <head>
-        <link rel="stylesheet" as="style" crossOrigin="anonymous" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+        {/* Pretendard: preload로 비차단 로딩 */}
+        <link 
+          rel="preload" 
+          as="style" 
+          href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" 
+        />
+        <link 
+          rel="stylesheet" 
+          href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
+        />
       </head>
       <body className="font-pretendard antialiased selection:bg-primary/10 selection:text-primary">
         {children}
@@ -32,3 +48,4 @@ export default function RootLayout({
     </html>
   );
 }
+

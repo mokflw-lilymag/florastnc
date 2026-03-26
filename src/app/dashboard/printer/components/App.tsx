@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { loadDecoFonts } from '@/lib/load-deco-fonts';
 import { toPng } from 'html-to-image';
 import { LogOut } from 'lucide-react';
 import { 
@@ -743,6 +744,9 @@ import type { Session } from '@supabase/supabase-js';
 export default function App({ session, isAdmin, onShowAdmin, initialLeftText, initialRightText, userPlan }: { session?: Session; isAdmin?: boolean; onShowAdmin?: () => void; initialLeftText?: string; initialRightText?: string; userPlan?: string }) {
   const mainRef = useRef<HTMLElement>(null);
   const printAreaRef = useRef<HTMLDivElement>(null);
+
+  // 🚀 데코폰트 lazy load — 프린터 진입 시에만 로드
+  useEffect(() => { loadDecoFonts(); }, []);
 
   // Subscription State
   const { subscription, loading: subLoading } = useSubscription();

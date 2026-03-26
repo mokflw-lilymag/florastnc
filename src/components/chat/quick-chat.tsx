@@ -339,24 +339,24 @@ export function QuickChat() {
 
     return (
         <>
-            <div className="fixed bottom-8 right-8 z-[100]">
+            <div className="fixed bottom-24 md:bottom-8 right-4 md:right-8 z-[100]">
                 <Button 
                     variant="default" 
                     className={cn(
-                        "w-16 h-16 rounded-[2rem] shadow-2xl transition-all duration-500",
+                        "w-14 h-14 md:w-16 md:h-16 rounded-[1.5rem] md:rounded-[2rem] shadow-2xl transition-all duration-500",
                         isOpen ? "bg-slate-900 rotate-90" : "bg-indigo-600"
                     )}
                     onClick={() => setIsOpen(!isOpen)}
                 >
-                    {isOpen ? <X className="w-8 h-8" /> : <MessageCircle className="w-8 h-8" />}
+                    {isOpen ? <X className="w-6 h-6 md:w-8 md:h-8" /> : <MessageCircle className="w-6 h-6 md:w-8 md:h-8" />}
                 </Button>
             </div>
 
             {isOpen && (
                 <div 
                     className={cn(
-                        "fixed bottom-28 right-8 bg-white rounded-[3rem] shadow-2xl z-[100] overflow-hidden flex flex-col border border-slate-100 animate-in slide-in-from-bottom-5 transition-all duration-500",
-                        isSuperAdmin ? "w-[850px] h-[650px]" : "w-[400px] h-[600px]"
+                        "fixed bottom-40 md:bottom-28 right-4 md:right-8 bg-white rounded-[2rem] md:rounded-[3rem] shadow-2xl z-[100] overflow-hidden flex flex-col border border-slate-100 animate-in slide-in-from-bottom-5 transition-all duration-500",
+                        isSuperAdmin ? "w-[850px] h-[650px]" : "w-[calc(100vw-2rem)] max-w-[400px] h-[600px] max-h-[70vh] md:max-h-[600px]"
                     )}
                 >
                     {/* Header */}

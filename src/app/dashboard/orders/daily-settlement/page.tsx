@@ -106,6 +106,7 @@ export default function DailySettlementPage() {
         let pendingAmountToday = 0;
         let prevOrderPaymentTotal = 0;
 
+        let deliveryCostCashToday = 0;
         const paymentStats = {
             card: { count: 0, amount: 0 },
             cash: { count: 0, amount: 0 },
@@ -116,10 +117,18 @@ export default function DailySettlementPage() {
         orders.forEach(order => {
             if (order.status === 'canceled') return;
 
-            const p = order.payment;
-            let settleAmountToday = 0;
             const dateToParse = order.order_date || order.created_at || new Date().toISOString();
             const orderDateStr = format(new Date(dateToParse), 'yyyy-MM-dd');
+
+            // Delivery cost calculation (Order-based)
+            if (order.delivery_info?.date === reportDate || order.pickup_info?.date === reportDate || orderDateStr === reportDate) {
+                if (order.actual_delivery_cost_cash) {
+                    deliveryCostCashToday += Number(order.actual_delivery_cost_cash);
+                }
+            }
+
+            const p = order.payment;
+            let settleAmountToday = 0;
             const isTodayOrder = orderDateStr === reportDate;
 
             // Handle payments occurring today
@@ -228,7 +237,11 @@ export default function DailySettlementPage() {
             cardSales: paymentStats.card.amount,
             transferSales: paymentStats.transfer.amount,
             otherSales: paymentStats.others.amount,
-            orderCount: orders.length,
+            deliveryCostCash: deliveryCostCashToday,
+            orderCount: orders.filter(o => {
+                const dateVal = o.order_date || o.created_at || new Date().toISOString();
+                return format(new Date(dateVal), 'yyyy-MM-dd') === reportDate;
+            }).length,
             paidOrdersToday,
             pendingOrdersToday,
             pendingAmountToday,
@@ -239,22 +252,28 @@ export default function DailySettlementPage() {
     }, [orders, reportDate, settings.revenueRecognitionBasis]);
 
     const cashExpensesFlow = useMemo(() => {
-        // From Expenses hook
-        const materialCash = expenses
+        // Filter expenses for the specific report date
+        const dailyExpenses = expenses.filter(e => {
+            const dateVal = e.expense_date || e.created_at;
+            if (!dateVal) return false;
+            return format(new Date(dateVal), 'yyyy-MM-dd') === reportDate;
+        });
+
+        const materialCash = dailyExpenses
             .filter(e => e.payment_method === 'cash' && (e.category === '자재' || e.category === 'material'))
             .reduce((sum, e) => sum + (e.amount || 0), 0);
         
-        const otherCash = expenses
+        const otherCash = dailyExpenses
             .filter(e => e.payment_method === 'cash' && e.sub_category !== 'delivery' && e.sub_category !== 'delivery_fee' && e.category !== '자재' && e.category !== 'material' && e.category !== '운송' && e.category !== 'transport' && e.category !== 'transportation')
             .reduce((sum, e) => sum + (e.amount || 0), 0);
         
         // Exclude delivery from other cash expense to prevent double counting in UI
-        const totalCashExpense = expenses
+        const totalCashExpense = dailyExpenses
             .filter(e => e.payment_method === 'cash' && e.sub_category !== 'delivery' && e.sub_category !== 'delivery_fee')
             .reduce((sum, e) => sum + (e.amount || 0), 0);
 
-        const deliveryCostCash = expenses
-            .filter(e => e.payment_method === 'cash' && (e.sub_category === 'delivery' || e.sub_category === 'delivery_fee'))
+        const deliveryCostCash = dailyExpenses
+            .filter(e => (e.payment_method === 'cash' || e.description?.includes('현금')) && (e.sub_category === 'delivery' || e.sub_category === 'delivery_fee' || e.category === '운송' || e.category === 'transport'))
             .reduce((sum, e) => sum + (e.amount || 0), 0);
 
         return {
@@ -263,11 +282,12 @@ export default function DailySettlementPage() {
             totalCashExpense,
             deliveryCostCash
         };
-    }, [expenses]);
+    }, [expenses, reportDate]);
 
     const vaultCash = useMemo(() => {
         const cashSales = stats?.paymentStats?.cash?.amount || 0;
-        const deliveryCostCash = cashExpensesFlow.deliveryCostCash || 0;
+        // Use the maximum of order-based or expense-based delivery cost (ensures robust tracking)
+        const deliveryCostCash = Math.max(stats?.deliveryCostCash || 0, cashExpensesFlow.deliveryCostCash || 0);
         const cashExpenses = cashExpensesFlow.totalCashExpense;
         
         // Previous balance logic
@@ -318,6 +338,17 @@ export default function DailySettlementPage() {
 
     return (
         <div className="flex-1 space-y-4 p-4 md:p-8 pt-6 bg-slate-50/50">
+            <div className="flex items-center mb-2 animate-in fade-in slide-in-from-left-4 duration-500">
+                <Button 
+                    variant="ghost" 
+                    className="group rounded-2xl h-10 px-4 hover:bg-white hover:shadow-sm border border-transparent hover:border-slate-200 transition-all text-slate-500 hover:text-indigo-600 gap-2 font-bold"
+                >
+                    <Link href="/dashboard/orders" className="flex items-center gap-2">
+                        <ChevronLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
+                        주문 목록으로 돌아가기
+                    </Link>
+                </Button>
+            </div>
             <PageHeader
                 title="일일 마감 정산"
                 description={`${reportDate} 기준 지점 정산 및 금고 관리`}
@@ -425,8 +456,16 @@ export default function DailySettlementPage() {
                                         type="number" 
                                         value={manualPreviousBalance !== null ? manualPreviousBalance : vaultCash.prevBalance}
                                         onChange={(e) => setManualPreviousBalance(Number(e.target.value))}
-                                        className="w-32 h-8 text-right font-light text-xs rounded-lg border-slate-200"
+                                        className="w-32 h-8 text-right font-bold text-xs rounded-lg border-indigo-100 bg-indigo-50/30 focus-visible:ring-indigo-500"
                                     />
+                                    <Button 
+                                        size="sm" 
+                                        variant="outline" 
+                                        onClick={handleSave}
+                                        className="h-8 px-3 rounded-lg border-indigo-200 text-indigo-600 hover:bg-indigo-50 font-bold text-[10px]"
+                                    >
+                                        수정저장
+                                    </Button>
                                     <span className="text-xs font-light text-slate-400">₩</span>
                                 </div>
                             </div>

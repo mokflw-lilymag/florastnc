@@ -7,9 +7,12 @@ import {
   Printer, ScrollText, Users, Store, 
   Settings, LayoutDashboard, ShieldCheck,
   CreditCard, Boxes, Truck, BarChart3,
-  Zap, ArrowRight, Gem, Share2, FileText, PlusCircle
+  Zap, ArrowRight, Gem, Share2, FileText, PlusCircle, LogOut
 } from "lucide-react";
 import Image from "next/image";
+import { createClient } from "@/utils/supabase/client";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 interface SidebarProps {
   isSuperAdmin: boolean;
@@ -21,6 +24,14 @@ interface SidebarProps {
 
 export function Sidebar({ isSuperAdmin, plan, className, logoUrl, storeName }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const supabase = createClient();
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    toast.success("로그아웃 되었습니다.");
+    router.push("/login");
+  };
 
   // Navigation schema based on role
   const adminLinks = [
@@ -38,9 +49,9 @@ export function Sidebar({ isSuperAdmin, plan, className, logoUrl, storeName }: S
     { name: "화원 대시보드", href: "/dashboard", icon: LayoutDashboard },
     { name: "💎 구독 및 플랜 안내", href: "/dashboard/subscription", icon: Gem },
     { name: "🆕 새 주문 등록", href: "/dashboard/orders/new", icon: PlusCircle, tier: ['pro', 'erp_only'] },
-    { name: "🖨️ 리본 프린터", href: "/dashboard/printer", icon: Printer, tier: ['pro', 'ribbon_only'] },
-    { name: "🚚 배송 및 픽업 관리", href: "/dashboard/delivery", icon: Truck, tier: ['pro', 'erp_only'] },
     { name: "📜 주문 목록", href: "/dashboard/orders", icon: ScrollText, tier: ['pro', 'erp_only'] },
+    { name: "🚚 배송 및 픽업 관리", href: "/dashboard/delivery", icon: Truck, tier: ['pro', 'erp_only'] },
+    { name: "🖨️ 리본 프린터", href: "/dashboard/printer", icon: Printer, tier: ['pro', 'ribbon_only'] },
     { name: "🤝 협력사 수발주", href: "/dashboard/external-orders", icon: Share2, tier: ['pro', 'erp_only'] },
     { name: "💰 지출 관리", href: "/dashboard/expenses", icon: CreditCard, tier: ['pro', 'erp_only'] },
     { name: "📊 정산 및 보고서", href: "/dashboard/reports", icon: BarChart3, tier: ['pro', 'erp_only'] },
@@ -110,6 +121,16 @@ export function Sidebar({ isSuperAdmin, plan, className, logoUrl, storeName }: S
             </Link>
           );
         })}
+        <button
+          onClick={handleLogout}
+          className="w-full group flex items-center px-3 py-2.5 text-sm font-normal rounded-lg transition-all duration-200 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+        >
+          <LogOut 
+            className="mr-3 flex-shrink-0 h-5 w-5 transition-transform duration-200 group-hover:scale-110 text-red-400 group-hover:text-red-600" 
+            aria-hidden="true" 
+          />
+          로그아웃
+        </button>
       </nav>
 
       {/* Upgrade Promo for Tenants */}

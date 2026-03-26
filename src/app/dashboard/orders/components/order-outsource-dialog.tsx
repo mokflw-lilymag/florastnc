@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import { Order } from "@/types/order";
 import { useExpenses } from "@/hooks/use-expenses";
 import { createClient } from "@/utils/supabase/client";
-import { Package, Calculator, Info, Check, ChevronsUpDown, Search, Loader2, MapPin, ShieldCheck } from "lucide-react";
+import { Package, Calculator, Info, Check, ChevronsUpDown, Search, Loader2, MapPin, ShieldCheck, DollarSign } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -49,6 +49,7 @@ export function OrderOutsourceDialog({
     const [hideCustomerInfo, setHideCustomerInfo] = useState(false);
     const [networkPartners, setNetworkPartners] = useState<any[]>([]);
     const [senderInfo, setSenderInfo] = useState<any>(null);
+    const [paymentMethod, setPaymentMethod] = useState<'transfer' | 'cash'>('transfer');
 
     const { addExpense, updateExpenseByOrderId } = useExpenses();
     const { partners, loading: partnersLoading } = usePartners();
@@ -83,11 +84,18 @@ export function OrderOutsourceDialog({
     }, [partners, networkPartners]);
 
     const filteredPartners = useMemo(() => {
-        if (!searchTerm) return allPartners;
-        return allPartners.filter((p) => 
-            p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (p.partner_region && p.partner_region.toLowerCase().includes(searchTerm.toLowerCase()))
-        );
+        const term = searchTerm.trim().toLowerCase();
+        if (!term) return allPartners;
+        
+        return allPartners.filter((p) => {
+            const nameMatch = p.name.toLowerCase().includes(term);
+            const regionMatch = (p.partner_region || "").toLowerCase().includes(term);
+            const categoryMatch = (p.partner_category || p.category || "").toLowerCase().includes(term);
+            const descMatch = (p.partner_description || "").toLowerCase().includes(term);
+            const typeMatch = (p.type || "").toLowerCase().includes(term);
+            
+            return nameMatch || regionMatch || categoryMatch || descMatch || typeMatch;
+        });
     }, [allPartners, searchTerm]);
 
     const handlePartnerSelect = (partner: any) => {
@@ -104,8 +112,8 @@ export function OrderOutsourceDialog({
     };
 
     const selectedPartner = useMemo(() =>
-        partners.find(p => p.id === partnerId),
-        [partners, partnerId]);
+        allPartners.find(p => p.id === partnerId),
+        [allPartners, partnerId]);
 
     const orderTotal = order?.summary?.total || 0;
     const isEditMode = !!order?.outsource_info?.isOutsourced;
@@ -264,7 +272,7 @@ export function OrderOutsourceDialog({
                 description: isEditMode ? `외부발주(수성): ${itemsDescription} ${order.orderer?.name}` : `외부발주: ${itemsDescription} ${order.orderer?.name}`,
                 supplier: selectedPartner?.name || "미지정 파트너",
                 related_order_id: order.id,
-                payment_method: 'transfer'
+                payment_method: paymentMethod
             };
 
             if (isEditMode) {
@@ -468,6 +476,37 @@ export function OrderOutsourceDialog({
                             <Info className="h-3 w-3" />
                             브랜딩: 수주점에 내 꽃집 로고와 이름은 전송됩니다.
                         </div>
+                    </div>
+
+                    <div className="space-y-3 p-4 bg-slate-50 border border-slate-200 rounded-lg">
+                        <Label className="font-medium text-slate-700">결제 수단 및 지출 관리 *</Label>
+                        <div className="flex gap-2">
+                            <Button
+                                type="button"
+                                variant={paymentMethod === 'transfer' ? "default" : "outline"}
+                                className={cn(
+                                    "flex-1 rounded-xl h-11 font-bold",
+                                    paymentMethod === 'transfer' ? "bg-slate-900" : "bg-white"
+                                )}
+                                onClick={() => setPaymentMethod('transfer')}
+                            >
+                                계좌 이체
+                            </Button>
+                            <Button
+                                type="button"
+                                variant={paymentMethod === 'cash' ? "default" : "outline"}
+                                className={cn(
+                                    "flex-1 rounded-xl h-11 font-bold",
+                                    paymentMethod === 'cash' ? "bg-amber-500 hover:bg-amber-600 border-none" : "bg-white"
+                                )}
+                                onClick={() => setPaymentMethod('cash')}
+                            >
+                                <DollarSign className="h-4 w-4 mr-2" /> 현금 지급
+                            </Button>
+                        </div>
+                        <p className="text-[10px] text-slate-400 font-light italic">
+                            * 현금 선택 시 오늘의 금고 시재 지출(배송/기타)에 자동으로 합산됩니다.
+                        </p>
                     </div>
 
                     <div className="space-y-2">

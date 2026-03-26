@@ -17,7 +17,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useDeliveryFees } from "@/hooks/use-delivery-fees";
 import { useSettings } from "@/hooks/use-settings";
 
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -52,7 +52,7 @@ export default function NewOrderPage() {
   const { profile, tenantId, isLoading: authLoading } = useAuth();
   const { products: allProducts, loading: productsLoading, fetchProducts } = useProducts();
   const { orders, loading: ordersLoading, addOrder, updateOrder } = useOrders();
-  const { customers } = useCustomers();
+  const { customers, addCustomer } = useCustomers();
   const { fees: regionFees } = useDeliveryFees();
   const { settings } = useSettings();
   
@@ -67,6 +67,7 @@ export default function NewOrderPage() {
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [lastOrderNumber, setLastOrderNumber] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isMobileSummaryOpen, setIsMobileSummaryOpen] = useState(false);
 
   // Initialize selectedBranch from profile
   useEffect(() => {
@@ -107,6 +108,21 @@ export default function NewOrderPage() {
   const [ordererEmail, setOrdererEmail] = useState("");
   const [registerCustomer, setRegisterCustomer] = useState(false);
   const lastHasInfoRef = useRef(false);
+
+  useEffect(() => {
+    const customerId = searchParams.get('customerId');
+    if (customerId && customers.length > 0) {
+      const customer = customers.find(c => String(c.id) === customerId);
+      if (customer) {
+        setOrdererName(customer.name);
+        setOrdererContact(customer.contact || "");
+        setOrdererCompany(customer.company_name || "");
+        setOrdererEmail(customer.email || "");
+        setRegisterCustomer(false);
+        lastHasInfoRef.current = true;
+      }
+    }
+  }, [searchParams, customers]);
 
   useEffect(() => {
     const hasInfo = (ordererName || "").trim() !== "" || 
@@ -345,6 +361,28 @@ export default function NewOrderPage() {
       setIsSubmitting(false); return;
     }
 
+    let finalCustomerId = selectedCustomer?.id || "";
+
+    // 고객 정보 자동 등록
+    if (registerCustomer && !finalCustomerId) {
+      try {
+        const newCustomerId = await addCustomer({
+          name: ordererName,
+          contact: ordererContact,
+          company_name: ordererCompany,
+          email: ordererEmail,
+          type: ordererCompany ? 'company' : 'individual',
+          grade: '신규',
+          points: 0,
+        });
+        if (newCustomerId) {
+          finalCustomerId = newCustomerId;
+        }
+      } catch (e) {
+        console.error("고객 자동 등록 실패", e);
+      }
+    }
+
     const orderPayload: OrderData = {
       status: existingOrder?.status || 'processing',
       receipt_type,
@@ -356,7 +394,7 @@ export default function NewOrderPage() {
         pointsEarned: Math.floor(orderSummary.total * 0.01)
       },
       orderer: {
-        id: selectedCustomer?.id || "",
+        id: finalCustomerId,
         name: ordererName,
         contact: ordererContact,
         company: ordererCompany,
@@ -435,8 +473,8 @@ export default function NewOrderPage() {
           : (externalVendor ? `${externalVendor.name}님에게 보낼 상품을 선택하고 정보를 입력하세요.` : `${profile?.tenants?.name || "새로운 화원"}의 새로운 주문을 접수합니다.`)}
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 p-6 h-[calc(100vh-140px)]">
-        <div className="md:col-span-8 space-y-6 overflow-y-auto pr-2 pb-20 scrollbar-hide">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 p-4 md:p-6 h-[calc(100vh-140px)] md:h-[calc(100vh-140px)]">
+        <div className="md:col-span-8 space-y-6 overflow-y-auto pr-0 md:pr-2 pb-32 md:pb-20 scrollbar-hide">
           <CustomerSection
             selectedBranch={selectedBranch}
             availableBranches={tenantId ? [{ id: tenantId, name: profile?.tenants?.name || '본점' }] : []}
@@ -539,7 +577,7 @@ export default function NewOrderPage() {
           />
         </div>
 
-        <div className="md:col-span-4 h-full">
+        <div className="hidden md:block md:col-span-4 h-full">
           <OrderSummarySide
             orderItems={orderItems}
             setOrderItems={setOrderItems}
@@ -574,6 +612,81 @@ export default function NewOrderPage() {
           />
         </div>
       </div>
+
+      {/* --- Mobile Fixed Summary Bar (md- only) --- */}
+      <div className="md:hidden fixed bottom-16 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-3 pb-safe flex flex-col gap-2 shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
+        <div className="flex items-center justify-between px-1">
+          <div className="flex flex-col">
+            <span className="text-xs text-slate-500 font-medium">선택 상품 {orderItems.length}개</span>
+            <div className="flex items-baseline gap-1">
+              <span className="text-xl font-bold text-primary">{orderSummary.total.toLocaleString()}</span>
+              <span className="text-xs font-bold text-primary">원</span>
+            </div>
+          </div>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="text-xs text-slate-500 underline decoration-slate-300"
+            onClick={() => setIsMobileSummaryOpen(true)}
+          >
+            내역 확인
+          </Button>
+          <Dialog open={isMobileSummaryOpen} onOpenChange={setIsMobileSummaryOpen}>
+            <DialogContent className="max-h-[85vh] overflow-y-auto p-0 border-none rounded-t-3xl sm:rounded-3xl">
+              <DialogHeader className="p-4 bg-slate-50 border-b">
+                <DialogTitle>주문 요약 (결제 상세)</DialogTitle>
+              </DialogHeader>
+              <div className="p-4">
+                <OrderSummarySide
+                  orderItems={orderItems}
+                  setOrderItems={setOrderItems}
+                  orderSummary={orderSummary}
+                  discountSettings={{} as any}
+                  activeDiscountRates={[]}
+                  selectedDiscountRate={selectedDiscountRate}
+                  setSelectedDiscountRate={setSelectedDiscountRate}
+                  customDiscountRate={customDiscountRate}
+                  setCustomDiscountRate={setCustomDiscountRate}
+                  usedPoints={usedPoints}
+                  setUsedPoints={setUsedPoints}
+                  maxPoints={selectedCustomer?.points || 0}
+                  deliveryFeeType={deliveryFeeType}
+                  setDeliveryFeeType={setDeliveryFeeType}
+                  manualDeliveryFee={manualDeliveryFee}
+                  setManualDeliveryFee={setManualDeliveryFee}
+                  paymentMethod={paymentMethod}
+                  setPaymentMethod={setPaymentMethod}
+                  paymentStatus={paymentStatus}
+                  setPaymentStatus={setPaymentStatus}
+                  isSplitPaymentEnabled={isSplitPaymentEnabled}
+                  setIsSplitPaymentEnabled={setIsSplitPaymentEnabled}
+                  firstPaymentAmount={firstPaymentAmount}
+                  setFirstPaymentAmount={setFirstPaymentAmount}
+                  firstPaymentMethod={firstPaymentMethod}
+                  setFirstPaymentMethod={setFirstPaymentMethod}
+                  secondPaymentMethod={secondPaymentMethod}
+                  setSecondPaymentMethod={setSecondPaymentMethod}
+                  onSubmit={() => {
+                    setIsMobileSummaryOpen(false);
+                    handleCompleteOrder();
+                  }}
+                  isSubmitting={isSubmitting}
+                />
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+        <div className="flex gap-2">
+            <Button 
+                className="flex-1 h-12 text-base font-bold rounded-xl shadow-lg shadow-primary/20 active:scale-[0.98] transition-all"
+                onClick={handleCompleteOrder}
+                disabled={isSubmitting || orderItems.length === 0}
+            >
+                {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : `${orderSummary.total.toLocaleString()}원 주문하기`}
+            </Button>
+        </div>
+      </div>
+
 
       <Dialog open={isCustomProductDialogOpen} onOpenChange={setIsCustomProductDialogOpen}>
         <DialogContent className="rounded-3xl">

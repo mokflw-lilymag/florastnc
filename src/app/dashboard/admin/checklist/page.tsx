@@ -50,7 +50,7 @@ export default function DailyChecklistPage() {
   
   const [isManageDialogOpen, setIsManageDialogOpen] = useState(false);
   const [allMasterTasks, setAllMasterTasks] = useState<ChecklistTask[]>([]);
-  const [newMasterTask, setNewMasterTask] = useState<Partial<ChecklistTask>>({
+  const [newMasterTask, setNewMasterTask] = useState<any>({
     role: 'hq_ops',
     frequency: 'daily',
     task_name: '',
@@ -167,7 +167,7 @@ export default function DailyChecklistPage() {
   const completedCount = Object.values(completions).filter(v => v).length;
   const progress = tasks.length > 0 ? (completedCount / tasks.length) * 100 : 0;
 
-  const getRoleName = (key: string) => hqRoles.find(r => r.role_key === key)?.role_name || key;
+  const getRoleName = (key: any) => hqRoles.find(r => r.role_key === key)?.role_name || key;
 
   // Filter master tasks by selected criteria in dialog
   const filteredMasterTasks = useMemo(() => {
@@ -218,18 +218,18 @@ export default function DailyChecklistPage() {
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-1.5 font-bold">
                                         <label className="text-[10px] text-slate-400 uppercase tracking-widest ml-1">수행 파트 선택</label>
-                                        <Select value={newMasterTask.role} onValueChange={(v) => setNewMasterTask({...newMasterTask, role: v})}>
+                                        <Select value={newMasterTask.role as any} onValueChange={(v) => setNewMasterTask({...newMasterTask, role: v})}>
                                             <SelectTrigger className="rounded-xl font-black h-11 bg-white border-slate-200">
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent className="rounded-xl border-slate-100">
-                                                {hqRoles.map(r => <SelectItem key={r.role_key} value={r.role_key} className="font-black text-xs py-2">{r.role_name}</SelectItem>)}
+                                                {hqRoles.map((r: any) => <SelectItem key={r.role_key} value={r.role_key} className="font-black text-xs py-2">{r.role_name}</SelectItem>)}
                                             </SelectContent>
                                         </Select>
                                     </div>
                                     <div className="space-y-1.5 font-bold">
                                         <label className="text-[10px] text-slate-400 uppercase tracking-widest ml-1">반복 주기 선택</label>
-                                        <Select value={newMasterTask.frequency} onValueChange={(v: any) => setNewMasterTask({...newMasterTask, frequency: v})}>
+                                        <Select value={newMasterTask.frequency as any} onValueChange={(v: any) => setNewMasterTask({...newMasterTask, frequency: v})}>
                                             <SelectTrigger className="rounded-xl font-black h-11 bg-white border-slate-200">
                                                 <SelectValue />
                                             </SelectTrigger>

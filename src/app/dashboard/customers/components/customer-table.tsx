@@ -73,6 +73,7 @@ export function CustomerTable({ customers, onEdit, onDelete, onRowClick }: Custo
               <TableHead className="font-semibold text-slate-700">유형</TableHead>
               <TableHead className="font-semibold text-slate-700">연락처</TableHead>
               <TableHead className="font-semibold text-slate-700">등급</TableHead>
+              <TableHead className="font-semibold text-slate-700 text-right">보유 포인트</TableHead>
               <TableHead className="font-semibold text-slate-700 text-right">누적 구매</TableHead>
               <TableHead className="w-[80px]">
                 <span className="sr-only">작업</span>
@@ -115,6 +116,11 @@ export function CustomerTable({ customers, onEdit, onDelete, onRowClick }: Custo
                     {getGradeBadge(customer.grade)}
                   </TableCell>
                   <TableCell className="text-right">
+                    <span className="font-mono font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md">
+                      {(customer.points || 0).toLocaleString()} P
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-right">
                     <div className="flex flex-col items-end">
                       <span className="font-mono text-slate-700 font-medium">
                         ₩{(customer.total_spent || 0).toLocaleString()}
@@ -141,7 +147,7 @@ export function CustomerTable({ customers, onEdit, onDelete, onRowClick }: Custo
                             수정
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <AlertDialogTrigger render={
+                          <AlertDialogTrigger nativeButton={false} render={
                             <DropdownMenuItem className="text-red-600 focus:text-red-600">
                               <Trash2 className="mr-2 h-4 w-4" />
                               삭제
@@ -172,7 +178,7 @@ export function CustomerTable({ customers, onEdit, onDelete, onRowClick }: Custo
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={6} className="h-40 text-center">
+                <TableCell colSpan={7} className="h-40 text-center">
                   <div className="flex flex-col items-center justify-center text-slate-400 gap-2">
                     <User className="h-8 w-8 opacity-20" />
                     <p>등록된 고객이 없습니다.</p>
