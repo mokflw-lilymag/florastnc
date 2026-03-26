@@ -40,7 +40,8 @@ export function useOrders(initialFetch = true) {
     created_at: row.created_at,
     updated_at: row.updated_at,
     completed_at: row.completed_at,
-    completed_by: row.completed_by
+    completed_by: row.completed_by,
+    completionPhotoUrl: row.completionphotourl
   }), []);
 
   const fetchOrders = useCallback(async (days: number = 60) => {
@@ -55,7 +56,11 @@ export function useOrders(initialFetch = true) {
 
       const { data, error } = await supabase
         .from('orders')
-        .select('*')
+        .select(`
+          id, order_number, status, receipt_type, order_date, 
+          orderer, summary, payment, items, message, pickup_info, delivery_info, 
+          memo, created_at, completionphotourl
+        `)
         .eq('tenant_id', tenantId)
         .gte('order_date', startDateStr)
         .order('order_date', { ascending: false });
@@ -79,7 +84,11 @@ export function useOrders(initialFetch = true) {
 
       const { data, error } = await supabase
         .from('orders')
-        .select('*')
+        .select(`
+          id, order_number, status, receipt_type, order_date, 
+          orderer, summary, payment, items, message, pickup_info, delivery_info, 
+          memo, created_at, completionphotourl
+        `)
         .eq('tenant_id', tenantId)
         .gte('order_date', start.toISOString())
         .lte('order_date', end.toISOString())

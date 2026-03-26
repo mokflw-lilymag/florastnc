@@ -109,7 +109,7 @@ export default function ExpensesPage() {
   const [filterMethod, setFilterMethod] = useState<string>("all");
   const [filterDateFrom, setFilterDateFrom] = useState<string>("");
   const [filterDateTo, setFilterDateTo] = useState<string>("");
-  const [isMaterialOpen, setIsMaterialOpen] = useState(false);
+  const [isSupplierOpen, setIsSupplierOpen] = useState(false);
   const [activeItemPopover, setActiveItemPopover] = useState<string | null>(null);
 
   const [itemSearchText, setItemSearchText] = useState("");
@@ -492,7 +492,7 @@ export default function ExpensesPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="supplier" className="text-sm font-bold text-slate-700">거래처</Label>
-                  <Popover>
+                  <Popover open={isSupplierOpen} onOpenChange={setIsSupplierOpen}>
                     <PopoverTrigger
                       render={
                         <Button
@@ -514,7 +514,10 @@ export default function ExpensesPage() {
                           <CommandEmpty>결과 없음.</CommandEmpty>
                           <CommandGroup>
                             <CommandItem
-                              onSelect={() => setFormData(prev => ({ ...prev, supplier_id: "none" }))}
+                              onSelect={() => {
+                                setFormData(prev => ({ ...prev, supplier_id: "none" }));
+                                setIsSupplierOpen(false);
+                              }}
                             >
                               <Check className={cn("mr-2 h-4 w-4", formData.supplier_id === "none" ? "opacity-100" : "opacity-0")} />
                               선택 안함
@@ -522,7 +525,10 @@ export default function ExpensesPage() {
                             {suppliers.map(s => (
                               <CommandItem
                                 key={s.id}
-                                onSelect={() => setFormData(prev => ({ ...prev, supplier_id: s.id }))}
+                                onSelect={() => {
+                                  setFormData(prev => ({ ...prev, supplier_id: s.id }));
+                                  setIsSupplierOpen(false);
+                                }}
                               >
                                 <Check className={cn("mr-2 h-4 w-4", formData.supplier_id === s.id ? "opacity-100" : "opacity-0")} />
                                 {s.name}

@@ -52,6 +52,25 @@ const DEFAULT_CATEGORIES = {
 };
 
 export function ProductForm({ isOpen, onOpenChange, onSubmit, product }: ProductFormProps) {
+  const sizeLabels: Record<string, string> = {
+    small: "소형 (꽃다발/꽃함)",
+    medium: "중형 (꽃바구니/난)",
+    large: "대형 (화환/대형관엽)"
+  };
+
+  const ribbonLabels: Record<string, string> = {
+    "38mm": "38mm (슬림형)",
+    "70mm": "70mm (표준 리본)",
+    "100mm": "100mm (화환용 와이드)",
+    none: "사용 안함 (카드)"
+  };
+
+  const statusLabels: Record<string, string> = {
+    active: "판매중",
+    inactive: "비활성 (미노출)",
+    sold_out: "품절"
+  };
+
   const [formData, setFormData] = useState<ProductData>({
     name: "",
     main_category: "",
@@ -231,7 +250,7 @@ export function ProductForm({ isOpen, onOpenChange, onSubmit, product }: Product
                   }))}
                 >
                   <SelectTrigger className="h-9 rounded-xl border-blue-100 bg-blue-50/30 text-xs shadow-none">
-                    <SelectValue />
+                    <SelectValue>{sizeLabels[formData.extra_data?.item_size || ""]}</SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="small">소형 (꽃다발/꽃함)</SelectItem>
@@ -250,7 +269,7 @@ export function ProductForm({ isOpen, onOpenChange, onSubmit, product }: Product
                   }))}
                 >
                   <SelectTrigger className="h-9 rounded-xl border-indigo-100 bg-indigo-50/30 text-xs shadow-none">
-                    <SelectValue />
+                    <SelectValue>{ribbonLabels[formData.extra_data?.ribbon_size || "70mm"]}</SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="38mm">38mm (슬림형)</SelectItem>
@@ -269,7 +288,7 @@ export function ProductForm({ isOpen, onOpenChange, onSubmit, product }: Product
                 onValueChange={val => setFormData(prev => ({ ...prev, status: val as any }))}
               >
                 <SelectTrigger className="bg-white">
-                  <SelectValue />
+                  <SelectValue>{statusLabels[formData.status || "active"]}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="active">판매중</SelectItem>

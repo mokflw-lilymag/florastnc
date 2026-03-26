@@ -230,6 +230,17 @@ export default function TenantsPage() {
     return <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-100 font-normal">정상</Badge>;
   };
 
+  const planLabels: Record<string, string> = {
+    free: "PRINT (프린트 전용)",
+    erp_only: "ERP ONLY (정산 관리)",
+    pro: "PRO (통합 관리)"
+  };
+
+  const statusLabels: Record<string, string> = {
+    active: "정상 사용 중 (Active)",
+    suspended: "이용 정지 (Suspended)"
+  };
+
   return (
     <div className="container mx-auto py-8 space-y-8">
       <PageHeader 
@@ -427,7 +438,7 @@ export default function TenantsPage() {
               <Label className="font-normal text-slate-600 text-xs ml-1 border-0">서비스 플랜 선택</Label>
               <Select value={editPlan} onValueChange={(val) => setEditPlan(val || 'free')}>
                 <SelectTrigger className="rounded-2xl h-12 font-normal bg-slate-50/50 border-slate-100 text-slate-900 focus:bg-white border">
-                  <SelectValue placeholder="플랜 선택" />
+                  <SelectValue placeholder="플랜 선택">{planLabels[editPlan]}</SelectValue>
                 </SelectTrigger>
                 <SelectContent className="rounded-2xl border-0 shadow-xl bg-white">
                   <SelectItem value="free" className="font-normal text-slate-900">PRINT (프린트 전용)</SelectItem>
@@ -470,7 +481,7 @@ export default function TenantsPage() {
                 <Label className="font-normal text-slate-600 text-xs ml-1 border-0">계정 상태</Label>
                 <Select value={editStatus} onValueChange={(val) => setEditStatus(val || 'active')}>
                   <SelectTrigger className="rounded-2xl h-12 font-normal bg-slate-50/50 border-slate-100 text-slate-900 focus:bg-white border">
-                    <SelectValue placeholder="상태 선택" />
+                    <SelectValue placeholder="상태 선택">{statusLabels[editStatus]}</SelectValue>
                   </SelectTrigger>
                   <SelectContent className="rounded-2xl border-0 shadow-xl bg-white">
                     <SelectItem value="active" className="font-normal text-slate-900 border-0">정상 사용 중 (Active)</SelectItem>

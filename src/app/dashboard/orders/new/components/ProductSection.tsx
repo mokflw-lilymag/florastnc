@@ -115,20 +115,17 @@ export function ProductSection({
                     setActiveTab(val);
                     onTabChange?.(val);
                 }} className="w-full">
-                    <ScrollArea className="w-full whitespace-nowrap rounded-md border bg-muted/50 p-1 mb-4">
-                        <TabsList className="inline-flex w-max min-w-full justify-start h-9 p-0 bg-transparent">
-                            {categories.map((cat) => (
-                                <TabsTrigger
-                                    key={cat.name}
-                                    value={cat.name}
-                                    className="data-[state=active]:bg-white data-[state=active]:shadow-sm px-4"
-                                >
-                                    {cat.name}
-                                </TabsTrigger>
-                            ))}
-                        </TabsList>
-                        <ScrollBar orientation="horizontal" />
-                    </ScrollArea>
+                    <TabsList className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 h-auto p-1.5 bg-slate-100/50 rounded-2xl gap-1.5 mb-6 border border-slate-200/50">
+                        {categories.map((cat) => (
+                            <TabsTrigger
+                                key={cat.name}
+                                value={cat.name}
+                                className="data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm px-2 py-2.5 h-auto text-[11px] font-bold transition-all rounded-xl border border-transparent data-[state=active]:border-slate-100"
+                            >
+                                {cat.name}
+                            </TabsTrigger>
+                        ))}
+                    </TabsList>
 
                     {categories.map((cat) => (
                         <TabsContent key={cat.name} value={cat.name} className="space-y-4">

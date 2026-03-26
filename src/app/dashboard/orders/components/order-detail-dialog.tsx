@@ -104,7 +104,7 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
 
       const { error: updateError } = await supabase
         .from('orders')
-        .update({ completionPhotoUrl: publicUrl })
+        .update({ completionphotourl: publicUrl })
         .eq('id', order.id);
 
       if (updateError) throw updateError;

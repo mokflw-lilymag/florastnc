@@ -281,11 +281,28 @@ export default function NewOrderPage() {
 
   const dynamicCategories = useMemo(() => {
     if (!allProducts.length) return [];
-    const priority = ['꽃다발', '꽃바구니', '센터피스', '관엽식물', '동양란/서양란', '축하화환', '부자재'];
-    return priority.map(cat => ({
+    
+    // 1. Define common priority categories (expanded to 10+)
+    const priority = [
+      '꽃다발', '꽃바구니', '센터피스', '관엽식물', 
+      '동양란/서양란', '축하화환', '근조화환', 
+      '꽃상자', '돈꽃다발', '조화', '다육/선인장', '부자재'
+    ];
+    
+    // 2. Discover other categories actually used in products
+    const existingCats = Array.from(new Set(allProducts.map(p => p.main_category).filter(Boolean))) as string[];
+    
+    // 3. Combine them, keeping priority first
+    const combined = [...new Set([...priority, ...existingCats])];
+    
+    // 4. Map to CategoryData and limit to roughly 10 (or show all since we have 2 rows now)
+    return combined
+      .map(cat => ({
         name: cat,
         products: calculateTopProducts(cat, 10, true)
-    })).filter(c => c.products.length > 0);
+      }))
+      .filter(c => c.products.length > 0)
+      .slice(0, 15); // Allow up to 15 to fill 3 rows nicely if needed, or 10 for 2 rows.
   }, [allProducts, calculateTopProducts]);
 
   const deliveryFee = useMemo(() => {
@@ -599,14 +616,14 @@ export default function NewOrderPage() {
             <Button className="w-full rounded-2xl bg-primary text-white h-12 font-bold" onClick={() => router.push('/dashboard/orders')}>
               주문 현황 보기
             </Button>
-            {lastOrderId && (
+            {lastOrderId && receipt_type === 'delivery_reservation' && (
               <div className="flex flex-col gap-2 w-full">
                 <Button 
                   variant="outline" 
                   className="w-full rounded-2xl h-12 font-bold border-primary text-primary hover:bg-primary/5 flex items-center justify-center gap-2" 
                   onClick={() => router.push(`/dashboard/orders/print-preview/${lastOrderId}`)}
                 >
-                  <Printer className="w-4 h-4" /> 주문서 출력 (필수)
+                  <Printer className="w-4 h-4" /> 주문서 출력 (배송용)
                 </Button>
                 <Button 
                   variant="ghost" 
