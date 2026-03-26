@@ -367,7 +367,7 @@ export function FulfillmentSection({
                                             type="button"
                                             variant="outline"
                                             size="sm"
-                                            className="h-7 px-2 text-[11px] bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary-foreground font-medium"
+                                            className="h-7 px-2 text-[11px] bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary font-medium"
                                             onClick={() => {
                                                 const content = `${msg.ko} / ${msg.zh}`;
                                                 setMessageContent(content);

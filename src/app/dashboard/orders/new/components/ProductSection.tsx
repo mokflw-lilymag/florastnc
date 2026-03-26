@@ -115,12 +115,12 @@ export function ProductSection({
                     setActiveTab(val);
                     onTabChange?.(val);
                 }} className="w-full">
-                    <TabsList className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 h-auto p-1.5 bg-slate-100/50 rounded-2xl gap-1.5 mb-6 border border-slate-200/50">
+                    <TabsList className="flex flex-row overflow-x-auto no-scrollbar whitespace-nowrap !h-auto !min-h-fit p-1.5 bg-slate-100/50 rounded-2xl gap-1.5 mb-6 border border-slate-200/50 justify-start w-full">
                         {categories.map((cat) => (
                             <TabsTrigger
                                 key={cat.name}
                                 value={cat.name}
-                                className="data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm px-2 py-2.5 h-auto text-[11px] font-bold transition-all rounded-xl border border-transparent data-[state=active]:border-slate-100"
+                                className="data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm px-3 py-2.5 h-auto text-[11px] font-bold transition-all rounded-xl border border-transparent data-[state=active]:border-slate-100 flex-shrink-0 min-w-[80px]"
                             >
                                 {cat.name}
                             </TabsTrigger>

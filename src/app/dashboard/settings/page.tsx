@@ -78,6 +78,8 @@ export default function SettingsPage() {
   const [localBizNo, setLocalBizNo] = useState("");
   const [localPhone, setLocalPhone] = useState("");
   const [localAddress, setLocalAddress] = useState("");
+  const [localEmail, setLocalEmail] = useState("");
+  const [localWebsite, setLocalWebsite] = useState("");
   
   const [newRegion, setNewRegion] = useState("");
   const [newFee, setNewFee] = useState("");
@@ -106,17 +108,22 @@ export default function SettingsPage() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 2000);
       
-      const response = await fetch("http://localhost:8080/status", { 
-        signal: controller.signal,
-        mode: 'no-cors' 
+      const response = await fetch("http://localhost:8000/api/printers", { 
+        signal: controller.signal
       });
       
       clearTimeout(timeoutId);
-      setBridgeStatus(true);
-      if (checkingBridge) toast.success("프린터 브릿지가 연결되었습니다.");
+      
+      if (response.ok) {
+        setBridgeStatus(true);
+        if (checkingBridge) toast.success("프린터 브릿지가 연결되었습니다.");
+      } else {
+        throw new Error("Bridge response not OK");
+      }
     } catch (err) {
       setBridgeStatus(false);
-      if (checkingBridge) toast.error("프린터 브릿지 응답이 없습니다.");
+      // Only show error toast if manually refreshed
+      if (checkingBridge) toast.error("프린터 브릿지 응답이 없습니다. 프로그램을 실행 중인지 확인해주세요.");
     } finally {
       setCheckingBridge(false);
     }
@@ -133,6 +140,8 @@ export default function SettingsPage() {
       setLocalBizNo(settings.businessNumber || "");
       setLocalPhone(settings.contactPhone || "");
       setLocalAddress(settings.address || "");
+      setLocalEmail(settings.storeEmail || "");
+      setLocalWebsite(settings.siteWebsite || "");
     }
   }, [settings]);
 
@@ -188,7 +197,10 @@ export default function SettingsPage() {
           representative: localRep,
           businessNumber: localBizNo,
           contactPhone: localPhone,
-          address: localAddress
+          address: localAddress,
+          storeEmail: localEmail,
+          siteWebsite: localWebsite,
+          contactEmail: localEmail // Also sync contactEmail for compatibility
       };
       
       const saved = await saveSettings(updatedSettings);
@@ -339,29 +351,29 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="store" className="w-full">
-        <TabsList className="flex w-full overflow-x-auto h-auto p-1 bg-slate-100/50 rounded-xl mb-8 no-scrollbar scroll-smooth">
-          <TabsTrigger value="store" className="flex items-center gap-2 px-6 py-2.5">
+        <TabsList className="flex flex-wrap items-center justify-start w-full h-auto p-1 bg-slate-100/50 rounded-xl mb-8 gap-x-1 gap-y-2">
+          <TabsTrigger value="store" className="flex items-center gap-2 px-3 md:px-6 py-2 md:py-2.5 text-xs md:text-sm">
             <Building2 className="h-4 w-4" /> 상점 정보
           </TabsTrigger>
-          <TabsTrigger value="order-payment" className="flex items-center gap-2 px-6 py-2.5">
+          <TabsTrigger value="order-payment" className="flex items-center gap-2 px-3 md:px-6 py-2 md:py-2.5 text-xs md:text-sm">
             <Percent className="h-4 w-4" /> 주문/할인/포인트
           </TabsTrigger>
-          <TabsTrigger value="delivery" className="flex items-center gap-2 px-6 py-2.5">
+          <TabsTrigger value="delivery" className="flex items-center gap-2 px-3 md:px-6 py-2 md:py-2.5 text-xs md:text-sm">
             <MapPin className="h-4 w-4" /> 배송비 설정
           </TabsTrigger>
-          <TabsTrigger value="printer" className="flex items-center gap-2 px-6 py-2.5">
+          <TabsTrigger value="printer" className="flex items-center gap-2 px-3 md:px-6 py-2 md:py-2.5 text-xs md:text-sm">
             <Printer className="h-4 w-4" /> 프린터/브릿지
           </TabsTrigger>
-          <TabsTrigger value="integrations" className="flex items-center gap-2 px-6 py-2.5">
+          <TabsTrigger value="integrations" className="flex items-center gap-2 px-3 md:px-6 py-2 md:py-2.5 text-xs md:text-sm">
             <LinkIcon className="h-4 w-4" /> 연동 및 자동화
           </TabsTrigger>
-          <TabsTrigger value="data" className="flex items-center gap-2 px-6 py-2.5 rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm">
+          <TabsTrigger value="data" className="flex items-center gap-2 px-3 md:px-6 py-2 md:py-2.5 text-xs md:text-sm rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm">
             <Database className="h-4 w-4" /> 백업 및 초기화
           </TabsTrigger>
-          <TabsTrigger value="account" className="flex items-center gap-2 px-6 py-2.5">
+          <TabsTrigger value="account" className="flex items-center gap-2 px-3 md:px-6 py-2 md:py-2.5 text-xs md:text-sm">
             <ShieldCheck className="h-4 w-4" /> 멤버십/보안
           </TabsTrigger>
-          <TabsTrigger value="partner-network" className="flex items-center gap-2 px-6 py-2.5 bg-blue-50/50 text-blue-700 data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-xl">
+          <TabsTrigger value="partner-network" className="flex items-center gap-2 px-3 md:px-6 py-2 md:py-2.5 text-xs md:text-sm bg-blue-50/50 text-blue-700 data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-xl">
             <Share2 className="h-4 w-4" /> 협력사 네트워크
           </TabsTrigger>
         </TabsList>
@@ -409,6 +421,24 @@ export default function SettingsPage() {
                     value={localPhone} 
                     onChange={e => setLocalPhone(e.target.value)} 
                     placeholder="010-0000-0000"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">이메일 주소</Label>
+                  <Input 
+                    id="email" 
+                    value={localEmail} 
+                    onChange={e => setLocalEmail(e.target.value)} 
+                    placeholder="example@email.com"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="website">웹사이트 (URL)</Label>
+                  <Input 
+                    id="website" 
+                    value={localWebsite} 
+                    onChange={e => setLocalWebsite(e.target.value)} 
+                    placeholder="https://www.example.com"
                   />
                 </div>
               </div>

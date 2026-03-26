@@ -152,7 +152,7 @@ const RIBBON_TYPES = [
   { id: 'orchid_55', name: '동/서양란 55x500mm', width: 55, lace: 10, length: 500, marginTop: 120, marginBottom: 80, fontSize: 42 },
   { id: 'western_60', name: '서양란 60/65x700mm', width: 60, lace: 10, length: 700, marginTop: 150, marginBottom: 100, fontSize: 45 },
   { id: 'movie_70', name: '영화(중) 70x750mm', width: 70, lace: 10, length: 750, marginTop: 150, marginBottom: 100, fontSize: 55 },
-  { id: 'basket_95', name: '장바구니 95x1000mm', width: 95, lace: 10, length: 1000, marginTop: 180, marginBottom: 130, fontSize: 75 },
+  { id: 'basket_95', name: '꽃바구니 95x1000mm', width: 95, lace: 10, length: 1000, marginTop: 180, marginBottom: 130, fontSize: 75 },
   { id: 'pot_small', name: '화분 소 105/110x1100mm', width: 105, lace: 23, length: 1100, marginTop: 200, marginBottom: 150, fontSize: 80 },
   { id: 'pot_medium', name: '화분 중 135x1500mm', width: 135, lace: 23, length: 1500, marginTop: 300, marginBottom: 200, fontSize: 100 },
   { id: 'pot_large', name: '화분 대 150x1800mm', width: 150, lace: 23, length: 1800, marginTop: 350, marginBottom: 350, fontSize: 110 },
@@ -985,8 +985,9 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
 
 
   const handlePrint = async () => {
-    // 구독 상태 확인 (관리자는 항상 허용)
-    if (!isAdmin && !subscription.isActive) {
+    // 구독 상태 확인 (관리자 또는 유효 요금제 사용자는 허용)
+    const hasValidPlan = userPlan === 'pro' || userPlan === 'ribbon_only' || userPlan === 'print_only';
+    if (!isAdmin && !subscription.isActive && !hasValidPlan) {
        setShowPaywall(true);
        return;
     }

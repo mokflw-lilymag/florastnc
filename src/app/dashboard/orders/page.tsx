@@ -28,6 +28,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useOrders } from "@/hooks/use-orders";
 import { Order } from "@/types/order";
 import { parseDate } from "@/lib/date-utils";
+import { smartSplitRibbonMessage } from "@/lib/order-utils";
 const OrderDetailDialog = dynamic(() => import("./components/order-detail-dialog").then(mod => mod.OrderDetailDialog), { ssr: false });
 const OrderEditDialog = dynamic(() => import("./components/order-edit-dialog").then(mod => mod.OrderEditDialog), { ssr: false });
 const MessagePrintDialog = dynamic(() => import("./components/message-print-dialog").then(mod => mod.MessagePrintDialog), { ssr: false });
@@ -40,7 +41,14 @@ import { AccessDenied } from "@/components/access-denied";
 import { exportOrdersToExcel, prepareOrdersForGoogleSheet, exportToGoogleSheet } from "@/lib/excel-export";
 import { createClient } from "@/utils/supabase/client";
 import { useSettings } from "@/hooks/use-settings";
-import { FileSpreadsheet, Settings as SettingsIcon } from "lucide-react";
+import { FileSpreadsheet, Settings as SettingsIcon, ChevronDown, Check, CreditCard as PaymentIcon } from "lucide-react";
+import { 
+  DropdownMenuSub, 
+  DropdownMenuSubContent, 
+  DropdownMenuSubTrigger, 
+  DropdownMenuPortal 
+} from "@/components/ui/dropdown-menu";
+import { printDocument } from "@/lib/print-document";
 
 export default function OrdersPage() {
   const { profile, isLoading: authLoading, tenantId } = useAuth();
@@ -77,6 +85,7 @@ export default function OrdersPage() {
     loading, 
     fetchOrdersByRange, 
     updateOrderStatus, 
+    updatePaymentStatus,
     deleteOrder, 
     cancelOrder 
   } = useOrders();
@@ -259,16 +268,55 @@ export default function OrdersPage() {
     setIsDeleteDialogOpen(true);
   };
 
-  const handlePrintClick = (order: Order, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleCardPrint = (order: Order, e?: React.MouseEvent) => {
+    e?.stopPropagation();
     setSelectedOrder(order);
     setIsMessagePrintOpen(true);
+  };
+
+  const handleRibbonPrint = (order: Order, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    
+    const { left, right } = smartSplitRibbonMessage(
+      order.message?.content || "", 
+      order.message?.sender, 
+      order.orderer.name
+    );
+    
+    router.push(`/dashboard/printer?left=${encodeURIComponent(left)}&right=${encodeURIComponent(right)}`);
   };
 
   const handleOutsourceClick = (order: Order, e: React.MouseEvent) => {
     e.stopPropagation();
     setSelectedOrder(order);
     setIsOutsourceOpen(true);
+  };
+  
+  const handleOrderPrint = (orderId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    toast.promise(printDocument(`/dashboard/orders/print-preview/${orderId}`), {
+      loading: '주문서를 준비 중입니다...',
+      success: '인쇄 준비가 완료되었습니다.',
+      error: '인쇄 준비 중 오류가 발생했습니다.'
+    });
+  };
+
+  const handleStatusUpdate = async (id: string, status: Order['status']) => {
+    const success = await updateOrderStatus(id, status);
+    if (success) {
+      toast.success(`주문 상태가 '${statusLabels[status]}'로 변경되었습니다.`);
+    } else {
+      toast.error("상태 변경에 실패했습니다.");
+    }
+  };
+
+  const handlePaymentUpdate = async (id: string, status: Order['payment']['status']) => {
+    const success = await updatePaymentStatus(id, status);
+    if (success) {
+      toast.success(`결제 상태가 '${status === 'paid' ? '완결' : '미결'}'로 변경되었습니다.`);
+    } else {
+      toast.error("결제 상태 변경에 실패했습니다.");
+    }
   };
 
   const confirmDelete = async () => {
@@ -615,7 +663,7 @@ export default function OrdersPage() {
                               <DropdownMenuTrigger className="inline-flex items-center justify-center h-10 w-10 p-0 rounded-2xl hover:bg-white hover:shadow-md transition-all text-slate-400">
                                 <MoreHorizontal className="h-5 w-5" />
                               </DropdownMenuTrigger>
-                               <DropdownMenuContent align="end" className="rounded-3xl border-none shadow-2xl min-w-[180px] p-2">
+                               <DropdownMenuContent align="end" className="rounded-3xl border-none shadow-2xl min-w-[200px] p-2">
                                 <DropdownMenuGroup>
                                   <DropdownMenuLabel className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">주문 관리</DropdownMenuLabel>
                                   <DropdownMenuItem className="rounded-xl gap-2 font-bold py-3 px-4 focus:bg-slate-50" onClick={(e) => handleOrderClick(order)}>
@@ -624,18 +672,73 @@ export default function OrdersPage() {
                                   <DropdownMenuItem className="rounded-xl gap-2 font-bold py-3 px-4 focus:bg-slate-50" onClick={(e) => handleEditClick(order, e)}>
                                     <PlusCircle className="h-4 w-4" /> 주문 수정
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem className="rounded-xl gap-2 font-bold py-3 px-4 focus:bg-slate-50" onClick={(e) => handlePrintClick(order, e)}>
-                                    <Printer className="h-4 w-4" /> 리본/카드 출력
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem className="rounded-xl gap-2 font-bold py-3 px-4 focus:bg-slate-50" onClick={(e) => handleOutsourceClick(order, e)}>
-                                    <Share2 className="h-4 w-4" /> 아웃소싱 전송
-                                  </DropdownMenuItem>
                                 </DropdownMenuGroup>
+                                
                                 <DropdownMenuSeparator className="mx-1 bg-gray-50" />
-                                <DropdownMenuItem className="text-rose-600 rounded-xl gap-2 font-bold py-3 px-4 hover:bg-rose-50 focus:bg-rose-50 focus:text-rose-700" onClick={() => handleDeleteClick(order.id)}>
-                                  <Trash2 className="h-4 w-4" /> 주문 내역 삭제
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
+                                <DropdownMenuGroup>
+                                  <DropdownMenuLabel className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">인쇄 및 출력</DropdownMenuLabel>
+                                  <DropdownMenuItem className="rounded-xl gap-2 font-bold py-3 px-4 focus:bg-slate-50" onClick={(e) => handleOrderPrint(order.id, e)}>
+                                    <FileText className="h-4 w-4" /> 주문서 인쇄
+                                  </DropdownMenuItem>
+                                   <DropdownMenuItem className="rounded-xl gap-2 font-bold py-3 px-4 focus:bg-slate-50" onClick={(e) => handleCardPrint(order, e)}>
+                                     <Printer className="h-4 w-4" /> 카드 메시지 출력
+                                   </DropdownMenuItem>
+                                   <DropdownMenuItem className="rounded-xl gap-2 font-bold py-3 px-4 focus:bg-slate-50" onClick={(e) => handleRibbonPrint(order, e)}>
+                                     <Printer className="h-4 w-4 text-indigo-500" /> 리본 출력 (프린터 전송)
+                                   </DropdownMenuItem>
+                                </DropdownMenuGroup>
+
+                                <DropdownMenuSeparator className="mx-1 bg-gray-50" />
+                                <DropdownMenuGroup>
+                                  <DropdownMenuLabel className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">상태 관리</DropdownMenuLabel>
+                                  <DropdownMenuSub>
+                                    <DropdownMenuSubTrigger className="rounded-xl gap-2 font-bold py-3 px-4 focus:bg-slate-50">
+                                      <RefreshCw className="h-4 w-4" /> 상태 변경
+                                    </DropdownMenuSubTrigger>
+                                    <DropdownMenuPortal>
+                                      <DropdownMenuSubContent className="rounded-2xl border-none shadow-xl min-w-[150px] p-1.5">
+                                        <DropdownMenuItem onClick={() => handleStatusUpdate(order.id, 'processing')} className="rounded-xl py-2.5 px-3 font-bold gap-2">
+                                           준비중 {order.status === 'processing' && <Check className="h-3 w-3 ml-auto text-amber-500" />}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handleStatusUpdate(order.id, 'completed')} className="rounded-xl py-2.5 px-3 font-bold gap-2">
+                                           완료 {order.status === 'completed' && <Check className="h-3 w-3 ml-auto text-emerald-500" />}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handleStatusUpdate(order.id, 'canceled')} className="rounded-xl py-2.5 px-3 font-bold gap-2 text-rose-600">
+                                           취소 {order.status === 'canceled' && <Check className="h-3 w-3 ml-auto text-rose-500" />}
+                                        </DropdownMenuItem>
+                                      </DropdownMenuSubContent>
+                                    </DropdownMenuPortal>
+                                  </DropdownMenuSub>
+ 
+                                   <DropdownMenuSub>
+                                     <DropdownMenuSubTrigger className="rounded-xl gap-2 font-bold py-3 px-4 focus:bg-slate-50">
+                                       <PaymentIcon className="h-4 w-4" /> 결제 상태
+                                     </DropdownMenuSubTrigger>
+                                     <DropdownMenuPortal>
+                                       <DropdownMenuSubContent className="rounded-2xl border-none shadow-xl min-w-[150px] p-1.5">
+                                         <DropdownMenuItem onClick={() => handlePaymentUpdate(order.id, 'paid')} className="rounded-xl py-2.5 px-3 font-bold gap-2">
+                                            완결 {order.payment?.status === 'paid' && <Check className="h-3 w-3 ml-auto text-emerald-500" />}
+                                         </DropdownMenuItem>
+                                         <DropdownMenuItem onClick={() => handlePaymentUpdate(order.id, 'pending')} className="rounded-xl py-2.5 px-3 font-bold gap-2">
+                                            미결 {order.payment?.status !== 'paid' && <Check className="h-3 w-3 ml-auto text-amber-500" />}
+                                         </DropdownMenuItem>
+                                       </DropdownMenuSubContent>
+                                     </DropdownMenuPortal>
+                                   </DropdownMenuSub>
+                                 </DropdownMenuGroup>
+ 
+                                 <DropdownMenuSeparator className="mx-1 bg-gray-50" />
+                                 <DropdownMenuGroup>
+                                   <DropdownMenuItem className="rounded-xl gap-2 font-bold py-3 px-4 focus:bg-slate-50" onClick={(e) => handleOutsourceClick(order, e)}>
+                                     <Share2 className="h-4 w-4" /> 외부 발주
+                                   </DropdownMenuItem>
+                                 </DropdownMenuGroup>
+                                 
+                                 <DropdownMenuSeparator className="mx-1 bg-gray-50" />
+                                 <DropdownMenuItem className="text-rose-600 rounded-xl gap-2 font-bold py-3 px-4 hover:bg-rose-50 focus:bg-rose-50 focus:text-rose-700" onClick={() => handleDeleteClick(order.id)}>
+                                   <Trash2 className="h-4 w-4" /> 주문 내역 삭제
+                                 </DropdownMenuItem>
+                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>
                         </TableRow>
@@ -733,20 +836,55 @@ export default function OrdersPage() {
                               <DropdownMenuTrigger className="inline-flex items-center justify-center h-8 w-8 p-0 rounded-lg hover:bg-slate-50 text-slate-400">
                                 <MoreHorizontal className="h-4 w-4" />
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="rounded-2xl border-none shadow-2xl min-w-[160px] p-1.5">
-                              <DropdownMenuItem className="rounded-xl gap-2 font-bold py-2.5 px-3 focus:bg-slate-50" onClick={(e) => { e.stopPropagation(); handleOrderClick(order); }}>
-                                <ClipboardList className="h-4 w-4" /> 상세 보기
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="rounded-xl gap-2 font-bold py-2.5 px-3 focus:bg-slate-50" onClick={(e) => { e.stopPropagation(); handleEditClick(order, e as any); }}>
-                                <PlusCircle className="h-4 w-4" /> 수정
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator className="mx-1 bg-gray-50" />
-                              <DropdownMenuItem className="text-rose-600 rounded-xl gap-2 font-bold py-2.5 px-3 hover:bg-rose-50 focus:bg-rose-50 focus:text-rose-700" onClick={(e) => { e.stopPropagation(); handleDeleteClick(order.id); }}>
-                                <Trash2 className="h-4 w-4" /> 삭제
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
+                              <DropdownMenuContent align="end" className="rounded-2xl border-none shadow-2xl min-w-[200px] p-2">
+                                <DropdownMenuItem className="rounded-xl gap-2 font-bold py-2.5 px-3 focus:bg-slate-50" onClick={(e) => { e.stopPropagation(); handleOrderClick(order); }}>
+                                  <ClipboardList className="h-4 w-4" /> 상세 보기
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="rounded-xl gap-2 font-bold py-2.5 px-3 focus:bg-slate-50" onClick={(e) => { e.stopPropagation(); handleEditClick(order, e as any); }}>
+                                  <PlusCircle className="h-4 w-4" /> 주문 수정
+                                </DropdownMenuItem>
+                                
+                                <DropdownMenuSeparator className="mx-1 bg-gray-50" />
+                                <DropdownMenuItem className="rounded-xl gap-2 font-bold py-2.5 px-3 focus:bg-slate-50" onClick={(e) => { e.stopPropagation(); handleOrderPrint(order.id, e as any); }}>
+                                  <FileText className="h-4 w-4" /> 주문서 인쇄
+                                </DropdownMenuItem>
+                                 <DropdownMenuItem className="rounded-xl gap-2 font-bold py-2.5 px-3 focus:bg-slate-50" onClick={(e) => { e.stopPropagation(); handleCardPrint(order, e as any); }}>
+                                   <Printer className="h-4 w-4" /> 카드 메시지 출력
+                                 </DropdownMenuItem>
+                                 <DropdownMenuItem className="rounded-xl gap-2 font-bold py-2.5 px-3 focus:bg-slate-50" onClick={(e) => { e.stopPropagation(); handleRibbonPrint(order, e as any); }}>
+                                   <Printer className="h-4 w-4 text-indigo-500" /> 리본 출력 (프린터 전송)
+                                 </DropdownMenuItem>
+ 
+                                <DropdownMenuSeparator className="mx-1 bg-gray-50" />
+                                <DropdownMenuSub>
+                                  <DropdownMenuSubTrigger className="rounded-xl gap-2 font-bold py-2.5 px-3 focus:bg-slate-50">
+                                    <RefreshCw className="h-4 w-4" /> 상태/결제 변경
+                                  </DropdownMenuSubTrigger>
+                                  <DropdownMenuPortal>
+                                    <DropdownMenuSubContent className="rounded-2xl border-none shadow-xl min-w-[170px] p-1.5">
+                                      <DropdownMenuLabel className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">주문 상태</DropdownMenuLabel>
+                                      <DropdownMenuItem onClick={() => handleStatusUpdate(order.id, 'processing')} className="rounded-xl py-2 font-bold">준비중</DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handleStatusUpdate(order.id, 'completed')} className="rounded-xl py-2 font-bold">완료 처리</DropdownMenuItem>
+                                      <DropdownMenuSeparator className="my-1" />
+                                      <DropdownMenuLabel className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">결제 상태</DropdownMenuLabel>
+                                      <DropdownMenuItem onClick={() => handlePaymentUpdate(order.id, 'paid')} className="rounded-xl py-2 font-bold">결제 완료</DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handlePaymentUpdate(order.id, 'pending')} className="rounded-xl py-2 font-bold">미결 처리</DropdownMenuItem>
+                                    </DropdownMenuSubContent>
+                                  </DropdownMenuPortal>
+                                </DropdownMenuSub>
+ 
+                                <DropdownMenuSeparator className="mx-1 bg-gray-50" />
+                                <DropdownMenuItem className="rounded-xl gap-2 font-bold py-2.5 px-3 focus:bg-slate-50" onClick={(e) => { e.stopPropagation(); handleOutsourceClick(order, e as any); }}>
+                                  <Share2 className="h-4 w-4" /> 외부 발주
+                                </DropdownMenuItem>
+                                
+                                <DropdownMenuSeparator className="mx-1 bg-gray-50" />
+                                <DropdownMenuItem className="text-rose-600 rounded-xl gap-2 font-bold py-2.5 px-3 hover:bg-rose-50 focus:bg-rose-50 focus:text-rose-700" onClick={(e) => { e.stopPropagation(); handleDeleteClick(order.id); }}>
+                                  <Trash2 className="h-4 w-4" /> 주문 삭제
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
                       </div>
                     </CardContent>
                     </Card>
@@ -801,6 +939,8 @@ export default function OrdersPage() {
         isOpen={isOrderDetailOpen} 
         onOpenChange={setIsOrderDetailOpen} 
         order={selectedOrder} 
+        onPrintMessage={handleCardPrint}
+        onPrintRibbon={handleRibbonPrint}
         onUpdate={() => {
           // Trigger a silent refresh of the orders
           const period = searchParams.get('period') || '2months';

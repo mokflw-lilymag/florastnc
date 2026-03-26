@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { format } from "date-fns";
+import { format, isWithinInterval, startOfDay, endOfDay } from "date-fns";
 import { ko } from "date-fns/locale";
 import { 
   Calendar as CalendarIcon, 
@@ -11,7 +11,8 @@ import {
   CheckCircle2,
   Printer,
   ChevronRight,
-  Receipt as ReceiptIcon
+  Receipt as ReceiptIcon,
+  Archive
 } from "lucide-react";
 import { 
   Dialog, 
@@ -31,6 +32,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { Customer } from "@/types/customer";
 import { createClient } from "@/utils/supabase/client";
+import { toast } from "sonner";
+import { printDocument } from "@/lib/print-document";
+import { Badge } from "@/components/ui/badge";
 
 interface StatementDialogProps {
   customer: Customer | null;
@@ -194,7 +198,12 @@ export function StatementDialog({ customer, isOpen, onOpenChange, type }: Statem
       type: type
     });
     
-    window.open(`/dashboard/customers/print?${params.toString()}`, '_blank');
+    toast.promise(printDocument(`/dashboard/customers/print?${params.toString()}`), {
+      loading: '서류를 인쇄용으로 변환 중...',
+      success: '서류 출력이 준비되었습니다.',
+      error: '인쇄 준비 중 오류가 발생했습니다.'
+    });
+    
     onOpenChange(false);
   };
 

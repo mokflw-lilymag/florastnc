@@ -75,6 +75,7 @@ export interface Order {
   };
   actual_delivery_cost?: number;
   actual_delivery_payment_method?: "card" | "cash" | "transfer";
+  actual_delivery_payment_status?: string;
   actual_delivery_cost_cash?: number;
   outsource_info?: {
     isOutsourced: boolean;

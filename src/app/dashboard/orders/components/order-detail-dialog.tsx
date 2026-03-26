@@ -48,10 +48,11 @@ interface OrderDetailDialogProps {
   onOpenChange: (open: boolean) => void;
   order: Order | null;
   onPrintMessage?: (order: Order) => void;
+  onPrintRibbon?: (order: Order) => void;
   onUpdate?: () => void;
 }
 
-export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage, onUpdate }: OrderDetailDialogProps) {
+export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage, onPrintRibbon, onUpdate }: OrderDetailDialogProps) {
   const supabase = createClient();
   const { user, tenantId } = useAuth();
   const { updateOrder } = useOrders();
@@ -365,9 +366,16 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
           <DialogClose render={<Button variant="ghost" className="rounded-2xl h-12 px-8 font-semibold text-slate-500 hover:bg-slate-100" />}>
             닫기
           </DialogClose>
-          <Button variant="outline" onClick={() => onPrintMessage?.(order)} className={cn(buttonVariants({ variant: "outline" }), "rounded-2xl h-12 px-8 font-semibold border-2 border-slate-200 hover:bg-slate-50 text-slate-700 gap-2")}>
-            <Printer className="h-4 w-4" /> 리본/카드 출력
-          </Button>
+          {onPrintMessage && (
+            <Button variant="outline" onClick={() => onPrintMessage?.(order)} className={cn(buttonVariants({ variant: "outline" }), "rounded-2xl h-12 px-8 font-semibold border-2 border-slate-200 hover:bg-slate-50 text-slate-700 gap-2")}>
+              <Printer className="h-4 w-4" /> 카드 출력
+            </Button>
+          )}
+          {onPrintRibbon && (
+            <Button variant="outline" onClick={() => onPrintRibbon?.(order)} className={cn(buttonVariants({ variant: "outline" }), "rounded-2xl h-12 px-8 font-semibold border-2 border-slate-200 hover:bg-slate-50 text-slate-700 gap-2")}>
+              <Printer className="h-4 w-4 text-indigo-500" /> 리본 출력
+            </Button>
+          )}
           <Button className="rounded-2xl h-12 px-10 font-bold bg-slate-900 hover:bg-black text-white shadow-xl shadow-slate-200 gap-2">
             <RefreshCw className="h-4 w-4" /> 주문 상태 변경
           </Button>

@@ -34,6 +34,8 @@ export interface SystemSettings {
   googleSheetExpensesId: string;
   siteName: string;
   siteDescription: string;
+  siteWebsite: string;
+  storeEmail: string;
   contactEmail: string;
   messageFont: string;
   messageFontSize: number;
@@ -71,6 +73,8 @@ export const defaultSettings: SystemSettings = {
   googleSheetExpensesId: "",
   siteName: "FloraSync SaaS",
   siteDescription: "플라워샵 통합 관리 시스템",
+  siteWebsite: "",
+  storeEmail: "",
   contactEmail: "",
   messageFont: "Noto Sans KR",
   messageFontSize: 14,

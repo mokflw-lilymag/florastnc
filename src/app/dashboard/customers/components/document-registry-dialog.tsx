@@ -28,6 +28,7 @@ import { ko } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
+import { printDocument } from "@/lib/print-document";
 
 interface DocumentLog {
   id: string;
@@ -95,7 +96,11 @@ export function DocumentRegistryDialog({ isOpen, onOpenChange, tenantId }: Docum
       manual_items: btoa(encodeURIComponent(itemsJson))
     });
     
-    window.open(`/dashboard/customers/print?${params.toString()}`, '_blank');
+    toast.promise(printDocument(`/dashboard/customers/print?${params.toString()}`), {
+      loading: '서류를 인쇄용으로 변환 중...',
+      success: '서류 출력이 준비되었습니다.',
+      error: '인쇄 준비 중 오류가 발생했습니다.'
+    });
   };
 
   const handleDelete = async (id: string) => {

@@ -12,6 +12,7 @@ import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { createClient } from '@/utils/supabase/client';
 import { Order } from '@/types/order';
+import { useSettings } from '@/hooks/use-settings';
 
 interface PrintPreviewClientProps {
     orderId: string;
@@ -21,6 +22,7 @@ export function PrintPreviewClient({ orderId }: PrintPreviewClientProps) {
     const router = useRouter();
     const supabase = createClient();
     const { profile, isLoading: authLoading, tenantId } = useAuth();
+    const { settings } = useSettings();
     const [order, setOrder] = useState<Order | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -54,6 +56,20 @@ export function PrintPreviewClient({ orderId }: PrintPreviewClientProps) {
         }
     }, [orderId, authLoading, tenantId]);
 
+    // Added auto-print logic to handle both direct access and silent printing
+    useEffect(() => {
+        if (!loading && order) {
+            const isIframe = window.self !== window.top;
+            if (!isIframe) {
+                // If it's a direct browser tab, trigger print automatically
+                const timer = setTimeout(() => {
+                    window.print();
+                }, 1000);
+                return () => clearTimeout(timer);
+            }
+        }
+    }, [loading, order]);
+
     if (authLoading || loading) {
         return (
             <div className="flex h-screen w-full items-center justify-center bg-white">
@@ -77,9 +93,25 @@ export function PrintPreviewClient({ orderId }: PrintPreviewClientProps) {
         );
     }
 
-    const itemsText = (order.items || []).map(item => `${item.name} / ${item.quantity}개`).join('\n');
+    const itemsText = (order.items || []).map(item => `${item.name}(${item.quantity})`).join(', ');
     const orderDateObject = new Date(order.order_date);
     
+    // Formatting delivery date
+    let formattedDeliveryDate = order.order_date;
+    try {
+        if (order.receipt_type === 'delivery_reservation' && order.delivery_info?.date) {
+            const dateStr = `${order.delivery_info.date} ${order.delivery_info.time || '00:00'}`;
+            formattedDeliveryDate = format(new Date(dateStr), "yyyy-MM-dd HH:mm (E)", { locale: ko });
+        } else if (order.receipt_type === 'pickup_reservation' && order.pickup_info?.date) {
+            const dateStr = `${order.pickup_info.date} ${order.pickup_info.time || '00:00'}`;
+            formattedDeliveryDate = format(new Date(dateStr), "yyyy-MM-dd HH:mm (E)", { locale: ko });
+        } else {
+            formattedDeliveryDate = format(new Date(order.order_date), "yyyy-MM-dd HH:mm (E)", { locale: ko });
+        }
+    } catch (e) {
+        console.error("Error formatting delivery date:", e);
+    }
+
     // Mapping SaaS order to PrintableOrder format
     const printData: OrderPrintData = {
         orderDate: format(orderDateObject, "yyyy-MM-dd HH:mm (E)", { locale: ko }),
@@ -91,11 +123,7 @@ export function PrintPreviewClient({ orderId }: PrintPreviewClientProps) {
         deliveryFee: order.summary?.deliveryFee || 0,
         paymentMethod: order.payment?.method || 'cash',
         paymentStatus: ['paid', 'completed'].includes(order.payment?.status) ? '완결' : '미결',
-        deliveryDate: order.receipt_type === 'delivery_reservation' 
-            ? `${order.delivery_info?.date} ${order.delivery_info?.time || ''}`
-            : order.receipt_type === 'pickup_reservation'
-                ? `${order.pickup_info?.date} ${order.pickup_info?.time || ''}`
-                : order.order_date,
+        deliveryDate: formattedDeliveryDate,
         recipientName: order.receipt_type === 'delivery_reservation' 
             ? order.delivery_info?.recipientName || "" 
             : order.pickup_info?.pickerName || "",
@@ -109,10 +137,12 @@ export function PrintPreviewClient({ orderId }: PrintPreviewClientProps) {
         messageType: order.message?.type === 'ribbon' ? 'ribbon' : 'card',
         isAnonymous: order.outsource_info?.hideCustomerInfo || false,
         shopInfo: {
-            name: order.outsource_info?.sender_branding?.name || profile?.tenants?.name || "플로라싱크",
-            address: order.outsource_info?.sender_branding?.address || profile?.tenants?.address || "",
-            contact: order.outsource_info?.sender_branding?.contact || profile?.tenants?.contact_phone || "",
+            name: order.outsource_info?.sender_branding?.name || settings?.siteName || profile?.tenants?.name || "플로라싱크",
+            address: order.outsource_info?.sender_branding?.address || settings?.address || profile?.tenants?.address || "",
+            contact: order.outsource_info?.sender_branding?.contact || settings?.contactPhone || profile?.tenants?.contact_phone || "",
             account: profile?.tenants?.account || "",
+            email: settings?.storeEmail || "",
+            website: settings?.siteWebsite || "",
         },
         logoUrl: order.outsource_info?.sender_branding?.logo_url || profile?.tenants?.logo_url || ""
     };
@@ -122,9 +152,32 @@ export function PrintPreviewClient({ orderId }: PrintPreviewClientProps) {
             <style jsx global>{`
                 @media print {
                     @page { size: A4; margin: 0; }
-                    body { margin: 0; }
-                    .no-print { display: none !important; }
-                    #printable-area { padding: 0 !important; }
+                    body { margin: 0 !important; padding: 0 !important; }
+                    /* Hide all UI elements except the printable area */
+                    .no-print, 
+                    header, 
+                    aside, 
+                    nav, 
+                    footer,
+                    [role="complementary"],
+                    [role="navigation"],
+                    .sidebar,
+                    .app-header,
+                    .quick-chat-container { 
+                        display: none !important; 
+                    }
+                    /* Ensure containers don't restrict width or have padding */
+                    main, .dashboard-main, #printable-area { 
+                        display: block !important;
+                        width: 100% !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                    }
+                    /* Reset any transitions or positioning that might interfere */
+                    * { 
+                        transition: none !important; 
+                        box-shadow: none !important;
+                    }
                 }
             `}</style>
             

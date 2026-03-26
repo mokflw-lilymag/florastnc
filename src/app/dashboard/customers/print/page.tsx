@@ -57,10 +57,12 @@ function PrintContent() {
         
         await fetchBusinessInfo();
 
-        // Auto-trigger print
-        setTimeout(() => {
-          window.print();
-        }, 800);
+        // Auto-trigger print IF NOT in an iframe (direct access)
+        if (window.self === window.top) {
+          setTimeout(() => {
+            window.print();
+          }, 1000);
+        }
       } catch (err) {
         console.error("Print init error:", err);
       } finally {

@@ -37,6 +37,11 @@ export function useOrders(initialFetch = true) {
     memo: row.memo,
     message: row.message || {},
     extra_data: row.extra_data,
+    actual_delivery_cost: row.actual_delivery_cost,
+    actual_delivery_cost_cash: row.actual_delivery_cost_cash,
+    actual_delivery_payment_method: row.actual_delivery_payment_method,
+    actual_delivery_payment_status: row.actual_delivery_payment_status,
+    outsource_info: row.outsource_info,
     created_at: row.created_at,
     updated_at: row.updated_at,
     completed_at: row.completed_at,
@@ -59,7 +64,9 @@ export function useOrders(initialFetch = true) {
         .select(`
           id, order_number, status, receipt_type, order_date, 
           orderer, summary, payment, items, message, pickup_info, delivery_info, 
-          memo, created_at, completionphotourl
+          memo, actual_delivery_cost, actual_delivery_cost_cash, 
+          actual_delivery_payment_method, actual_delivery_payment_status,
+          outsource_info, created_at, completionphotourl
         `)
         .eq('tenant_id', tenantId)
         .gte('order_date', startDateStr)
@@ -87,7 +94,9 @@ export function useOrders(initialFetch = true) {
         .select(`
           id, order_number, status, receipt_type, order_date, 
           orderer, summary, payment, items, message, pickup_info, delivery_info, 
-          memo, created_at, completionphotourl
+          memo, actual_delivery_cost, actual_delivery_cost_cash, 
+          actual_delivery_payment_method, actual_delivery_payment_status,
+          outsource_info, created_at, completionphotourl
         `)
         .eq('tenant_id', tenantId)
         .gte('order_date', start.toISOString())
@@ -127,11 +136,13 @@ export function useOrders(initialFetch = true) {
       if (orderData.receipt_type === 'delivery_reservation' && orderData.summary.deliveryFee > 0) {
         await supabase.from('expenses').insert([{
            tenant_id: tenantId,
-           category: '운송비',
+           category: 'transportation',
+           sub_category: 'delivery_fee',
            amount: orderData.summary.deliveryFee,
-           description: `배송비 자동 생성 - ${orderData.orderer.name}`,
+           description: `[배송비] ${orderPayload.order_number} (자동 생성)`,
            expense_date: orderData.order_date || new Date().toISOString(),
-           payment_method: '기타'
+           payment_method: 'cash',
+           related_order_id: data.id
         }]);
       }
 
@@ -207,6 +218,19 @@ export function useOrders(initialFetch = true) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const updatePaymentStatus = async (id: string, status: Order['payment']['status']): Promise<boolean> => {
+    // Find the order to get existing payment info
+    const order = orders.find(o => o.id === id);
+    if (!order) return false;
+    
+    const updatedPayment = {
+      ...(order.payment || {}),
+      status: status
+    };
+    
+    return updateOrder(id, { payment: updatedPayment });
   };
 
   const updateOrderStatus = async (id: string, status: Order['status']): Promise<boolean> => {
@@ -287,6 +311,7 @@ export function useOrders(initialFetch = true) {
     addOrder,
     updateOrder,
     updateOrderStatus,
+    updatePaymentStatus,
     cancelOrder,
     deleteOrder
   };

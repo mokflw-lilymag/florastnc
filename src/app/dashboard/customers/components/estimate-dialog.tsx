@@ -22,6 +22,8 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Customer } from "@/types/customer";
 import { createClient } from "@/utils/supabase/client";
+import { printDocument } from "@/lib/print-document";
+import { toast } from "sonner";
 
 interface EstimateDialogProps {
   customer: Customer | null;
@@ -180,7 +182,12 @@ export function EstimateDialog({ customer, isOpen, onOpenChange }: EstimateDialo
       manual_items: btoa(encodeURIComponent(itemsJson))
     });
     
-    window.open(`/dashboard/customers/print?${params.toString()}`, '_blank');
+    toast.promise(printDocument(`/dashboard/customers/print?${params.toString()}`), {
+      loading: '견적서를 인쇄용으로 변환 중...',
+      success: '인쇄 준비가 완료되었습니다.',
+      error: '인쇄 준비 중 오류가 발생했습니다.'
+    });
+    
     onOpenChange(false);
   };
 

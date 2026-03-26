@@ -24,6 +24,7 @@ import { useExpenses } from "@/hooks/use-expenses";
 import { useSettings } from "@/hooks/use-settings";
 import { Order, OrderItem } from "@/types/order";
 import { parseDate } from "@/lib/date-utils";
+import { createClient } from "@/utils/supabase/client";
 
 interface OrderEditDialogProps {
   isOpen: boolean;
@@ -34,7 +35,8 @@ interface OrderEditDialogProps {
 export function OrderEditDialog({ isOpen, onOpenChange, order }: OrderEditDialogProps) {
   const { updateOrder } = useOrders();
   const { settings } = useSettings();
-  const { updateExpenseByOrderId, addExpense, deleteExpenseByOrderId } = useExpenses();
+  const { updateExpenseByOrderId, addExpense, deleteExpenseByOrderId, updateExpense, deleteExpense } = useExpenses();
+  const supabase = createClient();
   const [isLoading, setIsLoading] = useState(false);
   
   const [formData, setFormData] = useState({
@@ -87,9 +89,9 @@ export function OrderEditDialog({ isOpen, onOpenChange, order }: OrderEditDialog
         address: order.delivery_info?.address || '',
         items: [...order.items],
         message: {
-          type: (order.extra_data?.message?.type || 'none') as any,
-          sender: order.extra_data?.message?.sender || '',
-          content: order.extra_data?.message?.content || ''
+          type: (order.message?.type || order.extra_data?.message?.type || 'none') as any,
+          sender: order.message?.sender || order.extra_data?.message?.sender || '',
+          content: order.message?.content || order.extra_data?.message?.content || ''
         },
         status: (order.status || 'processing') as Order['status'],
         payment: {
@@ -159,11 +161,12 @@ export function OrderEditDialog({ isOpen, onOpenChange, order }: OrderEditDialog
           ...formData.payment
         },
         items: formData.items,
+        message: formData.message,
         memo: formData.memo,
-        extra_data: {
-          ...order.extra_data,
-          message: formData.message
-        }
+        extra_data: order.extra_data || {},
+        actual_delivery_cost: formData.actual_delivery_cost,
+        actual_delivery_payment_method: formData.actual_delivery_payment_method,
+        actual_delivery_cost_cash: formData.actual_delivery_payment_method === 'cash' ? formData.actual_delivery_cost : 0
       };
 
       if (formData.receipt_type === 'delivery_reservation') {
@@ -172,11 +175,9 @@ export function OrderEditDialog({ isOpen, onOpenChange, order }: OrderEditDialog
           recipientName: formData.recipient.name,
           recipientContact: formData.recipient.contact,
           address: formData.address,
-          date: formData.order_date, // Should ideally have its own field
+          date: formData.order_date,
           driverAffiliation: formData.driverAffiliation
         };
-        updates.actual_delivery_cost = formData.actual_delivery_cost;
-        updates.actual_delivery_payment_method = formData.actual_delivery_payment_method;
         updates.pickup_info = null;
       } else {
         updates.pickup_info = {
@@ -187,6 +188,7 @@ export function OrderEditDialog({ isOpen, onOpenChange, order }: OrderEditDialog
         };
         updates.delivery_info = null;
         updates.actual_delivery_cost = 0;
+        updates.actual_delivery_cost_cash = 0;
       }
 
       await updateOrder(order.id, updates);
@@ -201,14 +203,33 @@ export function OrderEditDialog({ isOpen, onOpenChange, order }: OrderEditDialog
           expense_date: formData.order_date ? new Date(formData.order_date).toISOString() : new Date().toISOString(),
           payment_method: formData.actual_delivery_payment_method || "card",
         };
-        const updateSuccess = await updateExpenseByOrderId(order.id, expenseData, "delivery_fee");
-        if (!updateSuccess) {
+        
+        // Search for existing expenses for this order to prevent duplicates
+        const { data: existingExpenses } = await supabase
+          .from('expenses')
+          .select('id')
+          .eq('related_order_id', order.id)
+          .eq('sub_category', 'delivery_fee');
+
+        if (existingExpenses && existingExpenses.length > 0) {
+          // Update the first found expense
+          await updateExpense(existingExpenses[0].id, expenseData);
+          
+          // Clean up any other duplicates if they somehow exist
+          if (existingExpenses.length > 1) {
+            for (let i = 1; i < existingExpenses.length; i++) {
+              await deleteExpense(existingExpenses[i].id);
+            }
+          }
+        } else {
+          // Create new expense if none exists
           await addExpense({
             ...expenseData,
             related_order_id: order.id
           });
         }
       } else if (order.actual_delivery_cost && order.actual_delivery_cost > 0) {
+        // If delivery cost was removed or changed to non-reservation, clean up expenses
         await deleteExpenseByOrderId(order.id, "delivery_fee");
       }
 
@@ -369,6 +390,71 @@ export function OrderEditDialog({ isOpen, onOpenChange, order }: OrderEditDialog
                 </div>
               ))}
               <Button variant="outline" onClick={addItem} className="w-full"><Plus className="h-4 w-4 mr-2" /> 상품 추가</Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader><CardTitle className="text-base flex items-center gap-2"><MessageSquare className="h-4 w-4" /> 메시지 및 리본</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-slate-700">메시지 타입</Label>
+                <Select value={formData.message.type} onValueChange={(val) => handleInputChange('message', 'type', val)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">없음</SelectItem>
+                    <SelectItem value="card">메시지 카드</SelectItem>
+                    <SelectItem value="ribbon">리본</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-slate-700">보내는 분 (리본용)</Label>
+                <Input value={formData.message.sender} onChange={(e) => handleInputChange('message', 'sender', e.target.value)} placeholder="선택 사항" />
+              </div>
+              {formData.message.type === 'ribbon' && (
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {[
+                    { ko: "축발전", zh: "祝發展" },
+                    { ko: "축개업", zh: "祝開業" },
+                    { ko: "축승진", zh: "祝昇進" },
+                    { ko: "축영전", zh: "祝榮轉" },
+                    { ko: "근조", zh: "謹弔" },
+                    { ko: "축결혼", zh: "祝結婚" },
+                  ].map((msg) => (
+                    <Button
+                      key={msg.ko}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-7 px-2 text-[11px] bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary font-medium"
+                      onClick={() => {
+                        const content = `${msg.ko} / ${msg.zh}`;
+                        handleInputChange('message', 'content', content);
+                      }}
+                    >
+                      {msg.ko} / {msg.zh}
+                    </Button>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-7 px-2 text-[11px] bg-orange-50 hover:bg-orange-100 border-orange-200 text-orange-700 font-medium"
+                    onClick={() => handleInputChange('message', 'content', "삼가 故人의 冥福을 빕니다")}
+                  >
+                    삼가 故인...
+                  </Button>
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label className="text-slate-700">메시지 내용</Label>
+                <Textarea 
+                  value={formData.message.content || ""} 
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleInputChange('message', 'content', e.target.value)} 
+                  placeholder={formData.message.type === 'ribbon' ? "경조사어 / 보내는분 (예: 축결혼 / 홍길동)" : "카드에 들어갈 내용을 입력하세요."} 
+                  className="min-h-[100px]"
+                />
+              </div>
             </CardContent>
           </Card>
 

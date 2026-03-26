@@ -298,27 +298,30 @@ export default function NewOrderPage() {
   const dynamicCategories = useMemo(() => {
     if (!allProducts.length) return [];
     
-    // 1. Define common priority categories (expanded to 10+)
+    // 1. Define common priority categories (removed '동양란/서양란', '조화' as requested)
     const priority = [
       '꽃다발', '꽃바구니', '센터피스', '관엽식물', 
-      '동양란/서양란', '축하화환', '근조화환', 
-      '꽃상자', '돈꽃다발', '조화', '다육/선인장', '부자재'
+      '축하화환', '근조화환', '꽃상자', '돈꽃다발', '다육/선인장', '부자재'
     ];
     
     // 2. Discover other categories actually used in products
+    // (excluding categories explicitly requested to be hidden)
+    const excludeCategories = ['기프트상품', '플라워', '동양란/서양란', '웨딩상품', '조화', '동서양란'];
     const existingCats = Array.from(new Set(allProducts.map(p => p.main_category).filter(Boolean))) as string[];
+    const filteredExistingCats = existingCats.filter(cat => !excludeCategories.includes(cat));
     
     // 3. Combine them, keeping priority first
-    const combined = [...new Set([...priority, ...existingCats])];
+    const combined = [...new Set([...priority, ...filteredExistingCats])]
+      .filter(cat => !excludeCategories.includes(cat));
     
-    // 4. Map to CategoryData and limit to roughly 10 (or show all since we have 2 rows now)
+    // 4. Map to CategoryData
     return combined
       .map(cat => ({
         name: cat,
         products: calculateTopProducts(cat, 10, true)
       }))
       .filter(c => c.products.length > 0)
-      .slice(0, 15); // Allow up to 15 to fill 3 rows nicely if needed, or 10 for 2 rows.
+      .slice(0, 10); // Show only top 10 categories in a single row logic
   }, [allProducts, calculateTopProducts]);
 
   const deliveryFee = useMemo(() => {
