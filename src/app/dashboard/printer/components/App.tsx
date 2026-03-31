@@ -1462,6 +1462,14 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
   };
 
   const handleRotateAll = (side: 'left'|'right') => {
+    // [Toggle Logic] If there are any rotated characters, clear all and return to normal
+    const currentRotated = side === 'left' ? leftRotated : rightRotated;
+    if (currentRotated.size > 0) {
+      if (side === 'left') setLeftRotated(new Set());
+      else setRightRotated(new Set());
+      return;
+    }
+
     const text = side === 'left' ? leftText : rightText;
     const lines = text.split('\n').filter(l => l.trim() !== '');
     const newRotated = new Set<string>();
