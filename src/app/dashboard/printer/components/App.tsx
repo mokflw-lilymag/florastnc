@@ -874,7 +874,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
   const bridgeCheckRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const loadPrinters = () => {
-    fetch('http://localhost:8000/api/printers', { signal: AbortSignal.timeout(5000) })
+    fetch('http://127.0.0.1:8000/api/printers', { signal: AbortSignal.timeout(5000) })
       .then(res => res.json())
       .then(res => {
         if (res.status === 'success' && Array.isArray(res.data)) {
@@ -897,7 +897,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
     let wasConnected = false;
     const checkBridge = async () => {
       try {
-        const res = await fetch('http://localhost:8000/', { signal: AbortSignal.timeout(5000) });
+        const res = await fetch('http://127.0.0.1:8000/', { signal: AbortSignal.timeout(5000) });
         const data = await res.json();
         if (data.status === 'ok' || data.status === 'success') {
           setBridgeConnected(true);
@@ -1157,7 +1157,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
        setShopLogo(metaLogo || null);
        if (metaLogo) setPrintLogo(true);
        
-       fetch('http://localhost:8000/api/pair', {
+       fetch('http://127.0.0.1:8000/api/pair', {
          method: 'POST',
          headers: { 'Content-Type': 'application/json' },
          body: JSON.stringify({ user_id: session.user.id })
