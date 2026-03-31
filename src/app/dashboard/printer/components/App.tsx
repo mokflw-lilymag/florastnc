@@ -897,6 +897,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
       .catch(() => {});
   };
 
+  const lastPrinterRetryRef = useRef<number>(0);
   useEffect(() => {
     let wasConnected = false;
     const checkBridge = async () => {
@@ -917,10 +918,17 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
           if (!wasConnected) {
             wasConnected = true;
             loadPrinters();
+          } else if (printers.length === 0) {
+            // If connected but no printers, retry every 10s
+            const now = Date.now();
+            if (now - lastPrinterRetryRef.current > 10000) {
+              lastPrinterRetryRef.current = now;
+              loadPrinters();
+            }
           }
         } else {
-          setBridgeConnected(false);
-          wasConnected = false;
+          setBridgeConnected(true); // Treat success as connected even if status isn't 'ok'
+          wasConnected = true;
         }
       } catch {
         setBridgeConnected(false);
@@ -930,7 +938,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
     checkBridge();
     bridgeCheckRef.current = setInterval(checkBridge, 5000);
     return () => { if (bridgeCheckRef.current) clearInterval(bridgeCheckRef.current); };
-  }, []);
+  }, [printers.length]); // Re-bind if printers list changes to check length correctly
 
   const isVersionOk = (v: string) => {
     if (!v) return false;
