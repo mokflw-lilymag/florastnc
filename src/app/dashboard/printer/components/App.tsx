@@ -93,11 +93,12 @@ async function embedActiveFontsIntoElement(element: HTMLElement) {
             const urlMatch = cssText.match(/url\(['"]?([^'"]+)['"]?\)/);
             if (urlMatch) {
               const fontUrl = urlMatch[1];
+              // Completely ignore Next.js internal/layout fonts to prevent 404s and console clutter
+              if (fontUrl.includes('/media/') || fontUrl.includes('_next/static')) {
+                continue;
+              }
+
               if (fontUrl.startsWith('http')) {
-                // Skip internal Next.js media fonts that often produce 404s during capture
-                if (fontUrl.includes('/media/') || fontUrl.includes('_next/static')) {
-                  continue;
-                }
                 const dataUri = await getFontDataUri(fontUrl);
                 if (dataUri) {
                   activeFontFaces.push(cssText.replace(fontUrl, dataUri));
@@ -897,6 +898,40 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
       .catch(() => {});
   };
 
+
+  const isVersionOk = (v: string) => {
+    if (!v) return false;
+    const parse = (s: string) => s.split('.').map(Number);
+    const cur = parse(v);
+    const req = parse(REQUIRED_BRIDGE_VERSION);
+    for (let i = 0; i < Math.max(cur.length, req.length); i++) {
+      const c = cur[i] || 0;
+      const r = req[i] || 0;
+      if (c > r) return true;
+      if (c < r) return false;
+    }
+    return true; // equal
+  };
+
+  const checkSubscriptionAction = async (action: () => void) => {
+    if (session?.user?.email === 'test@test.com') {
+      alert("🚨 실제 인쇄 및 저장은 개인 계정 가입 후 무료로 이용 가능합니다.\n지금 1분 만에 가입하세요!");
+      await supabase.auth.signOut();
+      return;
+    }
+    if (hasAccess) {
+      action();
+    } else {
+      setShowPaywall(true);
+    }
+  };
+
+  // Printer State
+  const [printers, setPrinters] = useState<any[]>([]);
+  const [selectedPrinter, setSelectedPrinter] = useState('');
+  const [selectedPrinterType, setSelectedPrinterType] = useState<'epson_m105' | 'xprinter' | 'generic'>('epson_m105');
+  const [isPrinting, setIsPrinting] = useState(false);
+
   const lastPrinterRetryRef = useRef<number>(0);
   useEffect(() => {
     let wasConnected = false;
@@ -939,39 +974,6 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
     bridgeCheckRef.current = setInterval(checkBridge, 5000);
     return () => { if (bridgeCheckRef.current) clearInterval(bridgeCheckRef.current); };
   }, [printers.length]); // Re-bind if printers list changes to check length correctly
-
-  const isVersionOk = (v: string) => {
-    if (!v) return false;
-    const parse = (s: string) => s.split('.').map(Number);
-    const cur = parse(v);
-    const req = parse(REQUIRED_BRIDGE_VERSION);
-    for (let i = 0; i < Math.max(cur.length, req.length); i++) {
-      const c = cur[i] || 0;
-      const r = req[i] || 0;
-      if (c > r) return true;
-      if (c < r) return false;
-    }
-    return true; // equal
-  };
-
-  const checkSubscriptionAction = async (action: () => void) => {
-    if (session?.user?.email === 'test@test.com') {
-      alert("🚨 실제 인쇄 및 저장은 개인 계정 가입 후 무료로 이용 가능합니다.\n지금 1분 만에 가입하세요!");
-      await supabase.auth.signOut();
-      return;
-    }
-    if (hasAccess) {
-      action();
-    } else {
-      setShowPaywall(true);
-    }
-  };
-
-  // Printer State
-  const [printers, setPrinters] = useState<any[]>([]);
-  const [selectedPrinter, setSelectedPrinter] = useState('');
-  const [selectedPrinterType, setSelectedPrinterType] = useState<'epson_m105' | 'xprinter' | 'generic'>('epson_m105');
-  const [isPrinting, setIsPrinting] = useState(false);
 
   // Xprinter: 최대 인쇄폭 108mm → width ≤ 105mm 프리셋만 표시
   const availablePresets = selectedPrinterType === 'xprinter'
