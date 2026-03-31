@@ -53,7 +53,7 @@ export function Sidebar({ isSuperAdmin, plan, className, logoUrl, storeName }: S
     { name: "🚚 배송 및 픽업 관리", href: "/dashboard/delivery", icon: Truck, tier: ['pro', 'erp_only'] },
     { name: "👥 고객 관리(CRM)", href: "/dashboard/customers", icon: Users, tier: ['pro', 'erp_only'] },
     { name: "🤝 협력사 수발주", href: "/dashboard/external-orders", icon: Share2, tier: ['pro', 'erp_only'] },
-    { name: " tulip 상품 카탈로그", href: "/dashboard/products", icon: Boxes, tier: ['pro', 'erp_only'] },
+    { name: "🛍️ 상품 관리", href: "/dashboard/products", icon: Boxes, tier: ['pro', 'erp_only'] },
     { name: "📦 재고 관리", href: "/dashboard/inventory", icon: Boxes, tier: ['pro', 'erp_only'] },
     { name: "🤝 거래처 관리", href: "/dashboard/suppliers", icon: Store, tier: ['pro', 'erp_only'] },
     { name: "📊 정산 및 보고서", href: "/dashboard/reports", icon: BarChart3, tier: ['pro', 'erp_only'] },
