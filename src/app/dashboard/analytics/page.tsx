@@ -323,7 +323,7 @@ export default function AnalyticsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="h-[320px]">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                   {rangeMode === "month" ? (
                     <AreaChart data={trendData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
@@ -359,7 +359,7 @@ export default function AnalyticsPage() {
               </CardHeader>
               <CardContent>
                 <div className="h-[200px]">
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                     <PieChart>
                       <Pie
                         data={categoryData}
@@ -414,7 +414,7 @@ export default function AnalyticsPage() {
                     거래처 매입 데이터가 없습니다.
                   </div>
                 ) : (
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                     <BarChart data={supplierRanking} layout="vertical" margin={{ top: 0, right: 20, left: 10, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
                       <XAxis type="number" tick={{ fontSize: 10, fill: "#94a3b8" }} tickFormatter={(v) => `${(v / 10000).toFixed(0)}만`} />
@@ -448,7 +448,7 @@ export default function AnalyticsPage() {
               </CardHeader>
               <CardContent>
                 <div className="h-[180px]">
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                     <PieChart>
                       <Pie
                         data={methodData}

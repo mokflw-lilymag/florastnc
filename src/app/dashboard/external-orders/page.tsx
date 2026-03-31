@@ -488,6 +488,7 @@ function GeneralRow({ partner, isMyStore, activeTab, setTab }: any) {
                     </Badge>
                 </div>
             </td>
+            <td className="px-10 py-8">
                 <div className="flex items-center gap-2 justify-center">
                     {partner.portfolio_gdrive_id ? (
                         <AlbumDialog partner={partner} activeTab={activeTab} setTab={setTab} variant="minimal" />
@@ -503,6 +504,7 @@ function GeneralRow({ partner, isMyStore, activeTab, setTab }: any) {
                         <MessageSquare size={16} />
                     </Button>
                 </div>
+            </td>
         </tr>
     );
 }

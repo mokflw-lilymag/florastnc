@@ -49,7 +49,7 @@ export function useOrders(initialFetch = true) {
     completionPhotoUrl: row.completionphotourl
   }), []);
 
-  const fetchOrders = useCallback(async (days: number = 30) => {
+  const fetchOrders = useCallback(async (days: number = 30, dateField: 'order_date' | 'created_at' = 'order_date') => {
     if (!tenantId) return;
 
     try {
@@ -69,8 +69,8 @@ export function useOrders(initialFetch = true) {
           outsource_info, created_at, completionphotourl
         `)
         .eq('tenant_id', tenantId)
-        .gte('order_date', startDateStr)
-        .order('order_date', { ascending: false });
+        .gte(dateField, startDateStr)
+        .order(dateField, { ascending: false });
 
       if (error) throw error;
       setOrders((data || []).map(mapRowToOrder));
@@ -82,7 +82,7 @@ export function useOrders(initialFetch = true) {
     }
   }, [tenantId, orders.length, mapRowToOrder, supabase]);
 
-  const fetchOrdersByRange = useCallback(async (start: Date, end: Date) => {
+  const fetchOrdersByRange = useCallback(async (start: Date, end: Date, dateField: 'order_date' | 'created_at' = 'order_date') => {
     if (!tenantId) return;
 
     try {
@@ -99,9 +99,9 @@ export function useOrders(initialFetch = true) {
           outsource_info, created_at, completionphotourl
         `)
         .eq('tenant_id', tenantId)
-        .gte('order_date', start.toISOString())
-        .lte('order_date', end.toISOString())
-        .order('order_date', { ascending: false });
+        .gte(dateField, start.toISOString())
+        .lte(dateField, end.toISOString())
+        .order(dateField, { ascending: false });
 
       if (error) throw error;
       setOrders((data || []).map(mapRowToOrder));
@@ -134,16 +134,25 @@ export function useOrders(initialFetch = true) {
 
       // --- AUTO-GENERATE EXPENSE FOR DELIVERY ---
       if (orderData.receipt_type === 'delivery_reservation' && orderData.summary.deliveryFee > 0) {
-        await supabase.from('expenses').insert([{
-           tenant_id: tenantId,
-           category: 'transportation',
-           sub_category: 'delivery_fee',
-           amount: orderData.summary.deliveryFee,
-           description: `[배송비] ${orderPayload.order_number} (자동 생성)`,
-           expense_date: orderData.order_date || new Date().toISOString(),
-           payment_method: 'cash',
-           related_order_id: data.id
-        }]);
+        // 중복 체크: 이미 동일한 관련 주문 건으로 지출이 있는지 확인
+        const { data: existingExpenses } = await supabase
+          .from('expenses')
+          .select('id')
+          .eq('related_order_id', data.id)
+          .limit(1);
+
+        if (!existingExpenses || existingExpenses.length === 0) {
+          await supabase.from('expenses').insert([{
+             tenant_id: tenantId,
+             category: 'transportation',
+             sub_category: 'delivery_fee',
+             amount: orderData.summary.deliveryFee,
+             description: `[배송비] ${orderPayload.order_number} (자동 생성)`,
+             expense_date: orderData.order_date || new Date().toISOString(),
+             payment_method: 'cash',
+             related_order_id: data.id
+          }]);
+        }
       }
 
       // --- [NEW] UPDATE PRODUCT STOCK ---
@@ -211,6 +220,31 @@ export function useOrders(initialFetch = true) {
         .eq('tenant_id', tenantId);
 
       if (error) throw error;
+
+      // --- [NEW] UPDATE EXPENSE ON ORDER UPDATE ---
+      // 주문 수정 시에도 배송비가 있고 지출에 없다면 자동으로 추가 (중복 방지)
+      const hasDeliveryFee = updates.summary && typeof updates.summary.deliveryFee === 'number' && updates.summary.deliveryFee > 0;
+      if (updates.receipt_type === 'delivery_reservation' && hasDeliveryFee) {
+        const { data: existingExpenses } = await supabase
+          .from('expenses')
+          .select('id')
+          .eq('related_order_id', id)
+          .limit(1);
+
+        if (!existingExpenses || existingExpenses.length === 0) {
+          await supabase.from('expenses').insert([{
+            tenant_id: tenantId,
+            category: 'transportation',
+            sub_category: 'delivery_fee',
+            amount: updates.summary?.deliveryFee || 0,
+            description: `[배송비] ${updates.order_number || '주문'} 수정 자동생성`,
+            expense_date: updates.order_date || new Date().toISOString(),
+            payment_method: 'cash',
+            related_order_id: id
+          }]);
+        }
+      }
+
       return true;
     } catch (error) {
       console.error('Error updating order:', error);

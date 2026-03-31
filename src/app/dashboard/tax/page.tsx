@@ -419,7 +419,7 @@ export default function TaxPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="h-[320px]">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                   <BarChart data={monthlyData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                     <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#94a3b8" }} />

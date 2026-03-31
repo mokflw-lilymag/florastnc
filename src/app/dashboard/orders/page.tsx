@@ -80,6 +80,11 @@ export default function OrdersPage() {
     "all": "전체 데이터"
   };
 
+  const basisLabels: Record<string, string> = {
+    "order_date": "수령일 기준",
+    "created_at": "주문일 기준"
+  };
+
   const { 
     orders, 
     loading, 
@@ -112,23 +117,27 @@ export default function OrdersPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [currentPeriod, setCurrentPeriod] = useState<string | null>(searchParams.get('period') || '2months');
+  const [filterBasis, setFilterBasis] = useState<'order_date' | 'created_at'>((searchParams.get('basis') as any) || 'order_date');
 
   useEffect(() => {
     const periodFromUrl = searchParams.get('period') || '2months';
-    if (currentPeriod !== periodFromUrl) {
+    const basisFromUrl = searchParams.get('basis') || 'order_date';
+    
+    if (currentPeriod !== periodFromUrl || filterBasis !== basisFromUrl) {
       const current = new URLSearchParams(searchParams.toString());
       current.set('period', currentPeriod || '2months');
+      current.set('basis', filterBasis);
       const target = (pathname || "") + "?" + current.toString();
       (router.push as any)(target);
-      
-      // Fetch data based on period
-      if (currentPeriod === '2months') fetchOrdersByRange(subDays(new Date(), 60), new Date());
-      else if (currentPeriod === '3months') fetchOrdersByRange(subDays(new Date(), 90), new Date());
-      else if (currentPeriod === '6months') fetchOrdersByRange(subDays(new Date(), 180), new Date());
-      else if (currentPeriod === '1year') fetchOrdersByRange(subDays(new Date(), 365), new Date());
-      else if (currentPeriod === 'all') fetchOrdersByRange(new Date(2000, 0, 1), new Date());
     }
-  }, [currentPeriod, searchParams, pathname, router, fetchOrdersByRange]);
+    
+    // Fetch data based on period AND basis
+    if (currentPeriod === '2months') fetchOrdersByRange(subDays(new Date(), 60), new Date(), filterBasis);
+    else if (currentPeriod === '3months') fetchOrdersByRange(subDays(new Date(), 90), new Date(), filterBasis);
+    else if (currentPeriod === '6months') fetchOrdersByRange(subDays(new Date(), 180), new Date(), filterBasis);
+    else if (currentPeriod === '1year') fetchOrdersByRange(subDays(new Date(), 365), new Date(), filterBasis);
+    else if (currentPeriod === 'all') fetchOrdersByRange(new Date(2000, 0, 1), new Date(), filterBasis);
+  }, [currentPeriod, filterBasis, searchParams, pathname, router, fetchOrdersByRange]);
 
 
   const handleToggleSelectAll = () => {
@@ -489,13 +498,29 @@ export default function OrdersPage() {
             
             <div className="flex flex-nowrap overflow-x-auto no-scrollbar items-center gap-3 w-full xl:w-auto pb-2 -mx-2 px-2 xl:pb-0 xl:mx-0 xl:px-0">
               <Select 
+                value={filterBasis} 
+                onValueChange={(val: any) => setFilterBasis(val)}
+              >
+                <SelectTrigger className="w-[120px] lg:w-[130px] flex-shrink-0 rounded-2xl h-11 lg:h-12 border-2 border-slate-100 bg-white font-bold text-slate-700 shadow-sm">
+                   <div className="flex items-center gap-2">
+                     <SelectValue>{basisLabels[filterBasis]}</SelectValue>
+                   </div>
+                </SelectTrigger>
+                <SelectContent className="rounded-2xl border-none shadow-2xl">
+                  {Object.entries(basisLabels).map(([key, label]) => (
+                    <SelectItem key={key} value={key} className="font-bold py-3">{label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select 
                 value={currentPeriod || '2months'} 
                 onValueChange={(val) => setCurrentPeriod(val)}
               >
                 <SelectTrigger className="w-[130px] lg:w-[150px] flex-shrink-0 rounded-2xl h-11 lg:h-12 border-2 border-slate-100 bg-white font-bold text-slate-700 shadow-sm">
                    <div className="flex items-center gap-2">
                      <CalendarIcon className="h-4 w-4 text-slate-400" />
-                     <SelectValue>{periodLabels[searchParams.get('period') || '2months']}</SelectValue>
+                     <SelectValue>{periodLabels[currentPeriod || '2months']}</SelectValue>
                    </div>
                 </SelectTrigger>
                 <SelectContent className="rounded-2xl border-none shadow-2xl">
@@ -615,7 +640,10 @@ export default function OrdersPage() {
                           </TableCell>
                           <TableCell className="py-6 cursor-pointer" onClick={() => handleOrderClick(order)}>
                             <div className="space-y-1">
-                              <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">{order.order_number}</span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">{order.order_number}</span>
+                                <span className="text-[10px] font-bold text-slate-400">주문일: {format(parseISO(order.created_at || new Date().toISOString()), 'yyyy-MM-dd')}</span>
+                              </div>
                               <div className="font-bold text-slate-900 truncate max-w-[200px]">{order.items[0]?.name || "기타 상품"} {order.items.length > 1 ? `외 ${order.items.length - 1}건` : ""}</div>
                             </div>
                           </TableCell>
@@ -791,10 +819,11 @@ export default function OrdersPage() {
                                 }}
                               />
                             </div>
-                            <div className="space-y-0.5">
+                            <div className="flex flex-col">
                               <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">{order.order_number}</span>
-                              <div className="font-bold text-slate-900">{order.items[0]?.name || "기타 상품"} {order.items.length > 1 ? `외 ${order.items.length - 1}건` : ""}</div>
+                              <span className="text-[9px] font-bold text-slate-400">주문일: {format(parseISO(order.created_at || new Date().toISOString()), 'MM-dd')}</span>
                             </div>
+                            <div className="font-bold text-slate-900">{order.items[0]?.name || "기타 상품"} {order.items.length > 1 ? `외 ${order.items.length - 1}건` : ""}</div>
                           </div>
                           <Badge className={cn(
                             "rounded-full px-3 py-0.5 font-bold text-[10px] border-none shadow-none",
@@ -822,7 +851,7 @@ export default function OrdersPage() {
                         <div className="flex justify-between items-center pt-3 border-t border-slate-50">
                           <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
                             <CalendarIcon className="h-3 w-3" />
-                            {format(parseISO(order.order_date), 'MM/dd HH:mm')}
+                            수령: {format(parseISO(order.order_date), 'MM/dd HH:mm')}
                             <span className="mx-1">•</span>
                             <span className={cn(
                               order.receipt_type === 'delivery_reservation' ? "text-blue-500" : "text-amber-500"

@@ -59,10 +59,14 @@ export function ProductSection({
             const midCat = p.mid_category || "";
             const name = p.name || "";
 
-            if (activeTab === '화환' || activeTab === '축하화환' || activeTab === '근조화환') {
+            if (activeTab === '화환' || activeTab === '축하화환' || activeTab === '근조화환' || activeTab === '경조화환') {
                 matchesCategory = mCat.includes('화환') || midCat.includes('화환') || name.includes('화환') || name.includes('근조') || name.includes('축하');
             } else if (activeTab === '동서양란' || activeTab === '동양란/서양란') {
                 matchesCategory = mCat.includes('란') || midCat.includes('란') || name.includes('란') || mCat.includes('난') || midCat.includes('난') || name.includes('난') || name.includes('동양란') || name.includes('서양란') || name.includes('호접란');
+            } else if (activeTab === '동양란') {
+                matchesCategory = mCat.includes('동양란') || midCat.includes('동양란') || name.includes('동양란');
+            } else if (activeTab === '서양란') {
+                matchesCategory = mCat.includes('서양란') || midCat.includes('서양란') || name.includes('서양란') || mCat.includes('호접란') || midCat.includes('호접란') || name.includes('호접란');
             } else if (activeTab === '플랜트' || activeTab === '식물/분재' || activeTab === '관엽식물') {
                 matchesCategory = mCat.includes('플랜트') || mCat.includes('관엽') || mCat.includes('공기정화') || mCat.includes('분재') || mCat.includes('식물');
             } else {
@@ -115,17 +119,20 @@ export function ProductSection({
                     setActiveTab(val);
                     onTabChange?.(val);
                 }} className="w-full">
-                    <TabsList className="flex flex-row overflow-x-auto no-scrollbar whitespace-nowrap !h-auto !min-h-fit p-1.5 bg-slate-100/50 rounded-2xl gap-1.5 mb-6 border border-slate-200/50 justify-start w-full">
-                        {categories.map((cat) => (
-                            <TabsTrigger
-                                key={cat.name}
-                                value={cat.name}
-                                className="data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm px-3 py-2.5 h-auto text-[11px] font-bold transition-all rounded-xl border border-transparent data-[state=active]:border-slate-100 flex-shrink-0 min-w-[80px]"
-                            >
-                                {cat.name}
-                            </TabsTrigger>
-                        ))}
-                    </TabsList>
+                    <ScrollArea className="w-full whitespace-nowrap rounded-lg border bg-slate-50 p-1 mb-6">
+                        <TabsList className="inline-flex w-max min-w-full justify-start h-10 p-0 bg-transparent gap-1">
+                            {categories.map((cat) => (
+                                <TabsTrigger
+                                    key={cat.name}
+                                    value={cat.name}
+                                    className="data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm px-4 py-2 text-sm font-medium transition-all rounded-md"
+                                >
+                                    {cat.name}
+                                </TabsTrigger>
+                            ))}
+                        </TabsList>
+                        <ScrollBar orientation="horizontal" />
+                    </ScrollArea>
 
                     {categories.map((cat) => (
                         <TabsContent key={cat.name} value={cat.name} className="space-y-4">

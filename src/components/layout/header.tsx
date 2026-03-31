@@ -1,8 +1,10 @@
 "use client";
 
-import { Menu, User, LogOut, Settings, Bell, BookOpen } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Menu, User, LogOut, Settings, Bell, BookOpen, Monitor, ShieldCheck, Wifi, WifiOff } from "lucide-react";
 import { MobileSidebar } from "./mobile-sidebar";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,6 +30,22 @@ interface HeaderProps {
 export function Header({ userEmail, isSuperAdmin, plan, logoUrl, storeName }: HeaderProps) {
   const router = useRouter();
   const supabase = createClient();
+  const [isBridgeOnline, setIsBridgeOnline] = useState(false);
+
+  useEffect(() => {
+    const checkBridge = async () => {
+      try {
+        const res = await fetch('http://localhost:8000/api/printers', { signal: AbortSignal.timeout(2000) });
+        const data = await res.json();
+        setIsBridgeOnline(data.status === 'success');
+      } catch (err) {
+        setIsBridgeOnline(false);
+      }
+    };
+    checkBridge();
+    const timer = setInterval(checkBridge, 5000);
+    return () => clearInterval(timer);
+  }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -54,6 +72,30 @@ export function Header({ userEmail, isSuperAdmin, plan, logoUrl, storeName }: He
       </div>
 
       <div className="flex items-center gap-4">
+        {/* Bridge Status Indicator (v25.0) */}
+        <div 
+          onClick={() => router.push('/dashboard/printer')}
+          className={cn(
+            "hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800",
+            isBridgeOnline 
+              ? "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-400" 
+              : "bg-slate-100 border-slate-200 text-slate-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-500"
+          )}
+        >
+          <div className={cn(
+            "w-2 h-2 rounded-full",
+            isBridgeOnline ? "bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-slate-400"
+          )} />
+          <span className="text-[10px] font-bold uppercase tracking-tight flex items-center gap-1.5">
+            {isBridgeOnline ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
+            Live Agent v25.0
+          </span>
+          <span className="h-3 w-[1px] bg-slate-300 dark:bg-slate-700 mx-1"></span>
+          <span className="text-[10px] font-medium opacity-80">
+            {isSuperAdmin ? 'HQ ADMIN' : plan.toUpperCase()}
+          </span>
+        </div>
+
         {/* HQ Manual Button - Only for Super Admins */}
         {isSuperAdmin && (
           <Button 

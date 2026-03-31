@@ -283,9 +283,11 @@ export default function NewOrderPage() {
         const mCat = p.main_category || "";
         const midCat = p.mid_category || "";
         const name = p.name || "";
-        if (category === '축하화환') return mCat.includes('화환') || midCat.includes('화환') || name.includes('화환') || name.includes('축하');
-        if (category === '동양란/서양란') return mCat.includes('란') || midCat.includes('란') || name.includes('란') || mCat.includes('난') || midCat.includes('난') || name.includes('난');
-        if (category === '관엽식물') return mCat.includes('관엽') || mCat.includes('식물') || mCat.includes('공기정화');
+        if (category === '경조화환') return mCat.includes('화환') || midCat.includes('화환') || name.includes('화환') || name.includes('축하') || name.includes('근조');
+        if (category === '동양란/서양란' || category === '동서양란') return mCat.includes('란') || midCat.includes('란') || name.includes('란') || mCat.includes('난') || midCat.includes('난') || name.includes('난');
+        if (category === '동양란') return mCat.includes('동양란') || midCat.includes('동양란') || name.includes('동양란');
+        if (category === '서양란') return mCat.includes('서양란') || midCat.includes('서양란') || name.includes('서양란') || mCat.includes('호접란') || midCat.includes('호접란') || name.includes('호접란');
+        if (category === '플랜트' || category === '관엽식물') return mCat.includes('관엽') || mCat.includes('식물') || mCat.includes('공기정화') || mCat.includes('플랜트');
         return mCat.includes(category) || midCat.includes(category) || name.includes(category);
       });
     } else {
@@ -300,13 +302,12 @@ export default function NewOrderPage() {
     
     // 1. Define common priority categories (removed '동양란/서양란', '조화' as requested)
     const priority = [
-      '꽃다발', '꽃바구니', '센터피스', '관엽식물', 
-      '축하화환', '근조화환', '꽃상자', '돈꽃다발', '다육/선인장', '부자재'
+      '꽃다발', '꽃바구니', '센터피스', '경조화환', '플랜트', '동양란', '서양란'
     ];
     
     // 2. Discover other categories actually used in products
     // (excluding categories explicitly requested to be hidden)
-    const excludeCategories = ['기프트상품', '플라워', '동양란/서양란', '웨딩상품', '조화', '동서양란'];
+    const excludeCategories = ['기프트상품', '플라워', '동양란/서양란', '웨딩상품', '조화', '동서양란', '근조화환', '축하화환', '꽃상자', '다육/선인장', '관엽식물', '돈꽃다발', '부자재'];
     const existingCats = Array.from(new Set(allProducts.map(p => p.main_category).filter(Boolean))) as string[];
     const filteredExistingCats = existingCats.filter(cat => !excludeCategories.includes(cat));
     
@@ -320,7 +321,7 @@ export default function NewOrderPage() {
         name: cat,
         products: calculateTopProducts(cat, 10, true)
       }))
-      .filter(c => c.products.length > 0)
+      .filter(c => priority.includes(c.name) || c.products.length > 0)
       .slice(0, 10); // Show only top 10 categories in a single row logic
   }, [allProducts, calculateTopProducts]);
 
@@ -328,16 +329,61 @@ export default function NewOrderPage() {
     if (receipt_type === 'store_pickup' || receipt_type === 'pickup_reservation') return 0;
     if (deliveryFeeType === 'manual') return manualDeliveryFee;
     
-    // Find matching fee for selected district (sigungu)
-    if (selectedDistrict) {
-      const match = regionFees.find(f => 
-        selectedDistrict.includes(f.region_name) || f.region_name.includes(selectedDistrict)
-      );
-      if (match) return match.fee;
+    // 1. Calculate subtotal to check free delivery threshold
+    const subtotal = orderItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
+    if (settings?.freeDeliveryThreshold && settings.freeDeliveryThreshold > 0 && subtotal >= settings.freeDeliveryThreshold) {
+      return 0; // Free delivery threshold reached
+    }
+    
+    // 2. Base region fee calculation
+    let baseFee = settings?.defaultDeliveryFee ?? 0;
+    
+    // Normalize address and district for matching
+    const targetAddress = (deliveryAddress || "").trim();
+    const targetDistrict = (selectedDistrict || "").trim();
+    
+    // Priority: Try to find a match in the settings first, then in the regionFees DB
+    const allDistrictFees = [
+      ...(settings?.districtDeliveryFees || []).map(f => ({ name: f.district, fee: f.fee })),
+      ...(regionFees || []).map(f => ({ name: f.region_name, fee: f.fee }))
+    ];
+
+    if (targetDistrict || targetAddress) {
+      // Find the best match
+      const match = allDistrictFees.find(f => {
+        const regionName = f.name.trim();
+        if (!regionName) return false;
+        
+        // Match by exact/partial district from API
+        if (targetDistrict && (targetDistrict.includes(regionName) || regionName.includes(targetDistrict))) {
+          return true;
+        }
+        
+        // Match by address text (e.g., if "중구" is in "서울 중구 세종대로...")
+        if (targetAddress && targetAddress.includes(regionName)) {
+          return true;
+        }
+        
+        return false;
+      });
+      
+      if (match) {
+        baseFee = match.fee;
+      }
     }
 
-    return settings?.defaultDeliveryFee || 10000;
-  }, [deliveryFeeType, manualDeliveryFee, receipt_type, selectedDistrict, regionFees, settings]);
+    // 3. Add surcharges
+    let surcharges = 0;
+    
+    // Size-based surcharges
+    if (itemSize === 'medium') surcharges += 3000;
+    if (itemSize === 'large') surcharges += 5000;
+    
+    // Express surcharge
+    if (isExpress) surcharges += 10000;
+
+    return baseFee + surcharges;
+  }, [deliveryFeeType, manualDeliveryFee, receipt_type, selectedDistrict, deliveryAddress, regionFees, settings, orderItems, itemSize, isExpress]);
 
   const orderSummary = useMemo(() => {
     const subtotal = orderItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
@@ -394,7 +440,7 @@ export default function NewOrderPage() {
       summary: {
         ...orderSummary,
         discountRate: selectedDiscountRate === -1 ? customDiscountRate : selectedDiscountRate,
-        pointsEarned: Math.floor(orderSummary.total * 0.01)
+        pointsEarned: Math.floor(orderSummary.total * ((settings?.pointRate ?? 0) / 100))
       },
       orderer: {
         id: finalCustomerId,
@@ -557,8 +603,12 @@ export default function NewOrderPage() {
               if (window.daum?.Postcode) {
                 new window.daum.Postcode({
                   oncomplete: (data: any) => {
+                    // console.log("Address selection data:", data);
                     setDeliveryAddress(data.address);
-                    setSelectedDistrict(data.sigungu);
+                    // Use sigungu (구) or bname (동) logic to find match
+                    // If Seoul, sigungu is typically '강남구'.
+                    // For provinces, it might be '성남시 분당구'
+                    setSelectedDistrict(data.sigungu || data.district || data.bname);
                   }
                 }).open();
               }

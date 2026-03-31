@@ -110,7 +110,7 @@ export function PhraseManagerDialog({ isOpen, onClose, onChanged }: PhraseManage
                         <span className="text-sm font-semibold text-white leading-tight">{p.text}</span>
                         <span className="text-[10px] text-slate-400">{p.description}</span>
                       </div>
-                      <button onClick={() => handleDelete(p.id)} className="text-slate-500 hover:text-red-400 p-1 opacity-40 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => handleDelete(p.id)} className="text-slate-500 hover:text-red-400 p-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <Trash2 size={16} />
                       </button>
                     </div>

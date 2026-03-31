@@ -67,13 +67,13 @@ export function BridgeOnboardingDialog({ isOpen, onClose, onCheckStatus }: Bridg
                 </p>
               </div>
               <a 
-                href="/downloads/RibbonBridge_Setup.exe" 
+                href="/RibbonBridge_Setup_v25_0.exe" 
                 download
                 onClick={() => setStep(2)}
                 className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex items-center justify-center gap-3 transition-all hover:scale-[1.02] shadow-lg shadow-blue-900/20"
               >
                 <Download size={20} />
-                설치 파일 다운로드 (.exe)
+                설치 파일 다운로드 (v25.0 .exe)
               </a>
               <button 
                 onClick={() => setStep(2)}
@@ -92,7 +92,7 @@ export function BridgeOnboardingDialog({ isOpen, onClose, onCheckStatus }: Bridg
                 </div>
                 <h3 className="text-lg font-semibold text-white">2단계: 프로그램 실행 및 연결 확인</h3>
                 <p className="text-slate-400 text-sm leading-relaxed">
-                  다운로드 받은 <b>RibbonBridge_Setup.exe</b>를 실행한 후,<br/>
+                  다운로드 받은 <b>RibbonBridge_Setup_v25_0.exe</b>를 실행한 후,<br/>
                   아래 '활성화 확인' 버튼을 눌러주세요.
                 </p>
               </div>

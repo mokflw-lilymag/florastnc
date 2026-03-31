@@ -47,20 +47,20 @@ export function Sidebar({ isSuperAdmin, plan, className, logoUrl, storeName }: S
 
   const tenantLinks = [
     { name: "화원 대시보드", href: "/dashboard", icon: LayoutDashboard },
-    { name: "💎 구독 및 플랜 안내", href: "/dashboard/subscription", icon: Gem },
     { name: "🆕 새 주문 등록", href: "/dashboard/orders/new", icon: PlusCircle, tier: ['pro', 'erp_only'] },
     { name: "📜 주문 목록", href: "/dashboard/orders", icon: ScrollText, tier: ['pro', 'erp_only'] },
-    { name: "🚚 배송 및 픽업 관리", href: "/dashboard/delivery", icon: Truck, tier: ['pro', 'erp_only'] },
     { name: "🖨️ 리본 프린터", href: "/dashboard/printer", icon: Printer, tier: ['pro', 'ribbon_only'] },
+    { name: "🚚 배송 및 픽업 관리", href: "/dashboard/delivery", icon: Truck, tier: ['pro', 'erp_only'] },
+    { name: "👥 고객 관리(CRM)", href: "/dashboard/customers", icon: Users, tier: ['pro', 'erp_only'] },
     { name: "🤝 협력사 수발주", href: "/dashboard/external-orders", icon: Share2, tier: ['pro', 'erp_only'] },
-    { name: "💰 지출 관리", href: "/dashboard/expenses", icon: CreditCard, tier: ['pro', 'erp_only'] },
+    { name: " tulip 상품 카탈로그", href: "/dashboard/products", icon: Boxes, tier: ['pro', 'erp_only'] },
+    { name: "📦 재고 관리", href: "/dashboard/inventory", icon: Boxes, tier: ['pro', 'erp_only'] },
+    { name: "🤝 거래처 관리", href: "/dashboard/suppliers", icon: Store, tier: ['pro', 'erp_only'] },
     { name: "📊 정산 및 보고서", href: "/dashboard/reports", icon: BarChart3, tier: ['pro', 'erp_only'] },
     { name: "📈 매입/매출 통계", href: "/dashboard/analytics", icon: BarChart3, tier: ['pro', 'erp_only'] },
+    { name: "💰 지출 관리", href: "/dashboard/expenses", icon: CreditCard, tier: ['pro', 'erp_only'] },
     { name: "🧾 세무 관리", href: "/dashboard/tax", icon: FileText, tier: ['pro', 'erp_only'] },
-    { name: "📦 재고 관리", href: "/dashboard/inventory", icon: Boxes, tier: ['pro', 'erp_only'] },
-    { name: "🌷 상품 카탈로그", href: "/dashboard/products", icon: Boxes, tier: ['pro', 'erp_only'] },
-    { name: "👥 고객 관리(CRM)", href: "/dashboard/customers", icon: Users, tier: ['pro', 'erp_only'] },
-    { name: "🤝 거래처 관리", href: "/dashboard/suppliers", icon: Store, tier: ['pro', 'erp_only'] },
+    { name: "💎 구독 및 플랜 안내", href: "/dashboard/subscription", icon: Gem },
     { name: "⚙️ 환경 설정", href: "/dashboard/settings", icon: Settings },
   ];
 
@@ -153,7 +153,9 @@ export function Sidebar({ isSuperAdmin, plan, className, logoUrl, storeName }: S
       
       {/* Footer Info */}
       <div className="p-4 border-t border-slate-100 dark:border-slate-800">
-        <p className="text-[10px] text-center text-slate-400 font-normal uppercase tracking-widest">Florasync SaaS v2.0</p>
+      <div className="p-4 border-t border-slate-100 dark:border-slate-800">
+        <p className="text-[10px] text-center text-slate-400 font-normal uppercase tracking-widest">Florasync SaaS v25.0</p>
+      </div>
       </div>
     </aside>
   );

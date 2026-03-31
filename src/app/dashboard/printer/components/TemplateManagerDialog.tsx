@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from './lib/supabase';
 import { Save, FolderOpen, Trash2, X } from 'lucide-react';
-import { useAuth } from '@/hooks/use-auth';
-import { toast } from 'sonner';
 
 interface TemplateProps {
   isOpen: boolean;
@@ -12,7 +10,6 @@ interface TemplateProps {
 }
 
 export function TemplateManagerDialog({ isOpen, onClose, currentConfig, onLoad }: TemplateProps) {
-  const { user, tenantId } = useAuth();
   const [templates, setTemplates] = useState<any[]>([]);
   const [newTemplateName, setNewTemplateName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -24,44 +21,34 @@ export function TemplateManagerDialog({ isOpen, onClose, currentConfig, onLoad }
   }, [isOpen]);
 
   const fetchTemplates = async () => {
-    if (!tenantId) return;
     setIsLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('templates')
-        .select('*')
-        .eq('tenant_id', tenantId)
-        .order('created_at', { ascending: false });
-      
-      if (error) {
-        console.error('Error fetching templates:', error);
-      } else {
-        setTemplates(data || []);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsLoading(false);
+    const { data, error } = await supabase
+      .from('templates')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Error fetching templates:', error);
+    } else {
+      setTemplates(data || []);
     }
+    setIsLoading(false);
   };
 
   const saveTemplate = async () => {
     if (!newTemplateName.trim()) {
-      toast.error("템플릿 이름을 입력해주세요.");
-      return;
-    }
-
-    if (!user || !tenantId) {
-      toast.error("로그인이 필요하거나 테넌트 정보를 찾을 수 없습니다.");
+      alert("템플릿 이름을 입력해주세요.");
       return;
     }
 
     try {
       setIsLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { alert("로그인이 필요합니다."); return; }
+
       const { error } = await supabase.from('templates').insert([
         {
           user_id: user.id,
-          tenant_id: tenantId,
           name: newTemplateName.trim(),
           config: currentConfig
         }
@@ -70,11 +57,11 @@ export function TemplateManagerDialog({ isOpen, onClose, currentConfig, onLoad }
       if (error) throw error;
       
       setNewTemplateName('');
-      toast.success("템플릿이 저장되었습니다.");
+      alert("성공적으로 저장되었습니다.");
       fetchTemplates();
     } catch (err: any) {
       console.error(err);
-      toast.error("저장 실패: " + err.message);
+      alert("저장 실패: " + err.message);
     } finally {
       setIsLoading(false);
     }
@@ -84,17 +71,13 @@ export function TemplateManagerDialog({ isOpen, onClose, currentConfig, onLoad }
     if (!confirm(`'${name}' 템플릿을 삭제하시겠습니까?`)) return;
     
     setIsLoading(true);
-    try {
-      const { error } = await supabase.from('templates').delete().eq('id', id);
-      if (error) throw error;
-      
-      toast.success("템플릿이 삭제되었습니다.");
+    const { error } = await supabase.from('templates').delete().eq('id', id);
+    if (error) {
+      alert("삭제 실패: " + error.message);
+    } else {
       fetchTemplates();
-    } catch (err: any) {
-      toast.error("삭제 실패: " + err.message);
-    } finally {
-      setIsLoading(false);
     }
+    setIsLoading(false);
   };
 
   if (!isOpen) return null;
@@ -148,7 +131,7 @@ export function TemplateManagerDialog({ isOpen, onClose, currentConfig, onLoad }
               ) : templates.length === 0 ? (
                 <div className="text-center py-10 text-slate-500 text-sm">저장된 템플릿이 없습니다.</div>
               ) : (
-                templates.map((tpl: any) => (
+                templates.map(tpl => (
                   <div key={tpl.id} className="flex items-center justify-between p-3 rounded-xl border border-slate-700 bg-slate-800 hover:border-blue-500/50 transition-colors group">
                     <div className="flex flex-col cursor-pointer flex-1" onClick={() => { onLoad(tpl.config); onClose(); }}>
                       <span className="text-white text-sm font-semibold">{tpl.name}</span>
