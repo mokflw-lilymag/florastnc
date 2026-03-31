@@ -94,6 +94,10 @@ async function embedActiveFontsIntoElement(element: HTMLElement) {
             if (urlMatch) {
               const fontUrl = urlMatch[1];
               if (fontUrl.startsWith('http')) {
+                // Skip internal Next.js media fonts that often produce 404s during capture
+                if (fontUrl.includes('/media/') || fontUrl.includes('_next/static')) {
+                  continue;
+                }
                 const dataUri = await getFontDataUri(fontUrl);
                 if (dataUri) {
                   activeFontFaces.push(cssText.replace(fontUrl, dataUri));
