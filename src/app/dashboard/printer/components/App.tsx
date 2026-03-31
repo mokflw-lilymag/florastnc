@@ -1716,11 +1716,11 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-[10px] text-slate-500 block mb-1 uppercase tracking-tighter">폭 (Width mm)</label>
-              <input type="number" value={width} onChange={e => setWidth(Number(e.target.value))} className="w-full p-2.5 rounded-lg text-sm text-center font-bold font-mono bg-slate-900 border border-slate-700" />
+              <input type="number" value={width} onChange={e => setWidth(Number(e.target.value))} className="w-full p-2.5 rounded-lg text-sm text-center font-bold font-mono bg-slate-900 border border-slate-700 text-white" />
             </div>
             <div>
               <label className="text-[10px] text-slate-500 block mb-1 uppercase tracking-tighter">길이 (Length mm)</label>
-              <input type="number" value={length} onChange={e => setLength(Number(e.target.value))} className="w-full p-2.5 rounded-lg text-sm text-center font-bold font-mono bg-slate-900 border border-slate-700" />
+              <input type="number" value={length} onChange={e => setLength(Number(e.target.value))} className="w-full p-2.5 rounded-lg text-sm text-center font-bold font-mono bg-slate-900 border border-slate-700 text-white" />
             </div>
           </div>
         </div>
@@ -1731,15 +1731,15 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
         <div className="grid grid-cols-3 gap-3">
           <div>
             <label className="text-[10px] text-slate-500 block mb-1 font-bold">상단여백</label>
-            <input type="number" value={marginTop} onChange={e => setMarginTop(Number(e.target.value))} className="w-full p-2 rounded-lg text-sm text-center font-mono bg-slate-900 border border-slate-700" title="헤드 시작점부터 글자까지 (mm)" />
+            <input type="number" value={marginTop} onChange={e => setMarginTop(Number(e.target.value))} className="w-full p-2 rounded-lg text-sm text-center font-mono bg-slate-900 border border-slate-700 text-white" title="헤드 시작점부터 글자까지 (mm)" />
           </div>
           <div>
             <label className="text-[10px] text-slate-500 block mb-1 font-bold">하단여백</label>
-            <input type="number" value={marginBottom} onChange={e => setMarginBottom(Number(e.target.value))} className="w-full p-2 rounded-lg text-sm text-center font-mono bg-slate-900 border border-slate-700" title="글자 끝부터 다음 용지까지 (mm)" />
+            <input type="number" value={marginBottom} onChange={e => setMarginBottom(Number(e.target.value))} className="w-full p-2 rounded-lg text-sm text-center font-mono bg-slate-900 border border-slate-700 text-white" title="글자 끝부터 다음 용지까지 (mm)" />
           </div>
           <div>
             <label className="text-[10px] text-slate-500 block mb-1 font-bold">양쪽레이스</label>
-            <input type="number" value={lace} onChange={e => setLace(Number(e.target.value))} className="w-full p-2 rounded-lg text-sm text-center font-mono bg-slate-900 border border-slate-700" title="리본 양 끝 여백 (mm)" />
+            <input type="number" value={lace} onChange={e => setLace(Number(e.target.value))} className="w-full p-2 rounded-lg text-sm text-center font-mono bg-slate-900 border border-slate-700 text-white" title="리본 양 끝 여백 (mm)" />
           </div>
         </div>
 
@@ -2229,6 +2229,16 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
 
       {/* Inject custom font styles */}
       <style>
+        {`
+          input::selection {
+            background-color: #3b82f6 !important;
+            color: white !important;
+          }
+          input::-moz-selection {
+            background-color: #3b82f6 !important;
+            color: white !important;
+          }
+        `}
         {customStyles.map(s => s.css).join('\n')}
       </style>
 
