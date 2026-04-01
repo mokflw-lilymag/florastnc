@@ -1,5 +1,5 @@
 "use client";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -41,6 +41,15 @@ export default function LoginPage() {
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
+
+  // KakaoTalk In-App Browser Auto-Outlink
+  useEffect(() => {
+    const isKakaoTalk = /KAKAOTALK/i.test(navigator.userAgent);
+    if (isKakaoTalk) {
+      // Force open in external browser for KakaoTalk
+      window.location.href = `kakaotalk://web/openExternal?url=${encodeURIComponent(window.location.href)}`;
+    }
+  }, []);
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
