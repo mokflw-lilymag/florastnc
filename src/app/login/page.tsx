@@ -79,7 +79,14 @@ export default function LoginPage() {
       });
       if (error) throw error;
     } catch (error: any) {
-      toast.error('Google 로그인 오류', { description: error.message });
+      console.error('Google Sign-in Error:', error);
+      let errorDesc = error.message;
+      if (error.message?.includes('provider')) {
+        errorDesc = '구글 로그인 설정이 활성화되지 않았거나 설정이 올바르지 않습니다. 관리자 도구(Supabase)를 확인해 주세요.';
+      } else if (error.message?.includes('redirect')) {
+        errorDesc = '리다이렉션 주소가 허용되지 않았습니다. 관리자 도구에서 배포 주소를 추가해 주세요.';
+      }
+      toast.error('Google 로그인 실패', { description: errorDesc });
       setGoogleLoading(false);
     }
   };
