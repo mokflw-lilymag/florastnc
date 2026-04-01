@@ -2472,11 +2472,21 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
               다운로드 후 [설치 마법사]를 열고 딱 1번만 실행하시면<br/>
               앞으로 <b>자동으로 컴퓨터가 켜질 때마다 영구적으로 연결</b>됩니다!
             </p>
-            <div className="bg-blue-900/30 border border-blue-500/30 rounded p-3 mb-6 text-left">
-              <p className="text-blue-300 text-xs font-semibold mb-1">💡 "Windows의 PC 보호" 창이 나타날 시</p>
-              <p className="text-slate-300 text-[11px] leading-relaxed">
-                <span className="text-white font-bold underline">추가 정보</span> 버튼을 누르신 후, 우측 하단에 생기는 <span className="text-white font-bold">실행 버튼</span>을 눌러주시면 깔끔하게 1초만에 자동 설치됩니다.
-              </p>
+            <div className="bg-blue-900/30 border border-blue-500/30 rounded p-4 mb-6 text-left space-y-4">
+              <div>
+                <p className="text-blue-300 text-xs font-semibold mb-1">💡 "Windows의 PC 보호" 창이 나타날 시</p>
+                <p className="text-slate-300 text-[11px] leading-relaxed">
+                  <span className="text-white font-bold underline">추가 정보</span> 버튼을 클릭 후, 우측 하단에 생기는 <span className="text-white font-bold">실행 버튼</span>을 눌러주세요.
+                </p>
+              </div>
+              <div className="pt-2 border-t border-blue-500/20">
+                <p className="text-amber-400 text-xs font-semibold mb-1">🌐 Vercel/배포 환경에서 연결이 안 될 시 (Chrome/Edge)</p>
+                <div className="text-slate-300 text-[10px] space-y-1">
+                  <p>1. 주소창에 <b>chrome://flags/#block-insecure-private-network-requests</b> 입력</p>
+                  <p>2. <span className="text-white bg-slate-700 px-1 rounded">Block insecure private network requests</span> 항목을 <span className="text-amber-400 font-bold">Disabled</span>로 변경</p>
+                  <p>3. 하단의 <span className="text-blue-400 font-bold">Relaunch</span> 버튼 클릭 후 브라우저 재시작</p>
+                </div>
+              </div>
             </div>
             <div className="flex gap-3 justify-center">
               <button 

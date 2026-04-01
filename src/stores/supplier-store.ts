@@ -7,14 +7,13 @@ export interface Supplier {
     id: string;
     tenant_id: string;
     name: string;
-    contact_phone?: string;
-    contact_email?: string;
+    contact?: string;
+    email?: string;
     address?: string;
-    bank_account?: string;
-    category?: string;
-    rating?: number;
     business_number?: string;
-    notes?: string;
+    supplier_type?: string;
+    memo?: string;
+    created_at: string;
     updated_at: string;
 }
 
