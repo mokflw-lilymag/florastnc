@@ -80,10 +80,17 @@ export default function LoginPage() {
   const handleGoogleSignIn = async () => {
     try {
       setGoogleLoading(true);
+      
+      // Get the correct base URL
+      const origin = typeof window !== 'undefined' && window.location.origin ? window.location.origin : 'https://florastnc-n8lv.vercel.app';
+      const redirectTo = `${origin}/auth/callback`;
+      
+      console.log('Attempting Google Sign-in with redirect:', redirectTo);
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: redirectTo,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
