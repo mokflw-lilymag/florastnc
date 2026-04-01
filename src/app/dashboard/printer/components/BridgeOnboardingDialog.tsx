@@ -146,6 +146,22 @@ export function BridgeOnboardingDialog({ isOpen, onClose, onCheckStatus }: Bridg
               </button>
             </div>
           )}
+
+          {/* Installation Troubleshooting Guide (Collapsible or persistent depending on state) */}
+          {error && step === 2 && (
+            <div className="mt-8 p-4 bg-slate-900/50 rounded-xl border border-slate-700 space-y-3">
+              <h4 className="text-xs font-bold text-blue-400 uppercase tracking-widest flex items-center gap-2">
+                <AlertCircle className="w-3 h-3" />
+                설치가 안 되시나요?
+              </h4>
+              <ul className="text-[11px] text-slate-400 space-y-2 list-disc pl-4">
+                <li><b>Windows 보호(SmartScreen) 나타남:</b> [추가 정보] 클릭 후 [실행] 버튼을 눌러주세요.</li>
+                <li><b>브라우저 차단됨:</b> 다운로드 바에서 [유지] 또는 [계속]을 선택해 주세요.</li>
+                <li><b>실행 후 반응 없음:</b> 마우스 우클릭 후 [관리자 권한으로 실행]을 시도해 보세요.</li>
+                <li><b>보안 프로그램 차단:</b> 알약, V3 등이 차단하는 경우 잠시 중단하거나 예외로 설정해 주세요.</li>
+              </ul>
+            </div>
+          )}
         </div>
 
         {/* Footer */}
