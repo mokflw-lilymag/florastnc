@@ -75,6 +75,10 @@ export default function LoginPage() {
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         }
       });
       if (error) throw error;
@@ -282,6 +286,14 @@ export default function LoginPage() {
                   Google 계정으로 계속하기
                 </Button>
 
+                {/* Mobile browser warning */}
+                <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/20 rounded-xl mt-3">
+                  <Info className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                  <p className="text-[10px] text-amber-800 dark:text-amber-400 leading-tight">
+                    모바일 환경(카카오톡, 인스타 등)에서 구글 로그인이 안 될 경우, 우상단 메뉴를 눌러 <b>'다른 브라우저로 열기(크롬/사파리)'</b>를 선택해 주세요.
+                  </p>
+                </div>
+
 
               </TabsContent>
 
@@ -381,6 +393,14 @@ export default function LoginPage() {
                   )}
                   Google 계정으로 3초 가입
                 </Button>
+
+                {/* Mobile browser warning */}
+                <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/20 rounded-xl mt-3">
+                  <Info className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                  <p className="text-[10px] text-amber-800 dark:text-amber-400 leading-tight">
+                    모바일 환경(카카오톡, 인스타 등)에서 구글 로그인이 안 될 경우, 우상단 메뉴를 눌러 <b>'다른 브라우저로 열기(크롬/사파리)'</b>를 선택해 주세요.
+                  </p>
+                </div>
 
               </TabsContent>
             </Tabs>
