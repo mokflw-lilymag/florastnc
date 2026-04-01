@@ -38,7 +38,7 @@ import { useProducts } from "@/hooks/use-products";
 import { useExpenses } from "@/hooks/use-expenses";
 import { useSettings } from "@/hooks/use-settings";
 import { Skeleton } from "@/components/ui/skeleton";
-import { format, isToday, startOfToday, endOfToday, subDays, subMonths, subYears, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, isSameDay, isSameWeek, isSameMonth, isSameYear, getWeekOfMonth } from "date-fns";
+import { format, isToday, isTomorrow, addDays, startOfToday, endOfToday, subDays, subMonths, subYears, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, isSameDay, isSameWeek, isSameMonth, isSameYear, getWeekOfMonth } from "date-fns";
 import { ko } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
@@ -111,6 +111,35 @@ export default function DashboardPage() {
       return dateStr && isToday(new Date(dateStr));
     });
 
+    // --- SCHEDULE STATS (Today & Tomorrow) ---
+    const todayPickup = orders.filter(o => 
+      o.status !== 'canceled' && 
+      (o.receipt_type === "pickup_reservation" || o.receipt_type === "store_pickup") && 
+      o.pickup_info?.date && 
+      isToday(new Date(o.pickup_info.date))
+    ).length;
+
+    const todayDelivery = orders.filter(o => 
+      o.status !== 'canceled' && 
+      o.receipt_type === "delivery_reservation" && 
+      o.delivery_info?.date && 
+      isToday(new Date(o.delivery_info.date))
+    ).length;
+
+    const tomorrowPickup = orders.filter(o => 
+      o.status !== 'canceled' && 
+      (o.receipt_type === "pickup_reservation" || o.receipt_type === "store_pickup") && 
+      o.pickup_info?.date && 
+      isTomorrow(new Date(o.pickup_info.date))
+    ).length;
+
+    const tomorrowDelivery = orders.filter(o => 
+      o.status !== 'canceled' && 
+      o.receipt_type === "delivery_reservation" && 
+      o.delivery_info?.date && 
+      isTomorrow(new Date(o.delivery_info.date))
+    ).length;
+
     const todayRevenue = todayOrders
       .filter(isRevenue)
       .reduce((sum, o) => sum + (o.summary?.total || 0), 0);
@@ -150,6 +179,10 @@ export default function DashboardPage() {
       todayCount: todayOrders.length,
       todayRevenue,
       todayExpenses,
+      todayPickup,
+      todayDelivery,
+      tomorrowPickup,
+      tomorrowDelivery,
       recentOrders
     };
   }, [orders, products, expenses, isLoading, isSuperAdmin, settings]);
@@ -374,7 +407,7 @@ export default function DashboardPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
            <h1 className="text-3xl font-medium text-gray-900 tracking-tight">
-             안녕하세요, <span className="text-primary">{profile?.full_name || '사용자'}</span>님!
+             안녕하세요 <span className="text-primary">{profile?.tenants?.name || profile?.full_name || '사용자'}</span>님!
            </h1>
            <p className="text-slate-600 font-medium text-sm">오늘 {format(new Date(), 'yyyy년 MM월 dd일')}의 현황입니다.</p>
         </div>
@@ -382,14 +415,11 @@ export default function DashboardPage() {
            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-100 font-light px-3 py-1 text-[11px]">
               실시간 동기화 활성
            </Badge>
-           <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-100 font-light px-3 py-1 text-[11px]">
-              SaaS {profile?.tenants?.plan || 'Free'}
-           </Badge>
         </div>
       </div>
 
       {/* Daily Settlement Quick View */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-3">
         <Card className="border-none shadow-lg shadow-blue-50 bg-gradient-to-br from-white to-blue-50/30 overflow-hidden relative group rounded-3xl">
           <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:scale-110 transition-transform">
              <ShoppingCart className="w-12 h-12 text-blue-600" />
@@ -415,6 +445,44 @@ export default function DashboardPage() {
           <CardContent>
             <div className="text-3xl font-medium text-slate-900">₩{stats?.todayRevenue.toLocaleString()}</div>
             <div className="text-[11px] text-slate-700 font-medium mt-1.5">취소 건 제외 실매출</div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-none shadow-lg shadow-indigo-50 bg-indigo-900 text-white overflow-hidden relative group rounded-3xl md:col-span-1">
+          <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:scale-110 transition-transform">
+             <Calendar className="w-12 h-12 text-white" />
+          </div>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-bold text-indigo-300 uppercase tracking-widest">일정 요약 (방문 & 배송)</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+               <div className="space-y-1">
+                  <div className="text-[10px] font-bold text-indigo-300 uppercase tracking-tighter">오늘 일정</div>
+                  <div className="flex flex-col">
+                    <span className="text-lg font-black leading-none">
+                      {((stats?.todayPickup || 0) + (stats?.todayDelivery || 0))} 
+                      <span className="text-[10px] font-medium ml-1">건</span>
+                    </span>
+                    <span className="text-[9px] text-indigo-200 mt-1">픽업 {stats?.todayPickup} / 배송 {stats?.todayDelivery}</span>
+                  </div>
+               </div>
+               <div className="space-y-1 border-l border-indigo-800 pl-4">
+                  <div className="text-[10px] font-bold text-indigo-300 uppercase tracking-tighter">내일 예약</div>
+                  <div className="flex flex-col">
+                    <span className="text-lg font-black leading-none text-amber-300">
+                      {((stats?.tomorrowPickup || 0) + (stats?.tomorrowDelivery || 0))} 
+                      <span className="text-[10px] font-medium ml-1 text-white">건</span>
+                    </span>
+                    <span className="text-[9px] text-indigo-200 mt-1">픽업 {stats?.tomorrowPickup} / 배송 {stats?.tomorrowDelivery}</span>
+                  </div>
+               </div>
+            </div>
+            <Link href="/dashboard/delivery">
+              <Button variant="ghost" size="sm" className="w-full bg-white/10 hover:bg-white/20 text-white text-[10px] font-bold h-7 rounded-xl gap-1.5 border-none">
+                상세 일정 확인 <ArrowUpRight className="w-3 h-3" />
+              </Button>
+            </Link>
           </CardContent>
         </Card>
       </div>

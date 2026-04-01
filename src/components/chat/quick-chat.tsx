@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { 
     MessageCircle, X, Send, User, Building2, Clock, 
     ChevronRight, ChevronLeft, Bell, RefreshCw, Paperclip, Shield,
-    Archive, History, Inbox, Info
+    Archive, History, Inbox, Info, Search
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -29,6 +29,18 @@ export function QuickChat() {
     const [showClosed, setShowClosed] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
     const selectedRoomRef = useRef<any>(null);
+
+    // [수정 핵심] 강력하고 독특한 프리미엄 알림음 (Max Volume)
+    const playNewInquirySound = () => {
+        const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/212/212-preview.mp3"); // Punchy Success Chimes
+        audio.volume = 1.0; 
+        audio.play().catch(() => {});
+    };
+    const playNewMessageSound = () => {
+        const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3"); // High-frequency Tick
+        audio.volume = 1.0;
+        audio.play().catch(() => {});
+    };
 
     const isSuperAdmin = profile?.role === 'super_admin';
     const ADMIN_TENANT_ID = "50551f4c-0b6b-45ab-8db9-047ca3ff88de";
@@ -134,19 +146,14 @@ export function QuickChat() {
                     event: 'INSERT',
                     schema: 'public',
                     table: 'chat_messages'
-                }, async (payload) => {
+                }, (payload) => {
                     const msgRoomId = payload.new.room_id;
                     const isNewFromOther = payload.new.sender_id !== user?.id;
 
                     if (isNewFromOther) {
-                        await supabase
-                            .from('chat_rooms')
-                            .update({ status: 'active' })
-                            .eq('id', msgRoomId);
-                        
-                        fetchRooms();
-
+                        // 현재 보고 있지 않은 방에서만 알림음/토스트 발생
                         if (selectedRoomRef.current?.id !== msgRoomId) {
+                            playNewInquirySound();
                             setUnreadRooms(prev => new Set(prev).add(msgRoomId));
                             toast("새 문의가 도착했습니다", {
                                 description: payload.new.content?.substring(0, 30),
@@ -164,6 +171,13 @@ export function QuickChat() {
                                 }
                             });
                         }
+                        
+                        // 배경 처리
+                        supabase
+                            .from('chat_rooms')
+                            .update({ status: 'active' })
+                            .eq('id', msgRoomId)
+                            .then(() => fetchRooms());
                     } else {
                         fetchRooms();
                     }
@@ -179,38 +193,93 @@ export function QuickChat() {
 
     useEffect(() => {
         if (selectedRoom) {
+            setMessages([]); // 방 이동 시 이전 메시지 즉시 비우기 (잔상 제거)
             fetchMessages(selectedRoom.id);
-            const channel = supabase
+
+            // 🚀 대화방 전용 고속도로 (직통 수신) - 필터를 느슨하게 하여 수신율 100% 보장
+            const roomChannel = supabase
                 .channel(`chat-room-${selectedRoom.id}`)
                 .on('postgres_changes', { 
                     event: 'INSERT', 
                     schema: 'public', 
-                    table: 'chat_messages',
-                    filter: `room_id=eq.${selectedRoom.id}`
-                }, () => {
-                    fetchMessages(selectedRoom.id);
-                    fetchRooms();
+                    table: 'chat_messages'
+                }, (payload) => {
+                    const msgRoomId = payload.new.room_id;
+                    if (msgRoomId !== selectedRoom.id) return; // 코드 레벨에서 다시 한번 필터링
+
+                    const isFromOther = payload.new.sender_id !== user?.id;
+                    console.log("Chat Reality Check:", { isFromOther, msg: payload.new.content });
+
+                    if (isFromOther) {
+                        playNewMessageSound();
+                        setMessages(prev => {
+                            if (prev.some(m => m.id === payload.new.id)) return prev;
+                            return [...prev, payload.new];
+                        });
+                        fetchRooms();
+                    }
                 })
-                .subscribe();
-            return () => { supabase.removeChannel(channel); };
+                .subscribe((status) => {
+                    console.log(`Chat Channel (${selectedRoom.id}) Status:`, status);
+                });
+
+            return () => { supabase.removeChannel(roomChannel); };
         }
-    }, [selectedRoom, fetchMessages, fetchRooms, supabase]);
+    }, [selectedRoom, fetchMessages, fetchRooms, supabase, user?.id]);
 
     const handleSendMessage = async (imageUrl?: string) => {
         if (!inputValue.trim() && !imageUrl || !selectedRoom || !tenantId || !user) return;
+        
+        const tempContent = inputValue.trim();
+        const tempId = Math.random().toString();
+        
+        // 1. 낙관적 업데이트: 서버 응답 기다리지 않고 화면에 즉시 표시
+        const newMessage = {
+            id: tempId,
+            room_id: selectedRoom.id,
+            sender_id: user.id,
+            sender_tenant_id: tenantId,
+            content: tempContent,
+            image_url: imageUrl,
+            created_at: new Date().toISOString(),
+            sender_tenant: profile?.tenants // 현재 내 정보 미리 넣어주기
+        };
+
+        setMessages(prev => [...prev, newMessage]);
+        setInputValue("");
+        
+        // 즉시 스크롤 처리
+        setTimeout(() => {
+            const container = document.getElementById('chat-messages-container');
+            const containerUser = document.getElementById('chat-messages-container-user');
+            if (container) container.scrollTop = container.scrollHeight;
+            if (containerUser) containerUser.scrollTop = containerUser.scrollHeight;
+        }, 10);
+
         try {
-            const { error } = await supabase
+            const { data: savedMsg, error } = await supabase
                 .from('chat_messages')
                 .insert({
                     room_id: selectedRoom.id,
                     sender_id: user.id,
                     sender_tenant_id: tenantId,
-                    content: inputValue.trim(),
+                    content: tempContent,
                     image_url: imageUrl,
                     origin_url: window.location.href
-                });
-            if (error) throw error;
-            setInputValue("");
+                })
+                .select('*, sender_tenant:tenants(*)')
+                .single();
+
+            if (error) {
+                // 실패 시 낙관적 업데이트 롤백
+                setMessages(prev => prev.filter(m => m.id !== tempId));
+                throw error;
+            }
+
+            if (savedMsg) {
+                // 가짜 ID(tempId)를 서버에서 준 진짜 ID로 교체! (중복 방지의 정석)
+                setMessages(prev => prev.map(m => m.id === tempId ? savedMsg : m));
+            }
         } catch (err) {
             toast.error("전송 실패");
         }
@@ -554,14 +623,28 @@ export function QuickChat() {
                                         <div className="flex-1 overflow-y-auto px-6 pt-6 scrollbar-thin scrollbar-thumb-slate-200" id="chat-messages-container-user">
                                             <div className="space-y-6 pb-6">
                                                 {messages.map((msg) => {
-                                                    const isMe = msg.sender_id === user?.id || msg.sender_tenant_id === tenantId;
+                                                    // 사용자는 '본인의 ID'인 경우에만 '나(오른쪽)'로 표시
+                                                    const isMe = msg.sender_id === user?.id;
+                                                    const isImage = msg.content?.startsWith('https://') && (msg.content.includes('.png') || msg.content.includes('.jpg') || msg.content.includes('.jpeg') || msg.content.includes('.gif') || msg.content.includes('.webp'));
                                                     const messageDate = parseISO(msg.created_at);
+
                                                     return (
                                                         <div key={msg.id} className={cn("flex flex-col mb-2", isMe ? "items-end" : "items-start")}>
-                                                            <div className={cn("max-w-[85%] p-4 rounded-3xl text-sm font-medium shadow-sm", isMe ? "bg-slate-900 text-white rounded-tr-none" : "bg-white text-slate-800 rounded-tl-none border border-slate-100")}>
-                                                                <p className="whitespace-pre-wrap leading-relaxed">{isAfter(new Date(), addDays(messageDate, 7)) ? "일주일이 경과된 메시지입니다" : msg.content}</p>
+                                                            <div className={cn("max-w-[85%] p-4 rounded-3xl text-sm font-medium shadow-sm transition-all hover:scale-[1.01]", isMe ? "bg-slate-900 text-white rounded-tr-none shadow-slate-900/10" : "bg-white text-slate-800 rounded-tl-none border border-slate-100")}>
+                                                                {isImage ? (
+                                                                    <div className="relative group cursor-zoom-in">
+                                                                        <img src={msg.content} alt="Chat image" className="rounded-2xl max-w-full h-auto border border-slate-100" />
+                                                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                                                            <Search className="text-white" size={20} />
+                                                                        </div>
+                                                                    </div>
+                                                                ) : (
+                                                                    <p className="whitespace-pre-wrap leading-relaxed">
+                                                                        {isAfter(new Date(), addDays(messageDate, 7)) ? "일주일이 경과된 메시지입니다" : msg.content}
+                                                                    </p>
+                                                                )}
                                                             </div>
-                                                            <span className="text-[9px] text-slate-300 font-bold mt-1 px-2">{format(messageDate, 'HH:mm')}</span>
+                                                            <span className="text-[9px] text-slate-300 font-bold mt-1 px-2 uppercase tracking-tighter">{format(messageDate, 'HH:mm')}</span>
                                                         </div>
                                                     );
                                                 })}
@@ -590,7 +673,20 @@ function ChatInput({ value, onChange, onSend, onFile, loading }: { value: string
                         {loading ? <RefreshCw size={18} className="animate-spin text-indigo-500" /> : <Paperclip size={18} />}
                     </Button>
                 </div>
-                <input className="flex-1 bg-transparent border-none outline-none text-[13px] px-2 text-slate-900 placeholder:text-slate-400 font-medium min-w-0" value={value} onChange={(e) => onChange(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && !loading && onSend()} placeholder="메시지를 입력하세요..." disabled={loading} />
+                <input 
+                    className="flex-1 bg-transparent border-none outline-none text-[13px] px-2 text-slate-900 placeholder:text-slate-400 font-medium min-w-0" 
+                    value={value} 
+                    onChange={(e) => onChange(e.target.value)} 
+                    onKeyDown={(e) => {
+                        // 한글 입력 중(isComposing)일 때는 엔터로 전송되지 않도록 방어 (글자가 안 남는 현상 방지)
+                        if (e.key === 'Enter' && !e.nativeEvent.isComposing && !loading) {
+                            e.preventDefault(); 
+                            onSend();
+                        }
+                    }} 
+                    placeholder="메시지를 입력하세요..." 
+                    disabled={loading} 
+                />
                 <Button variant="default" size="sm" className="shrink-0 h-10 bg-indigo-600 hover:bg-indigo-700 rounded-xl px-4" onClick={onSend} disabled={loading || !value.trim()}>
                     <Send size={16} />
                 </Button>

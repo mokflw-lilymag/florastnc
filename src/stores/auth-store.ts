@@ -7,6 +7,7 @@ interface AuthState {
   user: any;
   profile: any;
   tenantId: string | null;
+  isSuperAdmin: boolean;
   isLoading: boolean;
   _initialized: boolean;
   _fetchPromise: Promise<void> | null;
@@ -17,6 +18,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   profile: null,
   tenantId: null,
+  isSuperAdmin: false,
   isLoading: true,
   _initialized: false,
   _fetchPromise: null,
@@ -38,10 +40,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         const { data: { user }, error } = await supabase.auth.getUser();
         
         if (error || !user) {
-          set({ isLoading: false, _initialized: true, _fetchPromise: null });
+          set({ isLoading: false, _initialized: true, _fetchPromise: null, isSuperAdmin: false });
           return;
         }
 
+        const isMasterEmail = user.email === 'lilymag0301@gmail.com';
         set({ user });
 
         // Fetch user's profile with tenant plan
@@ -52,14 +55,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           .maybeSingle();
 
         if (!profileError && data) {
-          // ✅ lilymag0301@gmail.com 사용자에 대해 하드코딩 권한 부여
-          if (user.email === 'lilymag0301@gmail.com') {
+          // ✅ 마스터 이메일 또는 super_admin 역할에게 권한 부여
+          if (isMasterEmail || data.role === 'super_admin') {
             data.role = 'super_admin';
             if (!data.tenants) data.tenants = { plan: 'pro', name: 'LilyMag Admin' };
             else data.tenants.plan = 'pro';
+            set({ isSuperAdmin: true });
+          } else {
+            set({ isSuperAdmin: false });
           }
           set({ profile: data, tenantId: data.tenant_id });
-        } else if (user.email === 'lilymag0301@gmail.com') {
+        } else if (isMasterEmail) {
           const defaultTenantId = '50551f4c-0b6b-45ab-8db9-047ca3ff88de';
           const mockProfile = {
             role: 'super_admin',
@@ -67,7 +73,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             email: user.email,
             tenants: { plan: 'pro', name: 'LilyMag Admin' }
           };
-          set({ profile: mockProfile, tenantId: defaultTenantId });
+          set({ profile: mockProfile, tenantId: defaultTenantId, isSuperAdmin: true });
+        } else {
+          set({ isSuperAdmin: false });
         }
       } catch (error) {
         console.error("Error fetching user session:", error);

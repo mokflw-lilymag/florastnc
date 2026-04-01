@@ -181,6 +181,57 @@ export default function SettingsPage() {
     }
   }, [tenantId, authLoading, supabase]);
 
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !tenantId) return;
+
+    // Validate if it's an image
+    if (!file.type.startsWith("image/")) {
+      toast.error("이미지 파일만 업로드 가능합니다.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${tenantId}_logo_${Date.now()}.${fileExt}`;
+      const filePath = `${tenantId}/${fileName}`;
+
+      // Upload to Supabase Storage
+      const { data, error: uploadError } = await supabase.storage
+        .from("logos")
+        .upload(filePath, file, {
+          upsert: true,
+          contentType: file.type
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Get Public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from("logos")
+        .getPublicUrl(filePath);
+
+      setLogoUrl(publicUrl);
+      
+      // Update DB immediately
+      const { error: dbError } = await supabase
+        .from("tenants")
+        .update({ logo_url: publicUrl })
+        .eq("id", tenantId);
+
+      if (dbError) throw dbError;
+
+      toast.success("새로운 로고가 정상적으로 적용되었습니다!");
+      window.location.reload(); // To refresh sidebar
+    } catch (err: any) {
+      console.error(err);
+      toast.error(`이미지 업로드 중 오류: ${err.message}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleSaveStoreInfo = async () => {
     if (!tenantId) return;
     setSaving(true);
@@ -458,37 +509,69 @@ export default function SettingsPage() {
               </div>
 
               <div className="space-y-4 pt-4 border-t">
-                <div className="flex items-center gap-4">
-                  <div className="h-24 w-24 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden">
-                    {logoUrl ? (
-                      <img src={logoUrl} alt="Store Logo" className="h-full w-full object-contain" />
-                    ) : (
-                      <div className="flex flex-col items-center text-slate-400 gap-1">
-                        <ImageIcon className="h-6 w-6" />
-                        <span className="text-[10px]">Logo</span>
-                      </div>
-                    )}
+                <div className="flex flex-col md:flex-row items-center gap-6 p-4 rounded-2xl bg-slate-50/50 border border-slate-100">
+                  <div className="relative group/logo">
+                    <div className="h-32 w-32 rounded-2xl border-2 border-dashed border-slate-200 bg-white flex items-center justify-center overflow-hidden transition-all group-hover/logo:border-blue-300">
+                      {logoUrl ? (
+                        <div className="relative w-full h-full">
+                           <img src={logoUrl} alt="Store Logo" className="h-full w-full object-contain p-2" />
+                           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/logo:opacity-100 transition-opacity flex items-center justify-center">
+                             <ImageIcon className="text-white h-8 w-8" />
+                           </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center text-slate-400 gap-1">
+                          <ImageIcon className="h-8 w-8 opacity-20" />
+                          <span className="text-[10px] font-bold uppercase tracking-wider">No Logo</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex-1 space-y-2">
-                    <Label className="text-sm font-bold">꽃집 로고 (Logo)</Label>
-                    <div className="flex items-center gap-2">
-                      <Input 
-                        placeholder="로고 이미지 URL" 
-                        value={logoUrl}
-                        onChange={(e) => setLogoUrl(e.target.value)}
+                  
+                  <div className="flex-1 space-y-4">
+                    <div className="space-y-1">
+                      <Label className="text-sm font-bold flex items-center gap-2">
+                         <FileImage className="h-4 w-4 text-blue-600" /> 화원 대표 로고 (Logo)
+                      </Label>
+                      <p className="text-[11px] text-slate-500 leading-relaxed">
+                        PNG 또는 JPG 형식을 권장하며, 업로드된 로고는 **대시보드 사이드바 상단**과 **리본 프린터** 출력물에 공통으로 사용됩니다.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        className="hidden" 
+                        ref={fileInputRef} 
+                        onChange={handleLogoUpload}
                       />
                       <Button 
-                        variant="outline" 
+                        variant="default" 
                         size="sm"
-                        onClick={() => {
-                          const url = prompt("이미지 주소를 입력하거나, 아래 갤러리 연동 후 업로드한 주소를 입력하세요.");
-                          if (url) setLogoUrl(url);
-                        }}
+                        className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-500/10"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={saving}
                       >
-                        주소 입력
+                        {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
+                        새 로고 업로드
                       </Button>
+                      
+                      {logoUrl && (
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="rounded-xl border-slate-200 text-rose-500 hover:bg-rose-50"
+                          onClick={() => {
+                            if (confirm("로고를 삭제하고 기본 로고로 돌아갈까요?")) {
+                              setLogoUrl("");
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" /> 로고 제거
+                        </Button>
+                      )}
                     </div>
-                    <p className="text-[10px] text-slate-400">발주사로서 주문서 인쇄물에 표시될 로고입니다.</p>
                   </div>
                 </div>
               </div>

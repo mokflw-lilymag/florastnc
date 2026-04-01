@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Store, Plus, Search, Filter, ShieldCheck, Mail, Calendar as CalendarIcon, Loader2, MoreHorizontal, RefreshCw, Clock, CheckCircle2, XCircle, ChevronRight, MessageSquare } from "lucide-react";
+import { Store, Plus, Search, Filter, ShieldCheck, Mail, Calendar as CalendarIcon, Loader2, MoreHorizontal, RefreshCw, Clock, CheckCircle2, XCircle, ChevronRight, MessageSquare, AlertCircle } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
@@ -67,7 +67,7 @@ const PRICING = {
 
 export default function TenantsPage() {
   const supabase = createClient();
-  const { profile, isLoading: authLoading } = useAuth();
+  const { profile, isSuperAdmin, isLoading: authLoading } = useAuth();
   const [tenants, setTenants] = useState<TenantWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -86,8 +86,6 @@ export default function TenantsPage() {
   const [editPlan, setEditPlan] = useState("free");
   const [editStatus, setEditStatus] = useState("active");
   const [editEnd, setEditEnd] = useState<Date | undefined>(undefined);
-
-  const isSuperAdmin = profile?.role === 'super_admin';
 
   const fetchTenants = async () => {
     try {
@@ -424,9 +422,8 @@ export default function TenantsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* 구독 및 기한 관리 다이얼로그 */}
       <Dialog open={isSubscriptionOpen} onOpenChange={setIsSubscriptionOpen}>
-        <DialogContent className="sm:max-w-md rounded-3xl p-8 border-none shadow-2xl bg-white max-h-[90vh] overflow-y-auto border-0">
+        <DialogContent className="sm:max-w-xl rounded-3xl p-8 border-none shadow-2xl bg-white max-h-[90vh] overflow-y-auto border-0">
           <DialogHeader className="border-0">
             <DialogTitle className="font-semibold text-xl text-slate-900">구독 연장 및 플랜 설정</DialogTitle>
             <DialogDescription className="font-normal pb-4 text-slate-500 border-0">
@@ -464,16 +461,21 @@ export default function TenantsPage() {
                     12개월 ({PRICING[editPlan as keyof typeof PRICING]?.["12m"]?.toLocaleString()}원)
                   </Button>
                </div>
-               <div className="flex gap-2 mt-1">
-                 <Button variant="outline" className="flex-1 h-10 rounded-xl font-normal text-xs border-blue-200 text-blue-700 bg-blue-50/30 hover:bg-blue-50 border" onClick={() => setDuration('test')}>
-                   7일 무료 테스트 기간
-                 </Button>
-                 {isSuperAdmin && (
-                    <Button variant="outline" className="flex-1 h-10 rounded-xl font-normal text-xs border-emerald-200 text-emerald-700 bg-emerald-50/30 hover:bg-emerald-50 border" onClick={() => setEditEnd(undefined)}>
-                      기한 없음 (Indefinite)
+                <div className="flex flex-wrap gap-2 mt-1">
+                  <Button variant="outline" className="flex-1 min-w-[140px] h-10 rounded-xl font-normal text-xs border-blue-200 text-blue-700 bg-blue-50/30 hover:bg-blue-50 border" onClick={() => setDuration('test')}>
+                    7일 무료 테스트 기간
+                  </Button>
+                  {isSuperAdmin && (
+                    <Button variant="outline" className="flex-1 h-10 rounded-xl font-normal text-xs border-amber-200 text-amber-700 bg-amber-50/30 hover:bg-amber-50 border" onClick={() => setEditEnd(undefined)}>
+                      구독 즉시 만료 (종료됨)
                     </Button>
-                 )}
-               </div>
+                  )}
+                  {isSuperAdmin && (
+                    <Button variant="outline" className="flex-1 h-10 rounded-xl font-normal text-xs border-emerald-200 text-emerald-700 bg-emerald-50/30 hover:bg-emerald-50 border" onClick={() => setEditEnd(new Date(2099, 11, 31, 23, 59, 59))}>
+                      무제한 사용권 (Unlimited)
+                    </Button>
+                  )}
+                </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4 items-start border-0">
@@ -499,7 +501,7 @@ export default function TenantsPage() {
                         editEnd ? "text-slate-900 font-semibold" : "text-slate-400 font-normal"
                       )}>
                         <CalendarIcon className="mr-2 h-4 w-4 text-slate-400" />
-                        {editEnd ? format(editEnd, "yyyy년 MM월 dd일", { locale: ko }) : <span>기한 없음</span>}
+                        {editEnd ? format(editEnd, "yyyy년 MM월 dd일", { locale: ko }) : <span className="text-red-500 font-semibold">만료됨 (기한 정보 없음)</span>}
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0 rounded-2xl border-0 shadow-2xl bg-white" align="start">
                       <Calendar
@@ -525,14 +527,24 @@ export default function TenantsPage() {
               </div>
             </div>
             
-            {editEnd && (
-              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 mt-2 flex items-center justify-between">
-                <span className="text-slate-500 text-xs font-normal">업데이트될 만료일</span>
+            {editEnd ? (
+              <div className="bg-emerald-50/50 p-4 rounded-2xl border border-emerald-100 mt-2 flex items-center justify-between">
+                <span className="text-emerald-700 text-xs font-medium">업데이트될 만료일</span>
                 <div className="flex items-center gap-2">
-                  <span className="text-slate-900 font-semibold text-sm">{format(editEnd, "yyyy-MM-dd", { locale: ko })}</span>
+                  <span className="text-emerald-900 font-bold text-sm">
+                    {editEnd.getFullYear() >= 2099 ? '무제한 사용권 (Unlimited)' : format(editEnd, "yyyy-MM-dd", { locale: ko })}
+                  </span>
                   <div className="h-6 w-6 rounded-full bg-emerald-100 flex items-center justify-center">
                     <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
                   </div>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-red-50/50 p-4 rounded-2xl border border-red-100 mt-2 flex items-center justify-between">
+                <span className="text-red-600 text-xs font-medium">구독 즉시 만료 적용</span>
+                <div className="flex items-center gap-2 font-bold text-sm text-red-700">
+                  <span>현 시각부터 즉시 차단</span>
+                  <AlertCircle className="h-4 w-4" />
                 </div>
               </div>
             )}

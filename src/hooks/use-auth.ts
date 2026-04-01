@@ -14,11 +14,11 @@ import { useAuthStore } from "@/stores/auth-store";
  * 이후: 첫 호출 시 1번만 발생, 이후는 캐시된 상태 반환
  */
 export function useAuth() {
-  const { user, profile, tenantId, isLoading, initialize } = useAuthStore();
+  const { user, profile, tenantId, isSuperAdmin, isLoading, initialize } = useAuthStore();
 
   useEffect(() => {
     initialize();
   }, [initialize]);
 
-  return { user, profile, tenantId, isLoading };
+  return { user, profile, tenantId, isSuperAdmin, isLoading };
 }

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Menu, User, LogOut, Settings, Bell, BookOpen, Monitor, ShieldCheck, Wifi, WifiOff } from "lucide-react";
 import { MobileSidebar } from "./mobile-sidebar";
+import { ManualDrawer } from "./manual-drawer";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -23,11 +24,13 @@ interface HeaderProps {
   userEmail: string;
   isSuperAdmin: boolean;
   plan: string;
+  isExpired?: boolean;
+  isSuspended?: boolean;
   logoUrl?: string;
   storeName?: string;
 }
 
-export function Header({ userEmail, isSuperAdmin, plan, logoUrl, storeName }: HeaderProps) {
+export function Header({ userEmail, isSuperAdmin, plan, isExpired, isSuspended, logoUrl, storeName }: HeaderProps) {
   const router = useRouter();
   const supabase = createClient();
   const [isBridgeOnline, setIsBridgeOnline] = useState(false);
@@ -57,7 +60,14 @@ export function Header({ userEmail, isSuperAdmin, plan, logoUrl, storeName }: He
     <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl px-4 md:px-6 shadow-sm">
       <div className="flex items-center gap-4">
         {/* Mobile Sidebar Toggle */}
-        <MobileSidebar isSuperAdmin={isSuperAdmin} plan={plan} logoUrl={logoUrl} storeName={storeName} />
+        <MobileSidebar 
+          isSuperAdmin={isSuperAdmin} 
+          plan={plan} 
+          isExpired={isExpired}
+          isSuspended={isSuspended}
+          logoUrl={logoUrl} 
+          storeName={storeName} 
+        />
         {storeName && !isSuperAdmin && (
           <div className="flex items-center gap-2 md:gap-3">
             <span className="h-4 w-[1px] bg-slate-200 dark:bg-slate-700 mx-1 block"></span>
@@ -96,12 +106,15 @@ export function Header({ userEmail, isSuperAdmin, plan, logoUrl, storeName }: He
           </span>
         </div>
 
+        {/* Help Center Drawer */}
+        <ManualDrawer />
+
         {/* HQ Manual Button - Only for Super Admins */}
         {isSuperAdmin && (
           <Button 
             variant="ghost" 
             size="icon" 
-            className="text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+            className="text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-all rounded-full"
             onClick={() => router.push("/dashboard/admin/manual")}
             title="본사 직무 매뉴얼"
           >
@@ -110,9 +123,9 @@ export function Header({ userEmail, isSuperAdmin, plan, logoUrl, storeName }: He
         )}
 
         {/* Notification Bell */}
-        <Button variant="ghost" size="icon" className="relative text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
+        <Button variant="ghost" size="icon" className="relative text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-all rounded-full">
           <Bell className="h-5 w-5" />
-          <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500"></span>
+          <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-slate-900"></span>
         </Button>
 
         {/* User Dropdown Profile */}

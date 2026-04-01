@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { loadTossPayments } from "@tosspayments/payment-sdk";
 import { 
   Zap, 
   MessageCircle, 
@@ -10,7 +11,11 @@ import {
   TrendingUp,
   Sparkles,
   Layers,
-  Crown
+  Crown,
+  Gem,
+  Check,
+  HelpCircle,
+  AlertCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -111,6 +116,10 @@ export default function SubscriptionPage() {
   const { tenantId } = useAuth();
   const [tenantData, setTenantData] = useState<any>(null);
   const [selectedPeriod, setSelectedPeriod] = useState<Period>("12m");
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY || 'test_ck_D5akZmejPyb70ng83YXrb8zV7n9E';
+
 
   useEffect(() => {
     async function loadTenant() {
@@ -121,16 +130,51 @@ export default function SubscriptionPage() {
     loadTenant();
   }, [tenantId, supabase]);
 
-  const handleSubscribe = (planId: string, period: Period) => {
+  const handleSubscribe = async (planId: string, period: Period) => {
+    if (!tenantId) {
+      toast.error("로그인이 필요합니다.");
+      return;
+    }
+
     const plan = PLANS.find(p => p.id === planId);
-    const pricing = plan?.pricing[period];
-    toast.success(`${plan?.name} (${pricing?.label}) 신청이 접수되었습니다.`, {
-      description: `총 결제 예정 금액: ₩${pricing?.total}`,
-      duration: 5000,
-    });
+    if (!plan) return;
+
+    const pricing = plan.pricing[period];
+    const amount = Number(pricing.total.replace(/,/g, ''));
+    
+    setIsProcessing(true);
+    
+    try {
+      const tossPayments = await loadTossPayments(clientKey);
+      
+      // orderId format: tenantId_planId_period_timestamp
+      const orderId = `${tenantId.substring(0, 8)}_${planId}_${period}_${Date.now()}`;
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      const customerEmail = user?.email || "user@example.com";
+
+      await tossPayments.requestPayment("카드", {
+        amount,
+        orderId,
+        orderName: `${plan.name} (${pricing.label}) 구독`,
+        successUrl: window.location.origin + "/dashboard/subscription/success",
+        failUrl: window.location.origin + "/dashboard/subscription/fail",
+        customerEmail,
+        customerName: tenantData?.name || "FloraSync 가입자",
+      });
+    } catch (error: any) {
+      console.error("Payment error:", error);
+      toast.error("결제창을 여는 중 오류가 발생했습니다.", {
+        description: error.message
+      });
+      setIsProcessing(false);
+    }
   };
 
   const currentPlan = tenantData?.plan || 'free';
+  const isExpired = !tenantData?.subscription_end || !isAfter(new Date(tenantData.subscription_end), new Date());
+  const isSuspended = tenantData?.status === 'suspended';
+  const accessBlocked = isExpired || isSuspended;
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 pb-24 selection:bg-blue-100 selection:text-blue-900 font-sans">
@@ -270,20 +314,39 @@ export default function SubscriptionPage() {
                 <CardFooter className="p-12 pt-0">
                   <Button 
                     onClick={() => handleSubscribe(plan.id, selectedPeriod)}
+                    disabled={(isCurrent && !accessBlocked) || isProcessing}
                     className={cn(
-                      "w-full h-16 rounded-2xl font-light transition-all shadow-xl text-sm group/btn border",
-                      isCurrent 
-                        ? "bg-slate-50 text-slate-300 border-slate-100 cursor-default" 
-                        : isPro 
-                          ? "bg-blue-600 hover:bg-white text-white hover:text-blue-600 border-transparent hover:border-blue-200 shadow-blue-500/10 hover:scale-[1.01]" 
-                          : "bg-slate-900 hover:bg-white text-white hover:text-slate-900 border-transparent hover:border-slate-200 shadow-slate-900/10 hover:scale-[1.01]"
+                      "w-full h-16 rounded-2xl font-medium transition-all shadow-xl text-sm group/btn border",
+                      isCurrent && !accessBlocked
+                        ? "bg-emerald-50 text-emerald-600 border-emerald-100 cursor-default opacity-100" 
+                        : isCurrent && accessBlocked
+                          ? "bg-rose-600 hover:bg-rose-700 text-white border-transparent shadow-rose-500/20 animate-bounce-subtle"
+                          : isPro 
+                            ? "bg-blue-600 hover:bg-white text-white hover:text-blue-600 border-transparent hover:border-blue-200 shadow-blue-500/10 hover:scale-[1.01]" 
+                            : "bg-slate-900 hover:bg-white text-white hover:text-slate-900 border-transparent hover:border-slate-200 shadow-slate-900/10 hover:scale-[1.01]"
                     )}
-                    disabled={isCurrent}
                   >
-                    {isCurrent ? "Active Plan" : `Subscribe to ${plan.name}`}
-                    {!isCurrent && <ArrowRight className="ml-3 h-4 w-4 stroke-1 group-hover/btn:translate-x-1 transition-transform opacity-50" />}
+                    {isCurrent && !accessBlocked ? (
+                      <span className="flex items-center justify-center">
+                        <Check className="mr-2 h-4 w-4" /> 현재 사용 중인 플랜
+                      </span>
+                    ) : isProcessing ? (
+                      "결제창 이동 중..."
+                    ) : (
+                      `${plan.name} 신청하기`
+                    )}
+                    {(!isCurrent || accessBlocked) && !isProcessing && <ArrowRight className="ml-3 h-4 w-4 stroke-1 group-hover/btn:translate-x-1 transition-transform opacity-50" />}
                   </Button>
                 </CardFooter>
+                
+                {isCurrent && (
+                  <div className="px-12 pb-8 text-center">
+                    <p className="text-[10px] text-slate-400 font-light flex items-center justify-center">
+                      <HelpCircle className="h-3 w-3 mr-1 opacity-50" />
+                      플랜 변경 및 해지는 고객센터로 문의해 주세요.
+                    </p>
+                  </div>
+                )}
               </Card>
             );
           })}

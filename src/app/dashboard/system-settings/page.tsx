@@ -12,8 +12,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { AccessDenied } from "@/components/access-denied";
 
 export default function SystemSettingsPage() {
-  const { profile, isLoading } = useAuth();
-  const isSuperAdmin = profile?.role === 'super_admin';
+  const { profile, isSuperAdmin, isLoading } = useAuth();
 
   if (isLoading) return null;
 

@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useAuth } from './use-auth';
 import { subDays, startOfDay, endOfDay } from 'date-fns';
 import { Order, OrderData } from '@/types/order';
 
 export function useOrders(initialFetch = true) {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const { tenantId, isLoading: authLoading } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(initialFetch);
@@ -62,7 +62,7 @@ export function useOrders(initialFetch = true) {
       const { data, error } = await supabase
         .from('orders')
         .select(`
-          id, order_number, status, receipt_type, order_date, 
+          id, tenant_id, order_number, status, receipt_type, order_date, 
           orderer, summary, payment, items, message, pickup_info, delivery_info, 
           memo, actual_delivery_cost, actual_delivery_cost_cash, 
           actual_delivery_payment_method, actual_delivery_payment_status,
@@ -80,7 +80,7 @@ export function useOrders(initialFetch = true) {
       setLoading(false);
       setIsRefreshing(false);
     }
-  }, [tenantId, orders.length, mapRowToOrder, supabase]);
+  }, [tenantId, mapRowToOrder, supabase]);
 
   const fetchOrdersByRange = useCallback(async (start: Date, end: Date, dateField: 'order_date' | 'created_at' = 'order_date') => {
     if (!tenantId) return;
@@ -92,7 +92,7 @@ export function useOrders(initialFetch = true) {
       const { data, error } = await supabase
         .from('orders')
         .select(`
-          id, order_number, status, receipt_type, order_date, 
+          id, tenant_id, order_number, status, receipt_type, order_date, 
           orderer, summary, payment, items, message, pickup_info, delivery_info, 
           memo, actual_delivery_cost, actual_delivery_cost_cash, 
           actual_delivery_payment_method, actual_delivery_payment_status,
@@ -132,27 +132,26 @@ export function useOrders(initialFetch = true) {
 
       if (error) throw error;
 
-      // --- AUTO-GENERATE EXPENSE FOR DELIVERY ---
-      if (orderData.receipt_type === 'delivery_reservation' && orderData.summary.deliveryFee > 0) {
-        // 중복 체크: 이미 동일한 관련 주문 건으로 지출이 있는지 확인
-        const { data: existingExpenses } = await supabase
-          .from('expenses')
-          .select('id')
-          .eq('related_order_id', data.id)
-          .limit(1);
-
-        if (!existingExpenses || existingExpenses.length === 0) {
-          await supabase.from('expenses').insert([{
-             tenant_id: tenantId,
-             category: 'transportation',
-             sub_category: 'delivery_fee',
-             amount: orderData.summary.deliveryFee,
-             description: `[배송비] ${orderPayload.order_number} (자동 생성)`,
-             expense_date: orderData.order_date || new Date().toISOString(),
-             payment_method: 'cash',
-             related_order_id: data.id
-          }]);
-        }
+      // --- [NEW] CREATE EXPENSE ON ORDER CREATION ---
+      // 배송 주문이고 배송비가 있는 경우 지출에 자동 추가
+      // 실제 지출 배송비(actual_delivery_cost)가 있으면 그것을, 없으면 청구 배송비(summary.deliveryFee)를 사용
+      const hasDeliveryFee = (orderData.actual_delivery_cost && orderData.actual_delivery_cost > 0) || 
+                            (orderData.summary.deliveryFee && orderData.summary.deliveryFee > 0);
+                            
+      if (orderData.receipt_type === 'delivery_reservation' && hasDeliveryFee) {
+        const expenseAmount = orderData.actual_delivery_cost || orderData.summary.deliveryFee || 0;
+        const carrier = orderData.delivery_info?.driverAffiliation || '자체';
+        
+        await supabase.from('expenses').insert([{
+           tenant_id: tenantId,
+           category: 'transportation',
+           sub_category: '배송비',
+           amount: expenseAmount,
+           description: `[배송비] ${orderPayload.order_number} (${carrier})`,
+           expense_date: orderData.order_date || new Date().toISOString(),
+           payment_method: orderData.actual_delivery_payment_method || 'cash',
+           related_order_id: data.id
+        }]);
       }
 
       // --- [NEW] UPDATE PRODUCT STOCK ---
@@ -222,26 +221,62 @@ export function useOrders(initialFetch = true) {
       if (error) throw error;
 
       // --- [NEW] UPDATE EXPENSE ON ORDER UPDATE ---
-      // 주문 수정 시에도 배송비가 있고 지출에 없다면 자동으로 추가 (중복 방지)
-      const hasDeliveryFee = updates.summary && typeof updates.summary.deliveryFee === 'number' && updates.summary.deliveryFee > 0;
-      if (updates.receipt_type === 'delivery_reservation' && hasDeliveryFee) {
+      // 실재 배송비(actual_delivery_cost)가 업데이트되거나 배송비가 있는 경우 처리
+      const actualCost = updates.actual_delivery_cost;
+      const deliveryFee = updates.summary?.deliveryFee;
+      
+      // 실제 지불한 배송비가 있거나, 고객에게 받은 배송비가 있는 경우
+      if ((actualCost !== undefined && actualCost > 0) || (deliveryFee !== undefined && deliveryFee > 0)) {
+        // 기존 지출 내역 확인 (배송비 카테고리만)
         const { data: existingExpenses } = await supabase
           .from('expenses')
-          .select('id')
+          .select('id, amount')
           .eq('related_order_id', id)
+          .eq('sub_category', 'delivery_fee')
           .limit(1);
 
-        if (!existingExpenses || existingExpenses.length === 0) {
-          await supabase.from('expenses').insert([{
-            tenant_id: tenantId,
-            category: 'transportation',
-            sub_category: 'delivery_fee',
-            amount: updates.summary?.deliveryFee || 0,
-            description: `[배송비] ${updates.order_number || '주문'} 수정 자동생성`,
-            expense_date: updates.order_date || new Date().toISOString(),
-            payment_method: 'cash',
-            related_order_id: id
-          }]);
+        const expenseAmount = actualCost || deliveryFee || 0;
+        
+        // 주문 정보를 가져와서 order_number와 receipt_type 확인
+        const order = orders.find(o => o.id === id);
+        const orderNumber = updates.order_number || order?.order_number || '주문';
+        const receiptType = updates.receipt_type || order?.receipt_type;
+
+        // 배송 예약인 경우에만 지출 생성/수정
+        if (receiptType === 'delivery_reservation') {
+          const carrier = updates.delivery_info?.driverAffiliation || order?.delivery_info?.driverAffiliation || '자체';
+          
+          if (expenseAmount > 0) {
+            if (existingExpenses && existingExpenses.length > 0) {
+              // 기존 지출이 있으면 금액 업데이트
+              await supabase.from('expenses')
+                .update({ 
+                  amount: expenseAmount,
+                  description: `[배송비] ${orderNumber} (${carrier})`,
+                  category: 'transportation',
+                  sub_category: '배송비',
+                  updated_at: new Date().toISOString()
+                })
+                .eq('id', existingExpenses[0].id);
+            } else {
+              // 없으면 새로 생성
+              await supabase.from('expenses').insert([{
+                tenant_id: tenantId,
+                category: 'transportation',
+                sub_category: '배송비',
+                amount: expenseAmount,
+                description: `[배송비] ${orderNumber} (${carrier})`,
+                expense_date: updates.order_date || order?.order_date || new Date().toISOString(),
+                payment_method: updates.actual_delivery_payment_method || order?.actual_delivery_payment_method || 'cash',
+                related_order_id: id
+              }]);
+            }
+          } else if (existingExpenses && existingExpenses.length > 0) {
+            // 배송비가 0으로 입력되면 기존 지출 내역 삭제
+            await supabase.from('expenses')
+              .delete()
+              .eq('id', existingExpenses[0].id);
+          }
         }
       }
 

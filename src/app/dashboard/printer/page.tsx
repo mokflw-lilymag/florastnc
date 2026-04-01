@@ -42,6 +42,7 @@ function PrinterContent() {
         initialLeftText={initialLeftText}
         initialRightText={initialRightText}
         userPlan={plan}
+        tenantLogo={profile?.tenants?.logo_url}
       />
     </div>
   );

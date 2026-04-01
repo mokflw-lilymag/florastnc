@@ -17,7 +17,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // Fetch the role and tenant details server-side
   const { data: profile, error } = await supabase
     .from("profiles")
-    .select("role, tenant_id, tenants(plan, logo_url, name)")
+    .select("role, tenant_id, tenants(plan, logo_url, name, subscription_end, status)")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -25,9 +25,16 @@ export default async function DashboardLayout({ children }: { children: React.Re
     console.error("DashboardLayout: Error fetching profile:", error);
   }
 
-  const isSuperAdmin = profile?.role === "super_admin" || user.email === 'lilymag0301@gmail.com';
+  const isSuperAdmin = !!(profile?.role === "super_admin" || user.email === 'lilymag0301@gmail.com');
   const tenantData = (profile as any)?.tenants;
-  const plan = tenantData?.plan || (user.email === 'lilymag0301@gmail.com' ? 'pro' : 'free');
+  
+  // Logic Fix: If subscription_end is empty (null), treat it as NO SUBSCRIPTION (Expired).
+  // Unlimited access should use a far-future date (e.g. 2099) instead of null.
+  const isExpired = !tenantData?.subscription_end || new Date(tenantData.subscription_end) < new Date();
+  const isSuspended = tenantData?.status === 'suspended';
+  
+  // If expired or suspended, for non-admins, the effective plan is 'free' or restricted
+  const effectivePlan = tenantData?.plan || (isSuperAdmin ? 'pro' : 'free');
   const logoUrl = tenantData?.logo_url;
   const storeName = tenantData?.name;
 
@@ -36,7 +43,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
       {/* Sidebar is fixed on the left */}
       <Sidebar 
         isSuperAdmin={isSuperAdmin} 
-        plan={plan} 
+        plan={effectivePlan} 
+        isExpired={isExpired}
+        isSuspended={isSuspended}
         logoUrl={logoUrl}
         storeName={storeName}
         className="hidden lg:flex" 
@@ -47,7 +56,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <Header 
             userEmail={user.email ?? "Unknown"} 
             isSuperAdmin={isSuperAdmin} 
-            plan={plan}
+            plan={effectivePlan}
+            isExpired={isExpired}
+            isSuspended={isSuspended}
             logoUrl={logoUrl}
             storeName={storeName}
         />

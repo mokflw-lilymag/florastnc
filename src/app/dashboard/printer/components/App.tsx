@@ -862,7 +862,7 @@ const RibbonCanvas = ({
 import type { Session } from '@supabase/supabase-js';
 
 const REQUIRED_BRIDGE_VERSION = '25.0';
-export default function App({ session, isAdmin, onShowAdmin, initialLeftText, initialRightText, userPlan }: { session?: any; isAdmin?: boolean; onShowAdmin?: () => void, initialLeftText?: string, initialRightText?: string, userPlan?: string }) {
+export default function App({ session, isAdmin, onShowAdmin, initialLeftText, initialRightText, userPlan, tenantLogo }: { session?: any; isAdmin?: boolean; onShowAdmin?: () => void, initialLeftText?: string, initialRightText?: string, userPlan?: string, tenantLogo?: string | null }) {
   const mainRef = useRef<HTMLElement>(null);
   const printAreaRef = useRef<HTMLDivElement>(null);
 
@@ -1167,7 +1167,8 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
 
     // Auto-Pair Cloud Print Agent with Local Bridge
     if (session?.user?.id) {
-       const metaLogo = (session.user as any)?.user_metadata?.shop_logo;
+       // Priority: 1. Global Tenant Logo, 2. Legacy metadata logo
+       const metaLogo = tenantLogo || (session.user as any)?.user_metadata?.shop_logo;
        setShopLogo(metaLogo || null);
        if (metaLogo) setPrintLogo(true);
        
@@ -1184,29 +1185,42 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
     if (!file || !session?.user) return;
 
     try {
-      // 1. Supabase Storage에 업로드 (assets 버킷 사용)
+      // 1. Supabase Storage에 업로드 (logos 버킷 사용 - 통합 규정)
       const fileExt = file.name.split('.').pop();
       const filePath = `shop_logos/${session.user.id}-${Date.now()}.${fileExt}`;
       
       const { error: uploadError } = await supabase.storage
-        .from('assets')
+        .from('logos') // Updated to 'logos' bucket for consistency
         .upload(filePath, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
       // 2. 퍼블릭 URL 가져오기
       const { data: { publicUrl } } = supabase.storage
-        .from('assets')
+        .from('logos')
         .getPublicUrl(filePath);
 
-      // 3. 사용자 메타데이터에 URL만 저장 (Base64 대비 용량 획기적 감소)
+      // 3. 사용자 메타데이터 및 가맹점 로고 업데이트 (통합 동기화)
       setShopLogo(publicUrl);
       setPrintLogo(true);
-      await supabase.auth.updateUser({
-        data: { shop_logo: publicUrl }
-      });
       
-      alert("✅ 매장 로고가 안전하게 업로드되었습니다.");
+      const tenantId = (session.user as any)?.app_metadata?.tenant_id || (session.user as any)?.user_metadata?.tenant_id;
+      
+      const updatePromises: Promise<any>[] = [
+        supabase.auth.updateUser({
+          data: { shop_logo: publicUrl }
+        })
+      ];
+
+      if (tenantId) {
+        updatePromises.push(
+          Promise.resolve(supabase.from('tenants').update({ logo_url: publicUrl }).eq('id', tenantId))
+        );
+      }
+
+      await Promise.all(updatePromises);
+      
+      alert("✅ 로고가 가맹점 정보에 통합 업데이트되었습니다.");
     } catch (err: any) {
       console.error('Logo upload error:', err);
       alert("로고 업로드 오류: " + err.message);

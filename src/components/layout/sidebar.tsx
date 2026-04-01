@@ -17,12 +17,14 @@ import { toast } from "sonner";
 interface SidebarProps {
   isSuperAdmin: boolean;
   plan: string;
+  isExpired?: boolean;
+  isSuspended?: boolean;
   className?: string;
   logoUrl?: string;
   storeName?: string;
 }
 
-export function Sidebar({ isSuperAdmin, plan, className, logoUrl, storeName }: SidebarProps) {
+export function Sidebar({ isSuperAdmin, plan, isExpired, isSuspended, className, logoUrl, storeName }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
@@ -67,6 +69,12 @@ export function Sidebar({ isSuperAdmin, plan, className, logoUrl, storeName }: S
 
   const filteredTenantLinks = tenantLinks.filter(link => {
     if (isSuperAdmin) return true;
+    
+    // If expired or suspended, restrict access to premium features (those with 'tier')
+    if (isExpired || isSuspended) {
+      return !link.tier; // Only show links that don't require a specific tier (basic links)
+    }
+
     if (!link.tier) return true;
     return link.tier.includes(plan);
   });
@@ -74,10 +82,10 @@ export function Sidebar({ isSuperAdmin, plan, className, logoUrl, storeName }: S
   const links = isSuperAdmin ? adminLinks : filteredTenantLinks;
 
   return (
-    <aside className={cn("flex w-64 flex-col bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-r border-slate-200 dark:border-slate-800 h-full z-20", className)}>
+    <aside className={cn("flex w-64 flex-col bg-white border-r border-slate-100 h-full z-20 shadow-sm", className)}>
       <div className="p-6 pb-2">
         <Image
-          src="https://ecimg.cafe24img.com/pg1472b45444056090/lilymagflower/web/upload/category/logo/v2_d13ecd48bab61a0269fab4ecbe56ce07_lZMUZ1lORo_top.jpg"
+          src={logoUrl || "https://ecimg.cafe24img.com/pg1472b45444056090/lilymagflower/web/upload/category/logo/v2_d13ecd48bab61a0269fab4ecbe56ce07_lZMUZ1lORo_top.jpg"}
           alt="Florasync Logo"
           width={180}
           height={40}
@@ -87,8 +95,8 @@ export function Sidebar({ isSuperAdmin, plan, className, logoUrl, storeName }: S
         />
         <div className="mt-3 text-center">
            <span className={cn(
-             "text-xs font-light px-2 py-0.5 rounded-full inline-block",
-             isSuperAdmin ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300" : "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
+             "text-[10px] font-bold px-2.5 py-0.5 rounded-full inline-block border",
+             isSuperAdmin ? "bg-blue-50 text-blue-600 border-blue-100" : "bg-emerald-50 text-emerald-600 border-emerald-100"
            )}>
              {isSuperAdmin ? 'ADMIN MODE' : 'PARTNER'}
            </span>
@@ -97,7 +105,14 @@ export function Sidebar({ isSuperAdmin, plan, className, logoUrl, storeName }: S
 
       <nav className="flex-1 px-4 py-8 space-y-1 overflow-y-auto">
         {links.map((link) => {
-          const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);
+          // Normalize paths for comparison to avoid trailing slash issues
+          const normalizedPathname = pathname.replace(/\/$/, "");
+          const normalizedHref = link.href.replace(/\/$/, "");
+          
+          // Only highlight if the path exactly matches. 
+          // For the root dashboard, it should only be active if the path is exactly /dashboard (normalized to empty if we're not careful)
+          const isActive = normalizedPathname === normalizedHref;
+          
           const Icon = link.icon;
           
           return (
@@ -105,16 +120,16 @@ export function Sidebar({ isSuperAdmin, plan, className, logoUrl, storeName }: S
               key={link.name}
               href={link.href}
               className={cn(
-                "group flex items-center px-3 py-2.5 text-sm font-normal rounded-lg transition-all duration-200",
+                "group flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200",
                 isActive 
-                  ? "bg-slate-900 text-white shadow-md dark:bg-slate-100 dark:text-slate-900" 
-                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
+                  ? "bg-slate-900 text-white shadow-lg shadow-slate-200 transform scale-[1.02]" 
+                  : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
               )}
             >
               <Icon 
                 className={cn(
-                  "mr-3 flex-shrink-0 h-5 w-5 transition-transform duration-200 group-hover:scale-110", 
-                  isActive ? "text-white dark:text-slate-900" : "text-slate-400 group-hover:text-slate-600 dark:text-slate-500 dark:group-hover:text-slate-300"
+                  "mr-3 flex-shrink-0 h-5 w-5 transition-all duration-200 group-hover:scale-110", 
+                  isActive ? "text-white" : "text-slate-400 group-hover:text-slate-600"
                 )} 
                 aria-hidden="true" 
               />
@@ -154,9 +169,7 @@ export function Sidebar({ isSuperAdmin, plan, className, logoUrl, storeName }: S
       
       {/* Footer Info */}
       <div className="p-4 border-t border-slate-100 dark:border-slate-800">
-      <div className="p-4 border-t border-slate-100 dark:border-slate-800">
-        <p className="text-[10px] text-center text-slate-400 font-normal uppercase tracking-widest">Florasync SaaS v25.0</p>
-      </div>
+        <p className="text-[10px] text-center text-slate-400 font-normal uppercase tracking-widest">Florasync v25.0</p>
       </div>
     </aside>
   );

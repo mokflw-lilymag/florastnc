@@ -21,9 +21,8 @@ import Link from "next/link";
 import { SAMPLE_PRODUCTS } from "@/utils/sample-data";
 
 export default function ProductsPage() {
-  const { profile, isLoading: authLoading } = useAuth();
-  const plan = profile?.tenants?.plan || "free";
-  const isSuperAdmin = profile?.role === 'super_admin';
+  const { profile, isSuperAdmin, isLoading: authLoading } = useAuth();
+  const plan = profile?.tenants?.plan || (isSuperAdmin ? "pro" : "free");
 
   const { 
     products, 

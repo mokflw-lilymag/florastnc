@@ -3,6 +3,7 @@ import * as React from 'react';
 import { useState, useMemo } from 'react';
 import { PageHeader } from '@/components/page-header';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -45,9 +46,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 
 export default function DeliveryManagementPage() {
+  const router = useRouter();
   const { orders, loading, updateOrder } = useOrders();
   const { settings, saveSettings } = useSettings();
   const [searchTerm, setSearchTerm] = useState("");
@@ -59,24 +62,31 @@ export default function DeliveryManagementPage() {
   const [isPrintDialogOpen, setIsPrintDialogOpen] = useState(false);
   const [printingOrder, setPrintingOrder] = useState<any>(null);
 
+  // New states for inline editing
+  const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
+  const [tempActualCost, setTempActualCost] = useState<string>("");
+  const [tempCarrier, setTempCarrier] = useState<string>("");
+
   const filteredOrders = useMemo(() => {
     return orders.filter(order => {
-      // Date Filter
-      const orderDate = order.order_date ? new Date(order.order_date) : null;
+      // Date Filter - Use the actual scheduled date instead of order creation date
+      const isDelivery = order.receipt_type === "delivery_reservation";
+      const scheduleDateStr = isDelivery ? order.delivery_info?.date : order.pickup_info?.date;
+      const scheduleDate = scheduleDateStr ? new Date(scheduleDateStr) : null;
+      
       let dateMatch = true;
 
       if (dateFilterMode === "today") {
-        dateMatch = orderDate ? isToday(orderDate) : false;
+        dateMatch = scheduleDate ? isToday(scheduleDate) : false;
       } else if (dateFilterMode === "tomorrow") {
-        dateMatch = orderDate ? isSameDay(orderDate, addDays(new Date(), 1)) : false;
+        dateMatch = scheduleDate ? isSameDay(scheduleDate, addDays(new Date(), 1)) : false;
       } else if (dateFilterMode === "custom" && selectedDate) {
-        dateMatch = orderDate ? isSameDay(orderDate, selectedDate) : false;
+        dateMatch = scheduleDate ? isSameDay(scheduleDate, selectedDate) : false;
       }
 
       if (!dateMatch) return false;
 
       // Type Filter
-      const isDelivery = order.receipt_type === "delivery_reservation";
       const isPickup = order.receipt_type === "pickup_reservation" || order.receipt_type === "store_pickup";
       
       if (filterType === "delivery" && !isDelivery) return false;
@@ -107,6 +117,41 @@ export default function DeliveryManagementPage() {
     setIsPrintDialogOpen(true);
   };
 
+  const startEditing = (order: any) => {
+    setEditingOrderId(order.id);
+    setTempActualCost(order.actual_delivery_cost?.toString() || "");
+    setTempCarrier(order.delivery_info?.driverAffiliation || "");
+  };
+
+  const cancelEditing = () => {
+    setEditingOrderId(null);
+    setTempActualCost("");
+    setTempCarrier("");
+  };
+
+  const saveDeliveryInfo = async (orderId: string) => {
+    const costValue = tempActualCost === "" ? 0 : parseInt(tempActualCost);
+    const order = orders.find(o => o.id === orderId);
+    
+    if (!order) return;
+
+    try {
+      const updates: any = {
+        actual_delivery_cost: costValue,
+        delivery_info: {
+          ...order.delivery_info,
+          driverAffiliation: tempCarrier
+        }
+      };
+
+      await updateOrder(orderId, updates);
+      toast.success("배송 정보가 저장되었습니다.");
+      setEditingOrderId(null);
+    } catch (error) {
+      toast.error("배송 정보 저장 실패");
+    }
+  };
+
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6 animate-in slide-in-from-bottom-4 duration-500 pb-20">
       <PageHeader 
@@ -124,7 +169,7 @@ export default function DeliveryManagementPage() {
           <DialogTrigger render={<Button variant="outline" className="gap-2 font-bold shadow-sm rounded-xl border-gray-200" />}>
             <Settings className="w-4 h-4" /> 배송업체 관리
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>배송업체 항목 관리</DialogTitle>
             </DialogHeader>
@@ -333,6 +378,8 @@ export default function DeliveryManagementPage() {
                       <TableHead className="font-bold text-gray-700">고객 정보</TableHead>
                       <TableHead className="font-bold text-gray-700">상품 정보</TableHead>
                       <TableHead className="font-bold text-gray-700">수령 정보</TableHead>
+                      <TableHead className="font-bold text-gray-700">실지출 배송비</TableHead>
+                      <TableHead className="font-bold text-gray-700">배송업체</TableHead>
                       <TableHead className="font-bold text-gray-700 text-center">상태</TableHead>
                       <TableHead className="pr-6 text-right font-bold text-gray-700">관리</TableHead>
                    </TableRow>
@@ -413,6 +460,82 @@ export default function DeliveryManagementPage() {
                                  </div>
                                )}
                             </TableCell>
+                            <TableCell>
+                               {isDelivery ? (
+                                 editingOrderId === order.id ? (
+                                   <div className="flex flex-col gap-1">
+                                      <div className="relative">
+                                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-[10px] font-bold">₩</span>
+                                        <Input 
+                                          type="number" 
+                                          className="pl-5 h-8 text-xs font-bold border-primary/30 focus:ring-1 focus:ring-primary/20 bg-white min-w-[80px]"
+                                          placeholder="0"
+                                          value={tempActualCost}
+                                          onChange={(e) => setTempActualCost(e.target.value)}
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter') saveDeliveryInfo(order.id);
+                                            if (e.key === 'Escape') cancelEditing();
+                                          }}
+                                          autoFocus
+                                        />
+                                      </div>
+                                      <div className="flex gap-1 mt-1">
+                                        <Button size="sm" className="h-6 text-[10px] px-2 bg-primary hover:bg-primary/90" onClick={() => saveDeliveryInfo(order.id)}>저장</Button>
+                                        <Button size="sm" variant="ghost" className="h-6 text-[10px] px-2 text-gray-500 hover:bg-gray-100" onClick={cancelEditing}>취소</Button>
+                                      </div>
+                                   </div>
+                                 ) : (
+                                   <div 
+                                     className="flex flex-col cursor-pointer group/cost hover:bg-blue-50 p-1.5 rounded-lg border border-transparent hover:border-blue-100 transition-all"
+                                     onClick={() => startEditing(order)}
+                                   >
+                                      <span className={cn("font-black text-sm", order.actual_delivery_cost ? "text-rose-600" : "text-gray-300 italic")}>
+                                        {order.actual_delivery_cost ? `₩${order.actual_delivery_cost.toLocaleString()}` : "미입력"}
+                                      </span>
+                                      <span className="text-[10px] text-gray-400 font-medium group-hover/cost:text-blue-500 underline decoration-dotted decoration-blue-200 underline-offset-2">배송비 입력</span>
+                                   </div>
+                                 )
+                               ) : (
+                                 <span className="text-gray-300 text-xs">-</span>
+                               )}
+                            </TableCell>
+                            <TableCell>
+                               {isDelivery ? (
+                                 editingOrderId === order.id ? (
+                                   <Select value={tempCarrier} onValueChange={(val: string | null) => setTempCarrier(val || "")}>
+                                      <SelectTrigger className="h-8 text-xs font-medium border-primary/30 bg-white min-w-[100px]">
+                                        <SelectValue placeholder="업체 선택" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="none">미지정</SelectItem>
+                                        {(settings?.deliveryCarriers || []).map((carrier: string) => (
+                                          <SelectItem key={carrier} value={carrier}>{carrier}</SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                   </Select>
+                                 ) : (
+                                   <div 
+                                     className="flex flex-col cursor-pointer group/carrier hover:bg-indigo-50 p-1.5 rounded-lg border border-transparent hover:border-indigo-100 transition-all"
+                                     onClick={() => startEditing(order)}
+                                   >
+                                      <Badge 
+                                        variant="outline" 
+                                        className={cn(
+                                          "w-fit font-bold transition-all",
+                                          order.delivery_info?.driverAffiliation 
+                                            ? "bg-indigo-50 text-indigo-700 border-indigo-200" 
+                                            : "bg-gray-50 text-gray-400 border-gray-200 opacity-60"
+                                        )}
+                                      >
+                                        {order.delivery_info?.driverAffiliation || "미지정"}
+                                      </Badge>
+                                      <span className="text-[10px] text-gray-400 font-medium mt-1 group-hover/carrier:text-indigo-500 underline decoration-dotted decoration-indigo-200 underline-offset-2">업체 선택</span>
+                                   </div>
+                                 )
+                               ) : (
+                                 <span className="text-gray-300 text-xs">-</span>
+                               )}
+                            </TableCell>
                             <TableCell className="text-center">
                                <Badge 
                                  variant="outline" 
@@ -450,7 +573,7 @@ export default function DeliveryManagementPage() {
                                         <DropdownMenuItem onClick={() => openRibbonPrint(order)} className="rounded-lg gap-2 font-medium">
                                            <Printer className="w-4 h-4 text-primary" /> 리본 출력
                                         </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => window.location.href=`/dashboard/orders/${order.id}`} className="rounded-lg gap-2 font-medium">
+                                        <DropdownMenuItem onClick={() => router.push(`/dashboard/orders/${order.id}`)} className="rounded-lg gap-2 font-medium">
                                            <ExternalLink className="w-4 h-4 text-blue-500" /> 상세 보기
                                         </DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => handleStatusChange(order.id, 'processing')} className="rounded-lg gap-2 font-medium">

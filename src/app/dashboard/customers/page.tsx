@@ -24,9 +24,8 @@ import { format } from "date-fns";
 
 export default function CustomersPage() {
   const supabase = createClient();
-  const { profile, tenantId, isLoading: authLoading } = useAuth();
-  const plan = profile?.tenants?.plan || "free";
-  const isSuperAdmin = profile?.role === 'super_admin';
+  const { profile, tenantId, isSuperAdmin, isLoading: authLoading } = useAuth();
+  const plan = profile?.tenants?.plan || (isSuperAdmin ? "pro" : "free");
 
   const { 
     customers, 
