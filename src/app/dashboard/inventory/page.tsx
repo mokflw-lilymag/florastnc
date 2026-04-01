@@ -36,7 +36,8 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { downloadTemplate, parseExcel, exportDataToExcel } from "@/utils/excel";
-import { useSettings } from "@/hooks/use-settings";
+import { useSettings, DEFAULT_MATERIAL_CATEGORIES } from "@/hooks/use-settings";
+import { CategoryManagementDialog } from '@/components/inventory/category-management-dialog';
 import Link from 'next/link';
 import { toast } from 'sonner';
 
@@ -53,11 +54,9 @@ export default function InventoryPage() {
   const [isSupplierOpen, setIsSupplierOpen] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
   const [isImporting, setIsImporting] = useState(false);
+  const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
 
-  const CATEGORIES = materialCategories || {
-    main: ["생화", "식물", "부자재", "포장재", "기타"],
-    mid: { "생화": [], "식물": [], "부자재": [], "포장재": [], "기타": [] }
-  };
+  const CATEGORIES = materialCategories || DEFAULT_MATERIAL_CATEGORIES;
 
   const [formData, setFormData] = useState<Partial<Material>>({
     name: "",
@@ -155,14 +154,22 @@ export default function InventoryPage() {
 
   const midCategoriesForSelected = useMemo(() => {
     if (selectedCategory === "all") return [];
-    const uniqueMids = new Set(
+    
+    // First, get defined mid-categories for this main category from settings
+    const definedMids = CATEGORIES.mid[selectedCategory] || [];
+    
+    // Also get any mid-categories currently used by materials in this main category (for legacy/custom data)
+    const usedMids = new Set(
       materials
         .filter(m => m.main_category === selectedCategory)
         .map(m => m.mid_category)
         .filter(Boolean)
     );
-    return Array.from(uniqueMids).sort() as string[];
-  }, [materials, selectedCategory]);
+    
+    // Merge them
+    const allMids = Array.from(new Set([...definedMids, ...Array.from(usedMids)]));
+    return allMids.sort() as string[];
+  }, [materials, selectedCategory, CATEGORIES.mid]);
 
   const filteredMaterials = useMemo(() => {
     return materials.filter(m => {
@@ -218,6 +225,16 @@ export default function InventoryPage() {
               거래처 관리
             </Button>
           </Link>
+
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => setIsCategoryDialogOpen(true)}
+            className="hidden sm:flex text-slate-500 hover:text-slate-900 border border-transparent hover:border-slate-200"
+          >
+            <Settings2 className="h-4 w-4 mr-2" />
+            카테고리 설정
+          </Button>
 
           <Button 
             variant="outline" 
@@ -338,7 +355,7 @@ export default function InventoryPage() {
               value={selectedCategory} 
               onValueChange={(val: string | null) => {
                 setSelectedCategory(val || "all");
-                setSelectedMidCategory("all"); // Reset mid-category when main-category changes
+                setSelectedMidCategory("all");
               }}
             >
               <SelectTrigger className="w-[150px] bg-slate-50 border-slate-200 text-xs h-9 rounded-xl">
@@ -561,11 +578,27 @@ export default function InventoryPage() {
               </div>
               <div className="grid grid-cols-2 items-center gap-2">
                 <Label className="text-right font-semibold">중분류</Label>
-                <Input
-                  value={formData.mid_category || ""}
-                  onChange={(e) => setFormData({...formData, mid_category: e.target.value})}
-                  placeholder="중분류 입력"
-                />
+                {formData.main_category && CATEGORIES.mid[formData.main_category]?.length > 0 ? (
+                  <Select 
+                    value={formData.mid_category || ""} 
+                    onValueChange={(val) => setFormData({...formData, mid_category: val || ""})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="중분류 선택" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CATEGORIES.mid[formData.main_category].map(cat => (
+                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input
+                    value={formData.mid_category || ""}
+                    onChange={(e) => setFormData({...formData, mid_category: e.target.value})}
+                    placeholder="중분류 직접 입력"
+                  />
+                )}
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -699,6 +732,11 @@ export default function InventoryPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <CategoryManagementDialog 
+        open={isCategoryDialogOpen} 
+        onOpenChange={setIsCategoryDialogOpen} 
+      />
     </div>
   );
 }

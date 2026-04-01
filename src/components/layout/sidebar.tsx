@@ -7,7 +7,7 @@ import {
   Printer, ScrollText, Users, Store, 
   Settings, LayoutDashboard, ShieldCheck,
   CreditCard, Boxes, Truck, BarChart3,
-  Zap, ArrowRight, Gem, Share2, FileText, PlusCircle, LogOut
+  Zap, ArrowRight, Gem, Share2, FileText, PlusCircle, LogOut, ShoppingCart
 } from "lucide-react";
 import Image from "next/image";
 import { createClient } from "@/utils/supabase/client";
@@ -56,6 +56,7 @@ export function Sidebar({ isSuperAdmin, plan, className, logoUrl, storeName }: S
     { name: "🛍️ 상품 관리", href: "/dashboard/products", icon: Boxes, tier: ['pro', 'erp_only'] },
     { name: "📦 재고 관리", href: "/dashboard/inventory", icon: Boxes, tier: ['pro', 'erp_only'] },
     { name: "🤝 거래처 관리", href: "/dashboard/suppliers", icon: Store, tier: ['pro', 'erp_only'] },
+    { name: "🛍️ 매입 관리", href: "/dashboard/purchases", icon: ShoppingCart, tier: ['pro', 'erp_only'] },
     { name: "📊 정산 및 보고서", href: "/dashboard/reports", icon: BarChart3, tier: ['pro', 'erp_only'] },
     { name: "📈 매입/매출 통계", href: "/dashboard/analytics", icon: BarChart3, tier: ['pro', 'erp_only'] },
     { name: "💰 지출 관리", href: "/dashboard/expenses", icon: CreditCard, tier: ['pro', 'erp_only'] },

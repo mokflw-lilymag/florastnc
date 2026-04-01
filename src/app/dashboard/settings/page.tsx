@@ -27,6 +27,8 @@ import {
   Link as LinkIcon,
   ExternalLink,
   Info,
+  Layers,
+  Package,
   Image as ImageIcon,
   Share2,
   MessageCircle,
@@ -360,6 +362,9 @@ export default function SettingsPage() {
           </TabsTrigger>
           <TabsTrigger value="delivery" className="flex items-center gap-2 px-3 md:px-6 py-2 md:py-2.5 text-xs md:text-sm">
             <MapPin className="h-4 w-4" /> 배송비 설정
+          </TabsTrigger>
+          <TabsTrigger value="categories" className="flex items-center gap-2 px-3 md:px-6 py-2 md:py-2.5 text-xs md:text-sm bg-orange-50/50 text-orange-700 data-[state=active]:bg-orange-600 data-[state=active]:text-white rounded-xl">
+            <Layers className="h-4 w-4" /> 분류(카테고리) 관리
           </TabsTrigger>
           <TabsTrigger value="printer" className="flex items-center gap-2 px-3 md:px-6 py-2 md:py-2.5 text-xs md:text-sm">
             <Printer className="h-4 w-4" /> 프린터/브릿지
@@ -773,6 +778,36 @@ export default function SettingsPage() {
                   </div>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* --- Category Management --- */}
+        <TabsContent value="categories" className="space-y-4">
+          <Card className="border-0 shadow-sm ring-1 ring-orange-200 bg-orange-50/5">
+            <CardHeader>
+              <div className="flex items-center gap-2 text-orange-600 mb-1">
+                <Layers className="h-5 w-5" />
+                <span className="text-xs font-bold uppercase tracking-wider">Classification System</span>
+              </div>
+              <CardTitle>분류(카테고리) 설정</CardTitle>
+              <CardDescription>상품 및 자재의 대분류와 하위 분류를 체계적으로 관리합니다.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6 flex flex-col items-center justify-center py-12">
+               <div className="w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center text-orange-600 mb-4">
+                 <SettingsIcon className="h-10 w-10 animate-spin-slow" />
+               </div>
+               <div className="text-center space-y-2 max-w-sm">
+                 <h3 className="text-lg font-bold">카테고리 통합 관리실</h3>
+                 <p className="text-sm text-slate-500">
+                   상품(꽃다발, 바구니 등)과 자재(생화, 부자재 등)의 체계를 한눈에 관리할 수 있는 전용 페이지로 이동합니다.
+                 </p>
+               </div>
+               <Link href="/dashboard/settings/categories" className="mt-8">
+                 <Button className="bg-orange-600 hover:bg-orange-700 shadow-lg shadow-orange-200 px-8 h-12 rounded-2xl">
+                   카테고리 관리 페이지로 이동 <ExternalLink className="ml-2 h-4 w-4" />
+                 </Button>
+               </Link>
             </CardContent>
           </Card>
         </TabsContent>

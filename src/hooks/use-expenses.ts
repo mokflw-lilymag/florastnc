@@ -22,6 +22,7 @@ export interface Expense {
   receipt_url?: string;
   receipt_file_id?: string;
   storage_provider?: string;
+  purchase_id?: string;
   created_at: string;
 }
 

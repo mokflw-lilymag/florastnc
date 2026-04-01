@@ -22,7 +22,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Product, ProductData } from "@/types/product";
 
-import { useSettings } from "@/hooks/use-settings";
+import { useSettings, DEFAULT_PRODUCT_CATEGORIES } from "@/hooks/use-settings";
 
 interface ProductFormProps {
   isOpen: boolean;
@@ -30,26 +30,6 @@ interface ProductFormProps {
   onSubmit: (data: ProductData) => void;
   product?: Product | null;
 }
-
-const DEFAULT_CATEGORIES = {
-  main: ['꽃다발', '꽃바구니', '식물/화분', '경조사화환', '어버이날상품', '기프트상품', '서양란', '동양란', '웨딩상품', '플라워', '플랜트', '화병/화기', '부자재', '기타'],
-  mid: {
-    '꽃다발': ['기본형', '대형', '한송이', '돈꽃다발'],
-    '꽃바구니': ['S사이즈', 'M사이즈', 'L사이즈', '오색꽃바구니'],
-    '식물/화분': ['공기정화', '관엽', '다육/선인장', '난'],
-    '경조사화환': ['축하화환', '근조화환', '오브제'],
-    '어버이날상품': ['어버이날컬렉션'],
-    '기프트상품': ['기프트컬렉션'],
-    '서양란': ['서양란'],
-    '동양란': ['동양란'],
-    '웨딩상품': ['웨딩컬렉션'],
-    '플라워': ['경조화환', '꽃다발', '꽃바구니', '센터피스', '플라워박스', '행사용꽃'],
-    '플랜트': ['대품', '동서양난', '소품', '중품'],
-    '화병/화기': ['화병/화기'],
-    '부자재': ['포장지', '리본', '박스', '기타'],
-    '기타': ['기타']
-  }
-};
 
 export function ProductForm({ isOpen, onOpenChange, onSubmit, product }: ProductFormProps) {
   const sizeLabels: Record<string, string> = {
@@ -121,14 +101,14 @@ export function ProductForm({ isOpen, onOpenChange, onSubmit, product }: Product
   }, [product, isOpen]);
 
   const { productCategories } = useSettings();
-  const CATEGORIES = productCategories || DEFAULT_CATEGORIES;
+  const CATEGORIES = productCategories || DEFAULT_PRODUCT_CATEGORIES;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(formData);
   };
 
-  const mainCategory = formData.main_category as keyof typeof DEFAULT_CATEGORIES.mid;
+  const mainCategory = formData.main_category as string;
   const subCategories = (mainCategory && CATEGORIES.mid[mainCategory]) || [];
 
   return (

@@ -22,7 +22,8 @@ import {
   Check,
   ChevronsUpDown,
   Plus,
-  ArrowRight
+  ArrowRight,
+  ShoppingCart
 } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -117,8 +118,8 @@ export default function ExpensesPage() {
     if (!materials) return [];
     if (!itemSearchText) return materials.slice(0, 50);
     const search = itemSearchText.toLowerCase();
-    return materials.filter(m => 
-      m.name?.toLowerCase().includes(search) || 
+    return materials.filter(m =>
+      m.name?.toLowerCase().includes(search) ||
       m.main_category?.toLowerCase().includes(search) ||
       m.mid_category?.toLowerCase().includes(search)
     ).slice(0, 50);
@@ -333,10 +334,10 @@ export default function ExpensesPage() {
       main_category: "",
       mid_category: ""
     };
-    setFormData({ 
-      ...defaultFormData, 
+    setFormData({
+      ...defaultFormData,
       expense_date: format(new Date(), "yyyy-MM-dd"),
-      items: [initialItem] 
+      items: [initialItem]
     });
     setIsDialogOpen(true);
   };
@@ -448,7 +449,7 @@ export default function ExpensesPage() {
   return (
     <div className="p-6 max-w-[1400px] mx-auto space-y-6 animate-in fade-in duration-500">
       <PageHeader
-        title="지출 및 매입 관리"
+        title="지출 관리"
         description="운영 지출과 거래처별 매입 내역을 관리하고 분석합니다."
         icon={Receipt}
       >
@@ -590,10 +591,10 @@ export default function ExpensesPage() {
                       영수증 품목 리스트
                       <span className="text-[10px] font-normal text-slate-400 ml-2">여러 품목을 한 번에 입력하려면 항목을 추가하세요.</span>
                     </h3>
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
                       onClick={addReceiptItem}
                       className="h-8 gap-1 font-bold border-indigo-200 text-indigo-600 hover:bg-indigo-50"
                     >
@@ -614,8 +615,8 @@ export default function ExpensesPage() {
                         {formData.items.map((item) => (
                           <div key={item.id} className="grid grid-cols-12 gap-2 items-center p-3 animate-in fade-in slide-in-from-left-2 duration-300">
                             <div className="col-span-5">
-                              <Popover 
-                                open={activeItemPopover === item.id} 
+                              <Popover
+                                open={activeItemPopover === item.id}
                                 onOpenChange={(open) => setActiveItemPopover(open ? item.id : null)}
                               >
                                 <PopoverTrigger
@@ -628,8 +629,8 @@ export default function ExpensesPage() {
                                 >
                                   <div className="flex flex-col text-left overflow-hidden">
                                     <span className="truncate text-slate-700 font-medium leading-none mb-1">
-                                      {item.material_id && item.material_id !== "none" 
-                                        ? item.material_name 
+                                      {item.material_id && item.material_id !== "none"
+                                        ? item.material_name
                                         : item.description || "품목 선택 또는 직접 입력"}
                                     </span>
                                     {item.main_category && (
@@ -643,21 +644,21 @@ export default function ExpensesPage() {
                                 <PopoverContent className="w-[350px] p-0" align="start">
                                   {activeItemPopover === item.id && (
                                     <Command shouldFilter={false}>
-                                      <CommandInput 
-                                        placeholder="품목 검색..." 
+                                      <CommandInput
+                                        placeholder="품목 검색..."
                                         value={itemSearchText}
                                         onValueChange={(v) => {
                                           setItemSearchText(v);
                                           updateReceiptItem(item.id, { description: v });
-                                        }} 
+                                        }}
                                       />
                                       <CommandList className="max-h-[300px]">
                                         <CommandEmpty>
                                           <div className="p-4 text-center">
                                             <p className="text-xs text-slate-500">검색 결과가 없습니다.</p>
-                                            <Button 
-                                              variant="link" 
-                                              size="sm" 
+                                            <Button
+                                              variant="link"
+                                              size="sm"
                                               className="text-[10px]"
                                               onClick={() => {
                                                 setActiveItemPopover(null);
@@ -674,8 +675,8 @@ export default function ExpensesPage() {
                                               key={m.id}
                                               value={`${m.name} ${m.main_category}`}
                                               onSelect={() => {
-                                                updateReceiptItem(item.id, { 
-                                                  material_id: m.id, 
+                                                updateReceiptItem(item.id, {
+                                                  material_id: m.id,
                                                   material_name: m.name,
                                                   unit: m.unit || "ea",
                                                   unit_price: m.price || 0,
@@ -703,17 +704,17 @@ export default function ExpensesPage() {
                               </Popover>
                             </div>
                             <div className="col-span-2">
-                              <Input 
-                                type="number" 
-                                className="h-8 px-2 text-center text-xs border-slate-100 focus:border-indigo-200" 
+                              <Input
+                                type="number"
+                                className="h-8 px-2 text-center text-xs border-slate-100 focus:border-indigo-200"
                                 value={item.quantity}
                                 onChange={e => updateReceiptItem(item.id, { quantity: parseFloat(e.target.value) || 0 })}
                               />
                             </div>
                             <div className="col-span-2">
-                              <Input 
-                                type="number" 
-                                className="h-8 px-2 text-right text-xs border-slate-100 focus:border-indigo-200" 
+                              <Input
+                                type="number"
+                                className="h-8 px-2 text-right text-xs border-slate-100 focus:border-indigo-200"
                                 value={item.unit_price}
                                 onChange={e => updateReceiptItem(item.id, { unit_price: parseInt(e.target.value) || 0 })}
                               />
@@ -722,9 +723,9 @@ export default function ExpensesPage() {
                               ₩{(item.amount || 0).toLocaleString()}
                             </div>
                             <div className="col-span-1 flex justify-end">
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
+                              <Button
+                                variant="ghost"
+                                size="icon"
                                 className="h-7 w-7 text-slate-300 hover:text-red-500 hover:bg-red-50"
                                 onClick={() => removeReceiptItem(item.id)}
                               >
@@ -735,11 +736,11 @@ export default function ExpensesPage() {
                         ))}
                       </div>
                       <div className="p-4 bg-slate-50 flex justify-between items-center border-t">
-                         <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Receipt Summary</div>
-                         <div className="flex items-center gap-3">
-                            <span className="text-xs text-slate-500 font-medium">총 {formData.items.length}개 품목 합계:</span>
-                            <span className="text-xl font-black text-indigo-700 tracking-tight">₩{totalItemsAmount.toLocaleString()}</span>
-                         </div>
+                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Receipt Summary</div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs text-slate-500 font-medium">총 {formData.items.length}개 품목 합계:</span>
+                          <span className="text-xl font-black text-indigo-700 tracking-tight">₩{totalItemsAmount.toLocaleString()}</span>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -802,8 +803,8 @@ export default function ExpensesPage() {
           </div>
           <div className="p-6 bg-slate-50 border-t flex justify-end gap-3">
             <Button variant="ghost" onClick={() => setIsDialogOpen(false)} className="font-bold text-slate-500">취소</Button>
-            <Button 
-              onClick={handleSubmit} 
+            <Button
+              onClick={handleSubmit}
               className={cn(
                 "px-10 font-bold gap-2 text-white shadow-lg transition-all active:scale-95",
                 formData.items.length > 0 ? "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-100" : "bg-primary hover:bg-primary/90 shadow-primary/20"
@@ -1026,7 +1027,14 @@ export default function ExpensesPage() {
                           </Badge>
                         </TableCell>
                         <TableCell className="font-bold text-slate-800 tracking-tight">
-                          {e.description}
+                          <div className="flex items-center gap-2">
+                            {e.description}
+                            {e.purchase_id && (
+                              <Badge variant="outline" className="h-4 px-1.5 text-[8px] bg-indigo-50 text-indigo-600 border-indigo-100 font-bold gap-1 flex items-center">
+                                <ShoppingCart className="w-2.5 h-2.5" /> 매입 연동
+                              </Badge>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="text-center">
                           {e.receipt_url ? (

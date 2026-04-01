@@ -1,414 +1,151 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/page-header";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { useSettings, CategoryData } from "@/hooks/use-settings";
-import { Settings2, Plus, Trash2, Save, RotateCcw, Package, Layers } from "lucide-react";
+import { useSettings, DEFAULT_PRODUCT_CATEGORIES, DEFAULT_MATERIAL_CATEGORIES, DEFAULT_EXPENSE_CATEGORIES } from "@/hooks/use-settings";
+import { Settings2, Package, Layers, Home, Wallet, Info, ChevronRight } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { toast } from "sonner";
-import { Skeleton } from "@/components/ui/skeleton";
+import { CategoryManagerCard } from "@/components/settings/category-manager-card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export default function CategorySettingsPage() {
   const { 
     productCategories, 
     materialCategories, 
+    expenseCategories,
     loading, 
     updateProductCategories, 
-    updateMaterialCategories, 
-    refresh 
+    updateMaterialCategories,
+    updateExpenseCategories,
   } = useSettings();
   
-  const [prodCats, setProdCats] = useState<CategoryData | null>(null);
-  const [matCats, setMatCats] = useState<CategoryData | null>(null);
-  
-  const [selectedProdMain, setSelectedProdMain] = useState<string>("");
-  const [selectedMatMain, setSelectedMatMain] = useState<string>("");
-  
-  const [newProdMain, setNewProdMain] = useState("");
-  const [newProdMid, setNewProdMid] = useState("");
-  
-  const [newMatMain, setNewMatMain] = useState("");
-  const [newMatMid, setNewMatMid] = useState("");
-
-  useEffect(() => {
-    if (productCategories && !prodCats) setProdCats(JSON.parse(JSON.stringify(productCategories)));
-    if (materialCategories && !matCats) setMatCats(JSON.parse(JSON.stringify(materialCategories)));
-  }, [productCategories, materialCategories, prodCats, matCats]);
-
-  // Handle empty state gracefully
-  const ensureProdCats = () => {
-    if (!prodCats) return { main: [], mid: {} };
-    return prodCats;
-  };
-  
-  const ensureMatCats = () => {
-    if (!matCats) return { main: [], mid: {} };
-    return matCats;
-  };
-
-  const handleAddProdMain = () => {
-    if (!newProdMain) return;
-    const current = ensureProdCats();
-    if (current.main.includes(newProdMain)) return toast.error("이미 존재하는 카테고리입니다.");
-    
-    setProdCats({
-      main: [...current.main, newProdMain],
-      mid: { ...current.mid, [newProdMain]: [] }
-    });
-    setNewProdMain("");
-    setSelectedProdMain(newProdMain);
-  };
-
-  const handleAddMatMain = () => {
-    if (!newMatMain) return;
-    const current = ensureMatCats();
-    if (current.main.includes(newMatMain)) return toast.error("이미 존재하는 카테고리입니다.");
-    
-    setMatCats({
-      main: [...current.main, newMatMain],
-      mid: { ...current.mid, [newMatMain]: [] }
-    });
-    setNewMatMain("");
-    setSelectedMatMain(newMatMain);
-  };
-
-  const handleRestoreProd = () => {
-    if (productCategories) {
-      setProdCats(JSON.parse(JSON.stringify(productCategories)));
-      toast.success("상품 카테고리가 마지막 저장 상태로 복구되었습니다.");
-    }
-  };
-
-  const handleRestoreMat = () => {
-    if (materialCategories) {
-      setMatCats(JSON.parse(JSON.stringify(materialCategories)));
-      toast.success("자재 카테고리가 마지막 저장 상태로 복구되었습니다.");
-    }
-  };
-
-  const handleSaveProd = async () => {
-    if (!prodCats) return;
-    if (window.confirm("상품 카테고리 설정을 저장하시겠습니까?\n이후 상품 등록 시 이 카테고리 목록이 적용됩니다.")) {
-      await updateProductCategories(prodCats);
-    }
-  };
-
-  const handleSaveMat = async () => {
-    if (!matCats) return;
-    if (window.confirm("자재 카테고리 설정을 저장하시겠습니까?")) {
-      await updateMaterialCategories(matCats);
-    }
-  };
-
-  const handleDeleteProdMain = (cat: string) => {
-    if (!prodCats) return;
-    if (window.confirm(`'${cat}' 대분류를 삭제하시겠습니까?\n연결된 중분류 목록도 모두 사라집니다.`)) {
-      const nextMain = prodCats.main.filter(m => m !== cat);
-      const nextMid = {...prodCats.mid};
-      delete nextMid[cat];
-      setProdCats({...prodCats, main: nextMain, mid: nextMid});
-      if (selectedProdMain === cat) setSelectedProdMain("");
-    }
-  };
-
-  const handleDeleteProdMid = (cat: string) => {
-    if (!prodCats || !selectedProdMain) return;
-    if (window.confirm(`'${cat}' 중분류를 삭제하시겠습니까?`)) {
-      setProdCats({...prodCats, mid: {...prodCats.mid, [selectedProdMain]: prodCats.mid[selectedProdMain].filter(m => m !== cat)}});
-    }
-  };
-
-  const handleDeleteMatMain = (cat: string) => {
-    if (!matCats) return;
-    if (window.confirm(`'${cat}' 자재 대분류를 삭제하시겠습니까?\n하위 중분류도 함께 삭제됩니다.`)) {
-      const nextMain = matCats.main.filter(m => m !== cat);
-      const nextMid = {...matCats.mid};
-      delete nextMid[cat];
-      setMatCats({...matCats, main: nextMain, mid: nextMid});
-      if (selectedMatMain === cat) setSelectedMatMain("");
-    }
-  };
-
-  const handleDeleteMatMid = (cat: string) => {
-    if (!matCats || !selectedMatMain) return;
-    if (window.confirm(`'${cat}' 자재 중분류를 삭제하시겠습니까?`)) {
-      setMatCats({...matCats, mid: {...matCats.mid, [selectedMatMain]: matCats.mid[selectedMatMain].filter(m => m !== cat)}});
-    }
-  };
-
   return (
-    <div className="max-w-7xl mx-auto space-y-10 pb-20">
-      <PageHeader
-        title="카테고리 환경설정"
-        description="상품 및 자재의 분류 체계를 각각 독립적으로 관리하세요."
-        icon={Settings2}
-      >
-        <Button variant="outline" size="sm" onClick={() => refresh()}>
-          <RotateCcw className="h-4 w-4 mr-2" />
-          새로고침
-        </Button>
-      </PageHeader>
+    <div className="max-w-7xl mx-auto space-y-8 pb-32 px-4 md:px-8 pt-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <PageHeader
+          title="통합 분류(카테고리) 환경설정"
+          description="상품, 자재, 지출 항목의 분류 체계를 매장 운영 방식에 맞춰 자유롭게 구성하세요."
+          icon={Settings2}
+        >
+          <div className="flex gap-2">
+             <Link href="/dashboard/settings">
+                <Button variant="outline" size="sm" className="bg-white border-slate-200 rounded-xl">
+                  <Home className="h-4 w-4 mr-2 text-slate-400" />
+                  환경설정 홈
+                </Button>
+             </Link>
+          </div>
+        </PageHeader>
+      </div>
 
-      {/* --- 상품 카테고리 섹션 --- */}
-      <section className="space-y-6">
-        <div className="flex items-center justify-between border-b border-blue-100 pb-3">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+      <Alert className="bg-indigo-50/50 border-indigo-100 text-indigo-900 rounded-3xl p-6 shadow-sm shadow-indigo-100/50">
+        <div className="flex items-start gap-4">
+          <div className="p-3 bg-indigo-100 rounded-2xl text-indigo-600">
+            <Info className="h-5 w-5" />
+          </div>
+          <div className="space-y-1">
+            <AlertTitle className="font-bold text-lg">💡 통합 카테고리 관리 안내</AlertTitle>
+            <AlertDescription className="text-indigo-800/80 leading-relaxed font-medium">
+              이곳에서 변경한 내용은 상품 등록, 재고 관리, 매뉴얼, 지출 관리 등 시스템 전반에 즉시 반영됩니다. 
+              <br className="hidden md:block" />
+              이미 등록된 데이터의 분류는 소급 적용되지 않으니 주의해 주세요.
+            </AlertDescription>
+          </div>
+        </div>
+      </Alert>
+
+      <Tabs defaultValue="products" className="w-full">
+        <div className="flex flex-col items-center justify-center mb-10 space-y-4">
+          <TabsList className="bg-slate-100/80 p-1.5 rounded-3xl h-14 border border-slate-200">
+            <TabsTrigger value="products" className="rounded-2xl px-10 data-[state=active]:bg-white data-[state=active]:shadow-lg data-[state=active]:text-blue-600 h-11 transition-all">
+              <Package className="h-4.5 w-4.5 mr-2" />
+              상품 분류
+            </TabsTrigger>
+            <TabsTrigger value="materials" className="rounded-2xl px-10 data-[state=active]:bg-white data-[state=active]:shadow-lg data-[state=active]:text-orange-600 h-11 transition-all">
+              <Layers className="h-4.5 w-4.5 mr-2" />
+              자재 분류
+            </TabsTrigger>
+            <TabsTrigger value="expenses" className="rounded-2xl px-10 data-[state=active]:bg-white data-[state=active]:shadow-lg data-[state=active]:text-emerald-600 h-11 transition-all">
+              <Wallet className="h-4.5 w-4.5 mr-2" />
+              지출 분류
+            </TabsTrigger>
+          </TabsList>
+        </div>
+
+        <TabsContent value="products" className="mt-0 focus-visible:outline-none animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <CategoryManagerCard
+            title="상품 카테고리 관리"
+            description="판매하는 상품(꽃다발, 바구니 등)의 대분류와 하위 상세 분류입니다."
+            icon={Package}
+            initialData={productCategories}
+            defaultData={DEFAULT_PRODUCT_CATEGORIES}
+            onSave={updateProductCategories}
+            colorScheme="blue"
+            isLoading={loading}
+          />
+        </TabsContent>
+
+        <TabsContent value="materials" className="mt-0 focus-visible:outline-none animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <CategoryManagerCard
+            title="자재 카테고리 관리"
+            description="자재(생화, 식물, 포장재 등)의 체계적 관리를 위한 분류 체계입니다."
+            icon={Layers}
+            initialData={materialCategories}
+            defaultData={DEFAULT_MATERIAL_CATEGORIES}
+            onSave={updateMaterialCategories}
+            colorScheme="orange"
+            isLoading={loading}
+          />
+        </TabsContent>
+
+        <TabsContent value="expenses" className="mt-0 focus-visible:outline-none animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <CategoryManagerCard
+            title="지출(Cost) 카테고리 관리"
+            description="매장 운영 시 발생하는 각종 고정비 및 변동비의 분류 체계입니다."
+            icon={Wallet}
+            initialData={expenseCategories}
+            defaultData={DEFAULT_EXPENSE_CATEGORIES}
+            onSave={updateExpenseCategories}
+            colorScheme="green"
+            isLoading={loading}
+          />
+        </TabsContent>
+      </Tabs>
+
+      <div className="pt-20">
+        <Separator className="bg-slate-100" />
+        <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="p-8 bg-white rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-shadow group">
+            <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
               <Package className="h-6 w-6" />
             </div>
-            <div>
-              <h2 className="text-2xl font-bold text-slate-800">상품 카테고리 관리</h2>
-              <p className="text-sm text-slate-500">판매용 상품의 분류 체계입니다.</p>
-            </div>
+            <h3 className="font-bold text-slate-800 text-lg mb-3">상품 및 판매 동기화</h3>
+            <p className="text-sm text-slate-500 leading-relaxed font-medium">
+              상품 분류를 수정하면 쇼핑몰 카탈로그 및 판매 내역 통계에 즉시 반영되어 품목별 매출 분석이 용이해집니다.
+            </p>
           </div>
-          <div className="flex gap-2">
-            <Button 
-              variant="secondary"
-              size="sm"
-              onClick={handleRestoreProd}
-              disabled={loading}
-              className="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 transition-all font-semibold"
-            >
-              <RotateCcw className="h-4 w-4 mr-2" />
-              상품 카테고리 복구
-            </Button>
-            <Button 
-              disabled={loading}
-              onClick={handleSaveProd} 
-              className="bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200"
-            >
-              <Save className="h-4 w-4 mr-2" />
-              상품 카테고리 저장
-            </Button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="border-none shadow-sm bg-slate-50/50">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">대분류 (Main)</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex gap-2">
-                <Input 
-                  placeholder="새 상품 대분류 입력" 
-                  value={newProdMain} 
-                  onChange={(e) => setNewProdMain(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAddProdMain()}
-                />
-                <Button onClick={handleAddProdMain} size="icon" className="shrink-0 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50">
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-              <div className="space-y-1 max-h-[400px] overflow-y-auto pr-1">
-                {prodCats?.main.map(cat => (
-                  <div 
-                    key={cat} 
-                    className={`flex items-center justify-between p-3 rounded-xl cursor-pointer border transition-all ${selectedProdMain === cat ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-white hover:bg-slate-50 border-slate-100 text-slate-700'}`}
-                    onClick={() => setSelectedProdMain(cat)}
-                  >
-                    <span className="font-semibold">{cat}</span>
-                    <Button variant="ghost" size="icon" className={`h-8 w-8 ${selectedProdMain === cat ? 'text-white hover:text-red-200' : 'text-slate-300 hover:text-red-500'}`} onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteProdMain(cat);
-                    }}><Trash2 className="h-4 w-4" /></Button>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-none shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-lg">
-                {selectedProdMain ? `[${selectedProdMain}] 중분류 (Sub)` : "대분류를 선택하세요"}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {selectedProdMain ? (
-                <>
-                  <div className="flex gap-2">
-                    <Input 
-                      placeholder="새 중분류 입력" 
-                      value={newProdMid} 
-                      onChange={(e) => setNewProdMid(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && newProdMid && selectedProdMain) {
-                          const current = ensureProdCats();
-                          const list = current.mid[selectedProdMain] || [];
-                          if (list.includes(newProdMid)) return toast.error("이미 존재합니다.");
-                          setProdCats({...current, mid: {...current.mid, [selectedProdMain]: [...list, newProdMid]}});
-                          setNewProdMid("");
-                        }
-                      }}
-                    />
-                    <Button onClick={() => {
-                      if (newProdMid && selectedProdMain) {
-                        const current = ensureProdCats();
-                        const list = current.mid[selectedProdMain] || [];
-                        if (list.includes(newProdMid)) return toast.error("이미 존재합니다.");
-                        setProdCats({...current, mid: {...current.mid, [selectedProdMain]: [...list, newProdMid]}});
-                        setNewProdMid("");
-                      }
-                    }} size="icon" className="shrink-0"><Plus className="h-4 w-4" /></Button>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 max-h-[400px] overflow-y-auto">
-                    {prodCats?.mid[selectedProdMain]?.map(cat => (
-                      <div key={cat} className="flex items-center justify-between p-2 pl-3 rounded-lg border border-slate-100 bg-slate-50/50 group">
-                        <span className="text-sm font-medium text-slate-600">{cat}</span>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-300 opacity-40 group-hover:opacity-100 hover:text-red-500 transition-all" onClick={() => handleDeleteProdMid(cat)}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    ))}
-                    {prodCats?.mid[selectedProdMain]?.length === 0 && (
-                      <div className="col-span-2 py-10 text-center text-slate-400 text-sm italic">등록된 중분류가 없습니다.</div>
-                    )}
-                  </div>
-                </>
-              ) : (
-                <div className="h-64 flex flex-col items-center justify-center text-slate-300 space-y-2">
-                  <Package className="h-12 w-12 opacity-20" />
-                  <p>왼쪽에서 관리할 대분류를 선택해주세요.</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </section>
-
-      <Separator className="bg-slate-100" />
-
-      {/* --- 자재 카테고리 섹션 --- */}
-      <section className="space-y-6">
-        <div className="flex items-center justify-between border-b border-orange-100 pb-3">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-orange-100 rounded-lg text-orange-600">
+          <div className="p-8 bg-white rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-shadow group">
+            <div className="w-12 h-12 bg-orange-50 text-orange-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
               <Layers className="h-6 w-6" />
             </div>
-            <div>
-              <h2 className="text-2xl font-bold text-slate-800">자재 카테고리 관리</h2>
-              <p className="text-sm text-slate-500">부자재, 생화 등 자적 수급 분류입니다.</p>
+            <h3 className="font-bold text-slate-800 text-lg mb-3">자재 및 재고 동기화</h3>
+            <p className="text-sm text-slate-500 leading-relaxed font-medium">
+              자재 분류를 변경하면 [재고 관리] 및 [매입 관리]의 필터에 즉시 실시간 반영되어 편리한 운영이 가능합니다.
+            </p>
+          </div>
+          <div className="p-8 bg-white rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-shadow group">
+            <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+              <Wallet className="h-6 w-6" />
             </div>
-          </div>
-          <div className="flex gap-2">
-            <Button 
-              variant="secondary"
-              size="sm"
-              onClick={handleRestoreMat}
-              disabled={loading}
-              className="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 transition-all font-semibold"
-            >
-              <RotateCcw className="h-4 w-4 mr-2" />
-              자재 카테고리 복구
-            </Button>
-            <Button 
-              disabled={loading}
-              onClick={handleSaveMat} 
-              className="bg-orange-600 hover:bg-orange-700 shadow-lg shadow-orange-200"
-            >
-              <Save className="h-4 w-4 mr-2" />
-              자재 카테고리 저장
-            </Button>
+            <h3 className="font-bold text-slate-800 text-lg mb-3">지출 항목 통합 관리</h3>
+            <p className="text-sm text-slate-500 leading-relaxed font-medium">
+              지출 분류 체계를 세분화하면 매장 운영비, 임대료 및 인건비 등을 더 정확한 지표로 추적하고 분석할 수 있습니다.
+            </p>
           </div>
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="border-none shadow-sm bg-slate-50/50">
-            <CardHeader>
-              <CardTitle className="text-lg">대분류 (자재)</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex gap-2">
-                <Input 
-                  placeholder="새 자재 대분류 입력" 
-                  value={newMatMain} 
-                  onChange={(e) => setNewMatMain(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAddMatMain()}
-                />
-                <Button onClick={handleAddMatMain} size="icon" className="shrink-0 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50">
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-              <div className="space-y-1 max-h-[400px] overflow-y-auto pr-1">
-                {matCats?.main.map(cat => (
-                  <div 
-                    key={cat} 
-                    className={`flex items-center justify-between p-3 rounded-xl cursor-pointer border transition-all ${selectedMatMain === cat ? 'bg-orange-600 border-orange-600 text-white shadow-md' : 'bg-white hover:bg-slate-50 border-slate-100 text-slate-700'}`}
-                    onClick={() => setSelectedMatMain(cat)}
-                  >
-                    <span className="font-semibold">{cat}</span>
-                    <Button variant="ghost" size="icon" className={`h-8 w-8 ${selectedMatMain === cat ? 'text-white hover:text-red-200' : 'text-slate-300 hover:text-red-500'}`} onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteMatMain(cat);
-                    }}><Trash2 className="h-4 w-4" /></Button>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-none shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-lg">
-                {selectedMatMain ? `[${selectedMatMain}] 중분류 (자재)` : "대분류를 선택하세요"}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {selectedMatMain ? (
-                <>
-                  <div className="flex gap-2">
-                    <Input 
-                      placeholder="새 중분류 입력" 
-                      value={newMatMid} 
-                      onChange={(e) => setNewMatMid(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && newMatMid && selectedMatMain) {
-                          const current = ensureMatCats();
-                          const list = current.mid[selectedMatMain] || [];
-                          if (list.includes(newMatMid)) return toast.error("이미 존재합니다.");
-                          setMatCats({...current, mid: {...current.mid, [selectedMatMain]: [...list, newMatMid]}});
-                          setNewMatMid("");
-                        }
-                      }}
-                    />
-                    <Button onClick={() => {
-                      if (newMatMid && selectedMatMain) {
-                        const current = ensureMatCats();
-                        const list = current.mid[selectedMatMain] || [];
-                        if (list.includes(newMatMid)) return toast.error("이미 존재합니다.");
-                        setMatCats({...current, mid: {...current.mid, [selectedMatMain]: [...list, newMatMid]}});
-                        setNewMatMid("");
-                      }
-                    }} size="icon" className="shrink-0"><Plus className="h-4 w-4" /></Button>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 max-h-[400px] overflow-y-auto">
-                    {matCats?.mid[selectedMatMain]?.map(cat => (
-                      <div key={cat} className="flex items-center justify-between p-2 pl-3 rounded-lg border border-slate-100 bg-slate-50/50 group">
-                        <span className="text-sm font-medium text-slate-600">{cat}</span>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-300 opacity-40 group-hover:opacity-100 hover:text-red-500 transition-all" onClick={() => handleDeleteMatMid(cat)}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    ))}
-                    {matCats?.mid[selectedMatMain]?.length === 0 && (
-                      <div className="col-span-2 py-10 text-center text-slate-400 text-sm italic">등록된 중분류가 없습니다.</div>
-                    )}
-                  </div>
-                </>
-              ) : (
-                <div className="h-64 flex flex-col items-center justify-center text-slate-300 space-y-2">
-                  <Layers className="h-12 w-12 opacity-20" />
-                  <p>왼쪽에서 관리할 대분류를 선택해주세요.</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </section>
+      </div>
     </div>
   );
 }
