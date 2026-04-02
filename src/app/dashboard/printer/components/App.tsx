@@ -461,12 +461,13 @@ interface RibbonCanvasProps {
   marginOffset?: number;
   shopLogo?: string | null;
   printLogo?: boolean;
+  isBold?: boolean;
 }
 
 const RibbonCanvas = ({ 
   text, fontConfig, ratioX, ratioY, width, lace, length, marginTop, marginBottom, 
   rotatedIds, onCharClick, scaleRatio, zoom, spacing, side = 'left', isActive, onClick, isPrintMode = false, marginOffset: _marginOffset = 0,
-  shopLogo = null, printLogo = false
+  shopLogo = null, printLogo = false, isBold = true
 }: RibbonCanvasProps) => {
   // Parse lines
   const lines = text.split('\n').filter(l => l.trim() !== '');
@@ -629,7 +630,7 @@ const RibbonCanvas = ({
             return (
               <div 
                 key={lIdx} 
-                className="flex flex-col items-center shrink-0 w-max text-black font-semibold whitespace-nowrap"
+                className={cn("flex flex-col items-center shrink-0 w-max text-black whitespace-nowrap", isBold && "font-semibold")}
                 style={{
                   height: squashRatio < 1 ? `${totalRequiredHeight}px` : (spacing === 0 ? '100%' : 'auto'),
                   transform: squashRatio < 1 ? `scaleY(${squashRatio})` : 'none',
@@ -666,7 +667,7 @@ const RibbonCanvas = ({
                               <span key={i} className={fontConfig[getCharType(c)]} style={{ 
                                 fontSize: `${actualFontSize * 0.80}px`, 
                                 display: 'inline-block',
-                                fontWeight: 'bold',
+                                fontWeight: isBold ? 'bold' : 'normal',
                                 lineHeight: 1,
                                 transform: `scaleX(${fontScaleX}) rotate(90deg)`
                               }}>{c}</span>
@@ -689,7 +690,7 @@ const RibbonCanvas = ({
                                fontSize: `${actualFontSize * 0.80}px`, 
                                display: 'inline-block',
                                marginLeft: i > 0 ? '-0.20em' : '0',
-                               fontWeight: 'bold',
+                               fontWeight: isBold ? 'bold' : 'normal',
                                lineHeight: 1
                              }}>{c}</span>
                            ))}
@@ -718,7 +719,7 @@ const RibbonCanvas = ({
                              fontSize: `${actualFontSize * 0.7 * (1 + (fontScaleX - 1) * 0.5)}px`, 
                              lineHeight: 1,
                              display: 'inline-block',
-                             fontWeight: 'bold',
+                             fontWeight: isBold ? 'bold' : 'normal',
                              transform: `scaleX(${fontScaleX}) ${node.isRotated ? 'rotate(90deg)' : ''}`
                            }}>{c}</span>
                         ))}
@@ -748,7 +749,7 @@ const RibbonCanvas = ({
                               fontSize: `${actualFontSize * 0.7 * (1 + (fontScaleX - 1) * 0.5)}px`, 
                               lineHeight: 1,
                               display: 'inline-block',
-                              fontWeight: 'bold',
+                              fontWeight: isBold ? 'bold' : 'normal',
                               transform: `scaleX(${fontScaleX}) rotate(90deg)`
                             }}>{c}</span>
                           ))}
@@ -759,7 +760,7 @@ const RibbonCanvas = ({
                               fontSize: `${actualFontSize * 0.7 * (1 + (fontScaleX - 1) * 0.5)}px`, 
                               lineHeight: 1,
                               display: 'inline-block',
-                              fontWeight: 'bold',
+                              fontWeight: isBold ? 'bold' : 'normal',
                               transform: `scaleX(${fontScaleX}) rotate(90deg)`
                             }}>{c}</span>
                           ))}
@@ -783,7 +784,7 @@ const RibbonCanvas = ({
                                  fontSize: `${actualFontSize * 0.45 * (1 + (fontScaleX - 1) * 0.5)}px`, 
                                  display: 'inline-block',
                                  lineHeight: 1,
-                                 fontWeight: 'bold',
+                                 fontWeight: isBold ? 'bold' : 'normal',
                                  transform: `scaleX(${fontScaleX})`
                                }}>{char}</span>
                              </div>
@@ -796,7 +797,7 @@ const RibbonCanvas = ({
                                  fontSize: `${actualFontSize * 0.45 * (1 + (fontScaleX - 1) * 0.5)}px`, 
                                  display: 'inline-block',
                                  lineHeight: 1,
-                                 fontWeight: 'bold',
+                                 fontWeight: isBold ? 'bold' : 'normal',
                                  transform: `scaleX(${fontScaleX})`
                                }}>{char}</span>
                              </div>
@@ -818,7 +819,8 @@ const RibbonCanvas = ({
                       <span className={charFont} style={{ 
                         fontSize: nodeH,
                         transform: `scaleX(${fontScaleX}) ${node.isRotated ? 'rotate(90deg)' : ''}`,
-                        display: 'inline-block'
+                        display: 'inline-block',
+                        fontWeight: isBold ? 'bold' : 'normal'
                       }}>
                         {node.content}
                       </span>
@@ -1011,7 +1013,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
   const [leftRatioX, setLeftRatioX] = useState(90);
   const [leftRatioY, setLeftRatioY] = useState(100);
   const [leftRotated, setLeftRotated] = useState<Set<string>>(new Set());
-
+  const [leftIsBold, setLeftIsBold] = useState(true);
   const [leftSpacing, setLeftSpacing] = useState(0); // 0 = auto
 
   // Right Ribbon State
@@ -1025,6 +1027,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
   const [rightRatioX, setRightRatioX] = useState(90);
   const [rightRatioY, setRightRatioY] = useState(100);
   const [rightRotated, setRightRotated] = useState<Set<string>>(new Set());
+  const [rightIsBold, setRightIsBold] = useState(true);
   const [rightSpacing, setRightSpacing] = useState(0); // 0 = auto
 
   // UI State
@@ -1874,7 +1877,10 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
           <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700 flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold text-blue-300">폰트 마법사</span>
-              <div className="flex gap-1">
+              <div className="flex gap-1 items-center">
+                <button onClick={() => setLeftIsBold(!leftIsBold)} className={cn("text-[10px] px-2 py-0.5 rounded font-bold mr-1", leftIsBold ? "bg-blue-600 text-white" : "bg-slate-700 text-slate-400")} title="굵게 (Bold)">
+                  B
+                </button>
                 {(['ko', 'hj', 'en', 'sym'] as const).map(type => (
                   <button key={type} onClick={() => setFontWizardMode(type)} className={cn("text-[10px] px-1.5 py-0.5 rounded", fontWizardMode === type ? "bg-blue-600 text-white" : "bg-slate-700 text-slate-400")}>
                     {type === 'ko' ? '한' : type === 'hj' ? '漢' : type === 'en' ? 'A' : '★'}
@@ -1913,7 +1919,10 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
           <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700 flex flex-col gap-3">
              <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold text-emerald-300">폰트 마법사</span>
-              <div className="flex gap-1">
+              <div className="flex gap-1 items-center">
+                <button onClick={() => setRightIsBold(!rightIsBold)} className={cn("text-[10px] px-2 py-0.5 rounded font-bold mr-1", rightIsBold ? "bg-emerald-600 text-white" : "bg-slate-700 text-slate-400")} title="굵게 (Bold)">
+                  B
+                </button>
                 {(['ko', 'hj', 'en', 'sym'] as const).map(type => (
                   <button key={type} onClick={() => setFontWizardModeRight(type)} className={cn("text-[10px] px-1.5 py-0.5 rounded", fontWizardModeRight === type ? "bg-emerald-600 text-white" : "bg-slate-700 text-slate-400")}>
                     {type === 'ko' ? '한' : type === 'hj' ? '漢' : type === 'en' ? 'A' : '★'}
@@ -2109,7 +2118,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
                         rotatedIds={leftRotated} onCharClick={() => {}}
                         scaleRatio={2} zoom={1} spacing={leftSpacing} side="left" 
                         marginOffset={(RIBBON_TYPES.find(r => r.id === ribbonType)?.marginOffset || 0) + marginOffset} 
-                        shopLogo={shopLogo} printLogo={printLogo}
+                        shopLogo={shopLogo} printLogo={printLogo} isBold={leftIsBold}
                       />
                   </div>
                 )}
@@ -2121,7 +2130,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
                       rotatedIds={rightRotated} onCharClick={() => {}}
                       scaleRatio={2} zoom={1} spacing={rightSpacing} side="right" 
                       marginOffset={(RIBBON_TYPES.find(r => r.id === ribbonType)?.marginOffset || 0) + marginOffset} 
-                      shopLogo={shopLogo} printLogo={printLogo}
+                      shopLogo={shopLogo} printLogo={printLogo} isBold={rightIsBold}
                     />
                   </div>
                 )}
@@ -2134,7 +2143,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
                         rotatedIds={leftRotated} onCharClick={() => {}}
                         scaleRatio={2} zoom={1} spacing={leftSpacing} side="left" 
                         marginOffset={(RIBBON_TYPES.find(r => r.id === ribbonType)?.marginOffset || 0) + marginOffset} 
-                        shopLogo={shopLogo} printLogo={printLogo}
+                        shopLogo={shopLogo} printLogo={printLogo} isBold={leftIsBold}
                       />
                     </div>
                     {/* Middle Connection Line */}
@@ -2145,7 +2154,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
                       rotatedIds={rightRotated} onCharClick={() => {}}
                       scaleRatio={2} zoom={1} spacing={rightSpacing} side="right" 
                       marginOffset={(RIBBON_TYPES.find(r => r.id === ribbonType)?.marginOffset || 0) + marginOffset} 
-                      shopLogo={shopLogo} printLogo={printLogo}
+                      shopLogo={shopLogo} printLogo={printLogo} isBold={rightIsBold}
                     />
                   </div>
                 )}
@@ -2158,7 +2167,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
                         rotatedIds={leftRotated} onCharClick={() => {}}
                         scaleRatio={2} zoom={1} spacing={leftSpacing} side="left" 
                         marginOffset={(RIBBON_TYPES.find(r => r.id === ribbonType)?.marginOffset || 0) + marginOffset} 
-                        shopLogo={shopLogo} printLogo={printLogo}
+                        shopLogo={shopLogo} printLogo={printLogo} isBold={leftIsBold}
                       />
                     </div>
                     <div style={{ transform: 'rotate(180deg)', transformOrigin: 'center center' }}>
@@ -2168,7 +2177,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
                         rotatedIds={rightRotated} onCharClick={() => {}}
                         scaleRatio={2} zoom={1} spacing={rightSpacing} side="right" 
                         marginOffset={(RIBBON_TYPES.find(r => r.id === ribbonType)?.marginOffset || 0) + marginOffset} 
-                        shopLogo={shopLogo} printLogo={printLogo}
+                        shopLogo={shopLogo} printLogo={printLogo} isBold={rightIsBold}
                       />
                     </div>
                   </div>
@@ -2188,7 +2197,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
                 rotatedIds={leftRotated} onCharClick={(id) => toggleRotation(id, 'left')}
                 scaleRatio={2} zoom={zoom} spacing={leftSpacing} isActive={activeSide === 'left'} 
                 marginOffset={(RIBBON_TYPES.find(r => r.id === ribbonType)?.marginOffset || 0) + marginOffset} 
-                shopLogo={shopLogo} printLogo={printLogo}
+                shopLogo={shopLogo} printLogo={printLogo} isBold={leftIsBold}
                 onClick={() => setActiveSide('left')} side="left"
               />
               <RibbonCanvas 
@@ -2197,7 +2206,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
                 rotatedIds={rightRotated} onCharClick={(id) => toggleRotation(id, 'right')}
                 scaleRatio={2} zoom={zoom} spacing={rightSpacing} isActive={activeSide === 'right'} 
                 marginOffset={(RIBBON_TYPES.find(r => r.id === ribbonType)?.marginOffset || 0) + marginOffset} 
-                shopLogo={shopLogo} printLogo={printLogo}
+                shopLogo={shopLogo} printLogo={printLogo} isBold={rightIsBold}
                 onClick={() => setActiveSide('right')} side="right"
               />
             </div>
@@ -2328,7 +2337,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
               width={width} length={length} marginTop={marginTop} marginBottom={marginBottom}
               rotatedIds={leftRotated} onCharClick={() => {}}
               scaleRatio={3} zoom={1} spacing={leftSpacing} side="left" isPrintMode={true}
-              shopLogo={shopLogo} printLogo={printLogo}
+              shopLogo={shopLogo} printLogo={printLogo} isBold={leftIsBold}
             />
           </div>
           {/* Middle Connection Line */}
@@ -2338,7 +2347,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
             width={width} length={length} marginTop={marginTop} marginBottom={marginBottom}
             rotatedIds={rightRotated} onCharClick={() => {}}
             scaleRatio={3} zoom={1} spacing={rightSpacing} side="right" isPrintMode={true}
-            shopLogo={shopLogo} printLogo={printLogo}
+            shopLogo={shopLogo} printLogo={printLogo} isBold={rightIsBold}
           />
         </div>
 
@@ -2349,7 +2358,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
             width={width} length={length} marginTop={marginTop} marginBottom={marginBottom}
             rotatedIds={leftRotated} onCharClick={() => {}}
             scaleRatio={3} zoom={1} spacing={leftSpacing} side="left" isPrintMode={true}
-            shopLogo={shopLogo} printLogo={printLogo}
+            shopLogo={shopLogo} printLogo={printLogo} isBold={leftIsBold}
           />
         </div>
         <div ref={separateRightRef} style={{ backgroundColor: 'white' }}>
@@ -2358,7 +2367,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
             width={width} length={length} marginTop={marginTop} marginBottom={marginBottom}
             rotatedIds={rightRotated} onCharClick={() => {}}
             scaleRatio={3} zoom={1} spacing={rightSpacing} side="right" isPrintMode={true}
-            shopLogo={shopLogo} printLogo={printLogo}
+            shopLogo={shopLogo} printLogo={printLogo} isBold={rightIsBold}
           />
         </div>
 
