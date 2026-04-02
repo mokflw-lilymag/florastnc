@@ -124,7 +124,7 @@ export default function SubscriptionPage() {
   useEffect(() => {
     async function loadTenant() {
       if (!tenantId) return;
-      const { data } = await supabase.from('tenants').select('*').eq('id', tenantId).single();
+      const { data } = await supabase.from('tenants').select('*').eq('id', tenantId).maybeSingle();
       setTenantData(data);
     }
     loadTenant();

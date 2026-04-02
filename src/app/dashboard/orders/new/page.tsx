@@ -236,7 +236,7 @@ export default function NewOrderPage() {
 
     if (outsourceId) {
       // Fetch the partner details
-      supabase.from('tenants').select('id, name').eq('id', outsourceId).single()
+      supabase.from('tenants').select('id, name').eq('id', outsourceId).maybeSingle()
         .then(({ data }) => {
           if (data) setExternalVendor(data);
         });

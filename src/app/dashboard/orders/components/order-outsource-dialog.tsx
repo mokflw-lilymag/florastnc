@@ -67,7 +67,7 @@ export function OrderOutsourceDialog({
 
         async function fetchSenderInfo() {
             if (!tenantId) return;
-            const { data } = await supabase.from('tenants').select('name, logo_url, contact_phone, address').eq('id', tenantId).single();
+            const { data } = await supabase.from('tenants').select('name, logo_url, contact_phone, address').eq('id', tenantId).maybeSingle();
             if (data) setSenderInfo(data);
         }
 
