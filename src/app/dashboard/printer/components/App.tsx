@@ -1446,7 +1446,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
   useEffect(() => {
     const checkBridge = async () => {
       try {
-        const res = await fetch('http://127.0.0.1:8000/api/version', { mode: 'cors' });
+        const res = await fetch('http://localhost:8000/api/version', { mode: 'cors' });
         if (res.ok) {
            const data = await res.json();
            if (data.status === 'success' && data.version !== REQUIRED_BRIDGE_VERSION) {
@@ -2586,7 +2586,7 @@ function PrintQueueMonitor({ isOpen, onClose }: { isOpen: boolean, onClose: () =
 
   const fetchQueue = async () => {
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/queue');
+      const res = await fetch('http://localhost:8000/api/queue');
       const data = await res.json();
       if (data.status === 'success') setQueue(data.data);
     } catch {}
@@ -2604,14 +2604,14 @@ function PrintQueueMonitor({ isOpen, onClose }: { isOpen: boolean, onClose: () =
 
   const handleRetry = async (id: string) => {
     try {
-      await fetch(`http://127.0.0.1:8000/api/queue/retry/${id}`, { method: 'POST' });
+      await fetch(`http://localhost:8000/api/queue/retry/${id}`, { method: 'POST' });
       fetchQueue();
     } catch (e) { alert("재시도 실패"); }
   };
 
   const handleDelete = async (id: string) => {
     try {
-      await fetch(`http://127.0.0.1:8000/api/queue/${id}`, { method: 'DELETE' });
+      await fetch(`http://localhost:8000/api/queue/${id}`, { method: 'DELETE' });
       fetchQueue();
     } catch (e) { alert("삭제 실패"); }
   };

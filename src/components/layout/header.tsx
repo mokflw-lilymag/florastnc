@@ -38,15 +38,20 @@ export function Header({ userEmail, isSuperAdmin, plan, isExpired, isSuspended, 
   useEffect(() => {
     const checkBridge = async () => {
       try {
-        // PNA (Private Network Access) will check for Access-Control-Allow-Private-Network header
-        const res = await fetch('http://localhost:8000/api/printers', { 
-          signal: AbortSignal.timeout(1500),
-          mode: 'cors'
+        // PNA (Private Network Access) handling: 
+        // Vercel (HTTPS) -> Localhouse (HTTP) requires reliable CORS/PNA headers
+        const res = await fetch('http://localhost:8000/api/version', { 
+          signal: AbortSignal.timeout(2000),
+          mode: 'cors',
+          credentials: 'omit'
         });
-        if (!res.ok) throw new Error('Not OK');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-        setIsBridgeOnline(data.status === 'success');
+        // Accept both 'success' and 'ok' for better compatibility
+        setIsBridgeOnline(data.status === 'success' || data.status === 'ok');
       } catch (err) {
+        // Silently fail but keep log for dev
+        console.debug('Bridge check paused:', err);
         setIsBridgeOnline(false);
       }
     };
