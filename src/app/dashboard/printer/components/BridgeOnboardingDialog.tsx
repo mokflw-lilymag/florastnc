@@ -147,19 +147,27 @@ export function BridgeOnboardingDialog({ isOpen, onClose, onCheckStatus }: Bridg
             </div>
           )}
 
-          {/* Installation Troubleshooting Guide (Collapsible or persistent depending on state) */}
+          {/* Installation Troubleshooting Guide (Now more prominent for real users) */}
           {error && step === 2 && (
-            <div className="mt-8 p-4 bg-slate-900/50 rounded-xl border border-slate-700 space-y-3">
-              <h4 className="text-xs font-bold text-blue-400 uppercase tracking-widest flex items-center gap-2">
-                <AlertCircle className="w-3 h-3" />
-                설치가 안 되시나요?
+            <div className="mt-8 p-5 bg-blue-900/20 rounded-xl border border-blue-500/30 space-y-4">
+              <h4 className="text-sm font-bold text-blue-300 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4" />
+                설치가 진행되지 않나요? (해결 방법)
               </h4>
-              <ul className="text-[11px] text-slate-400 space-y-2 list-disc pl-4">
-                <li><b>Windows 보호(SmartScreen) 나타남:</b> [추가 정보] 클릭 후 [실행] 버튼을 눌러주세요.</li>
-                <li><b>브라우저 차단됨:</b> 다운로드 바에서 [유지] 또는 [계속]을 선택해 주세요.</li>
-                <li><b>실행 후 반응 없음:</b> 마우스 우클릭 후 [관리자 권한으로 실행]을 시도해 보세요.</li>
-                <li><b>보안 프로그램 차단:</b> 알약, V3 등이 차단하는 경우 잠시 중단하거나 예외로 설정해 주세요.</li>
-              </ul>
+              <div className="space-y-3">
+                <div className="text-[12px] text-slate-300 leading-relaxed">
+                  <p className="font-bold text-white mb-1">1. "Windows의 PC 보호(SmartScreen)" 창이 뜰 때</p>
+                  <p className="pl-4 opacity-80">창 왼쪽의 <span className="text-blue-400 underline font-bold cursor-default">추가 정보</span> 버튼을 누른 후, 우측 하단에 나타나는 <span className="text-white font-bold bg-blue-600/50 px-1.5 rounded">실행</span> 버튼을 클릭해 주세요.</p>
+                </div>
+                <div className="text-[12px] text-slate-300 leading-relaxed border-t border-blue-500/20 pt-3">
+                  <p className="font-bold text-white mb-1">2. 브라우저에서 다운로드를 차단할 때</p>
+                  <p className="pl-4 opacity-80">다운로드 항목 옆의 점 세개(...) 또는 화살표를 눌러 <span className="text-white font-bold">계속</span> 또는 <span className="text-white font-bold">유지</span>를 선택해 주세요.</p>
+                </div>
+                <div className="text-[12px] text-slate-300 leading-relaxed border-t border-blue-500/20 pt-3">
+                  <p className="font-bold text-white mb-1">3. 실행 후 프로그램이 보이지 않을 때</p>
+                  <p className="pl-4 opacity-80">우측 하단 아이콘 트레이(시계 옆)에 <span className="text-blue-400 font-bold">Ribbon Bridge</span> 아이콘이 떠 있는지 확인해 주세요.</p>
+                </div>
+              </div>
             </div>
           )}
         </div>

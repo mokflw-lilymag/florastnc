@@ -879,7 +879,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
   const bridgeCheckRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const loadPrinters = () => {
-    fetch('http://127.0.0.1:8000/api/printers', { signal: AbortSignal.timeout(5000) })
+    fetch('http://localhost:8000/api/printers', { signal: AbortSignal.timeout(5000) })
       .then(res => res.json())
       .then(res => {
         if (res.status === 'success' && Array.isArray(res.data)) {
@@ -937,7 +937,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
     let wasConnected = false;
     const checkBridge = async () => {
       try {
-        const res = await fetch('http://127.0.0.1:8000/', { signal: AbortSignal.timeout(5000) });
+        const res = await fetch('http://localhost:8000/', { signal: AbortSignal.timeout(5000) });
         const data = await res.json();
         if (data.status === 'ok' || data.status === 'success') {
           setBridgeConnected(true);
@@ -1172,9 +1172,10 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
        setShopLogo(metaLogo || null);
        if (metaLogo) setPrintLogo(true);
        
-       fetch('http://127.0.0.1:8000/api/pair', {
+       fetch('http://localhost:8000/api/pair', {
          method: 'POST',
          headers: { 'Content-Type': 'application/json' },
+         mode: 'cors',
          body: JSON.stringify({ user_id: session.user.id })
        }).catch(() => {});
     }
@@ -1258,8 +1259,9 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
       let bridgeOnline = false;
       let bridgeVersion = "";
       try {
-        const healthCheck = await fetch('http://127.0.0.1:8000/', { 
-          signal: AbortSignal.timeout(3000) 
+        const healthCheck = await fetch('http://localhost:8000/', { 
+          signal: AbortSignal.timeout(3000),
+          mode: 'cors'
         });
         const health = await healthCheck.json();
         bridgeOnline = health.status === 'ok';
@@ -1320,9 +1322,10 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
           const controller = new AbortController();
           const timeout = setTimeout(() => controller.abort(), 60000); // 60s timeout
           
-          const response = await fetch('http://127.0.0.1:8000/api/print_image', {
+          const response = await fetch('http://localhost:8000/api/print_image', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            mode: 'cors',
             body: JSON.stringify({
               printer_name: selectedPrinter,
               images: images,
@@ -1581,7 +1584,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
             )}
             <button
               onClick={async () => {
-                try { await fetch('http://127.0.0.1:8000/api/queue/clear', { method: 'POST' }); } catch(e){}
+                try { await fetch('http://localhost:8000/api/queue/clear', { method: 'POST', signal: AbortSignal.timeout(1000) }); } catch(e){}
                 await supabase.auth.signOut();
               }}
               className="p-1.5 rounded-lg hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition" title="로그아웃"
@@ -1684,9 +1687,10 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
             </select>
             <button 
               onClick={() => {
-                fetch('http://127.0.0.1:8000/api/printers')
+                fetch('http://localhost:8000/api/printers', { signal: AbortSignal.timeout(2000) })
                   .then(res => res.json())
-                  .then(res => res.status === 'success' && setPrinters(res.data));
+                  .then(res => res.status === 'success' && setPrinters(res.data))
+                  .catch(() => setPrinters([])); // Clear on failure
               }}
               title="프린터 목록 갱신"
               className="p-2 bg-slate-800 border border-slate-700 rounded-lg hover:bg-slate-700 transition"
@@ -2472,36 +2476,39 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
               다운로드 후 [설치 마법사]를 열고 딱 1번만 실행하시면<br/>
               앞으로 <b>자동으로 컴퓨터가 켜질 때마다 영구적으로 연결</b>됩니다!
             </p>
-            <div className="bg-blue-900/30 border border-blue-500/30 rounded p-4 mb-6 text-left space-y-4">
+            <div className="bg-blue-900/30 border border-blue-500/20 rounded-xl p-5 mb-8 text-left space-y-4">
               <div>
-                <p className="text-blue-300 text-xs font-semibold mb-1">💡 "Windows의 PC 보호" 창이 나타날 시</p>
+                <p className="text-blue-300 text-xs font-bold mb-1.5 flex items-center gap-2">
+                  <span className="bg-blue-400/20 px-2 py-0.5 rounded text-[10px]">GUIDE</span>
+                  Windows SmartScreen 대처 안내
+                </p>
                 <p className="text-slate-300 text-[11px] leading-relaxed">
-                  <span className="text-white font-bold underline">추가 정보</span> 버튼을 클릭 후, 우측 하단에 생기는 <span className="text-white font-bold">실행 버튼</span>을 눌러주세요.
+                  설치 시 <span className="text-white font-bold opacity-100 underline decoration-blue-500 underline-offset-4">PC 보호 창</span>이 나타나면, 왼쪽의 <span className="text-blue-400 font-bold">'추가 정보'</span>를 클릭한 뒤 우측 하단의 <span className="text-white font-bold bg-blue-600/30 px-1 rounded">'실행'</span> 버튼을 눌러주세요.
                 </p>
               </div>
-              <div className="pt-2 border-t border-blue-500/20">
-                <p className="text-amber-400 text-xs font-semibold mb-1">🌐 Vercel/배포 환경에서 연결이 안 될 시 (Chrome/Edge)</p>
-                <div className="text-slate-300 text-[10px] space-y-1">
-                  <p>1. 주소창에 <b>chrome://flags/#block-insecure-private-network-requests</b> 입력</p>
-                  <p>2. <span className="text-white bg-slate-700 px-1 rounded">Block insecure private network requests</span> 항목을 <span className="text-amber-400 font-bold">Disabled</span>로 변경</p>
-                  <p>3. 하단의 <span className="text-blue-400 font-bold">Relaunch</span> 버튼 클릭 후 브라우저 재시작</p>
-                </div>
+              <div className="pt-3 border-t border-blue-500/10 flex items-center justify-between">
+                <p className="text-emerald-400 text-[10px] font-bold flex items-center gap-1.5">
+                  🛡️ 전 세계 표준 보안 통신 프로토콜 적용
+                </p>
+                <span className="text-[9px] text-slate-500 font-mono tracking-tighter">CERTIFIED v{REQUIRED_BRIDGE_VERSION}</span>
               </div>
             </div>
-            <div className="flex gap-3 justify-center">
+
+            <div className="flex gap-4 items-stretch">
               <button 
                 onClick={() => setIsBridgeModalOpen(false)}
-                className="px-6 py-3 rounded-lg font-semibold bg-slate-700 hover:bg-slate-600 text-white transition-colors"
+                className="flex-1 px-4 py-4 rounded-xl font-bold bg-slate-700/50 hover:bg-slate-700 text-slate-300 transition-all text-sm"
               >
-                닫기
+                나중에 하기
               </button>
               <a 
                 href={`/RibbonBridge_Setup_v${REQUIRED_BRIDGE_VERSION.replace('.', '_')}.exe`}
                 download
                 onClick={() => setIsBridgeModalOpen(false)}
-                className="flex-1 max-w-[200px] flex items-center justify-center px-6 py-3 rounded-lg font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-colors shadow-lg shadow-blue-900/40"
+                className="flex-[2] flex flex-col items-center justify-center px-6 py-4 rounded-xl font-bold bg-blue-600 hover:bg-blue-500 text-white transition-all shadow-lg shadow-blue-900/40 hover:scale-[1.02] active:scale-95 group"
               >
-                자동 설치 패키지 다운로드
+                <span className="text-base">자동 설치 패키지 다운로드</span>
+                <span className="text-[10px] opacity-70 group-hover:opacity-100 transition-opacity font-normal">Download for Windows 10/11</span>
               </a>
             </div>
           </div>

@@ -38,7 +38,12 @@ export function Header({ userEmail, isSuperAdmin, plan, isExpired, isSuspended, 
   useEffect(() => {
     const checkBridge = async () => {
       try {
-        const res = await fetch('http://localhost:8000/api/printers', { signal: AbortSignal.timeout(2000) });
+        // PNA (Private Network Access) will check for Access-Control-Allow-Private-Network header
+        const res = await fetch('http://localhost:8000/api/printers', { 
+          signal: AbortSignal.timeout(1500),
+          mode: 'cors'
+        });
+        if (!res.ok) throw new Error('Not OK');
         const data = await res.json();
         setIsBridgeOnline(data.status === 'success');
       } catch (err) {
@@ -46,7 +51,7 @@ export function Header({ userEmail, isSuperAdmin, plan, isExpired, isSuspended, 
       }
     };
     checkBridge();
-    const timer = setInterval(checkBridge, 5000);
+    const timer = setInterval(checkBridge, 6000);
     return () => clearInterval(timer);
   }, []);
 
@@ -97,8 +102,11 @@ export function Header({ userEmail, isSuperAdmin, plan, isExpired, isSuspended, 
             isBridgeOnline ? "bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-slate-400"
           )} />
           <span className="text-[10px] font-bold uppercase tracking-tight flex items-center gap-1.5">
-            {isBridgeOnline ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
-            Live Agent v25.0
+            {isBridgeOnline ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
+            <span className="flex items-baseline gap-1">
+              Ribbonist Bridge
+              <span className="text-[8px] opacity-60 font-mono tracking-tighter">v25.0</span>
+            </span>
           </span>
           <span className="h-3 w-[1px] bg-slate-300 dark:bg-slate-700 mx-1"></span>
           <span className="text-[10px] font-medium opacity-80">
