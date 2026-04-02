@@ -110,7 +110,7 @@ export default function SettingsPage() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 2000);
       
-      const response = await fetch("http://localhost:8000/api/printers", { 
+      const response = await fetch("http://localhost:8002/api/printers", { 
         signal: controller.signal,
         mode: 'cors'
       });

@@ -879,7 +879,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
   const bridgeCheckRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const loadPrinters = () => {
-    fetch('http://127.0.0.1:8000/api/printers', { signal: AbortSignal.timeout(5000) })
+    fetch('http://127.0.0.1:8002/api/printers', { signal: AbortSignal.timeout(5000) })
       .then(res => res.json())
       .then(res => {
         if (res.status === 'success' && Array.isArray(res.data)) {
@@ -937,7 +937,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
     let wasConnected = false;
     const checkBridge = async () => {
       try {
-        const res = await fetch('http://127.0.0.1:8000/', { signal: AbortSignal.timeout(5000) });
+        const res = await fetch('http://127.0.0.1:8002/', { signal: AbortSignal.timeout(5000) });
         const data = await res.json();
         if (data.status === 'ok' || data.status === 'success') {
           setBridgeConnected(true);
@@ -1172,7 +1172,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
        setShopLogo(metaLogo || null);
        if (metaLogo) setPrintLogo(true);
        
-       fetch('http://127.0.0.1:8000/api/pair', {
+       fetch('http://127.0.0.1:8002/api/pair', {
          method: 'POST',
          headers: { 'Content-Type': 'application/json' },
          mode: 'cors',
@@ -1259,7 +1259,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
       let bridgeOnline = false;
       let bridgeVersion = "";
       try {
-        const healthCheck = await fetch('http://127.0.0.1:8000/', { 
+        const healthCheck = await fetch('http://127.0.0.1:8002/', { 
           signal: AbortSignal.timeout(3000),
           mode: 'cors'
         });
@@ -1322,7 +1322,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
           const controller = new AbortController();
           const timeout = setTimeout(() => controller.abort(), 60000); // 60s timeout
           
-          const response = await fetch('http://127.0.0.1:8000/api/print_image', {
+          const response = await fetch('http://127.0.0.1:8002/api/print_image', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             mode: 'cors',
@@ -1446,7 +1446,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
   useEffect(() => {
     const checkBridge = async () => {
       try {
-        const res = await fetch('http://127.0.0.1:8000/api/version', { mode: 'cors' });
+        const res = await fetch('http://127.0.0.1:8002/api/version', { mode: 'cors' });
         if (res.ok) {
            const data = await res.json();
            if (data.status === 'success' && data.version !== REQUIRED_BRIDGE_VERSION) {
@@ -1584,7 +1584,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
             )}
             <button
               onClick={async () => {
-                try { await fetch('http://127.0.0.1:8000/api/queue/clear', { method: 'POST', signal: AbortSignal.timeout(1000) }); } catch(e){}
+                try { await fetch('http://127.0.0.1:8002/api/queue/clear', { method: 'POST', signal: AbortSignal.timeout(1000) }); } catch(e){}
                 await supabase.auth.signOut();
               }}
               className="p-1.5 rounded-lg hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition" title="로그아웃"
@@ -1687,7 +1687,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
             </select>
             <button 
               onClick={() => {
-                fetch('http://127.0.0.1:8000/api/printers', { signal: AbortSignal.timeout(2000) })
+                fetch('http://127.0.0.1:8002/api/printers', { signal: AbortSignal.timeout(2000) })
                   .then(res => res.json())
                   .then(res => res.status === 'success' && setPrinters(res.data))
                   .catch(() => setPrinters([])); // Clear on failure
@@ -2586,7 +2586,7 @@ function PrintQueueMonitor({ isOpen, onClose }: { isOpen: boolean, onClose: () =
 
   const fetchQueue = async () => {
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/queue');
+      const res = await fetch('http://127.0.0.1:8002/api/queue');
       const data = await res.json();
       if (data.status === 'success') setQueue(data.data);
     } catch {}
@@ -2604,14 +2604,14 @@ function PrintQueueMonitor({ isOpen, onClose }: { isOpen: boolean, onClose: () =
 
   const handleRetry = async (id: string) => {
     try {
-      await fetch(`http://127.0.0.1:8000/api/queue/retry/${id}`, { method: 'POST' });
+      await fetch(`http://127.0.0.1:8002/api/queue/retry/${id}`, { method: 'POST' });
       fetchQueue();
     } catch (e) { alert("재시도 실패"); }
   };
 
   const handleDelete = async (id: string) => {
     try {
-      await fetch(`http://127.0.0.1:8000/api/queue/${id}`, { method: 'DELETE' });
+      await fetch(`http://127.0.0.1:8002/api/queue/${id}`, { method: 'DELETE' });
       fetchQueue();
     } catch (e) { alert("삭제 실패"); }
   };

@@ -40,7 +40,7 @@ export function Header({ userEmail, isSuperAdmin, plan, isExpired, isSuspended, 
       try {
         // PNA (Private Network Access) handling: 
         // Vercel (HTTPS) -> Localhouse (HTTP) requires reliable CORS/PNA headers
-        const res = await fetch('http://127.0.0.1:8000/api/version', { 
+        const res = await fetch('http://127.0.0.1:8002/api/version', { 
           signal: AbortSignal.timeout(2000),
           mode: 'cors',
           credentials: 'omit'

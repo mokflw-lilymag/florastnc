@@ -2,6 +2,9 @@ $ErrorActionPreference = "Stop"
 try {
     Write-Host "--- Emergency Bridge Builder v25.0 ---" -ForegroundColor Cyan
     $csc = "C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
+    $root = Get-Location
+    if ($root.Path.EndsWith("bridge_temp")) { Set-Location ".." }
+    
     if (-not (Test-Path "bridge_temp")) { New-Item -ItemType Directory -Path "bridge_temp" -Force }
     Set-Location "bridge_temp"
     
@@ -23,8 +26,9 @@ try {
     if (Test-Path "RibbonBridgePackage.zip") { Remove-Item "RibbonBridgePackage.zip" -Force }
     Compress-Archive -Path "pkg\*" -DestinationPath "RibbonBridgePackage.zip" -Force
     
+    Write-Host "[DEBUG] Current Directory: $(Get-Location)" -ForegroundColor Gray
     Write-Host "[5] Compiling FINAL Nuclear Installer..." -ForegroundColor Green
-    $args = @(
+    $compileArgs = @(
         "/target:winexe",
         "/nologo",
         "/out:RibbonBridge_Setup_v25_0.exe",
@@ -35,7 +39,7 @@ try {
         "/r:System.Drawing.dll",
         "RibbonInstaller.cs"
     )
-    & $csc $args
+    & $csc $compileArgs
     
     Write-Host "[6] Shipping to Public Dashboard..." -ForegroundColor Cyan
     Set-Location ".."

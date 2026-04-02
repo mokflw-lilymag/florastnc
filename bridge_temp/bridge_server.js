@@ -13,7 +13,7 @@ const os = require('os');
 
 // ─── Constants ─────────────────────────────────────────────────
 const VERSION = '25.0';
-const PORT = 8000;
+const PORT = 8002;
 const TMP_DIR = path.join(os.tmpdir(), 'ribbon-saas');
 const FONT_DIR = path.join(process.env.WINDIR || 'C:\\Windows', 'Fonts');
 
@@ -45,14 +45,16 @@ app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
   res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Access-Control-Allow-Private-Network');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Max-Age', '86400'); // 캐시 시간 설정 (24시간)
+  res.setHeader('Access-Control-Max-Age', '86400');
   
   // [Crucial] Force PNA header for ALL requests to satisfy strict Chrome security
   res.setHeader('Access-Control-Allow-Private-Network', 'true');
 
-  // Preflight (OPTIONS) request - Chrome prefers 200 OK for PNA
+  // Preflight (OPTIONS) request
   if (req.method === 'OPTIONS') {
-    return res.status(200).send();
+    // Chrome requires these specific headers in the preflight response
+    res.setHeader('Access-Control-Allow-Private-Network', 'true');
+    return res.status(204).send();
   }
   
   next();
