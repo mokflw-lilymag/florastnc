@@ -16,6 +16,18 @@ import { cn } from "@/lib/utils";
 import { format, parseISO, isAfter, addDays } from "date-fns";
 import { toast } from "sonner";
 
+const inquirySoundUrl = "https://assets.mixkit.co/active_storage/sfx/212/212-preview.mp3";
+const messageSoundUrl = "https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3";
+let inquiryAudio: HTMLAudioElement | null = null;
+let messageAudio: HTMLAudioElement | null = null;
+
+if (typeof window !== 'undefined') {
+    inquiryAudio = new Audio(inquirySoundUrl);
+    messageAudio = new Audio(messageSoundUrl);
+    inquiryAudio.preload = 'auto';
+    messageAudio.preload = 'auto';
+}
+
 export function QuickChat() {
     const supabase = createClient();
     const { tenantId, user, profile } = useAuth();
@@ -30,16 +42,20 @@ export function QuickChat() {
     const scrollRef = useRef<HTMLDivElement>(null);
     const selectedRoomRef = useRef<any>(null);
 
-    // [수정 핵심] 강력하고 독특한 프리미엄 알림음 (Max Volume)
+    // [수정 핵심] 강력하고 독특한 프리미엄 알림음 (Max Volume, Preloaded)
     const playNewInquirySound = () => {
-        const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/212/212-preview.mp3"); // Punchy Success Chimes
-        audio.volume = 1.0; 
-        audio.play().catch(() => {});
+        if (inquiryAudio) {
+            inquiryAudio.volume = 1.0;
+            inquiryAudio.currentTime = 0;
+            inquiryAudio.play().catch(() => {});
+        }
     };
     const playNewMessageSound = () => {
-        const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3"); // High-frequency Tick
-        audio.volume = 1.0;
-        audio.play().catch(() => {});
+        if (messageAudio) {
+            messageAudio.volume = 1.0;
+            messageAudio.currentTime = 0;
+            messageAudio.play().catch(() => {});
+        }
     };
 
     const isSuperAdmin = profile?.role === 'super_admin';
@@ -66,7 +82,7 @@ export function QuickChat() {
                 room:chat_rooms!inner(
                     *, 
                     participants:chat_participants(tenant:tenants(name, logo_url)),
-                    last_msg:chat_messages(content, created_at)
+                    last_msg:chat_messages(id, content, created_at, sender_id)
                 )
             `)
             .eq('tenant_id', tenantId)
@@ -84,9 +100,39 @@ export function QuickChat() {
                 const timeB = b.lastMessage?.created_at || b.created_at;
                 return new Date(timeB).getTime() - new Date(timeA).getTime();
             });
-            setRooms(sortedRooms);
+            
+            setRooms(prev => {
+                if (prev.length > 0) {
+                    let shouldPlayInquirySound = false;
+
+                    for (const r of sortedRooms) {
+                        const prevRoom = prev.find(p => p.id === r.id);
+                        if (!prevRoom) {
+                            // New room entirely
+                            shouldPlayInquirySound = true;
+                        } else if (r.lastMessage && prevRoom.lastMessage) {
+                            if (r.lastMessage.id !== prevRoom.lastMessage.id && r.lastMessage.sender_id !== user?.id) {
+                                // New message in an existing room
+                                if (selectedRoomRef.current?.id !== r.id) {
+                                    shouldPlayInquirySound = true;
+                                    setUnreadRooms(ur => new Set(ur).add(r.id));
+                                }
+                            }
+                        } else if (r.lastMessage && !prevRoom.lastMessage && r.lastMessage.sender_id !== user?.id) {
+                            shouldPlayInquirySound = true;
+                            if (selectedRoomRef.current?.id !== r.id) {
+                                setUnreadRooms(ur => new Set(ur).add(r.id));
+                            }
+                        }
+                    }
+
+                    if (shouldPlayInquirySound) playNewInquirySound();
+                }
+
+                return sortedRooms;
+            });
         }
-    }, [tenantId, supabase, showClosed]);
+    }, [tenantId, supabase, showClosed, user?.id]);
 
     const handleEndChat = async () => {
         if (!selectedRoom) return;
@@ -114,15 +160,35 @@ export function QuickChat() {
             .order('created_at', { ascending: true });
 
         if (!error && data) {
-            setMessages(data);
-            setTimeout(() => {
-                const container = document.getElementById('chat-messages-container');
-                const containerUser = document.getElementById('chat-messages-container-user');
-                if (container) container.scrollTop = container.scrollHeight;
-                if (containerUser) containerUser.scrollTop = containerUser.scrollHeight;
-            }, 100);
+            setMessages(prev => {
+                const prevLastId = prev[prev.length - 1]?.id;
+                const newLastId = data[data.length - 1]?.id;
+                
+                if (prev.length !== data.length || prevLastId !== newLastId) {
+                    if (prev.length > 0) {
+                        const newMsgs = data.filter(d => !prev.some(p => p.id === d.id));
+                        const hasNewFromOther = newMsgs.some(m => m.sender_id !== user?.id);
+                        if (hasNewFromOther) {
+                            playNewMessageSound();
+                        }
+                    }
+
+                    setTimeout(() => {
+                        const container = document.getElementById('chat-messages-container');
+                        const containerUser = document.getElementById('chat-messages-container-user');
+                        if (container) {
+                            container.scrollTop = container.scrollHeight;
+                        }
+                        if (containerUser) {
+                            containerUser.scrollTop = containerUser.scrollHeight;
+                        }
+                    }, 100);
+                    return data;
+                }
+                return prev;
+            });
         }
-    }, [supabase]);
+    }, [supabase, user?.id]);
 
     useEffect(() => {
         if (isOpen && tenantId) {
@@ -151,10 +217,7 @@ export function QuickChat() {
                     const isNewFromOther = payload.new.sender_id !== user?.id;
 
                     if (isNewFromOther) {
-                        // 현재 보고 있지 않은 방에서만 알림음/토스트 발생
                         if (selectedRoomRef.current?.id !== msgRoomId) {
-                            playNewInquirySound();
-                            setUnreadRooms(prev => new Set(prev).add(msgRoomId));
                             toast("새 문의가 도착했습니다", {
                                 description: payload.new.content?.substring(0, 30),
                                 action: {
@@ -172,7 +235,6 @@ export function QuickChat() {
                             });
                         }
                         
-                        // 배경 처리
                         supabase
                             .from('chat_rooms')
                             .update({ status: 'active' })
@@ -196,7 +258,7 @@ export function QuickChat() {
             setMessages([]); // 방 이동 시 이전 메시지 즉시 비우기 (잔상 제거)
             fetchMessages(selectedRoom.id);
 
-            // 🚀 대화방 전용 고속도로 (직통 수신) - 필터를 느슨하게 하여 수신율 100% 보장
+            // 🚀 대화방 전용 고속도로 (직통 수신)
             const roomChannel = supabase
                 .channel(`chat-room-${selectedRoom.id}`)
                 .on('postgres_changes', { 
@@ -205,27 +267,36 @@ export function QuickChat() {
                     table: 'chat_messages'
                 }, (payload) => {
                     const msgRoomId = payload.new.room_id;
-                    if (msgRoomId !== selectedRoom.id) return; // 코드 레벨에서 다시 한번 필터링
+                    if (msgRoomId !== selectedRoom.id) return;
 
                     const isFromOther = payload.new.sender_id !== user?.id;
-                    console.log("Chat Reality Check:", { isFromOther, msg: payload.new.content });
-
                     if (isFromOther) {
-                        playNewMessageSound();
-                        setMessages(prev => {
-                            if (prev.some(m => m.id === payload.new.id)) return prev;
-                            return [...prev, payload.new];
-                        });
+                        fetchMessages(selectedRoom.id);
                         fetchRooms();
                     }
                 })
-                .subscribe((status) => {
-                    console.log(`Chat Channel (${selectedRoom.id}) Status:`, status);
-                });
+                .subscribe();
 
             return () => { supabase.removeChannel(roomChannel); };
         }
     }, [selectedRoom, fetchMessages, fetchRooms, supabase, user?.id]);
+
+    // [Fallback Polling] 웹소켓이 슬립 모드로 들어가거나 끊겼을 때를 대비한 견고한 폴링 (3~5초 간격)
+    useEffect(() => {
+        if (!isOpen) return;
+        const interval = setInterval(() => {
+            fetchRooms();
+        }, 5000);
+        return () => clearInterval(interval);
+    }, [isOpen, fetchRooms]);
+
+    useEffect(() => {
+        if (!isOpen || !selectedRoom) return;
+        const interval = setInterval(() => {
+            fetchMessages(selectedRoom.id);
+        }, 3000);
+        return () => clearInterval(interval);
+    }, [isOpen, selectedRoom, fetchMessages]);
 
     const handleSendMessage = async (imageUrl?: string) => {
         if (!inputValue.trim() && !imageUrl || !selectedRoom || !tenantId || !user) return;
