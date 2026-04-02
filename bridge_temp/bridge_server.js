@@ -37,25 +37,24 @@ function isXprinterType(printerName) {
 // ─── App Setup ─────────────────────────────────────────────────
 const app = express();
 
-// ─── Final Hardened CORS & PNA (Private Network Access) Middleware ───
+// ─── Emergency Nuclear PNA (Private Network Access) Middleware ───
 app.use((req, res, next) => {
   const origin = req.headers.origin || '*';
 
   // Standard CORS headers
   res.setHeader('Access-Control-Allow-Origin', origin);
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
-  res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Access-Control-Allow-Private-Network');
+  res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Access-Control-Request-Private-Network, Access-Control-Allow-Private-Network');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Max-Age', '86400');
 
   // [Crucial] Force PNA header for ALL requests to satisfy strict Chrome security
+  // This allows the public Vercel site to talk to the local 127.0.0.1 bridge
   res.setHeader('Access-Control-Allow-Private-Network', 'true');
 
-  // Preflight (OPTIONS) request
+  // Handle Preflight (OPTIONS)
   if (req.method === 'OPTIONS') {
-    // Chrome requires these specific headers in the preflight response
-    res.setHeader('Access-Control-Allow-Private-Network', 'true');
-    return res.status(204).send();
+    return res.status(200).end();
   }
 
   next();
