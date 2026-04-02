@@ -25,6 +25,7 @@ function detectPrinterType(driverName, printerName) {
   const combined = ((driverName || '') + ' ' + (printerName || '')).toLowerCase();
   if (combined.includes('xprinter') || combined.includes('xp-dt') || combined.includes('xp-tt')) return 'xprinter';
   if (combined.includes('epson') && (combined.includes('m1') || combined.includes('m-1'))) return 'epson_m105';
+  if (combined.includes('dp_a80') || combined.includes('a80w') || combined.includes('e688') || combined.includes('peripage') || combined.includes('a4 thermal')) return 'a4_thermal';
   return 'generic';
 }
 
@@ -39,14 +40,14 @@ const app = express();
 // ─── Final Hardened CORS & PNA (Private Network Access) Middleware ───
 app.use((req, res, next) => {
   const origin = req.headers.origin || '*';
-  
+
   // Standard CORS headers
   res.setHeader('Access-Control-Allow-Origin', origin);
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
   res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Access-Control-Allow-Private-Network');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Max-Age', '86400');
-  
+
   // [Crucial] Force PNA header for ALL requests to satisfy strict Chrome security
   res.setHeader('Access-Control-Allow-Private-Network', 'true');
 
@@ -56,7 +57,7 @@ app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Private-Network', 'true');
     return res.status(204).send();
   }
-  
+
   next();
 });
 
@@ -77,9 +78,9 @@ console.log(`> Temp Dir : ${TMP_DIR}`);
 // ─── Routes ════════════════════════════════════════════════════
 
 app.get('/', (_req, res) => {
-  res.json({ 
-    status: 'ok', 
-    version: VERSION, 
+  res.json({
+    status: 'ok',
+    version: VERSION,
     engine: 'GDI v14.0 (Single-Page Master | User Calibrated)',
     features: [
       'Absolute Center-point Alignment',
@@ -226,10 +227,15 @@ async function executePrintJob(job) {
     const cut = parseFloat(job.cutting_margin) || 0;
     const mediaType = job.mediaType || 'roll';
 
-    // ─── Dual Engine Branching ───
-    if (isXprinterType(job.printer)) {
+    // ─── Triple Engine Branching (M105 / Xprinter / A4 Thermal) ───
+    const printerType = detectPrinterType('', job.printer);
+    if (printerType === 'xprinter') {
       console.log(`[Engine] Routing to Xprinter GDI Engine (Direct-Width/Centered)`);
       await printViaGDI_Xprinter(job.printer, localPaths, width, length, cut, margin);
+    } else if (printerType === 'a4_thermal') {
+      console.log(`[Engine] Routing to A4 Thermal Engine (Auto-Center Mode for DP_A80W_E688)`);
+      // A4 Thermal: Fixed 210mm canvas, auto-calculates center-point (105mm)
+      await printViaGDI_A4_AutoCenter(job.printer, localPaths, width, length, cut);
     } else {
       console.log(`[Engine] Routing to Epson M105 GDI Engine (Margin-as-Center)`);
       await printViaGDI(job.printer, localPaths, width, length, margin, cut, mediaType);
@@ -266,11 +272,11 @@ function printViaGDI(printerName, images, widthMM, lengthMM, leftMarginMM, cutti
   return new Promise((resolve, reject) => {
     const imageList = Array.isArray(images) ? images : [images];
     const safePrinter = printerName.replace(/'/g, "''");
-    
+
     // 1. 배너 통합 길이 계산 (리본들의 순수 합 + 맨 마지막 절단 여백 1회)
     // 컷리본이나 물리버튼 에러 완화를 위해, 약간의 버퍼 길이를 확보해줄 수도 있지만 일단 수학적 길이를 유지합니다
     const totalLengthMM = (lengthMM * imageList.length) + cuttingMarginMM;
-    
+
     // Coordinate logic: (UserMargin - width/2)
     // This centers the ribbon image on the printer's fixed physical center guide (specified by userMargin).
     const finalX = leftMarginMM - (widthMM / 2);
@@ -350,7 +356,7 @@ $pd.Add_PrintPage({
     let stdout = '';
     let stderr = '';
 
-    ps.stdout.on('data', d => { 
+    ps.stdout.on('data', d => {
       const txt = d.toString();
       stdout += txt;
       console.log(`[GDI Server] ${txt.trim()}`);
@@ -468,7 +474,81 @@ try {
   });
 }
 
+// ═══════════════════════════════════════════════════════════════
+//   GDI Engine v2.0 — A4 Thermal Auto-Center (DP_A80W_E688)
+//   용지 폭 = A4(210mm) 고정, 모든 리본(폭 38~100mm)을 정중앙에 배치
+// ═══════════════════════════════════════════════════════════════
+function printViaGDI_A4_AutoCenter(printerName, images, widthMM, lengthMM, cuttingMarginMM = 0) {
+  return new Promise((resolve, reject) => {
+    const imageList = Array.isArray(images) ? images : [images];
+    const safePrinter = printerName.replace(/'/g, "''");
+
+    const PAPER_WIDTH_A4 = 210;
+    // 리본폭에 관계없이 무조건 A4 가로폭(210mm)의 정중앙에 수직으로 배치
+    const startX = (PAPER_WIDTH_A4 - widthMM) / 2;
+    const totalLengthMM = (lengthMM * imageList.length) + cuttingMarginMM;
+
+    console.log(`[A4 Auto-Center Engine] Alignment: CENTER (105mm), Ribbon: ${widthMM}mm, Length: ${totalLengthMM}mm`);
+
+    const psScript = `
+try {
+  Add-Type -AssemblyName System.Drawing
+  $pd = New-Object System.Drawing.Printing.PrintDocument
+  $pd.PrinterSettings.PrinterName = '${safePrinter}'
+  $pd.PrintController = New-Object System.Drawing.Printing.StandardPrintController
+
+  # A4 Thermal: 가로폭은 210mm(A4)로 고정하여 중앙 정렬 보장
+  $widthUnits = [int](${PAPER_WIDTH_A4} / 25.4 * 100)
+  $totalLengthUnits = [int](${totalLengthMM} / 25.4 * 100)
+  $customPaper = New-Object System.Drawing.Printing.PaperSize("A4ThermalRibbon", $widthUnits, $totalLengthUnits)
+  $customPaper.RawKind = 256
+
+  $pd.DefaultPageSettings.PaperSize = $customPaper
+  $pd.DefaultPageSettings.Landscape = $false
+  $pd.DefaultPageSettings.Margins = New-Object System.Drawing.Printing.Margins(0,0,0,0)
+
+  $images = @(${imageList.map(img => `'${img.replace(/\\/g, '\\\\').replace(/'/g, "''")}'`).join(',')})
+
+  $pd.Add_PrintPage({
+    param($sender, $e)
+    $g = $e.Graphics
+    $g.PageUnit = [System.Drawing.GraphicsUnit]::Millimeter
+
+    $currentY = 0
+    foreach ($path in $images) {
+      if (Test-Path $path) {
+        $img = [System.Drawing.Image]::FromFile($path)
+        # 중요: (210 - 리본폭) / 2 지점부터 인쇄하여 물리적 정중앙 정렬
+        $destRect = New-Object System.Drawing.RectangleF(${startX}, $currentY, ${widthMM}, ${lengthMM})
+        $g.DrawImage($img, $destRect)
+        $currentY += ${lengthMM}
+        $img.Dispose()
+      }
+    }
+    $e.HasMorePages = $false
+  })
+
+  $pd.Print()
+  $pd.Dispose()
+  Write-Output "GDI_A4_SUCCESS"
+} catch {
+  Write-Output "GDI_A4_ERROR: $($_.Exception.Message)"
+}
+`;
+
+    const ps = spawn('powershell', ['-NoProfile', '-NonInteractive', '-Command', psScript]);
+    let stdout = '';
+    ps.stdout.on('data', d => { stdout += d.toString(); });
+    ps.on('close', code => {
+      if (code === 0 && stdout.includes('GDI_A4_SUCCESS')) resolve();
+      else reject(new Error(stdout.trim() || `A4 Thermal GDI exit code ${code}`));
+    });
+    ps.on('error', err => reject(new Error(`spawn error: ${err.message}`)));
+  });
+}
+
 // ─── Font APIs ────────────────────────────────────────────────
+
 app.get('/api/fonts', (_req, res) => {
   try {
     const fonts = fs.readdirSync(FONT_DIR).filter(f => /\.(ttf|otf|ttc)$/i.test(f)).map(f => ({ name: path.parse(f).name, filename: f }));
@@ -494,7 +574,7 @@ server.on('error', (e) => {
   if (e.code === 'EADDRINUSE') {
     console.error(`[CRITICAL] Port ${PORT} already in use. Please close other bridge versions.`);
     // In production, we might want to kill the conflicting process, but usually better to log clearly.
-    setTimeout(() => process.exit(1), 5000); 
+    setTimeout(() => process.exit(1), 5000);
   }
 });
 
