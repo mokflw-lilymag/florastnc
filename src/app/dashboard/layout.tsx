@@ -27,6 +27,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const isSuperAdmin = !!(profile?.role === "super_admin" || user.email === 'lilymag0301@gmail.com');
   const tenantData = (profile as any)?.tenants;
+
+  if (!isSuperAdmin && !profile?.tenant_id) {
+    redirect("/onboarding");
+  }
+
   
   // Logic Fix: If subscription_end is empty (null), treat it as NO SUBSCRIPTION (Expired).
   // Unlimited access should use a far-future date (e.g. 2099) instead of null.
