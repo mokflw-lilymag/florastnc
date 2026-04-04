@@ -46,6 +46,10 @@ export interface SystemSettings {
   deliveryCarriers: string[];
   districtDeliveryFees: Array<{ district: string, fee: number }>;
   revenueRecognitionBasis: 'order_date' | 'payment_completed';
+  isTaxExempt: boolean;
+  defaultTaxRate: number;
+  currency: string;
+  country: string;
 }
 
 export const defaultSettings: SystemSettings = {
@@ -53,6 +57,7 @@ export const defaultSettings: SystemSettings = {
   businessNumber: "",
   contactPhone: "",
   address: "",
+  country: "KR",
   pointRate: 0,
   minPointUsage: 0,
   discountRates: [5, 10, 15, 20],
@@ -112,6 +117,9 @@ export const defaultSettings: SystemSettings = {
     { district: "기타", fee: 25000 }
   ],
   revenueRecognitionBasis: 'order_date',
+  isTaxExempt: true,
+  defaultTaxRate: 10,
+  currency: 'KRW',
 };
 
 export const DEFAULT_PRODUCT_CATEGORIES: CategoryData = {

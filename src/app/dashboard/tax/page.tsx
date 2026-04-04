@@ -22,6 +22,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Legend, Cell
 } from "recharts";
+import { useSettings } from "@/hooks/use-settings";
 
 // 면세사업자 지출 분류 → 사업장 현황신고 비용 항목 매핑
 const EXPENSE_TO_TAX_CATEGORY: Record<string, string> = {
@@ -54,9 +55,10 @@ export default function TaxPage() {
   const { expenses, loading: expensesLoading } = useExpenses();
   const { orders, fetchOrders, loading: ordersLoading } = useOrders(false);
   const { suppliers, loading: suppliersLoading } = useSuppliers();
+  const { settings, loading: settingsLoading } = useSettings();
 
   const [viewYear, setViewYear] = useState(new Date().getFullYear());
-  const loading = expensesLoading || ordersLoading || suppliersLoading;
+  const loading = expensesLoading || ordersLoading || suppliersLoading || settingsLoading;
 
   useEffect(() => {
     fetchOrders(730); // 2년치 데이터
@@ -150,14 +152,16 @@ export default function TaxPage() {
   const now = new Date();
   const currentYear = now.getFullYear();
 
+  const isExempt = settings?.isTaxExempt !== false; // Default true
+
   const taxSchedule = [
     {
-      title: "사업장 현황신고",
-      description: "전년도 수입금액 및 매입내역 신고",
-      deadline: new Date(currentYear, 1, 10), // 2월 10일
+      title: isExempt ? "사업장 현황신고" : "부가가치세 신고",
+      description: isExempt ? "전년도 수입금액 및 매입내역 신고" : "과세기간 부가가치세 신고 및 납부",
+      deadline: isExempt ? new Date(currentYear, 1, 10) : new Date(currentYear, now.getMonth() < 6 ? 6 : 0, 25),
       icon: ClipboardCheck,
       color: "blue",
-      detail: "매년 2/10까지 | 국세청 홈택스",
+      detail: isExempt ? "매년 2/10까지 | 국세청 홈택스" : "1/25, 7/25 까지 | 국세청 홈택스",
       link: "https://www.hometax.go.kr"
     },
     {
@@ -193,7 +197,7 @@ export default function TaxPage() {
     // Build CSV content
     const BOM = "\uFEFF";
     const lines: string[] = [];
-    lines.push(`[${viewYear}년 사업장 현황신고 기초자료]`);
+    lines.push(`[${viewYear}년 ${isExempt ? '사업장 현황신고' : '부가가치세 신고'} 기초자료]`);
     lines.push(`생성일: ${format(now, "yyyy-MM-dd HH:mm")}`);
     lines.push("");
     lines.push("=== 수입금액 (매출) ===");
@@ -226,7 +230,7 @@ export default function TaxPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `사업장현황신고_기초자료_${viewYear}년.csv`;
+    a.download = `${isExempt ? '사업장현황신고' : '부가가치세신고'}_기초자료_${viewYear}년.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -247,8 +251,8 @@ export default function TaxPage() {
 
   return (
     <div className="p-6 max-w-[1600px] mx-auto space-y-6 animate-in fade-in duration-500">
-      <PageHeader title="세무 관리" description="면세사업자 사업장 현황신고 및 세무 관리" icon={FileText}>
-        <div className="flex items-center gap-2">
+      <PageHeader title="세무 관리" description={isExempt ? "면세사업자 사업장 현황신고 및 세무 관리" : "부가가치세 신고 및 세무 관리"} icon={FileText}>
+        <div className="flex items-center gap-3">
           <Button variant="outline" size="icon" className="h-9 w-9 rounded-xl" onClick={() => setViewYear(y => y - 1)}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
@@ -341,7 +345,7 @@ export default function TaxPage() {
           {/* ======== 사업장 현황신고 핵심 수치 ======== */}
           <div>
             <h2 className="text-sm font-medium text-slate-700 mb-3 flex items-center gap-2">
-              <ClipboardCheck className="h-4 w-4 text-blue-500" /> {viewYear}년 사업장 현황신고 기초자료
+              <ClipboardCheck className="h-4 w-4 text-blue-500" /> {viewYear}년 {isExempt ? "사업장 현황신고" : "부가가치세 신고"} 기초자료
             </h2>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               {/* 수입금액 */}
@@ -433,14 +437,14 @@ export default function TaxPage() {
               </CardContent>
             </Card>
 
-            {/* 비용 항목별 내역 (사업장 현황신고 양식) */}
+            {/* 비용 항목별 내역 */}
             <Card className="lg:col-span-3 border-none shadow-md bg-white rounded-2xl overflow-hidden">
               <CardHeader>
                 <CardTitle className="text-sm font-medium text-slate-800 flex items-center gap-2">
                   <Receipt className="h-4 w-4 text-rose-500" /> 필요경비 항목별 내역
                 </CardTitle>
                 <CardDescription className="text-xs font-light">
-                  사업장 현황신고 비용 분류 기준
+                  {isExempt ? "사업장 현황신고 비용 분류 기준" : "부가가치세/소득세 비용 분류 기준"}
                 </CardDescription>
               </CardHeader>
               <CardContent>

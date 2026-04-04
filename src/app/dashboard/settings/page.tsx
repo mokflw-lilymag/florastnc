@@ -34,7 +34,9 @@ import {
   MessageCircle,
   Cloud,
   FileImage,
-  LayoutGrid
+  LayoutGrid,
+  Calculator,
+  Globe
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -60,6 +62,19 @@ import { useDeliveryFees } from "@/hooks/use-delivery-fees";
 import { useSettings } from "@/hooks/use-settings";
 import { useRouter } from "next/navigation";
 
+const MAJOR_CURRENCIES = [
+  { code: 'KRW', symbol: '₩', flag: '🇰🇷', name: '대한민국 원' },
+  { code: 'USD', symbol: '$', flag: '🇺🇸', name: '미국 달러' },
+  { code: 'EUR', symbol: '€', flag: '🇪🇺', name: '유로' },
+  { code: 'JPY', symbol: '¥', flag: '🇯🇵', name: '일본 엔' },
+  { code: 'CNY', symbol: '￥', flag: '🇨🇳', name: '중국 위안' },
+  { code: 'GBP', symbol: '£', flag: '🇬🇧', name: '영국 파운드' },
+  { code: 'AUD', symbol: 'A$', flag: '🇦🇺', name: '호주 달러' },
+  { code: 'CAD', symbol: 'C$', flag: '🇨🇦', name: '캐나다 달러' },
+  { code: 'SGD', symbol: 'S$', flag: '🇸🇬', name: '싱가포르 달러' },
+  { code: 'VND', symbol: '₫', flag: '🇻🇳', name: '베트남 동' },
+];
+
 export default function SettingsPage() {
   const router = useRouter();
   const supabase = createClient();
@@ -82,6 +97,7 @@ export default function SettingsPage() {
   const [localAddress, setLocalAddress] = useState("");
   const [localEmail, setLocalEmail] = useState("");
   const [localWebsite, setLocalWebsite] = useState("");
+  const [localCountry, setLocalCountry] = useState("KR");
   
   const [newRegion, setNewRegion] = useState("");
   const [newFee, setNewFee] = useState("");
@@ -145,6 +161,7 @@ export default function SettingsPage() {
       setLocalAddress(settings.address || "");
       setLocalEmail(settings.storeEmail || "");
       setLocalWebsite(settings.siteWebsite || "");
+      setLocalCountry(settings.country || "KR");
     }
   }, [settings]);
 
@@ -252,6 +269,7 @@ export default function SettingsPage() {
           businessNumber: localBizNo,
           contactPhone: localPhone,
           address: localAddress,
+          country: localCountry,
           storeEmail: localEmail,
           siteWebsite: localWebsite,
           contactEmail: localEmail // Also sync contactEmail for compatibility
@@ -404,36 +422,43 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="store" className="w-full">
-        <TabsList className="flex flex-wrap items-center justify-start w-full h-auto p-1 bg-slate-100/50 rounded-xl mb-8 gap-x-1 gap-y-2">
-          <TabsTrigger value="store" className="flex items-center gap-2 px-3 md:px-6 py-2 md:py-2.5 text-xs md:text-sm">
-            <Building2 className="h-4 w-4" /> 상점 정보
-          </TabsTrigger>
-          <TabsTrigger value="order-payment" className="flex items-center gap-2 px-3 md:px-6 py-2 md:py-2.5 text-xs md:text-sm">
-            <Percent className="h-4 w-4" /> 주문/할인/포인트
-          </TabsTrigger>
-          <TabsTrigger value="delivery" className="flex items-center gap-2 px-3 md:px-6 py-2 md:py-2.5 text-xs md:text-sm">
-            <MapPin className="h-4 w-4" /> 배송비 설정
-          </TabsTrigger>
-          <TabsTrigger value="categories" className="flex items-center gap-2 px-3 md:px-6 py-2 md:py-2.5 text-xs md:text-sm bg-orange-50/50 text-orange-700 data-[state=active]:bg-orange-600 data-[state=active]:text-white rounded-xl">
-            <Layers className="h-4 w-4" /> 분류(카테고리) 관리
-          </TabsTrigger>
-          <TabsTrigger value="printer" className="flex items-center gap-2 px-3 md:px-6 py-2 md:py-2.5 text-xs md:text-sm">
-            <Printer className="h-4 w-4" /> 프린터/브릿지
-          </TabsTrigger>
-          <TabsTrigger value="integrations" className="flex items-center gap-2 px-3 md:px-6 py-2 md:py-2.5 text-xs md:text-sm">
-            <LinkIcon className="h-4 w-4" /> 연동 및 자동화
-          </TabsTrigger>
-          <TabsTrigger value="data" className="flex items-center gap-2 px-3 md:px-6 py-2 md:py-2.5 text-xs md:text-sm rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm">
-            <Database className="h-4 w-4" /> 백업 및 초기화
-          </TabsTrigger>
-          <TabsTrigger value="account" className="flex items-center gap-2 px-3 md:px-6 py-2 md:py-2.5 text-xs md:text-sm">
-            <ShieldCheck className="h-4 w-4" /> 멤버십/보안
-          </TabsTrigger>
-          <TabsTrigger value="partner-network" className="flex items-center gap-2 px-3 md:px-6 py-2 md:py-2.5 text-xs md:text-sm bg-blue-50/50 text-blue-700 data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-xl">
-            <Share2 className="h-4 w-4" /> 협력사 네트워크
-          </TabsTrigger>
-        </TabsList>
+      <Tabs defaultValue="store" orientation="vertical" className="w-full">
+        <div className="flex flex-col md:flex-row gap-6 md:gap-8 lg:gap-10 w-full items-start">
+          <TabsList className="flex flex-row md:flex-col overflow-x-auto whitespace-nowrap md:overflow-visible w-full md:w-56 lg:w-64 h-auto p-2 bg-slate-50/80 border border-slate-100/60 rounded-2xl gap-2 md:gap-1 items-center md:items-stretch shrink-0 md:sticky md:top-24 shadow-sm shadow-slate-100 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            <TabsTrigger value="store" className="justify-start shrink-0 text-sm py-2.5 px-4 md:py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-xl transition-all">
+              <Building2 className="h-4 w-4 mr-3 text-slate-500" /> 상점 정보
+            </TabsTrigger>
+            <TabsTrigger value="order-payment" className="justify-start shrink-0 text-sm py-2.5 px-4 md:py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-xl transition-all">
+              <Percent className="h-4 w-4 mr-3 text-slate-500" /> 주문/할인/포인트
+            </TabsTrigger>
+            <TabsTrigger value="delivery" className="justify-start shrink-0 text-sm py-2.5 px-4 md:py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-xl transition-all">
+              <MapPin className="h-4 w-4 mr-3 text-slate-500" /> 배송비 설정
+            </TabsTrigger>
+            <TabsTrigger value="categories" className="justify-start shrink-0 text-sm py-2.5 px-4 md:py-3 rounded-xl text-orange-700 bg-orange-50/30 data-[state=active]:bg-orange-600 data-[state=active]:text-white transition-all">
+              <Layers className="h-4 w-4 mr-3" /> 분류(카테고리) 관리
+            </TabsTrigger>
+            <TabsTrigger value="printer" className="justify-start shrink-0 text-sm py-2.5 px-4 md:py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-xl transition-all">
+              <Printer className="h-4 w-4 mr-3 text-slate-500" /> 프린터/브릿지
+            </TabsTrigger>
+            <TabsTrigger value="tax" className="justify-start shrink-0 text-sm py-2.5 px-4 md:py-3 rounded-xl text-emerald-700 bg-emerald-50/30 data-[state=active]:bg-emerald-600 data-[state=active]:text-white transition-all">
+              <Calculator className="h-4 w-4 mr-3" /> 세무/부가세 설정
+            </TabsTrigger>
+            <TabsTrigger value="integrations" className="justify-start shrink-0 text-sm py-2.5 px-4 md:py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-xl transition-all">
+              <LinkIcon className="h-4 w-4 mr-3 text-slate-500" /> 연동 및 자동화
+            </TabsTrigger>
+            <TabsTrigger value="partner-network" className="justify-start shrink-0 text-sm py-2.5 px-4 md:py-3 rounded-xl text-blue-700 bg-blue-50/30 data-[state=active]:bg-blue-600 data-[state=active]:text-white transition-all">
+              <Share2 className="h-4 w-4 mr-3" /> 협력사 네트워크
+            </TabsTrigger>
+            <TabsTrigger value="account" className="justify-start shrink-0 text-sm py-2.5 px-4 md:py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-xl transition-all">
+              <ShieldCheck className="h-4 w-4 mr-3 text-slate-500" /> 멤버십/보안
+            </TabsTrigger>
+            <div className="w-px h-6 md:w-auto md:h-px shrink-0 bg-slate-200 mx-2 md:my-2" />
+            <TabsTrigger value="data" className="justify-start shrink-0 text-sm py-2.5 px-4 md:py-3 rounded-xl text-rose-700 bg-rose-50/30 data-[state=active]:bg-rose-600 data-[state=active]:text-white transition-all">
+              <Database className="h-4 w-4 mr-3" /> 백업 및 초기화
+            </TabsTrigger>
+          </TabsList>
+          
+          <div className="flex-1 w-full min-w-0 pb-16">
 
         {/* --- Store Info --- */}
         <TabsContent value="store" className="space-y-4">
@@ -461,6 +486,27 @@ export default function SettingsPage() {
                     onChange={e => setLocalRep(e.target.value)} 
                     placeholder="예: 홍길동"
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="country">사업장 위치 (Country)</Label>
+                  <select
+                    id="country"
+                    value={localCountry}
+                    onChange={(e) => setLocalCountry(e.target.value)}
+                    className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="KR">대한민국 (South Korea)</option>
+                    <option value="US">미국 (United States)</option>
+                    <option value="VN">베트남 (Vietnam)</option>
+                    <option value="JP">일본 (Japan)</option>
+                    <option value="CN">중국 (China)</option>
+                    <option value="AU">호주 (Australia)</option>
+                    <option value="GB">영국 (United Kingdom)</option>
+                    <option value="CA">캐나다 (Canada)</option>
+                    <option value="SG">싱가포르 (Singapore)</option>
+                    <option value="EU">유럽 연합 (European Union)</option>
+                    <option value="OTHER">기타 국가 (Other)</option>
+                  </select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="bizNo">사업자 등록번호</Label>
@@ -583,6 +629,38 @@ export default function SettingsPage() {
                 변경사항 저장
               </Button>
             </CardFooter>
+          </Card>
+
+          <Card className="border-0 shadow-sm ring-1 ring-slate-200">
+            <CardHeader>
+              <CardTitle className="text-lg font-bold flex items-center gap-2">
+                <Globe className="h-5 w-5 text-blue-500" /> 국가 / 화폐 설정
+              </CardTitle>
+              <CardDescription>플랫폼 내에서 사용할 기준 화폐(Currency)를 선택하세요.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                {MAJOR_CURRENCIES.map((currency) => (
+                  <Button
+                    key={currency.code}
+                    variant={settings.currency === currency.code ? "default" : "outline"}
+                    className={cn(
+                      "h-auto py-3 px-3 flex flex-col items-center gap-2 transition-all",
+                      settings.currency === currency.code 
+                        ? "bg-slate-900 text-white shadow-md ring-2 ring-slate-900 border-transparent" 
+                        : "bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border-slate-200"
+                    )}
+                    onClick={() => saveSettings({ ...settings, currency: currency.code })}
+                  >
+                    <div className="text-2xl leading-none">{currency.flag}</div>
+                    <div className="flex flex-col items-center">
+                      <span className="font-bold text-sm tracking-tight">{currency.code}</span>
+                      <span className="text-[10px] opacity-70 mt-0.5">{currency.name} ({currency.symbol})</span>
+                    </div>
+                  </Button>
+                ))}
+              </div>
+            </CardContent>
           </Card>
         </TabsContent>
 
@@ -1336,6 +1414,53 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="tax" className="space-y-4">
+          <Card className="border-0 shadow-sm ring-1 ring-slate-200">
+            <CardHeader>
+              <div className="flex items-center gap-2 text-emerald-600 mb-1">
+                <Calculator className="h-5 w-5" />
+                <span className="text-xs font-bold uppercase tracking-wider">Tax & VAT Configuration</span>
+              </div>
+              <CardTitle>세무 및 부가세 설정</CardTitle>
+              <CardDescription>국가별 세율 및 면세사업자 여부를 설정합니다.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4 p-5 rounded-2xl border-2 border-slate-100 bg-slate-50/10">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <Label className="text-sm font-bold flex items-center gap-2 text-emerald-900">
+                       <CheckCircle2 className="h-4 w-4 text-emerald-600" /> 부가세 면세 영세율 적용 (Tax Exempt)
+                    </Label>
+                    <p className="text-[11px] text-slate-500">한국 꽃집(면세사업자)이거나 부가세가 없는 국가인 경우 활성화합니다. (활성화 시 장부에서 VAT가 0으로 계산됩니다.)</p>
+                  </div>
+                  <Switch 
+                    checked={settings.isTaxExempt}
+                    onCheckedChange={(c) => saveSettings({...settings, isTaxExempt: c})}
+                  />
+                </div>
+              </div>
+
+              {!settings.isTaxExempt && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-2">
+                  <div className="space-y-3 p-4 rounded-xl bg-orange-50/50 border border-orange-100">
+                    <Label className="text-orange-900 font-semibold">기본 적용 부가세율 (%)</Label>
+                    <div className="flex items-center gap-3">
+                      <Input 
+                        type="number" 
+                        className="text-lg font-bold" 
+                        value={settings.defaultTaxRate} 
+                        onChange={(e) => saveSettings({...settings, defaultTaxRate: Number(e.target.value)})}
+                      />
+                      <span className="text-sm font-bold text-orange-900 shrink-0">%</span>
+                    </div>
+                    <p className="text-[11px] text-orange-700">해당 국가/지역의 기본 부가가치세율을 입력하세요. (예: 한국 과세사업자 10, 베트남 8 또는 10)</p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="account" className="space-y-4">
            <Card className="border-0 shadow-sm ring-1 ring-blue-100">
              <CardHeader>
@@ -1486,6 +1611,8 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
         </TabsContent>
+          </div>
+        </div>
       </Tabs>
     </div>
   );
