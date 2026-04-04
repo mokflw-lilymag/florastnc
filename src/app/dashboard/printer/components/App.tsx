@@ -19,7 +19,10 @@ import {
   Settings,
   BookOpen,
   FolderOpen,
-  LogOut
+  LogOut,
+  ShieldAlert,
+  RefreshCw,
+  Download
 } from 'lucide-react';
 import { FontManagerDialog } from './FontManagerDialog';
 import { TemplateManagerDialog } from './TemplateManagerDialog';
@@ -1049,6 +1052,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const [isLoadDialogOpen, setIsLoadDialogOpen] = useState(false);
   const [isBridgeModalOpen, setIsBridgeModalOpen] = useState(false);
+  const [isTroubleshootModalOpen, setIsTroubleshootModalOpen] = useState(false);
   const [phraseCategories, setPhraseCategories] = useState(DEFAULT_PHRASE_CATEGORIES);
 
   // Shop Logo State
@@ -1413,6 +1417,29 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
     }
   };
 
+  const handleResetBridge = () => {
+    if (confirm("⚠️ 리본 브릿지 설정을 초기화하시겠습니까?\n\n이 작업은 브라우저에 저장된 업데이트 알림 무시 설정 및 기존 프린터 연결 정보를 초기화합니다. (브릿지 프로그램 자체는 삭제되지 않습니다.)")) {
+      // 1. Clear LocalStorage keys
+      localStorage.removeItem('bridge_update_dismissed');
+      localStorage.removeItem('ribbon_bridge_ignore_version');
+      localStorage.removeItem('last_connected_bridge_version');
+      localStorage.removeItem('saved_ribbon_configs');
+      
+      // 2. Clear SessionStorage (for quick reset during session)
+      sessionStorage.removeItem('bridge_update_dismissed');
+      
+      // 3. UI Update
+      setIsUpdateModalOpen(false);
+      setIsTroubleshootModalOpen(false);
+      
+      // 4. Force Reload Printer List
+      loadPrinters();
+      
+      alert("✅ 브릿지 설정이 초기화되었습니다. 페이지를 새로고침하여 연결을 다시 시도합니다.");
+      window.location.reload();
+    }
+  };
+
   const extendedFonts = useMemo(() => {
     const custom: FontItem[] = customFontItems.map(f => ({
       value: f.id,
@@ -1602,30 +1629,12 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
             <p className="text-[10px] text-blue-400/80 mt-1 truncate" title={session.user.email}>👤 {session.user.email}</p>
           )}
 
-          {/* ─── Bridge Connection Status ─── */}
+
           <div 
-            className={`mt-2 px-2 py-1.5 rounded-lg text-[10px] font-medium text-center border tracking-wide cursor-pointer transition-all ${
-              bridgeConnected
-                ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/25'
-                : 'bg-red-500/15 text-red-400 border-red-500/30 hover:bg-red-500/25 animate-pulse'
-            }`}
-            onClick={() => { 
-              if (!bridgeConnected) {
-                setIsBridgeModalOpen(true);
-              } else {
-                if (!isVersionOk(bridgeVersion)) {
-                  setIsUpdateModalOpen(true);
-                } else {
-                  alert(`✅ 현재 브릿지 서버(v${bridgeVersion})는 최신 상태입니다.`);
-                  loadPrinters();
-                }
-              }
-            }}
-            title={bridgeConnected ? `Bridge v${bridgeVersion} 연결됨 (클릭: 상태 확인)` : '브릿지 미연결 (클릭: 설치 안내)'}
+            className="mt-1 px-2 py-1 rounded-lg text-[9px] font-bold text-center border border-slate-700/50 text-slate-500 hover:text-slate-300 hover:bg-slate-800 transition-all cursor-pointer"
+            onClick={() => setIsTroubleshootModalOpen(true)}
           >
-            {bridgeConnected 
-              ? `🟢 인쇄 브릿지 연결됨 (v${bridgeVersion})` 
-              : '🔴 인쇄 브릿지 미연결 (클릭하여 설치)'}
+            ⚙️ 브릿지 연결 문제 해결 및 초기화
           </div>
 
           {/* Subscription Badge */}
@@ -2519,6 +2528,100 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
                 <span className="text-base">자동 설치 패키지 다운로드</span>
                 <span className="text-[10px] opacity-70 group-hover:opacity-100 transition-opacity font-normal">Download for Windows 10/11</span>
               </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bridge Troubleshooting & Reset Modal */}
+      {isTroubleshootModalOpen && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl flex items-center justify-center z-[500] animate-in fade-in zoom-in duration-300">
+          <div className="bg-slate-900 border border-slate-700/50 rounded-[32px] p-10 max-w-xl w-full mx-6 shadow-[0_0_80px_rgba(30,58,138,0.3)] relative overflow-hidden">
+            {/* Background Glow */}
+            <div className="absolute -top-24 -right-24 w-64 h-64 bg-blue-600/10 blur-[100px] rounded-full"></div>
+            
+            <div className="flex justify-between items-start mb-8 relative z-10">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-blue-500/10 rounded-2xl">
+                  <ShieldAlert className="text-blue-400 w-8 h-8" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-white tracking-tight">브릿지 연결 문제 해결</h2>
+                  <p className="text-slate-400 text-sm mt-1">인쇄 연결에 문제가 있나요? 아래 가이드에 따라 해결해 보세요.</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsTroubleshootModalOpen(false)}
+                className="p-2 hover:bg-slate-800 rounded-xl text-slate-500 hover:text-white transition-colors"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="space-y-6 relative z-10">
+              {/* Step 1: Check Execution */}
+              <div className="flex gap-4 p-5 bg-slate-800/40 rounded-3xl border border-slate-700/50 group hover:border-blue-500/30 transition-all">
+                <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center font-bold text-blue-400 group-hover:bg-blue-500 group-hover:text-white transition-all shrink-0">1</div>
+                <div>
+                  <h3 className="font-bold text-slate-200">리본 브릿지가 실행 중인가요?</h3>
+                  <p className="text-slate-400 text-xs mt-1 leading-relaxed">
+                    작업표시줄(우측 하단)의 숨겨진 아이콘에서 <span className="text-blue-400 font-bold">R 아이콘</span>이 있는지 확인하세요. 아이콘이 없다면 바탕화면의 <span className="text-white font-semibold">RibbonBridge</span>를 실행해 주세요.
+                  </p>
+                </div>
+              </div>
+
+              {/* Step 2: Clear Browser Cache */}
+              <div className="flex gap-4 p-5 bg-slate-800/40 rounded-3xl border border-slate-700/50 group hover:border-blue-500/30 transition-all">
+                <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center font-bold text-blue-400 group-hover:bg-blue-500 group-hover:text-white transition-all shrink-0">2</div>
+                <div>
+                  <h3 className="font-bold text-slate-200">브라우저 설정을 초기화해 보세요</h3>
+                  <p className="text-slate-400 text-xs mt-1 leading-relaxed">
+                    업데이트 알림을 무시했거나, 잘못된 연결 정보가 저장된 경우 초기화로 해결됩니다. 아래의 <span className="text-amber-500 font-bold">브릿지 설정 초기화</span> 버튼을 눌러주세요.
+                  </p>
+                </div>
+              </div>
+
+              {/* Step 3: Firewall */}
+              <div className="flex gap-4 p-5 bg-slate-800/40 rounded-3xl border border-slate-700/50 group hover:border-blue-500/30 transition-all">
+                <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center font-bold text-blue-400 group-hover:bg-blue-500 group-hover:text-white transition-all shrink-0">3</div>
+                <div>
+                  <h3 className="font-bold text-slate-200">백신/방화벽 확인</h3>
+                  <p className="text-slate-400 text-xs mt-1 leading-relaxed">
+                    V3, 알약 또는 윈도우 방화벽에서 <span className="text-red-400 font-bold">8002번 포트</span>를 차단하고 있는지 확인해 보세요. (보통 처음 실행 시 '액세스 허용'을 눌러야 합니다.)
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-10 flex flex-col sm:flex-row gap-3 relative z-10">
+              <a 
+                href={`/RibbonBridge_Setup_v${REQUIRED_BRIDGE_VERSION.replace('.', '_')}.exe`} 
+                download
+                className="flex-1 py-4 bg-blue-600 hover:bg-blue-500 text-white font-extrabold rounded-2xl transition-all shadow-lg hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
+              >
+                <Download size={18} />
+                리본 브릿지 재설치
+              </a>
+              <button 
+                onClick={handleResetBridge}
+                className="flex-1 py-4 bg-slate-100 hover:bg-white text-slate-900 font-extrabold rounded-2xl transition-all shadow-lg hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
+              >
+                <RefreshCw size={18} />
+                브릿지 설정 초기화 (Reset)
+              </button>
+            </div>
+            
+            <button 
+                onClick={() => setIsTroubleshootModalOpen(false)}
+                className="w-full mt-3 py-3 bg-slate-800/80 hover:bg-slate-800 text-slate-400 hover:text-white font-bold rounded-2xl transition-all border border-slate-700/50"
+              >
+                닫기
+            </button>
+            
+            <div className="mt-6 text-center">
+              <p className="text-[10px] text-slate-500">
+                초기화 후에도 문제가 해결되지 않는다면 고객센터(1588-0000)로 문의해 주세요.
+              </p>
             </div>
           </div>
         </div>

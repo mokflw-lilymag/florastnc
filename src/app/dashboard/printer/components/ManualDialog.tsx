@@ -155,6 +155,54 @@ export function ManualDialog({ isOpen, onClose }: { isOpen: boolean, onClose: ()
               </div>
             </div>
           </section>
+
+          {/* Step 6 (Troubleshooting) */}
+          <section className="bg-red-500/5 p-6 rounded-xl border-t-4 border-red-500/30 hover:border-red-500 transition-colors shadow-lg">
+            <h3 className="text-xl font-bold text-red-400 mb-4 flex items-center gap-2">
+              <span className="bg-red-600 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm">6</span> 
+              리본 브릿지 "클린 재설치" 가이드 (연결 장애 시)
+            </h3>
+            <div className="space-y-4 ml-9">
+              <p className="text-slate-200">브릿지 서버가 켜지지 않거나, 설치 시 "파일이 사용 중" 에러가 난다면 아래 3단계를 수행하세요.</p>
+              
+              <div className="space-y-4 mt-4">
+                <div className="flex gap-3 text-left">
+                  <div className="shrink-0 w-6 h-6 rounded bg-slate-700 flex items-center justify-center text-xs font-bold text-white mt-1">1</div>
+                  <div>
+                    <h4 className="text-white font-bold mb-1">브라우저 상태 초기화 (사이트 설정 비우기)</h4>
+                    <p className="text-sm text-slate-400 leading-relaxed">
+                      리본 프린터 화면 사이드바 최상단의 <span className="text-blue-400 font-bold">[브릿지 연결 문제 해결 (초기화)]</span> 버튼을 클릭하세요. 잘못된 연결 기록을 지우고 설치 안내 팝업을 다시 띄워줍니다.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 text-left">
+                  <div className="shrink-0 w-6 h-6 rounded bg-slate-700 flex items-center justify-center text-xs font-bold text-white mt-1">2</div>
+                  <div>
+                    <h4 className="text-white font-bold mb-1">실행 중인 숨은 프로세스 끄기 (가장 중요!)</h4>
+                    <p className="text-sm text-slate-400 leading-relaxed">
+                      설치 중 에러가 난다면 배후에서 살아있는 프로세스를 먼저 꺼야 합니다. <br/>
+                      <span className="text-amber-400 font-bold">작업 관리자(Ctrl+Shift+Esc)</span>의 [세부 정보] 탭에서 아래 두 이름을 찾아 <span className="underline">[작업 끝내기]</span> 하세요.
+                    </p>
+                    <div className="mt-2 flex gap-2">
+                      <code className="bg-slate-900 px-2 py-1 rounded text-red-300 border border-slate-700 text-xs font-mono">launch_service.exe</code>
+                      <code className="bg-slate-900 px-2 py-1 rounded text-red-300 border border-slate-700 text-xs font-mono">RibbonBridge_Core.exe</code>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 text-left">
+                  <div className="shrink-0 w-6 h-6 rounded bg-slate-700 flex items-center justify-center text-xs font-bold text-white mt-1">3</div>
+                  <div>
+                    <h4 className="text-white font-bold mb-1">최신 설치 파일 실행</h4>
+                    <p className="text-sm text-slate-400 leading-relaxed">
+                      안내 팝업에 나타난 버튼을 통해 <span className="text-emerald-400 font-bold">새로운 버전의 설치 파일</span>을 다시 다운로드하여 설치하세요. 설치가 완료되면 윈도우 시작 시 자동으로 실행됩니다.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
     </div>
