@@ -306,7 +306,7 @@ export function FulfillmentSection({
                     </RadioGroup>
 
                     {messageType === 'ribbon' && recentRibbonMessages && recentRibbonMessages.length > 0 && (
-                        <div className="p-3 bg-muted/30 rounded-md border">
+                        <div className="p-3 bg-muted/30 rounded-md border notranslate" translate="no">
                             <Label className="text-xs text-muted-foreground mb-2 block">기존 메시지 불러오기</Label>
                             <Select onValueChange={(val: string | null) => {
                                 if (!val) return;
@@ -353,7 +353,7 @@ export function FulfillmentSection({
                         ) : (
                             <div className="space-y-2">
                                 {/* 인기 리본 문구 퀵 버튼 */}
-                                <div className="flex flex-wrap gap-1.5 mb-2">
+                                <div className="flex flex-wrap gap-1.5 mb-2 notranslate" translate="no">
                                     {[
                                         { ko: "축발전", zh: "祝發展" },
                                         { ko: "축개업", zh: "祝開業" },
@@ -389,6 +389,8 @@ export function FulfillmentSection({
                                 <Input
                                     value={messageContent}
                                     onChange={(e: any) => setMessageContent(e.target.value)}
+                                    translate="no"
+                                    className="notranslate"
                                     placeholder="메시지 / 보내는분 (예: 축결혼 / 홍길동) - 보내는분 미입력시 주문자명 사용"
                                 />
                                 <p className="text-xs text-muted-foreground">* 메시지와 보내는 분을 '/' 로 구분해서 입력하세요.</p>

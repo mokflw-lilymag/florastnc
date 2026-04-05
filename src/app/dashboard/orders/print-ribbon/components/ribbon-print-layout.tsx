@@ -89,7 +89,8 @@ export function RibbonPrintLayout({ order, initialContent, initialSender }: Ribb
                                 <Input 
                                     value={content} 
                                     onChange={(e) => setContent(e.target.value)} 
-                                    className="h-11 rounded-xl bg-white border-none shadow-sm font-medium"
+                                    translate="no"
+                                    className="h-11 rounded-xl bg-white border-none shadow-sm font-medium notranslate"
                                     placeholder="예: 축발전, 삼가 故人의..."
                                 />
                             </div>
@@ -98,7 +99,8 @@ export function RibbonPrintLayout({ order, initialContent, initialSender }: Ribb
                                 <Input 
                                     value={sender} 
                                     onChange={(e) => setSender(e.target.value)} 
-                                    className="h-11 rounded-xl bg-white border-none shadow-sm font-medium"
+                                    translate="no"
+                                    className="h-11 rounded-xl bg-white border-none shadow-sm font-medium notranslate"
                                     placeholder="예: (주)릴리맥 임직원 일동"
                                 />
                             </div>
@@ -191,8 +193,9 @@ export function RibbonPrintLayout({ order, initialContent, initialSender }: Ribb
                            style={{ width: ribbonWidth, fontFamily }}
                         >
                             <div 
-                                className="writing-vertical-rl text-center font-bold tracking-[0.2em]"
+                                className="writing-vertical-rl text-center font-bold tracking-[0.2em] notranslate"
                                 style={{ fontSize: `${fontSize}pt` }}
+                                translate="no"
                             >
                                 {content}
                             </div>
@@ -204,8 +207,9 @@ export function RibbonPrintLayout({ order, initialContent, initialSender }: Ribb
                            style={{ width: ribbonWidth, fontFamily }}
                         >
                             <div 
-                                className="writing-vertical-rl text-center font-bold tracking-[0.2em]"
+                                className="writing-vertical-rl text-center font-bold tracking-[0.2em] notranslate"
                                 style={{ fontSize: `${fontSize}pt` }}
+                                translate="no"
                             >
                                 {sender}
                             </div>

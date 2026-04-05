@@ -412,7 +412,7 @@ export function OrderEditDialog({ isOpen, onOpenChange, order }: OrderEditDialog
                 <Input value={formData.message.sender} onChange={(e) => handleInputChange('message', 'sender', e.target.value)} placeholder="선택 사항" />
               </div>
               {formData.message.type === 'ribbon' && (
-                <div className="flex flex-wrap gap-1.5 mb-2">
+                <div className="flex flex-wrap gap-1.5 mb-2 notranslate" translate="no">
                   {[
                     { ko: "축발전", zh: "祝發展" },
                     { ko: "축개업", zh: "祝開業" },
@@ -452,7 +452,8 @@ export function OrderEditDialog({ isOpen, onOpenChange, order }: OrderEditDialog
                   value={formData.message.content || ""} 
                   onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleInputChange('message', 'content', e.target.value)} 
                   placeholder={formData.message.type === 'ribbon' ? "경조사어 / 보내는분 (예: 축결혼 / 홍길동)" : "카드에 들어갈 내용을 입력하세요."} 
-                  className="min-h-[100px]"
+                  translate="no"
+                  className="min-h-[100px] notranslate"
                 />
               </div>
             </CardContent>

@@ -86,10 +86,10 @@ export function PhraseManagerDialog({ isOpen, onClose, onChanged }: PhraseManage
           <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700 space-y-3">
             <h3 className="text-xs font-semibold text-slate-300">새로운 상용구 추가</h3>
             <div className="flex flex-col gap-3">
-              <input type="text" placeholder="새로운 카테고리명 작성 (또는 기존 카테고리 입력)" value={newCat} onChange={e => setNewCat(e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white" />
+              <input type="text" placeholder="새로운 카테고리명 작성 (또는 기존 카테고리 입력)" value={newCat} onChange={e => setNewCat(e.target.value)} translate="no" className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white notranslate" />
               <div className="flex gap-2">
-                <input type="text" placeholder="한자/문구 (필수)" value={newText} onChange={e => setNewText(e.target.value)} className="w-1/2 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white" />
-                <input type="text" placeholder="설명 (선택)" value={newDesc} onChange={e => setNewDesc(e.target.value)} className="w-1/2 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white" />
+                <input type="text" placeholder="한자/문구 (필수)" value={newText} onChange={e => setNewText(e.target.value)} translate="no" className="w-1/2 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white notranslate" />
+                <input type="text" placeholder="설명 (선택)" value={newDesc} onChange={e => setNewDesc(e.target.value)} translate="no" className="w-1/2 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white notranslate" />
               </div>
               <button disabled={isLoading} onClick={handeAdd} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2 rounded-lg flex items-center justify-center gap-2 transition-colors">
                 <Plus size={16} /> 데이터베이스에 상용구 저장
@@ -106,7 +106,7 @@ export function PhraseManagerDialog({ isOpen, onClose, onChanged }: PhraseManage
                 <div className="grid grid-cols-2 gap-2 mt-2">
                   {phrases.filter(p => p.category === cat).map(p => (
                     <div key={p.id} className="flex items-center justify-between bg-slate-800 border border-slate-700 px-3 py-2 rounded-lg hover:border-slate-500 group">
-                      <div className="flex flex-col">
+                      <div className="flex flex-col notranslate" translate="no">
                         <span className="text-sm font-semibold text-white leading-tight">{p.text}</span>
                         <span className="text-[10px] text-slate-400">{p.description}</span>
                       </div>

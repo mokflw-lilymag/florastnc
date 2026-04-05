@@ -255,4 +255,14 @@ input[type="text"], input[type="number"], textarea, select {
     font-family: 'GmarketSansBold', sans-serif !important;
     letter-spacing: -0.02em;
   }
+
+  /* 브라우저 자동 번역 제외 클래스 */
+  .notranslate {
+    translate: no !important;
+  }
+}
+
+/* 글로벌 입력 요소 자동 번역 방지 기본값 (Shadow DOM 등 대비) */
+input[translate="no"], textarea[translate="no"] {
+  unicode-bidi: isolate;
 }

@@ -489,8 +489,9 @@ const RibbonCanvas = ({
   return (
     <div 
       onClick={onClick}
+      translate="no"
       className={cn(
-        "relative flex justify-center transition-all duration-300",
+        "relative flex justify-center transition-all duration-300 notranslate",
         isActive ? "ring-4 ring-blue-500 shadow-[0_0_30px_rgba(59,130,246,0.3)] z-10" : "hover:scale-[1.01] cursor-pointer"
       )}
       style={{
@@ -1881,7 +1882,8 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
           <input 
             type="text" value={leftText} 
             onChange={e => setLeftText(e.target.value)} onFocus={() => setActiveSide('left')}
-            className="w-full p-2.5 rounded-xl text-sm font-bold bg-slate-850 border border-slate-700 text-white focus:ring-2 ring-blue-500/50 outline-none" placeholder="내용 입력"
+            translate="no"
+            className="w-full p-2.5 rounded-xl text-sm font-bold bg-slate-850 border border-slate-700 text-white focus:ring-2 ring-blue-500/50 outline-none notranslate" placeholder="내용 입력"
           />
           <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700 flex flex-col gap-3">
             <div className="flex items-center justify-between">
@@ -1923,7 +1925,8 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
           <input 
             type="text" value={rightText} 
             onChange={e => setRightText(e.target.value)} onFocus={() => setActiveSide('right')}
-            className="w-full p-2.5 rounded-xl text-sm font-bold bg-slate-850 border border-slate-700 text-white focus:ring-2 ring-emerald-500/50 outline-none" placeholder="내용 입력"
+            translate="no"
+            className="w-full p-2.5 rounded-xl text-sm font-bold bg-slate-850 border border-slate-700 text-white focus:ring-2 ring-emerald-500/50 outline-none notranslate" placeholder="내용 입력"
           />
           <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700 flex flex-col gap-3">
              <div className="flex items-center justify-between">
@@ -1966,7 +1969,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
                {phraseCategories.map((cat, idx) => <option key={idx} value={idx}>{cat.name.split(' ')[1] || cat.name}</option>)}
              </select>
           </div>
-          <div className="grid grid-cols-2 gap-1.5 max-h-40 overflow-y-auto pr-1">
+          <div className="grid grid-cols-2 gap-1.5 max-h-40 overflow-y-auto pr-1 notranslate" translate="no">
             {phraseCategories[phraseCategory]?.phrases.map((item, idx) => (
                <button key={idx} onClick={() => { if (activeSide === 'left') setLeftText(item.text); else setRightText(item.text); }} className="bg-slate-900 hover:bg-blue-900/40 border border-slate-700 hover:border-blue-500 rounded p-2 text-center transition-all group">
                  <span className="text-[11px] font-bold text-slate-200 block truncate group-hover:text-blue-300">{item.text}</span>
@@ -1979,7 +1982,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
         {/* 10. 특수 기호 */}
         <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700 mt-4">
           <h3 className="text-xs font-bold text-slate-300 mb-2">특수 기호</h3>
-          <div className="grid grid-cols-6 gap-1">
+          <div className="grid grid-cols-6 gap-1 notranslate" translate="no">
             {SYMBOL_BANK.map(sym => (
                <button key={sym} onClick={() => insertSymbol(sym)} className="bg-slate-900 hover:bg-blue-600 border border-slate-700 hover:border-blue-500 rounded py-1.5 text-xs text-slate-300 hover:text-white transition-colors">
                  {sym}
