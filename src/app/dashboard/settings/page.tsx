@@ -1410,6 +1410,34 @@ export default function SettingsPage() {
                   </div>
                 </div>
               )}
+
+              {/* 강력 브릿지 초기화 도구 */}
+              <div className="mt-4 p-5 rounded-2xl border border-rose-100 bg-rose-50/30 flex items-start gap-4">
+                <div className="p-2 bg-rose-100 rounded-lg text-rose-600">
+                  <RefreshCw className="h-5 w-5" />
+                </div>
+                <div className="flex-1 space-y-2">
+                  <h4 className="font-bold text-rose-900 text-sm flex items-center gap-2">
+                    브릿지 강력 청소 및 재설치 도구
+                    <Badge className="bg-rose-500 border-0 text-[10px] px-1.5 py-0">Troubleshooting</Badge>
+                  </h4>
+                  <p className="text-xs text-rose-800/70 leading-relaxed max-w-xl">
+                    프린터 연결이 계속 끊기거나 상태가 갱신되지 않을 때 사용하세요. 
+                    백그라운드에 꼬여있는 기존 브릿지 프로세스를 강제로 완전히 종료(Nuclear Cleanup)한 뒤, 최신 버전을 자동으로 다시 받아 설치합니다.
+                  </p>
+                  <Button 
+                    variant="default" 
+                    size="sm"
+                    className="bg-rose-600 hover:bg-rose-700 mt-2 text-white shadow-md shadow-rose-200"
+                    onClick={() => {
+                      window.location.href = "/api/bridge-reset?v=25.0";
+                      toast.success("초기화 스크립트를 다운로드합니다. 관리자 권한으로 실행하신 후 브라우저를 새로고침 해주세요.", { duration: 6000 });
+                    }}
+                  >
+                    핵심 프로세스 강제 정리 및 재설치 실행
+                  </Button>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
