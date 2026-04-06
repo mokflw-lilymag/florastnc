@@ -19,32 +19,32 @@ export function Hero() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#2D736A] opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-[#1B4B43]"></span>
             </span>
-            K-플라워 비즈니스의 시작
+            세상에 없던 꽃집 전문 ERP
           </div>
           <h1 className="text-4xl md:text-6xl font-extrabold text-slate-900 tracking-tight leading-[1.15] mb-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            복잡한 사무 업무는 <br />
+            평범한 꽃집, <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#1B4B43] to-[#429381]">
-              Florasync에 맡기세요.
+              첨단 비즈니스로 거듭나다.
             </span>
           </h1>
           <p className="text-lg md:text-xl text-slate-600 mb-10 max-w-2xl mx-auto lg:mx-0 leading-relaxed animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100">
-            주문 접수, 세금 계산, 고객 정산까지. 꽃 시장 다녀오고 작품 만들기에도 바쁜 플로리스트를 위해 번거로운 행정 업무를 완벽하게 자동화합니다.
+            포스(POS) 연동부터 카카오T 퀵 배송 호출, 복잡한 세금 정산까지. 꽃 시장 다녀오고 작품 만들 시간도 부족한 당신을 위해 설계된 가장 완벽하고 혁신적인 플로리스트 전용 플랫폼입니다.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 animate-in fade-in slide-in-from-bottom-10 duration-700 delay-200">
             <Link 
               href="/login" 
               className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-[#1B4B43] text-white font-bold text-lg hover:bg-[#2D736A] hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex items-center justify-center gap-2"
             >
-              대시보드 시작하기 <ArrowRight size={20} />
+              새로운 시대 시작하기 <ArrowRight size={20} />
             </Link>
           </div>
           
           <div className="mt-10 flex items-center justify-center lg:justify-start gap-8 text-sm font-medium text-slate-500 animate-in fade-in duration-700 delay-500">
             <div className="flex items-center gap-2">
-              <CheckCircle2 size={18} className="text-[#2D736A]" /> 매출/정산 자동화
+              <CheckCircle2 size={18} className="text-[#2D736A]" /> POS 및 카카오T 파크 연동
             </div>
             <div className="flex items-center gap-2">
-              <CheckCircle2 size={18} className="text-[#2D736A]" /> 주문/고객 영구 관리
+              <CheckCircle2 size={18} className="text-[#2D736A]" /> 100% 클라우드 리본 출력
             </div>
           </div>
         </div>
