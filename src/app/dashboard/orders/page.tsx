@@ -104,6 +104,7 @@ export default function OrdersPage() {
   const [isOrderEditOpen, setIsOrderEditOpen] = useState(false);
   const [isOutsourceOpen, setIsOutsourceOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isMessagePrintOpen, setIsMessagePrintOpen] = useState(false);
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);

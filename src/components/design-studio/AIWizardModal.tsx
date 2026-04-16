@@ -184,7 +184,7 @@ export const AIWizardModal: React.FC<AIWizardModalProps> = ({ isOpen, onClose })
 
               <div className="flex flex-col gap-3 pt-4">
                 <button 
-                  onClick={() => setIsAiWizardOpen(false)}
+                  onClick={() => onClose()}
                   className="w-full py-5 bg-black text-white rounded-3xl font-black text-base shadow-xl hover:bg-gray-900 transition-all flex items-center justify-center gap-3"
                 >
                   선택한 디자인 적용 <ArrowRight size={20} />

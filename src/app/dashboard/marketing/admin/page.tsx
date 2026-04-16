@@ -88,7 +88,7 @@ export default function MarketingAdmin() {
               description="Meta for Developers에서 발급받은 App ID 및 Secret Key"
               configKey="meta_api_config"
               data={config.meta_api_config || { appId: '', appSecret: '' }}
-              onSave={(val) => handleSave('meta_api_config', val)}
+              onSave={(val: any) => handleSave('meta_api_config', val)}
             />
             <PlatformCard 
               title="Naver Developers" 
@@ -96,7 +96,7 @@ export default function MarketingAdmin() {
               description="네이버 블로그/검색 광고 API 제어용 키"
               configKey="naver_api_config"
               data={config.naver_api_config || { clientId: '', clientSecret: '' }}
-              onSave={(val) => handleSave('naver_api_config', val)}
+              onSave={(val: any) => handleSave('naver_api_config', val)}
             />
             <PlatformCard 
               title="YouTube / Google" 
@@ -104,7 +104,7 @@ export default function MarketingAdmin() {
               description="YouTube Shorts 업로드 및 Google Ads 제어"
               configKey="google_api_config"
               data={config.google_api_config || { apiKey: '', clientId: '' }}
-              onSave={(val) => handleSave('google_api_config', val)}
+              onSave={(val: any) => handleSave('google_api_config', val)}
             />
             <PlatformCard 
               title="TikTok for Business" 
@@ -112,7 +112,7 @@ export default function MarketingAdmin() {
               description="TikTok 비디오 업로드 및 트렌드 분석 API"
               configKey="tiktok_api_config"
               data={config.tiktok_api_config || { clientKey: '', clientSecret: '' }}
-              onSave={(val) => handleSave('tiktok_api_config', val)}
+              onSave={(val: any) => handleSave('tiktok_api_config', val)}
             />
           </div>
         </TabsContent>

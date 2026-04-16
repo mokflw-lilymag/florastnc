@@ -231,7 +231,7 @@ function DesignStudioContent() {
           backgroundUrl: state.backgroundUrl,
           frontBackgroundUrl: state.frontBackgroundUrl,
           backBackgroundUrl: state.backBackgroundUrl,
-          textBlocks: state.textBlocks,
+          textBlocks: state.textBlocks.map(tb => ({ ...tb, size: tb.fontSize })),
           imageBlocks: state.imageBlocks
         }]
       });
