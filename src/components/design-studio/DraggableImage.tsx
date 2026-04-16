@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useRef, useState } from 'react';
 import { useEditorStore } from '@/stores/design-store';
@@ -100,7 +100,7 @@ export const DraggableImage: React.FC<DraggableImageProps> = ({
     height: `${height * zoom}px`,
     cursor: isDragging ? 'grabbing' : 'grab',
     border: isSelected ? '2px solid #3b82f6' : '1px dashed transparent',
-    transform: `rotate(${rotation || 0}deg)`, // Top-left origin, but still rotate around center
+    transform: `translate(-50%, -50%) rotate(${rotation || 0}deg)`, // Center anchored
     transformOrigin: 'center center',
     display: 'flex',
     alignItems: 'center',

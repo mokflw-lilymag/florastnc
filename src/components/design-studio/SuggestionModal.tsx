@@ -2,10 +2,10 @@
 
 import React, { useState } from 'react';
 import { X, MessageSquareText, Sparkles, Languages, Check, ArrowRight } from 'lucide-react';
-import { 
-  CATEGORY_LABELS, 
-  MESSAGE_SUGGESTIONS, 
-  QUOTE_SUGGESTIONS 
+import {
+  CATEGORY_LABELS,
+  MESSAGE_SUGGESTIONS,
+  QUOTE_SUGGESTIONS
 } from '@/lib/constants/ContentSuggestions';
 import { useEditorStore } from '@/stores/design-store';
 
@@ -16,16 +16,17 @@ interface SuggestionModalProps {
 }
 
 export const SuggestionModal: React.FC<SuggestionModalProps> = ({ isOpen, onClose, type }) => {
-  const { 
-    addTextBlock, 
-    removeTextBlock, 
-    suggestedQuoteBlockId, 
+  const {
+    addTextBlock,
+    removeTextBlock,
+    suggestedQuoteBlockId,
     setSuggestedQuoteBlockId,
     suggestedMessageBlockId,
     setSuggestedMessageBlockId,
     currentDimension,
     foldType,
     margins,
+    activePage,
     setActivePage,
     setSelectedBlockId,
     selectedPresetId
@@ -39,67 +40,77 @@ export const SuggestionModal: React.FC<SuggestionModalProps> = ({ isOpen, onClos
   const handleSelect = (suggestion: any) => {
     const isFolding = foldType === 'half';
     const isLandscape = currentDimension.widthMm > currentDimension.heightMm;
-    let startX = currentDimension.widthMm / 2;
-    let startY = currentDimension.heightMm / 2;
-    let width = currentDimension.widthMm - (margins.left + margins.right);
+    const isInsidePage = activePage === 'inside';
     const isLabel = selectedPresetId?.startsWith('formtec-');
+
+    let startX = (margins.left + (currentDimension.widthMm - margins.right)) / 2;
+    let startY = (margins.top + (currentDimension.heightMm - margins.bottom)) / 2;
+    let width = (currentDimension.widthMm - margins.left - margins.right) - 10;
 
     if (type === 'quote') {
       if (isFolding) {
         if (isLandscape) {
+          // 가로 접이의 왼쪽 면 정밀 중앙: (여백 ~ 접힘선)의 중간
           startX = (margins.left + (currentDimension.widthMm / 2)) / 2;
-          width = (currentDimension.widthMm / 2) - (margins.left + margins.right);
+          width = (currentDimension.widthMm / 2) - margins.left - 10;
         } else {
+          // 세로 접이의 상단 면 정밀 중앙: (여백 ~ 접힘선)의 중간
           startY = (margins.top + (currentDimension.heightMm / 2)) / 2;
+          width = currentDimension.widthMm - margins.left - margins.right - 10;
         }
       }
+
       if (suggestedQuoteBlockId) removeTextBlock(suggestedQuoteBlockId);
       const id = addTextBlock({
         text: suggestion.content + (suggestion.author ? `\n\n- ${suggestion.author} -` : ''),
         x: startX,
         y: startY,
-        fontSize: 16,
+        fontSize: 14,
         textAlign: 'center',
-        colorHex: '#ffffff',
-        strokeWidth: 0.5,
-        strokeColor: '#000000',
-        fontFamily: "'Nanum Pen Script', cursive",
-        opacity: 0.8,
+        colorHex: isInsidePage ? '#1e293b' : '#ffffff',
+        strokeWidth: isInsidePage ? 0 : 0.5,
+        strokeColor: isInsidePage ? 'transparent' : '#000000',
+        fontFamily: "'Gowun Batang', serif",
+        opacity: isInsidePage ? 1.0 : 0.8,
         width: width,
         lineHeight: 1.6,
-        textShadow: 'rgba(0,0,0,0.5) 0px 2px 4px'
+        textShadow: isInsidePage ? 'none' : 'rgba(0,0,0,0.5) 0px 2px 4px'
       });
       setSuggestedQuoteBlockId(id);
-      if (!isLabel) setActivePage('inside');
-      else setSelectedBlockId(id);
+      if (!isLabel && activePage === 'outside') setActivePage('inside');
+      else if (isLabel) setSelectedBlockId(id);
     } else {
       if (isFolding) {
         if (isLandscape) {
-          startX = ((currentDimension.widthMm / 2) + (currentDimension.widthMm - margins.right)) / 2;
-          width = (currentDimension.widthMm / 2) - (margins.left + margins.right);
+          // 가로 접이의 오른쪽 면 정밀 중앙: (접힘선 ~ 우측 여백 제외 끝)의 중간
+          startX = (currentDimension.widthMm / 2 + (currentDimension.widthMm - margins.right)) / 2;
+          width = (currentDimension.widthMm / 2) - margins.right - 10;
         } else {
-          startY = ((currentDimension.heightMm / 2) + (currentDimension.heightMm - margins.bottom)) / 2;
+          // 세로 접이의 하단 면 정밀 중앙: (접힘선 ~ 하단 여백 제외 끝)의 중간
+          startY = (currentDimension.heightMm / 2 + (currentDimension.heightMm - margins.bottom)) / 2;
+          width = currentDimension.widthMm - margins.left - margins.right - 10;
         }
       }
+
       if (suggestedMessageBlockId) removeTextBlock(suggestedMessageBlockId);
       const id = addTextBlock({
         text: suggestion.content,
         x: startX,
         y: startY,
-        fontSize: 20,
+        fontSize: 15, // [교정] 조건 없이 기본 15px로 고정
         textAlign: 'center',
-        colorHex: '#ffffff',
-        strokeWidth: 0.5,
-        strokeColor: '#000000',
-        fontFamily: "'Nanum Pen Script', cursive",
+        colorHex: isInsidePage ? '#000000' : '#ffffff',
+        strokeWidth: isInsidePage ? 0 : 0.5,
+        strokeColor: isInsidePage ? 'transparent' : '#000000',
+        fontFamily: "'Gowun Batang', serif",
         opacity: 1.0,
         width: width,
         lineHeight: 1.6,
-        textShadow: 'rgba(0,0,0,0.5) 0px 2px 4px'
+        textShadow: isInsidePage ? 'none' : 'rgba(0,0,0,0.5) 0px 2px 4px'
       });
       setSuggestedMessageBlockId(id);
-      if (!isLabel) setActivePage('inside');
-      else setSelectedBlockId(id);
+      if (!isLabel && activePage === 'outside') setActivePage('inside');
+      else if (isLabel) setSelectedBlockId(id);
     }
     onClose();
   };
@@ -118,7 +129,7 @@ export const SuggestionModal: React.FC<SuggestionModalProps> = ({ isOpen, onClos
             </div>
             <div>
               <h3 className="text-xl font-black text-gray-800 tracking-tight">
-                {type === 'quote' ? '감성 명언 라이브러리' : '추천 메시지 찾기'}
+                {type === 'quote' ? '명언 라이브러리' : '추천 메시지 찾기'}
               </h3>
               <p className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.2em] mt-1">PRO-CONTENT LIBRARY</p>
             </div>
@@ -137,11 +148,10 @@ export const SuggestionModal: React.FC<SuggestionModalProps> = ({ isOpen, onClos
                 <button
                   key={key}
                   onClick={() => setSelectedCategory(key)}
-                  className={`w-full px-5 py-3.5 text-left text-sm font-black rounded-[1.25rem] transition-all flex items-center justify-between group ${
-                    selectedCategory === key 
-                      ? (type === 'quote' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-100' : 'bg-blue-500 text-white shadow-lg shadow-blue-100')
-                      : 'text-gray-500 hover:bg-white hover:text-gray-800 border border-transparent hover:border-gray-200'
-                  }`}
+                  className={`w-full px-5 py-3.5 text-left text-sm font-black rounded-[1.25rem] transition-all flex items-center justify-between group ${selectedCategory === key
+                    ? (type === 'quote' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-100' : 'bg-blue-500 text-white shadow-lg shadow-blue-100')
+                    : 'text-gray-500 hover:bg-white hover:text-gray-800 border border-transparent hover:border-gray-200'
+                    }`}
                 >
                   <span>{label}</span>
                   {selectedCategory === key && <ArrowRight size={14} className="animate-pulse" />}
@@ -158,14 +168,14 @@ export const SuggestionModal: React.FC<SuggestionModalProps> = ({ isOpen, onClos
                 <Languages size={14} /> LANGUAGE SELECT
               </div>
               <div className="flex p-1 bg-gray-100 rounded-xl">
-                <button 
-                  onClick={() => setSelectedLang('ko')} 
+                <button
+                  onClick={() => setSelectedLang('ko')}
                   className={`px-6 py-1.5 text-xs font-black rounded-lg transition-all ${selectedLang === 'ko' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
                 >
                   한국어
                 </button>
-                <button 
-                  onClick={() => setSelectedLang('en')} 
+                <button
+                  onClick={() => setSelectedLang('en')}
                   className={`px-6 py-1.5 text-xs font-black rounded-lg transition-all ${selectedLang === 'en' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
                 >
                   English
@@ -179,14 +189,13 @@ export const SuggestionModal: React.FC<SuggestionModalProps> = ({ isOpen, onClos
                 <button
                   key={suggestion.id}
                   onClick={() => handleSelect(suggestion)}
-                  className={`group relative p-8 transition-all bg-white rounded-[2rem] border border-gray-100 flex flex-col text-left shadow-sm hover:shadow-2xl hover:-translate-y-1 active:scale-95 duration-300 ${
-                    type === 'quote' ? 'hover:border-emerald-200' : 'hover:border-blue-200'
-                  }`}
+                  className={`group relative p-8 transition-all bg-white rounded-[2rem] border border-gray-100 flex flex-col text-left shadow-sm hover:shadow-2xl hover:-translate-y-1 active:scale-95 duration-300 ${type === 'quote' ? 'hover:border-emerald-200' : 'hover:border-blue-200'
+                    }`}
                 >
                   <p className="text-[15px] text-gray-700 leading-relaxed whitespace-pre-wrap font-medium">
                     {suggestion.content}
                   </p>
-                  
+
                   {suggestion.author && (
                     <div className="mt-6 pt-4 border-t border-gray-50 text-right">
                       <span className="text-xs font-black text-gray-400 italic">― {suggestion.author}</span>
@@ -194,14 +203,13 @@ export const SuggestionModal: React.FC<SuggestionModalProps> = ({ isOpen, onClos
                   )}
 
                   {/* Hover Overlay Icon */}
-                  <div className={`absolute bottom-6 left-6 opacity-0 group-hover:opacity-100 transition-opacity p-2 rounded-xl text-white ${
-                    type === 'quote' ? 'bg-emerald-500' : 'bg-blue-500'
-                  }`}>
+                  <div className={`absolute bottom-6 left-6 opacity-0 group-hover:opacity-100 transition-opacity p-2 rounded-xl text-white ${type === 'quote' ? 'bg-emerald-500' : 'bg-blue-500'
+                    }`}>
                     <Check size={16} strokeWidth={3} />
                   </div>
                 </button>
               ))}
-              
+
               {suggestions.length === 0 && (
                 <div className="col-span-full py-24 flex flex-col items-center justify-center text-gray-300 animate-pulse">
                   <MessageSquareText size={48} className="mb-4 opacity-10" />
@@ -212,7 +220,7 @@ export const SuggestionModal: React.FC<SuggestionModalProps> = ({ isOpen, onClos
           </div>
         </div>
       </div>
-      
+
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar { width: 5px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }

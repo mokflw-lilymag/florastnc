@@ -6,32 +6,35 @@ import { createClient } from '@/utils/supabase/client';
 // --- Smart Utility: Auto-fitting and Line Breaking ---
 export const smartFitText = (text: string, maxWidthMm: number, baseFontSize: number) => {
   if (!text) return { text: '', fontSize: baseFontSize };
-  
-  // 1. 지능형 줄바꿈 (한국어 조사 기반)
+
+  // 1. 지능형 줄바꿈 고도화 (이미 줄바꿈이 있거나 텍스트가 짧으면 수행하지 않음)
   let processedText = text;
-  if (text.length > 15 && !text.includes('\n')) {
-    const splitPoints = text.match(/[가-힣]+[은|는|이|가|을|를|에|와|과|도]/g);
-    if (splitPoints && splitPoints.length > 0) {
-      const point = splitPoints[Math.floor(splitPoints.length / 2)];
-      processedText = text.replace(point, point + '\n');
+  if (text.length > 20 && !text.includes('\n')) {
+    // 한국어 조사 및 공백 기반 분할 지점 탐색
+    const words = text.split(' ');
+    if (words.length > 3) {
+      const mid = Math.floor(words.length / 2);
+      processedText = words.slice(0, mid).join(' ') + '\n' + words.slice(mid).join(' ');
     } else {
-      const words = text.split(' ');
-      if (words.length > 1) {
-        const mid = Math.floor(words.length / 2);
-        processedText = words.slice(0, mid).join(' ') + '\n' + words.slice(mid).join(' ');
+      // 아주 긴 단어 하나만 있는 특수한 경우를 위한 방어 로직
+      const splitPoints = text.match(/[가-힣]{2,}[은|는|이|가|을|를|에|와|과|도]/g);
+      if (splitPoints && splitPoints.length > 0) {
+        const point = splitPoints[Math.floor(splitPoints.length / 2)];
+        processedText = text.replace(point, point + '\n');
       }
     }
   }
 
-  // 2. 가변 폰트 사이즈 계산
+  // 2. 가변 폰트 사이즈 계산 (너비에 맞춰 자동으로 줄어듦)
   let adjustedSize = baseFontSize;
   const lines = processedText.split('\n');
   const longestLine = Math.max(...lines.map(l => l.length));
-  
-  if (longestLine > 12) adjustedSize = baseFontSize * (12 / longestLine);
+
+  // 기준을 좀 더 넉넉하게 조정
+  if (longestLine > 15) adjustedSize = baseFontSize * (15 / longestLine);
   if (lines.length > 2) adjustedSize = adjustedSize * (2 / lines.length);
 
-  return { text: processedText, fontSize: Math.max(adjustedSize, 8) };
+  return { text: processedText, fontSize: Math.max(adjustedSize, 7) };
 };
 
 const supabase = createClient();
@@ -66,6 +69,7 @@ export interface ImageBlock {
   isPrintable: boolean;
   zIndex?: number;
   rotation?: number; // 회전 (도)
+  opacity?: number; // 투명도 (0~1)
 }
 
 export interface Dimension {
@@ -103,10 +107,10 @@ export interface BrandingOptions {
 
 interface EditorState {
   currentDimension: Dimension;
-  selectedPresetId: string; // 추가: 현재 선택된 용지 규격 ID
+  selectedPresetId: string | null; // 추가: 현재 선택된 용지 규격 ID
   orientation: Orientation;
   foldType: FoldType;
-  
+
   // Current active page data
   activePage: 'outside' | 'inside';
   backgroundUrl: string | null;
@@ -115,18 +119,18 @@ interface EditorState {
   textBlocks: TextBlock[];
   imageBlocks: ImageBlock[];
   margins: { top: number; right: number; bottom: number; left: number };
-  
+
   // Full pages data
   pages: {
     outside: PageData;
     inside: PageData;
   };
-  
+
   selectedBlockId: string | null;
   selectedBlockIds: string[]; // 다중 선택 지원
   designId: string | null;
   showFoldingGuide: boolean;
-  
+
   // Recipient and Sender info
   recipientName: string;
   senderName: string;
@@ -165,12 +169,12 @@ interface EditorState {
   updateTextBlockPosition: (id: string, x: number, y: number) => void;
   updateTextBlockContent: (id: string, updates: Partial<TextBlock>) => void;
   removeTextBlock: (id: string) => void;
-  
+
   addImageBlock: (block: Omit<ImageBlock, 'id'>) => string;
   updateImageBlockPosition: (id: string, x: number, y: number) => void;
   updateImageBlockContent: (id: string, updates: Partial<ImageBlock>) => void;
   removeImageBlock: (id: string) => void;
-  
+
   setSelectedBlockId: (id: string | null) => void;
   setSelectedBlockIds: (ids: string[]) => void;
   toggleBlockSelection: (id: string) => void;
@@ -198,26 +202,26 @@ export const useEditorStore = create<EditorState>()(
       selectedPresetId: 'a5',
       orientation: 'landscape',
       foldType: 'half',
-      
+
       activePage: 'outside',
       backgroundUrl: null,
       frontBackgroundUrl: null,
       backBackgroundUrl: null,
       textBlocks: [],
       imageBlocks: [],
-      margins: { top: 5, right: 5, bottom: 5, left: 5 },
+      margins: { top: 15, right: 15, bottom: 15, left: 15 },
       pages: {
-        outside: { backgroundUrl: null, frontBackgroundUrl: null, backBackgroundUrl: null, textBlocks: [], imageBlocks: [], margins: { top: 5, right: 5, bottom: 5, left: 5 } },
-        inside: { backgroundUrl: null, frontBackgroundUrl: null, backBackgroundUrl: null, textBlocks: [], imageBlocks: [], margins: { top: 5, right: 5, bottom: 5, left: 5 } }
+        outside: { backgroundUrl: null, frontBackgroundUrl: null, backBackgroundUrl: null, textBlocks: [], imageBlocks: [], margins: { top: 15, right: 15, bottom: 15, left: 15 } },
+        inside: { backgroundUrl: null, frontBackgroundUrl: null, backBackgroundUrl: null, textBlocks: [], imageBlocks: [], margins: { top: 15, right: 15, bottom: 15, left: 15 } }
       },
-      
-      shopSettings: { name: '', tel: '', address: '', sns: '', logoUrl: null },
+
+      shopSettings: { name: '', tel: '', address: '', website: '', sns: '', logoUrl: null },
       selectedBlockId: null,
       selectedBlockIds: [],
       designId: null,
       tenantId: null,
       showFoldingGuide: true,
-      
+
       recipientName: '받는 분',
       senderName: '보내는 분',
       showToField: false,
@@ -247,30 +251,102 @@ export const useEditorStore = create<EditorState>()(
         showToField: false,
         showFromField: false,
         pages: {
-          outside: { 
+          outside: {
             ...state.pages.outside,
-            backgroundUrl: null, frontBackgroundUrl: null, backBackgroundUrl: null, 
-            textBlocks: [], imageBlocks: [] 
+            backgroundUrl: null, frontBackgroundUrl: null, backBackgroundUrl: null,
+            textBlocks: [], imageBlocks: []
           },
-          inside: { 
+          inside: {
             ...state.pages.inside,
-            backgroundUrl: null, frontBackgroundUrl: null, backBackgroundUrl: null, 
-            textBlocks: [], imageBlocks: [] 
+            backgroundUrl: null, frontBackgroundUrl: null, backBackgroundUrl: null,
+            textBlocks: [], imageBlocks: []
           }
         }
       })),
 
       setZoom: (zoom) => set({ zoom }),
       setIsGenerating: (is) => set({ isGenerating: is }),
-      setRecipientName: (name) => set({ recipientName: name }),
-      setSenderName: (name) => set({ senderName: name }),
-      setShowToField: (show) => set({ showToField: show }),
-      setShowFromField: (show) => set({ showFromField: show }),
+      setRecipientName: (name) => {
+        const state = get();
+        set({ recipientName: name });
+        if (state.toBlockId) {
+          state.updateTextBlockContent(state.toBlockId, { text: `To. ${name}` });
+        }
+      },
+      setSenderName: (name) => {
+        const state = get();
+        set({ senderName: name });
+        if (state.fromBlockId) {
+          state.updateTextBlockContent(state.fromBlockId, { text: `From. ${name}` });
+        }
+      },
+      setShowToField: (show) => {
+        const state = get();
+        if (show === state.showToField) return;
+
+        if (show) {
+          const { widthMm } = state.currentDimension;
+          const { margins } = state;
+          const isLandscape = widthMm > state.currentDimension.heightMm;
+
+          // 우측 상단 배치 (정밀 계산)
+          const blockWidth = (widthMm / 2) - margins.right - 20;
+          const x = isLandscape
+            ? (widthMm / 2 + (widthMm - margins.right)) / 2
+            : margins.left;
+          const y = margins.top + 10;
+
+          const id = state.addTextBlock({
+            text: `To. ${state.recipientName || '수령인'}`,
+            x, y,
+            fontSize: 14,
+            width: blockWidth,
+            textAlign: isLandscape ? 'center' : 'left',
+            colorHex: '#1e293b',
+            fontFamily: "'Gowun Batang', serif"
+          });
+          set({ showToField: true, toBlockId: id });
+        } else {
+          if (state.toBlockId) state.removeTextBlock(state.toBlockId);
+          set({ showToField: false, toBlockId: null });
+        }
+      },
+      setShowFromField: (show) => {
+        const state = get();
+        if (show === state.showFromField) return;
+
+        if (show) {
+          const { widthMm, heightMm } = state.currentDimension;
+          const { margins } = state;
+          const isLandscape = widthMm > heightMm;
+
+          // 우측 하단 배치 (정밀 계산)
+          const blockWidth = (widthMm / 2) - margins.right - 20;
+          const x = isLandscape
+            ? (widthMm / 2 + (widthMm - margins.right)) / 2
+            : widthMm - margins.right;
+          const y = heightMm - margins.bottom - 20;
+
+          const id = state.addTextBlock({
+            text: `From. ${state.senderName || '발신인'}`,
+            x, y,
+            fontSize: 12,
+            width: blockWidth,
+            textAlign: isLandscape ? 'center' : 'right',
+            colorHex: '#475569',
+            fontFamily: "'Gowun Batang', serif"
+          });
+          set({ showFromField: true, fromBlockId: id });
+        } else {
+          if (state.fromBlockId) state.removeTextBlock(state.fromBlockId);
+          set({ showFromField: false, fromBlockId: null });
+        }
+      },
       setToBlockId: (id) => set({ toBlockId: id }),
       setFromBlockId: (id) => set({ fromBlockId: id }),
       setSuggestedMessageBlockId: (id) => set({ suggestedMessageBlockId: id }),
       setSuggestedQuoteBlockId: (id) => set({ suggestedQuoteBlockId: id }),
-      
+
       setActivePage: (page) => {
         const state = get();
         if (state.activePage === page) return;
@@ -362,8 +438,8 @@ export const useEditorStore = create<EditorState>()(
           }
         };
 
-        return { 
-          currentDimension: dimension, 
+        return {
+          currentDimension: dimension,
           selectedPresetId: presetId || null,
           foldType: newFoldType,
           margins: newMargins,
@@ -377,11 +453,11 @@ export const useEditorStore = create<EditorState>()(
         const { widthMm, heightMm } = state.currentDimension;
         const isLandscape = orientation === 'landscape';
         if ((widthMm > heightMm) === isLandscape) return { orientation };
-        
+
         const newDimension = { widthMm: heightMm, heightMm: widthMm };
         const scaleX = newDimension.widthMm / widthMm;
         const scaleY = newDimension.heightMm / heightMm;
-        
+
         const scaleTextBlocks = (blocks: TextBlock[]) => blocks.map(b => ({
           ...b,
           x: b.x * scaleX,
@@ -397,7 +473,7 @@ export const useEditorStore = create<EditorState>()(
           width: b.width * scaleX,
           height: b.height * scaleY,
         }));
-        
+
         const updatedPages = {
           outside: { ...state.pages.outside, textBlocks: scaleTextBlocks(state.pages.outside.textBlocks), imageBlocks: scaleImageBlocks(state.pages.outside.imageBlocks) },
           inside: { ...state.pages.inside, textBlocks: scaleTextBlocks(state.pages.inside.textBlocks), imageBlocks: scaleImageBlocks(state.pages.inside.imageBlocks) }
@@ -419,12 +495,16 @@ export const useEditorStore = create<EditorState>()(
       setMargins: (margins) => set({ margins }),
 
       addTextBlock: (block) => {
-        const { text, fontSize } = smartFitText(block.text || '', 80, block.fontSize || 18);
         const newId = `text-${Math.random().toString(36).substr(2, 9)}`;
+
+        // [총괄 교정] 폰트 크기 강제 축소 방지: 넘겨받은 fontSize가 있으면 그대로 사용
+        const { text, fontSize: autoFontSize } = smartFitText(block.text || '', 80, block.fontSize || 18);
+        const finalFontSize = block.fontSize || autoFontSize;
+
         set((state) => {
           const maxZ = Math.max(0, ...state.textBlocks.map(b => b.zIndex || 0), ...state.imageBlocks.map(b => b.zIndex || 0));
           return {
-            textBlocks: [...state.textBlocks, { ...block, id: newId, text, fontSize, zIndex: maxZ + 1 }],
+            textBlocks: [...state.textBlocks, { ...block, id: newId, text, fontSize: finalFontSize, zIndex: maxZ + 1 }],
             selectedBlockId: newId,
             selectedBlockIds: [newId]
           };
@@ -435,12 +515,12 @@ export const useEditorStore = create<EditorState>()(
       updateTextBlockPosition: (id, x, y) => set((state) => {
         const block = state.textBlocks.find(b => b.id === id);
         if (!block) return {};
-        
+
         let finalX = x;
         let finalY = y;
         const { margins, currentDimension, foldType } = state;
         const isLandscape = currentDimension.widthMm > currentDimension.heightMm;
-        
+
         // Clamping logic
         let minX = margins.left;
         let maxX = currentDimension.widthMm - margins.right;
@@ -457,8 +537,8 @@ export const useEditorStore = create<EditorState>()(
           }
         }
 
-        const halfWidth = (block.width || 0) / 2;
-        finalX = Math.max(minX + halfWidth, Math.min(x, maxX - halfWidth));
+        const blockWidth = block.width || 0;
+        finalX = Math.max(minX, Math.min(x, maxX - blockWidth));
         finalY = Math.max(minY, Math.min(y, maxY));
 
         return {
@@ -466,9 +546,23 @@ export const useEditorStore = create<EditorState>()(
         };
       }),
 
-      updateTextBlockContent: (id, updates) => set((state) => ({
-        textBlocks: state.textBlocks.map(b => b.id === id ? { ...b, ...updates } : b)
-      })),
+      updateTextBlockContent: (id, updates) => set((state) => {
+        // [지능형 폰트 동기화] 본문(메시지)이나 수발신자 중 하나의 폰트가 바뀌면 나머지도 같이 변경 (명언은 독립적)
+        const isSyncGroup = id === state.toBlockId || id === state.fromBlockId || id === state.suggestedMessageBlockId;
+
+        if (updates.fontFamily && isSyncGroup) {
+          return {
+            textBlocks: state.textBlocks.map(b => {
+              const shouldSync = b.id === state.toBlockId || b.id === state.fromBlockId || b.id === state.suggestedMessageBlockId;
+              return shouldSync ? { ...b, ...updates } : (b.id === id ? { ...b, ...updates } : b);
+            })
+          };
+        }
+
+        return {
+          textBlocks: state.textBlocks.map(b => b.id === id ? { ...b, ...updates } : b)
+        };
+      }),
 
       removeTextBlock: (id) => set((state) => ({
         textBlocks: state.textBlocks.filter(b => b.id !== id),
@@ -495,10 +589,10 @@ export const useEditorStore = create<EditorState>()(
       updateImageBlockPosition: (id, x, y) => set((state) => {
         const block = state.imageBlocks.find(b => b.id === id);
         if (!block) return {};
-        
+
         const { margins, currentDimension, foldType } = state;
         const isLandscape = currentDimension.widthMm > currentDimension.heightMm;
-        
+
         let minX = margins.left;
         let maxX = currentDimension.widthMm - margins.right;
         let minY = margins.top;
@@ -563,27 +657,31 @@ export const useEditorStore = create<EditorState>()(
           }
         };
 
+        const tenantIdForSave = state.tenantId || 'demo-tenant';
+
         const data: any = {
           dimension: state.currentDimension,
           orientation: state.orientation,
           fold_type: state.foldType,
           pages: updatedPages,
           category: category || 'general',
-          tenant_id: state.tenantId
+          tenant_id: tenantIdForSave
         };
 
         if (state.designId) {
           const { error } = await supabase.from('card_designs').update(data).eq('id', state.designId);
-          if (error) alert('저장 실패: ' + error.message);
-          else alert('성공적으로 저장되었습니다!');
-        } else {
-          if (!state.tenantId) {
-            alert('테넌트 정보가 없어 저장할 수 없습니다.');
-            return;
+          if (error) {
+            console.error('Save update error:', error);
+            alert('저장 실패: ' + error.message);
+          } else {
+            alert('성공적으로 업데이트되었습니다!');
           }
+        } else {
           const { data: inserted, error } = await supabase.from('card_designs').insert(data).select().single();
-          if (error) alert('저장 실패: ' + error.message);
-          else if (inserted) {
+          if (error) {
+            console.error('Save insert error:', error);
+            alert('신규 저장 실패: ' + error.message);
+          } else if (inserted) {
             set({ designId: inserted.id });
             alert('성공적으로 저장되었습니다!');
           }
@@ -598,7 +696,7 @@ export const useEditorStore = create<EditorState>()(
           .select('*')
           .eq('tenant_id', state.tenantId)
           .order('created_at', { ascending: false });
-        
+
         if (error) {
           console.error('List error:', error);
           return [];
@@ -615,7 +713,7 @@ export const useEditorStore = create<EditorState>()(
           .eq('id', id)
           .eq('tenant_id', state.tenantId)
           .single();
-        
+
         if (error || !data) {
           alert('디자인을 불러올 수 없습니다: ' + (error?.message || '조회 실패'));
           return;
@@ -632,7 +730,7 @@ export const useEditorStore = create<EditorState>()(
           backgroundUrl: loadedPages.outside.backgroundUrl,
           textBlocks: loadedPages.outside.textBlocks,
           imageBlocks: loadedPages.outside.imageBlocks,
-          margins: loadedPages.outside.margins || { top: 5, right: 5, bottom: 5, left: 5 },
+          margins: loadedPages.outside.margins || { top: 10, right: 10, bottom: 10, left: 10 },
           selectedBlockId: null
         });
       },
@@ -646,72 +744,67 @@ export const useEditorStore = create<EditorState>()(
       })),
 
       applyShopBranding: (target, options = { logo: true, name: true, tel: true, website: true }) => {
-        const { shopSettings, currentDimension, orientation, foldType, margins, addTextBlock, addImageBlock, setActivePage } = get();
+        const { shopSettings, currentDimension, orientation, foldType, addTextBlock, addImageBlock, setActivePage } = get();
         setActivePage('outside');
-        
+
         const isLandscape = orientation === 'landscape';
         const isFolding = foldType === 'half';
         const { widthMm, heightMm } = currentDimension;
 
-        // ── 1. 대상 섹션의 중앙 X, Y를 계산 ──────────────────────────────
-        // 접이 카드: 'back'는 왼쪽(가로)/위쪽(세로), 'front'는 오른쪽(가로)/아래쪽(세로)
-        // 단면 카드: 전체 캔버스
         let sectionCenterX: number;
         let sectionCenterY: number;
         let rotation = 0;
 
         if (isFolding) {
           if (isLandscape) {
-            // 가로 접이: left half = back, right half = front
-            sectionCenterX = target === 'back' ? widthMm * 0.25 : widthMm * 0.75;
+            const leftPageCenter = widthMm / 4;
+            const rightPageCenter = (widthMm * 3) / 4;
+            sectionCenterX = target === 'back' ? leftPageCenter : rightPageCenter;
             sectionCenterY = heightMm / 2;
           } else {
-            // 세로 접이: top half = back (180°), bottom half = front
             sectionCenterX = widthMm / 2;
+            const topPageCenter = heightMm / 4;
+            const bottomPageCenter = (heightMm * 3) / 4;
             if (target === 'front') {
-              sectionCenterY = heightMm * 0.75;
+              sectionCenterY = bottomPageCenter;
               rotation = 0;
             } else {
-              sectionCenterY = heightMm * 0.25;
-              rotation = 180; // 뒷면은 뒤집혀 인쇄
+              sectionCenterY = topPageCenter;
+              rotation = 180;
             }
           }
         } else {
-          // 단면
           sectionCenterX = widthMm / 2;
           sectionCenterY = heightMm / 2;
         }
 
-        // ── 2. 브랜딩 요소 크기 정의 ─────────────────────────────────────
-        const LOGO_W = 20;     // mm
-        const LOGO_H = 20;     // mm
-        const TEXT_W = 60;     // mm — 텍스트 블록 너비 (x = center - TEXT_W/2)
-        const NAME_H = 7;      // 상호명 텍스트 높이 추정
+        const LOGO_W = 20;
+        const LOGO_H = 20;
+        const TEXT_W = isFolding ? (widthMm / 2 - 20) : (widthMm - 20);
+        const NAME_H = 7;
         const TEL_H = 5;
         const WEB_H = 4;
-        const GAP = 2;         // 요소 간 간격
+        const GAP = 2;
 
-        // ── 3. 전체 브랜딩 블록의 총 높이 계산 ──────────────────────────
         let totalH = 0;
         if (options.logo && shopSettings.logoUrl) totalH += LOGO_H + GAP;
-        if (options.name && shopSettings.name)    totalH += NAME_H + GAP;
-        if (options.tel  && shopSettings.tel)     totalH += TEL_H  + GAP;
+        if (options.name && shopSettings.name) totalH += NAME_H + GAP;
+        if (options.tel && shopSettings.tel) totalH += TEL_H + GAP;
         if (options.website && shopSettings.website) totalH += WEB_H + GAP;
-        if (totalH > 0) totalH -= GAP; // 마지막 GAP 제거
+        if (totalH > 0) totalH -= GAP;
 
-        // ── 4. 시작 Y 위치 (섹션 중앙에서 총 높이의 절반을 뺀 위치) ─────
         let currentY = sectionCenterY - totalH / 2;
 
-        // ── 5. 각 요소 배치 ───────────────────────────────────────────────
         if (options.logo && shopSettings.logoUrl) {
           addImageBlock({
             url: shopSettings.logoUrl,
-            x: sectionCenterX - LOGO_W / 2,  // 이미지는 좌상단 기준 → 중앙 정렬
-            y: currentY,
+            x: sectionCenterX,
+            y: currentY + (LOGO_H / 2),
             width: LOGO_W,
             height: LOGO_H,
             opacity: 1.0,
-            rotation: rotation
+            rotation: rotation,
+            isPrintable: true
           });
           currentY += LOGO_H + GAP;
         }
@@ -719,8 +812,8 @@ export const useEditorStore = create<EditorState>()(
         if (options.name && shopSettings.name) {
           addTextBlock({
             text: shopSettings.name,
-            x: sectionCenterX - TEXT_W / 2,   // 텍스트도 좌상단 기준 → 중앙 정렬
-            y: currentY,
+            x: sectionCenterX,
+            y: currentY + (NAME_H / 2),
             fontSize: 9,
             fontFamily: "'GmarketSansBold', sans-serif",
             textAlign: 'center',
@@ -735,8 +828,8 @@ export const useEditorStore = create<EditorState>()(
         if (options.tel && shopSettings.tel) {
           addTextBlock({
             text: `Tel. ${shopSettings.tel}`,
-            x: sectionCenterX - TEXT_W / 2,
-            y: currentY,
+            x: sectionCenterX,
+            y: currentY + (TEL_H / 2),
             fontSize: 7,
             fontFamily: "'GmarketSansBold', sans-serif",
             textAlign: 'center',
@@ -751,8 +844,8 @@ export const useEditorStore = create<EditorState>()(
         if (options.website && shopSettings.website) {
           addTextBlock({
             text: shopSettings.website,
-            x: sectionCenterX - TEXT_W / 2,
-            y: currentY,
+            x: sectionCenterX,
+            y: currentY + (WEB_H / 2),
             fontSize: 6,
             fontFamily: "'Noto Sans KR', sans-serif",
             textAlign: 'center',
@@ -764,7 +857,7 @@ export const useEditorStore = create<EditorState>()(
         }
       }
     }),
-    { 
+    {
       name: 'florasync-design-studio-storage-v2',
       storage: createJSONStorage(() => ({
         getItem: async (name) => await idbGet(name),

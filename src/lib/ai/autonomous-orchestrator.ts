@@ -70,7 +70,7 @@ export class AutonomousOrchestrator {
       await this.logAgentAction(userId, 'Creative Director', 'Generation', `브랜드 DNA('${persona}')를 주입하여 ${contentType === 'shorts' ? '영상 대본' : '블로그 원고'}를 완성했습니다.`);
 
       // 4. Auditor Agent - Verification
-      const auditResult = await MarketingEngine.auditContent(campaignResult.script || campaignResult.copy, { persona });
+      const auditResult = await MarketingEngine.auditContent((campaignResult as any).script || (campaignResult as any).copy, { persona });
       await this.logAgentAction(userId, 'Auditor', 'Verification', '브랜드 톤앤매너 및 품질 검수를 완료했습니다. 작전 사출 승인.');
 
       // 5. Publisher Agent - Dispatch to n8n

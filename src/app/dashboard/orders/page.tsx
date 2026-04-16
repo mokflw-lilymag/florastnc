@@ -1051,6 +1051,51 @@ export default function OrdersPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* 카드 메시지 출력 대상 선택 모달 (신규 추가) */}
+      <AlertDialog open={isPrintTargetModalOpen} onOpenChange={setIsPrintTargetModalOpen}>
+        <AlertDialogContent className="rounded-[40px] border-none shadow-2xl max-w-md p-10">
+          <AlertDialogHeader>
+            <div className="w-14 h-14 bg-indigo-50 rounded-3xl flex items-center justify-center mb-6">
+               <Printer className="w-7 h-7 text-indigo-600" />
+            </div>
+            <AlertDialogTitle className="text-2xl font-black text-slate-900 tracking-tight">출력 도구 선택</AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-500 font-bold pt-2 leading-relaxed">
+              메시지를 인쇄할 편집 환경을 선택하세요.<br/>
+              전용 시스템으로 자동 연결됩니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="grid grid-cols-2 gap-5 py-8">
+            <button 
+              onClick={() => navigateToDesignStudio('card')}
+              className="flex flex-col items-center justify-center gap-4 p-8 bg-slate-50 hover:bg-indigo-50 border-2 border-transparent hover:border-indigo-100 rounded-[32px] text-slate-900 transition-all group"
+            >
+              <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-indigo-600 shadow-sm group-hover:scale-110 transition-transform">
+                <FileText size={28} />
+              </div>
+              <div className="flex flex-col items-center">
+                <span className="font-black text-sm">기존형 카드</span>
+                <span className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-tighter">Design Studio</span>
+              </div>
+            </button>
+            <button 
+              onClick={() => navigateToDesignStudio('formtec')}
+              className="flex flex-col items-center justify-center gap-4 p-8 bg-slate-50 hover:bg-amber-50 border-2 border-transparent hover:border-amber-100 rounded-[32px] text-slate-900 transition-all group"
+            >
+              <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-amber-600 shadow-sm group-hover:scale-110 transition-transform">
+                <Target size={28} />
+              </div>
+              <div className="flex flex-col items-center">
+                <span className="font-black text-sm">폼텍 라벨</span>
+                <span className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-tighter">Formtec Lable</span>
+              </div>
+            </button>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="w-full rounded-2xl font-bold h-12 border-none bg-slate-100 hover:bg-slate-200 text-slate-500 transition-colors">아니오, 나중에 하겠습니다</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -422,18 +422,20 @@ export default function TaxPage() {
                   {viewYear}년 1월 ~ 12월
                 </CardDescription>
               </CardHeader>
-              <CardContent className="h-[320px]">
-                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                  <BarChart data={monthlyData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#94a3b8" }} />
-                    <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} tickFormatter={(v) => `${(v / 10000).toFixed(0)}만`} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend wrapperStyle={{ fontSize: 11 }} />
-                    <Bar dataKey="수입금액" fill="#6366f1" radius={[6, 6, 0, 0]} />
-                    <Bar dataKey="필요경비" fill="#ef4444" radius={[6, 6, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+              <CardContent className="h-[320px] w-full mt-4">
+                <div className="w-full h-full min-h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%" debounce={50}>
+                    <BarChart data={monthlyData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                      <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#94a3b8" }} />
+                      <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} tickFormatter={(v) => `${(v / 10000).toFixed(0)}만`} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Legend wrapperStyle={{ fontSize: 11 }} />
+                      <Bar dataKey="수입금액" fill="#6366f1" radius={[6, 6, 0, 0]} />
+                      <Bar dataKey="필요경비" fill="#ef4444" radius={[6, 6, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
               </CardContent>
             </Card>
 

@@ -62,9 +62,18 @@ function DesignStudioContent() {
     currentDimension, 
     isGenerating, 
     setIsGenerating, 
-    saveDesign, 
     setTenantId,
-    updateShopSettings
+    updateShopSettings,
+    setRecipientName,
+    setSenderName,
+    setShowToField,
+    setShowFromField,
+    setSuggestedMessageBlockId,
+    setSuggestedQuoteBlockId,
+    setToBlockId,
+    setFromBlockId,
+    setMargins,
+    saveDesign
   } = useEditorStore();
   const { tenantId } = useAuth();
 
@@ -115,6 +124,58 @@ function DesignStudioContent() {
     }
   }, [supabase, tenantId, updateShopSettings, setTenantId]);
 
+  const handlePrintRequest = async () => {
+    if (selectedPresetId?.startsWith('formtec-')) {
+      setIsFormtecModalOpen(true);
+      return;
+    }
+    toast.loading('고해상도 다중 페이지 PDF를 생성하고 있습니다...', { id: 'print-loading' });
+    try {
+      const state = useEditorStore.getState();
+      const allPagesData = [
+        state.activePage === 'outside' 
+          ? { backgroundUrl: state.backgroundUrl, frontBackgroundUrl: state.frontBackgroundUrl, backBackgroundUrl: state.backBackgroundUrl, textBlocks: state.textBlocks, imageBlocks: state.imageBlocks }
+          : state.pages.outside,
+        state.activePage === 'inside'
+          ? { backgroundUrl: state.backgroundUrl, textBlocks: state.textBlocks, imageBlocks: state.imageBlocks }
+          : state.pages.inside
+      ];
+
+      const pdfBytes = await PrintCommander.generatePdf({
+        paperSizeMm: state.currentDimension,
+        margins: { top: 10, right: 10, bottom: 10, left: 10 },
+        pages: allPagesData.map(p => ({
+          ...p,
+          textBlocks: p.textBlocks.map(tb => ({ ...tb, size: tb.fontSize })),
+          imageBlocks: p.imageBlocks?.map(img => ({ ...img, isPrintable: true }))
+        }))
+      });
+      toast.dismiss('print-loading');
+      if (pdfBytes) {
+        PrintCommander.triggerPrintPopup(pdfBytes);
+        toast.success('앞뒷면 PDF 생성이 완료되었습니다.');
+      }
+    } catch (e) {
+      console.error('PDF Generation Error:', e);
+      toast.dismiss('print-loading');
+      toast.error('PDF 생성 중 오류가 발생했습니다.');
+    }
+  };
+
+  const handleSave = async () => {
+    setIsGenerating(true);
+    const state = useEditorStore.getState();
+    try {
+      await state.saveDesign();
+      toast.success('디자인이 클라우드에 저장되었습니다.');
+    } catch (e) {
+      console.error(e);
+      toast.error('저장 중 오류가 발생했습니다.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const isProcessingOrder = React.useRef(false); // 동시성 제어용 즉각 잠금
 
   // Order Details Logic (Auto-placement of order messages)
@@ -161,42 +222,41 @@ function DesignStudioContent() {
 
             const { widthMm, heightMm } = useEditorStore.getState().currentDimension;
             const isCard = !isFormtec;
+            const isInside = useEditorStore.getState().activePage === 'inside';
             
-            // 1. 메시지 처리 및 예상 너비 기반 중앙 좌표 계산
-            const fontSizeMsg = isCard ? 18 : 14;
-            const { text: processedMsg, fontSize: finalFontSizeMsg } = smartFitText(message || '새로운 메시지', 80, fontSizeMsg);
+            // 1. 메시지 처리 및 정확한 중앙 좌표 계산
+            const fontSizeMsg = 15;
+            // [교정] smartFitText 대신 22자마다 자동 줄바꿈 처리 (폰트 크기는 15px 고정)
+            const processedMsg = message.replace(/(.{22})/g, '$1\n').trim(); 
             
-            const msgLines = processedMsg.split('\n');
-            const maxCharsMsg = Math.max(...msgLines.map(l => l.length));
-            const msgExpectedWidth = Math.max(20, maxCharsMsg * finalFontSizeMsg * 0.38) + 10; 
+            const margins = useEditorStore.getState().margins;
+            const msgX = isCard 
+              ? (widthMm * 0.75) 
+              : (widthMm / 2);
+            const msgY = heightMm / 2;
             
-            const msgX = isCard ? (widthMm * 0.75) - (msgExpectedWidth / 2) : (widthMm * 0.5) - (msgExpectedWidth / 2); 
-            const msgY = isCard ? (heightMm * 0.4) : (heightMm * 0.3);
-            
-            addTextBlock({
-              text: processedMsg,
-              x: msgX, y: msgY, fontSize: finalFontSizeMsg, textAlign: 'center',
-              fontFamily: "'Gowun Batang', serif", colorHex: '#000000'
+            const msgId = addTextBlock({
+              text: processedMsg || '새로운 메시지',
+              x: msgX, 
+              y: msgY, 
+              fontSize: 15, // 무조건 15px로 고정
+              textAlign: 'center',
+              fontFamily: "'Gowun Batang', serif", 
+              colorHex: isInside ? '#000000' : '#ffffff',
+              strokeWidth: isInside ? 0 : 0.5,
+              width: isCard ? (widthMm / 2 - margins.right - 20) : (widthMm - margins.left - margins.right - 20)
             });
+            setSuggestedMessageBlockId(msgId);
             
-            // 2. 발신자 처리
+            // 2. 수발신자 처리 (스토어 액션 호출로 캔버스 동기화)
+            const recipient = order.recipient_name || order.recipient?.name || "";
+            if (recipient) {
+              setRecipientName(recipient);
+              setShowToField(true);
+            }
             if (sender) {
-              const fontSizeSender = isCard ? 12 : 10;
-              const senderText = `From. ${sender}`;
-              const { text: processedSender, fontSize: finalFontSizeSender } = smartFitText(senderText, 80, fontSizeSender);
-              
-              const senderLines = processedSender.split('\n');
-              const maxCharsSender = Math.max(...senderLines.map(l => l.length));
-              const senderExpectedWidth = Math.max(20, maxCharsSender * finalFontSizeSender * 0.38) + 10;
-              
-              const senderX = isCard ? (widthMm * 0.75) - (senderExpectedWidth / 2) : (widthMm * 0.5) - (senderExpectedWidth / 2);
-              const senderY = isCard ? (heightMm * 0.6) : (heightMm * 0.6);
-              
-              addTextBlock({
-                text: processedSender,
-                x: senderX, y: senderY, fontSize: finalFontSizeSender, textAlign: 'center',
-                fontFamily: "'Gowun Batang', serif", colorHex: '#475569'
-              });
+              setSenderName(sender);
+              setShowFromField(true);
             }
             // 모든 작업 완료 후 세션 및 스토어 기록
             sessionStorage.setItem(sessionKey, 'true');
@@ -213,55 +273,8 @@ function DesignStudioContent() {
     fetchOrder();
   }, [orderId, currentOrderId, supabase, addTextBlock, resetDesign, setCurrentOrderId, setDimension, setActivePage, printTarget, textBlocks.length]);
 
-  const handlePrintRequest = async () => {
-    if (selectedPresetId?.startsWith('formtec-')) {
-      setIsFormtecModalOpen(true);
-      return;
-    }
-
-    toast.loading('고해상도 PDF를 생성하고 있습니다...', { id: 'print-loading' });
-    try {
-      const state = useEditorStore.getState();
-      const pdfBytes = await PrintCommander.generatePdf({
-        paperSizeMm: {
-          width: state.currentDimension.widthMm,
-          height: state.currentDimension.heightMm
-        },
-        pages: [{
-          backgroundUrl: state.backgroundUrl,
-          frontBackgroundUrl: state.frontBackgroundUrl,
-          backBackgroundUrl: state.backBackgroundUrl,
-          textBlocks: state.textBlocks.map(tb => ({ ...tb, size: tb.fontSize })),
-          imageBlocks: state.imageBlocks
-        }]
-      });
-      
-      toast.dismiss('print-loading');
-      if (pdfBytes) {
-        PrintCommander.triggerPrintPopup(pdfBytes);
-        toast.success('PDF 생성이 완료되었습니다.');
-      }
-    } catch (e) {
-      console.error(e);
-      toast.dismiss('print-loading');
-      toast.error('PDF 생성 중 오류가 발생했습니다.');
-    }
-  };
-
-  const handleSave = async () => {
-    setIsGenerating(true);
-    try {
-      await saveDesign();
-      toast.success('디자인이 클라우드에 성공적으로 저장되었습니다.');
-    } catch (e) {
-      toast.error('저장 중 오류가 발생했습니다.');
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
   return (
-    <div className="flex flex-col h-[calc(100vh-80px)] bg-neutral-50 overflow-hidden rounded-[2.5rem] border border-white shadow-2xl relative">
+    <div className="flex flex-col h-[calc(100vh-80px)] bg-white overflow-hidden relative">
       
       {/* Top Professional Header */}
       <header className="h-20 bg-white/80 backdrop-blur-md border-b border-gray-100 px-8 flex items-center justify-between z-30 shrink-0">
@@ -361,8 +374,8 @@ function DesignStudioContent() {
         <FormtecModal 
           isOpen={isFormtecModalOpen} 
           onClose={() => setIsFormtecModalOpen(false)}
-          config={LABEL_CONFIGS[selectedPresetId]}
-          formtecLabelType={selectedPresetId}
+          config={selectedPresetId ? (LABEL_CONFIGS as any)[selectedPresetId] : undefined}
+          formtecLabelType={selectedPresetId || ''}
           formtecSelectedCells={[]} // Simplified for now, would need state in store if persist wanted
           setFormtecSelectedCells={() => {}} 
           formtecMessage="" setFormtecMessage={() => {}} 
