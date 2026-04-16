@@ -1,5 +1,5 @@
 "use client";
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useAuth } from './use-auth';
 import { toast } from 'sonner';
@@ -167,7 +167,7 @@ export const DEFAULT_EXPENSE_CATEGORIES: CategoryData = {
 };
 
 export function useSettings() {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const { tenantId, user } = useAuth();
   const [settings, setSettings] = useState<SystemSettings>(defaultSettings);
   const [productCategories, setProductCategories] = useState<CategoryData | null>(null);

@@ -17,9 +17,14 @@ CREATE TABLE IF NOT EXISTS public.tenants (
 CREATE TABLE IF NOT EXISTS public.profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     email TEXT NOT NULL,
-    tenant_id UUID REFERENCES public.tenants(id) ON DELETE SET NULL,
-    role TEXT DEFAULT 'tenant_admin', -- 'super_admin' (최고 관리자), 'tenant_admin' (화원 원장), 'tenant_user' (화원 직원)
-    created_at TIMESTAMPTZ DEFAULT now()
+    tenant_id UUID REFERENCES public.tenants(id) ON DELETE RESTRICT, -- ✅ 삭제 방지 (RESTRICT)로 변경
+    role TEXT DEFAULT 'tenant_admin', -- 'super_admin', 'tenant_admin', 'tenant_user'
+    created_at TIMESTAMPTZ DEFAULT now(),
+    
+    -- ✅ 제약 조건: super_admin 외에는 tenant_id가 반드시 있어야 함
+    CONSTRAINT tenant_id_required_for_non_admins CHECK (
+        (role = 'super_admin') OR (tenant_id IS NOT NULL)
+    )
 );
 
 -- RLS (Row Level Security) 활성화

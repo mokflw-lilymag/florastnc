@@ -890,14 +890,12 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
       .then(res => {
         if (res.status === 'success' && Array.isArray(res.data)) {
           setPrinters(res.data);
-          setSelectedPrinter(prev => {
-            if (prev && res.data.find((p: any) => p.name === prev)) return prev;
-            return res.data.length > 0 ? res.data[0].name : '';
-          });
-          // 선택된 프린터의 타입도 함께 추적
-          setSelectedPrinterType(prev => {
-            const current = res.data.find((p: any) => p.name === prev) || res.data[0];
-            return current?.type || 'generic';
+          
+          setSelectedPrinter(current => {
+            const saved = localStorage.getItem('ribbon_selected_printer');
+            const prev = saved || current;
+            const found = prev && res.data.find((p: any) => p.name === prev);
+            return found ? prev : (res.data.length > 0 ? res.data[0].name : '');
           });
         }
       })
@@ -934,7 +932,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
 
   // Printer State
   const [printers, setPrinters] = useState<any[]>([]);
-  const [selectedPrinter, setSelectedPrinter] = useState('');
+  const [selectedPrinter, setSelectedPrinter] = useState(() => localStorage.getItem('ribbon_selected_printer') || '');
   const [selectedPrinterType, setSelectedPrinterType] = useState<'epson_m105' | 'xprinter' | 'generic'>('epson_m105');
   const [isPrinting, setIsPrinting] = useState(false);
 
@@ -979,12 +977,8 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
     checkBridge();
     bridgeCheckRef.current = setInterval(checkBridge, 5000);
     return () => { if (bridgeCheckRef.current) clearInterval(bridgeCheckRef.current); };
-  }, [printers.length]); // Re-bind if printers list changes to check length correctly
+  }, [printers.length]); 
 
-  // Xprinter: 최대 인쇄폭 108mm → width ≤ 105mm 프리셋만 표시
-  const availablePresets = selectedPrinterType === 'xprinter'
-    ? RIBBON_TYPES.filter(t => t.width <= 105)
-    : RIBBON_TYPES;
 
   // User Print Settings
   const [printTarget, setPrintTarget] = useState<'both' | 'left' | 'right'>('both');
@@ -1005,6 +999,37 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
   const [marginTop, setMarginTop] = useState(RIBBON_TYPES[0].marginTop);
   const [marginBottom, setMarginBottom] = useState(RIBBON_TYPES[0].marginBottom);
   const [marginOffset, setMarginOffset] = useState(0); // 사용자 수동 보정값 (기본 0)
+
+  // ─── Sync Printer Type & Invariants ───
+  useEffect(() => {
+    const p = printers.find(p => p.name === selectedPrinter);
+    if (p) {
+      const newType = p.type || 'generic';
+      setSelectedPrinterType(newType as any);
+    }
+  }, [selectedPrinter, printers]);
+
+  useEffect(() => {
+    if (selectedPrinterType === 'xprinter') {
+      const currentPreset = RIBBON_TYPES.find(t => t.id === ribbonType);
+      if (currentPreset && currentPreset.width > 105) {
+        const first = RIBBON_TYPES.filter(t => t.width <= 105)[0];
+        if (first) {
+          setRibbonType(first.id);
+          setWidth(first.width);
+          setLength(first.length);
+          setLace(first.lace || 0);
+          setMarginTop(first.marginTop || 0);
+          setMarginBottom(first.marginBottom || 0);
+        }
+      }
+    }
+  }, [selectedPrinterType, ribbonType]);
+
+  // Xprinter: 최대 인쇄폭 108mm → width ≤ 105mm 프리셋만 표시
+  const availablePresets = selectedPrinterType === 'xprinter'
+    ? RIBBON_TYPES.filter(t => t.width <= 105)
+    : RIBBON_TYPES;
 
   // Left Ribbon State
   const [leftText, setLeftText] = useState(initialLeftText || '祝發展');
@@ -1669,25 +1694,9 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
             <select 
               value={selectedPrinter} 
               onChange={e => {
-                setSelectedPrinter(e.target.value);
-                const p = printers.find((p: any) => p.name === e.target.value);
-                const newType = p?.type || 'generic';
-                setSelectedPrinterType(newType);
-                // Xprinter 전환 시: 현재 프리셋이 105mm 초과면 첫 번째 호환 프리셋으로 자동 변경
-                if (newType === 'xprinter') {
-                  const currentPreset = RIBBON_TYPES.find(t => t.id === ribbonType);
-                  if (currentPreset && currentPreset.width > 105) {
-                    const first = RIBBON_TYPES.filter(t => t.width <= 105)[0];
-                    if (first) {
-                      setRibbonType(first.id);
-                      setWidth(first.width);
-                      setLength(first.length);
-                      setLace(first.lace || 0);
-                      setMarginTop(first.marginTop || 0);
-                      setMarginBottom(first.marginBottom || 0);
-                    }
-                  }
-                }
+                const newName = e.target.value;
+                setSelectedPrinter(newName);
+                localStorage.setItem('ribbon_selected_printer', newName);
               }}
               className="flex-1 p-2 rounded-lg text-sm bg-slate-800 border-slate-700 text-white outline-none focus:ring-2 ring-blue-500/50"
             >

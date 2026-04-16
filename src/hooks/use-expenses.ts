@@ -1,33 +1,15 @@
 "use client";
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useAuth } from './use-auth';
 import { toast } from 'sonner';
+import type { Expense } from '@/types/expense';
 
-export interface Expense {
-  id: string;
-  tenant_id: string;
-  category: string;
-  sub_category?: string;
-  amount: number;
-  description: string;
-  expense_date: string;
-  payment_method: string;
-  supplier_id?: string;
-  related_order_id?: string;
-  material_id?: string;
-  quantity?: number;
-  unit?: string;
-  receipt_url?: string;
-  receipt_file_id?: string;
-  storage_provider?: string;
-  purchase_id?: string;
-  created_at: string;
-}
+export type { Expense };
 
 export function useExpenses() {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const { tenantId, isLoading: authLoading } = useAuth();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);

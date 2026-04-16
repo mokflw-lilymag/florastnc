@@ -1,0 +1,26 @@
+{
+  "project": "Florasync SaaS (LilyMag)",
+  "version": "1.0.0",
+  "base_context": {
+    "industry": "Floral Industry (B2B SaaS / ERP)",
+    "founder_vision": "30-year veteran florist's experience digitalized as a 'Second Brain'.",
+    "target_users": "Florists, flower shop owners, B2B marketing admins.",
+    "tech_stack": "Next.js, Supabase, Tailwind (if requested), Premium Vanilla CSS, Framer Motion."
+  },
+  "design_harness": {
+    "vibe": "Premium, Professional, Trustworthy, Modern (Glassmorphism)",
+    "typography": ["Inter", "Outfit", "Roboto"],
+    "colors": {
+      "primary": "Harmonious curated palettes (no generic colors)",
+      "dark_mode": "Sleek, deep blacks/grays with vibrant accents"
+    },
+    "animation": "Subtle micro-animations, smooth transitions"
+  },
+  "operational_constraints": [
+    "NEVER use browser defaults.",
+    "NEVER create basic MVPs; always aim for premium excellence.",
+    "ALWAYS preserve SEO best practices.",
+    "ALWAYS implement unique IDs for interactive elements.",
+    "Maintain strictly consistent brand voice across all generated content."
+  ]
+}

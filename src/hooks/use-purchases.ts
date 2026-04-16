@@ -3,12 +3,13 @@ import { useAuth } from './use-auth';
 import { toast } from 'sonner';
 import { usePurchaseStore, Purchase } from '@/stores/purchase-store';
 import { useMaterialStore } from '@/stores/material-store';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
+import { PurchaseService } from '@/services/purchase-service';
 
 export type { Purchase };
 
 export function usePurchases() {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const { tenantId, isLoading: authLoading } = useAuth();
   
   const { 
@@ -22,7 +23,7 @@ export function usePurchases() {
   } = usePurchaseStore();
 
   const fetchPurchases = async () => {
-    if (tenantId) await usePurchaseStore.getState().initialize(tenantId);
+    if (tenantId) await initialize(tenantId);
   };
 
   const addPurchase = async (data: Omit<Purchase, 'id' | 'tenant_id' | 'created_at' | 'updated_at'>) => {
@@ -48,88 +49,30 @@ export function usePurchases() {
   const addPurchases = async (items: Omit<Purchase, 'id' | 'tenant_id' | 'created_at' | 'updated_at'>[]) => {
     if (!tenantId || items.length === 0) return null;
     try {
-      const payloads = items.map(item => ({ ...item, tenant_id: tenantId }));
-      const { data: inserted, error } = await supabase
-        .from('purchases')
-        .insert(payloads)
-        .select();
-
-      if (error) throw error;
+      const insertedItems = await PurchaseService.addPurchases(supabase, tenantId, items);
       
-      if (inserted) {
-        addBatchToStore(inserted);
+      if (insertedItems.length > 0) {
+        addBatchToStore(insertedItems);
         
-        // If any items are completed, we need to create expense records and update materials
-        const completedItems = inserted.filter(p => p.status === 'completed');
-        if (completedItems.length > 0) {
-            for (const p of completedItems) {
-                // 1. Create Expense
-                const expensePayload = {
-                  tenant_id: tenantId,
-                  category: 'materials',
-                  amount: p.total_price,
-                  description: `[매입확정] ${p.name || '자재 사입'}`,
-                  expense_date: p.purchase_date || new Date().toISOString(),
-                  payment_method: p.payment_method || 'card',
-                  supplier_id: p.supplier_id,
-                  material_id: p.material_id,
-                  quantity: p.quantity,
-                  purchase_id: p.id 
-                };
-                
-                const { data: exp, error: expErr } = await supabase
-                  .from('expenses')
-                  .insert([expensePayload])
-                  .select()
-                  .single();
-                  
-                if (expErr) console.error("Expense creation error for batch item:", expErr);
-                else {
-                    // Update the purchase with the expense link
-                    await supabase
-                      .from('purchases')
-                      .update({ expense_id: exp.id })
-                      .eq('id', p.id);
-                    
-                    // CRITICAL: Update local store to track the expense_id for cancellation
-                    updatePurchaseInStore(p.id, { expense_id: exp.id });
-                }
-
-                // 2. Update Material Stock
-                if (p.material_id) {
-                    const { data: material } = await supabase
-                      .from('materials')
-                      .select('stock, price')
-                      .eq('id', p.material_id)
-                      .single();
-                      
-                    if (material) {
-                        const newStock = (Number(material.stock) || 0) + (p.quantity || 0);
-                        const unitPrice = p.quantity > 0 ? Math.round(p.total_price / p.quantity) : Number(material.price);
-                        
-                        await supabase
-                          .from('materials')
-                          .update({ 
-                            stock: newStock, 
-                            current_stock: newStock, 
-                            price: unitPrice,
-                            updated_at: new Date().toISOString() 
-                          })
-                          .eq('id', p.material_id);
-                        
-                        useMaterialStore.getState().updateMaterial(p.material_id, { 
-                          stock: newStock, 
-                          current_stock: newStock,
-                          price: unitPrice
-                        });
-                    }
-                }
+        // Update local material store for any items that were completed
+        const completedItems = insertedItems.filter(p => p.status === 'completed');
+        for (const p of completedItems) {
+          if (p.material_id) {
+            // We need to fetch the new material state or calculate it
+            const { data: material } = await supabase.from('materials').select('stock, price').eq('id', p.material_id).single();
+            if (material) {
+              useMaterialStore.getState().updateMaterial(p.material_id, { 
+                stock: material.stock, 
+                current_stock: material.stock,
+                price: material.price
+              });
             }
+          }
         }
       }
       
-      toast.success(`${inserted?.length}건의 매입 내역이 등록되었습니다.`);
-      return inserted;
+      toast.success(`${insertedItems.length}건의 매입 내역이 등록되었습니다.`);
+      return insertedItems;
     } catch (e) {
       console.error('Error adding batch purchases:', e);
       toast.error('매입 내역 일괄 등록에 실패했습니다.');
@@ -183,65 +126,18 @@ export function usePurchases() {
       const purchase = purchases.find(p => p.id === id);
       if (!purchase) throw new Error('Purchase not found');
 
-      // 1. Create Expense
-      const expensePayload = {
-        tenant_id: tenantId,
-        category: 'materials',
-        amount: actualData.total_price ?? purchase.total_price,
-        description: `[매입확정] ${actualData.name ?? purchase.name ?? '자재 사입'}`,
-        expense_date: new Date().toISOString(),
-        payment_method: actualData.payment_method ?? purchase.payment_method ?? 'card',
-        supplier_id: purchase.supplier_id,
-        material_id: purchase.material_id,
-        quantity: actualData.quantity ?? purchase.quantity,
-        purchase_id: id 
-      };
-
-      const { data: expense, error: expenseError } = await supabase
-        .from('expenses')
-        .insert([expensePayload])
-        .select()
-        .single();
-
-      if (expenseError) throw expenseError;
-
-      // 2. Update Purchase
-      const purchaseUpdates = {
-        ...actualData,
-        status: 'completed' as const,
-        expense_id: expense.id,
-        purchase_date: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-
-      const { data: updatedPurchase, error: purchaseError } = await supabase
-        .from('purchases')
-        .update(purchaseUpdates)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (purchaseError) throw purchaseError;
-      if (updatedPurchase) updatePurchaseInStore(id, updatedPurchase);
-
-      // 3. Update Material Inventory if applicable
-      if (purchase.material_id) {
-          const { data: material } = await supabase
-            .from('materials')
-            .select('stock')
-            .eq('id', purchase.material_id)
-            .single();
-            
-          if (material) {
-              const newStock = (Number(material.stock) || 0) + (actualData.quantity ?? purchase.quantity);
-              await supabase
-                .from('materials')
-                .update({ stock: newStock, current_stock: newStock, updated_at: new Date().toISOString() })
-                .eq('id', purchase.material_id);
-              
-              // Update Material Store as well
-              useMaterialStore.getState().updateMaterial(purchase.material_id, { stock: newStock, current_stock: newStock });
-          }
+      const updatedPurchase = await PurchaseService.completePurchase(supabase, tenantId, purchase, actualData);
+      
+      if (updatedPurchase) {
+        updatePurchaseInStore(id, updatedPurchase);
+        
+        // Update Material Store
+        if (purchase.material_id) {
+            const { data: material } = await supabase.from('materials').select('stock').eq('id', purchase.material_id).single();
+            if (material) {
+                useMaterialStore.getState().updateMaterial(purchase.material_id, { stock: material.stock, current_stock: material.stock });
+            }
+        }
       }
 
       toast.success('매입이 확정되었으며 지출에 반영되었습니다.');
@@ -276,52 +172,21 @@ export function usePurchases() {
     if (!tenantId) return null;
     try {
       const purchase = purchases.find(p => p.id === id);
-      if (!purchase || purchase.status !== 'completed') throw new Error('Validated purchase not found');
+      if (!purchase) throw new Error('Validated purchase not found');
 
-      // 1. Revert Purchase Status and Disconnect Expense FIRST (to avoid FK constraint error)
-      const { data: reverted, error } = await supabase
-        .from('purchases')
-        .update({ 
-            status: 'planned' as const, 
-            purchase_date: null, 
-            expense_id: null,
-            updated_at: new Date().toISOString() 
-        })
-        .eq('id', id)
-        .select()
-        .single();
+      const reverted = await PurchaseService.cancelConfirmation(supabase, tenantId, purchase);
 
-      if (error) throw error;
-
-      // 2. Delete associated Expense (Now safe to delete)
-      if (purchase.expense_id) {
-          const { error: expError } = await supabase
-            .from('expenses')
-            .delete()
-            .eq('id', purchase.expense_id);
-          if (expError) console.error("Error deleting linked expense:", expError);
+      if (reverted) {
+        updatePurchaseInStore(id, reverted);
+        
+        // Reverse Material Store
+        if (purchase.material_id) {
+            const { data: material } = await supabase.from('materials').select('stock').eq('id', purchase.material_id).single();
+            if (material) {
+                useMaterialStore.getState().updateMaterial(purchase.material_id, { stock: material.stock, current_stock: material.stock });
+            }
+        }
       }
-
-      // 3. Reverse Material Stock
-      if (purchase.material_id) {
-          const { data: material } = await supabase
-            .from('materials')
-            .select('stock')
-            .eq('id', purchase.material_id)
-            .single();
-            
-          if (material) {
-              const newStock = Math.max(0, (Number(material.stock) || 0) - (purchase.quantity || 0));
-              await supabase
-                .from('materials')
-                .update({ stock: newStock, current_stock: newStock, updated_at: new Date().toISOString() })
-                .eq('id', purchase.material_id);
-              
-              useMaterialStore.getState().updateMaterial(purchase.material_id, { stock: newStock, current_stock: newStock });
-          }
-      }
-
-      if (reverted) updatePurchaseInStore(id, reverted);
 
       toast.success('매입 확정이 취소되었으며 지출/재고가 복구되었습니다.');
       return reverted;

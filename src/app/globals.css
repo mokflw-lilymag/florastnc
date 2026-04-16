@@ -1,7 +1,8 @@
 /* ============================================================
-   FONTS: 데코 폰트는 리본/메시지 프린터에서만 lazy load합니다.
-   기본 UI 폰트(Inter, Noto Sans KR, Pretendard)는 layout.tsx에서 처리.
+   FONTS: Google Fonts & Custom Web Fonts
    ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Black+And+White+Picture&family=Black+Han+Sans&family=Do+Hyeon&family=Dongle:wght@300;400;700&family=Gaegu&family=Gamja+Flower&family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&family=Gugi&family=Jua&family=Nanum+Myeongjo:wght@400;700;800&family=Nanum+Pen+Script&family=Noto+Sans+KR:wght@100;300;400;500;700;900&family=Poor+Story&family=Single+Day&family=Song+Myung&family=Sunflower:wght@300;500;700&family=Yeon+Sung&display=swap');
+
 @font-face {
     font-family: 'GmarketSansBold';
     src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansBold.woff') format('woff');

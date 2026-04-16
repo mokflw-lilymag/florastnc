@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useAuth } from './use-auth';
 import { Customer, CustomerData } from '@/types/customer';
 
 export function useCustomers(initialFetch = true) {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const { tenantId, isLoading: authLoading } = useAuth();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(initialFetch);
@@ -34,7 +34,7 @@ export function useCustomers(initialFetch = true) {
       setLoading(false);
       setIsRefreshing(false);
     }
-  }, [tenantId, customers.length, supabase]);
+  }, [tenantId, supabase]);
 
   const addCustomer = async (customerData: CustomerData): Promise<string | null> => {
     if (!tenantId) return null;

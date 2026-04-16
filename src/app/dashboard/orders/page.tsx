@@ -106,8 +106,9 @@ export default function OrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isMessagePrintOpen, setIsMessagePrintOpen] = useState(false);
-  const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
+  const [isPrintTargetModalOpen, setIsPrintTargetModalOpen] = useState(false);
+  const [pendingPrintOrder, setPendingPrintOrder] = useState<Order | null>(null);
 
   // Google Sheets export date range
   const [exportStartDate, setExportStartDate] = useState(() => format(startOfMonth(new Date()), 'yyyy-MM-dd'));
@@ -279,8 +280,14 @@ export default function OrdersPage() {
 
   const handleCardPrint = (order: Order, e?: React.MouseEvent) => {
     e?.stopPropagation();
-    setSelectedOrder(order);
-    setIsMessagePrintOpen(true);
+    setPendingPrintOrder(order);
+    setIsPrintTargetModalOpen(true);
+  };
+
+  const navigateToDesignStudio = (target: 'card' | 'formtec') => {
+    if (!pendingPrintOrder) return;
+    router.push(`/dashboard/design-studio?orderId=${pendingPrintOrder.id}&target=${target}`);
+    setIsPrintTargetModalOpen(false);
   };
 
   const handleRibbonPrint = (order: Order, e?: React.MouseEvent) => {

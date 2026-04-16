@@ -1,5 +1,18 @@
 # 플로라싱크 실전 동영상 매뉴얼
 
+---
+
+## 🏗️ PRODUCTION HARNESS (VIDEO AGENT CONSTRAINTS)
+> **AGENTS:** Script Architect, Visual Director, Voice Narrator
+> **CONSTRAINTS:** 
+> - Tone: Professional yet warm, like an experienced business partner.
+> - Pacing: "Steady & Clear". Avoid rushing technical terms.
+> - Visual Style: Focus on UI clarity. Highlight 10-20% enlargement for menu clicks.
+> - Brand Consistency: Always refer to Florasync as "매장의 두 번째 뇌" (The store's second brain).
+> - Target: Existing florists who are transitioning from manual to digital management.
+
+---
+
 ## 챕터 1: [도입] 실무자를 위해 탄생한 플로라싱크
 
 **(BGM: 신뢰감을 주는 차분한 밝은 음악)**

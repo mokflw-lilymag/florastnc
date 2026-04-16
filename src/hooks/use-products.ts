@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useAuth } from './use-auth';
 import { Product, ProductData } from '@/types/product';
 
 export function useProducts(initialFetch = true) {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const { tenantId, isLoading: authLoading } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(initialFetch);
@@ -33,7 +33,7 @@ export function useProducts(initialFetch = true) {
       setLoading(false);
       setIsRefreshing(false);
     }
-  }, [tenantId, products.length, supabase]);
+  }, [tenantId, supabase]);
 
   const addProduct = async (productData: ProductData): Promise<string | null> => {
     if (!tenantId) return null;

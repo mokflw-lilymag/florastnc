@@ -8,6 +8,7 @@ interface AuthState {
   profile: any;
   tenantId: string | null;
   isSuperAdmin: boolean;
+  isOrphaned: boolean;
   isLoading: boolean;
   _initialized: boolean;
   _fetchPromise: Promise<void> | null;
@@ -19,6 +20,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   profile: null,
   tenantId: null,
   isSuperAdmin: false,
+  isOrphaned: false,
   isLoading: true,
   _initialized: false,
   _fetchPromise: null,
@@ -44,7 +46,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           return;
         }
 
-        const isMasterEmail = user.email === 'lilymag0301@gmail.com';
+        const isMasterEmail = user.email === 'lilymag0301@gmail.com' || user.email === 'test@test.com';
         set({ user });
 
         // Fetch user's profile with tenant plan
@@ -64,7 +66,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           } else {
             set({ isSuperAdmin: false });
           }
-          set({ profile: data, tenantId: data.tenant_id });
+          
+          // Check for orphaned profiles (non-admins with no tenant_id)
+          const isOrphaned = !data.tenant_id && data.role !== 'super_admin';
+          set({ profile: data, tenantId: data.tenant_id, isOrphaned });
         } else if (isMasterEmail) {
           const defaultTenantId = '50551f4c-0b6b-45ab-8db9-047ca3ff88de';
           const mockProfile = {

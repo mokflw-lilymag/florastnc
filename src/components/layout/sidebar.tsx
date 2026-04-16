@@ -7,7 +7,7 @@ import {
   Printer, ScrollText, Users, Store, 
   Settings, LayoutDashboard, ShieldCheck,
   CreditCard, Boxes, Truck, BarChart3,
-  Zap, ArrowRight, Gem, Share2, FileText, PlusCircle, LogOut, ShoppingCart
+  Zap, ArrowRight, Gem, Share2, FileText, PlusCircle, LogOut, ShoppingCart, Layout, Sparkles
 } from "lucide-react";
 import Image from "next/image";
 import { createClient } from "@/utils/supabase/client";
@@ -44,6 +44,7 @@ export function Sidebar({ isSuperAdmin, plan, isExpired, isSuspended, className,
     { name: "구독/결제 관제", href: "/dashboard/billing-admin", icon: CreditCard },
     { name: "글로벌 공지사항", href: "/dashboard/announcements", icon: ScrollText },
     { name: "시스템 전역 설정", href: "/dashboard/system-settings", icon: Settings },
+    { name: "✨ 플랫폼 홍보 마스터", href: "/dashboard/marketing/admin", icon: Sparkles },
     { name: "⚙️ 화원사 환경 설정", href: "/dashboard/settings", icon: Settings },
   ];
 
@@ -63,6 +64,8 @@ export function Sidebar({ isSuperAdmin, plan, isExpired, isSuspended, className,
     { name: "📈 매입/매출 통계", href: "/dashboard/analytics", icon: BarChart3, tier: ['pro', 'erp_only'] },
     { name: "💰 지출 관리", href: "/dashboard/expenses", icon: CreditCard, tier: ['pro', 'erp_only'] },
     { name: "🧾 세무 관리", href: "/dashboard/tax", icon: FileText, tier: ['pro', 'erp_only'] },
+    { name: "✨ AI 홍보 마스터", href: "/dashboard/marketing", icon: Sparkles, tier: ['pro', 'erp_only'] },
+    { name: "🎨 카드 디자인", href: "/dashboard/design-studio", icon: Layout, tier: ['pro', 'ribbon_only'] },
     { name: "💎 구독 및 플랜 안내", href: "/dashboard/subscription", icon: Gem },
     { name: "⚙️ 환경 설정", href: "/dashboard/settings", icon: Settings },
   ];
