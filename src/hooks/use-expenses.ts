@@ -194,3 +194,43 @@ export function useExpenses() {
     deleteExpenseByOrderId
   };
 }
+
+export function useExpenseStorage() {
+  const supabase = createClient();
+  const { tenantId } = useAuth();
+
+  const uploadReceipt = async (file: File) => {
+    if (!tenantId) return null;
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${tenantId}/${format(new Date(), 'yyyyMMdd')}/${crypto.randomUUID()}.${fileExt}`;
+      const filePath = `receipts/${fileName}`;
+
+      const { data, error } = await supabase.storage
+        .from('receipts')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) throw error;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('receipts')
+        .getPublicUrl(fileName);
+
+      return {
+        url: publicUrl,
+        path: data.path,
+        id: fileName
+      };
+    } catch (e) {
+      console.error('Error uploading receipt:', e);
+      toast.error('영수증 업로드에 실패했습니다.');
+      return null;
+    }
+  };
+
+  return { uploadReceipt };
+}

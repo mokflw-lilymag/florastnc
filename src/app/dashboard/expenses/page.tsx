@@ -41,7 +41,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
-import { useExpenses, Expense } from "@/hooks/use-expenses";
+import { useExpenses, Expense, useExpenseStorage } from "@/hooks/use-expenses";
 import { useSuppliers } from "@/hooks/use-suppliers";
 import { useMaterials } from "@/hooks/use-materials";
 import { useOrders } from "@/hooks/use-orders";
@@ -99,6 +99,7 @@ const defaultFormData: ExpenseFormData = {
 
 export default function ExpensesPage() {
   const { expenses, loading: expensesLoading, addExpense, addExpenses, updateExpense, deleteExpense } = useExpenses();
+  const { uploadReceipt } = useExpenseStorage();
   const { suppliers, loading: suppliersLoading } = useSuppliers();
   const { materials, loading: materialsLoading } = useMaterials();
   const { updateOrder } = useOrders(false);
@@ -118,6 +119,13 @@ export default function ExpensesPage() {
   const [filterDateTo, setFilterDateTo] = useState<string>("");
   const [isSupplierOpen, setIsSupplierOpen] = useState(false);
   const [activeItemPopover, setActiveItemPopover] = useState<string | null>(null);
+
+  const scanInputRef = React.useRef<HTMLInputElement>(null);
+  const importInputRef = React.useRef<HTMLInputElement>(null);
+  
+  const videoRef = React.useRef<HTMLVideoElement>(null);
+  const streamRef = React.useRef<MediaStream | null>(null);
+  const [isWebcamOpen, setIsWebcamOpen] = useState(false);
 
   const [itemSearchText, setItemSearchText] = useState("");
   const itemSearchList = useMemo(() => {
@@ -459,36 +467,74 @@ export default function ExpensesPage() {
     return suppliers.find(s => s.id === id)?.name || "정보 없음";
   };
 
-  // AI OCR Scan Function
-  const handleReceiptScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // Image Compression Utility
+  const compressImage = async (file: File): Promise<File> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 1200;
+          const MAX_HEIGHT = 1200;
+          let width = img.width;
+          let height = img.height;
 
-    if (!file.type.startsWith('image/')) {
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          canvas.toBlob((blob) => {
+            const compressedFile = new File([blob!], file.name, {
+              type: 'image/jpeg',
+              lastModified: Date.now(),
+            });
+            resolve(compressedFile);
+          }, 'image/jpeg', 0.6); // Compress to 60% quality for maximum saving
+        };
+      };
+    });
+  };
+
+  // AI OCR Scan Function
+  const processReceiptFile = async (originalFile: File) => {
+    if (!originalFile.type.startsWith('image/')) {
         toast.error("영수증 이미지 파일(JPG, PNG)을 선택해 주세요.");
         return;
     }
 
     setIsOcrLoading(true);
-    toast.loading("AI가 영수증을 분석하고 있습니다...");
+    toast.loading("AI가 영수증을 분석하고 최적화 중입니다...");
 
     try {
+        // Step 1: Compress for storage saving
+        const compressedFile = await compressImage(originalFile);
+        
         const reader = new FileReader();
         const base64Promise = new Promise<string>((resolve) => {
             reader.onload = () => resolve(reader.result as string);
-            reader.readAsDataURL(file);
+            reader.readAsDataURL(compressedFile);
         });
         const base64 = await base64Promise;
         const base64Data = base64.split(',')[1];
 
-        // Call Gemini API via Server (or a secure helper)
-        // For now, we simulate the logic or use a pre-set helper if available.
-        // Since we have GEMINI_API_KEY in .env, we'll try to call the browser-friendly version 
-        // OR provide a clear structure.
-        
+        // Step 2: OCR Analysis
         const response = await fetch('/api/ai/ocr', {
             method: 'POST',
-            body: JSON.stringify({ image: base64Data, fileName: file.name }),
+            body: JSON.stringify({ image: base64Data, fileName: originalFile.name }),
             headers: { 'Content-Type': 'application/json' }
         });
 
@@ -498,44 +544,64 @@ export default function ExpensesPage() {
         const data = result.data;
 
         if (data) {
-            // Find Matching Supplier
-            let matchedSupplierId = "none";
-            if (data.store_name) {
-                const found = suppliers.find(s => s.name.includes(data.store_name) || data.store_name.includes(s.name));
-                if (found) matchedSupplierId = found.id;
+            // Handle multiple receipts if present
+            const receipts = data.receipts || (data.store_name ? [data] : []);
+            
+            if (receipts.length === 0) {
+                toast.dismiss();
+                toast.error("영수증에서 유효한 정보를 찾지 못했습니다.");
+                return;
             }
 
-            // Map extracted items
-            const newItems: ReceiptItem[] = (data.items || []).map((item: any) => {
-                // Try to find matching material
-                const foundMat = materials.find(m => m.name.includes(item.material_name) || item.material_name.includes(m.name));
+            const allNewItems: ReceiptItem[] = [];
+            let mainStoreName = "";
+            let mainDate = "";
+
+            receipts.forEach((rc: any, idx: number) => {
+                if (idx === 0) {
+                    mainStoreName = rc.store_name;
+                    mainDate = rc.date;
+                }
                 
-                return {
-                    id: crypto.randomUUID(),
-                    material_id: foundMat?.id || "none",
-                    material_name: foundMat?.name || item.material_name,
-                    description: item.description || item.material_name,
-                    quantity: item.quantity || 1,
-                    unit: item.unit || "ea",
-                    unit_price: item.unit_price || 0,
-                    amount: item.amount || (item.quantity * item.unit_price) || 0,
-                    main_category: foundMat?.main_category || "",
-                    mid_category: foundMat?.mid_category || "",
-                    sub_category: "materials"
-                };
+                const items = (rc.items || []).map((item: any) => {
+                    const foundMat = materials.find(m => m.name.includes(item.material_name) || item.material_name.includes(m.name));
+                    return {
+                        id: crypto.randomUUID(),
+                        material_id: foundMat?.id || "none",
+                        material_name: foundMat?.name || item.material_name,
+                        description: item.description || item.material_name,
+                        quantity: item.quantity || 1,
+                        unit: item.unit || "ea",
+                        unit_price: item.unit_price || 0,
+                        amount: item.amount || (item.quantity * (item.unit_price || 0)) || 0,
+                        main_category: foundMat?.main_category || "",
+                        mid_category: foundMat?.mid_category || "",
+                        sub_category: "materials"
+                    };
+                });
+                allNewItems.push(...items);
             });
+
+            // Step 3: Automatically upload Compressed image to Supabase Storage
+            const uploadResult = await uploadReceipt(compressedFile);
 
             setFormData(prev => ({
                 ...prev,
-                expense_date: data.date || prev.expense_date,
-                supplier_id: matchedSupplierId,
-                amount: data.total_amount || 0,
-                description: data.store_name ? `${data.store_name} 지출` : prev.description,
-                items: newItems.length > 0 ? newItems : prev.items
+                expense_date: mainDate || prev.expense_date,
+                supplier_id: receipts[0].store_name ? (suppliers.find(s => s.name.includes(receipts[0].store_name) || receipts[0].store_name.includes(s.name))?.id || "none") : prev.supplier_id,
+                amount: receipts.reduce((sum: number, r: any) => sum + (r.total_amount || 0), 0),
+                description: mainStoreName ? `${mainStoreName} 외 ${receipts.length > 1 ? (receipts.length - 1) + '건' : ''}` : prev.description,
+                items: allNewItems.length > 0 ? allNewItems : prev.items,
+                receipt_url: uploadResult?.url || prev.receipt_url,
+                receipt_file_id: uploadResult?.id || prev.receipt_file_id
             }));
 
             toast.dismiss();
-            toast.success("AI 영수증 분석이 완료되었습니다!");
+            if (receipts.length > 1) {
+                toast.success(`AI가 총 ${receipts.length}개의 영수증을 감지하여 합산했습니다!`);
+            } else {
+                toast.success("AI 분석 및 클라우드 저장 완료 (이미지 최적화 적용됨)");
+            }
         }
     } catch (err: any) {
         toast.dismiss();
@@ -543,7 +609,60 @@ export default function ExpensesPage() {
         console.error("OCR Error:", err);
     } finally {
         setIsOcrLoading(false);
-        if (e.target) e.target.value = '';
+    }
+  };
+
+  const handleReceiptScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+        await processReceiptFile(file);
+    }
+    if (e.target) e.target.value = '';
+  };
+
+  const openWebcam = () => {
+    setIsWebcamOpen(true);
+    setTimeout(async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { facingMode: 'environment' } 
+        });
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      } catch (err) {
+        console.error(err);
+        toast.error("카메라 접근 권한이 없거나 카메라를 찾을 수 없습니다.");
+        setIsWebcamOpen(false);
+      }
+    }, 100);
+  };
+
+  const closeWebcam = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    setIsWebcamOpen(false);
+  };
+
+  const captureWebcam = () => {
+    if (videoRef.current) {
+      const canvas = document.createElement('canvas');
+      canvas.width = videoRef.current.videoWidth;
+      canvas.height = videoRef.current.videoHeight;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(videoRef.current, 0, 0);
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const file = new File([blob], `scan_${Date.now()}.jpg`, { type: 'image/jpeg' });
+            closeWebcam();
+            processReceiptFile(file);
+          }
+        }, 'image/jpeg', 0.9);
+      }
     }
   };
 
@@ -882,40 +1001,87 @@ export default function ExpensesPage() {
                 <Label className="text-sm font-bold text-slate-700 block mb-3">증빙 자료 (영수증)</Label>
                 <div className="grid grid-cols-12 gap-3">
                   <div className="col-span-12 sm:col-span-9 relative">
-                    <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-500 z-10">
+                      {formData.receipt_url ? <Check className="w-4 h-4" /> : <Link2 className="w-4 h-4" />}
+                    </div>
                     <Input
-                      placeholder="구글 드라이브 영수증 링크"
-                      className="pl-9 bg-slate-50 border-slate-200"
+                      placeholder="스캔 시 자동생성 또는 드라이브 링크 직접 입력"
+                      className={cn("pl-9 bg-slate-50 border-slate-200 transition-all", formData.receipt_url && "border-emerald-500 bg-emerald-50/20")}
                       value={formData.receipt_url}
                       onChange={e => setFormData(prev => ({ ...prev, receipt_url: e.target.value }))}
                     />
                   </div>
-                  <div className="col-span-12 sm:col-span-3">
-                    <Button 
-                      variant="outline" 
-                      className="w-full gap-2 font-bold px-4 border-emerald-500 bg-emerald-50/50 text-emerald-700 hover:bg-emerald-100 h-full relative overflow-hidden group transition-all"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={isOcrLoading}
-                    >
-                      <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/10 to-teal-400/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      {isOcrLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ScanText className="h-4 w-4 text-emerald-600" />}
-                      {isOcrLoading ? "AI 분석 중..." : "AI 영수증 스캔"}
-                      <div className="absolute -top-1 -right-1">
-                        <Sparkles className="h-3 w-3 text-emerald-400 animate-pulse" />
-                      </div>
-                    </Button>
+                  <div className="col-span-12 space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <Button 
+                        variant="outline" 
+                        className="h-14 gap-2 font-black border-emerald-500 bg-emerald-50/50 text-emerald-700 hover:bg-emerald-100 relative overflow-hidden group transition-all"
+                        onClick={openWebcam}
+                        disabled={isOcrLoading}
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/10 to-teal-400/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        {isOcrLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Camera className="h-5 w-5 text-emerald-600" />}
+                        <div className="flex flex-col items-start leading-tight">
+                           <span className="text-sm">실시간 스캔</span>
+                           <span className="text-[10px] font-normal opacity-60">카메라 바로 찍기</span>
+                        </div>
+                        <div className="absolute -top-1 -right-1">
+                          <Sparkles className="h-3 w-3 text-emerald-400 animate-pulse" />
+                        </div>
+                      </Button>
+
+                      <Button 
+                        variant="outline" 
+                        className="h-14 gap-2 font-black border-slate-300 bg-slate-50/50 text-slate-700 hover:bg-slate-100 relative overflow-hidden group transition-all"
+                        onClick={() => importInputRef.current?.click()}
+                        disabled={isOcrLoading}
+                      >
+                        {isOcrLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <ScanText className="h-5 w-5 text-slate-600" />}
+                        <div className="flex flex-col items-start leading-tight">
+                           <span className="text-sm">파일 불러오기</span>
+                           <span className="text-[10px] font-normal opacity-60">앨범/폴더에서 선택</span>
+                        </div>
+                      </Button>
+                    </div>
+
                     <input 
                        type="file" 
                        className="hidden" 
-                       ref={fileInputRef} 
+                       ref={scanInputRef} 
                        accept="image/*"
                        capture="environment"
                        onChange={handleReceiptScan} 
                     />
+                    <input 
+                       type="file" 
+                       className="hidden" 
+                       ref={importInputRef} 
+                       accept="image/*"
+                       onChange={handleReceiptScan} 
+                    />
                   </div>
                 </div>
+                {formData.receipt_url && (
+                  <div className="mt-3 p-2 rounded-xl bg-slate-100 border border-slate-200 flex items-center gap-3 animate-in zoom-in-95 duration-300">
+                    <div className="w-12 h-12 rounded-lg bg-white overflow-hidden border shadow-sm flex-shrink-0">
+                       <img src={formData.receipt_url} alt="Receipt Preview" className="w-full h-full object-cover" />
+                    </div>
+                    <div className="flex-1">
+                       <p className="text-[10px] font-bold text-slate-600 line-clamp-1">영수증이 안전하게 보관되었습니다.</p>
+                       <p className="text-[9px] text-slate-400">시스템 클라우드에 업로드됨</p>
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-8 text-[10px] text-red-500 hover:text-red-600"
+                      onClick={() => setFormData(prev => ({ ...prev, receipt_url: '', receipt_file_id: '' }))}
+                    >
+                      변경하기
+                    </Button>
+                  </div>
+                )}
                 <p className="text-[10px] text-slate-400 mt-2 ml-1 font-medium italic">
-                  * 한 번에 업로드된 모든 품목은 동일한 영수증 링크를 공유합니다.
+                  * 사진 촬영 시 상점명과 합계 금액이 잘 보이도록 찍어주세요.
                 </p>
               </div>
             </div>
@@ -1214,6 +1380,51 @@ export default function ExpensesPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Webcam UI Dialog */}
+      <Dialog open={isWebcamOpen} onOpenChange={(open) => { if (!open) closeWebcam(); }}>
+        <DialogContent className="sm:max-w-[400px] p-0 bg-black border-none overflow-hidden rounded-3xl">
+          <div className="relative w-full aspect-[3/4] bg-neutral-900 flex flex-col items-center justify-center">
+            <video 
+              ref={videoRef} 
+              autoPlay 
+              playsInline 
+              className="w-full h-full object-cover scale-x-[-1]" 
+            />
+            {/* Guide overlay */}
+            <div className="absolute inset-0 pointer-events-none">
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[60%] border border-white/30 rounded-xl flex items-center justify-center">
+                <div className="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-emerald-400 rounded-tl-xl" />
+                <div className="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-emerald-400 rounded-tr-xl" />
+                <div className="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-emerald-400 rounded-bl-xl" />
+                <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-emerald-400 rounded-br-xl" />
+                <div className="text-white/30 font-bold text-sm bg-black/40 px-3 py-1 rounded-full backdrop-blur-md">영수증을 네모 안에 맞춰주세요</div>
+              </div>
+            </div>
+
+            {/* Controls */}
+            <div className="absolute bottom-6 left-0 w-full flex items-center justify-around px-8">
+               <Button 
+                 variant="outline" 
+                 size="icon" 
+                 className="h-12 w-12 rounded-full bg-white/10 border-white/20 text-white hover:bg-white/20 backdrop-blur-md transition-all"
+                 onClick={closeWebcam}
+               >
+                 <X className="h-5 w-5" />
+               </Button>
+               <button 
+                 className="h-20 w-20 rounded-full bg-white flex items-center justify-center shadow-[0_0_20px_rgba(255,255,255,0.4)] hover:scale-95 transition-transform border-4 border-neutral-300"
+                 onClick={captureWebcam}
+               >
+                 <div className="h-16 w-16 rounded-full bg-emerald-500 flex items-center justify-center shadow-inner">
+                   <Camera className="h-8 w-8 text-white" />
+                 </div>
+               </button>
+               <div className="w-12 h-12" /> {/* Spacer for centering */}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
