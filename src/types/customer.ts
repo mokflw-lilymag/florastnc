@@ -15,6 +15,7 @@ export interface Customer {
   order_count: number;
   is_deleted: boolean;
   extra_data?: any;
+  source?: 'manual' | 'pos' | 'online';
   last_order_date?: string;
   created_at: string;
   updated_at: string;

@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { 
   Printer, ScrollText, Users, Store, 
   Settings, LayoutDashboard, ShieldCheck,
-  CreditCard, Boxes, Truck, BarChart3,
+  CreditCard, Boxes, Truck, BarChart3, Monitor,
   Zap, ArrowRight, Gem, Share2, FileText, PlusCircle, LogOut, ShoppingCart, Layout, Sparkles
 } from "lucide-react";
 import Image from "next/image";
@@ -67,6 +67,7 @@ export function Sidebar({ isSuperAdmin, plan, isExpired, isSuspended, className,
     { name: "✨ AI 홍보 마스터", href: "/dashboard/marketing", icon: Sparkles, tier: ['pro', 'erp_only'] },
     { name: "🎨 카드 디자인", href: "/dashboard/design-studio", icon: Layout, tier: ['pro', 'ribbon_only'] },
     { name: "💎 구독 및 플랜 안내", href: "/dashboard/subscription", icon: Gem },
+    { name: "📟 POS 연동", href: "/dashboard/settings/pos", icon: Monitor, tier: ['pro', 'erp_only'] },
     { name: "⚙️ 환경 설정", href: "/dashboard/settings", icon: Settings },
   ];
 

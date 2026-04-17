@@ -17,8 +17,10 @@ import {
   ChevronRight,
   TrendingUp,
   CreditCard,
-  Target
+  Target,
+  Trophy
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { 
   Dialog, 
   DialogContent, 
@@ -61,13 +63,16 @@ export function CustomerDetailDialog({
 }: CustomerDetailDialogProps) {
   const supabase = createClient();
   const [orders, setOrders] = useState<any[]>([]);
+  const [pointTransactions, setPointTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [pointsLoading, setPointsLoading] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [isOrderDetailOpen, setIsOrderDetailOpen] = useState(false);
 
   useEffect(() => {
     if (isOpen && customer) {
       fetchCustomerOrders();
+      fetchPointTransactions();
     }
   }, [isOpen, customer]);
 
@@ -75,8 +80,6 @@ export function CustomerDetailDialog({
     if (!customer) return;
     setLoading(true);
     try {
-      // Find orders by phone number (most reliable for history including legacy)
-      // Strip hyphens for more robust matching
       const contactNoHyphens = customer.contact?.replace(/-/g, '');
       const { data, error } = await supabase
         .from('orders')
@@ -94,6 +97,25 @@ export function CustomerDetailDialog({
       console.error('Error fetching customer orders:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchPointTransactions = async () => {
+    if (!customer) return;
+    setPointsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('point_transactions')
+        .select('*')
+        .eq('customer_id', customer.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setPointTransactions(data || []);
+    } catch (err) {
+      console.error('Error fetching points:', err);
+    } finally {
+      setPointsLoading(false);
     }
   };
 
@@ -125,10 +147,15 @@ export function CustomerDetailDialog({
                  <div>
                     <div className="flex items-center gap-2">
                        <DialogTitle className="text-2xl font-black text-slate-900">{customer.name}</DialogTitle>
-                       <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-100 uppercase tracking-tighter font-black text-[10px]">
-                          {customer.grade || '일반 고객'}
-                       </Badge>
-                    </div>
+                        <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-100 uppercase tracking-tighter font-black text-[10px]">
+                           {customer.grade || '일반 고객'}
+                        </Badge>
+                        {customer.source === 'pos' && (
+                          <Badge className="bg-indigo-600 text-white border-none h-5 px-1.5 text-[9px] font-bold gap-1 flex items-center shadow-sm">
+                            📟 POS 연동
+                          </Badge>
+                        )}
+                     </div>
                     <DialogDescription className="text-slate-500 font-medium">
                        {customer.company_name ? `${customer.company_name} · ${customer.department || '부서 미정'}` : '개인 회원'}
                     </DialogDescription>
@@ -199,11 +226,70 @@ export function CustomerDetailDialog({
             </div>
 
             <Tabs defaultValue="history" className="w-full">
-               <TabsList className="grid w-full grid-cols-2 bg-white/50 backdrop-blur-sm border border-slate-200 rounded-xl p-1">
+               <TabsList className="grid w-full grid-cols-3 bg-white/50 backdrop-blur-sm border border-slate-200 rounded-xl p-1">
                   <TabsTrigger value="history" className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">주문 이력 ({orders.length})</TabsTrigger>
+                  <TabsTrigger value="points" className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm text-amber-600">포인트 내역</TabsTrigger>
                   <TabsTrigger value="info" className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">상세 정보</TabsTrigger>
                </TabsList>
                
+               <TabsContent value="points" className="mt-4 animate-in fade-in duration-300">
+                  <Card className="border-slate-200 shadow-sm bg-white overflow-hidden">
+                     <CardHeader className="pb-3 border-b border-slate-50">
+                        <CardTitle className="text-base font-black flex items-center gap-2 text-slate-800">
+                           <TrendingUp className="h-4 w-4 text-amber-500" /> 포인트 적립/차감 히스토리
+                        </CardTitle>
+                     </CardHeader>
+                     <CardContent className="p-0">
+                        <ScrollArea className="h-[400px]">
+                           {pointsLoading ? (
+                              <div className="p-4 space-y-4">
+                                 {[1, 2, 3].map(i => <Skeleton key={i} className="h-16 w-full rounded-xl" />)}
+                               </div>
+                           ) : pointTransactions.length > 0 ? (
+                              <div className="divide-y divide-slate-50">
+                                 {pointTransactions.map((tx) => (
+                                    <div key={tx.id} className="p-4 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
+                                       <div className="flex items-center gap-4">
+                                          <div className={cn(
+                                             "w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shadow-sm",
+                                             tx.amount > 0 
+                                               ? "bg-emerald-50 text-emerald-600 border border-emerald-100" 
+                                               : "bg-rose-50 text-rose-600 border border-rose-100"
+                                          )}>
+                                             {tx.amount > 0 ? `+` : ``}{tx.amount.toLocaleString()}
+                                          </div>
+                                          <div className="space-y-0.5">
+                                             <p className="text-sm font-bold text-slate-800">{tx.description || '포인트 변동'}</p>
+                                             <div className="flex items-center gap-2 text-[10px] text-slate-400 font-medium">
+                                                <Badge variant="outline" className="text-[8px] h-4 px-1 leading-none border-slate-200 uppercase tracking-tighter">
+                                                   {tx.source === 'pos' ? '📟 POS' : tx.source === 'order' ? '🛒 주문' : '⚙️ 시스템'}
+                                                </Badge>
+                                                <span>{format(new Date(tx.created_at), 'yyyy-MM-dd HH:mm')}</span>
+                                             </div>
+                                          </div>
+                                       </div>
+                                       <div className="text-right">
+                                          <Badge className={cn(
+                                             "text-[10px] px-1.5 py-0",
+                                             tx.type === 'earn' ? 'bg-emerald-500' : tx.type === 'use' ? 'bg-rose-500' : 'bg-slate-500'
+                                          )}>
+                                             {tx.type === 'earn' ? '적립' : tx.type === 'use' ? '사용' : tx.type === 'cancel' ? '취소' : '기타'}
+                                          </Badge>
+                                       </div>
+                                    </div>
+                                 ))}
+                              </div>
+                           ) : (
+                              <div className="h-64 flex flex-col items-center justify-center text-slate-400 gap-2">
+                                 <Trophy className="h-12 w-12 opacity-10" />
+                                 <p className="font-bold text-sm">포인트 거래 내역이 아직 없습니다.</p>
+                              </div>
+                           )}
+                        </ScrollArea>
+                     </CardContent>
+                  </Card>
+               </TabsContent>
+
                <TabsContent value="history" className="mt-4 animate-in fade-in duration-300">
                   <Card className="border-slate-200 shadow-sm bg-white">
                      <CardHeader className="pb-3 flex flex-row items-center justify-between border-b border-slate-50">

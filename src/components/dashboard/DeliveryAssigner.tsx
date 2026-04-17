@@ -92,14 +92,18 @@ export function DeliveryAssigner({ order }: { order: Order }) {
             )}
             <div className="flex flex-wrap gap-2 mt-1">
               {order.delivery_tracking_url && (
-                <Button variant="outline" size="sm" className="h-7 text-xs text-indigo-700 border-indigo-200 hover:bg-indigo-50" asChild>
-                  <a href={order.delivery_tracking_url} target="_blank" rel="noreferrer">📍 실시간 위치보기</a>
-                </Button>
+                <a href={order.delivery_tracking_url} target="_blank" rel="noreferrer">
+                  <Button variant="outline" size="sm" className="h-7 text-xs text-indigo-700 border-indigo-200 hover:bg-indigo-50">
+                    📍 실시간 위치보기
+                  </Button>
+                </a>
               )}
               {order.delivery_info?.completionPhotoUrl && (
-                <Button variant="outline" size="sm" className="h-7 text-xs text-indigo-700 border-indigo-200 hover:bg-indigo-50" asChild>
-                  <a href={order.delivery_info.completionPhotoUrl} target="_blank" rel="noreferrer">📸 완료 사진보기</a>
-                </Button>
+                <a href={order.delivery_info.completionPhotoUrl} target="_blank" rel="noreferrer">
+                  <Button variant="outline" size="sm" className="h-7 text-xs text-indigo-700 border-indigo-200 hover:bg-indigo-50">
+                    📸 완료 사진보기
+                  </Button>
+                </a>
               )}
             </div>
           </div>

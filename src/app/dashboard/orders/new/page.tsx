@@ -27,6 +27,7 @@ import { CustomerSection } from "./components/CustomerSection";
 import { ProductSection } from "./components/ProductSection";
 import { FulfillmentSection } from "./components/FulfillmentSection";
 import { OrderSummarySide } from "./components/OrderSummarySide";
+import { AiOrderConcierge } from "./components/AiOrderConcierge";
 
 interface OrderItem {
   id: string;
@@ -513,6 +514,48 @@ export default function NewOrderPage() {
     }
   };
 
+  // --- AI DATA APPLICATION ---
+  const handleApplyAiData = (data: any) => {
+    if (data.orderer) {
+      if (data.orderer.name) setOrdererName(data.orderer.name);
+      if (data.orderer.contact) setOrdererContact(formatPhoneNumber(data.orderer.contact));
+      if (data.orderer.company) setOrdererCompany(data.orderer.company);
+    }
+
+    if (data.recipient) {
+      if (data.recipient.name) setRecipientName(data.recipient.name);
+      if (data.recipient.contact) setRecipientContact(formatPhoneNumber(data.recipient.contact));
+      if (data.recipient.address) setDeliveryAddress(data.recipient.address);
+      if (data.recipient.detailAddress) setDeliveryAddressDetail(data.recipient.detailAddress);
+      setIsSameAsOrderer(false);
+    }
+
+    if (data.items && data.items.length > 0) {
+      const newItems = data.items.map((item: any) => ({
+        id: `ai_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        name: item.name || "이름 없음",
+        price: item.price || 0,
+        quantity: item.quantity || 1,
+        stock: 999
+      }));
+      setOrderItems(newItems);
+    }
+
+    if (data.delivery) {
+      if (data.delivery.type) setReceiptType(data.delivery.type);
+      if (data.delivery.date) {
+        try {
+          const parsedDate = new Date(data.delivery.date);
+          if (!isNaN(parsedDate.getTime())) setScheduleDate(parsedDate);
+        } catch (e) {}
+      }
+      if (data.delivery.time) setScheduleTime(data.delivery.time);
+    }
+
+    if (data.message?.content) setMessageContent(data.message.content);
+    if (data.memo) setSpecialRequest(data.memo);
+  };
+
   return (
     <div className="h-full flex flex-col bg-gray-50/30">
       <PageHeader
@@ -520,7 +563,11 @@ export default function NewOrderPage() {
         description={existingOrder 
           ? "기존 주문 정보를 수정합니다." 
           : (externalVendor ? `${externalVendor.name}님에게 보낼 상품을 선택하고 정보를 입력하세요.` : `${profile?.tenants?.name || "새로운 화원"}의 새로운 주문을 접수합니다.`)}
-      />
+      >
+        <div className="mt-4 flex justify-end px-4 md:px-6">
+          <AiOrderConcierge onApply={handleApplyAiData} />
+        </div>
+      </PageHeader>
 
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6 p-4 md:p-6 h-[calc(100vh-140px)] md:h-[calc(100vh-140px)]">
         <div className="md:col-span-8 space-y-6 overflow-y-auto pr-0 md:pr-2 pb-32 md:pb-20 scrollbar-hide">

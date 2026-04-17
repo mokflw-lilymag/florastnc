@@ -104,6 +104,8 @@ export interface Order {
     updatedAt: string;
   } | null;
   extra_data?: any;
+  source?: 'manual' | 'pos' | 'online';
+  pos_transaction_id?: string;
   completionPhotoUrl?: string; // 제작 완료 사진 URL
   created_at?: string;
   updated_at?: string;

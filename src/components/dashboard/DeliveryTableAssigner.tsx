@@ -162,18 +162,18 @@ export function DeliveryTableAssigner({ order }: { order: Order }) {
       
       <div className="flex gap-1 w-full">
         {localOrder.delivery_tracking_url && (
-          <Button variant="outline" size="sm" className="h-6 flex-1 text-[10px] px-1 bg-white" asChild>
-            <a href={localOrder.delivery_tracking_url} target="_blank" rel="noreferrer">
+          <a href={localOrder.delivery_tracking_url} target="_blank" rel="noreferrer" className="flex-1">
+            <Button variant="outline" size="sm" className="h-6 w-full text-[10px] px-1 bg-white">
               <Navigation className="w-3 h-3 mr-1 text-blue-500" /> 위치
-            </a>
-          </Button>
+            </Button>
+          </a>
         )}
         {localOrder.delivery_info?.completionPhotoUrl && (
-          <Button variant="outline" size="sm" className="h-6 flex-1 text-[10px] px-1 bg-white" asChild>
-            <a href={localOrder.delivery_info.completionPhotoUrl} target="_blank" rel="noreferrer">
+          <a href={localOrder.delivery_info.completionPhotoUrl} target="_blank" rel="noreferrer" className="flex-1">
+            <Button variant="outline" size="sm" className="h-6 w-full text-[10px] px-1 bg-white">
               <Camera className="w-3 h-3 mr-1 text-emerald-500" /> 사진
-            </a>
-          </Button>
+            </Button>
+          </a>
         )}
       </div>
     </div>

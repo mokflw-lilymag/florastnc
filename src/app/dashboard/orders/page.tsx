@@ -8,7 +8,7 @@ import {
   Package, Target, RefreshCw, Trash2, XCircle,
   Calendar as CalendarIcon, ExternalLink, Printer, ClipboardList, Info,
   TrendingUp, CreditCard, ShoppingBag, ArrowUpRight, Share2, Loader2, AlertCircle,
-  BarChart3, DollarSign, CheckCircle2
+  BarChart3, DollarSign, CheckCircle2, Monitor
 } from "lucide-react";
 import { format, addMonths, startOfMonth, endOfMonth, isToday, isThisMonth, isThisYear, parseISO, startOfToday, subDays } from "date-fns";
 import { toast } from "sonner";
@@ -650,6 +650,11 @@ export default function OrdersPage() {
                             <div className="space-y-1">
                               <div className="flex items-center gap-2">
                                 <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">{order.order_number}</span>
+                                {order.source === 'pos' && (
+                                  <Badge className="bg-indigo-600 text-white border-none h-4 px-1.5 text-[8px] font-bold gap-1 flex items-center shadow-sm">
+                                    <Monitor className="w-2.5 h-2.5" /> POS
+                                  </Badge>
+                                )}
                                 <span className="text-[10px] font-bold text-slate-400">주문일: {format(parseISO(order.created_at || new Date().toISOString()), 'yyyy-MM-dd')}</span>
                               </div>
                               <div className="font-bold text-slate-900 truncate max-w-[200px]">{order.items[0]?.name || "기타 상품"} {order.items.length > 1 ? `외 ${order.items.length - 1}건` : ""}</div>
