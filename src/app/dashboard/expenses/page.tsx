@@ -23,7 +23,11 @@ import {
   ChevronsUpDown,
   Plus,
   ArrowRight,
-  ShoppingCart
+  ShoppingCart,
+  ScanText,
+  Sparkles,
+  Loader2,
+  Camera
 } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -126,6 +130,9 @@ export default function ExpensesPage() {
       m.mid_category?.toLowerCase().includes(search)
     ).slice(0, 50);
   }, [materials, itemSearchText]);
+  
+  const [isOcrLoading, setIsOcrLoading] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const categoryLabels: Record<string, string> = {
     all: "전체 분류",
@@ -450,6 +457,94 @@ export default function ExpensesPage() {
   const getSupplierName = (id?: string) => {
     if (!id) return "-";
     return suppliers.find(s => s.id === id)?.name || "정보 없음";
+  };
+
+  // AI OCR Scan Function
+  const handleReceiptScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+        toast.error("영수증 이미지 파일(JPG, PNG)을 선택해 주세요.");
+        return;
+    }
+
+    setIsOcrLoading(true);
+    toast.loading("AI가 영수증을 분석하고 있습니다...");
+
+    try {
+        const reader = new FileReader();
+        const base64Promise = new Promise<string>((resolve) => {
+            reader.onload = () => resolve(reader.result as string);
+            reader.readAsDataURL(file);
+        });
+        const base64 = await base64Promise;
+        const base64Data = base64.split(',')[1];
+
+        // Call Gemini API via Server (or a secure helper)
+        // For now, we simulate the logic or use a pre-set helper if available.
+        // Since we have GEMINI_API_KEY in .env, we'll try to call the browser-friendly version 
+        // OR provide a clear structure.
+        
+        const response = await fetch('/api/ai/ocr', {
+            method: 'POST',
+            body: JSON.stringify({ image: base64Data, fileName: file.name }),
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (!response.ok) throw new Error("OCR Analysis Failed");
+        
+        const result = await response.json();
+        const data = result.data;
+
+        if (data) {
+            // Find Matching Supplier
+            let matchedSupplierId = "none";
+            if (data.store_name) {
+                const found = suppliers.find(s => s.name.includes(data.store_name) || data.store_name.includes(s.name));
+                if (found) matchedSupplierId = found.id;
+            }
+
+            // Map extracted items
+            const newItems: ReceiptItem[] = (data.items || []).map((item: any) => {
+                // Try to find matching material
+                const foundMat = materials.find(m => m.name.includes(item.material_name) || item.material_name.includes(m.name));
+                
+                return {
+                    id: crypto.randomUUID(),
+                    material_id: foundMat?.id || "none",
+                    material_name: foundMat?.name || item.material_name,
+                    description: item.description || item.material_name,
+                    quantity: item.quantity || 1,
+                    unit: item.unit || "ea",
+                    unit_price: item.unit_price || 0,
+                    amount: item.amount || (item.quantity * item.unit_price) || 0,
+                    main_category: foundMat?.main_category || "",
+                    mid_category: foundMat?.mid_category || "",
+                    sub_category: "materials"
+                };
+            });
+
+            setFormData(prev => ({
+                ...prev,
+                expense_date: data.date || prev.expense_date,
+                supplier_id: matchedSupplierId,
+                amount: data.total_amount || 0,
+                description: data.store_name ? `${data.store_name} 지출` : prev.description,
+                items: newItems.length > 0 ? newItems : prev.items
+            }));
+
+            toast.dismiss();
+            toast.success("AI 영수증 분석이 완료되었습니다!");
+        }
+    } catch (err: any) {
+        toast.dismiss();
+        toast.error("AI 분석 중 오류가 발생했습니다.");
+        console.error("OCR Error:", err);
+    } finally {
+        setIsOcrLoading(false);
+        if (e.target) e.target.value = '';
+    }
   };
 
   return (
@@ -796,9 +891,27 @@ export default function ExpensesPage() {
                     />
                   </div>
                   <div className="col-span-12 sm:col-span-3">
-                    <Button variant="outline" className="w-full gap-2 font-bold px-4 border-emerald-200 text-emerald-600 hover:bg-emerald-50 h-full">
-                      <FileImage className="h-4 w-4" /> 업로드
+                    <Button 
+                      variant="outline" 
+                      className="w-full gap-2 font-bold px-4 border-emerald-500 bg-emerald-50/50 text-emerald-700 hover:bg-emerald-100 h-full relative overflow-hidden group transition-all"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isOcrLoading}
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/10 to-teal-400/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      {isOcrLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ScanText className="h-4 w-4 text-emerald-600" />}
+                      {isOcrLoading ? "AI 분석 중..." : "AI 영수증 스캔"}
+                      <div className="absolute -top-1 -right-1">
+                        <Sparkles className="h-3 w-3 text-emerald-400 animate-pulse" />
+                      </div>
                     </Button>
+                    <input 
+                       type="file" 
+                       className="hidden" 
+                       ref={fileInputRef} 
+                       accept="image/*"
+                       capture="environment"
+                       onChange={handleReceiptScan} 
+                    />
                   </div>
                 </div>
                 <p className="text-[10px] text-slate-400 mt-2 ml-1 font-medium italic">
