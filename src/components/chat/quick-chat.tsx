@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { format, parseISO, isAfter, addDays } from "date-fns";
+import { format, parseISO, isAfter, addDays, differenceInMinutes } from "date-fns";
 import { toast } from "sonner";
 
 const inquirySoundUrl = "https://assets.mixkit.co/active_storage/sfx/212/212-preview.mp3";
@@ -41,6 +41,13 @@ export function QuickChat() {
     const [showClosed, setShowClosed] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
     const selectedRoomRef = useRef<any>(null);
+    const [isAILoading, setIsAILoading] = useState(false);
+    // FAQ 봇 관련 상태
+    const [faqCategories, setFaqCategories] = useState<string[]>([]);
+    const [faqData, setFaqData] = useState<any[]>([]);
+    const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+    const [faqAnswer, setFaqAnswer] = useState<{q: string, a: string} | null>(null);
+    const [faqSuggestions, setFaqSuggestions] = useState<any[]>([]); // 실시간 제안
 
     // [수정 핵심] 강력하고 독특한 프리미엄 알림음 (Max Volume, Preloaded)
     const playNewInquirySound = () => {
@@ -60,6 +67,7 @@ export function QuickChat() {
 
     const isSuperAdmin = profile?.role === 'super_admin';
     const ADMIN_TENANT_ID = "50551f4c-0b6b-45ab-8db9-047ca3ff88de";
+    const AI_BOT_USER_ID = "00000000-0000-0000-0000-000000000001"; // AI 전용 고정 UUID
 
     useEffect(() => {
         selectedRoomRef.current = selectedRoom;
@@ -71,6 +79,25 @@ export function QuickChat() {
             });
         }
     }, [selectedRoom]);
+
+    // FAQ 데이터 로드
+    const fetchFaq = useCallback(async () => {
+        const { data } = await supabase
+            .from('support_faq')
+            .select('*')
+            .eq('is_active', true)
+            .order('category_order')
+            .order('question_order');
+        if (data) {
+            setFaqData(data);
+            const cats = Array.from(new Set(data.map((d: any) => d.category))) as string[];
+            setFaqCategories(cats);
+        }
+    }, [supabase]);
+
+    useEffect(() => {
+        if (isOpen && !isSuperAdmin) fetchFaq();
+    }, [isOpen, isSuperAdmin, fetchFaq]);
 
     const fetchRooms = useCallback(async () => {
         if (!tenantId) return;
@@ -134,17 +161,30 @@ export function QuickChat() {
         }
     }, [tenantId, supabase, showClosed, user?.id]);
 
-    const handleEndChat = async () => {
+    const handleEndChat = async (reason?: string) => {
         if (!selectedRoom) return;
         try {
             const { error } = await supabase
                 .from('chat_rooms')
-                .update({ status: 'closed' })
+                .update({ 
+                    status: 'closed',
+                    last_activity_at: new Date().toISOString()
+                })
                 .eq('id', selectedRoom.id);
             
             if (error) throw error;
+
+            if (reason === 'timeout') {
+                await supabase.from('chat_messages').insert({
+                    room_id: selectedRoom.id,
+                    sender_tenant_id: ADMIN_TENANT_ID,
+                    is_ai: true,
+                    ai_sender_name: 'Flora AI 비서',
+                    content: "사장님, 오랫동안 응답이 없으셔서 상담을 종료하겠습니다. 나중에 더 궁금한 점이 생기시면 언제든 다시 찾아주세요! 감사합니다. 💐"
+                });
+            }
             
-            toast.success("상담이 종료되었습니다.");
+            toast.success(reason === 'timeout' ? "무응답으로 인해 상담이 종료되었습니다." : "상담이 정중히 종료되었습니다.");
             setSelectedRoom(null);
             fetchRooms();
         } catch (err) {
@@ -291,12 +331,93 @@ export function QuickChat() {
     }, [isOpen, fetchRooms]);
 
     useEffect(() => {
-        if (!isOpen || !selectedRoom) return;
+        if (!isOpen || !selectedRoom || !selectedRoom.id || selectedRoom.status === 'closed') return;
         const interval = setInterval(() => {
             fetchMessages(selectedRoom.id);
         }, 3000);
         return () => clearInterval(interval);
     }, [isOpen, selectedRoom, fetchMessages]);
+
+    const triggerAIResponse = async (roomId: string, userContent: string, history: any[]) => {
+        setIsAILoading(true);
+        try {
+            const historyPayload = Array.isArray(history) ? history.slice(-5).map(m => ({ 
+                role: m.is_ai ? 'model' : (m.sender_id === user?.id ? 'user' : 'user'), 
+                content: m.content || ''
+            })) : [];
+
+            const response = await fetch('/api/ai/support', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    content: userContent,
+                    history: historyPayload,
+                    tenantId,
+                    userName: profile?.name
+                })
+            });
+            const data = await response.json();
+            
+            // API 에러여도 content가 있으면 표시 (에러 안내 메시지)
+            const aiContent = data.content;
+            if (!aiContent) {
+                console.error('[AI] No content in response:', data);
+                return;
+            }
+
+            // AI 답변 DB 저장 (sender_id 없음 - DB에서 nullable 처리 필요)
+            const { error: insertError } = await supabase.from('chat_messages').insert({
+                room_id: roomId,
+                sender_tenant_id: ADMIN_TENANT_ID,
+                is_ai: true,
+                ai_sender_name: 'Flora AI 비서',
+                content: aiContent
+            });
+
+            if (insertError) {
+                console.error('[AI] Message insert error:', insertError);
+                toast.error('AI 답변 저장 실패: ' + insertError.message);
+                return;
+            }
+
+            // 룸 상태 업데이트
+            if (data.status === 'success') {
+                await supabase.from('chat_rooms').update({
+                    needs_human: data.needsHuman || false,
+                    last_activity_at: new Date().toISOString()
+                }).eq('id', roomId);
+                
+                if (data.needsHuman) {
+                    toast.info("상담원 연결이 필요하여 관리자에게 알림을 보냈습니다.");
+                }
+            }
+
+            // 메시지 새로고침
+            fetchMessages(roomId);
+        } catch (err: any) {
+            console.error("AI Response Error:", err);
+            toast.error('AI 응답 오류: ' + (err?.message || '알 수 없는 에러'));
+        } finally {
+            setIsAILoading(false);
+        }
+    };
+
+    // [3분 자동 종료 타이머]
+    useEffect(() => {
+        if (!isOpen || !selectedRoom || selectedRoom.status === 'closed') return;
+        
+        const checkTimeout = () => {
+            const lastActivity = selectedRoom.last_activity_at;
+            if (!lastActivity) return;
+            const diff = differenceInMinutes(new Date(), new Date(lastActivity));
+            if (diff >= 3) {
+                handleEndChat('timeout');
+            }
+        };
+
+        const interval = setInterval(checkTimeout, 20000); // 20초마다 체크
+        return () => clearInterval(interval);
+    }, [isOpen, selectedRoom]);
 
     const handleSendMessage = async (imageUrl?: string) => {
         if (!inputValue.trim() && !imageUrl || !selectedRoom || !tenantId || !user) return;
@@ -318,6 +439,7 @@ export function QuickChat() {
 
         setMessages(prev => [...prev, newMessage]);
         setInputValue("");
+        setFaqSuggestions([]); // 제안 캐시 초기화
         
         // 즉시 스크롤 처리
         setTimeout(() => {
@@ -342,13 +464,48 @@ export function QuickChat() {
                 .single();
 
             if (error) {
-                // 실패 시 낙관적 업데이트 롤백
                 setMessages(prev => prev.filter(m => m.id !== tempId));
                 throw error;
             }
 
+            // [AI 자동 응답 트리거] AI 모드일 때만 작동
+            if (savedMsg && (selectedRoom.active_counselor === 'ai' || !selectedRoom.active_counselor)) {
+                const currentHistory = [...messages, savedMsg];
+                
+                // ★ FAQ 먼저 확인: 키워드 매칭
+                const lowerInput = tempContent.toLowerCase();
+                const faqMatch = faqData.find(f => 
+                    f.question.includes(tempContent) ||
+                    tempContent.split(' ').some((word: string) => word.length > 1 && f.question.includes(word)) ||
+                    f.answer.toLowerCase().includes(lowerInput.slice(0, 10))
+                );
+                
+                if (faqMatch) {
+                    // FAQ 매칭 성공: AI 호출 없이 바로 저장
+                    const { error: faqInsertError } = await supabase.from('chat_messages').insert({
+                        room_id: selectedRoom.id,
+                        sender_tenant_id: ADMIN_TENANT_ID,
+                        is_ai: true,
+                        ai_sender_name: 'Flora AI 비서',
+                        content: `**${faqMatch.question}**\n\n${faqMatch.answer}\n\n---\n*더 궁금한 점이 있으시면 더 자세히 묻어보세요!*`
+                    });
+                    if (!faqInsertError) {
+                        fetchMessages(selectedRoom.id);
+                        return; // AI 호출 안 함
+                    }
+                }
+                
+                // FAQ 매칭 없으면 AI 호출
+                console.log('[QuickChat] Triggering AI Response with history count:', currentHistory.length);
+                triggerAIResponse(selectedRoom.id, tempContent, currentHistory);
+            }
+
+            // 활동 시간 업데이트
+            await supabase.from('chat_rooms').update({
+                last_activity_at: new Date().toISOString()
+            }).eq('id', selectedRoom.id);
+
             if (savedMsg) {
-                // 가짜 ID(tempId)를 서버에서 준 진짜 ID로 교체! (중복 방지의 정석)
                 setMessages(prev => prev.map(m => m.id === tempId ? savedMsg : m));
             }
         } catch (err) {
@@ -408,6 +565,19 @@ export function QuickChat() {
         if (!tenantId || !user) return;
         setLoading(true);
         try {
+            // 1. [동시 상담 제한 체크] 활성 상담 룸 개수 확인
+            const { count } = await supabase
+                .from('chat_rooms')
+                .select('*', { count: 'exact', head: true })
+                .eq('status', 'active');
+            
+            if (count && count >= 10) {
+                toast.warning("현재 상담량이 많아 대기가 필요합니다.", {
+                    description: "잠시 후 다시 시도해 주시거나 잠시 기다려 주세요."
+                });
+                // return; // 사용자 요청에 따라 "대기 메시지 남겨주기"로 처리 가능
+            }
+
             const { data: existing } = await supabase
                 .from('chat_rooms')
                 .select('*, participants:chat_participants!inner(*)')
@@ -416,14 +586,23 @@ export function QuickChat() {
                 .maybeSingle();
 
             if (existing) {
-                await supabase.from('chat_rooms').update({ status: 'active' }).eq('id', existing.id);
+                await supabase.from('chat_rooms').update({ 
+                    status: 'active',
+                    last_activity_at: new Date().toISOString()
+                }).eq('id', existing.id);
                 setSelectedRoom(existing);
                 return;
             }
 
             const { data: newRoom, error: roomError } = await supabase
                 .from('chat_rooms')
-                .insert({ type: 'support', metadata: { title: '관리자 상담' }, status: 'active' })
+                .insert({ 
+                    type: 'support', 
+                    metadata: { title: '관리자 상담' }, 
+                    status: 'active',
+                    active_counselor: 'ai',
+                    last_activity_at: new Date().toISOString()
+                })
                 .select().single();
 
             if (roomError) throw roomError;
@@ -432,6 +611,16 @@ export function QuickChat() {
                 { room_id: newRoom.id, tenant_id: tenantId, user_id: user.id },
                 { room_id: newRoom.id, tenant_id: ADMIN_TENANT_ID }
             ]);
+
+            // 첫 환영 메시지 (AI - sender_id 없음, DB에서 nullable)
+            const { error: welcomeError } = await supabase.from('chat_messages').insert({
+                room_id: newRoom.id,
+                sender_tenant_id: ADMIN_TENANT_ID,
+                is_ai: true,
+                ai_sender_name: 'Flora AI 비서',
+                content: "안녕하세요 사장님! 플로라싱크 헬프데스크에 오신 것을 정중히 환영합니다. 꽃집을 운영하시면서 생기는 궁금증이나 불편한 점을 제가 친절하게 해결해 드릴게요. 무엇부터 도와드릴까요? 🌸"
+            });
+            if (welcomeError) console.error('[AI] Welcome message error:', welcomeError);
 
             setSelectedRoom(newRoom);
             fetchRooms();
@@ -521,20 +710,51 @@ export function QuickChat() {
                                 <div className="flex items-center gap-2">
                                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                                     <span className="text-[10px] font-bold text-emerald-500 uppercase">
-                                        {selectedRoom && isSuperAdmin ? `${getPeerName()} 참여 중` : 'Online'}
+                                        {selectedRoom?.active_counselor === 'human' ? '상담원 직접 개입 중' : 'AI 비서 정중히 응대 중'}
                                     </span>
                                 </div>
                             </div>
                         </div>
-                        {selectedRoom && isSuperAdmin && (
-                            <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className="bg-rose-500/10 hover:bg-rose-500 border-rose-500/20 text-rose-400 hover:text-white rounded-xl text-xs font-black shadow-sm"
-                                onClick={handleEndChat}
-                            >
-                                <Clock size={14} className="mr-2" /> 상담 종료
-                            </Button>
+                        {selectedRoom && (
+                            <div className="flex items-center gap-2">
+                                {isSuperAdmin && (
+                                    <Button 
+                                        variant="outline" 
+                                        size="sm" 
+                                        className={cn(
+                                            "rounded-xl text-[10px] font-black shadow-sm h-8",
+                                            selectedRoom.active_counselor === 'ai' 
+                                                ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20 hover:bg-indigo-500 hover:text-white"
+                                                : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500 hover:text-white"
+                                        )}
+                                        onClick={async () => {
+                                            const nextMode = selectedRoom.active_counselor === 'ai' ? 'human' : 'ai';
+                                            const { error } = await supabase
+                                                .from('chat_rooms')
+                                                .update({ active_counselor: nextMode })
+                                                .eq('id', selectedRoom.id);
+                                            if (!error) {
+                                                setSelectedRoom({...selectedRoom, active_counselor: nextMode});
+                                                toast.success(nextMode === 'ai' ? "AI 비서에게 상담을 다시 맡겼습니다." : "상담사가 직접 개입합니다.");
+                                            }
+                                        }}
+                                    >
+                                        {selectedRoom.active_counselor === 'ai' ? '상담사 개입' : 'AI에게 다시 맡기기'}
+                                    </Button>
+                                )}
+                                <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="bg-rose-500/10 hover:bg-rose-500 border-rose-500/20 text-rose-400 hover:text-white rounded-xl text-xs font-black shadow-sm h-8"
+                                    onClick={() => {
+                                        if (confirm("상담을 정말 종료하시겠습니까?")) {
+                                            handleEndChat();
+                                        }
+                                    }}
+                                >
+                                    <Clock size={14} className="mr-2" /> 상담 종료
+                                </Button>
+                            </div>
                         )}
                     </div>
 
@@ -596,25 +816,33 @@ export function QuickChat() {
                                                 <div className="space-y-4 pb-6">
                                                     {messages.map((msg) => {
                                                         const isMe = msg.sender_id === user?.id || msg.sender_tenant_id === tenantId;
-                                                        const messageDate = parseISO(msg.created_at);
-                                                        const isOld = isAfter(new Date(), addDays(messageDate, 7));
+                                                        const isAI = msg.is_ai === true || msg.sender_id === AI_BOT_USER_ID;
+                                                        const messageDate = msg.created_at ? parseISO(msg.created_at) : new Date();
                                                         return (
-                                                            <div key={msg.id} className={cn("flex flex-col mb-1", isMe ? "items-end" : "items-start")}>
+                                                            <div key={msg.id} className={cn("flex flex-col mb-1", isAI ? "items-start" : isMe ? "items-end" : "items-start")}>
                                                                 <div className={cn(
                                                                     "max-w-[85%] p-3 px-4 rounded-2xl text-[13px] font-medium shadow-sm",
-                                                                    isMe ? "bg-slate-900 text-white rounded-tr-none" : "bg-white text-slate-800 rounded-tl-none border border-slate-100"
+                                                                    isAI ? "bg-indigo-600 text-white rounded-tl-none"
+                                                                    : isMe ? "bg-slate-900 text-white rounded-tr-none" 
+                                                                    : "bg-white text-slate-800 rounded-tl-none border border-slate-100"
                                                                 )}>
-                                                                    {msg.image_url && !isOld && (
+                                                                    {msg.image_url && (
                                                                         <img src={msg.image_url} className="rounded-xl mb-2 max-h-40 w-full object-cover cursor-pointer" onClick={() => window.open(msg.image_url, '_blank')} />
                                                                     )}
-                                                                    <p className="whitespace-pre-wrap leading-relaxed">{isOld ? "일주일이 경과된 메시지입니다." : msg.content}</p>
+                                                                    <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
                                                                 </div>
                                                                 <span className="text-[9px] text-slate-300 font-bold mt-1 px-1">
-                                                                    {!isMe && `${msg.sender_tenant?.name || '시스템'} • `}{format(messageDate, 'HH:mm')}
+                                                                    {isAI ? (msg.ai_sender_name || 'Flora AI') : !isMe && `${msg.sender_tenant?.name || ''}`} • {format(messageDate, 'HH:mm')}
                                                                 </span>
                                                             </div>
                                                         );
                                                     })}
+                                                    {isAILoading && (
+                                                        <div className="flex items-center gap-2 text-indigo-500 animate-pulse text-[10px] font-bold uppercase tracking-widest pl-2">
+                                                            <RefreshCw size={12} className="animate-spin" />
+                                                            AI 비서가 정중히 답변을 작성 중입니다...
+                                                        </div>
+                                                    )}
                                                     <div ref={scrollRef} />
                                                 </div>
                                             </div>
@@ -633,12 +861,12 @@ export function QuickChat() {
                                                 <MessageCircle className="w-8 h-8 opacity-20" />
                                             </div>
                                             <h4 className="text-sm font-bold text-slate-600 mb-1">
-                                                {showClosed ? '상담 기록을 확인하세요' : '상담을 시작하세요'}
+                                                {showClosed ? '상담 기록을 확인하세요' : '사장님들을 정중히 모십니다'}
                                             </h4>
                                             <p className="text-xs max-w-[200px] leading-relaxed">
                                                 {showClosed 
                                                   ? '왼쪽 상담 기록에서 화원사를 선택하여 대화 내용을 열람하실 수 있습니다.'
-                                                  : '왼쪽 목록에서 화원사를 선택하여 실시간 채팅을 시작하실 수 있습니다.'}
+                                                  : '왼쪽 목록에서 화원사를 선택하여 실시간 기술 지원을 시작하세요.'}
                                             </p>
                                         </div>
                                     )}
@@ -673,13 +901,85 @@ export function QuickChat() {
                                                 </div>
                                             </div>
 
+                                            {/* FAQ 바로 찾기 섹션 */}
+                                            {faqAnswer ? (
+                                                <div className="bg-indigo-50 border border-indigo-100 rounded-[1.5rem] p-5 space-y-3">
+                                                    <div className="flex items-start gap-2">
+                                                        <span className="text-lg">🤖</span>
+                                                        <div>
+                                                            <p className="text-[11px] font-black text-indigo-600 mb-1 uppercase tracking-widest">AI 빠른 답변</p>
+                                                            <p className="text-xs font-bold text-slate-700 mb-2">{faqAnswer.q}</p>
+                                                            <p className="text-[12px] text-slate-600 leading-relaxed whitespace-pre-wrap">{faqAnswer.a}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex gap-2 pt-2 border-t border-indigo-100">
+                                                        <Button size="sm" variant="outline" className="flex-1 text-[10px] font-black h-8 rounded-xl"
+                                                            onClick={() => { setFaqAnswer(null); setSelectedCategory(null); }}>
+                                                            ← 다른 질문
+                                                        </Button>
+                                                        <Button size="sm" className="flex-1 text-[10px] font-black h-8 rounded-xl bg-indigo-600 hover:bg-indigo-700"
+                                                            onClick={() => { setFaqAnswer(null); startSupportChat(); }}>
+                                                            AI에게 더 묻기
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            ) : selectedCategory ? (
+                                                // [2단계] 선택된 카테고리 질문만 표시
+                                                <div className="space-y-2">
+                                                    <div className="flex items-center justify-between">
+                                                        <button className="flex items-center gap-1 text-[10px] font-black text-slate-400 hover:text-indigo-600 transition-colors"
+                                                            onClick={() => setSelectedCategory(null)}>
+                                                            ← 카테고리로 돌아가기
+                                                        </button>
+                                                        <span className="text-[9px] text-slate-400">{faqData.filter(f => f.category === selectedCategory).length}개 항목</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 pb-1">
+                                                        <span className="text-base">{faqData.find((f:any) => f.category === selectedCategory)?.category_icon}</span>
+                                                        <p className="text-[12px] font-black text-slate-800">{selectedCategory}</p>
+                                                    </div>
+                                                    <div className="space-y-1.5">
+                                                        {faqData.filter((f:any) => f.category === selectedCategory).map((faq: any) => (
+                                                            <button key={faq.id}
+                                                                className="w-full text-left p-3.5 rounded-2xl bg-white border border-slate-100 hover:border-indigo-300 hover:bg-indigo-50 transition-all text-[12px] font-medium text-slate-700 shadow-sm flex items-start gap-2"
+                                                                onClick={() => setFaqAnswer({ q: faq.question, a: faq.answer })}>
+                                                                <span className="text-indigo-400 font-black shrink-0 text-[10px] mt-0.5">Q</span>
+                                                                <span>{faq.question}</span>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                    <p className="text-[9px] text-slate-400 text-center pt-1">원하는 답변이 없으면 아래 AI 상담을 이용하세요</p>
+                                                </div>
+                                            ) : (
+                                                // [1단계] 카테고리 그리드만 표시
+                                                <div className="space-y-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-base">⚡</span>
+                                                        <p className="text-[11px] font-black text-slate-700">무엇을 도와드릴까요?</p>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                        {faqData.reduce((acc: any[], f: any) => {
+                                                            if (!acc.find((a: any) => a.category === f.category)) acc.push(f);
+                                                            return acc;
+                                                        }, []).map((faq: any) => (
+                                                            <button key={faq.category}
+                                                                className="p-3.5 rounded-2xl bg-white border border-slate-100 hover:border-indigo-300 hover:bg-indigo-50 hover:shadow-md transition-all text-left shadow-sm group"
+                                                                onClick={() => setSelectedCategory(faq.category)}>
+                                                                <span className="text-xl block mb-1.5">{faq.category_icon}</span>
+                                                                <span className="text-[11px] font-black text-slate-700 group-hover:text-indigo-700 block">{faq.category}</span>
+                                                                <span className="text-[9px] text-slate-400">{faqData.filter((d:any) => d.category === faq.category).length}개 질문</span>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
                                             <Button className="w-full h-auto p-6 bg-slate-900 hover:bg-slate-800 text-white rounded-[2rem] justify-start gap-4 shadow-xl" onClick={startSupportChat} disabled={loading}>
                                                 <div className="w-10 h-10 rounded-2xl bg-indigo-500 text-white flex items-center justify-center shadow-lg shadow-indigo-500/30">
                                                     {loading ? <RefreshCw className="animate-spin" size={20} /> : <MessageCircle size={20} />}
                                                 </div>
                                                 <div className="flex flex-col items-start">
-                                                    <span className="font-black text-sm">상담원 연결하기 (1:1)</span>
-                                                    <span className="text-[9px] font-medium text-white/50 uppercase tracking-widest">Connect to Admin Support</span>
+                                                    <span className="font-black text-sm">찾는 답변이 없다면? AI 상담</span>
+                                                    <span className="text-[9px] font-medium text-white/50 uppercase tracking-widest">AI + 상담원 하이브리드 지원</span>
                                                 </div>
                                             </Button>
                                             <div className="flex items-center gap-4 px-1">
@@ -694,14 +994,19 @@ export function QuickChat() {
                                         <div className="flex-1 overflow-y-auto px-6 pt-6 scrollbar-thin scrollbar-thumb-slate-200" id="chat-messages-container-user">
                                             <div className="space-y-6 pb-6">
                                                 {messages.map((msg) => {
-                                                    // 사용자는 '본인의 ID'인 경우에만 '나(오른쪽)'로 표시
                                                     const isMe = msg.sender_id === user?.id;
+                                                    const isAI = msg.is_ai === true || msg.sender_id === '00000000-0000-0000-0000-000000000001';
                                                     const isImage = msg.content?.startsWith('https://') && (msg.content.includes('.png') || msg.content.includes('.jpg') || msg.content.includes('.jpeg') || msg.content.includes('.gif') || msg.content.includes('.webp'));
-                                                    const messageDate = parseISO(msg.created_at);
+                                                    const messageDate = msg.created_at ? parseISO(msg.created_at) : new Date();
 
                                                     return (
                                                         <div key={msg.id} className={cn("flex flex-col mb-2", isMe ? "items-end" : "items-start")}>
-                                                            <div className={cn("max-w-[85%] p-4 rounded-3xl text-sm font-medium shadow-sm transition-all hover:scale-[1.01]", isMe ? "bg-slate-900 text-white rounded-tr-none shadow-slate-900/10" : "bg-white text-slate-800 rounded-tl-none border border-slate-100")}>
+                                                            <div className={cn(
+                                                                "max-w-[85%] p-4 rounded-3xl text-sm font-medium shadow-sm transition-all hover:scale-[1.01]", 
+                                                                isAI ? "bg-indigo-600 text-white rounded-tl-none shadow-indigo-600/10"
+                                                                : isMe ? "bg-slate-900 text-white rounded-tr-none shadow-slate-900/10" 
+                                                                : "bg-white text-slate-800 rounded-tl-none border border-slate-100"
+                                                            )}>
                                                                 {isImage ? (
                                                                     <div className="relative group cursor-zoom-in">
                                                                         <img src={msg.content} alt="Chat image" className="rounded-2xl max-w-full h-auto border border-slate-100" />
@@ -711,18 +1016,75 @@ export function QuickChat() {
                                                                     </div>
                                                                 ) : (
                                                                     <p className="whitespace-pre-wrap leading-relaxed">
-                                                                        {isAfter(new Date(), addDays(messageDate, 7)) ? "일주일이 경과된 메시지입니다" : msg.content}
+                                                                        {msg.content}
                                                                     </p>
                                                                 )}
                                                             </div>
-                                                            <span className="text-[9px] text-slate-300 font-bold mt-1 px-2 uppercase tracking-tighter">{format(messageDate, 'HH:mm')}</span>
+                                                            <span className="text-[9px] text-slate-300 font-bold mt-1 px-2 uppercase tracking-tighter">
+                                                                {isAI ? (msg.ai_sender_name || 'Flora AI') : 'Me'} • {format(messageDate, 'HH:mm')}
+                                                            </span>
                                                         </div>
                                                     );
                                                 })}
+                                                {isAILoading && (
+                                                    <div className="flex items-center gap-2 text-indigo-500 animate-pulse text-[9px] font-bold uppercase tracking-widest pl-2">
+                                                        <RefreshCw size={10} className="animate-spin" />
+                                                        AI 비서가 답변을 작성 중입니다...
+                                                    </div>
+                                                )}
                                                 <div ref={scrollRef} />
                                             </div>
                                         </div>
-                                        <ChatInput value={inputValue} onChange={setInputValue} onSend={handleSendMessage} onFile={handleFileUpload} loading={loading} />
+                                        <div className="px-4 pb-1">
+                                            {/* 실시간 FAQ 제안 첨 */}
+                                            {faqSuggestions.length > 0 && !isAILoading && (
+                                                <div className="flex flex-wrap gap-1.5 mb-2">
+                                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest w-full">💡 이런 내용을 묻는 건가요?</span>
+                                                    {faqSuggestions.slice(0, 3).map((faq: any) => (
+                                                        <button
+                                                            key={faq.id}
+                                                            className="text-[11px] font-semibold px-3 py-1.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 transition-colors truncate max-w-[200px]"
+                                                            onClick={async () => {
+                                                                setFaqSuggestions([]);
+                                                                setInputValue('');
+                                                                // 선택한 FAQ 답변을 AI 메시지로 저장
+                                                                await supabase.from('chat_messages').insert({
+                                                                    room_id: selectedRoom.id,
+                                                                    sender_tenant_id: ADMIN_TENANT_ID,
+                                                                    is_ai: true,
+                                                                    ai_sender_name: 'Flora AI 비서',
+                                                                    content: `**${faq.question}**\n\n${faq.answer}`
+                                                                });
+                                                                fetchMessages(selectedRoom.id);
+                                                            }}
+                                                        >
+                                                            {faq.question}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <ChatInput
+                                            value={inputValue}
+                                            onChange={(val: string) => {
+                                                setInputValue(val);
+                                                // 실시간 FAQ 매칭
+                                                if (val.trim().length >= 2 && faqData.length > 0) {
+                                                    const lower = val.toLowerCase();
+                                                    const matched = faqData.filter(f =>
+                                                        f.question.toLowerCase().includes(lower) ||
+                                                        val.split(' ').filter((w:string) => w.length > 1)
+                                                            .some((word: string) => f.question.includes(word))
+                                                    );
+                                                    setFaqSuggestions(matched.slice(0, 3));
+                                                } else {
+                                                    setFaqSuggestions([]);
+                                                }
+                                            }}
+                                            onSend={handleSendMessage}
+                                            onFile={handleFileUpload}
+                                            loading={loading}
+                                        />
                                     </div>
                                 )}
                             </div>

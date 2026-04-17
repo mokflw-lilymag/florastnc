@@ -44,6 +44,7 @@ export function Sidebar({ isSuperAdmin, plan, isExpired, isSuspended, className,
     { name: "구독/결제 관제", href: "/dashboard/billing-admin", icon: CreditCard },
     { name: "글로벌 공지사항", href: "/dashboard/announcements", icon: ScrollText },
     { name: "시스템 전역 설정", href: "/dashboard/system-settings", icon: Settings },
+    { name: "FAQ 및 AI 지식 관리", href: "/dashboard/admin/faq", icon: FileText },
     { name: "✨ 플랫폼 홍보 마스터", href: "/dashboard/marketing/admin", icon: Sparkles },
     { name: "⚙️ 화원사 환경 설정", href: "/dashboard/settings", icon: Settings },
   ];

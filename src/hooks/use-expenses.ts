@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useAuth } from './use-auth';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
 import type { Expense } from '@/types/expense';
 
 export type { Expense };
