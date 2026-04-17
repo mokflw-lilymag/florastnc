@@ -1,66 +1,84 @@
 'use client';
 
 import Link from 'next/link';
-import { Leaf } from 'lucide-react';
+import { Leaf, Monitor, Terminal, Github } from 'lucide-react';
 
 export function Footer() {
   return (
-    <footer className="bg-white border-t border-slate-100 pt-16 pb-8 text-sm">
-      <div className="container mx-auto px-6 md:px-12">
-        <div className="flex flex-col md:flex-row justify-between items-start gap-10 mb-16">
-          <div className="max-w-xs">
-            <Link href="/" className="flex items-center gap-2 mb-4 group">
-              <div className="bg-gradient-to-br from-[#1B4B43] to-[#2D736A] p-2 rounded-lg text-white shadow-sm group-hover:scale-105 transition-transform">
-                <Leaf size={16} />
+    <footer className="bg-[#0A0F0D] border-t border-white/5 pt-20 pb-12 text-sm relative overflow-hidden">
+      {/* Footer Ambient Glow */}
+      <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-emerald-500/5 rounded-full blur-[100px] pointer-events-none" />
+
+      <div className="container mx-auto px-6 md:px-12 relative z-10">
+        <div className="flex flex-col xl:flex-row justify-between items-start gap-16 mb-20">
+          <div className="max-w-md">
+            <Link href="/" className="flex items-center gap-3 mb-8 group">
+              <div className="bg-gradient-to-br from-emerald-500 to-teal-600 p-2.5 rounded-xl text-[#0A0F0D] shadow-lg group-hover:scale-105 transition-transform">
+                <Leaf size={20} />
               </div>
-              <span className="font-bold text-xl tracking-tight text-slate-900">
-                Florasync
+              <span className="font-title text-2xl tracking-tighter text-white">
+                FLORASYNC <span className="text-xs text-slate-500 font-sans tracking-widest ml-1">SYSTEMS</span>
               </span>
             </Link>
-            <p className="text-slate-500 mb-6 leading-relaxed">
-              꽃에만 집중할 수 있도록. 플로리스트를 위한 가장 혁신적이고 완벽한 종합 사무·운영(ERP) 플랫폼.
+            <p className="text-slate-400 mb-10 leading-relaxed text-lg font-light">
+              세상의 모든 아름다움이 당신의 손끝에서 더 효율적으로 완성되도록. <br />
+              플로리스트의 가치를 기술로 증명하는 차세대 지능형 ERP 플랫폼.
             </p>
-            <div className="flex flex-col gap-1 text-slate-500">
-              <p><strong>고객센터 핫라인:</strong> 1588-0000</p>
-              <p><strong>카카오톡:</strong> @ribbonprint</p>
+            <div className="grid grid-cols-2 gap-6 text-slate-500 text-xs uppercase tracking-widest font-black">
+              <div className="flex flex-col gap-2">
+                <span className="text-slate-600">Support Line</span>
+                <span className="text-white">1588-0000</span>
+              </div>
+              <div className="flex flex-col gap-2">
+                <span className="text-slate-600">Official Channel</span>
+                <span className="text-white">KAKAOTALK @FLORASYNC</span>
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-12 lg:gap-24">
             <div>
-              <h4 className="font-bold text-slate-900 mb-4 uppercase tracking-wider text-xs">서비스</h4>
-              <ul className="space-y-3">
-                <li><Link href="#features" className="text-slate-500 hover:text-blue-600 transition-colors">주요 기능</Link></li>
-                <li><button onClick={() => alert('매뉴얼 페이지 준비 중')} className="text-slate-500 hover:text-blue-600 transition-colors">매뉴얼 가이드</button></li>
-                <li><Link href="/login" className="text-slate-500 hover:text-blue-600 transition-colors">출력 페이지 (Login)</Link></li>
+              <h4 className="font-black text-white mb-6 uppercase tracking-[0.2em] text-[10px] text-emerald-500">Architecture</h4>
+              <ul className="space-y-4">
+                <li><Link href="#features" className="text-slate-400 hover:text-white transition-colors flex items-center gap-2 group"><Monitor size={14} className="opacity-50 group-hover:opacity-100" /> Core Engine</Link></li>
+                <li><Link href="#ai-concierge" className="text-slate-400 hover:text-white transition-colors flex items-center gap-2 group"><Terminal size={14} className="opacity-50 group-hover:opacity-100" /> AI Modules</Link></li>
+                <li><Link href="/login" className="text-slate-400 hover:text-white transition-colors flex items-center gap-2 group">Cloud Printing</Link></li>
               </ul>
             </div>
             <div>
-              <h4 className="font-bold text-slate-900 mb-4 uppercase tracking-wider text-xs">쇼핑몰</h4>
-              <ul className="space-y-3">
-                <li><button onClick={() => alert('몰 오픈 준비 중')} className="text-slate-500 hover:text-blue-600 transition-colors">리본 용지 구매</button></li>
-                <li><button onClick={() => alert('몰 오픈 준비 중')} className="text-slate-500 hover:text-blue-600 transition-colors">전용 잉크/토너</button></li>
-                <li><button onClick={() => alert('몰 오픈 준비 중')} className="text-slate-500 hover:text-blue-600 transition-colors">엡손 프린터 기기</button></li>
+              <h4 className="font-black text-white mb-6 uppercase tracking-[0.2em] text-[10px] text-emerald-500">Ecosystem</h4>
+              <ul className="space-y-4">
+                <li><button className="text-slate-400 hover:text-white transition-colors">Ribbon Supply</button></li>
+                <li><button className="text-slate-400 hover:text-white transition-colors">Ink & Toners</button></li>
+                <li><button className="text-slate-400 hover:text-white transition-colors">Hardware Partner</button></li>
               </ul>
             </div>
-            <div className="col-span-2 lg:col-span-1">
-              <h4 className="font-bold text-slate-900 mb-4 uppercase tracking-wider text-xs">법적 고지</h4>
-              <ul className="space-y-3">
-                <li><Link href="#" className="text-slate-500 hover:text-blue-600 transition-colors">이용약관</Link></li>
-                <li><Link href="#" className="font-semibold text-slate-600 hover:text-blue-600 transition-colors">개인정보처리방침</Link></li>
+            <div className="col-span-2 md:col-span-1">
+              <h4 className="font-black text-white mb-6 uppercase tracking-[0.2em] text-[10px] text-emerald-500">Legal & Privacy</h4>
+              <ul className="space-y-4">
+                <li><Link href="#" className="text-slate-400 hover:text-white transition-colors">Terms of Service</Link></li>
+                <li><Link href="#" className="text-emerald-500/70 hover:text-emerald-400 transition-colors font-bold">Privacy Policy</Link></li>
               </ul>
             </div>
           </div>
         </div>
 
-        <div className="pt-8 border-t border-slate-100 flex flex-col md:flex-row items-center justify-between gap-4 text-slate-400 text-xs">
-          <p>© {new Date().getFullYear()} Ribbonist (Florasync). All rights reserved.</p>
-          <div className="flex items-center gap-4">
-            <span className="hover:text-slate-600 cursor-pointer">Support</span>
-            <span className="hover:text-slate-600 cursor-pointer">Status</span>
+        <div className="pt-12 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-6 text-slate-500 text-xs">
+          <div className="flex flex-col md:flex-row items-center gap-2 md:gap-6">
+            <p>© {new Date().getFullYear()} Ribbonist Corp. All rights reserved.</p>
+            <div className="flex items-center gap-4">
+              <span className="hover:text-white transition-colors cursor-pointer">Security Status</span>
+              <span className="hover:text-white transition-colors cursor-pointer">API Status</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-6">
+            <Link href="https://github.com/mokflw-lilymag" className="hover:text-white transition-colors">
+              <Github size={20} />
+            </Link>
           </div>
         </div>
       </div>
     </footer>
   );
 }
+

@@ -35,7 +35,6 @@ import {
   Cloud,
   FileImage,
   LayoutGrid,
-  Calculator,
   Globe
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -431,9 +430,7 @@ export default function SettingsPage() {
             <TabsTrigger value="printer" className="justify-start shrink-0 text-sm py-2.5 px-4 md:py-3 data-[state=active]:bg-white rounded-xl transition-all">
               <Printer className="h-4 w-4 mr-3 text-slate-500" /> 프린터/브릿지
             </TabsTrigger>
-            <TabsTrigger value="tax" className="justify-start shrink-0 text-sm py-2.5 px-4 md:py-3 rounded-xl text-emerald-700 bg-emerald-50/30 data-[state=active]:bg-emerald-600 data-[state=active]:text-white transition-all">
-              <Calculator className="h-4 w-4 mr-3" /> 세무 설정
-            </TabsTrigger>
+
             <TabsTrigger value="integrations" className="justify-start shrink-0 text-sm py-2.5 px-4 md:py-3 data-[state=active]:bg-white rounded-xl transition-all">
               <LinkIcon className="h-4 w-4 mr-3 text-slate-500" /> 연동 및 자동화
             </TabsTrigger>
@@ -477,6 +474,40 @@ export default function SettingsPage() {
                   <div className="space-y-2">
                     <Label htmlFor="address">주소</Label>
                     <Input id="address" value={localAddress} onChange={e => setLocalAddress(e.target.value)} />
+                  </div>
+
+                  <Separator className="my-4 bg-slate-100" />
+
+                  {/* Integrated Tax Settings */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-4 bg-slate-50/80 rounded-2xl border border-slate-100">
+                      <div className="space-y-0.5">
+                        <Label className="text-sm font-bold text-slate-900">부가세 면세(비과세) 사업장</Label>
+                        <p className="text-[10px] text-slate-500 font-medium">생화 상품 위주 매장은 면세 적용 체크</p>
+                      </div>
+                      <Switch 
+                        checked={settings.isTaxExempt} 
+                        onCheckedChange={(c) => saveSettings({...settings, isTaxExempt: c})} 
+                      />
+                    </div>
+
+                    {!settings.isTaxExempt && (
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-blue-50/30 rounded-2xl border border-blue-100/50 animate-in fade-in slide-in-from-top-2">
+                        <div className="space-y-1">
+                          <Label className="text-sm font-bold flex items-center gap-2">부가세율 (%) <Percent size={14} className="text-blue-500" /></Label>
+                          <p className="text-[10px] text-slate-400">일반 과세자 기준 기본 10%</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Input 
+                            type="number" 
+                            className="w-24 font-black text-blue-600 bg-white" 
+                            value={settings.defaultTaxRate} 
+                            onChange={(e) => saveSettings({...settings, defaultTaxRate: Number(e.target.value)})}
+                          />
+                          <span className="text-xs font-bold text-slate-500">%</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center gap-6 p-4 rounded-2xl bg-slate-50/50 border border-slate-100">
                     <div className="h-24 w-24 rounded-2xl border-2 border-dashed border-slate-200 bg-white flex items-center justify-center overflow-hidden">
@@ -614,15 +645,7 @@ export default function SettingsPage() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="tax" className="space-y-4">
-              <Card className="border-0 shadow-sm ring-1 ring-slate-200">
-                <CardHeader><CardTitle>세무 설정</CardTitle></CardHeader>
-                <CardContent className="flex items-center justify-between p-6">
-                  <Label>부가세 면세 적용</Label>
-                  <Switch checked={settings.isTaxExempt} onCheckedChange={(c) => saveSettings({...settings, isTaxExempt: c})} />
-                </CardContent>
-              </Card>
-            </TabsContent>
+
 
             <TabsContent value="partner-network" className="space-y-6">
               <Card className="border-0 shadow-sm ring-1 ring-blue-100">

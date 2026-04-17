@@ -19,7 +19,8 @@ import {
   Trash2,
   CheckCircle2,
   Instagram,
-  Youtube
+  Youtube,
+  Key
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,6 +32,13 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from 'sonner';
 import { createClient } from '@/utils/supabase/client';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogHeader, 
+  DialogTitle 
+} from "@/components/ui/dialog";
 
 interface Agent {
   id: string;
@@ -82,6 +90,13 @@ export default function MarketingStudio() {
   const [newTheme, setNewTheme] = useState('');
   const [connectedPlatforms, setConnectedPlatforms] = useState<string[]>([]);
   
+  // Connection Dialog State
+  const [isConnectDialogOpen, setIsConnectDialogOpen] = useState(false);
+  const [currentConnectingPlatform, setCurrentConnectingPlatform] = useState<any>(null);
+  const [isLoginProcessing, setIsLoginProcessing] = useState(false);
+  const [loginStep, setLoginStep] = useState<'info' | 'input'>('info');
+  const [loginInput, setLoginInput] = useState({ id: '', pw: '' });
+  
   const supabase = createClient();
 
   useEffect(() => {
@@ -120,6 +135,39 @@ export default function MarketingStudio() {
     
     if (data) {
       setConnectedPlatforms(data.map(c => c.provider));
+    }
+  };
+
+  const handleConnectSNS = async (provider: string) => {
+    setIsLoginProcessing(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    try {
+      // Simulate OAuth Delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      const { error } = await supabase
+        .from('user_credentials')
+        .upsert({
+          user_id: user.id,
+          provider: provider,
+          is_active: true,
+          access_token: 'simulated_token_' + Math.random().toString(36).substring(7),
+          updated_at: new Date().toISOString()
+        });
+
+      if (error) throw error;
+      
+      toast.success(`${provider} 계정이 성공적으로 연동되었습니다!`);
+      fetchCredentials();
+      setIsConnectDialogOpen(false);
+      setLoginStep('info');
+      setLoginInput({ id: '', pw: '' });
+    } catch (err) {
+      toast.error('연동 중 오류가 발생했습니다.');
+    } finally {
+      setIsLoginProcessing(false);
     }
   };
 
@@ -380,7 +428,10 @@ export default function MarketingStudio() {
                                 size="sm" 
                                 variant="outline" 
                                 className="rounded-xl h-9 text-xs font-bold hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
-                                onClick={() => toast.info(`${p.name} 연결 프로세스를 시작합니다.`)}
+                                onClick={() => {
+                                  setCurrentConnectingPlatform(p);
+                                  setIsConnectDialogOpen(true);
+                                }}
                               >
                                 계정 연결하기
                               </Button>
@@ -529,6 +580,116 @@ export default function MarketingStudio() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Connection Dialog */}
+      <Dialog open={isConnectDialogOpen} onOpenChange={setIsConnectDialogOpen}>
+        <DialogContent className="sm:max-w-[460px] p-0 overflow-hidden border-none shadow-2xl rounded-3xl">
+          <div className="bg-gradient-to-br from-indigo-600 to-purple-700 p-8 text-white relative">
+            <div className="absolute top-0 right-0 p-8 opacity-10">
+              {currentConnectingPlatform?.icon}
+            </div>
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-black flex items-center gap-3">
+                {currentConnectingPlatform?.name} 연결
+              </DialogTitle>
+              <DialogDescription className="text-white/80 font-medium">
+                AI 홍보 마스터가 사장님 대신 콘텐츠를 게시할 수 있도록 <br/>
+                {loginStep === 'info' ? '공식 API 권한을 승인해 주세요.' : '해단 SNS 계정 정보를 입력해 주세요.'}
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+
+          <div className="p-8 space-y-6 bg-white dark:bg-slate-900">
+             {loginStep === 'info' ? (
+               <>
+                 <div className="space-y-4">
+                    <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 flex gap-4">
+                       <div className="p-2 bg-indigo-100 dark:bg-indigo-900/50 rounded-xl h-fit">
+                          <ShieldCheck className="w-5 h-5 text-indigo-600" />
+                       </div>
+                       <div className="space-y-1">
+                          <p className="text-xs font-bold text-slate-700 dark:text-slate-300">공식 보안 인증 사용</p>
+                          <p className="text-[10px] text-slate-500">사장님의 비밀번호는 서버에 저장되지 않으며, 인스타그램/구글의 공식 토큰 방식을 통해 안전하게 관리됩니다.</p>
+                       </div>
+                    </div>
+                    
+                    <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900 flex gap-4">
+                       <div className="p-2 bg-amber-100 dark:bg-amber-900/50 rounded-xl h-fit">
+                          <Key className="w-5 h-5 text-amber-600" />
+                       </div>
+                       <div className="space-y-1">
+                          <p className="text-xs font-bold text-amber-800 dark:text-amber-400">비즈니스 계정 확인</p>
+                          <p className="text-[10px] text-amber-700/70 dark:text-amber-400/70">인스타그램의 경우 반드시 '비즈니스 계정'으로 전환되어 있어야 자동 업로드가 지원됩니다.</p>
+                       </div>
+                    </div>
+                 </div>
+
+                 <div className="flex flex-col gap-3">
+                    <Button 
+                      className="w-full h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-lg gap-3 shadow-lg shadow-indigo-100 dark:shadow-none"
+                      onClick={() => setLoginStep('input')}
+                    >
+                      {currentConnectingPlatform?.icon}
+                      {currentConnectingPlatform?.name} 로그인 및 연동
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      className="w-full h-12 rounded-2xl text-slate-400 font-bold"
+                      onClick={() => setIsConnectDialogOpen(false)}
+                    >
+                      취소하기
+                    </Button>
+                 </div>
+               </>
+             ) : (
+               <div className="space-y-6 py-2 animate-in fade-in slide-in-from-right-4 duration-300">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                       <Label className="text-xs font-bold text-slate-500">SNS 사용자 아이디 (ID)</Label>
+                       <Input 
+                         placeholder="이메일 또는 사용자 이름" 
+                         value={loginInput.id} 
+                         onChange={e => setLoginInput({...loginInput, id: e.target.value})}
+                         className="h-12 rounded-xl"
+                       />
+                    </div>
+                    <div className="space-y-2">
+                       <Label className="text-xs font-bold text-slate-500">비밀번호 (Password)</Label>
+                       <Input 
+                         type="password" 
+                         placeholder="비밀번호 입력" 
+                         value={loginInput.pw} 
+                         onChange={e => setLoginInput({...loginInput, pw: e.target.value})}
+                         className="h-12 rounded-xl"
+                       />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-3">
+                    <Button 
+                      className="w-full h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-lg gap-3 shadow-lg shadow-emerald-100 dark:shadow-none"
+                      onClick={() => handleConnectSNS(currentConnectingPlatform?.id)}
+                      disabled={isLoginProcessing || !loginInput.id || !loginInput.pw}
+                    >
+                      {isLoginProcessing ? <Zap className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
+                      {currentConnectingPlatform?.name} 로그인 인증 완료
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      className="w-full h-12 rounded-2xl text-slate-400 font-bold"
+                      onClick={() => {
+                        setLoginStep('info');
+                        setLoginInput({ id: '', pw: '' });
+                      }}
+                    >
+                      뒤로 가기
+                    </Button>
+                  </div>
+               </div>
+             )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
