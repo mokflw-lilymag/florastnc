@@ -1080,6 +1080,59 @@ export default function SettingsPage() {
               </CardContent>
             </Card>
 
+            <Card className="border-0 shadow-sm ring-1 ring-indigo-200 bg-indigo-50/10">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-indigo-700">
+                  <Package className="h-5 w-5 text-indigo-600" /> 카카오T 배달 대행 자동 연동
+                </CardTitle>
+                <CardDescription>배송이 필요한 주문에 대해 카카오T 퀵/차량 배차를 자동으로 요청합니다.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                 <div className="flex items-center justify-between p-4 bg-white rounded-xl border border-indigo-100">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600">
+                      <Package className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <Label className="font-bold cursor-pointer text-indigo-900" htmlFor="auto-delivery">단품 배송 시 자동 배차 활성화</Label>
+                      <p className="text-[10px] text-slate-500 mt-1">이 기능을 끄면 주문 대시보드에서 수동으로 버튼을 눌러야만 기사가 호출됩니다.</p>
+                    </div>
+                  </div>
+                  <Switch 
+                    id="auto-delivery" 
+                    checked={settings.autoDeliveryBooking}
+                    onCheckedChange={(checked) => saveSettings({...settings, autoDeliveryBooking: checked})}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-bold text-slate-500 uppercase px-1">카카오T 비즈니스 API Key</Label>
+                    <Input 
+                      type="password"
+                      value={settings.kakaoTDeliveryApiKey || ""}
+                      onChange={e => saveSettings({...settings, kakaoTDeliveryApiKey: e.target.value})}
+                      placeholder="카카오T B2B 포털 발급 Key"
+                      className="h-9 bg-white"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-bold text-slate-500 uppercase px-1">가맹점(Business) ID</Label>
+                    <Input 
+                      placeholder="예: 000123"
+                      value={settings.kakaoTDeliveryBizId || ""}
+                      onChange={e => saveSettings({...settings, kakaoTDeliveryBizId: e.target.value})}
+                      className="h-9 bg-white"
+                    />
+                  </div>
+                </div>
+                <div className="mt-2 p-2 bg-slate-50 rounded-lg text-[9px] text-slate-400 italic flex items-center justify-between">
+                  <span>💡 Tip: 각 매장의 자체 결제카드로 부과되므로 요금은 직접 정산됩니다.</span>
+                  <Badge variant="outline" className="text-[10px] border-indigo-200 text-indigo-600 bg-indigo-50">카카오T 퀵(차량) 우선 적용</Badge>
+                </div>
+              </CardContent>
+            </Card>
+
             <Card className="border-0 shadow-sm ring-1 ring-amber-200 bg-amber-50/10">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-amber-700">

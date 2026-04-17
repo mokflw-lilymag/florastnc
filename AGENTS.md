@@ -42,6 +42,11 @@ If you are unsure about how a feature should work, ALWAYS check these reference 
 - **기술 스택**: Tailwind CSS v4, Shadcn UI, Framer Motion, `tailwind-merge`, `lucide-react`
 - **지침**: UI 상호작용 시 Stagger effect 등 Framer Motion의 고급 애니메이션을 적극 활용하여 세련된 UX를 제공합니다. 스타일 병합 시에는 `tailwind-merge`를 사용하여 충돌을 방지합니다.
 
+## 6. [QA 악마 테스터] "나는 이 앱을 반드시 박살낸다"
+- **스킬 파일**: `skills/06_qa_devil_tester_agent.md`
+- **기술 스택**: 브라우저 DevTools, Supabase 대시보드, 수동 테스트 + 자동화 시나리오
+- **지침**: 개발자의 눈이 아닌 **답답하고 급한 꽃집 사장님 눈**으로 앱을 테스트합니다. 5단계 악랄한 테스트 프로토콜(기본 파괴 → 데이터 정합성 → 동시성 → UX 이탈 → 극한 엣지케이스)을 순서대로 실행하며 발견한 모든 이슈를 `docs/qa_test_report_[날짜].md`로 저장합니다.
+
 ## 💡 치트 시트 (Cheat Sheet)
 - **성능 저하 발생**: `idb-keyval`, `Web Workers` 적용 ("Off-the-main-thread", "Caching strategy")
 - **복잡한 데이터 가공**: `lodash`, `date-fns` 적용 ("Functional programming", "Immutability")

@@ -27,6 +27,9 @@ export interface SystemSettings {
   kakaoApiKey: string;
   kakaoSenderId: string;
   kakaoDefaultMessage: string;
+  kakaoTDeliveryApiKey?: string;
+  kakaoTDeliveryBizId?: string;
+  autoDeliveryBooking?: boolean;
   useGoogleSheets: boolean;
   googleSheetId: string;
   googleSheetName: string;
@@ -71,6 +74,9 @@ export const defaultSettings: SystemSettings = {
   kakaoApiKey: "",
   kakaoSenderId: "",
   kakaoDefaultMessage: "",
+  kakaoTDeliveryApiKey: "",
+  kakaoTDeliveryBizId: "",
+  autoDeliveryBooking: false,
   useGoogleSheets: false,
   googleSheetId: "",
   googleSheetName: "",

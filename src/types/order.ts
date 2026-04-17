@@ -68,6 +68,11 @@ export interface Order {
     completedBy?: string;
   } | null;
   memo?: string;
+  delivery_provider?: string;
+  delivery_tracking_id?: string;
+  delivery_tracking_url?: string;
+  delivery_provider_status?: string;
+  delivery_provider_fee?: number;
   message?: {
     type?: 'none' | 'card' | 'ribbon';
     content?: string;

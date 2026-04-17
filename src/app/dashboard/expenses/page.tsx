@@ -40,6 +40,7 @@ import { cn } from "@/lib/utils";
 import { useExpenses, Expense } from "@/hooks/use-expenses";
 import { useSuppliers } from "@/hooks/use-suppliers";
 import { useMaterials } from "@/hooks/use-materials";
+import { useOrders } from "@/hooks/use-orders";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { toast } from 'sonner';
@@ -96,6 +97,7 @@ export default function ExpensesPage() {
   const { expenses, loading: expensesLoading, addExpense, addExpenses, updateExpense, deleteExpense } = useExpenses();
   const { suppliers, loading: suppliersLoading } = useSuppliers();
   const { materials, loading: materialsLoading } = useMaterials();
+  const { updateOrder } = useOrders(false);
   const loading = expensesLoading || suppliersLoading || materialsLoading;
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -386,6 +388,10 @@ export default function ExpensesPage() {
         storage_provider: formData.storage_provider
       };
       await updateExpense(editingExpense.id, payload);
+      // 배송비인 경우 연결된 주문의 actual_delivery_cost도 동기화
+      if (editingExpense.sub_category === '배송비' && editingExpense.related_order_id) {
+        await updateOrder(editingExpense.related_order_id, { actual_delivery_cost: formData.amount } as any);
+      }
     } else {
       if (formData.items.length > 0) {
         const payloads = formData.items.map(item => ({
@@ -1074,7 +1080,13 @@ export default function ExpensesPage() {
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8 hover:bg-red-50 hover:text-red-500"
-                              onClick={() => { if (window.confirm("지출 내역을 삭제하시겠습니까?")) deleteExpense(e.id); }}
+                              onClick={async () => {
+                                if (!window.confirm("지출 내역을 삭제하시겠습니까?")) return;
+                                if (e.sub_category === '배송비' && e.related_order_id) {
+                                  await updateOrder(e.related_order_id, { actual_delivery_cost: null } as any);
+                                }
+                                deleteExpense(e.id);
+                              }}
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>

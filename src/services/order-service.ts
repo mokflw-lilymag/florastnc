@@ -17,6 +17,11 @@ export const OrderService = {
       items: row.items || [],
       pickup_info: row.pickup_info || null,
       delivery_info: row.delivery_info || null,
+      delivery_provider: row.delivery_provider,
+      delivery_tracking_id: row.delivery_tracking_id,
+      delivery_tracking_url: row.delivery_tracking_url,
+      delivery_provider_status: row.delivery_provider_status,
+      delivery_provider_fee: row.delivery_provider_fee,
       memo: row.memo,
       message: row.message || {},
       extra_data: row.extra_data,
@@ -40,6 +45,7 @@ export const OrderService = {
       .select(`
         id, tenant_id, order_number, status, receipt_type, order_date, 
         orderer, summary, payment, items, message, pickup_info, delivery_info, 
+        delivery_provider, delivery_tracking_id, delivery_tracking_url, delivery_provider_status, delivery_provider_fee,
         memo, actual_delivery_cost, actual_delivery_cost_cash, 
         actual_delivery_payment_method, actual_delivery_payment_status,
         outsource_info, created_at, completionphotourl
@@ -58,6 +64,7 @@ export const OrderService = {
       .select(`
         id, tenant_id, order_number, status, receipt_type, order_date, 
         orderer, summary, payment, items, message, pickup_info, delivery_info, 
+        delivery_provider, delivery_tracking_id, delivery_tracking_url, delivery_provider_status, delivery_provider_fee,
         memo, actual_delivery_cost, actual_delivery_cost_cash, 
         actual_delivery_payment_method, actual_delivery_payment_status,
         outsource_info, created_at, completionphotourl
@@ -158,7 +165,18 @@ export const OrderService = {
     const actualCost = updates.actual_delivery_cost;
     const deliveryFee = updates.summary?.deliveryFee;
     
-    if ((actualCost !== undefined && actualCost > 0) || (deliveryFee !== undefined && deliveryFee > 0)) {
+    if (updates.hasOwnProperty('actual_delivery_cost') && (actualCost === 0 || actualCost === null)) {
+      // Cost removed, delete the expense
+      const { data: existingExpenses } = await supabase
+        .from('expenses')
+        .select('id')
+        .eq('related_order_id', id)
+        .eq('sub_category', '배송비');
+      
+      if (existingExpenses && existingExpenses.length > 0) {
+        await supabase.from('expenses').delete().eq('id', existingExpenses[0].id);
+      }
+    } else if ((actualCost !== undefined && actualCost > 0) || (deliveryFee !== undefined && deliveryFee > 0)) {
       const { data: existingExpenses } = await supabase
         .from('expenses')
         .select('id, amount')
@@ -181,8 +199,7 @@ export const OrderService = {
             await supabase.from('expenses')
               .update({ 
                 amount: expenseAmount,
-                description: `[배송비] ${orderNumber} (${carrier})`,
-                updated_at: new Date().toISOString()
+                description: `[배송비] ${orderNumber} (${carrier})`
               })
               .eq('id', existingExpenses[0].id);
           } else {

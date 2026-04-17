@@ -197,40 +197,31 @@ export function OrderEditDialog({ isOpen, onOpenChange, order }: OrderEditDialog
       if (formData.receipt_type === 'delivery_reservation' && formData.actual_delivery_cost > 0) {
         const expenseData = {
           category: "transportation",
-          sub_category: "delivery_fee",
+          sub_category: "배송비", // OrderService와 동일한 키값 사용
           amount: formData.actual_delivery_cost,
           description: `[배송비] ${order.order_number} (${formData.driverAffiliation || '자체배송'})`,
           expense_date: formData.order_date ? new Date(formData.order_date).toISOString() : new Date().toISOString(),
           payment_method: formData.actual_delivery_payment_method || "card",
         };
         
-        // Search for existing expenses for this order to prevent duplicates
         const { data: existingExpenses } = await supabase
           .from('expenses')
           .select('id')
           .eq('related_order_id', order.id)
-          .eq('sub_category', 'delivery_fee');
+          .eq('sub_category', '배송비');
 
         if (existingExpenses && existingExpenses.length > 0) {
-          // Update the first found expense
           await updateExpense(existingExpenses[0].id, expenseData);
-          
-          // Clean up any other duplicates if they somehow exist
           if (existingExpenses.length > 1) {
             for (let i = 1; i < existingExpenses.length; i++) {
               await deleteExpense(existingExpenses[i].id);
             }
           }
         } else {
-          // Create new expense if none exists
-          await addExpense({
-            ...expenseData,
-            related_order_id: order.id
-          });
+          await addExpense({ ...expenseData, related_order_id: order.id });
         }
       } else if (order.actual_delivery_cost && order.actual_delivery_cost > 0) {
-        // If delivery cost was removed or changed to non-reservation, clean up expenses
-        await deleteExpenseByOrderId(order.id, "delivery_fee");
+        await deleteExpenseByOrderId(order.id, "배송비");
       }
 
       toast.success("주문이 수정되었습니다.");
@@ -364,6 +355,8 @@ export function OrderEditDialog({ isOpen, onOpenChange, order }: OrderEditDialog
                       </div>
                     </div>
                   </div>
+                  
+
                 </>
               )}
             </CardContent>

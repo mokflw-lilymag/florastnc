@@ -40,6 +40,7 @@ import { ko } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { MessagePrintDialog } from '../orders/components/message-print-dialog';
+import { DeliveryTableAssigner } from '@/components/dashboard/DeliveryTableAssigner';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -56,6 +57,7 @@ export default function DeliveryManagementPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<"all" | "delivery" | "pickup">("all");
   const [newCarrier, setNewCarrier] = useState("");
+  const [localOverrides, setLocalOverrides] = useState<Record<string, Partial<any>>>({});
   
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [dateFilterMode, setDateFilterMode] = useState<"today" | "tomorrow" | "all" | "custom">("today");
@@ -130,24 +132,42 @@ export default function DeliveryManagementPage() {
   };
 
   const saveDeliveryInfo = async (orderId: string) => {
-    const costValue = tempActualCost === "" ? 0 : parseInt(tempActualCost);
+    const costValue = tempActualCost === "" ? null : parseInt(tempActualCost);
     const order = orders.find(o => o.id === orderId);
     
     if (!order) return;
+
+    // Optimistic UI update (즉각 반영)
+    setLocalOverrides(prev => ({
+      ...prev,
+      [orderId]: {
+        actual_delivery_cost: costValue,
+        delivery_info: {
+          ...order.delivery_info,
+          driverAffiliation: tempCarrier || order.delivery_info?.driverAffiliation
+        }
+      }
+    }));
+    setEditingOrderId(null);
 
     try {
       const updates: any = {
         actual_delivery_cost: costValue,
         delivery_info: {
           ...order.delivery_info,
-          driverAffiliation: tempCarrier
+          driverAffiliation: tempCarrier || order.delivery_info?.driverAffiliation
         }
       };
 
       await updateOrder(orderId, updates);
       toast.success("배송 정보가 저장되었습니다.");
-      setEditingOrderId(null);
     } catch (error) {
+      // 실패 시 낙관적 업데이트 롤백
+      setLocalOverrides(prev => {
+        const next = { ...prev };
+        delete next[orderId];
+        return next;
+      });
       toast.error("배송 정보 저장 실패");
     }
   };
@@ -379,7 +399,7 @@ export default function DeliveryManagementPage() {
                       <TableHead className="font-bold text-gray-700">상품 정보</TableHead>
                       <TableHead className="font-bold text-gray-700">수령 정보</TableHead>
                       <TableHead className="font-bold text-gray-700">실지출 배송비</TableHead>
-                      <TableHead className="font-bold text-gray-700">배송업체</TableHead>
+                      <TableHead className="font-bold text-gray-700 w-44">배송업체 / 배차</TableHead>
                       <TableHead className="font-bold text-gray-700 text-center">상태</TableHead>
                       <TableHead className="pr-6 text-right font-bold text-gray-700">관리</TableHead>
                    </TableRow>
@@ -395,12 +415,17 @@ export default function DeliveryManagementPage() {
                         </TableCell>
                      </TableRow>
                    ) : (
-                     filteredOrders.map((order) => {
-                       const isDelivery = order.receipt_type === "delivery_reservation";
-                       const info = isDelivery ? order.delivery_info : order.pickup_info;
-                       
-                       return (
-                         <TableRow key={order.id} className="group hover:bg-gray-50/80 transition-all border-b border-gray-100 last:border-none">
+                      filteredOrders.map((order) => {
+                        const isDelivery = order.receipt_type === "delivery_reservation";
+                        // 낙관적 업데이트(즉각 반영) 적용
+                        const override = localOverrides[order.id] || {};
+                        const displayOrder = { ...order, ...override,
+                          delivery_info: { ...(order.delivery_info || {}), ...(override.delivery_info || {}) }
+                        };
+                        const info = isDelivery ? displayOrder.delivery_info : displayOrder.pickup_info;
+                        
+                        return (
+                          <TableRow key={order.id} className="group hover:bg-gray-50/80 transition-all border-b border-gray-100 last:border-none">
                             <TableCell className="py-6 pl-6">
                                <div className="flex flex-col gap-1">
                                   <div className="flex items-center gap-2 text-primary font-bold text-lg">
@@ -489,8 +514,8 @@ export default function DeliveryManagementPage() {
                                      className="flex flex-col cursor-pointer group/cost hover:bg-blue-50 p-1.5 rounded-lg border border-transparent hover:border-blue-100 transition-all"
                                      onClick={() => startEditing(order)}
                                    >
-                                      <span className={cn("font-black text-sm", order.actual_delivery_cost ? "text-rose-600" : "text-gray-300 italic")}>
-                                        {order.actual_delivery_cost ? `₩${order.actual_delivery_cost.toLocaleString()}` : "미입력"}
+                                      <span className={cn("font-black text-sm", displayOrder.actual_delivery_cost ? "text-rose-600" : "text-gray-300 italic")}>
+                                        {displayOrder.actual_delivery_cost ? `₩${displayOrder.actual_delivery_cost.toLocaleString()}` : "미입력"}
                                       </span>
                                       <span className="text-[10px] text-gray-400 font-medium group-hover/cost:text-blue-500 underline decoration-dotted decoration-blue-200 underline-offset-2">배송비 입력</span>
                                    </div>
@@ -499,39 +524,38 @@ export default function DeliveryManagementPage() {
                                  <span className="text-gray-300 text-xs">-</span>
                                )}
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="align-top pt-5">
                                {isDelivery ? (
-                                 editingOrderId === order.id ? (
-                                   <Select value={tempCarrier} onValueChange={(val: string | null) => setTempCarrier(val || "")}>
-                                      <SelectTrigger className="h-8 text-xs font-medium border-primary/30 bg-white min-w-[100px]">
-                                        <SelectValue placeholder="업체 선택" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="none">미지정</SelectItem>
-                                        {(settings?.deliveryCarriers || []).map((carrier: string) => (
-                                          <SelectItem key={carrier} value={carrier}>{carrier}</SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                   </Select>
-                                 ) : (
-                                   <div 
-                                     className="flex flex-col cursor-pointer group/carrier hover:bg-indigo-50 p-1.5 rounded-lg border border-transparent hover:border-indigo-100 transition-all"
-                                     onClick={() => startEditing(order)}
-                                   >
-                                      <Badge 
-                                        variant="outline" 
-                                        className={cn(
-                                          "w-fit font-bold transition-all",
-                                          order.delivery_info?.driverAffiliation 
-                                            ? "bg-indigo-50 text-indigo-700 border-indigo-200" 
-                                            : "bg-gray-50 text-gray-400 border-gray-200 opacity-60"
-                                        )}
-                                      >
-                                        {order.delivery_info?.driverAffiliation || "미지정"}
-                                      </Badge>
-                                      <span className="text-[10px] text-gray-400 font-medium mt-1 group-hover/carrier:text-indigo-500 underline decoration-dotted decoration-indigo-200 underline-offset-2">업체 선택</span>
-                                   </div>
-                                 )
+                                 <div className="flex flex-col gap-3 min-w-[140px]">
+                                   {/* 자동 배달앱(카카오T) 연동 UI 영역 */}
+                                   <DeliveryTableAssigner order={order} />
+
+                                   {/* 수동 택배사/배송업체 지정 (배달앱 미사용 시) */}
+                                   {(!order.delivery_tracking_id || order.delivery_provider_status === 'cancelled') && (
+                                     editingOrderId === order.id ? (
+                                       <Select value={tempCarrier} onValueChange={(val: string | null) => setTempCarrier(val || "")}>
+                                          <SelectTrigger className="h-7 text-[10px] font-medium border-gray-300 bg-white">
+                                            <SelectValue placeholder="수동 업체 선택" />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="none">미지정</SelectItem>
+                                            {(settings?.deliveryCarriers || []).map((carrier: string) => (
+                                              <SelectItem key={carrier} value={carrier}>{carrier}</SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                       </Select>
+                                     ) : (
+                                       <div 
+                                         className="flex flex-col cursor-pointer group/carrier hover:bg-gray-50 p-1 rounded-md border border-dashed border-transparent hover:border-gray-200 transition-all opacity-70"
+                                         onClick={() => startEditing(order)}
+                                       >
+                                          <span className="text-[10px] font-bold text-gray-500 flex items-center justify-between">
+                                            {order.delivery_info?.driverAffiliation ? `수동: ${order.delivery_info.driverAffiliation}` : "수동업체 미지정"}
+                                          </span>
+                                       </div>
+                                     )
+                                   )}
+                                 </div>
                                ) : (
                                  <span className="text-gray-300 text-xs">-</span>
                                )}
