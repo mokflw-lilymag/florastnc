@@ -647,7 +647,8 @@ export default function ExpensesPage() {
           videoRef.current.srcObject = stream;
         }
       } catch (err: any) {
-        console.error("Camera access error:", err);
+        // Next.js 개발 모드에서 console.error 시 오버레이 크래시 화면이 뜨는 것을 방지
+        console.warn("Camera access fallback triggered:", err.message);
         setIsWebcamOpen(false);
         
         if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
