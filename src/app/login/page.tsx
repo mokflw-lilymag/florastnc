@@ -81,8 +81,11 @@ export default function LoginPage() {
     try {
       setGoogleLoading(true);
       
-      // Get the correct base URL
-      const origin = typeof window !== 'undefined' && window.location.origin ? window.location.origin : 'https://florastnc-n8lv.vercel.app';
+      // Prefer runtime origin, then configured app URL for SSR/preview safety.
+      const origin =
+        typeof window !== 'undefined' && window.location.origin
+          ? window.location.origin
+          : process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
       const redirectTo = `${origin}/auth/callback`;
       
       console.log('Attempting Google Sign-in with redirect:', redirectTo);

@@ -21,15 +21,22 @@ export async function POST(request: Request) {
     // 1. 지식베이스 로드
     const kbPath = path.join(process.cwd(), 'docs', 'ai_knowledge_base.md');
     let knowledgeBase = '';
+    let kbLoaded = false;
     try {
       knowledgeBase = fs.readFileSync(kbPath, 'utf8');
+      kbLoaded = true;
     } catch (e) {
-      console.warn('[AI Support] Knowledge base not found, proceeding without it');
+      console.warn('[AI Support][KB_FALLBACK] Knowledge base file not found, proceeding without local KB');
     }
 
     // 2. FAQ 데이터 로드 (Supabase에서 실시간)
     let faqContext = '';
+    let faqLoaded = false;
     try {
+      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        throw new Error('SUPABASE_CONFIG_MISSING');
+      }
+
       const supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -41,6 +48,7 @@ export async function POST(request: Request) {
         .order('category_order');
 
       if (faqs && faqs.length > 0) {
+        faqLoaded = true;
         faqContext = '\n[사전 학습된 Q&A 지식]\n';
         const grouped: Record<string, typeof faqs> = {};
         faqs.forEach(f => {
@@ -54,11 +62,21 @@ export async function POST(request: Request) {
           });
         });
       }
-    } catch (faqErr) {
-      console.warn('[AI Support] FAQ load failed:', faqErr);
+    } catch (faqErr: any) {
+      const reason = faqErr?.message || 'UNKNOWN_FAQ_ERROR';
+      console.warn(`[AI Support][FAQ_FALLBACK] FAQ load failed: ${reason}`);
+    }
+
+    if (!kbLoaded || !faqLoaded) {
+      console.info(
+        `[AI Support][FALLBACK_STATUS] kbLoaded=${kbLoaded} faqLoaded=${faqLoaded} tenant=${tenantId || 'unknown'}`
+      );
     }
 
     // 3. 작동 확인된 모델 사용
+    if (!process.env.GEMINI_API_KEY && !process.env.NEXT_PUBLIC_GEMINI_API_KEY) {
+      console.error('[AI Support][CONFIG_MISSING] GEMINI_API_KEY 또는 NEXT_PUBLIC_GEMINI_API_KEY 누락');
+    }
     const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
 
     // 4. 대화 내역 구성

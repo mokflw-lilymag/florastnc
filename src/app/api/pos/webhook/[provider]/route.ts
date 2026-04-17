@@ -14,15 +14,16 @@ import { parseTossPosPayload } from '@/services/pos/parsers/TossPosParser';
 // Service-role 클라이언트 (RLS 우회 - Webhook은 인증 없이 도달)
 function createServiceClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   
   if (!url || !serviceKey) {
-    console.error('[POS Webhook] Supabase 설정이 누락되었습니다.');
+    console.error('[POS Webhook][CONFIG_MISSING] NEXT_PUBLIC_SUPABASE_URL 또는 SUPABASE_SERVICE_ROLE_KEY 누락');
+    return null;
   }
 
   return createClient(
-    url!,
-    serviceKey!,
+    url,
+    serviceKey,
     { auth: { persistSession: false } }
   );
 }
@@ -47,6 +48,12 @@ export async function POST(
   }
 
   const supabase = createServiceClient();
+  if (!supabase) {
+    return NextResponse.json(
+      { error: 'Webhook 서버 설정이 누락되었습니다.', code: 'CONFIG_MISSING' },
+      { status: 503 }
+    );
+  }
 
   // ── Tenant 식별 (헤더 또는 payload에서 store_code로 조회) ────────────────────
   const storeCode =

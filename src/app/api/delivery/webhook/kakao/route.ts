@@ -3,16 +3,24 @@ import { createClient } from '@supabase/supabase-js';
 import { MessageService } from '@/services/message-service';
 
 // 관리자 권한의 Supabase 클라이언트 초기화 (Webhook에서는 인증된 세션이 없으므로)
-// 보통 환경변수에서 가져오지만, 로컬 환경을 위해 폴백을 제공합니다.
+// 테스트 환경에서도 원인 파악이 쉽도록 누락 시 명확히 실패시킵니다.
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: { autoRefreshToken: false, persistSession: false }
-});
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 export async function POST(req: Request) {
   try {
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('[KakaoT Webhook][CONFIG_MISSING] NEXT_PUBLIC_SUPABASE_URL 또는 SUPABASE_SERVICE_ROLE_KEY 누락');
+      return NextResponse.json(
+        { error: 'Webhook 서버 설정이 누락되었습니다.', code: 'CONFIG_MISSING' },
+        { status: 503 }
+      );
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    });
+
     const payload = await req.json();
     console.log('📦 [KakaoT Webhook] 수신된 페이로드:', payload);
 

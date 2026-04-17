@@ -1,9 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 
+const inFlightPayments = new Set<string>();
+
 export async function POST(request: NextRequest) {
+  let paymentKey: string | undefined;
   try {
-    const { paymentKey, orderId, amount } = await request.json();
+    const payload = await request.json();
+    paymentKey = payload?.paymentKey;
+    const orderId = payload?.orderId;
+    const amount = payload?.amount;
+
+    if (!paymentKey || !orderId || !amount) {
+      return NextResponse.json({ message: "결제 요청 정보가 누락되었습니다." }, { status: 400 });
+    }
+
+    if (inFlightPayments.has(paymentKey)) {
+      return NextResponse.json(
+        { success: true, message: "이미 처리 중인 결제입니다. 잠시 후 상태를 확인해주세요." },
+        { status: 202 }
+      );
+    }
+    inFlightPayments.add(paymentKey);
+
     const supabase = await createClient();
     
     // 1. Get logged in user and tenant
@@ -25,7 +44,14 @@ export async function POST(request: NextRequest) {
 
     // 3. Verify with Toss Payments Server API
     // Auth Header: Basic [Base64(SecretKey:)]
-    const widgetSecretKey = process.env.TOSS_SECRET_KEY!;
+    const widgetSecretKey = process.env.TOSS_SECRET_KEY;
+    if (!widgetSecretKey) {
+      console.error("[Payment Confirm][CONFIG_MISSING] TOSS_SECRET_KEY 누락");
+      return NextResponse.json(
+        { message: "결제 서버 설정이 누락되었습니다.", code: "CONFIG_MISSING" },
+        { status: 503 }
+      );
+    }
     const encryptedSecretKey = Buffer.from(widgetSecretKey + ":").toString("base64");
 
     const tossResponse = await fetch("https://api.tosspayments.com/v1/payments/confirm", {
@@ -50,7 +76,15 @@ export async function POST(request: NextRequest) {
 
     // 4. Update Database
     // Parse planId from orderId (Expected format: tenantId_planId_period_timestamp)
-    const [_, planId, period] = orderId.split("_");
+    const orderParts = orderId.split("_");
+    if (orderParts.length < 3) {
+      return NextResponse.json(
+        { message: "결제 주문번호 형식이 올바르지 않습니다. 다시 시도해주세요." },
+        { status: 400 }
+      );
+    }
+    const planId = orderParts[1];
+    const period = orderParts[2];
     
     // Calculate new subscription_end date
     const months = period === "12m" ? 12 : period === "6m" ? 6 : period === "3m" ? 3 : 1;
@@ -81,5 +115,9 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error("Payment confirmation critical error:", error);
     return NextResponse.json({ message: error.message }, { status: 500 });
+  } finally {
+    if (paymentKey) {
+      inFlightPayments.delete(paymentKey);
+    }
   }
 }
