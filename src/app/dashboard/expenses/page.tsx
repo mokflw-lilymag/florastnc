@@ -621,20 +621,42 @@ export default function ExpensesPage() {
   };
 
   const openWebcam = () => {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      toast.error("현재 브라우저에서 카메라 기능을 지원하지 않습니다. 파일 불러오기를 이용해주세요.");
+      return;
+    }
+
     setIsWebcamOpen(true);
     setTimeout(async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-          video: { facingMode: 'environment' } 
-        });
+        // 1순위: 후면 카메라 시도
+        let stream;
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: { ideal: 'environment' } } 
+          });
+        } catch (envCheckErr) {
+          // 2순위: 전면 혹은 아무 카메라나 시도
+          stream = await navigator.mediaDevices.getUserMedia({ 
+            video: true 
+          });
+        }
+
         streamRef.current = stream;
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
         }
-      } catch (err) {
-        console.error(err);
-        toast.error("카메라 접근 권한이 없거나 카메라를 찾을 수 없습니다.");
+      } catch (err: any) {
+        console.error("Camera access error:", err);
         setIsWebcamOpen(false);
+        
+        if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+          toast.error("기기에 연결된 카메라를 찾을 수 없습니다.");
+        } else if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+          toast.error("카메라 접근 권한이 거부되었습니다. 브라우저 설정에서 권한을 허용해주세요.");
+        } else {
+          toast.error(`카메라를 시작할 수 없습니다: ${err.message || '알 수 없는 오류'}`);
+        }
       }
     }, 100);
   };
