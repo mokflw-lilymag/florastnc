@@ -23,6 +23,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useIsCapacitorAndroid } from "@/hooks/use-capacitor-android";
+import { isCapacitorAndroid } from "@/lib/client-platform";
 
 interface HeaderProps {
   userEmail: string;
@@ -58,8 +60,10 @@ export function Header({
   const router = useRouter();
   const supabase = createClient();
   const [isBridgeOnline, setIsBridgeOnline] = useState(false);
+  const isAndroidApp = useIsCapacitorAndroid();
 
   useEffect(() => {
+    if (typeof window !== "undefined" && isCapacitorAndroid()) return;
     const checkBridge = async () => {
       try {
         // PNA (Private Network Access) handling: 
@@ -157,7 +161,8 @@ export function Header({
       </div>
 
       <div className="flex items-center gap-4">
-        {/* Bridge Status Indicator (v25.0) */}
+        {/* Bridge Status Indicator (v25.0) — Android 앱에서는 리본 브릿지 미사용 */}
+        {!isAndroidApp && (
         <div 
           onClick={() => router.push('/dashboard/printer')}
           className={cn(
@@ -183,6 +188,7 @@ export function Header({
             {isSuperAdmin ? 'HQ ADMIN' : plan.toUpperCase()}
           </span>
         </div>
+        )}
 
         {/* Help Center Drawer */}
         <ManualDrawer />

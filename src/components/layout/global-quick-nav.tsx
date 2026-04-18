@@ -1,7 +1,8 @@
 "use client";
-import React from 'react';
+import React, { useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useIsCapacitorAndroid } from '@/hooks/use-capacitor-android';
 import { 
   Plus, 
   Printer, 
@@ -16,17 +17,22 @@ import { cn } from '@/lib/utils';
 
 export function GlobalQuickNav() {
   const pathname = usePathname();
+  const isAndroidApp = useIsCapacitorAndroid();
 
-  const navItems = [
-    { icon: LayoutDashboard, label: '홈', href: '/dashboard' },
-    { icon: Plus, label: '새주문', href: '/dashboard/orders/new' },
-    { icon: ClipboardList, label: '주문현황', href: '/dashboard/orders' },
-    { icon: Printer, label: '리본', href: '/dashboard/printer' },
-    { icon: Truck, label: '배송/픽업', href: '/dashboard/delivery' },
-    { icon: ScrollText, label: '정산', href: '/dashboard/reports' },
-    { icon: CreditCard, label: '지출', href: '/dashboard/expenses' },
-    { icon: Boxes, label: '재고', href: '/dashboard/inventory' },
-  ];
+  const navItems = useMemo(() => {
+    const all = [
+      { icon: LayoutDashboard, label: '홈', href: '/dashboard' },
+      { icon: Plus, label: '새주문', href: '/dashboard/orders/new' },
+      { icon: ClipboardList, label: '주문현황', href: '/dashboard/orders' },
+      { icon: Printer, label: '리본', href: '/dashboard/printer' },
+      { icon: Truck, label: '배송/픽업', href: '/dashboard/delivery' },
+      { icon: ScrollText, label: '정산', href: '/dashboard/reports' },
+      { icon: CreditCard, label: '지출', href: '/dashboard/expenses' },
+      { icon: Boxes, label: '재고', href: '/dashboard/inventory' },
+    ];
+    if (isAndroidApp) return all.filter((i) => i.href !== '/dashboard/printer');
+    return all;
+  }, [isAndroidApp]);
 
   return (
     <>

@@ -14,6 +14,7 @@ import Image from "next/image";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useIsCapacitorAndroid } from "@/hooks/use-capacitor-android";
 
 interface SidebarProps {
   isSuperAdmin: boolean;
@@ -69,6 +70,7 @@ export function Sidebar({ isSuperAdmin, plan, isExpired, isSuspended, className,
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
+  const isAndroidApp = useIsCapacitorAndroid();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -178,7 +180,10 @@ export function Sidebar({ isSuperAdmin, plan, isExpired, isSuspended, className,
     : tenantGroups
         .map((g) => ({
           ...g,
-          links: g.links.filter((l) => filterTenantLink(l, filterCtx)),
+          links: g.links.filter((l) => {
+            if (isAndroidApp && l.href === "/dashboard/printer") return false;
+            return filterTenantLink(l, filterCtx);
+          }),
         }))
         .filter((g) => g.links.length > 0);
 

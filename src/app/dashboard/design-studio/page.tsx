@@ -21,7 +21,9 @@ import {
   Wand2,
   ZoomIn,
   ZoomOut,
-  Maximize
+  Maximize,
+  PanelLeft,
+  Eye
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EditorCanvas } from '@/components/design-studio/EditorCanvas';
@@ -39,6 +41,9 @@ import { toast } from 'sonner';
 import { PrintCommander } from '@/lib/print-commander';
 import { LABEL_CONFIGS, PAPER_PRESETS } from '@/lib/constants/templates';
 import { createClient } from '@/utils/supabase/client';
+import { usePartnerTouchUi } from '@/hooks/use-partner-touch-ui';
+import { useIsCapacitorAndroid } from '@/hooks/use-capacitor-android';
+import { cn } from '@/lib/utils';
 
 function DesignStudioContent() {
   const lastProcessedOrderId = React.useRef<string | null>(null);
@@ -76,6 +81,33 @@ function DesignStudioContent() {
     saveDesign
   } = useEditorStore();
   const { tenantId } = useAuth();
+  const touchUi = usePartnerTouchUi();
+  const isAndroidApp = useIsCapacitorAndroid();
+  const [mobileStudioTab, setMobileStudioTab] = useState<'tools' | 'canvas'>('canvas');
+
+  /** 모바일에서 미리보기 탭일 때 카드가 화면에 들어가도록 줌 자동 맞춤 */
+  useEffect(() => {
+    if (!touchUi || mobileStudioTab !== 'canvas') return;
+    const fit = () => {
+      const { currentDimension: dim, setZoom: sz } = useEditorStore.getState();
+      const vw = window.innerWidth - 20;
+      const vh = window.innerHeight - (isAndroidApp ? 220 : 180);
+      const zByW = (vw * 0.96) / dim.widthMm;
+      const zByH = (vh * 0.92) / dim.heightMm;
+      const z = Math.max(0.65, Math.min(8, Math.min(zByW, zByH)));
+      sz(z);
+    };
+    const id = requestAnimationFrame(fit);
+    const onResize = () => requestAnimationFrame(fit);
+    window.addEventListener('resize', onResize);
+    return () => {
+      cancelAnimationFrame(id);
+      window.removeEventListener('resize', onResize);
+    };
+  }, [touchUi, mobileStudioTab, currentDimension.widthMm, currentDimension.heightMm, isAndroidApp]);
+
+  const showToolsPanel = !touchUi || mobileStudioTab === 'tools';
+  const showCanvasPanel = !touchUi || mobileStudioTab === 'canvas';
 
   // Modal States
   const [isPhotoEditorOpen, setIsPhotoEditorOpen] = useState(false);
@@ -273,41 +305,66 @@ function DesignStudioContent() {
     fetchOrder();
   }, [orderId, currentOrderId, supabase, addTextBlock, resetDesign, setCurrentOrderId, setDimension, setActivePage, printTarget, textBlocks.length]);
 
+  const fitZoomToScreen = React.useCallback(() => {
+    const { currentDimension: dim, setZoom: sz } = useEditorStore.getState();
+    const vw = window.innerWidth - 20;
+    const vh = window.innerHeight - (isAndroidApp ? 220 : 180);
+    const zByW = (vw * 0.96) / dim.widthMm;
+    const zByH = (vh * 0.92) / dim.heightMm;
+    const z = Math.max(0.65, Math.min(8, Math.min(zByW, zByH)));
+    sz(z);
+  }, [isAndroidApp]);
+
   return (
-    <div className="flex flex-col h-[calc(100vh-80px)] bg-white overflow-hidden relative">
+    <div className="flex flex-col h-full min-h-0 flex-1 bg-white overflow-hidden relative">
       
       {/* Top Professional Header */}
-      <header className="h-20 bg-white/80 backdrop-blur-md border-b border-gray-100 px-8 flex items-center justify-between z-30 shrink-0">
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-3">
-             <div className="w-10 h-10 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-100">
-                <Wand2 size={24} />
+      <header className={cn(
+        "bg-white/80 backdrop-blur-md border-b border-gray-100 flex items-center justify-between z-30 shrink-0 gap-2",
+        touchUi ? "min-h-[3.5rem] px-3 py-2 flex-wrap" : "h-20 px-8"
+      )}>
+        <div className={cn("flex items-center gap-3 min-w-0", touchUi ? "flex-1" : "gap-6")}>
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+             <div className={cn("bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-100 shrink-0", touchUi ? "w-9 h-9" : "w-10 h-10")}>
+                <Wand2 size={touchUi ? 20 : 24} />
              </div>
-             <div>
-                <h1 className="text-xl font-black text-gray-800 tracking-tight leading-none">PROFESSIONAL STUDIO</h1>
-                <p className="text-[9px] font-black text-indigo-500 uppercase tracking-[0.3em] mt-1">Design Architecture v4.2</p>
+             <div className="min-w-0">
+                <h1 className={cn("font-black text-gray-800 tracking-tight leading-none truncate", touchUi ? "text-sm" : "text-xl")}>PROFESSIONAL STUDIO</h1>
+                {!touchUi && (
+                  <p className="text-[9px] font-black text-indigo-500 uppercase tracking-[0.3em] mt-1">Design Architecture v4.2</p>
+                )}
              </div>
           </div>
 
-          <div className="h-8 w-px bg-gray-100" />
+          {!touchUi && <div className="h-8 w-px bg-gray-100 hidden sm:block" />}
 
-          <div className="flex items-center gap-1 bg-gray-50 p-1.5 rounded-2xl border border-gray-100">
+          <div className={cn("flex items-center gap-0.5 bg-gray-50 p-1 rounded-2xl border border-gray-100 shrink-0", touchUi && "ml-auto")}>
              <button 
+                type="button"
                 onClick={() => setActivePage('outside')}
-                className={`px-5 py-2 rounded-xl text-xs font-black transition-all ${activePage === 'outside' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                className={cn(
+                  "rounded-xl font-black transition-all",
+                  touchUi ? "px-3 py-2 text-[10px]" : "px-5 py-2 text-xs",
+                  activePage === 'outside' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'
+                )}
              >
-                앞면/뒷면 (Cover)
+                {touchUi ? '앞·뒷면' : '앞면/뒷면 (Cover)'}
              </button>
              <button 
+                type="button"
                 onClick={() => setActivePage('inside')}
-                className={`px-5 py-2 rounded-xl text-xs font-black transition-all ${activePage === 'inside' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                className={cn(
+                  "rounded-xl font-black transition-all",
+                  touchUi ? "px-3 py-2 text-[10px]" : "px-5 py-2 text-xs",
+                  activePage === 'inside' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'
+                )}
              >
-                내지/안쪽 (Inside)
+                {touchUi ? '내지' : '내지/안쪽 (Inside)'}
              </button>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className={cn("flex items-center gap-2 shrink-0", touchUi && "w-full justify-end")}>
           <div className="hidden lg:flex items-center gap-3 mr-4">
              <div className="flex flex-col items-end">
                 <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Active Workspace</span>
@@ -317,47 +374,117 @@ function DesignStudioContent() {
           </div>
 
           <button 
+            type="button"
             onClick={handleSave}
             disabled={isGenerating}
-            className="flex items-center gap-2 px-6 py-3 bg-gray-900 text-white rounded-2xl text-xs font-black shadow-xl hover:bg-black active:scale-95 transition-all"
+            className={cn(
+              "flex items-center gap-2 bg-gray-900 text-white rounded-2xl font-black shadow-xl hover:bg-black active:scale-95 transition-all",
+              touchUi ? "px-4 py-2.5 text-[11px]" : "px-6 py-3 text-xs"
+            )}
           >
             {isGenerating ? <Loader2 className="animate-spin" /> : <Save size={16} />}
-            디자인 저장
+            {touchUi ? '저장' : '디자인 저장'}
           </button>
 
           <button 
+            type="button"
             onClick={handlePrintRequest}
-            className="w-12 h-12 flex items-center justify-center bg-white border border-gray-100 text-gray-600 rounded-2xl hover:bg-gray-50 hover:text-indigo-600 transition-all shadow-sm"
+            className={cn(
+              "flex items-center justify-center bg-white border border-gray-100 text-gray-600 rounded-2xl hover:bg-gray-50 hover:text-indigo-600 transition-all shadow-sm",
+              touchUi ? "w-11 h-11" : "w-12 h-12"
+            )}
           >
             <Printer size={20} />
           </button>
         </div>
       </header>
 
-      <div className="flex flex-1 overflow-hidden relative">
-        <DesignSidebar 
-          onOpenGallery={() => setIsGalleryOpen(true)}
-          onOpenAIWizard={() => setIsAiWizardOpen(true)}
-          onOpenAIFontWizard={() => setIsAIFontWizardOpen(true)}
-          onOpenSuggestion={(type) => { setActiveSuggestionType(type); setIsSuggestionModalOpen(true); }}
-          onOpenShopSettings={() => setIsShopSettingsOpen(true)}
-          onOpenPhotoEditor={() => setIsPhotoEditorOpen(true)}
-        />
+      {touchUi && (
+        <div className="flex lg:hidden border-b border-gray-100 bg-white shrink-0">
+          <button
+            type="button"
+            onClick={() => setMobileStudioTab('tools')}
+            className={cn(
+              "flex-1 flex items-center justify-center gap-2 py-3 text-sm font-bold transition-colors",
+              mobileStudioTab === 'tools'
+                ? "text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50/40"
+                : "text-gray-400 border-b-2 border-transparent"
+            )}
+          >
+            <PanelLeft className="h-4 w-4 shrink-0" aria-hidden />
+            도구 · 용지
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobileStudioTab('canvas')}
+            className={cn(
+              "flex-1 flex items-center justify-center gap-2 py-3 text-sm font-bold transition-colors",
+              mobileStudioTab === 'canvas'
+                ? "text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50/40"
+                : "text-gray-400 border-b-2 border-transparent"
+            )}
+          >
+            <Eye className="h-4 w-4 shrink-0" aria-hidden />
+            미리보기 · 편집
+          </button>
+        </div>
+      )}
+
+      <div className="flex flex-1 min-h-0 overflow-hidden relative flex-col lg:flex-row">
+        <div
+          className={cn(
+            "min-h-0 overflow-hidden flex flex-col lg:w-[340px] lg:shrink-0",
+            showToolsPanel ? "flex flex-1 w-full lg:flex-none" : "hidden lg:flex"
+          )}
+        >
+          <DesignSidebar 
+            onOpenGallery={() => setIsGalleryOpen(true)}
+            onOpenAIWizard={() => setIsAiWizardOpen(true)}
+            onOpenAIFontWizard={() => setIsAIFontWizardOpen(true)}
+            onOpenSuggestion={(type) => { setActiveSuggestionType(type); setIsSuggestionModalOpen(true); }}
+            onOpenShopSettings={() => setIsShopSettingsOpen(true)}
+            onOpenPhotoEditor={() => setIsPhotoEditorOpen(true)}
+          />
+        </div>
 
         {/* Main Canvas Area */}
-        <main className="flex-1 relative bg-neutral-100/50 flex flex-col items-center justify-center overflow-auto custom-scrollbar p-12">
+        <main
+          className={cn(
+            "flex-1 relative bg-neutral-100/50 flex flex-col items-center justify-center overflow-auto custom-scrollbar min-h-0 min-w-0",
+            touchUi ? "p-2" : "p-12",
+            showCanvasPanel ? "flex" : "hidden lg:flex"
+          )}
+        >
             <EditorCanvas />
             
             {/* Zoom Controller Overlay */}
-            <div className="fixed bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-white/95 backdrop-blur-xl px-4 py-2.5 rounded-[2rem] shadow-2xl border border-white z-40 transition-all hover:scale-105 active:scale-95">
-              <button onClick={() => setZoom(Math.max(1, zoom - 0.5))} className="p-2 hover:bg-gray-100 rounded-xl text-gray-400 transition-colors"><ZoomOut size={18} /></button>
-              <div className="w-20 text-center flex flex-col items-center">
+            <div
+              className={cn(
+                "fixed left-1/2 -translate-x-1/2 flex items-center gap-1 sm:gap-2 bg-white/95 backdrop-blur-xl px-3 sm:px-4 py-2 sm:py-2.5 rounded-[2rem] shadow-2xl border border-white z-40 max-w-[calc(100vw-1rem)]",
+                touchUi && isAndroidApp
+                  ? "bottom-[calc(5.5rem+env(safe-area-inset-bottom))]"
+                  : touchUi
+                    ? "bottom-[calc(4.5rem+env(safe-area-inset-bottom))]"
+                    : "bottom-10"
+              )}
+            >
+              <button type="button" onClick={() => setZoom(Math.max(1, zoom - 0.5))} className="p-2 hover:bg-gray-100 rounded-xl text-gray-400 transition-colors touch-manipulation"><ZoomOut size={18} /></button>
+              <div className="w-16 sm:w-20 text-center flex flex-col items-center">
                 <span className="text-[9px] font-black text-indigo-300 uppercase leading-none mb-0.5">Scale</span>
                 <span className="text-xs font-black text-indigo-600 tabular-nums">{Math.round((zoom / 3.78) * 100)}%</span>
               </div>
-              <button onClick={() => setZoom(Math.min(10, zoom + 0.5))} className="p-2 hover:bg-gray-100 rounded-xl text-gray-400 transition-colors"><ZoomIn size={18} /></button>
-              <div className="w-px h-4 bg-gray-100 mx-2" />
-              <button onClick={() => setZoom(3.78)} className="flex items-center gap-2 px-4 py-1.5 hover:bg-indigo-50 text-xs font-black text-gray-500 hover:text-indigo-600 rounded-xl transition-all"><Maximize size={14} /> 100%</button>
+              <button type="button" onClick={() => setZoom(Math.min(10, zoom + 0.5))} className="p-2 hover:bg-gray-100 rounded-xl text-gray-400 transition-colors touch-manipulation"><ZoomIn size={18} /></button>
+              <div className="w-px h-4 bg-gray-100 mx-1 sm:mx-2 hidden sm:block" />
+              <button type="button" onClick={() => setZoom(3.78)} className="hidden sm:flex items-center gap-2 px-3 py-1.5 hover:bg-indigo-50 text-xs font-black text-gray-500 hover:text-indigo-600 rounded-xl transition-all touch-manipulation"><Maximize size={14} /> 100%</button>
+              {touchUi && (
+                <button
+                  type="button"
+                  onClick={fitZoomToScreen}
+                  className="px-3 py-1.5 hover:bg-indigo-50 text-[11px] font-black text-indigo-600 rounded-xl transition-all touch-manipulation whitespace-nowrap"
+                >
+                  맞춤
+                </button>
+              )}
             </div>
         </main>
       </div>

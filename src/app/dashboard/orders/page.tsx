@@ -49,8 +49,12 @@ import {
   DropdownMenuPortal 
 } from "@/components/ui/dropdown-menu";
 import { printDocument } from "@/lib/print-document";
+import { useIsCapacitorAndroid } from "@/hooks/use-capacitor-android";
+import { usePartnerTouchUi } from "@/hooks/use-partner-touch-ui";
 
 export default function OrdersPage() {
+  const isAndroidApp = useIsCapacitorAndroid();
+  const touchUi = usePartnerTouchUi();
   const { profile, isLoading: authLoading, tenantId } = useAuth();
   const pathname = usePathname();
   const plan = profile?.tenants?.plan || "free";
@@ -390,12 +394,17 @@ export default function OrdersPage() {
   }
 
   return (
-    <div className="space-y-8 p-8 bg-[#F8FAFC]">
+    <div className={cn("space-y-8 bg-[#F8FAFC]", touchUi ? "p-4 pb-6 sm:p-6 sm:pb-8" : "p-8")}>
       <PageHeader 
         title="주문 관리" 
-        description="전체 주문 내역을 실시간으로 확인하고 관리할 수 있습니다."
+        description={
+          touchUi
+            ? "검색·필터로 찾고, 카드를 눌러 상세·인쇄·상태를 바꿀 수 있어요."
+            : "전체 주문 내역을 실시간으로 확인하고 관리할 수 있습니다."
+        }
+        className={touchUi ? "max-lg:mb-4" : undefined}
       >
-        <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto mt-4 lg:mt-0 px-2 lg:px-0">
+        <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto mt-4 lg:mt-0 px-0 lg:px-0">
           <Button 
             variant="outline" 
             onClick={() => router.push('/dashboard/orders/daily-settlement')}
@@ -421,6 +430,7 @@ export default function OrdersPage() {
             {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />} 
             <span>구글 시트</span>
           </Button>
+          {!isAndroidApp && (
           <Button 
             className="w-full lg:w-auto h-11 lg:h-12 px-8 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl shadow-lg shadow-slate-200 transition-all gap-2"
             onClick={() => router.push('/dashboard/orders/new')}
@@ -428,11 +438,12 @@ export default function OrdersPage() {
             <PlusCircle className="h-4 w-4" /> 
             <span>새 주문 등록</span>
           </Button>
+          )}
         </div>
       </PageHeader>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className={cn("grid gap-6", touchUi ? "grid-cols-2 lg:grid-cols-4 gap-3" : "grid-cols-1 md:grid-cols-2 lg:grid-cols-4")}>
         <Card className="rounded-3xl border-none shadow-xl shadow-slate-200/50 bg-white overflow-hidden group hover:scale-[1.02] transition-all duration-300">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-bold text-slate-500 uppercase tracking-wider">오늘 주문</CardTitle>
@@ -493,12 +504,12 @@ export default function OrdersPage() {
       <Card className="rounded-[40px] border-none shadow-2xl shadow-slate-200/50 bg-white overflow-hidden">
         <CardHeader className="p-8 border-b border-slate-50">
           <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
-            <div className="flex items-center bg-slate-100/50 rounded-3xl px-6 py-2 border border-slate-200/50 w-full xl:w-[450px]">
-              <Search className="h-5 w-5 text-slate-400 mr-3" />
+            <div className={cn("flex items-center bg-slate-100/50 rounded-3xl border border-slate-200/50 w-full xl:w-[450px]", touchUi ? "px-4 py-2 min-h-12" : "px-6 py-2")}>
+              <Search className="h-5 w-5 text-slate-400 mr-3 shrink-0" />
               <input 
                 type="text" 
                 placeholder="주문번호, 주문자, 연락처, 배송지..."
-                className="bg-transparent border-none outline-none w-full text-slate-900 placeholder:text-slate-400 text-sm h-10 font-medium"
+                className="bg-transparent border-none outline-none w-full text-slate-900 placeholder:text-slate-400 text-base sm:text-sm min-h-11 font-medium"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -724,9 +735,11 @@ export default function OrdersPage() {
                                    <DropdownMenuItem className="rounded-xl gap-2 font-bold py-3 px-4 focus:bg-slate-50" onClick={(e) => handleCardPrint(order, e)}>
                                      <Printer className="h-4 w-4" /> 카드 메시지 출력
                                    </DropdownMenuItem>
+                                   {!isAndroidApp && (
                                    <DropdownMenuItem className="rounded-xl gap-2 font-bold py-3 px-4 focus:bg-slate-50" onClick={(e) => handleRibbonPrint(order, e)}>
                                      <Printer className="h-4 w-4 text-indigo-500" /> 리본 출력 (프린터 전송)
                                    </DropdownMenuItem>
+                                   )}
                                 </DropdownMenuGroup>
 
                                 <DropdownMenuSeparator className="mx-1 bg-gray-50" />
@@ -790,7 +803,7 @@ export default function OrdersPage() {
               </div>
 
               {/* Mobile Card List View */}
-              <div className="lg:hidden space-y-4 p-4 pb-20">
+              <div className={cn("lg:hidden space-y-4 p-2 sm:p-4", isAndroidApp ? "pb-32" : "pb-24")}>
                 {filteredOrders.length > 0 && (
                   <div className="flex justify-between items-center px-2 mb-2">
                     <span className="text-xs font-bold text-slate-400">Total {filteredOrders.length}건</span>
@@ -814,17 +827,17 @@ export default function OrdersPage() {
                     <Card 
                       key={order.id} 
                       className={cn(
-                        "rounded-2xl border-none shadow-sm shadow-slate-200/50 overflow-hidden active:scale-[0.98] transition-all relative",
+                        "rounded-2xl border-none shadow-md shadow-slate-200/60 overflow-hidden active:scale-[0.99] transition-all relative",
                         selectedOrderIds.includes(order.id) ? "bg-indigo-50 border-2 border-indigo-200 ring-2 ring-indigo-100" : "bg-white"
                       )}
                     >
-                      <CardContent className="p-4 cursor-pointer" onClick={() => handleOrderClick(order)}>
+                      <CardContent className={cn("cursor-pointer", touchUi ? "p-5" : "p-4")} onClick={() => handleOrderClick(order)}>
                         <div className="flex justify-between items-start mb-3 gap-3">
                           <div className="flex items-center gap-3">
-                            <div onClick={(e) => e.stopPropagation()} className="flex items-center justify-center">
+                            <div onClick={(e) => e.stopPropagation()} className={cn("flex items-center justify-center", touchUi && "min-h-11 min-w-11")}>
                               <input 
                                 type="checkbox" 
-                                className="w-5 h-5 rounded-lg border-2 border-slate-200 accent-slate-900 cursor-pointer"
+                                className={cn("rounded-lg border-2 border-slate-200 accent-slate-900 cursor-pointer shrink-0", touchUi ? "w-6 h-6" : "w-5 h-5")}
                                 checked={selectedOrderIds.includes(order.id)}
                                 onChange={(e) => {
                                   e.stopPropagation();
@@ -875,8 +888,8 @@ export default function OrdersPage() {
                           
                           <div onClick={(e) => e.stopPropagation()} className="relative z-10">
                             <DropdownMenu>
-                              <DropdownMenuTrigger className="inline-flex items-center justify-center h-8 w-8 p-0 rounded-lg hover:bg-slate-50 text-slate-400">
-                                <MoreHorizontal className="h-4 w-4" />
+                              <DropdownMenuTrigger className={cn("inline-flex items-center justify-center p-0 rounded-xl hover:bg-slate-100 text-slate-500", touchUi ? "h-11 w-11" : "h-8 w-8")}>
+                                <MoreHorizontal className={touchUi ? "h-5 w-5" : "h-4 w-4"} />
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="rounded-2xl border-none shadow-2xl min-w-[200px] p-2">
                                 <DropdownMenuItem className="rounded-xl gap-2 font-bold py-2.5 px-3 focus:bg-slate-50" onClick={(e) => { e.stopPropagation(); handleOrderClick(order); }}>
@@ -893,9 +906,11 @@ export default function OrdersPage() {
                                  <DropdownMenuItem className="rounded-xl gap-2 font-bold py-2.5 px-3 focus:bg-slate-50" onClick={(e) => { e.stopPropagation(); handleCardPrint(order, e as any); }}>
                                    <Printer className="h-4 w-4" /> 카드 메시지 출력
                                  </DropdownMenuItem>
+                                 {!isAndroidApp && (
                                  <DropdownMenuItem className="rounded-xl gap-2 font-bold py-2.5 px-3 focus:bg-slate-50" onClick={(e) => { e.stopPropagation(); handleRibbonPrint(order, e as any); }}>
                                    <Printer className="h-4 w-4 text-indigo-500" /> 리본 출력 (프린터 전송)
                                  </DropdownMenuItem>
+                                 )}
  
                                 <DropdownMenuSeparator className="mx-1 bg-gray-50" />
                                 <DropdownMenuSub>
@@ -936,7 +951,10 @@ export default function OrdersPage() {
 
               {/* Mobile Bulk Action Bar */}
               {selectedOrderIds.length > 0 && (
-                <div className="lg:hidden fixed bottom-6 left-4 right-4 z-50 animate-in fade-in slide-in-from-bottom-8 duration-300">
+                <div className={cn(
+                  "lg:hidden fixed left-4 right-4 z-[102] animate-in fade-in slide-in-from-bottom-8 duration-300",
+                  isAndroidApp ? "bottom-[calc(6.25rem+env(safe-area-inset-bottom))]" : "bottom-6"
+                )}>
                   <div className="bg-slate-900 text-white rounded-3xl shadow-2xl p-4 flex items-center justify-between border border-slate-800">
                     <div className="flex flex-col px-2">
                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Selected</span>
@@ -982,7 +1000,7 @@ export default function OrdersPage() {
         onOpenChange={setIsOrderDetailOpen} 
         order={selectedOrder} 
         onPrintMessage={handleCardPrint}
-        onPrintRibbon={handleRibbonPrint}
+        onPrintRibbon={isAndroidApp ? undefined : handleRibbonPrint}
         onUpdate={() => {
           // Trigger a silent refresh of the orders
           const period = searchParams.get('period') || '2months';

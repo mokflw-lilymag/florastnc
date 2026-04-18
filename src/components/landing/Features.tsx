@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
-import { 
-  Terminal, Zap, RefreshCw, Printer, ShieldCheck, 
-  BarChart3, Eye, Smartphone, Cpu, Box, Sparkles
-} from 'lucide-react';
+import { Terminal, Sparkles } from 'lucide-react';
+import { LANDING_FEATURES } from '@/data/landing-features';
+import { FeatureCardIcon, featureAccentIconClass } from '@/components/landing/feature-visual';
 
 export function Features() {
   const [stats, setStats] = useState({
@@ -34,45 +34,6 @@ export function Features() {
     }
     fetchStats();
   }, []);
-
-  const features = [
-    {
-      icon: <Zap className="w-6 h-6 text-amber-400" />,
-      title: 'AI 오더 컨시어지',
-      description: '카톡, 문자, 음성 주문을 AI가 1초 만에 분석하여 빈칸을 채웁니다. 이제 복사하고 붙여넣는 수고조차 필요 없습니다.',
-      delay: 0.1
-    },
-    {
-      icon: <RefreshCw className="w-6 h-6 text-blue-400" />,
-      title: '쇼핑몰 올인원 동기화',
-      description: '네이버 스마트스토어, 카페24 주문이 들어오는 즉시 대시보드에 꽂힙니다. 재고 차감부터 배송 처리까지 자동으로 끝내세요.',
-      delay: 0.2
-    },
-    {
-      icon: <Printer className="w-6 h-6 text-emerald-400" />,
-      title: '클라우드 스마트 리본',
-      description: '전국 어디서든 폰 하나로 매장 프린터를 제어합니다. 전문가용 서체와 정밀 레이아웃이 포함된 리본을 0.5초 만에 방출합니다.',
-      delay: 0.3
-    },
-    {
-      icon: <Cpu className="w-6 h-6 text-indigo-400" />,
-      title: '인텔리전트 재고 관리',
-      description: '사진 촬영 한 번으로 남은 꽃의 송이 수를 파악하고, 판매 시 자동으로 단 단위로 환산하여 재고에서 차감합니다.',
-      delay: 0.4
-    },
-    {
-      icon: <ShieldCheck className="w-6 h-6 text-rose-400" />,
-      title: '금융권 수준의 정산 엔진',
-      description: '부가세, 입점 마진율, 기사님 배송 수수료까지. 복잡한 꽃집의 수익 구조를 소수점 단위까지 정확하게 계산해 드립니다.',
-      delay: 0.5
-    },
-    {
-      icon: <Smartphone className="w-6 h-6 text-teal-400" />,
-      title: '모바일 센터 프리미엄',
-      description: 'PC 앞이 아니어도 상관없습니다. 배달 기사 호출부터 정산 보고서 확인까지, 모든 기능을 스마트폰 앱에서 동일하게 지원합니다.',
-      delay: 0.6
-    }
-  ];
 
   return (
     <section id="features" className="py-32 bg-[#0A0F0D] relative overflow-hidden">
@@ -150,32 +111,37 @@ export function Features() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {features.map((feature, idx) => (
-            <motion.div 
-              key={idx} 
-              initial={{ opacity: 0, scale: 0.95 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: feature.delay, duration: 0.5 }}
-              whileHover={{ y: -10 }}
-              className="bg-white/[0.02] p-10 rounded-[35px] border border-white/5 shadow-sm hover:shadow-emerald-500/5 hover:bg-white/[0.05] hover:border-white/10 transition-all duration-500 group relative overflow-hidden"
-            >
-              {/* Card Glare */}
-              <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              
-              <div className="relative z-10">
-                <div className="w-16 h-16 rounded-[20px] bg-black/40 flex items-center justify-center mb-8 border border-white/10 shadow-inner group-hover:scale-110 transition-transform">
-                  {feature.icon}
+          {LANDING_FEATURES.map((feature, idx) => (
+            <Link key={feature.slug} href={`/features/${feature.slug}`} className="block h-full group/card">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.1 * (idx + 1), duration: 0.5 }}
+                whileHover={{ y: -10 }}
+                className="h-full bg-white/[0.02] p-10 rounded-[35px] border border-white/5 shadow-sm hover:shadow-emerald-500/5 hover:bg-white/[0.05] hover:border-white/10 transition-all duration-500 group relative overflow-hidden cursor-pointer"
+              >
+                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                <div className="relative z-10 flex flex-col h-full">
+                  <div className="w-16 h-16 rounded-[20px] bg-black/40 flex items-center justify-center mb-8 border border-white/10 shadow-inner group-hover:scale-110 transition-transform">
+                    <FeatureCardIcon
+                      slug={feature.slug}
+                      className={`w-6 h-6 ${featureAccentIconClass[feature.accent]}`}
+                    />
+                  </div>
+                  <h3 className="text-2xl font-black text-white mb-4 group-hover:text-emerald-400 transition-colors tracking-tight">
+                    {feature.title}
+                  </h3>
+                  <p className="text-slate-500 leading-relaxed font-medium flex-1">{feature.description}</p>
+                  <p className="mt-8 text-sm font-black text-emerald-500/90 uppercase tracking-widest opacity-0 group-hover/card:opacity-100 transition-opacity">
+                    자세히 보기 →
+                  </p>
                 </div>
-                <h3 className="text-2xl font-black text-white mb-4 group-hover:text-emerald-400 transition-colors tracking-tight">{feature.title}</h3>
-                <p className="text-slate-500 leading-relaxed font-medium">
-                  {feature.description}
-                </p>
-              </div>
-              
-              {/* Subtle tech detail in corner */}
-              <Terminal className="absolute -bottom-4 -right-4 w-12 h-12 text-white/5 group-hover:text-emerald-500/10 transition-colors" />
-            </motion.div>
+
+                <Terminal className="absolute -bottom-4 -right-4 w-12 h-12 text-white/5 group-hover:text-emerald-500/10 transition-colors pointer-events-none" />
+              </motion.div>
+            </Link>
           ))}
         </div>
       </div>

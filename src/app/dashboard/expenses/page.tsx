@@ -1616,7 +1616,9 @@ export default function ExpensesPage() {
                         size="sm"
                         className="text-xs font-semibold"
                         onClick={() => {
-                          const u = receiptLinkHref(detailExpense.receipt_url) || detailExpense.receipt_url;
+                          const raw = detailExpense.receipt_url;
+                          if (!raw) return;
+                          const u = receiptLinkHref(raw) || raw;
                           window.open(u, "_blank", "noopener,noreferrer");
                         }}
                       >

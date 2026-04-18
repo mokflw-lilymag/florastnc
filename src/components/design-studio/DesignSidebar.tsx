@@ -102,7 +102,7 @@ export const DesignSidebar: React.FC<DesignSidebarProps> = ({
   };
 
   return (
-    <aside className="w-[340px] border-r bg-white flex flex-col h-full shadow-xl z-20 overflow-hidden">
+    <aside className="w-full lg:w-[340px] lg:shrink-0 border-r bg-white flex flex-col h-full min-h-0 shadow-xl z-20 overflow-hidden">
       <div className="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-4">
 
         {/* Quick Tools */}

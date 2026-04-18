@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { QuickChat } from "@/components/chat/quick-chat";
 import { DashboardMain } from "@/components/layout/dashboard-main";
 import { AnnualRenewalReminder } from "@/components/layout/annual-renewal-reminder";
+import { AndroidAppChrome } from "@/components/layout/android-app-chrome";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -54,8 +55,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
   
   // If expired or suspended, for non-admins, the effective plan is 'free' or restricted
   const effectivePlan = tenantData?.plan || (isSuperAdmin ? 'pro' : 'free');
-  const logoUrl = tenantData?.logo_url;
-  const storeName = tenantData?.name;
+  const logoUrl = tenantData?.logo_url ?? undefined;
+  const storeName = tenantData?.name ?? undefined;
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">
@@ -97,6 +98,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </DashboardMain>
 
         <QuickChat />
+        <AndroidAppChrome />
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { createClient } from '@/utils/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/use-auth';
@@ -8,10 +9,18 @@ import { useSearchParams } from 'next/navigation';
 import { Order } from '@/types/order';
 import { RibbonPrintLayout } from './components/ribbon-print-layout';
 
+const RedirectIfAndroidApp = dynamic(
+  () =>
+    import("@/components/capacitor/redirect-if-android-app").then((m) => m.RedirectIfAndroidApp),
+  { ssr: false, loading: () => <div className="max-w-4xl mx-auto p-6"><Skeleton className="h-96 w-full" /></div> }
+);
+
 export default function PrintRibbonPage() {
     return (
         <Suspense fallback={<div className="max-w-4xl mx-auto p-6"><Skeleton className="h-96 w-full" /></div>}>
-            <PrintRibbonContent />
+            <RedirectIfAndroidApp>
+                <PrintRibbonContent />
+            </RedirectIfAndroidApp>
         </Suspense>
     );
 }

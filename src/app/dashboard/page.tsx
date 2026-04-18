@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import dynamic from "next/dynamic";
 import { 
+  type LucideIcon,
   ShoppingCart, 
   Users, 
   Package, 
@@ -33,6 +34,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
 import { useAuth } from "@/hooks/use-auth";
+import { usePartnerTouchUi } from "@/hooks/use-partner-touch-ui";
+import { useIsCapacitorAndroid } from "@/hooks/use-capacitor-android";
 import { useOrders } from "@/hooks/use-orders";
 import { useProducts } from "@/hooks/use-products";
 import { useExpenses } from "@/hooks/use-expenses";
@@ -54,6 +57,8 @@ const SalesChart = dynamic(() => import('./components/sales-chart'), {
 export default function DashboardPage() {
   const supabase = createClient();
   const { profile, isLoading: authLoading } = useAuth();
+  const touchUi = usePartnerTouchUi();
+  const isAndroidApp = useIsCapacitorAndroid();
   const { settings, loading: settingsLoading } = useSettings();
   
   // Data for Tenants/Admin
@@ -403,10 +408,14 @@ export default function DashboardPage() {
 
   // --- REGULAR TENANT VIEW ---
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto animate-in fade-in duration-700 pb-12 font-light">
+    <div className={cn(
+      "space-y-6 max-w-7xl mx-auto animate-in fade-in duration-700 font-light",
+      touchUi ? "p-4 pb-8 sm:p-6" : "p-6 pb-12",
+      isAndroidApp && "pb-28"
+    )}>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-           <h1 className="text-3xl font-medium text-gray-900 tracking-tight">
+           <h1 className={cn("font-medium text-gray-900 tracking-tight", touchUi ? "text-2xl" : "text-3xl")}>
              안녕하세요 <span className="text-primary">{profile?.tenants?.name || profile?.full_name || '사용자'}</span>님!
            </h1>
            <p className="text-slate-600 font-medium text-sm">오늘 {format(new Date(), 'yyyy년 MM월 dd일')}의 현황입니다.</p>
@@ -490,7 +499,7 @@ export default function DashboardPage() {
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
         {/* Performance Chart */}
         <Card className="lg:col-span-3 border-none shadow-sm rounded-3xl bg-white overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between border-b border-gray-50 pb-4">
+          <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-gray-50 pb-4">
             <div>
               <CardTitle className="text-lg font-light flex items-center gap-2">
                 <TrendingUp className="w-5 h-5 text-indigo-500" />
@@ -498,14 +507,15 @@ export default function DashboardPage() {
               </CardTitle>
               <CardDescription className="text-xs font-medium">실시간 매출 데이터 흐름을 분석합니다</CardDescription>
             </div>
-            <div className="flex bg-slate-50 p-1 rounded-xl gap-1">
+            <div className="flex flex-wrap bg-slate-50 p-1 rounded-xl gap-1 w-full sm:w-auto">
               {(["daily", "weekly", "monthly", "yearly"] as const).map((p) => (
                 <Button 
                   key={p}
                   variant="ghost" 
                   size="sm" 
                   className={cn(
-                    "text-[10px] h-7 px-3 rounded-lg font-bold transition-all",
+                    "rounded-lg font-bold transition-all flex-1 sm:flex-none min-h-10",
+                    touchUi ? "text-xs px-3" : "text-[10px] h-7 px-3",
                     chartPeriod === p ? "bg-white shadow-sm text-indigo-600" : "text-slate-400"
                   )}
                   onClick={() => setChartPeriod(p)}
@@ -527,10 +537,42 @@ export default function DashboardPage() {
               <CardTitle className="text-lg font-light">최근 주문 내역</CardTitle>
               <CardDescription className="text-xs font-medium">새로 접수된 5개의 주문입니다</CardDescription>
             </div>
-            <a href="/dashboard/orders" className="text-primary text-[11px] font-medium hover:underline uppercase tracking-tighter">전체보기</a>
+            <Link href="/dashboard/orders" className="text-primary text-[11px] font-medium hover:underline uppercase tracking-tighter">전체보기</Link>
           </CardHeader>
           <CardContent className="p-0">
-             <div className="overflow-x-auto">
+             <div className="lg:hidden divide-y divide-gray-50">
+                {(stats?.recentOrders ?? []).map((order) => (
+                  <Link
+                    key={order.id}
+                    href={`/dashboard/orders/${order.id}`}
+                    className="flex flex-col gap-2 px-4 py-4 active:bg-slate-50 transition-colors"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="font-mono text-[11px] font-semibold text-primary uppercase">{order.order_number}</span>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "rounded-full px-2.5 py-0.5 text-[11px] font-semibold border-none shrink-0",
+                          order.status === "completed" ? "bg-emerald-100 text-emerald-700" :
+                          order.status === "processing" ? "bg-amber-100 text-amber-700" :
+                          "bg-red-100 text-red-700"
+                        )}
+                      >
+                        {order.status === "completed" ? "완료" : order.status === "processing" ? "준비중" : "취소"}
+                      </Badge>
+                    </div>
+                    <div className="text-sm font-medium text-slate-900">{order.orderer.name}</div>
+                    <div className="text-xs text-slate-600 line-clamp-2">
+                      {order.items[0]?.name}{order.items.length > 1 ? ` 외 ${order.items.length - 1}건` : ""}
+                    </div>
+                    <div className="text-sm font-bold text-slate-900">₩{order.summary?.total.toLocaleString()}</div>
+                  </Link>
+                ))}
+                {stats?.recentOrders.length === 0 && (
+                  <div className="px-6 py-16 text-center text-gray-400 font-medium italic">접수된 주문이 없습니다.</div>
+                )}
+             </div>
+             <div className="hidden lg:block overflow-x-auto">
                 <table className="w-full text-left text-sm">
                    <thead className="bg-gray-50/50 text-slate-400 font-medium uppercase text-[11px] tracking-widest">
                       <tr>
@@ -584,11 +626,15 @@ export default function DashboardPage() {
                     빠른 작업
                  </CardTitle>
               </CardHeader>
-              <CardContent className="grid grid-cols-2 gap-3 pt-2">
-                 <DashboardIconButton icon={ShoppingCart} label="주문등록" href="/dashboard/orders/new" color="bg-primary" />
-                 <DashboardIconButton icon={Printer} label="리본출력" href="/dashboard/orders" color="bg-indigo-500" />
-                 <DashboardIconButton icon={Truck} label="배송관리" href="/dashboard/delivery" color="bg-blue-500" />
-                 <DashboardIconButton icon={Boxes} label="재고관리" href="/dashboard/inventory" color="bg-amber-500" />
+              <CardContent className={cn("grid grid-cols-2 gap-3 pt-2", touchUi && "gap-4")}>
+                 <DashboardIconButton icon={ShoppingCart} label="주문등록" href="/dashboard/orders/new" color="bg-primary" largeTouch={touchUi} />
+                 {isAndroidApp ? (
+                   <DashboardIconButton icon={ScrollText} label="주문목록" href="/dashboard/orders" color="bg-indigo-500" largeTouch={touchUi} />
+                 ) : (
+                   <DashboardIconButton icon={Printer} label="리본출력" href="/dashboard/orders" color="bg-indigo-500" largeTouch={touchUi} />
+                 )}
+                 <DashboardIconButton icon={Truck} label="배송관리" href="/dashboard/delivery" color="bg-blue-500" largeTouch={touchUi} />
+                 <DashboardIconButton icon={Boxes} label="재고관리" href="/dashboard/inventory" color="bg-amber-500" largeTouch={touchUi} />
               </CardContent>
            </Card>
 
@@ -644,14 +690,17 @@ function AdminStatCard({ icon: Icon, label, value, unit, color }: { icon: any, l
   );
 }
 
-function DashboardIconButton({ icon: Icon, label, href, color = "bg-white/10" }: { icon: any, label: string, href: string, color?: string }) {
+function DashboardIconButton({ icon: Icon, label, href, color = "bg-white/10", largeTouch }: { icon: LucideIcon; label: string; href: string; color?: string; largeTouch?: boolean }) {
   return (
-    <a 
+    <Link 
       href={href}
-      className={`flex flex-col items-center justify-center p-3 rounded-2xl ${color} hover:brightness-110 transition-all group backdrop-blur-md border border-white/5`}
+      className={cn(
+        `flex flex-col items-center justify-center rounded-2xl ${color} hover:brightness-110 active:scale-[0.98] transition-all group backdrop-blur-md border border-white/5`,
+        largeTouch ? "min-h-[4.75rem] p-4 gap-1" : "p-3"
+      )}
     >
-      <Icon className="h-6 w-6 text-white mb-2 group-hover:scale-110 transition-transform" />
-      <span className="text-[11px] font-medium text-white/90">{label}</span>
-    </a>
+      <Icon className={cn("text-white group-hover:scale-110 transition-transform", largeTouch ? "h-7 w-7 mb-0.5" : "h-6 w-6 mb-2")} />
+      <span className={cn("font-medium text-white/90", largeTouch ? "text-xs" : "text-[11px]")}>{label}</span>
+    </Link>
   );
 }

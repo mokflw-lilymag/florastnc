@@ -138,7 +138,7 @@ export const EditorCanvas: React.FC = () => {
     <div className="flex flex-col gap-4 w-full h-full">
       <div 
         ref={containerRef}
-        className="flex-1 w-full flex justify-center items-center p-12 bg-slate-50/50 rounded-[40px] border-2 border-dashed border-slate-200/60 shadow-inner overflow-auto relative group transition-all"
+        className="flex-1 w-full flex justify-center items-center p-3 sm:p-8 lg:p-12 bg-slate-50/50 rounded-2xl sm:rounded-[40px] border-2 border-dashed border-slate-200/60 shadow-inner overflow-auto relative group transition-all min-h-[200px]"
       >
         <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
           <div
