@@ -27,7 +27,11 @@ import {
   ScanText,
   Sparkles,
   Loader2,
-  Camera
+  Camera,
+  AlertTriangle,
+  Images,
+  Undo2,
+  Eye
 } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -36,11 +40,22 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
+import { findExpensesSimilarToDraft, findSameDaySupplierAmountMismatch } from "@/lib/expense-similarity";
 import { useExpenses, Expense, useExpenseStorage } from "@/hooks/use-expenses";
 import { useSuppliers } from "@/hooks/use-suppliers";
 import { useMaterials } from "@/hooks/use-materials";
@@ -97,6 +112,33 @@ const defaultFormData: ExpenseFormData = {
   items: []
 };
 
+const RECEIPT_OCR_CONCURRENCY = 3;
+const MAX_RECEIPT_FILES_PER_BATCH = 25;
+
+function receiptLinkHref(url: string): string | null {
+  const u = url.trim();
+  if (!u) return null;
+  if (/^https?:\/\//i.test(u)) return u;
+  return u;
+}
+
+/** Run async work with a fixed concurrency (order of completion may differ from input). */
+async function runPool<T, R>(items: T[], concurrency: number, worker: (item: T, index: number) => Promise<R>): Promise<R[]> {
+  if (items.length === 0) return [];
+  const results: R[] = new Array(items.length);
+  let next = 0;
+  async function runWorker() {
+    while (true) {
+      const i = next++;
+      if (i >= items.length) break;
+      results[i] = await worker(items[i], i);
+    }
+  }
+  const n = Math.min(concurrency, items.length);
+  await Promise.all(Array.from({ length: n }, () => runWorker()));
+  return results;
+}
+
 export default function ExpensesPage() {
   const { expenses, loading: expensesLoading, addExpense, addExpenses, updateExpense, deleteExpense } = useExpenses();
   const { uploadReceipt } = useExpenseStorage();
@@ -108,6 +150,7 @@ export default function ExpensesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [detailExpense, setDetailExpense] = useState<Expense | null>(null);
   const [sortKey, setSortKey] = useState<string>("date");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
@@ -125,7 +168,10 @@ export default function ExpensesPage() {
   
   const videoRef = React.useRef<HTMLVideoElement>(null);
   const streamRef = React.useRef<MediaStream | null>(null);
+  const webcamModeRef = React.useRef<"single" | "multi">("single");
   const [isWebcamOpen, setIsWebcamOpen] = useState(false);
+  const [webcamMode, setWebcamMode] = useState<"single" | "multi" | null>(null);
+  const [webcamQueue, setWebcamQueue] = useState<File[]>([]);
 
   const [itemSearchText, setItemSearchText] = useState("");
   const itemSearchList = useMemo(() => {
@@ -142,6 +188,10 @@ export default function ExpensesPage() {
   const [isOcrLoading, setIsOcrLoading] = useState(false);
   /** 영수증 스캔/파일 OCR로 금액·품목 등이 채워진 상태 — 원본 대조 안내용 */
   const [fieldsFromOcr, setFieldsFromOcr] = useState(false);
+  const [similarExpenseDialogOpen, setSimilarExpenseDialogOpen] = useState(false);
+  const [similarExpenses, setSimilarExpenses] = useState<Expense[]>([]);
+  const [amountMismatchDialogOpen, setAmountMismatchDialogOpen] = useState(false);
+  const [amountMismatchExpenses, setAmountMismatchExpenses] = useState<Expense[]>([]);
 
   const categoryLabels: Record<string, string> = {
     all: "전체 분류",
@@ -361,9 +411,14 @@ export default function ExpensesPage() {
     setIsDialogOpen(true);
   };
 
-  const openEditDialog = (expense: Expense) => {
+  const openEditDialog = (
+    expense: Expense,
+    receiptOverride?: Pick<ExpenseFormData, "receipt_url" | "receipt_file_id">
+  ) => {
     setFieldsFromOcr(false);
     setEditingExpense(expense);
+    const rUrl = receiptOverride?.receipt_url ?? expense.receipt_url ?? "";
+    const rId = receiptOverride?.receipt_file_id ?? expense.receipt_file_id ?? "";
     setFormData({
       category: expense.category || "materials",
       sub_category: expense.sub_category || "",
@@ -375,15 +430,38 @@ export default function ExpensesPage() {
       material_id: expense.material_id || "none",
       quantity: expense.quantity || 0,
       unit: expense.unit || "ea",
-      receipt_url: expense.receipt_url || "",
-      receipt_file_id: expense.receipt_file_id || "",
+      receipt_url: rUrl,
+      receipt_file_id: rId,
       storage_provider: expense.storage_provider || "google_drive",
       items: []
     });
     setIsDialogOpen(true);
   };
 
-  const handleSubmit = async () => {
+  const switchToEditFromAmountMismatch = (expense: Expense) => {
+    setAmountMismatchDialogOpen(false);
+    setAmountMismatchExpenses([]);
+    setSimilarExpenseDialogOpen(false);
+    setSimilarExpenses([]);
+    setIsDialogOpen(false);
+
+    const draftUrl = formData.receipt_url?.trim() ?? "";
+    const draftId = formData.receipt_file_id?.trim() ?? "";
+    const hasDraftReceipt =
+      draftUrl.length > 0 &&
+      (draftUrl !== (expense.receipt_url || "").trim() ||
+        draftId !== (expense.receipt_file_id || "").trim());
+
+    openEditDialog(
+      expense,
+      hasDraftReceipt ? { receipt_url: formData.receipt_url, receipt_file_id: formData.receipt_file_id } : undefined
+    );
+    if (hasDraftReceipt) {
+      setFieldsFromOcr(true);
+    }
+  };
+
+  const performExpenseSubmit = async () => {
     if (formData.items.length === 0 && (formData.amount <= 0 || !formData.description)) {
       toast.error("지출 내역과 금액을 정확히 입력해 주세요.");
       return;
@@ -453,6 +531,55 @@ export default function ExpensesPage() {
     setFormData({ ...defaultFormData });
   };
 
+  const handleSubmit = async () => {
+    if (formData.items.length === 0 && (formData.amount <= 0 || !formData.description)) {
+      toast.error("지출 내역과 금액을 정확히 입력해 주세요.");
+      return;
+    }
+
+    if (!editingExpense) {
+      const similar = findExpensesSimilarToDraft(expenses, {
+        expenseDateYmd: formData.expense_date,
+        supplierId: formData.supplier_id,
+        headerAmount: formData.amount,
+        lineItems: formData.items,
+        receiptUrl: formData.receipt_url || undefined,
+      });
+      if (similar.length > 0) {
+        setSimilarExpenses(similar);
+        setSimilarExpenseDialogOpen(true);
+        return;
+      }
+
+      const mismatch = findSameDaySupplierAmountMismatch(expenses, {
+        expenseDateYmd: formData.expense_date,
+        supplierId: formData.supplier_id,
+        headerAmount: formData.amount,
+        headerDescription: formData.description,
+        lineItems: formData.items,
+      });
+      if (mismatch.length > 0) {
+        setAmountMismatchExpenses(mismatch);
+        setAmountMismatchDialogOpen(true);
+        return;
+      }
+    }
+
+    await performExpenseSubmit();
+  };
+
+  const confirmSubmitDespiteSimilarExpenses = async () => {
+    setSimilarExpenseDialogOpen(false);
+    setSimilarExpenses([]);
+    await performExpenseSubmit();
+  };
+
+  const confirmSubmitDespiteAmountMismatch = async () => {
+    setAmountMismatchDialogOpen(false);
+    setAmountMismatchExpenses([]);
+    await performExpenseSubmit();
+  };
+
   const getCategoryLabel = (cat: string) => {
     switch (cat) {
       case "materials": return "자재/꽃 사입";
@@ -470,7 +597,7 @@ export default function ExpensesPage() {
     return suppliers.find(s => s.id === id)?.name || "정보 없음";
   };
 
-  // Image Compression Utility
+  // Image Compression: 긴 변 최대 1000px, 그레이스케일, JPEG ~60% (OCR·용량 절충)
   const compressImage = async (file: File): Promise<File> => {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -479,163 +606,252 @@ export default function ExpensesPage() {
         const img = new Image();
         img.src = event.target?.result as string;
         img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 1200;
-          const MAX_HEIGHT = 1200;
+          const canvas = document.createElement("canvas");
+          const MAX_LONG = 1000;
           let width = img.width;
           let height = img.height;
 
-          if (width > height) {
-            if (width > MAX_WIDTH) {
-              height *= MAX_WIDTH / width;
-              width = MAX_WIDTH;
+          if (width >= height) {
+            if (width > MAX_LONG) {
+              height *= MAX_LONG / width;
+              width = MAX_LONG;
             }
           } else {
-            if (height > MAX_HEIGHT) {
-              width *= MAX_HEIGHT / height;
-              height = MAX_HEIGHT;
+            if (height > MAX_LONG) {
+              width *= MAX_LONG / height;
+              height = MAX_LONG;
             }
           }
+          width = Math.max(1, Math.round(width));
+          height = Math.max(1, Math.round(height));
           canvas.width = width;
           canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0, width, height);
-          canvas.toBlob((blob) => {
-            const compressedFile = new File([blob!], file.name, {
-              type: 'image/jpeg',
-              lastModified: Date.now(),
-            });
-            resolve(compressedFile);
-          }, 'image/jpeg', 0.6); // Compress to 60% quality for maximum saving
+          const ctx = canvas.getContext("2d", { willReadFrequently: true });
+          if (!ctx) {
+            resolve(file);
+            return;
+          }
+          ctx.drawImage(img, 0, 0, width, height);
+          const imageData = ctx.getImageData(0, 0, width, height);
+          const px = imageData.data;
+          for (let i = 0; i < px.length; i += 4) {
+            const y = 0.2126 * px[i] + 0.7152 * px[i + 1] + 0.0722 * px[i + 2];
+            const v = Math.min(255, Math.round(y));
+            px[i] = v;
+            px[i + 1] = v;
+            px[i + 2] = v;
+          }
+          ctx.putImageData(imageData, 0, 0);
+          canvas.toBlob(
+            (blob) => {
+              if (!blob) {
+                resolve(file);
+                return;
+              }
+              resolve(
+                new File([blob], file.name.replace(/\.[^.]+$/, "") + ".jpg", {
+                  type: "image/jpeg",
+                  lastModified: Date.now(),
+                })
+              );
+            },
+            "image/jpeg",
+            0.6
+          );
         };
       };
     });
   };
 
-  // AI OCR Scan Function
-  const processReceiptFile = async (originalFile: File) => {
-    if (!originalFile.type.startsWith('image/')) {
-        toast.error("영수증 이미지 파일(JPG, PNG)을 선택해 주세요.");
-        return;
+  // AI OCR: 여러 파일을 동시에(제한적 병렬) 분석하고, 품목·합계는 한 건 폼에 합산
+  const processReceiptFiles = async (originalFiles: File[]) => {
+    const imageFiles = originalFiles.filter((f) => f.type.startsWith("image/"));
+    if (imageFiles.length === 0) {
+      toast.error("영수증 이미지 파일(JPG, PNG)을 선택해 주세요.");
+      return;
+    }
+
+    let files = imageFiles;
+    if (files.length > MAX_RECEIPT_FILES_PER_BATCH) {
+      toast.message(`한 번에 최대 ${MAX_RECEIPT_FILES_PER_BATCH}장까지 처리합니다.`, {
+        description: "나머지는 제외되었습니다. 필요하면 나누어 등록해 주세요.",
+      });
+      files = files.slice(0, MAX_RECEIPT_FILES_PER_BATCH);
     }
 
     setIsOcrLoading(true);
-    toast.loading("AI가 영수증을 분석하고 최적화 중입니다...");
+    const toastId = toast.loading(
+      files.length > 1
+        ? `AI 분석 중… (0/${files.length}장)`
+        : "AI가 영수증을 분석하고 최적화 중입니다..."
+    );
+
+    type PerFileOk = { ok: true; compressed: File; receipts: Record<string, unknown>[] };
+    type PerFileFail = { ok: false; name: string; error: string };
+    type PerFileResult = PerFileOk | PerFileFail;
+
+    let progressDone = 0;
+    const bumpProgress = () => {
+      progressDone += 1;
+      if (files.length > 1) {
+        toast.loading(`AI 분석 중… (${progressDone}/${files.length}장)`, { id: toastId });
+      }
+    };
 
     try {
-        // Step 1: Compress for storage saving
-        const compressedFile = await compressImage(originalFile);
-        
-        const reader = new FileReader();
-        const base64Promise = new Promise<string>((resolve) => {
+      const perFile: PerFileResult[] = await runPool(files, RECEIPT_OCR_CONCURRENCY, async (file) => {
+        try {
+          const compressedFile = await compressImage(file);
+          const reader = new FileReader();
+          const base64 = await new Promise<string>((resolve) => {
             reader.onload = () => resolve(reader.result as string);
             reader.readAsDataURL(compressedFile);
-        });
-        const base64 = await base64Promise;
-        const base64Data = base64.split(',')[1];
+          });
+          const base64Data = base64.split(",")[1];
 
-        // Step 2: OCR Analysis
-        const response = await fetch('/api/ai/ocr', {
-            method: 'POST',
+          const response = await fetch("/api/ai/ocr", {
+            method: "POST",
             body: JSON.stringify({
               image: base64Data,
-              mimeType: compressedFile.type || 'image/jpeg',
+              mimeType: compressedFile.type || "image/jpeg",
             }),
-            headers: { 'Content-Type': 'application/json' }
+            headers: { "Content-Type": "application/json" },
+          });
+
+          const result = await response.json().catch(() => ({} as { error?: string; data?: unknown }));
+          if (!response.ok) {
+            const msg = typeof result.error === "string" ? result.error : `OCR 실패 (HTTP ${response.status})`;
+            return { ok: false as const, name: file.name, error: msg };
+          }
+          const data = result.data as { receipts?: Record<string, unknown>[]; store_name?: string } | undefined;
+          if (!data) {
+            return { ok: false as const, name: file.name, error: "응답 없음" };
+          }
+          const receipts = data.receipts || (data.store_name ? [data as Record<string, unknown>] : []);
+          if (receipts.length === 0) {
+            return { ok: false as const, name: file.name, error: "영수증에서 유효한 정보를 찾지 못했습니다." };
+          }
+          return { ok: true as const, compressed: compressedFile, receipts };
+        } catch (e: unknown) {
+          const msg = e instanceof Error ? e.message : String(e);
+          return { ok: false as const, name: file.name, error: msg };
+        } finally {
+          bumpProgress();
+        }
+      });
+
+      const successes = perFile.filter((r): r is PerFileOk => r.ok);
+      const failures = perFile.filter((r): r is PerFileFail => !r.ok);
+
+      if (successes.length === 0) {
+        toast.dismiss(toastId);
+        toast.error(failures[0]?.error || "AI 분석에 실패했습니다.");
+        return;
+      }
+
+      const receipts = successes.flatMap((s) => s.receipts);
+      const allNewItems: ReceiptItem[] = [];
+      let mainStoreName = "";
+      let mainDate = "";
+
+      receipts.forEach((rc: Record<string, unknown>, idx: number) => {
+        if (idx === 0) {
+          mainStoreName = String(rc.store_name ?? "");
+          mainDate = String(rc.date ?? "");
+        }
+        const rawItems = (rc.items as Record<string, unknown>[] | undefined) || [];
+        const items = rawItems.map((item: Record<string, unknown>) => {
+          const materialName = String(item.material_name ?? "");
+          const foundMat = materials.find(
+            (m) => m.name.includes(materialName) || materialName.includes(m.name)
+          );
+          const qty = Number(item.quantity) || 1;
+          const unitPrice = Number(item.unit_price) || 0;
+          return {
+            id: crypto.randomUUID(),
+            material_id: foundMat?.id || "none",
+            material_name: foundMat?.name || materialName,
+            description: String(item.description || materialName),
+            quantity: qty,
+            unit: String(item.unit || "ea"),
+            unit_price: unitPrice,
+            amount: Number(item.amount) || qty * unitPrice || 0,
+            main_category: foundMat?.main_category || "",
+            mid_category: foundMat?.mid_category || "",
+            sub_category: "materials",
+          };
         });
+        allNewItems.push(...items);
+      });
 
-        const result = await response.json().catch(() => ({} as { error?: string; data?: unknown }));
-        if (!response.ok) {
-          const msg = typeof result.error === 'string' ? result.error : `OCR 실패 (HTTP ${response.status})`;
-          throw new Error(msg);
-        }
-        const data = result.data;
+      toast.loading(files.length > 1 ? `클라우드에 저장 중… (${files.length}장)` : "클라우드에 저장 중…", { id: toastId });
 
-        if (data) {
-            // Handle multiple receipts if present
-            const receipts = data.receipts || (data.store_name ? [data] : []);
-            
-            if (receipts.length === 0) {
-                toast.dismiss();
-                toast.error("영수증에서 유효한 정보를 찾지 못했습니다.");
-                return;
-            }
+      const uploadResults = await runPool(successes, RECEIPT_OCR_CONCURRENCY, async (s) => uploadReceipt(s.compressed));
+      const firstUpload = uploadResults.find((u) => u != null) ?? null;
 
-            const allNewItems: ReceiptItem[] = [];
-            let mainStoreName = "";
-            let mainDate = "";
+      const firstStore = String(receipts[0]?.store_name ?? "");
 
-            receipts.forEach((rc: any, idx: number) => {
-                if (idx === 0) {
-                    mainStoreName = rc.store_name;
-                    mainDate = rc.date;
-                }
-                
-                const items = (rc.items || []).map((item: any) => {
-                    const foundMat = materials.find(m => m.name.includes(item.material_name) || item.material_name.includes(m.name));
-                    return {
-                        id: crypto.randomUUID(),
-                        material_id: foundMat?.id || "none",
-                        material_name: foundMat?.name || item.material_name,
-                        description: item.description || item.material_name,
-                        quantity: item.quantity || 1,
-                        unit: item.unit || "ea",
-                        unit_price: item.unit_price || 0,
-                        amount: item.amount || (item.quantity * (item.unit_price || 0)) || 0,
-                        main_category: foundMat?.main_category || "",
-                        mid_category: foundMat?.mid_category || "",
-                        sub_category: "materials"
-                    };
-                });
-                allNewItems.push(...items);
-            });
+      setFormData((prev) => ({
+        ...prev,
+        expense_date: mainDate || prev.expense_date,
+        supplier_id: firstStore
+          ? suppliers.find((s) => s.name.includes(firstStore) || firstStore.includes(s.name))?.id || "none"
+          : prev.supplier_id,
+        amount: receipts.reduce((sum, r) => sum + (Number((r as { total_amount?: unknown }).total_amount) || 0), 0),
+        description: mainStoreName
+          ? receipts.length > 1
+            ? `${mainStoreName} 외 ${receipts.length - 1}건`
+            : mainStoreName
+          : prev.description,
+        items: allNewItems.length > 0 ? allNewItems : prev.items,
+        receipt_url: firstUpload?.url || prev.receipt_url,
+        receipt_file_id: firstUpload?.id || prev.receipt_file_id,
+      }));
 
-            // Step 3: Automatically upload Compressed image to Supabase Storage
-            const uploadResult = await uploadReceipt(compressedFile);
-
-            setFormData(prev => ({
-                ...prev,
-                expense_date: mainDate || prev.expense_date,
-                supplier_id: receipts[0].store_name ? (suppliers.find(s => s.name.includes(receipts[0].store_name) || receipts[0].store_name.includes(s.name))?.id || "none") : prev.supplier_id,
-                amount: receipts.reduce((sum: number, r: any) => sum + (r.total_amount || 0), 0),
-                description: mainStoreName ? `${mainStoreName} 외 ${receipts.length > 1 ? (receipts.length - 1) + '건' : ''}` : prev.description,
-                items: allNewItems.length > 0 ? allNewItems : prev.items,
-                receipt_url: uploadResult?.url || prev.receipt_url,
-                receipt_file_id: uploadResult?.id || prev.receipt_file_id
-            }));
-
-            toast.dismiss();
-            if (receipts.length > 1) {
-                toast.success(`AI가 총 ${receipts.length}개의 영수증을 감지하여 합산했습니다!`);
-            } else {
-                toast.success("AI 분석 및 클라우드 저장 완료 (이미지 최적화 적용됨)");
-            }
-            setFieldsFromOcr(Boolean(uploadResult?.url));
-        }
+      toast.dismiss(toastId);
+      if (failures.length > 0) {
+        toast.warning(`${successes.length}/${files.length}장만 분석되었습니다.`, {
+          description: failures.map((f) => f.name).join(", "),
+        });
+      } else if (files.length > 1) {
+        toast.success(`${files.length}장 분석·저장 완료`, {
+          description: "품목·금액은 모두 합산되었습니다. 미리보기·증빙 링크는 첫 번째 영수증 기준입니다.",
+        });
+      } else if (receipts.length > 1) {
+        toast.success(`AI가 총 ${receipts.length}개의 영수증을 감지하여 합산했습니다!`);
+      } else {
+        toast.success("AI 분석 및 클라우드 저장 완료 (이미지 최적화 적용됨)");
+      }
+      setFieldsFromOcr(Boolean(firstUpload?.url));
     } catch (err: unknown) {
-        toast.dismiss();
-        const message = err instanceof Error ? err.message : "AI 분석 중 오류가 발생했습니다.";
-        toast.error(message);
-        console.error("OCR Error:", err);
+      toast.dismiss(toastId);
+      const message = err instanceof Error ? err.message : "AI 분석 중 오류가 발생했습니다.";
+      toast.error(message);
+      console.error("OCR Error:", err);
     } finally {
-        setIsOcrLoading(false);
+      setIsOcrLoading(false);
     }
   };
+
+  const processReceiptFile = (file: File) => processReceiptFiles([file]);
 
   const handleReceiptScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-        await processReceiptFile(file);
+    const list = e.target.files ? Array.from(e.target.files) : [];
+    if (list.length > 0) {
+      await processReceiptFiles(list);
     }
-    if (e.target) e.target.value = '';
+    if (e.target) e.target.value = "";
   };
 
-  const openWebcam = () => {
+  const openWebcam = (mode: "single" | "multi" = "single") => {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       toast.error("현재 브라우저에서 카메라 기능을 지원하지 않습니다. 파일 불러오기를 이용해주세요.");
       return;
     }
 
+    webcamModeRef.current = mode;
+    setWebcamMode(mode);
+    setWebcamQueue([]);
     setIsWebcamOpen(true);
     setTimeout(async () => {
       try {
@@ -660,7 +876,10 @@ export default function ExpensesPage() {
         // Next.js 개발 모드에서 console.error 시 오버레이 크래시 화면이 뜨는 것을 방지
         console.warn("Camera access fallback triggered:", err.message);
         setIsWebcamOpen(false);
-        
+        setWebcamMode(null);
+        webcamModeRef.current = "single";
+        setWebcamQueue([]);
+
         if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
           toast.error("기기에 연결된 카메라를 찾을 수 없습니다.");
         } else if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
@@ -678,25 +897,63 @@ export default function ExpensesPage() {
       streamRef.current = null;
     }
     setIsWebcamOpen(false);
+    setWebcamMode(null);
+    webcamModeRef.current = "single";
+    setWebcamQueue([]);
+  };
+
+  const finishWebcamMulti = async () => {
+    const files = [...webcamQueue];
+    if (files.length === 0) {
+      toast.error("촬영된 영수증이 없습니다.");
+      return;
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    setIsWebcamOpen(false);
+    setWebcamMode(null);
+    webcamModeRef.current = "single";
+    setWebcamQueue([]);
+    await processReceiptFiles(files);
+  };
+
+  const undoLastWebcamCapture = () => {
+    setWebcamQueue((q) => (q.length > 0 ? q.slice(0, -1) : q));
   };
 
   const captureWebcam = () => {
-    if (videoRef.current) {
-      const canvas = document.createElement('canvas');
-      canvas.width = videoRef.current.videoWidth;
-      canvas.height = videoRef.current.videoHeight;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(videoRef.current, 0, 0);
-        canvas.toBlob((blob) => {
-          if (blob) {
-            const file = new File([blob], `scan_${Date.now()}.jpg`, { type: 'image/jpeg' });
-            closeWebcam();
-            processReceiptFile(file);
-          }
-        }, 'image/jpeg', 0.9);
-      }
-    }
+    if (!videoRef.current) return;
+    const mode = webcamModeRef.current;
+    const canvas = document.createElement("canvas");
+    canvas.width = videoRef.current.videoWidth;
+    canvas.height = videoRef.current.videoHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.drawImage(videoRef.current, 0, 0);
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) return;
+        const file = new File([blob], `scan_${Date.now()}.jpg`, { type: "image/jpeg" });
+        if (mode === "multi") {
+          setWebcamQueue((prev) => {
+            if (prev.length >= MAX_RECEIPT_FILES_PER_BATCH) {
+              toast.message(`연속 촬영은 최대 ${MAX_RECEIPT_FILES_PER_BATCH}장까지입니다.`, {
+                description: "완료를 눌러 분석하세요.",
+              });
+              return prev;
+            }
+            return [...prev, file];
+          });
+        } else {
+          closeWebcam();
+          processReceiptFile(file);
+        }
+      },
+      "image/jpeg",
+      0.9
+    );
   };
 
   return (
@@ -736,11 +993,11 @@ export default function ExpensesPage() {
             <div>
               <p className="text-sm font-bold text-slate-900">영수증만 있으면 AI가 품목·금액을 채워 드립니다</p>
               <p className="mt-0.5 text-xs text-slate-600">
-                사진 촬영 또는 갤러리에서 선택 → 자동 인식 후 원본과 대조해 수정하고 저장하세요.
+                갤러리 다중 선택 또는 카메라「연속 촬영」으로 여러 장을 모은 뒤 한 번에 분석합니다. 촬영·선택 후 원본과 대조해 저장하세요.
               </p>
             </div>
           </div>
-          <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+          <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:flex-wrap">
             <Button
               type="button"
               size="sm"
@@ -758,11 +1015,24 @@ export default function ExpensesPage() {
               className="text-slate-600"
               onClick={() => {
                 openCreateDialog();
-                window.setTimeout(() => openWebcam(), 450);
+                window.setTimeout(() => openWebcam("single"), 450);
               }}
             >
               <Camera className="mr-1 h-3.5 w-3.5" />
-              카메라로 스캔
+              카메라 1장
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="text-slate-600"
+              onClick={() => {
+                openCreateDialog();
+                window.setTimeout(() => openWebcam("multi"), 450);
+              }}
+            >
+              <Images className="mr-1 h-3.5 w-3.5" />
+              연속 촬영
             </Button>
           </div>
         </CardContent>
@@ -1173,28 +1443,13 @@ export default function ExpensesPage() {
 
                 {!formData.receipt_url ? (
                   <>
-                    <div className="grid grid-cols-12 gap-3">
-                      <div className="relative col-span-12 sm:col-span-9">
-                        <div className="absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-slate-400">
-                          <Link2 className="h-4 w-4" />
-                        </div>
-                        <Input
-                          placeholder="외부 링크만 넣을 때 (구글 드라이브 등)"
-                          className="border-slate-200 bg-slate-50 pl-9"
-                          value={formData.receipt_url}
-                          onChange={(e) => {
-                            setFieldsFromOcr(false);
-                            setFormData((prev) => ({ ...prev, receipt_url: e.target.value }));
-                          }}
-                        />
-                      </div>
-                      <div className="col-span-12 space-y-3">
+                    <div className="col-span-12 space-y-3">
                         <div className="grid grid-cols-2 gap-3">
                           <Button
                             type="button"
                             variant="outline"
                             className="group relative h-14 gap-2 overflow-hidden border-emerald-500 bg-emerald-50/50 font-black text-emerald-700 transition-all hover:bg-emerald-100"
-                            onClick={openWebcam}
+                            onClick={() => openWebcam("single")}
                             disabled={isOcrLoading}
                           >
                             <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/10 to-teal-400/10 opacity-0 transition-opacity group-hover:opacity-100" />
@@ -1204,8 +1459,8 @@ export default function ExpensesPage() {
                               <Camera className="h-5 w-5 text-emerald-600" />
                             )}
                             <div className="flex flex-col items-start leading-tight">
-                              <span className="text-sm">실시간 스캔</span>
-                              <span className="text-[10px] font-normal opacity-60">카메라 바로 찍기</span>
+                              <span className="text-sm">카메라 1장</span>
+                              <span className="text-[10px] font-normal opacity-60">찍으면 바로 분석</span>
                             </div>
                             <div className="absolute -top-1 -right-1">
                               <Sparkles className="h-3 w-3 animate-pulse text-emerald-400" />
@@ -1215,51 +1470,75 @@ export default function ExpensesPage() {
                           <Button
                             type="button"
                             variant="outline"
-                            className="group relative h-14 gap-2 overflow-hidden border-slate-300 bg-slate-50/50 font-black text-slate-700 transition-all hover:bg-slate-100"
-                            onClick={() => importInputRef.current?.click()}
+                            className="group relative h-14 gap-2 overflow-hidden border-teal-600 bg-teal-50/50 font-black text-teal-800 transition-all hover:bg-teal-100"
+                            onClick={() => openWebcam("multi")}
                             disabled={isOcrLoading}
                           >
                             {isOcrLoading ? (
                               <Loader2 className="h-5 w-5 animate-spin" />
                             ) : (
-                              <ScanText className="h-5 w-5 text-slate-600" />
+                              <Images className="h-5 w-5 text-teal-700" />
                             )}
                             <div className="flex flex-col items-start leading-tight">
-                              <span className="text-sm">파일 불러오기</span>
-                              <span className="text-[10px] font-normal opacity-60">앨범/폴더에서 선택</span>
+                              <span className="text-sm">연속 촬영</span>
+                              <span className="text-[10px] font-normal opacity-60">최대 {MAX_RECEIPT_FILES_PER_BATCH}장 후 완료</span>
                             </div>
                           </Button>
                         </div>
-                      </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="group relative h-14 w-full gap-2 overflow-hidden border-slate-300 bg-slate-50/50 font-black text-slate-700 transition-all hover:bg-slate-100"
+                          onClick={() => importInputRef.current?.click()}
+                          disabled={isOcrLoading}
+                        >
+                          {isOcrLoading ? (
+                            <Loader2 className="h-5 w-5 animate-spin" />
+                          ) : (
+                            <ScanText className="h-5 w-5 text-slate-600" />
+                          )}
+                          <div className="flex flex-col items-start leading-tight">
+                            <span className="text-sm">파일 불러오기</span>
+                            <span className="text-[10px] font-normal opacity-60">
+                              앨범·여러 장 선택 · 최대 {MAX_RECEIPT_FILES_PER_BATCH}장
+                            </span>
+                          </div>
+                        </Button>
                     </div>
+                    <details className="rounded-lg border border-dashed border-slate-200 bg-slate-50/60 px-3 py-2">
+                      <summary className="cursor-pointer list-inside text-xs font-bold text-slate-600 marker:text-slate-400">
+                        외부 링크로만 첨부 (구글 드라이브 등)
+                      </summary>
+                      <div className="relative mt-2">
+                        <div className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-slate-400">
+                          <Link2 className="h-4 w-4" />
+                        </div>
+                        <Input
+                          placeholder="https://…"
+                          className="border-slate-200 bg-white pl-9 font-mono text-[11px]"
+                          value={formData.receipt_url}
+                          onChange={(e) => {
+                            setFieldsFromOcr(false);
+                            setFormData((prev) => ({ ...prev, receipt_url: e.target.value }));
+                          }}
+                        />
+                      </div>
+                    </details>
                     <p className="mt-2 ml-1 text-[10px] font-medium italic text-slate-400">
-                      * 스캔·파일 선택 시 AI가 읽어 오며, 왼쪽(넓은 화면)에 원본이 뜨면 값을 대조해 주세요.
+                      * 앨범 다중 선택·연속 촬영·파일 여러 장은 병렬 분석 후 합산합니다. 증빙 미리보기는 첫 번째 영수증만 표시됩니다.
                     </p>
                   </>
                 ) : (
                   <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2 text-xs text-slate-600">
                     <p className="flex items-center gap-2 font-medium text-slate-700">
                       <Check className="h-4 w-4 text-emerald-600" />
-                      영수증 파일이 첨부되었습니다. 원본은 이 패널 위쪽(모바일은 위)에서 확인하세요.
+                      영수증이 첨부되었습니다. 위쪽 미리보기에서 확인하세요.
                     </p>
-                    <details className="mt-2 border-t border-slate-200/80 pt-2">
-                      <summary className="cursor-pointer text-[10px] text-slate-500 hover:text-slate-700">
-                        증빙 URL 직접 수정 (고급)
-                      </summary>
-                      <Input
-                        className="mt-2 font-mono text-[11px]"
-                        value={formData.receipt_url}
-                        onChange={(e) => {
-                          setFieldsFromOcr(false);
-                          setFormData((prev) => ({ ...prev, receipt_url: e.target.value }));
-                        }}
-                      />
-                    </details>
                   </div>
                 )}
 
                 <input type="file" className="hidden" ref={scanInputRef} accept="image/*" capture="environment" onChange={handleReceiptScan} />
-                <input type="file" className="hidden" ref={importInputRef} accept="image/*" onChange={handleReceiptScan} />
+                <input type="file" className="hidden" ref={importInputRef} accept="image/*" multiple onChange={handleReceiptScan} />
               </div>
               </div>
             </div>
@@ -1279,6 +1558,284 @@ export default function ExpensesPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <Dialog
+        open={detailExpense !== null}
+        onOpenChange={(open) => {
+          if (!open) setDetailExpense(null);
+        }}
+      >
+        <DialogContent
+          className={cn(
+            "gap-0 overflow-hidden p-0",
+            detailExpense?.receipt_url
+              ? "w-[min(96vw,1040px)] sm:max-w-[min(96vw,1040px)]"
+              : "sm:max-w-lg"
+          )}
+        >
+          {detailExpense ? (
+            <>
+              <div className="border-b bg-slate-50/50 p-6">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2 text-xl font-bold text-slate-900">
+                    <Eye className="h-5 w-5 shrink-0 text-slate-600" />
+                    지출 상세
+                  </DialogTitle>
+                  <DialogDescription className="text-slate-500">
+                    조회 전용입니다. 수정·삭제는 목록 맨 오른쪽 버튼을 사용하세요.
+                  </DialogDescription>
+                </DialogHeader>
+              </div>
+              <div className="max-h-[80vh] overflow-y-auto p-6">
+                <div
+                  className={cn(
+                    "grid gap-6",
+                    detailExpense.receipt_url &&
+                      "lg:grid-cols-[minmax(260px,340px)_minmax(0,1fr)] lg:items-start lg:gap-8"
+                  )}
+                >
+                  {detailExpense.receipt_url ? (
+                    <div className="space-y-3 lg:sticky lg:top-0 lg:self-start">
+                      <Label className="text-sm font-bold text-slate-800">영수증</Label>
+                      <a
+                        href={receiptLinkHref(detailExpense.receipt_url) || detailExpense.receipt_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block w-full overflow-hidden rounded-xl border-2 border-slate-200 bg-slate-50 shadow-sm ring-offset-2 hover:border-indigo-300"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={detailExpense.receipt_url}
+                          alt="영수증"
+                          className="max-h-[min(48vh,420px)] w-full object-contain"
+                        />
+                      </a>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="text-xs font-semibold"
+                        onClick={() => {
+                          const u = receiptLinkHref(detailExpense.receipt_url) || detailExpense.receipt_url;
+                          window.open(u, "_blank", "noopener,noreferrer");
+                        }}
+                      >
+                        새 탭에서 크게 보기
+                      </Button>
+                    </div>
+                  ) : null}
+                  <div className="min-w-0 space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">지출일</p>
+                        <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2.5 text-sm font-medium text-slate-900">
+                          {format(new Date(detailExpense.expense_date), "yyyy-MM-dd")}
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">거래처</p>
+                        <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2.5 text-sm font-medium text-slate-900">
+                          {getSupplierName(detailExpense.supplier_id)}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">분류</p>
+                        <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2.5 text-sm">
+                          {getCategoryLabel(detailExpense.category)}
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">결제 수단</p>
+                        <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2.5 text-sm">
+                          {methodLabels[detailExpense.payment_method] || detailExpense.payment_method}
+                        </div>
+                      </div>
+                    </div>
+                    {detailExpense.sub_category ? (
+                      <div className="space-y-1.5">
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">하위 분류</p>
+                        <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2.5 text-sm">
+                          {detailExpense.sub_category}
+                        </div>
+                      </div>
+                    ) : null}
+                    <div className="space-y-1.5">
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">내용</p>
+                      <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2.5 text-sm leading-relaxed text-slate-900">
+                        {detailExpense.description || "—"}
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">금액</p>
+                      <div className="rounded-lg border border-indigo-100 bg-indigo-50/50 px-3 py-3 text-xl font-black tracking-tight text-indigo-800">
+                        ₩{detailExpense.amount.toLocaleString()}
+                      </div>
+                    </div>
+                    {detailExpense.purchase_id ? (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="outline" className="gap-1 border-indigo-100 bg-indigo-50 text-indigo-700">
+                          <ShoppingCart className="h-3 w-3" /> 매입 연동
+                        </Badge>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-col-reverse gap-2 border-t bg-slate-50 p-6 sm:flex-row sm:justify-end">
+                <Button type="button" variant="ghost" className="font-bold text-slate-600" onClick={() => setDetailExpense(null)}>
+                  닫기
+                </Button>
+                <Button
+                  type="button"
+                  className="gap-2 font-bold"
+                  onClick={() => {
+                    const row = detailExpense;
+                    setDetailExpense(null);
+                    openEditDialog(row);
+                  }}
+                >
+                  <Pencil className="h-4 w-4" />
+                  이 지출 수정하기
+                </Button>
+              </div>
+            </>
+          ) : null}
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog
+        open={similarExpenseDialogOpen}
+        onOpenChange={(open) => {
+          setSimilarExpenseDialogOpen(open);
+          if (!open) setSimilarExpenses([]);
+        }}
+      >
+        <AlertDialogContent className="max-w-lg sm:max-w-lg">
+          <AlertDialogHeader className="text-left">
+            <AlertDialogMedia>
+              <AlertTriangle className="text-amber-600" />
+            </AlertDialogMedia>
+            <AlertDialogTitle>비슷한 지출이 이미 있습니다</AlertDialogTitle>
+            <AlertDialogDescription className="sr-only">
+              같은 거래일·같은 거래처·같은 금액이거나, 같은 증빙 링크인 기존 지출이 있습니다. 목록을 확인한 뒤 등록 여부를 선택하세요.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-3 text-sm text-muted-foreground">
+            <p>
+              <span className="font-medium text-foreground">같은 거래일</span>에{" "}
+              <span className="font-medium text-foreground">같은 거래처</span>로{" "}
+              <span className="font-medium text-foreground">같은 금액</span>인 지출이 이미 있거나, 붙인{" "}
+              <span className="font-medium text-foreground">증빙 URL</span>이 기존과 같습니다. 다른 날·다른 금액만으로는 띄우지 않습니다. 거래처가 비어 있으면 URL이 같을 때만 알려 줍니다.
+            </p>
+            <ul className="max-h-48 space-y-2 overflow-y-auto rounded-md border bg-muted/40 p-3 text-xs text-foreground">
+              {similarExpenses.map((e) => (
+                <li key={e.id} className="border-b border-border/60 pb-2 last:border-0 last:pb-0">
+                  <span className="font-semibold text-slate-800">
+                    {format(new Date(e.expense_date), "yyyy-MM-dd")}
+                  </span>
+                  <span className="mx-2 text-slate-400">·</span>
+                  <span className="font-bold text-indigo-700">₩{e.amount.toLocaleString()}</span>
+                  <span className="mx-2 text-slate-400">·</span>
+                  <span>{getSupplierName(e.supplier_id)}</span>
+                  {e.description ? (
+                    <span className="mt-0.5 line-clamp-2 block text-[11px] text-slate-600">{e.description}</span>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>돌아가서 수정</AlertDialogCancel>
+            <Button
+              type="button"
+              className="bg-amber-600 hover:bg-amber-700"
+              onClick={() => void confirmSubmitDespiteSimilarExpenses()}
+            >
+              그래도 등록
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={amountMismatchDialogOpen}
+        onOpenChange={(open) => {
+          setAmountMismatchDialogOpen(open);
+          if (!open) setAmountMismatchExpenses([]);
+        }}
+      >
+        <AlertDialogContent className="max-w-lg sm:max-w-lg">
+          <AlertDialogHeader className="text-left">
+            <AlertDialogMedia>
+              <Pencil className="text-sky-600" />
+            </AlertDialogMedia>
+            <AlertDialogTitle>기존 지출과 금액이 다릅니다</AlertDialogTitle>
+            <AlertDialogDescription className="sr-only">
+              같은 거래일·같은 거래처에 비슷한 품목으로 이미 등록된 지출이 있으나 금액이 다릅니다. 정정 영수증이면 기존 건을 수정할 수 있습니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-3 text-sm text-muted-foreground">
+            <p>
+              같은 날·같은 거래처에, 이번에 입력한 품목·내용과{" "}
+              <span className="font-medium text-foreground">겹치는 기존 지출</span>이 있는데{" "}
+              <span className="font-medium text-foreground">합계 금액만 다릅니다</span>. 정정 영수증이라면 새로 또 넣기보다 아래 기존 건을 수정하는 편이 안전합니다.
+            </p>
+            <p className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-foreground">
+              이번 입력 합계:{" "}
+              <span className="font-bold text-indigo-700">
+                ₩
+                {(formData.items.length > 0
+                  ? formData.items.reduce((s, i) => s + (i.amount || 0), 0)
+                  : formData.amount
+                ).toLocaleString()}
+              </span>
+            </p>
+            <ul className="max-h-44 space-y-2 overflow-y-auto rounded-md border bg-muted/40 p-3 text-xs text-foreground">
+              {amountMismatchExpenses.map((e) => (
+                <li key={e.id} className="border-b border-border/60 pb-2 last:border-0 last:pb-0">
+                  <span className="font-bold text-indigo-700">₩{e.amount.toLocaleString()}</span>
+                  <span className="mx-2 text-slate-400">·</span>
+                  <span className="font-semibold text-slate-800">
+                    {format(new Date(e.expense_date), "yyyy-MM-dd")}
+                  </span>
+                  {e.description ? (
+                    <span className="mt-0.5 line-clamp-2 block text-[11px] text-slate-600">{e.description}</span>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+            {amountMismatchExpenses.length > 1 ? (
+              <p className="text-[11px] italic text-slate-500">
+                여러 건이면 목록에서 맞는 건을 고른 뒤 표에서 직접 수정할 수도 있습니다. 여기서는 가장 최근 등록 건부터 엽니다.
+              </p>
+            ) : null}
+          </div>
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-row sm:justify-end">
+            <AlertDialogCancel type="button">돌아가기</AlertDialogCancel>
+            <Button
+              type="button"
+              variant="outline"
+              className="border-sky-300 text-sky-900 hover:bg-sky-50"
+              disabled={amountMismatchExpenses.length === 0}
+              onClick={() => {
+                const first = amountMismatchExpenses[0];
+                if (first) switchToEditFromAmountMismatch(first);
+              }}
+            >
+              최근 건 수정하기
+            </Button>
+            <Button
+              type="button"
+              className="bg-slate-700 hover:bg-slate-800"
+              onClick={() => void confirmSubmitDespiteAmountMismatch()}
+            >
+              그래도 새로 등록
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <Card className="border-none shadow-md bg-gradient-to-br from-red-50 to-white overflow-hidden border-l-4 border-l-red-500">
@@ -1343,7 +1900,9 @@ export default function ExpensesPage() {
           <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
             <div>
               <CardTitle className="text-xl font-bold text-gray-800">지출 일지</CardTitle>
-              <CardDescription>모든 지출 및 거래처별 매입 내역을 확인할 수 있습니다.</CardDescription>
+              <CardDescription>
+                행을 누르면 상세(조회 전용)가 열립니다. 수정·삭제는 오른쪽 아이콘을 사용하세요.
+              </CardDescription>
             </div>
             <div className="relative w-full md:w-80 group">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
@@ -1455,7 +2014,7 @@ export default function ExpensesPage() {
                       <span className="inline-flex items-center">분류 <SortIcon column="category" /></span>
                     </TableHead>
                     <TableHead className="font-bold text-gray-600">지출 내용</TableHead>
-                    <TableHead className="font-bold text-gray-600 text-center">영수증</TableHead>
+                    <TableHead className="font-bold text-gray-600 text-center">증빙</TableHead>
                     <TableHead className="font-bold text-gray-600 text-center cursor-pointer select-none hover:text-indigo-600 transition-colors" onClick={() => handleSort("supplier")}>
                       <span className="inline-flex items-center justify-center w-full">거래처 <SortIcon column="supplier" /></span>
                     </TableHead>
@@ -1480,7 +2039,11 @@ export default function ExpensesPage() {
                     </TableRow>
                   ) : (
                     sortedExpenses.map((e) => (
-                      <TableRow key={e.id} className="group hover:bg-slate-50/50 transition-colors">
+                      <TableRow
+                        key={e.id}
+                        className="group cursor-pointer hover:bg-slate-50/50 transition-colors"
+                        onClick={() => setDetailExpense(e)}
+                      >
                         <TableCell className="text-sm font-mono text-slate-500 py-4">
                           {format(new Date(e.expense_date), "yyyy-MM-dd")}
                         </TableCell>
@@ -1501,13 +2064,11 @@ export default function ExpensesPage() {
                         </TableCell>
                         <TableCell className="text-center">
                           {e.receipt_url ? (
-                            <a href={e.receipt_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center">
-                              <Badge className="bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100 gap-1.5 transition-all">
-                                <FileCheck className="h-3 w-3" /> 확인
-                              </Badge>
-                            </a>
+                            <span className="inline-flex items-center justify-center gap-1 text-xs font-semibold text-emerald-700">
+                              <FileCheck className="h-3.5 w-3.5" /> 있음
+                            </span>
                           ) : (
-                            <span className="text-[10px] text-slate-300 font-light italic">미첨부</span>
+                            <span className="text-[10px] text-slate-300 font-light italic">없음</span>
                           )}
                         </TableCell>
                         <TableCell className="text-center">
@@ -1523,7 +2084,7 @@ export default function ExpensesPage() {
                         <TableCell className="text-right font-black text-red-600 tracking-tighter text-lg">
                           ₩{e.amount.toLocaleString()}
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right" onClick={(ev) => ev.stopPropagation()}>
                           <div className="flex items-center justify-end gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
                             <Button
                               variant="ghost"
@@ -1580,25 +2141,60 @@ export default function ExpensesPage() {
               </div>
             </div>
 
+            {webcamMode === "multi" ? (
+              <div className="pointer-events-none absolute top-3 left-0 right-0 flex justify-center px-3">
+                <div className="rounded-full bg-black/55 px-3 py-1.5 text-xs font-bold text-white backdrop-blur-md">
+                  연속 촬영 {webcamQueue.length}/{MAX_RECEIPT_FILES_PER_BATCH} · 셔터마다 추가 · 완료 시 일괄 분석
+                </div>
+              </div>
+            ) : null}
+
             {/* Controls */}
-            <div className="absolute bottom-6 left-0 w-full flex items-center justify-around px-8">
-               <Button 
-                 variant="outline" 
-                 size="icon" 
-                 className="h-12 w-12 rounded-full bg-white/10 border-white/20 text-white hover:bg-white/20 backdrop-blur-md transition-all"
-                 onClick={closeWebcam}
-               >
-                 <X className="h-5 w-5" />
-               </Button>
-               <button 
-                 className="h-20 w-20 rounded-full bg-white flex items-center justify-center shadow-[0_0_20px_rgba(255,255,255,0.4)] hover:scale-95 transition-transform border-4 border-neutral-300"
-                 onClick={captureWebcam}
-               >
-                 <div className="h-16 w-16 rounded-full bg-emerald-500 flex items-center justify-center shadow-inner">
-                   <Camera className="h-8 w-8 text-white" />
-                 </div>
-               </button>
-               <div className="w-12 h-12" /> {/* Spacer for centering */}
+            <div className="absolute bottom-6 left-0 w-full flex items-center justify-around px-4 sm:px-8">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-12 w-12 shrink-0 rounded-full bg-white/10 border-white/20 text-white hover:bg-white/20 backdrop-blur-md transition-all"
+                onClick={closeWebcam}
+              >
+                <X className="h-5 w-5" />
+              </Button>
+              {webcamMode === "multi" ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-12 w-12 shrink-0 rounded-full bg-white/10 border-white/20 text-white hover:bg-white/20 backdrop-blur-md transition-all disabled:opacity-30"
+                  onClick={undoLastWebcamCapture}
+                  disabled={webcamQueue.length === 0}
+                  title="마지막 촬영 취소"
+                >
+                  <Undo2 className="h-5 w-5" />
+                </Button>
+              ) : (
+                <div className="w-12 shrink-0" />
+              )}
+              <button
+                type="button"
+                className="h-20 w-20 shrink-0 rounded-full bg-white flex items-center justify-center shadow-[0_0_20px_rgba(255,255,255,0.4)] hover:scale-95 transition-transform border-4 border-neutral-300"
+                onClick={captureWebcam}
+              >
+                <div className="h-16 w-16 rounded-full bg-emerald-500 flex items-center justify-center shadow-inner">
+                  <Camera className="h-8 w-8 text-white" />
+                </div>
+              </button>
+              {webcamMode === "multi" ? (
+                <Button
+                  type="button"
+                  className="h-12 max-w-[7.5rem] shrink-0 rounded-full bg-teal-500 px-3 text-xs font-black text-white hover:bg-teal-600 disabled:opacity-40"
+                  disabled={webcamQueue.length === 0 || isOcrLoading}
+                  onClick={() => void finishWebcamMulti()}
+                >
+                  완료 ({webcamQueue.length})
+                </Button>
+              ) : (
+                <div className="w-12 shrink-0" />
+              )}
             </div>
           </div>
         </DialogContent>

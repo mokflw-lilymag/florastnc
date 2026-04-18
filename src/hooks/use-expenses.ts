@@ -9,6 +9,13 @@ import type { Expense } from '@/types/expense';
 
 export type { Expense };
 
+/** receipts 버킷에 올린 경로(`{tenantId}/…`)만 — 외부 URL·다른 버킷은 삭제 대상 아님 */
+function isManagedExpenseReceiptPath(path: string, tenantId: string): boolean {
+  const p = path.trim();
+  if (!p || p.includes('..') || p.includes('//')) return false;
+  return p.startsWith(`${tenantId}/`);
+}
+
 export function useExpenses() {
   const supabase = useMemo(() => createClient(), []);
   const { tenantId, isLoading: authLoading } = useAuth();
@@ -85,11 +92,28 @@ export function useExpenses() {
   };
 
   const deleteExpense = async (id: string) => {
+    if (!tenantId) return false;
     try {
+      const { data: row, error: selErr } = await supabase
+        .from('expenses')
+        .select('receipt_file_id')
+        .eq('id', id)
+        .eq('tenant_id', tenantId)
+        .single();
+
+      if (selErr) throw selErr;
+
+      const path = row?.receipt_file_id?.trim();
+      if (path && isManagedExpenseReceiptPath(path, tenantId)) {
+        const { error: rmErr } = await supabase.storage.from('receipts').remove([path]);
+        if (rmErr) console.warn('영수증 스토리지 삭제 실패:', rmErr);
+      }
+
       const { error } = await supabase
         .from('expenses')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('tenant_id', tenantId);
 
       if (error) throw error;
       setExpenses(prev => prev.filter(e => e.id !== id));
@@ -105,6 +129,32 @@ export function useExpenses() {
     if (!tenantId) return null;
 
     try {
+      const { data: current, error: curErr } = await supabase
+        .from('expenses')
+        .select('receipt_file_id')
+        .eq('id', id)
+        .eq('tenant_id', tenantId)
+        .single();
+
+      if (curErr) throw curErr;
+
+      const oldPath = (current?.receipt_file_id as string | undefined)?.trim() ?? '';
+      const nextPath =
+        data.receipt_file_id !== undefined
+          ? String(data.receipt_file_id).trim()
+          : oldPath;
+
+      const receiptKeyChanging = data.receipt_file_id !== undefined && nextPath !== oldPath;
+      const shouldRemoveOldFile =
+        oldPath.length > 0 &&
+        isManagedExpenseReceiptPath(oldPath, tenantId) &&
+        receiptKeyChanging;
+
+      if (shouldRemoveOldFile) {
+        const { error: rmErr } = await supabase.storage.from('receipts').remove([oldPath]);
+        if (rmErr) console.warn('기존 영수증 파일 삭제 실패:', rmErr);
+      }
+
       const { data: updated, error } = await supabase
         .from('expenses')
         .update({ ...data, tenant_id: tenantId })
