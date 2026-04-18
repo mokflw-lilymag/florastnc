@@ -1,7 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Menu, User, LogOut, Settings, Bell, BookOpen, Monitor, ShieldCheck, Wifi, WifiOff } from "lucide-react";
+import Link from "next/link";
+import Image from "next/image";
+import { differenceInCalendarDays, format } from "date-fns";
+import { ko } from "date-fns/locale";
+import { User, LogOut, Settings, Bell, BookOpen, Wifi, WifiOff } from "lucide-react";
 import { MobileSidebar } from "./mobile-sidebar";
 import { ManualDrawer } from "./manual-drawer";
 import { Button } from "@/components/ui/button";
@@ -15,7 +19,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -28,9 +32,29 @@ interface HeaderProps {
   isSuspended?: boolean;
   logoUrl?: string;
   storeName?: string;
+  subscriptionEnd?: string | null;
 }
 
-export function Header({ userEmail, isSuperAdmin, plan, isExpired, isSuspended, logoUrl, storeName }: HeaderProps) {
+function planBadgeLabel(plan: string) {
+  const map: Record<string, string> = {
+    free: "FREE",
+    pro: "PRO",
+    erp_only: "ERP",
+    ribbon_only: "PRINT",
+  };
+  return map[plan] ?? plan.toUpperCase();
+}
+
+export function Header({
+  userEmail,
+  isSuperAdmin,
+  plan,
+  isExpired,
+  isSuspended,
+  logoUrl,
+  storeName,
+  subscriptionEnd,
+}: HeaderProps) {
   const router = useRouter();
   const supabase = createClient();
   const [isBridgeOnline, setIsBridgeOnline] = useState(false);
@@ -66,6 +90,24 @@ export function Header({ userEmail, isSuperAdmin, plan, isExpired, isSuspended, 
     router.push("/login");
   };
 
+  const subscriptionLine = (() => {
+    if (isSuperAdmin) return null;
+    const label = planBadgeLabel(plan);
+    if (!subscriptionEnd) {
+      return `${label} · 이용 기한 미등록`;
+    }
+    const end = new Date(subscriptionEnd);
+    const dateStr = format(end, "yyyy.MM.dd", { locale: ko });
+    if (isExpired) {
+      return `${label} · ${dateStr}까지(만료) · 연장 필요`;
+    }
+    const daysLeft = differenceInCalendarDays(end, new Date());
+    if (daysLeft <= 0) {
+      return `${label} · 오늘 만료`;
+    }
+    return `${label} · ${dateStr}까지 · D-${daysLeft}`;
+  })();
+
   return (
     <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl px-4 md:px-6 shadow-sm">
       <div className="flex items-center gap-4">
@@ -79,14 +121,37 @@ export function Header({ userEmail, isSuperAdmin, plan, isExpired, isSuspended, 
           storeName={storeName} 
         />
         {storeName && !isSuperAdmin && (
-          <div className="flex items-center gap-2 md:gap-3">
-            <span className="h-4 w-[1px] bg-slate-200 dark:bg-slate-700 mx-1 block"></span>
-            {logoUrl && (
-              <img src={logoUrl} alt="Logo" className="h-6 md:h-7 w-auto object-contain" />
+          <div className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-row sm:items-center sm:gap-3 md:flex-initial md:gap-4">
+            <div className="flex min-w-0 items-center gap-2 md:gap-3">
+              <span className="hidden h-4 w-px bg-slate-200 dark:bg-slate-700 sm:block" aria-hidden />
+              {logoUrl && (
+                <Image
+                  src={logoUrl}
+                  alt=""
+                  width={160}
+                  height={40}
+                  unoptimized
+                  className="h-6 w-auto max-w-[120px] shrink-0 object-contain md:h-7 md:max-w-none"
+                />
+              )}
+              <h1 className="truncate text-xs font-bold text-slate-800 dark:text-slate-100 md:text-sm">
+                {storeName}
+              </h1>
+            </div>
+            {subscriptionLine && (
+              <Link
+                href="/dashboard/subscription"
+                title="구독 · 이용 기한 보기"
+                className={cn(
+                  "inline-flex max-w-full items-center rounded-lg border px-2 py-1 text-[10px] font-semibold leading-tight transition-colors sm:shrink-0 md:text-[11px]",
+                  isExpired || isSuspended
+                    ? "border-amber-200 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100"
+                    : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200"
+                )}
+              >
+                <span className="truncate">{subscriptionLine}</span>
+              </Link>
             )}
-            <h1 className="text-xs md:text-sm font-bold text-slate-800 dark:text-slate-100 max-w-[120px] md:max-w-none truncate">
-              {storeName}
-            </h1>
           </div>
         )}
       </div>

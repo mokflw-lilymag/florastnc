@@ -1,17 +1,30 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from "next/server";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-
 export async function POST(req: Request) {
   try {
-    const { image, fileName } = await req.json();
+    const apiKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
+    if (!apiKey.trim()) {
+      return NextResponse.json(
+        { error: "GEMINI_API_KEY가 설정되지 않았습니다. .env.local을 확인해 주세요." },
+        { status: 503 }
+      );
+    }
+
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const { image, mimeType: rawMime } = await req.json();
 
     if (!image) {
       return NextResponse.json({ error: "No image provided" }, { status: 400 });
     }
 
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const mimeType =
+      typeof rawMime === "string" && rawMime.startsWith("image/")
+        ? rawMime
+        : "image/jpeg";
+
+    // 주문 파서·지원 챗봇과 동일 계열(구 gemini-1.5-flash ID 폐기/지역 제한 대비)
+    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
     const prompt = `
       이 이미지(영수증 사진)를 분석하여 지출 내역을 JSON 형식으로 추출해줘. 
@@ -47,7 +60,7 @@ export async function POST(req: Request) {
       {
         inlineData: {
           data: image,
-          mimeType: "image/jpeg",
+          mimeType,
         },
       },
       prompt,
@@ -67,8 +80,9 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "AI 응답 해석 실패" }, { status: 500 });
     }
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("OCR API Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Gemini 요청 실패";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

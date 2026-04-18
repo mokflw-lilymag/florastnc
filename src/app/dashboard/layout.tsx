@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { QuickChat } from "@/components/chat/quick-chat";
 import { DashboardMain } from "@/components/layout/dashboard-main";
+import { AnnualRenewalReminder } from "@/components/layout/annual-renewal-reminder";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -17,7 +18,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // Fetch the role and tenant details server-side
   const { data: profile, error } = await supabase
     .from("profiles")
-    .select("role, tenant_id, tenants(plan, logo_url, name, subscription_end, status)")
+    .select("role, tenant_id, tenants(plan, logo_url, name, subscription_end, subscription_start, status)")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -26,7 +27,20 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
 
   const isSuperAdmin = !!(profile?.role === "super_admin" || user.email === 'lilymag0301@gmail.com');
-  const tenantData = (profile as any)?.tenants;
+
+  type TenantRow = {
+    plan?: string | null;
+    logo_url?: string | null;
+    name?: string | null;
+    subscription_end?: string | null;
+    subscription_start?: string | null;
+    status?: string | null;
+  };
+
+  const tenantData =
+    profile && typeof profile === "object" && "tenants" in profile
+      ? ((profile as { tenants?: TenantRow | null }).tenants ?? null)
+      : null;
 
   if (!isSuperAdmin && !profile?.tenant_id) {
     redirect("/onboarding");
@@ -66,6 +80,16 @@ export default async function DashboardLayout({ children }: { children: React.Re
             isSuspended={isSuspended}
             logoUrl={logoUrl}
             storeName={storeName}
+            subscriptionEnd={tenantData?.subscription_end ?? null}
+        />
+
+        <AnnualRenewalReminder
+          userId={user.id}
+          subscriptionStart={tenantData?.subscription_start ?? null}
+          subscriptionEnd={tenantData?.subscription_end ?? null}
+          isSuperAdmin={isSuperAdmin}
+          isExpired={isExpired}
+          plan={effectivePlan}
         />
         
         <DashboardMain>

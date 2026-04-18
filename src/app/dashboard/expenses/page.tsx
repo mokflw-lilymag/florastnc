@@ -140,7 +140,8 @@ export default function ExpensesPage() {
   }, [materials, itemSearchText]);
   
   const [isOcrLoading, setIsOcrLoading] = useState(false);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  /** 영수증 스캔/파일 OCR로 금액·품목 등이 채워진 상태 — 원본 대조 안내용 */
+  const [fieldsFromOcr, setFieldsFromOcr] = useState(false);
 
   const categoryLabels: Record<string, string> = {
     all: "전체 분류",
@@ -337,6 +338,7 @@ export default function ExpensesPage() {
   }, [filteredExpenses, suppliers, totalAmount]);
 
   const openCreateDialog = () => {
+    setFieldsFromOcr(false);
     setEditingExpense(null);
     const initialItem: ReceiptItem = {
       id: crypto.randomUUID(),
@@ -360,6 +362,7 @@ export default function ExpensesPage() {
   };
 
   const openEditDialog = (expense: Expense) => {
+    setFieldsFromOcr(false);
     setEditingExpense(expense);
     setFormData({
       category: expense.category || "materials",
@@ -534,13 +537,18 @@ export default function ExpensesPage() {
         // Step 2: OCR Analysis
         const response = await fetch('/api/ai/ocr', {
             method: 'POST',
-            body: JSON.stringify({ image: base64Data, fileName: originalFile.name }),
+            body: JSON.stringify({
+              image: base64Data,
+              mimeType: compressedFile.type || 'image/jpeg',
+            }),
             headers: { 'Content-Type': 'application/json' }
         });
 
-        if (!response.ok) throw new Error("OCR Analysis Failed");
-        
-        const result = await response.json();
+        const result = await response.json().catch(() => ({} as { error?: string; data?: unknown }));
+        if (!response.ok) {
+          const msg = typeof result.error === 'string' ? result.error : `OCR 실패 (HTTP ${response.status})`;
+          throw new Error(msg);
+        }
         const data = result.data;
 
         if (data) {
@@ -602,10 +610,12 @@ export default function ExpensesPage() {
             } else {
                 toast.success("AI 분석 및 클라우드 저장 완료 (이미지 최적화 적용됨)");
             }
+            setFieldsFromOcr(Boolean(uploadResult?.url));
         }
-    } catch (err: any) {
+    } catch (err: unknown) {
         toast.dismiss();
-        toast.error("AI 분석 중 오류가 발생했습니다.");
+        const message = err instanceof Error ? err.message : "AI 분석 중 오류가 발생했습니다.";
+        toast.error(message);
         console.error("OCR Error:", err);
     } finally {
         setIsOcrLoading(false);
@@ -696,19 +706,84 @@ export default function ExpensesPage() {
         description="운영 지출과 거래처별 매입 내역을 관리하고 분석합니다."
         icon={Receipt}
       >
-        <div className="flex items-center gap-2">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-end">
           <Button
-            className="bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20"
+            type="button"
+            variant="outline"
+            className="h-11 gap-2 border-violet-200 bg-gradient-to-r from-violet-50 to-indigo-50 font-bold text-violet-900 shadow-sm hover:from-violet-100 hover:to-indigo-100"
             onClick={openCreateDialog}
           >
-            <PlusCircle className="h-4 w-4 mr-2" /> 지출 내역 등록
+            <Sparkles className="h-4 w-4 text-violet-600" />
+            AI 영수증 입력
+            <span className="hidden text-[10px] font-normal text-violet-600/80 sm:inline">(촬영·앨범)</span>
+          </Button>
+          <Button
+            type="button"
+            className="h-11 bg-primary text-white shadow-lg shadow-primary/20 hover:bg-primary/90"
+            onClick={openCreateDialog}
+          >
+            <PlusCircle className="mr-2 h-4 w-4" /> 지출 내역 등록
           </Button>
         </div>
       </PageHeader>
 
+      <Card className="border-violet-100 bg-gradient-to-br from-violet-50/80 via-white to-indigo-50/50 shadow-sm">
+        <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-600 text-white shadow-md shadow-violet-200">
+              <ScanText className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-slate-900">영수증만 있으면 AI가 품목·금액을 채워 드립니다</p>
+              <p className="mt-0.5 text-xs text-slate-600">
+                사진 촬영 또는 갤러리에서 선택 → 자동 인식 후 원본과 대조해 수정하고 저장하세요.
+              </p>
+            </div>
+          </div>
+          <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              className="gap-1.5 border border-violet-200 bg-white font-semibold text-violet-900 hover:bg-violet-50"
+              onClick={openCreateDialog}
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              지금 영수증 넣기
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="text-slate-600"
+              onClick={() => {
+                openCreateDialog();
+                window.setTimeout(() => openWebcam(), 450);
+              }}
+            >
+              <Camera className="mr-1 h-3.5 w-3.5" />
+              카메라로 스캔
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Expense Form Dialog (Create / Edit) */}
-      <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) setEditingExpense(null); }}>
-        <DialogContent className={cn("transition-all duration-300 gap-0 p-0 overflow-hidden", formData.items.length > 0 ? "sm:max-w-[850px]" : "sm:max-w-[480px]")}>
+      <Dialog open={isDialogOpen} onOpenChange={(open) => {
+        setIsDialogOpen(open);
+        if (!open) {
+          setEditingExpense(null);
+          setFieldsFromOcr(false);
+        }
+      }}>
+        <DialogContent
+          className={cn(
+            "transition-all duration-300 gap-0 p-0 overflow-hidden",
+            formData.receipt_url || formData.items.length > 0
+              ? "w-[min(96vw,1040px)] sm:max-w-[min(96vw,1040px)]"
+              : "sm:max-w-[480px]"
+          )}
+        >
           <div className="p-6 bg-slate-50/50 border-b">
             <DialogHeader>
               <DialogTitle className="text-xl font-bold text-slate-900 flex items-center gap-2">
@@ -720,8 +795,81 @@ export default function ExpensesPage() {
               </DialogDescription>
             </DialogHeader>
           </div>
-          <div className="p-6 overflow-y-auto max-h-[75vh]">
-            <div className="grid gap-6">
+          <div className="p-6 overflow-y-auto max-h-[80vh]">
+            <div
+              className={cn(
+                "grid gap-6",
+                formData.receipt_url &&
+                  "lg:grid-cols-[minmax(260px,340px)_minmax(0,1fr)] lg:gap-8 lg:items-start"
+              )}
+            >
+              {formData.receipt_url ? (
+                <div className="space-y-3 lg:sticky lg:top-0 lg:self-start">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <Label className="text-sm font-bold text-slate-800">영수증 원본 (대조)</Label>
+                    {fieldsFromOcr ? (
+                      <Badge
+                        variant="secondary"
+                        className="gap-1 border border-violet-200 bg-violet-100 text-[10px] font-bold text-violet-800"
+                      >
+                        <Sparkles className="h-3 w-3" />
+                        AI·스캔 인식
+                      </Badge>
+                    ) : null}
+                  </div>
+                  <button
+                    type="button"
+                    className="block w-full overflow-hidden rounded-xl border-2 border-slate-200 bg-slate-50 text-left shadow-sm ring-offset-2 hover:border-indigo-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                    onClick={() => window.open(formData.receipt_url, "_blank", "noopener,noreferrer")}
+                  >
+                    {/* 공개 URL(스토리지·외부) — 도메인 가변 */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={formData.receipt_url}
+                      alt="영수증 원본"
+                      className="max-h-[min(48vh,420px)] w-full object-contain"
+                    />
+                  </button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="text-xs font-semibold"
+                      onClick={() => window.open(formData.receipt_url, "_blank", "noopener,noreferrer")}
+                    >
+                      새 탭에서 크게 보기
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs font-semibold text-amber-800 hover:bg-amber-50"
+                      onClick={() => {
+                        setFieldsFromOcr(false);
+                        setFormData((prev) => ({ ...prev, receipt_url: "", receipt_file_id: "" }));
+                      }}
+                    >
+                      영수증 바꾸기
+                    </Button>
+                  </div>
+                  <p className="text-[10px] leading-relaxed text-slate-500">
+                    아래 입력란과 글자·금액을 맞춰 보시고, 틀린 부분은 직접 수정한 뒤 등록해 주세요.
+                  </p>
+                </div>
+              ) : null}
+
+              <div className="min-w-0 space-y-6">
+              {fieldsFromOcr && formData.receipt_url ? (
+                <div className="flex gap-2 rounded-lg border border-violet-200 bg-violet-50/90 px-3 py-2.5 text-xs text-violet-950">
+                  <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-violet-600" />
+                  <p>
+                    <span className="font-bold">AI(OCR)로 입력됨</span> — 날짜·거래처·품목·합계는 영수증에서 읽은
+                    값입니다. 위쪽(또는 왼쪽) 원본과 다르면 이 화면에서 고친 뒤 저장하세요.
+                  </p>
+                </div>
+              ) : null}
+
               {/* Basic Info Section */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -1021,91 +1169,98 @@ export default function ExpensesPage() {
 
               {/* Receipt File Section */}
               <div className="pt-4 border-t border-slate-100">
-                <Label className="text-sm font-bold text-slate-700 block mb-3">증빙 자료 (영수증)</Label>
-                <div className="grid grid-cols-12 gap-3">
-                  <div className="col-span-12 sm:col-span-9 relative">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-500 z-10">
-                      {formData.receipt_url ? <Check className="w-4 h-4" /> : <Link2 className="w-4 h-4" />}
-                    </div>
-                    <Input
-                      placeholder="스캔 시 자동생성 또는 드라이브 링크 직접 입력"
-                      className={cn("pl-9 bg-slate-50 border-slate-200 transition-all", formData.receipt_url && "border-emerald-500 bg-emerald-50/20")}
-                      value={formData.receipt_url}
-                      onChange={e => setFormData(prev => ({ ...prev, receipt_url: e.target.value }))}
-                    />
-                  </div>
-                  <div className="col-span-12 space-y-3">
-                    <div className="grid grid-cols-2 gap-3">
-                      <Button 
-                        variant="outline" 
-                        className="h-14 gap-2 font-black border-emerald-500 bg-emerald-50/50 text-emerald-700 hover:bg-emerald-100 relative overflow-hidden group transition-all"
-                        onClick={openWebcam}
-                        disabled={isOcrLoading}
-                      >
-                        <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/10 to-teal-400/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        {isOcrLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Camera className="h-5 w-5 text-emerald-600" />}
-                        <div className="flex flex-col items-start leading-tight">
-                           <span className="text-sm">실시간 스캔</span>
-                           <span className="text-[10px] font-normal opacity-60">카메라 바로 찍기</span>
-                        </div>
-                        <div className="absolute -top-1 -right-1">
-                          <Sparkles className="h-3 w-3 text-emerald-400 animate-pulse" />
-                        </div>
-                      </Button>
+                <Label className="mb-3 block text-sm font-bold text-slate-700">증빙 자료 (영수증)</Label>
 
-                      <Button 
-                        variant="outline" 
-                        className="h-14 gap-2 font-black border-slate-300 bg-slate-50/50 text-slate-700 hover:bg-slate-100 relative overflow-hidden group transition-all"
-                        onClick={() => importInputRef.current?.click()}
-                        disabled={isOcrLoading}
-                      >
-                        {isOcrLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <ScanText className="h-5 w-5 text-slate-600" />}
-                        <div className="flex flex-col items-start leading-tight">
-                           <span className="text-sm">파일 불러오기</span>
-                           <span className="text-[10px] font-normal opacity-60">앨범/폴더에서 선택</span>
+                {!formData.receipt_url ? (
+                  <>
+                    <div className="grid grid-cols-12 gap-3">
+                      <div className="relative col-span-12 sm:col-span-9">
+                        <div className="absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-slate-400">
+                          <Link2 className="h-4 w-4" />
                         </div>
-                      </Button>
-                    </div>
+                        <Input
+                          placeholder="외부 링크만 넣을 때 (구글 드라이브 등)"
+                          className="border-slate-200 bg-slate-50 pl-9"
+                          value={formData.receipt_url}
+                          onChange={(e) => {
+                            setFieldsFromOcr(false);
+                            setFormData((prev) => ({ ...prev, receipt_url: e.target.value }));
+                          }}
+                        />
+                      </div>
+                      <div className="col-span-12 space-y-3">
+                        <div className="grid grid-cols-2 gap-3">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="group relative h-14 gap-2 overflow-hidden border-emerald-500 bg-emerald-50/50 font-black text-emerald-700 transition-all hover:bg-emerald-100"
+                            onClick={openWebcam}
+                            disabled={isOcrLoading}
+                          >
+                            <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/10 to-teal-400/10 opacity-0 transition-opacity group-hover:opacity-100" />
+                            {isOcrLoading ? (
+                              <Loader2 className="h-5 w-5 animate-spin" />
+                            ) : (
+                              <Camera className="h-5 w-5 text-emerald-600" />
+                            )}
+                            <div className="flex flex-col items-start leading-tight">
+                              <span className="text-sm">실시간 스캔</span>
+                              <span className="text-[10px] font-normal opacity-60">카메라 바로 찍기</span>
+                            </div>
+                            <div className="absolute -top-1 -right-1">
+                              <Sparkles className="h-3 w-3 animate-pulse text-emerald-400" />
+                            </div>
+                          </Button>
 
-                    <input 
-                       type="file" 
-                       className="hidden" 
-                       ref={scanInputRef} 
-                       accept="image/*"
-                       capture="environment"
-                       onChange={handleReceiptScan} 
-                    />
-                    <input 
-                       type="file" 
-                       className="hidden" 
-                       ref={importInputRef} 
-                       accept="image/*"
-                       onChange={handleReceiptScan} 
-                    />
-                  </div>
-                </div>
-                {formData.receipt_url && (
-                  <div className="mt-3 p-2 rounded-xl bg-slate-100 border border-slate-200 flex items-center gap-3 animate-in zoom-in-95 duration-300">
-                    <div className="w-12 h-12 rounded-lg bg-white overflow-hidden border shadow-sm flex-shrink-0">
-                       <img src={formData.receipt_url} alt="Receipt Preview" className="w-full h-full object-cover" />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="group relative h-14 gap-2 overflow-hidden border-slate-300 bg-slate-50/50 font-black text-slate-700 transition-all hover:bg-slate-100"
+                            onClick={() => importInputRef.current?.click()}
+                            disabled={isOcrLoading}
+                          >
+                            {isOcrLoading ? (
+                              <Loader2 className="h-5 w-5 animate-spin" />
+                            ) : (
+                              <ScanText className="h-5 w-5 text-slate-600" />
+                            )}
+                            <div className="flex flex-col items-start leading-tight">
+                              <span className="text-sm">파일 불러오기</span>
+                              <span className="text-[10px] font-normal opacity-60">앨범/폴더에서 선택</span>
+                            </div>
+                          </Button>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex-1">
-                       <p className="text-[10px] font-bold text-slate-600 line-clamp-1">영수증이 안전하게 보관되었습니다.</p>
-                       <p className="text-[9px] text-slate-400">시스템 클라우드에 업로드됨</p>
-                    </div>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-8 text-[10px] text-red-500 hover:text-red-600"
-                      onClick={() => setFormData(prev => ({ ...prev, receipt_url: '', receipt_file_id: '' }))}
-                    >
-                      변경하기
-                    </Button>
+                    <p className="mt-2 ml-1 text-[10px] font-medium italic text-slate-400">
+                      * 스캔·파일 선택 시 AI가 읽어 오며, 왼쪽(넓은 화면)에 원본이 뜨면 값을 대조해 주세요.
+                    </p>
+                  </>
+                ) : (
+                  <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2 text-xs text-slate-600">
+                    <p className="flex items-center gap-2 font-medium text-slate-700">
+                      <Check className="h-4 w-4 text-emerald-600" />
+                      영수증 파일이 첨부되었습니다. 원본은 이 패널 위쪽(모바일은 위)에서 확인하세요.
+                    </p>
+                    <details className="mt-2 border-t border-slate-200/80 pt-2">
+                      <summary className="cursor-pointer text-[10px] text-slate-500 hover:text-slate-700">
+                        증빙 URL 직접 수정 (고급)
+                      </summary>
+                      <Input
+                        className="mt-2 font-mono text-[11px]"
+                        value={formData.receipt_url}
+                        onChange={(e) => {
+                          setFieldsFromOcr(false);
+                          setFormData((prev) => ({ ...prev, receipt_url: e.target.value }));
+                        }}
+                      />
+                    </details>
                   </div>
                 )}
-                <p className="text-[10px] text-slate-400 mt-2 ml-1 font-medium italic">
-                  * 사진 촬영 시 상점명과 합계 금액이 잘 보이도록 찍어주세요.
-                </p>
+
+                <input type="file" className="hidden" ref={scanInputRef} accept="image/*" capture="environment" onChange={handleReceiptScan} />
+                <input type="file" className="hidden" ref={importInputRef} accept="image/*" onChange={handleReceiptScan} />
+              </div>
               </div>
             </div>
           </div>

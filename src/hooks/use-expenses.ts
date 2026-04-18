@@ -226,9 +226,17 @@ export function useExpenseStorage() {
         path: data.path,
         id: fileName
       };
-    } catch (e) {
+    } catch (e: unknown) {
       console.error('Error uploading receipt:', e);
-      toast.error('영수증 업로드에 실패했습니다.');
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg.includes('Bucket not found') || msg.includes('not found')) {
+        toast.error('스토리지 버킷이 없습니다.', {
+          description: 'Supabase에서 receipts 버킷을 만드세요. 저장소의 supabase/storage_buckets.sql 을 실행합니다.',
+          duration: 8000,
+        });
+      } else {
+        toast.error('영수증 업로드에 실패했습니다.', { description: msg });
+      }
       return null;
     }
   };

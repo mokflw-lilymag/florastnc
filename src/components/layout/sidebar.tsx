@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import type { LucideIcon } from "lucide-react";
 import { 
   Printer, ScrollText, Users, Store, 
   Settings, LayoutDashboard, ShieldCheck,
@@ -24,7 +25,47 @@ interface SidebarProps {
   storeName?: string;
 }
 
-export function Sidebar({ isSuperAdmin, plan, isExpired, isSuspended, className, logoUrl, storeName }: SidebarProps) {
+type Tiered = { tier?: string[] };
+
+export type NavLinkItem = {
+  name: string;
+  href: string;
+  icon: LucideIcon;
+  /** 이 경로로 시작하면 이 메뉴는 활성 표시하지 않음 (예: 설정 vs 설정/pos) */
+  activeExcludePrefix?: string;
+} & Tiered;
+
+type NavGroup = {
+  id: string;
+  label: string;
+  hint?: string;
+  links: NavLinkItem[];
+};
+
+function normalizePath(p: string) {
+  return p.replace(/\/$/, "") || "/";
+}
+
+/** /dashboard 는 정확히 일치할 때만, 그 외 href 는 하위 경로까지 활성 */
+function isNavActive(pathname: string, href: string, activeExcludePrefix?: string) {
+  const p = normalizePath(pathname);
+  const h = normalizePath(href);
+  if (activeExcludePrefix) {
+    const ex = normalizePath(activeExcludePrefix);
+    if (p === ex || p.startsWith(`${ex}/`)) return false;
+  }
+  if (h === "/dashboard") return p === "/dashboard";
+  return p === h || p.startsWith(`${h}/`);
+}
+
+function filterTenantLink(link: NavLinkItem, ctx: { isSuperAdmin: boolean; isExpired?: boolean; isSuspended?: boolean; plan: string }) {
+  if (ctx.isSuperAdmin) return true;
+  if (ctx.isExpired || ctx.isSuspended) return !link.tier;
+  if (!link.tier) return true;
+  return link.tier.includes(ctx.plan);
+}
+
+export function Sidebar({ isSuperAdmin, plan, isExpired, isSuspended, className, logoUrl }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
@@ -35,56 +76,111 @@ export function Sidebar({ isSuperAdmin, plan, isExpired, isSuspended, className,
     router.push("/login");
   };
 
-  // Navigation schema based on role
-  const adminLinks = [
-    { name: "시스템 통합 대시보드", href: "/dashboard", icon: LayoutDashboard },
-    { name: "본사 직원(Staff) 관리", href: "/dashboard/admin/staff", icon: Users },
-    { name: "일일 업무 체크리스트", href: "/dashboard/admin/checklist", icon: ShieldCheck },
-    { name: "전국 화원사(Tenant) 관리", href: "/dashboard/tenants", icon: Store },
-    { name: "구독/결제 관제", href: "/dashboard/billing-admin", icon: CreditCard },
-    { name: "글로벌 공지사항", href: "/dashboard/announcements", icon: ScrollText },
-    { name: "시스템 전역 설정", href: "/dashboard/system-settings", icon: Settings },
-    { name: "FAQ 및 AI 지식 관리", href: "/dashboard/admin/faq", icon: FileText },
-    { name: "✨ 플랫폼 홍보 마스터", href: "/dashboard/marketing/admin", icon: Sparkles },
-    { name: "⚙️ 화원사 환경 설정", href: "/dashboard/settings", icon: Settings },
+  const filterCtx = { isSuperAdmin, isExpired, isSuspended, plan };
+
+  const adminGroups: NavGroup[] = [
+    {
+      id: "admin-overview",
+      label: "통합 현황",
+      hint: "한눈에 보는 운영",
+      links: [{ name: "시스템 대시보드", href: "/dashboard", icon: LayoutDashboard }],
+    },
+    {
+      id: "admin-ops",
+      label: "본사 · 가맹 운영",
+      links: [
+        { name: "직원(Staff) 관리", href: "/dashboard/admin/staff", icon: Users },
+        { name: "일일 체크리스트", href: "/dashboard/admin/checklist", icon: ShieldCheck },
+        { name: "전국 화원사 관리", href: "/dashboard/tenants", icon: Store },
+        { name: "구독 · 결제 관제", href: "/dashboard/billing-admin", icon: CreditCard },
+        { name: "글로벌 공지", href: "/dashboard/announcements", icon: ScrollText },
+      ],
+    },
+    {
+      id: "admin-content",
+      label: "콘텐츠 · 마케팅",
+      links: [
+        { name: "FAQ · AI 지식", href: "/dashboard/admin/faq", icon: FileText },
+        { name: "플랫폼 홍보 마스터", href: "/dashboard/marketing/admin", icon: Sparkles },
+      ],
+    },
+    {
+      id: "admin-system",
+      label: "시스템",
+      links: [
+        { name: "전역 설정", href: "/dashboard/system-settings", icon: Settings },
+        { name: "화원사 환경 설정", href: "/dashboard/settings", icon: Settings },
+      ],
+    },
   ];
 
-  const tenantLinks = [
-    { name: "화원 대시보드", href: "/dashboard", icon: LayoutDashboard },
-    { name: "🆕 새 주문 등록", href: "/dashboard/orders/new", icon: PlusCircle, tier: ['pro', 'erp_only'] },
-    { name: "📜 주문 목록", href: "/dashboard/orders", icon: ScrollText, tier: ['pro', 'erp_only'] },
-    { name: "🖨️ 리본 프린터", href: "/dashboard/printer", icon: Printer, tier: ['pro', 'ribbon_only'] },
-    { name: "🚚 배송 및 픽업 관리", href: "/dashboard/delivery", icon: Truck, tier: ['pro', 'erp_only'] },
-    { name: "👥 고객 관리(CRM)", href: "/dashboard/customers", icon: Users, tier: ['pro', 'erp_only'] },
-    { name: "🤝 협력사 수발주", href: "/dashboard/external-orders", icon: Share2, tier: ['pro', 'erp_only'] },
-    { name: "🛍️ 상품 관리", href: "/dashboard/products", icon: Boxes, tier: ['pro', 'erp_only'] },
-    { name: "📦 재고 관리", href: "/dashboard/inventory", icon: Boxes, tier: ['pro', 'erp_only'] },
-    { name: "🤝 거래처 관리", href: "/dashboard/suppliers", icon: Store, tier: ['pro', 'erp_only'] },
-    { name: "🛍️ 매입 관리", href: "/dashboard/purchases", icon: ShoppingCart, tier: ['pro', 'erp_only'] },
-    { name: "📊 정산 및 보고서", href: "/dashboard/reports", icon: BarChart3, tier: ['pro', 'erp_only'] },
-    { name: "📈 매입/매출 통계", href: "/dashboard/analytics", icon: BarChart3, tier: ['pro', 'erp_only'] },
-    { name: "💰 지출 관리", href: "/dashboard/expenses", icon: CreditCard, tier: ['pro', 'erp_only'] },
-    { name: "🧾 세무 관리", href: "/dashboard/tax", icon: FileText, tier: ['pro', 'erp_only'] },
-    { name: "✨ AI 홍보 마스터", href: "/dashboard/marketing", icon: Sparkles, tier: ['pro', 'erp_only'] },
-    { name: "🎨 카드 디자인", href: "/dashboard/design-studio", icon: Layout, tier: ['pro', 'ribbon_only'] },
-    { name: "💎 구독 및 플랜 안내", href: "/dashboard/subscription", icon: Gem },
-    { name: "📟 POS 연동", href: "/dashboard/settings/pos", icon: Monitor, tier: ['pro', 'erp_only'] },
-    { name: "⚙️ 환경 설정", href: "/dashboard/settings", icon: Settings },
+  const tenantGroups: NavGroup[] = [
+    {
+      id: "tenant-home",
+      label: "시작",
+      hint: "오늘 업무 허브",
+      links: [{ name: "업무 홈", href: "/dashboard", icon: LayoutDashboard }],
+    },
+    {
+      id: "tenant-ops",
+      label: "매장 운영",
+      hint: "주문 · 고객 · 재고",
+      links: [
+        { name: "새 주문", href: "/dashboard/orders/new", icon: PlusCircle, tier: ["pro", "erp_only"] },
+        {
+          name: "주문 목록",
+          href: "/dashboard/orders",
+          icon: ScrollText,
+          tier: ["pro", "erp_only"],
+          activeExcludePrefix: "/dashboard/orders/new",
+        },
+        { name: "배송 · 픽업", href: "/dashboard/delivery", icon: Truck, tier: ["pro", "erp_only"] },
+        { name: "고객 CRM", href: "/dashboard/customers", icon: Users, tier: ["pro", "erp_only"] },
+        { name: "협력사 수발주", href: "/dashboard/external-orders", icon: Share2, tier: ["pro", "erp_only"] },
+        { name: "상품", href: "/dashboard/products", icon: Boxes, tier: ["pro", "erp_only"] },
+        { name: "재고", href: "/dashboard/inventory", icon: Boxes, tier: ["pro", "erp_only"] },
+        { name: "거래처", href: "/dashboard/suppliers", icon: Store, tier: ["pro", "erp_only"] },
+        { name: "매입", href: "/dashboard/purchases", icon: ShoppingCart, tier: ["pro", "erp_only"] },
+        { name: "정산 · 보고서", href: "/dashboard/reports", icon: BarChart3, tier: ["pro", "erp_only"] },
+        { name: "매입·매출 통계", href: "/dashboard/analytics", icon: BarChart3, tier: ["pro", "erp_only"] },
+        { name: "지출", href: "/dashboard/expenses", icon: CreditCard, tier: ["pro", "erp_only"] },
+        { name: "세무", href: "/dashboard/tax", icon: FileText, tier: ["pro", "erp_only"] },
+      ],
+    },
+    {
+      id: "tenant-make",
+      label: "제작 · 출력",
+      hint: "리본 · 카드",
+      links: [
+        { name: "리본 프린터", href: "/dashboard/printer", icon: Printer, tier: ["pro", "ribbon_only"] },
+        { name: "카드 디자인", href: "/dashboard/design-studio", icon: Layout, tier: ["pro", "ribbon_only"] },
+      ],
+    },
+    {
+      id: "tenant-growth",
+      label: "마케팅",
+      links: [{ name: "AI 홍보 마스터", href: "/dashboard/marketing", icon: Sparkles, tier: ["pro", "erp_only"] }],
+    },
+    {
+      id: "tenant-store",
+      label: "매장 설정 · 구독",
+      hint: "연동 · 플랜",
+      links: [
+        { name: "POS 연동", href: "/dashboard/settings/pos", icon: Monitor, tier: ["pro", "erp_only"] },
+        { name: "환경 설정", href: "/dashboard/settings", icon: Settings, activeExcludePrefix: "/dashboard/settings/pos" },
+        { name: "구독 · 플랜", href: "/dashboard/subscription", icon: Gem },
+      ],
+    },
   ];
 
-  const filteredTenantLinks = tenantLinks.filter(link => {
-    if (isSuperAdmin) return true;
-    
-    // If expired or suspended, restrict access to premium features (those with 'tier')
-    if (isExpired || isSuspended) {
-      return !link.tier; // Only show links that don't require a specific tier (basic links)
-    }
-
-    if (!link.tier) return true;
-    return link.tier.includes(plan);
-  });
-
-  const links = isSuperAdmin ? adminLinks : filteredTenantLinks;
+  const navGroups = isSuperAdmin
+    ? adminGroups
+    : tenantGroups
+        .map((g) => ({
+          ...g,
+          links: g.links.filter((l) => filterTenantLink(l, filterCtx)),
+        }))
+        .filter((g) => g.links.length > 0);
 
   return (
     <aside className={cn("flex w-64 flex-col bg-white border-r border-slate-100 h-full z-20 shadow-sm", className)}>
@@ -108,40 +204,46 @@ export function Sidebar({ isSuperAdmin, plan, isExpired, isSuspended, className,
         </div>
       </div>
 
-      <nav className="flex-1 px-4 py-8 space-y-1 overflow-y-auto">
-        {links.map((link) => {
-          // Normalize paths for comparison to avoid trailing slash issues
-          const normalizedPathname = pathname.replace(/\/$/, "");
-          const normalizedHref = link.href.replace(/\/$/, "");
-          
-          // Only highlight if the path exactly matches. 
-          // For the root dashboard, it should only be active if the path is exactly /dashboard (normalized to empty if we're not careful)
-          const isActive = normalizedPathname === normalizedHref;
-          
-          const Icon = link.icon;
-          
-          return (
-            <Link
-              key={link.name}
-              href={link.href}
-              className={cn(
-                "group flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200",
-                isActive 
-                  ? "bg-slate-900 text-white shadow-lg shadow-slate-200 transform scale-[1.02]" 
-                  : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
-              )}
-            >
-              <Icon 
-                className={cn(
-                  "mr-3 flex-shrink-0 h-5 w-5 transition-all duration-200 group-hover:scale-110", 
-                  isActive ? "text-white" : "text-slate-400 group-hover:text-slate-600"
-                )} 
-                aria-hidden="true" 
-              />
-              {link.name}
-            </Link>
-          );
-        })}
+      <nav className="flex-1 px-3 py-4 overflow-y-auto">
+        {navGroups.map((group) => (
+          <div key={group.id} className="mb-6 last:mb-2">
+            <div className="px-3 mb-1.5">
+              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400">
+                {group.label}
+              </p>
+              {group.hint ? (
+                <p className="text-[10px] text-slate-400/90 mt-0.5 leading-snug">{group.hint}</p>
+              ) : null}
+            </div>
+            <div className="space-y-0.5">
+              {group.links.map((link) => {
+                const isActive = isNavActive(pathname, link.href, link.activeExcludePrefix);
+                const Icon = link.icon;
+                return (
+                  <Link
+                    key={`${group.id}-${link.href}`}
+                    href={link.href}
+                    className={cn(
+                      "group flex items-center gap-3 px-3 py-2 text-[13px] font-medium rounded-lg transition-all duration-150",
+                      isActive
+                        ? "bg-slate-900 text-white shadow-md shadow-slate-200/80"
+                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                    )}
+                  >
+                    <Icon
+                      className={cn(
+                        "flex-shrink-0 h-[18px] w-[18px]",
+                        isActive ? "text-white" : "text-slate-400 group-hover:text-slate-600"
+                      )}
+                      aria-hidden="true"
+                    />
+                    <span className="truncate">{link.name}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ))}
         <button
           onClick={handleLogout}
           className="w-full group flex items-center px-3 py-2.5 text-sm font-normal rounded-lg transition-all duration-200 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
