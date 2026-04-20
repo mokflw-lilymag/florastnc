@@ -758,9 +758,17 @@ export default function ExpensesPage() {
             headers: { "Content-Type": "application/json" },
           });
 
-          const result = await response.json().catch(() => ({} as { error?: string; data?: unknown }));
+          const result = await response.json().catch(
+            () => ({} as { error?: string; data?: unknown; diagnose?: string; vercelEnv?: string | null })
+          );
           if (!response.ok) {
-            const msg = typeof result.error === "string" ? result.error : `OCR 실패 (HTTP ${response.status})`;
+            let msg = typeof result.error === "string" ? result.error : `OCR 실패 (HTTP ${response.status})`;
+            if (response.status === 503 && result.vercelEnv != null) {
+              msg += ` (Vercel: ${result.vercelEnv})`;
+            }
+            if (typeof result.diagnose === "string") {
+              msg += ` ${result.diagnose}`;
+            }
             return { ok: false as const, name: file.name, error: msg };
           }
           const data = result.data as { receipts?: Record<string, unknown>[]; store_name?: string } | undefined;

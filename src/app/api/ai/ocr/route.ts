@@ -1,14 +1,41 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from "next/server";
 
+function readGeminiKey(): string {
+  return (process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || "").trim();
+}
+
+/** 배포(Preview/Production)별로 키가 있는지 확인용 — 브라우저에서 GET /api/ai/ocr */
+export async function GET() {
+  const configured = readGeminiKey().length > 0;
+  const vercelEnv = process.env.VERCEL_ENV ?? null;
+  return NextResponse.json({
+    geminiConfigured: configured,
+    vercelEnv,
+    message: configured
+      ? "이 서버 인스턴스에는 Gemini 키가 설정되어 있습니다."
+      : `이 배포 환경(VERCEL_ENV=${vercelEnv ?? "unknown"})에 GEMINI_API_KEY가 비어 있습니다. Vercel Environment Variables에서 ${vercelEnv === "preview" ? "Preview" : vercelEnv === "production" ? "Production" : "해당"} 환경에 키를 추가한 뒤 Redeploy 하세요.`,
+    checklist: [
+      "변수 이름: GEMINI_API_KEY (또는 NEXT_PUBLIC_GEMINI_API_KEY)",
+      "값 저장 후 반드시 Deployments → Redeploy (환경 변수는 새 빌드에만 반영)",
+      "Preview URL(*-xxxx.vercel.app)로 열면 Preview에, 메인 도메인이면 Production에 키가 있어야 함",
+      "Sensitive로 저장해도 됨. 값이 비어 있지 않은지 한 번 더 저장해 보기",
+    ],
+  });
+}
+
 export async function POST(req: Request) {
   try {
-    const apiKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
-    if (!apiKey.trim()) {
+    const apiKey = readGeminiKey();
+    if (!apiKey) {
       return NextResponse.json(
         {
           error:
-            "GEMINI_API_KEY가 서버에 없습니다. Vercel이면 Project → Settings → Environment Variables에 추가 후 Redeploy 하세요. 로컬 개발만 .env.local을 씁니다.",
+            "GEMINI_API_KEY가 서버에 없습니다. Vercel → Project → Settings → Environment Variables에서 이 배포와 같은 환경(Preview/Production)에 추가 후 Redeploy 하세요. 로컬만 .env.local.",
+          vercelEnv: process.env.VERCEL_ENV ?? null,
+          geminiConfigured: false,
+          diagnose:
+            "같은 사이트에서 주소창에 /api/ai/ocr 만 붙여 GET으로 열어보면 vercelEnv·설정 여부를 확인할 수 있습니다.",
         },
         { status: 503 }
       );
