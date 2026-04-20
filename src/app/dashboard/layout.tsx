@@ -16,10 +16,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
     redirect("/login");
   }
 
-  // Fetch the role and tenant details server-side
+  // 프로필과 tenants 는 분리 조회 (profiles → tenants FK가 tenant_id·org_work_tenant_id 두 개라 임베드 시 PGRST201 발생 가능)
   const { data: profile, error } = await supabase
     .from("profiles")
-    .select("role, tenant_id, tenants(plan, logo_url, name, subscription_end, subscription_start, status)")
+    .select("role, tenant_id, org_work_tenant_id")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -28,6 +28,44 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
 
   const isSuperAdmin = !!(profile?.role === "super_admin" || user.email === 'lilymag0301@gmail.com');
+
+  let isOrgUser = false;
+  const { count: orgMembershipCount, error: orgMemberError } = await supabase
+    .from("organization_members")
+    .select("organization_id", { count: "exact", head: true })
+    .eq("user_id", user.id);
+
+  if (!orgMemberError) {
+    isOrgUser = (orgMembershipCount ?? 0) > 0;
+  }
+  const isOrgOnly = isOrgUser && !profile?.tenant_id;
+  const hasOrgWorkContext = !!profile?.org_work_tenant_id;
+  /** 본사 계정이 지점 업무 모드가 아닐 때만 사이드바를 HQ 전용으로 제한 */
+  const hqMenuOnly = isOrgOnly && !hasOrgWorkContext;
+
+  let showOrgBoardLink = false;
+  let showBranchMaterialRequestLink = false;
+  if (!isSuperAdmin) {
+    if (isOrgUser) showOrgBoardLink = true;
+    const branchNavTenantId = profile?.org_work_tenant_id ?? profile?.tenant_id;
+    if (branchNavTenantId) {
+      const { data: tenantOrgRow } = await supabase
+        .from("tenants")
+        .select("organization_id")
+        .eq("id", branchNavTenantId)
+        .maybeSingle();
+      const linked = !!tenantOrgRow?.organization_id;
+      if (linked) showBranchMaterialRequestLink = true;
+      if (!isOrgUser) showOrgBoardLink = linked;
+    } else if (profile?.tenant_id) {
+      const { data: tenantOrg } = await supabase
+        .from("tenants")
+        .select("organization_id")
+        .eq("id", profile.tenant_id)
+        .maybeSingle();
+      showOrgBoardLink = !!tenantOrg?.organization_id;
+    }
+  }
 
   type TenantRow = {
     plan?: string | null;
@@ -38,25 +76,42 @@ export default async function DashboardLayout({ children }: { children: React.Re
     status?: string | null;
   };
 
-  const tenantData =
-    profile && typeof profile === "object" && "tenants" in profile
-      ? ((profile as { tenants?: TenantRow | null }).tenants ?? null)
-      : null;
+  let homeTenantData: TenantRow | null = null;
+  if (profile?.tenant_id) {
+    const { data: ht } = await supabase
+      .from("tenants")
+      .select("plan, logo_url, name, subscription_end, subscription_start, status")
+      .eq("id", profile.tenant_id)
+      .maybeSingle();
+    homeTenantData = (ht as TenantRow | null) ?? null;
+  }
 
-  if (!isSuperAdmin && !profile?.tenant_id) {
+  let tenantData: TenantRow | null = homeTenantData;
+  if (hasOrgWorkContext && profile?.org_work_tenant_id) {
+    const { data: workTenant } = await supabase
+      .from("tenants")
+      .select("plan, logo_url, name, subscription_end, subscription_start, status")
+      .eq("id", profile.org_work_tenant_id)
+      .maybeSingle();
+    if (workTenant) tenantData = workTenant as TenantRow;
+  }
+
+  if (!isSuperAdmin && !profile?.tenant_id && !isOrgUser) {
     redirect("/onboarding");
   }
 
-  
+  const applySubscriptionGate = !isSuperAdmin && (!isOrgOnly || hasOrgWorkContext);
+
   // Logic Fix: If subscription_end is empty (null), treat it as NO SUBSCRIPTION (Expired).
-  // Unlimited access should use a far-future date (e.g. 2099) instead of null.
-  const isExpired = !tenantData?.subscription_end || new Date(tenantData.subscription_end) < new Date();
-  const isSuspended = tenantData?.status === 'suspended';
-  
-  // If expired or suspended, for non-admins, the effective plan is 'free' or restricted
-  const effectivePlan = tenantData?.plan || (isSuperAdmin ? 'pro' : 'free');
+  const isExpired =
+    applySubscriptionGate &&
+    (!tenantData?.subscription_end || new Date(tenantData.subscription_end) < new Date());
+  const isSuspended = applySubscriptionGate && tenantData?.status === "suspended";
+
+  const effectivePlan =
+    tenantData?.plan || (isSuperAdmin ? "pro" : isOrgOnly ? "pro" : "free");
   const logoUrl = tenantData?.logo_url ?? undefined;
-  const storeName = tenantData?.name ?? undefined;
+  const storeName = (hqMenuOnly ? "본사·다매장" : tenantData?.name) ?? undefined;
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">
@@ -68,6 +123,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
         isSuspended={isSuspended}
         logoUrl={logoUrl}
         storeName={storeName}
+        isOrgUser={isOrgUser}
+        isOrgOnly={isOrgOnly}
+        hqMenuOnly={hqMenuOnly}
+        showOrgBoardLink={showOrgBoardLink}
+        showBranchMaterialRequestLink={showBranchMaterialRequestLink}
         className="hidden lg:flex" 
       />
       
@@ -82,6 +142,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
             logoUrl={logoUrl}
             storeName={storeName}
             subscriptionEnd={tenantData?.subscription_end ?? null}
+            isOrgOnly={isOrgOnly}
+            hqMenuOnly={hqMenuOnly}
+            isOrgUser={isOrgUser}
+            showOrgBoardLink={showOrgBoardLink}
+            showBranchMaterialRequestLink={showBranchMaterialRequestLink}
         />
 
         <AnnualRenewalReminder

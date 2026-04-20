@@ -267,3 +267,42 @@ input[type="text"], input[type="number"], textarea, select {
 input[translate="no"], textarea[translate="no"] {
   unicode-bidi: isolate;
 }
+
+/* 대시보드 전광판: 동일 트랙 2개 나란히 → -50% 이동으로 끊김 없이 반복 */
+@keyframes dashboard-ticker {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+.animate-dashboard-ticker {
+  animation-name: dashboard-ticker;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+/* 전광판: 본사 새 공지 구간 — 선명 + 깜빡임(과한 자극 완화) */
+@keyframes hq-ticker-blink {
+  0%,
+  40%,
+  100% {
+    opacity: 1;
+    filter: brightness(1.15) drop-shadow(0 0 10px rgba(254, 249, 195, 0.95));
+  }
+  20% {
+    opacity: 0.72;
+    filter: brightness(1.45) drop-shadow(0 0 14px rgba(253, 224, 71, 1));
+  }
+}
+.animate-hq-ticker-blink {
+  animation: hq-ticker-blink 1.25s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-hq-ticker-blink {
+    animation: none;
+    opacity: 1;
+    filter: brightness(1.1) drop-shadow(0 0 8px rgba(254, 249, 195, 0.85));
+  }
+}

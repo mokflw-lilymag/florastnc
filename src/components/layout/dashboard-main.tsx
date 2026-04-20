@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useIsCapacitorAndroid } from "@/hooks/use-capacitor-android";
 import { usePartnerTouchUi } from "@/hooks/use-partner-touch-ui";
+import { OrgWorkContextBanner } from "@/components/hq/org-work-context-banner";
 
 export function DashboardMain({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -33,6 +34,7 @@ export function DashboardMain({ children }: { children: React.ReactNode }) {
           isFullWidthPage ? "max-w-none" : "mx-auto max-w-7xl"
         )}
       >
+        <OrgWorkContextBanner />
         {children}
       </div>
     </main>

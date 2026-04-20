@@ -27,7 +27,8 @@ import {
   Settings,
   CreditCard,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Megaphone,
 } from "lucide-react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -45,8 +46,10 @@ import { format, isToday, isTomorrow, addDays, startOfToday, endOfToday, subDays
 import { ko } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { cn } from "@/lib/utils";
+import { DashboardTicker } from "@/components/dashboard/dashboard-ticker";
 
 // 🚀 Recharts lazy load — 차트가 필요할 때만 ~200KB 번들 로드
 const SalesChart = dynamic(() => import('./components/sales-chart'), {
@@ -54,9 +57,114 @@ const SalesChart = dynamic(() => import('./components/sales-chart'), {
   loading: () => <Skeleton className="h-full w-full rounded-2xl" />,
 });
 
+type TenantSalesChartPeriod = "daily" | "weekly" | "monthly" | "yearly";
+
+function buildTenantSalesChartData(
+  chartPeriod: TenantSalesChartPeriod,
+  orders: any[],
+  opts: {
+    isLoading: boolean;
+    isSuperAdmin: boolean;
+    settings: { revenueRecognitionBasis?: string } | null | undefined;
+  }
+): Array<{ name: string; 매출: number }> {
+  const { isLoading, isSuperAdmin, settings } = opts;
+  if (isLoading || isSuperAdmin) return [];
+
+  let data: Array<{ name: string; 매출: number }> = [];
+  const now = new Date();
+  const basis = settings?.revenueRecognitionBasis || "order_date";
+
+  const isRevenue = (o: any) => {
+    if (o.status === "canceled") return false;
+    if (basis === "payment_completed") {
+      return o.payment?.status === "paid";
+    }
+    return true;
+  };
+
+  if (chartPeriod === "daily") {
+    const days = eachDayOfInterval({ start: subDays(now, 13), end: now });
+    data = days.map((day) => {
+      const dStart = startOfDay(day);
+      const dEnd = endOfDay(day);
+      const label = format(day, "MM.dd");
+
+      const rev = orders
+        .filter((o) => {
+          const dateStr = o.order_date || o.created_at;
+          if (!dateStr) return false;
+          const od = new Date(dateStr);
+          return od >= dStart && od <= dEnd && isRevenue(o);
+        })
+        .reduce((sum, o) => sum + (o.summary?.total || 0), 0);
+
+      return { name: label, 매출: rev };
+    });
+  } else if (chartPeriod === "weekly") {
+    const weeks = eachWeekOfInterval({ start: subMonths(now, 2), end: now });
+    data = weeks.map((week) => {
+      const wStart = startOfWeek(week);
+      const wEnd = endOfWeek(week);
+      const label = `${format(wStart, "M월", { locale: ko })} ${getWeekOfMonth(wStart)}주`;
+
+      const rev = orders
+        .filter((o) => {
+          const dateStr = o.order_date || o.created_at;
+          if (!dateStr) return false;
+          const od = new Date(dateStr);
+          return od >= wStart && od <= wEnd && isRevenue(o);
+        })
+        .reduce((sum, o) => sum + (o.summary?.total || 0), 0);
+
+      return { name: label, 매출: rev };
+    });
+  } else if (chartPeriod === "monthly") {
+    const months = eachMonthOfInterval({ start: subMonths(now, 5), end: now });
+    data = months.map((month) => {
+      const mStart = startOfMonth(month);
+      const mEnd = endOfMonth(month);
+      const label = format(month, "M월", { locale: ko });
+
+      const rev = orders
+        .filter((o) => {
+          const dateStr = o.order_date || o.created_at;
+          if (!dateStr) return false;
+          const od = new Date(dateStr);
+          return od >= mStart && od <= mEnd && isRevenue(o);
+        })
+        .reduce((sum, o) => sum + (o.summary?.total || 0), 0);
+
+      return { name: label, 매출: rev };
+    });
+  } else if (chartPeriod === "yearly") {
+    const years = [subYears(now, 2), subYears(now, 1), now];
+    data = years.map((year) => {
+      const yStart = startOfYear(year);
+      const yEnd = endOfYear(year);
+      const label = format(year, "yyyy년");
+
+      const rev = orders
+        .filter((o) => {
+          const dateStr = o.order_date || o.created_at;
+          if (!dateStr) return false;
+          const od = new Date(dateStr);
+          return od >= yStart && od <= yEnd && isRevenue(o);
+        })
+        .reduce((sum, o) => sum + (o.summary?.total || 0), 0);
+
+      return { name: label, 매출: rev };
+    });
+  }
+
+  return data;
+}
+
 export default function DashboardPage() {
   const supabase = createClient();
-  const { profile, isLoading: authLoading } = useAuth();
+  const router = useRouter();
+  const { profile, isLoading: authLoading, isSuperAdmin } = useAuth();
+  const [showOrgBoard, setShowOrgBoard] = useState(false);
   const touchUi = usePartnerTouchUi();
   const isAndroidApp = useIsCapacitorAndroid();
   const { settings, loading: settingsLoading } = useSettings();
@@ -65,14 +173,51 @@ export default function DashboardPage() {
   const [tenantStats, setTenantStats] = useState<{ total: number, active: number, pro: number, recent: any[] } | null>(null);
   const [adminLoading, setAdminLoading] = useState(false);
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (authLoading || isSuperAdmin) {
+        if (!cancelled) setShowOrgBoard(false);
+        return;
+      }
+      if (!profile?.id) return;
+      let ok = false;
+      if (profile.tenant_id) {
+        const { data } = await supabase
+          .from("tenants")
+          .select("organization_id")
+          .eq("id", profile.tenant_id)
+          .maybeSingle();
+        ok = !!data?.organization_id;
+      }
+      if (!ok) {
+        const { count } = await supabase
+          .from("organization_members")
+          .select("organization_id", { count: "exact", head: true })
+          .eq("user_id", profile.id);
+        ok = (count ?? 0) > 0;
+      }
+      if (!cancelled) setShowOrgBoard(ok);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [authLoading, isSuperAdmin, profile?.id, profile?.tenant_id, supabase]);
+
   const { orders, loading: ordersLoading } = useOrders();
   const { products, loading: productsLoading } = useProducts();
   const { expenses, loading: expensesLoading } = useExpenses();
-  
-  const [chartPeriod, setChartPeriod] = useState<"daily" | "weekly" | "monthly" | "yearly">("daily");
 
-  const isSuperAdmin = profile?.role === 'super_admin';
   const isLoading = authLoading || ordersLoading || productsLoading || expensesLoading || adminLoading || settingsLoading;
+
+  const isOrgOnlyUser = profile?.role === "org_admin" && !profile?.tenant_id;
+  const hqOnlyNoWorkContext = isOrgOnlyUser && !profile?.org_work_tenant_id;
+
+  useEffect(() => {
+    if (!authLoading && hqOnlyNoWorkContext) {
+      router.replace("/dashboard/hq");
+    }
+  }, [authLoading, hqOnlyNoWorkContext, router]);
 
   useEffect(() => {
     if (isSuperAdmin) {
@@ -192,89 +337,25 @@ export default function DashboardPage() {
     };
   }, [orders, products, expenses, isLoading, isSuperAdmin, settings]);
 
-  const chartData = useMemo(() => {
-    if (isLoading || isSuperAdmin) return [];
+  const [chartPeriod, setChartPeriod] = useState<TenantSalesChartPeriod>("daily");
 
-    let data: any[] = [];
-    const now = new Date();
-    const basis = settings?.revenueRecognitionBasis || 'order_date';
+  const chartOpts = useMemo(
+    () => ({ isLoading, isSuperAdmin, settings }),
+    [isLoading, isSuperAdmin, settings]
+  );
 
-    const isRevenue = (o: any) => {
-      if (o.status === 'canceled') return false;
-      if (basis === 'payment_completed') {
-        return o.payment?.status === 'paid';
-      }
-      return true;
-    };
+  const chartData = useMemo(
+    () => buildTenantSalesChartData(chartPeriod, orders, chartOpts),
+    [orders, chartPeriod, chartOpts]
+  );
 
-    if (chartPeriod === "daily") {
-      const days = eachDayOfInterval({ start: subDays(now, 13), end: now });
-      data = days.map(day => {
-        const dStart = startOfDay(day);
-        const dEnd = endOfDay(day);
-        const label = format(day, "MM.dd");
-        
-        const rev = orders.filter(o => {
-            const dateStr = o.order_date || o.created_at;
-            if (!dateStr) return false;
-            const od = new Date(dateStr);
-            return od >= dStart && od <= dEnd && isRevenue(o);
-        }).reduce((sum, o) => sum + (o.summary?.total || 0), 0);
-        
-        return { name: label, 매출: rev };
-      });
-    } else if (chartPeriod === "weekly") {
-      const weeks = eachWeekOfInterval({ start: subMonths(now, 2), end: now });
-      data = weeks.map(week => {
-        const wStart = startOfWeek(week);
-        const wEnd = endOfWeek(week);
-        const label = `${format(wStart, "M월", { locale: ko })} ${getWeekOfMonth(wStart)}주`;
-
-        const rev = orders.filter(o => {
-            const dateStr = o.order_date || o.created_at;
-            if (!dateStr) return false;
-            const od = new Date(dateStr);
-            return od >= wStart && od <= wEnd && isRevenue(o);
-        }).reduce((sum, o) => sum + (o.summary?.total || 0), 0);
-
-        return { name: label, 매출: rev };
-      });
-    } else if (chartPeriod === "monthly") {
-      const months = eachMonthOfInterval({ start: subMonths(now, 5), end: now });
-      data = months.map(month => {
-        const mStart = startOfMonth(month);
-        const mEnd = endOfMonth(month);
-        const label = format(month, "M월", { locale: ko });
-
-        const rev = orders.filter(o => {
-            const dateStr = o.order_date || o.created_at;
-            if (!dateStr) return false;
-            const od = new Date(dateStr);
-            return od >= mStart && od <= mEnd && isRevenue(o);
-        }).reduce((sum, o) => sum + (o.summary?.total || 0), 0);
-
-        return { name: label, 매출: rev };
-      });
-    } else if (chartPeriod === "yearly") {
-      const years = [subYears(now, 2), subYears(now, 1), now];
-      data = years.map(year => {
-        const yStart = startOfYear(year);
-        const yEnd = endOfYear(year);
-        const label = format(year, "yyyy년");
-
-        const rev = orders.filter(o => {
-            const dateStr = o.order_date || o.created_at;
-            if (!dateStr) return false;
-            const od = new Date(dateStr);
-            return od >= yStart && od <= yEnd && isRevenue(o);
-        }).reduce((sum, o) => sum + (o.summary?.total || 0), 0);
-
-        return { name: label, 매출: rev };
-      });
-    }
-
-    return data;
-  }, [orders, chartPeriod, isLoading, isSuperAdmin, settings]);
+  if (hqOnlyNoWorkContext) {
+    return (
+      <div className="p-6 flex justify-center py-24">
+        <Skeleton className="h-10 w-48" />
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -413,6 +494,7 @@ export default function DashboardPage() {
       touchUi ? "p-4 pb-8 sm:p-6" : "p-6 pb-12",
       isAndroidApp && "pb-28"
     )}>
+      <DashboardTicker />
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
            <h1 className={cn("font-medium text-gray-900 tracking-tight", touchUi ? "text-2xl" : "text-3xl")}>
@@ -509,10 +591,10 @@ export default function DashboardPage() {
             </div>
             <div className="flex flex-wrap bg-slate-50 p-1 rounded-xl gap-1 w-full sm:w-auto">
               {(["daily", "weekly", "monthly", "yearly"] as const).map((p) => (
-                <Button 
+                <Button
                   key={p}
-                  variant="ghost" 
-                  size="sm" 
+                  variant="ghost"
+                  size="sm"
                   className={cn(
                     "rounded-lg font-bold transition-all flex-1 sm:flex-none min-h-10",
                     touchUi ? "text-xs px-3" : "text-[10px] h-7 px-3",
@@ -520,7 +602,7 @@ export default function DashboardPage() {
                   )}
                   onClick={() => setChartPeriod(p)}
                 >
-                  {p === 'daily' ? '일별' : p === 'weekly' ? '주간별' : p === 'monthly' ? '월별' : '년별'}
+                  {p === "daily" ? "일별" : p === "weekly" ? "주간별" : p === "monthly" ? "월별" : "년별"}
                 </Button>
               ))}
             </div>
@@ -635,6 +717,9 @@ export default function DashboardPage() {
                  )}
                  <DashboardIconButton icon={Truck} label="배송관리" href="/dashboard/delivery" color="bg-blue-500" largeTouch={touchUi} />
                  <DashboardIconButton icon={Boxes} label="재고관리" href="/dashboard/inventory" color="bg-amber-500" largeTouch={touchUi} />
+                 {showOrgBoard ? (
+                   <DashboardIconButton icon={Megaphone} label="본사 게시판" href="/dashboard/org-board" color="bg-violet-600" largeTouch={touchUi} />
+                 ) : null}
               </CardContent>
            </Card>
 

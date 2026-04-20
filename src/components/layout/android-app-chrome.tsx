@@ -22,6 +22,7 @@ import {
   ShieldCheck,
   Store,
   FileText,
+  Megaphone,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsCapacitorAndroid } from "@/hooks/use-capacitor-android";
@@ -50,6 +51,7 @@ type MoreItem = { href: string; label: string; icon: typeof BarChart3 };
 
 function tenantMoreLinks(): MoreItem[] {
   return [
+    { href: "/dashboard/org-board", label: "본사 게시판", icon: Megaphone },
     { href: "/dashboard/orders/new", label: "새 주문", icon: Plus },
     { href: "/dashboard/reports", label: "정산 · 보고서", icon: BarChart3 },
     { href: "/dashboard/analytics", label: "매입·매출 통계", icon: BarChart3 },

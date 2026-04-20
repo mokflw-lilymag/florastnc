@@ -13,9 +13,26 @@ interface MobileSidebarProps {
   isSuspended?: boolean;
   logoUrl?: string;
   storeName?: string;
+  isOrgUser?: boolean;
+  isOrgOnly?: boolean;
+  hqMenuOnly?: boolean;
+  showOrgBoardLink?: boolean;
+  showBranchMaterialRequestLink?: boolean;
 }
 
-export function MobileSidebar({ isSuperAdmin, plan, isExpired, isSuspended, logoUrl, storeName }: MobileSidebarProps) {
+export function MobileSidebar({
+  isSuperAdmin,
+  plan,
+  isExpired,
+  isSuspended,
+  logoUrl,
+  storeName,
+  isOrgUser = false,
+  isOrgOnly = false,
+  hqMenuOnly,
+  showOrgBoardLink = false,
+  showBranchMaterialRequestLink = false,
+}: MobileSidebarProps) {
   return (
     <Sheet>
       <SheetTrigger className={cn(
@@ -38,7 +55,12 @@ export function MobileSidebar({ isSuperAdmin, plan, isExpired, isSuspended, logo
               isExpired={isExpired}
               isSuspended={isSuspended}
               logoUrl={logoUrl} 
-              storeName={storeName} 
+              storeName={storeName}
+              isOrgUser={isOrgUser}
+              isOrgOnly={isOrgOnly}
+              hqMenuOnly={hqMenuOnly}
+              showOrgBoardLink={showOrgBoardLink}
+              showBranchMaterialRequestLink={showBranchMaterialRequestLink}
             />
          </div>
       </SheetContent>

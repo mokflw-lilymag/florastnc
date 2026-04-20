@@ -8,7 +8,12 @@ import {
   Printer, ScrollText, Users, Store, 
   Settings, LayoutDashboard, ShieldCheck,
   CreditCard, Boxes, Truck, BarChart3, Monitor,
-  Zap, ArrowRight, Gem, Share2, FileText, PlusCircle, LogOut, ShoppingCart, Layout, Sparkles
+  Zap, ArrowRight, Gem, Share2, FileText, PlusCircle, LogOut, ShoppingCart, Layout, Sparkles,
+  Building2,
+  Megaphone,
+  Package,
+  Receipt,
+  ClipboardList,
 } from "lucide-react";
 import Image from "next/image";
 import { createClient } from "@/utils/supabase/client";
@@ -24,6 +29,16 @@ interface SidebarProps {
   className?: string;
   logoUrl?: string;
   storeName?: string;
+  /** 조직 멤버(본사·다매장 메뉴) */
+  isOrgUser?: boolean;
+  /** 매장 tenant 없이 본사만 */
+  isOrgOnly?: boolean;
+  /** true면 사이드바에 본사 메뉴만(지점 업무 모드가 아닐 때) */
+  hqMenuOnly?: boolean;
+  /** 조직 본사 게시판 메뉴(연결 매장·본사 멤버) */
+  showOrgBoardLink?: boolean;
+  /** 조직 연결 매장 → 본사 자재 요청 */
+  showBranchMaterialRequestLink?: boolean;
 }
 
 type Tiered = { tier?: string[] };
@@ -66,7 +81,20 @@ function filterTenantLink(link: NavLinkItem, ctx: { isSuperAdmin: boolean; isExp
   return link.tier.includes(ctx.plan);
 }
 
-export function Sidebar({ isSuperAdmin, plan, isExpired, isSuspended, className, logoUrl }: SidebarProps) {
+export function Sidebar({
+  isSuperAdmin,
+  plan,
+  isExpired,
+  isSuspended,
+  className,
+  logoUrl,
+  isOrgUser = false,
+  isOrgOnly = false,
+  hqMenuOnly,
+  showOrgBoardLink = false,
+  showBranchMaterialRequestLink = false,
+}: SidebarProps) {
+  const sidebarHqOnly = hqMenuOnly ?? isOrgOnly;
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
@@ -94,6 +122,7 @@ export function Sidebar({ isSuperAdmin, plan, isExpired, isSuspended, className,
         { name: "직원(Staff) 관리", href: "/dashboard/admin/staff", icon: Users },
         { name: "일일 체크리스트", href: "/dashboard/admin/checklist", icon: ShieldCheck },
         { name: "전국 화원사 관리", href: "/dashboard/tenants", icon: Store },
+        { name: "조직(본사) 관리", href: "/dashboard/admin/organizations", icon: Building2 },
         { name: "구독 · 결제 관제", href: "/dashboard/billing-admin", icon: CreditCard },
         { name: "글로벌 공지", href: "/dashboard/announcements", icon: ScrollText },
       ],
@@ -116,12 +145,30 @@ export function Sidebar({ isSuperAdmin, plan, isExpired, isSuspended, className,
     },
   ];
 
+  const hqGroup: NavGroup = {
+    id: "hq",
+    label: "본사·다매장",
+    hint: "지점 비교 · 실적",
+    links: [
+      { name: "본사 개요", href: "/dashboard/hq", icon: Building2 },
+      { name: "공동상품관리", href: "/dashboard/hq/shared-products", icon: Package },
+      { name: "지점별 지출", href: "/dashboard/hq/branch-expenses", icon: Receipt },
+      { name: "자재 요청·취합", href: "/dashboard/hq/material-requests", icon: ClipboardList },
+      { name: "본사 게시판", href: "/dashboard/org-board", icon: Megaphone },
+    ],
+  };
+
   const tenantGroups: NavGroup[] = [
     {
       id: "tenant-home",
       label: "시작",
       hint: "오늘 업무 허브",
-      links: [{ name: "업무 홈", href: "/dashboard", icon: LayoutDashboard }],
+      links: [
+        { name: "업무 홈", href: "/dashboard", icon: LayoutDashboard },
+        ...(showOrgBoardLink
+          ? [{ name: "본사 게시판", href: "/dashboard/org-board", icon: Megaphone }]
+          : []),
+      ],
     },
     {
       id: "tenant-ops",
@@ -141,6 +188,16 @@ export function Sidebar({ isSuperAdmin, plan, isExpired, isSuspended, className,
         { name: "협력사 수발주", href: "/dashboard/external-orders", icon: Share2, tier: ["pro", "erp_only"] },
         { name: "상품", href: "/dashboard/products", icon: Boxes, tier: ["pro", "erp_only"] },
         { name: "재고", href: "/dashboard/inventory", icon: Boxes, tier: ["pro", "erp_only"] },
+        ...(showBranchMaterialRequestLink && !sidebarHqOnly
+          ? ([
+              {
+                name: "본사 자재 요청",
+                href: "/dashboard/material-requests",
+                icon: ClipboardList,
+                tier: ["pro", "erp_only"],
+              },
+            ] as NavLinkItem[])
+          : []),
         { name: "거래처", href: "/dashboard/suppliers", icon: Store, tier: ["pro", "erp_only"] },
         { name: "매입", href: "/dashboard/purchases", icon: ShoppingCart, tier: ["pro", "erp_only"] },
         { name: "정산 · 보고서", href: "/dashboard/reports", icon: BarChart3, tier: ["pro", "erp_only"] },
@@ -175,17 +232,23 @@ export function Sidebar({ isSuperAdmin, plan, isExpired, isSuspended, className,
     },
   ];
 
+  const tenantNavFiltered = tenantGroups
+    .map((g) => ({
+      ...g,
+      links: g.links.filter((l) => {
+        if (isAndroidApp && l.href === "/dashboard/printer") return false;
+        return filterTenantLink(l, filterCtx);
+      }),
+    }))
+    .filter((g) => g.links.length > 0);
+
   const navGroups = isSuperAdmin
     ? adminGroups
-    : tenantGroups
-        .map((g) => ({
-          ...g,
-          links: g.links.filter((l) => {
-            if (isAndroidApp && l.href === "/dashboard/printer") return false;
-            return filterTenantLink(l, filterCtx);
-          }),
-        }))
-        .filter((g) => g.links.length > 0);
+    : sidebarHqOnly
+      ? [hqGroup]
+      : isOrgUser
+        ? [hqGroup, ...tenantNavFiltered]
+        : tenantNavFiltered;
 
   return (
     <aside className={cn("flex w-64 flex-col bg-white border-r border-slate-100 h-full z-20 shadow-sm", className)}>
@@ -202,9 +265,15 @@ export function Sidebar({ isSuperAdmin, plan, isExpired, isSuspended, className,
         <div className="mt-3 text-center">
            <span className={cn(
              "text-[10px] font-bold px-2.5 py-0.5 rounded-full inline-block border",
-             isSuperAdmin ? "bg-blue-50 text-blue-600 border-blue-100" : "bg-emerald-50 text-emerald-600 border-emerald-100"
+             isSuperAdmin
+               ? "bg-blue-50 text-blue-600 border-blue-100"
+               : sidebarHqOnly
+                 ? "bg-violet-50 text-violet-700 border-violet-100"
+                 : isOrgOnly
+                   ? "bg-sky-50 text-sky-800 border-sky-100"
+                   : "bg-emerald-50 text-emerald-600 border-emerald-100"
            )}>
-             {isSuperAdmin ? 'ADMIN MODE' : 'PARTNER'}
+             {isSuperAdmin ? "ADMIN MODE" : sidebarHqOnly ? "HQ" : isOrgOnly ? "지점업무" : "PARTNER"}
            </span>
         </div>
       </div>
@@ -262,7 +331,7 @@ export function Sidebar({ isSuperAdmin, plan, isExpired, isSuspended, className,
       </nav>
 
       {/* Upgrade Promo for Tenants */}
-      {!isSuperAdmin && plan !== 'pro' && (
+      {!isSuperAdmin && !sidebarHqOnly && plan !== 'pro' && (
         <div className="px-4 pb-4">
           <Link href="/dashboard/subscription" className="block">
             <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[24px] p-6 text-white shadow-xl shadow-blue-100 dark:shadow-none hover:scale-[1.02] transition-all duration-300 group relative overflow-hidden">

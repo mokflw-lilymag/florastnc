@@ -666,6 +666,10 @@ export function QuickChat() {
         return other?.tenant?.name || "상담 고객";
     }
 
+    if (!tenantId && !isSuperAdmin) {
+        return null;
+    }
+
     return (
         <>
             <div className="fixed bottom-24 md:bottom-8 right-4 md:right-8 z-[100]">

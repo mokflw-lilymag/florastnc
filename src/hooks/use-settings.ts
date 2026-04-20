@@ -53,6 +53,10 @@ export interface SystemSettings {
   defaultTaxRate: number;
   currency: string;
   country: string;
+  /** 대시보드 상단 전광판(날씨·예약·본사 공지 흐름) — 표시 여부(하위 호환) */
+  dashboardTickerEnabled: boolean;
+  /** true면 사용자가 환경설정에서 전광판을 끔. 미설정/false면 표시(기본). 구버전 false만 있던 저장은 무시하고 표시. */
+  hideDashboardTicker?: boolean;
 }
 
 export const defaultSettings: SystemSettings = {
@@ -126,7 +130,21 @@ export const defaultSettings: SystemSettings = {
   isTaxExempt: true,
   defaultTaxRate: 10,
   currency: 'KRW',
+  dashboardTickerEnabled: true,
+  hideDashboardTicker: false,
 };
+
+function mergeTenantGeneralSettings(raw: unknown): SystemSettings {
+  const partial = (raw && typeof raw === "object" ? raw : {}) as Partial<SystemSettings>;
+  const merged = { ...defaultSettings, ...partial };
+  if (merged.hideDashboardTicker === true) {
+    merged.dashboardTickerEnabled = false;
+  } else {
+    merged.hideDashboardTicker = false;
+    merged.dashboardTickerEnabled = true;
+  }
+  return merged;
+}
 
 export const DEFAULT_PRODUCT_CATEGORIES: CategoryData = {
   main: ['꽃다발', '꽃바구니', '식물/화분', '경조사화환', '어버이날상품', '기프티콘/기프트상품', '서양란', '동양란', '웨딩상품', '플라워', '플랜트', '화병/화기', '부자재', '기타'],
@@ -203,7 +221,7 @@ export function useSettings() {
       if (prod) setProductCategories(prod.data as CategoryData);
       if (mat) setMaterialCategories(mat.data as CategoryData);
       if (exp) setExpenseCategories(exp.data as CategoryData);
-      if (general) setSettings({ ...defaultSettings, ...general.data });
+      if (general) setSettings(mergeTenantGeneralSettings(general.data));
 
     } catch (err) {
       console.error('Error fetching settings:', err);

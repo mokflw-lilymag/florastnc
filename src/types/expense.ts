@@ -9,6 +9,8 @@ export interface Expense {
   payment_method: string;
   supplier_id?: string;
   related_order_id?: string;
+  /** 지점→본사 자재 요청으로 자동 생성된 지출 */
+  related_branch_material_request_id?: string;
   material_id?: string;
   quantity?: number;
   unit?: string;

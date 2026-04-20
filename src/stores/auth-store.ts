@@ -12,7 +12,9 @@ interface AuthState {
   isLoading: boolean;
   _initialized: boolean;
   _fetchPromise: Promise<void> | null;
-  initialize: () => Promise<void>;
+  initialize: (force?: boolean) => Promise<void>;
+  /** DB profiles 반영 후 화면 테넌트·헤더 갱신 (업무 컨텍스트 전환 등) */
+  refreshAuth: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -25,9 +27,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   _initialized: false,
   _fetchPromise: null,
 
-  initialize: async () => {
-    // 이미 초기화 완료 → 스킵
-    if (get()._initialized) return;
+  refreshAuth: async () => {
+    set({ _initialized: false, _fetchPromise: null });
+    await get().initialize();
+  },
+
+  initialize: async (force = false) => {
+    // 이미 초기화 완료 → 스킵 (강제 갱신 제외)
+    if (get()._initialized && !force) return;
     
     // 이미 진행 중인 fetch가 있으면 그걸 기다림 (중복 방지)
     const existing = get()._fetchPromise;
@@ -49,27 +56,53 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         const isMasterEmail = user.email === 'lilymag0301@gmail.com' || user.email === 'test@test.com';
         set({ user });
 
-        // Fetch user's profile with tenant plan
         const { data, error: profileError } = await supabase
           .from("profiles")
-          .select("*, tenants(plan, name, logo_url, contact_phone, address)")
+          .select("*, org_work_tenant_id")
           .eq("id", user.id)
           .maybeSingle();
 
         if (!profileError && data) {
+          let homeTenant: Record<string, unknown> | null = null;
+          if (data.tenant_id) {
+            const { data: ht } = await supabase
+              .from("tenants")
+              .select(
+                "plan, name, logo_url, contact_phone, address, subscription_end, subscription_start, status"
+              )
+              .eq("id", data.tenant_id)
+              .maybeSingle();
+            homeTenant = ht;
+          }
+
           // ✅ 마스터 이메일 또는 super_admin 역할에게 권한 부여
           if (isMasterEmail || data.role === 'super_admin') {
             data.role = 'super_admin';
-            if (!data.tenants) data.tenants = { plan: 'pro', name: 'LilyMag Admin' };
-            else data.tenants.plan = 'pro';
+            if (!homeTenant) homeTenant = { plan: 'pro', name: 'LilyMag Admin' };
+            else homeTenant = { ...homeTenant, plan: 'pro' };
             set({ isSuperAdmin: true });
           } else {
             set({ isSuperAdmin: false });
           }
+
+          const effectiveTenantId = data.org_work_tenant_id ?? data.tenant_id;
+          let tenantsInfo = homeTenant;
+          if (data.org_work_tenant_id) {
+            const { data: workTenant } = await supabase
+              .from("tenants")
+              .select(
+                "plan, name, logo_url, contact_phone, address, subscription_end, subscription_start, status"
+              )
+              .eq("id", data.org_work_tenant_id)
+              .maybeSingle();
+            if (workTenant) tenantsInfo = workTenant;
+          }
+          const merged = { ...data, tenants: tenantsInfo };
           
-          // Check for orphaned profiles (non-admins with no tenant_id)
-          const isOrphaned = !data.tenant_id && data.role !== 'super_admin';
-          set({ profile: data, tenantId: data.tenant_id, isOrphaned });
+          // Check for orphaned profiles (non-admins with no tenant_id) — org_admin 은 본사 전용 계정 허용
+          const isOrphaned =
+            !data.tenant_id && data.role !== "super_admin" && data.role !== "org_admin";
+          set({ profile: merged, tenantId: effectiveTenantId, isOrphaned });
         } else if (isMasterEmail) {
           const defaultTenantId = '50551f4c-0b6b-45ab-8db9-047ca3ff88de';
           const mockProfile = {

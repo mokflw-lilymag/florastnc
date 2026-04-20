@@ -1,21 +1,24 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useId } from "react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer
 } from "recharts";
-import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface SalesChartProps {
   chartData: Array<{ name: string; 매출: number }>;
+  /** 차트 영역 높이(px). 대시보드 다중 타일에서는 280~300 권장 */
+  height?: number;
 }
 
-export default function SalesChart({ chartData }: SalesChartProps) {
+export default function SalesChart({ chartData, height = 350 }: SalesChartProps) {
   const [isMounted, setIsMounted] = useState(false);
+  const reactId = useId();
+  const wrapperId = `sales-chart-${reactId.replace(/:/g, "")}`;
 
-  const [dimensions, setDimensions] = useState({ width: 0, height: 350 });
+  const [dimensions, setDimensions] = useState({ width: 0, height });
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -23,6 +26,10 @@ export default function SalesChart({ chartData }: SalesChartProps) {
     }, 200);
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    setDimensions((prev) => ({ ...prev, height }));
+  }, [height]);
 
   // 실제 컨테이너의 크기를 직접 감시하여 Recharts의 내부 경고 방지
   useEffect(() => {
@@ -38,20 +45,23 @@ export default function SalesChart({ chartData }: SalesChartProps) {
       }
     });
 
-    const el = document.getElementById("sales-chart-wrapper");
+    const el = document.getElementById(wrapperId);
     if (el) observer.observe(el);
     
     return () => observer.disconnect();
-  }, [isMounted]);
+  }, [isMounted, wrapperId]);
 
   if (!isMounted) {
-    return <Skeleton className="w-full h-[350px] rounded-2xl" />;
+    return <Skeleton className="w-full rounded-2xl" style={{ height }} />;
   }
 
   // 데이터가 없을 때의 안전한 처리
   if (!chartData || chartData.length === 0) {
     return (
-      <div className="w-full h-[350px] flex flex-col items-center justify-center border-2 border-dashed border-slate-100 rounded-3xl bg-slate-50/50">
+      <div
+        className="w-full flex flex-col items-center justify-center border-2 border-dashed border-slate-100 rounded-3xl bg-slate-50/50"
+        style={{ height, minHeight: height }}
+      >
         <p className="text-sm text-slate-400 font-medium">표시할 데이터가 없습니다.</p>
       </div>
     );
@@ -59,12 +69,12 @@ export default function SalesChart({ chartData }: SalesChartProps) {
 
   return (
     <div 
-      id="sales-chart-wrapper" 
+      id={wrapperId}
       className="w-full relative" 
-      style={{ height: "350px", minHeight: "350px", display: "block" }}
+      style={{ height, minHeight: height, display: "block" }}
     >
       {dimensions.width > 0 && (
-        <ResponsiveContainer width={dimensions.width} height={350} debounce={0}>
+        <ResponsiveContainer width={dimensions.width} height={height} debounce={0}>
           <BarChart 
             data={chartData} 
             margin={{ top: 10, right: 10, left: 0, bottom: 25 }}

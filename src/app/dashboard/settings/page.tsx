@@ -35,7 +35,8 @@ import {
   Cloud,
   FileImage,
   LayoutGrid,
-  Globe
+  Globe,
+  MonitorPlay
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -474,6 +475,34 @@ export default function SettingsPage() {
                   <div className="space-y-2">
                     <Label htmlFor="address">주소</Label>
                     <Input id="address" value={localAddress} onChange={e => setLocalAddress(e.target.value)} />
+                  </div>
+
+                  <div className="flex items-center justify-between gap-4 p-4 bg-indigo-50/60 dark:bg-indigo-950/30 rounded-2xl border border-indigo-100 dark:border-indigo-900">
+                    <div className="space-y-0.5 flex-1 min-w-0">
+                      <Label className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                        <MonitorPlay className="h-4 w-4 text-indigo-600 shrink-0" />
+                        대시보드 전광판 표시
+                      </Label>
+                      <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-snug">
+                        <strong>모든 매장(tenant) 계정</strong>에 기본으로 켜져 있습니다.{" "}
+                        <strong>메인 대시보드(/dashboard)</strong> 화면에서만 상단에 표시되며, 주문·설정 등 다른
+                        메뉴에서는 보이지 않습니다. 이 스위치를 끄면 해당 매장 사용자만 전광판이 숨겨집니다.
+                        날짜·오늘/내일 배송·픽업·본사 공지 제목이 흘러갑니다.{" "}
+                        <strong>날씨</strong>는 브라우저에서 위치를 허용하면 그 좌표 기준( Open-Meteo ), 거부하거나
+                        미지원이면 <strong>서울</strong> 기준으로 표시됩니다. 공지에{" "}
+                        <code className="text-[10px]">https://</code> 링크를 넣으면 배너에서 클릭할 수 있습니다.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={settings.hideDashboardTicker !== true}
+                      onCheckedChange={(show) =>
+                        saveSettings({
+                          ...settings,
+                          hideDashboardTicker: !show,
+                          dashboardTickerEnabled: show,
+                        })
+                      }
+                    />
                   </div>
 
                   <Separator className="my-4 bg-slate-100" />

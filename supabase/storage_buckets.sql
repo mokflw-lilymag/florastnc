@@ -9,7 +9,8 @@ INSERT INTO storage.buckets (id, name, public, file_size_limit)
 VALUES
   ('receipts', 'receipts', true, 52428800),
   ('chat_attachments', 'chat_attachments', true, 52428800),
-  ('user-assets', 'user-assets', true, 52428800)
+  ('user-assets', 'user-assets', true, 52428800),
+  ('org_announcements', 'org_announcements', true, 10485760)
 ON CONFLICT (id) DO UPDATE SET
   public = EXCLUDED.public,
   file_size_limit = EXCLUDED.file_size_limit;
@@ -18,6 +19,9 @@ ON CONFLICT (id) DO UPDATE SET
 DROP POLICY IF EXISTS "storage_receipts_tenant" ON storage.objects;
 DROP POLICY IF EXISTS "storage_chat_attachments_tenant" ON storage.objects;
 DROP POLICY IF EXISTS "storage_user_assets_uid" ON storage.objects;
+DROP POLICY IF EXISTS "storage_org_announcements_public_read" ON storage.objects;
+DROP POLICY IF EXISTS "storage_org_announcements_hq_upload" ON storage.objects;
+DROP POLICY IF EXISTS "storage_org_announcements_hq_delete" ON storage.objects;
 
 -- receipts: 경로 첫 세그먼트 = profiles.tenant_id (지출 영수증 등)
 CREATE POLICY "storage_receipts_tenant"
@@ -61,4 +65,39 @@ USING (
 WITH CHECK (
   bucket_id = 'user-assets'
   AND split_part(name, '/', 1) = auth.uid()::text
+);
+
+-- org_announcements: 공개 읽기. 업로드·삭제는 본사(super / 해당 조직 org_admin) 세션으로만(API가 세션 클라이언트 사용).
+CREATE POLICY "storage_org_announcements_public_read"
+ON storage.objects FOR SELECT TO public
+USING (bucket_id = 'org_announcements');
+
+CREATE POLICY "storage_org_announcements_hq_upload"
+ON storage.objects FOR INSERT TO authenticated
+WITH CHECK (
+  bucket_id = 'org_announcements'
+  AND (
+    public.is_super_admin()
+    OR EXISTS (
+      SELECT 1 FROM public.organization_members om
+      WHERE om.user_id = auth.uid()
+        AND om.organization_id::text = split_part(name, '/', 1)
+        AND om.role = 'org_admin'
+    )
+  )
+);
+
+CREATE POLICY "storage_org_announcements_hq_delete"
+ON storage.objects FOR DELETE TO authenticated
+USING (
+  bucket_id = 'org_announcements'
+  AND (
+    public.is_super_admin()
+    OR EXISTS (
+      SELECT 1 FROM public.organization_members om
+      WHERE om.user_id = auth.uid()
+        AND om.organization_id::text = split_part(name, '/', 1)
+        AND om.role = 'org_admin'
+    )
+  )
 );

@@ -35,6 +35,14 @@ interface HeaderProps {
   logoUrl?: string;
   storeName?: string;
   subscriptionEnd?: string | null;
+  /** 매장 구독 없이 본사 전용 계정 */
+  isOrgOnly?: boolean;
+  /** 본사 전용이면서 지점 업무 모드가 아닐 때(HQ 메뉴만) */
+  hqMenuOnly?: boolean;
+  /** 조직 멤버(매장+본사 메뉴 병행 시 true) */
+  isOrgUser?: boolean;
+  showOrgBoardLink?: boolean;
+  showBranchMaterialRequestLink?: boolean;
 }
 
 function planBadgeLabel(plan: string) {
@@ -56,7 +64,13 @@ export function Header({
   logoUrl,
   storeName,
   subscriptionEnd,
+  isOrgOnly = false,
+  hqMenuOnly,
+  isOrgUser = false,
+  showOrgBoardLink = false,
+  showBranchMaterialRequestLink = false,
 }: HeaderProps) {
+  const sidebarHqOnly = hqMenuOnly ?? isOrgOnly;
   const router = useRouter();
   const supabase = createClient();
   const [isBridgeOnline, setIsBridgeOnline] = useState(false);
@@ -96,6 +110,7 @@ export function Header({
 
   const subscriptionLine = (() => {
     if (isSuperAdmin) return null;
+    if (sidebarHqOnly) return "본사·다매장 계정 (매장 구독 별도)";
     const label = planBadgeLabel(plan);
     if (!subscriptionEnd) {
       return `${label} · 이용 기한 미등록`;
@@ -122,7 +137,12 @@ export function Header({
           isExpired={isExpired}
           isSuspended={isSuspended}
           logoUrl={logoUrl} 
-          storeName={storeName} 
+          storeName={storeName}
+          isOrgUser={isOrgUser}
+          isOrgOnly={isOrgOnly}
+          hqMenuOnly={sidebarHqOnly}
+          showOrgBoardLink={showOrgBoardLink}
+          showBranchMaterialRequestLink={showBranchMaterialRequestLink}
         />
         {storeName && !isSuperAdmin && (
           <div className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-row sm:items-center sm:gap-3 md:flex-initial md:gap-4">
