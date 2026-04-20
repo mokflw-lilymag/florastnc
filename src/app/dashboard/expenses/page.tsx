@@ -31,7 +31,9 @@ import {
   AlertTriangle,
   Images,
   Undo2,
-  Eye
+  Eye,
+  RotateCw,
+  FlipHorizontal,
 } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -63,6 +65,35 @@ import { useOrders } from "@/hooks/use-orders";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { toast } from 'sonner';
+
+/** 미리보기와 동일한 변환을 캔버스 캡처에 적용 (모바일 카메라 방향·좌우 보정) */
+function applyVideoFrameToCanvas(
+  video: HTMLVideoElement,
+  canvas: HTMLCanvasElement,
+  transform: { rotation: 0 | 90 | 180 | 270; flipH: boolean }
+): boolean {
+  const vw = video.videoWidth;
+  const vh = video.videoHeight;
+  if (!vw || !vh) return false;
+  const rot = transform.rotation;
+  if (rot === 90 || rot === 270) {
+    canvas.width = vh;
+    canvas.height = vw;
+  } else {
+    canvas.width = vw;
+    canvas.height = vh;
+  }
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return false;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.save();
+  ctx.translate(canvas.width / 2, canvas.height / 2);
+  ctx.rotate((rot * Math.PI) / 180);
+  if (transform.flipH) ctx.scale(-1, 1);
+  ctx.drawImage(video, -vw / 2, -vh / 2, vw, vh);
+  ctx.restore();
+  return true;
+}
 
 interface ReceiptItem {
   id: string;
@@ -171,6 +202,11 @@ export default function ExpensesPage() {
   const webcamModeRef = React.useRef<"single" | "multi">("single");
   const [isWebcamOpen, setIsWebcamOpen] = useState(false);
   const [webcamMode, setWebcamMode] = useState<"single" | "multi" | null>(null);
+  /** 영수증이 거꾸로·좌우로 보일 때 셔터 전에 맞춤 (미리보기와 촬영 결과 동일) */
+  const [webcamPreviewTransform, setWebcamPreviewTransform] = useState<{
+    rotation: 0 | 90 | 180 | 270;
+    flipH: boolean;
+  }>({ rotation: 0, flipH: false });
   const [webcamQueue, setWebcamQueue] = useState<File[]>([]);
 
   const [itemSearchText, setItemSearchText] = useState("");
@@ -852,6 +888,7 @@ export default function ExpensesPage() {
     webcamModeRef.current = mode;
     setWebcamMode(mode);
     setWebcamQueue([]);
+    setWebcamPreviewTransform({ rotation: 0, flipH: false });
     setIsWebcamOpen(true);
     setTimeout(async () => {
       try {
@@ -900,6 +937,7 @@ export default function ExpensesPage() {
     setWebcamMode(null);
     webcamModeRef.current = "single";
     setWebcamQueue([]);
+    setWebcamPreviewTransform({ rotation: 0, flipH: false });
   };
 
   const finishWebcamMulti = async () => {
@@ -916,6 +954,7 @@ export default function ExpensesPage() {
     setWebcamMode(null);
     webcamModeRef.current = "single";
     setWebcamQueue([]);
+    setWebcamPreviewTransform({ rotation: 0, flipH: false });
     await processReceiptFiles(files);
   };
 
@@ -927,11 +966,10 @@ export default function ExpensesPage() {
     if (!videoRef.current) return;
     const mode = webcamModeRef.current;
     const canvas = document.createElement("canvas");
-    canvas.width = videoRef.current.videoWidth;
-    canvas.height = videoRef.current.videoHeight;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.drawImage(videoRef.current, 0, 0);
+    if (!applyVideoFrameToCanvas(videoRef.current, canvas, webcamPreviewTransform)) {
+      toast.error("카메라 화면이 준비될 때까지 잠시 후 다시 촬영해 주세요.");
+      return;
+    }
     canvas.toBlob(
       (blob) => {
         if (!blob) return;
@@ -2126,12 +2164,44 @@ export default function ExpensesPage() {
       <Dialog open={isWebcamOpen} onOpenChange={(open) => { if (!open) closeWebcam(); }}>
         <DialogContent className="sm:max-w-[400px] p-0 bg-black border-none overflow-hidden rounded-3xl">
           <div className="relative w-full aspect-[3/4] bg-neutral-900 flex flex-col items-center justify-center">
-            <video 
-              ref={videoRef} 
-              autoPlay 
-              playsInline 
-              className="w-full h-full object-cover scale-x-[-1]" 
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              className="w-full h-full object-cover"
+              style={{
+                transform: `rotate(${webcamPreviewTransform.rotation}deg)${webcamPreviewTransform.flipH ? " scaleX(-1)" : ""}`,
+                transformOrigin: "center center",
+              }}
             />
+            <div className="absolute top-3 right-3 z-20 flex flex-col gap-1.5 pointer-events-auto">
+              <Button
+                type="button"
+                variant="secondary"
+                size="icon"
+                className="h-9 w-9 rounded-full bg-black/55 border-0 text-white shadow-md hover:bg-black/70"
+                title="화면 90° 회전 (글자 방향에 맞출 때)"
+                onClick={() =>
+                  setWebcamPreviewTransform((t) => ({
+                    ...t,
+                    rotation: ((t.rotation + 90) % 360) as 0 | 90 | 180 | 270,
+                  }))
+                }
+              >
+                <RotateCw className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                size="icon"
+                className="h-9 w-9 rounded-full bg-black/55 border-0 text-white shadow-md hover:bg-black/70"
+                title="좌우 반전"
+                onClick={() => setWebcamPreviewTransform((t) => ({ ...t, flipH: !t.flipH }))}
+              >
+                <FlipHorizontal className="h-4 w-4" />
+              </Button>
+            </div>
             {/* Guide overlay */}
             <div className="absolute inset-0 pointer-events-none">
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[60%] border border-white/30 rounded-xl flex items-center justify-center">

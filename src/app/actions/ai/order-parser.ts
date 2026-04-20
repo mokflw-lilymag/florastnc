@@ -7,6 +7,53 @@ const geminiApiKey =
 
 const genAI = new GoogleGenerativeAI(geminiApiKey);
 
+/** 모델이 message 대신 다른 키에 넣거나 memo에 섞을 때 message.content로 모읍니다. */
+function normalizeAiOrderJson(raw: unknown): Record<string, unknown> {
+  const d =
+    typeof raw === "object" && raw !== null ? { ...(raw as Record<string, unknown>) } : {};
+  const pickStr = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+
+  const msgObj = d.message as Record<string, unknown> | undefined;
+  let content = pickStr(msgObj?.content);
+
+  const alternates = [
+    d.ribbonMessage,
+    d.ribbon_message,
+    d.ribbonText,
+    d.ribbon_text,
+    d.cardMessage,
+    d.card_message,
+    (d as Record<string, unknown>)["리본문구"],
+    (d as Record<string, unknown>)["리본메시지"],
+  ];
+  for (const a of alternates) {
+    const s = pickStr(a);
+    if (s) {
+      content = content || s;
+      break;
+    }
+  }
+
+  const memoStr = pickStr(d.memo);
+  if (!content && memoStr) {
+    const lineMatch =
+      memoStr.match(/(?:문구|리본\s*문구|리본\s*메시지|리본|카드)\s*[:：]\s*(.+)/i) ||
+      memoStr.match(/문구\s*[:：]\s*(.+)/);
+    if (lineMatch?.[1]) {
+      content = lineMatch[1].trim();
+      const rest = memoStr.replace(lineMatch[0], "").replace(/\n{3,}/g, "\n\n").trim();
+      if (rest) d.memo = rest;
+      else delete d.memo;
+    }
+  }
+
+  if (content) {
+    d.message = { ...(typeof msgObj === "object" && msgObj ? msgObj : {}), content };
+  }
+
+  return d;
+}
+
 /**
  * AI Order Parser: 텍스트 또는 이미지를 분석하여 주문 데이터 추출
  * (음성 파일은 브라우저 Web Speech API로 텍스트화한 뒤 text로 넘기는 것을 권장 — Gemini가 audio/webm 미지원·불안정)
@@ -45,16 +92,18 @@ export async function parseOrderWithAi(params: {
            "date": "YYYY-MM-DD (알 수 없으면 비움)", 
            "time": "HH:mm (알 수 없으면 비움)" 
         },
-        "message": { "content": "카드/리본 문구" },
-        "memo": "배송 시 요청사항이나 특이사항"
+        "message": { "content": "카드·리본에 실제로 인쇄할 문구 전체 (한 줄이라도 반드시 이 필드에)" },
+        "memo": "배송·픽업 요청 등 문구 외 특이사항만 (문구 내용은 memo에 넣지 말 것)"
       }
 
       [지침]
       1. 한국어 주소와 전화번호 형식을 준수하세요.
       2. 상품 가격이 있으면 숫자로 추출하고, 없으면 0으로 표시하세요.
       3. 날짜 표현(예: '내일', '모레', '이번주 토요일')은 현재 날짜(${new Date().toLocaleDateString()})를 기준으로 변환하세요.
-      4. 확실하지 않은 정보는 빈 문자열("")로 남겨두세요.
-      5. 오직 JSON 데이터만 반환하세요.
+      4. 입력에 「문구:」「리본문구:」「리본메시지:」「리본:」「카드:」 등으로 적힌 문장은 전부 message.content에 넣으세요. 접두어(문구 등)는 빼고 본문만 넣어도 됩니다.
+      5. 화환·축하화분 등 리본이 달리는 상품이면 문구가 있으면 반드시 message.content에 채우세요.
+      6. 확실하지 않은 정보는 빈 문자열("")로 남겨두세요.
+      7. 오직 JSON 데이터만 반환하세요.
     `;
 
     const prompts: any[] = [systemPrompt];
@@ -91,7 +140,7 @@ export async function parseOrderWithAi(params: {
     const jsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim();
     
     try {
-      return JSON.parse(jsonStr);
+      return normalizeAiOrderJson(JSON.parse(jsonStr));
     } catch (parseError) {
       console.error('JSON Parse Error. Cleaned Text:', jsonStr);
       throw new Error('AI가 보낸 주문 정보를 읽는 데 실패했습니다.');

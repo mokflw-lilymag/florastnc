@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { 
   Sparkles, 
   Mic, 
@@ -15,6 +15,9 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import Textarea from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { parseOrderWithAi } from "@/app/actions/ai/order-parser";
 
@@ -27,6 +30,70 @@ const VOICE_ORDER_SCRIPT_EXAMPLE = `000님 주문, 0만 원 꽃다발, 0월 0일
 
 interface AiOrderConciergeProps {
   onApply: (data: any) => void;
+}
+
+const DELIVERY_TYPES = [
+  { value: "delivery_reservation", label: "배송 예약" },
+  { value: "pickup_reservation", label: "픽업 예약" },
+  { value: "store_pickup", label: "매장 픽업" },
+] as const;
+
+/** 분석 직후 검토·수정용으로 기본값을 채운 얕은 복사 */
+function cloneAiDraftForReview(raw: unknown): Record<string, unknown> {
+  const src = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const orderer = { ...(typeof src.orderer === "object" && src.orderer ? src.orderer : {}) } as Record<
+    string,
+    string
+  >;
+  const recipient = {
+    ...(typeof src.recipient === "object" && src.recipient ? src.recipient : {}),
+  } as Record<string, string>;
+  const deliveryRaw =
+    typeof src.delivery === "object" && src.delivery ? (src.delivery as Record<string, unknown>) : {};
+  let type = String(deliveryRaw.type ?? "delivery_reservation");
+  if (!DELIVERY_TYPES.some((t) => t.value === type)) type = "delivery_reservation";
+
+  const itemsRaw = Array.isArray(src.items) ? src.items : [];
+  const items =
+    itemsRaw.length > 0
+      ? itemsRaw.map((it: unknown) => {
+          const o = it && typeof it === "object" ? (it as Record<string, unknown>) : {};
+          return {
+            name: String(o.name ?? ""),
+            price: Number(o.price) || 0,
+            quantity: Number(o.quantity) || 1,
+          };
+        })
+      : [{ name: "", price: 0, quantity: 1 }];
+
+  const msg =
+    typeof src.message === "object" && src.message
+      ? (src.message as Record<string, unknown>)
+      : {};
+  const memoVal = src.memo != null ? String(src.memo) : "";
+
+  return {
+    ...src,
+    orderer: {
+      name: String(orderer.name ?? ""),
+      contact: String(orderer.contact ?? ""),
+      company: String(orderer.company ?? ""),
+    },
+    recipient: {
+      name: String(recipient.name ?? ""),
+      contact: String(recipient.contact ?? ""),
+      address: String(recipient.address ?? ""),
+      detailAddress: String(recipient.detailAddress ?? ""),
+    },
+    delivery: {
+      type,
+      date: String(deliveryRaw.date ?? ""),
+      time: String(deliveryRaw.time ?? ""),
+    },
+    items,
+    message: { content: String(msg.content ?? "") },
+    memo: memoVal,
+  };
 }
 
 export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
@@ -58,8 +125,8 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // AI Result State
-  const [aiResult, setAiResult] = useState<any>(null);
+  /** AI 분석 결과 — 검토 화면에서 사용자가 직접 수정한 뒤 적용 */
+  const [aiReviewDraft, setAiReviewDraft] = useState<Record<string, unknown> | null>(null);
 
   // Cleanup
   useEffect(() => {
@@ -271,17 +338,50 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
     }
   };
 
+  const loadImageFromFile = useCallback((file: File) => {
+    if (!file.type.startsWith("image/")) {
+      toast.error("이미지 파일만 붙여넣을 수 있어요.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+      setActiveTab("image");
+    };
+    reader.readAsDataURL(file);
+  }, []);
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-        setActiveTab("image");
-      };
-      reader.readAsDataURL(file);
-    }
+    if (file) loadImageFromFile(file);
+    e.target.value = "";
   };
+
+  /** 웹·캡처 등 클립보드 이미지 붙여넣기 (이미지 탭일 때만) */
+  useEffect(() => {
+    if (!isOpen || activeTab !== "image" || aiReviewDraft) return;
+
+    const onPaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items?.length) return;
+
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.kind === "file" && item.type.startsWith("image/")) {
+          e.preventDefault();
+          const file = item.getAsFile();
+          if (file) {
+            loadImageFromFile(file);
+            toast.success("이미지를 붙여넣었습니다.");
+          }
+          return;
+        }
+      }
+    };
+
+    document.addEventListener("paste", onPaste);
+    return () => document.removeEventListener("paste", onPaste);
+  }, [isOpen, activeTab, aiReviewDraft, loadImageFromFile]);
 
   const runAiAnalysis = async (opts?: { audioBase64?: string; textOverride?: string }) => {
     setIsProcessing(true);
@@ -322,8 +422,8 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
       clearInterval(interval);
       setProgress(100);
       if (result) {
-        setAiResult(result);
-        toast.success("AI 분석이 완료되었습니다!");
+        setAiReviewDraft(cloneAiDraftForReview(result));
+        toast.success("AI 분석이 완료되었습니다. 내용을 확인·수정한 뒤 적용해 주세요.");
       }
     } catch (error: unknown) {
       const msg =
@@ -337,9 +437,10 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
   };
 
   const handleApply = () => {
-    onApply(aiResult);
+    if (!aiReviewDraft) return;
+    onApply(aiReviewDraft);
     setIsOpen(false);
-    setAiResult(null);
+    setAiReviewDraft(null);
     setTextInput("");
     setImagePreview(null);
     toast.success("주문 정보가 자동 입력되었습니다.");
@@ -374,7 +475,7 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             className="absolute top-16 left-0 w-full md:w-[500px] bg-white rounded-3xl shadow-2xl border border-indigo-50 p-6 overflow-hidden"
           >
-            {!aiResult ? (
+            {!aiReviewDraft ? (
               <div className="space-y-6">
                 <div className="flex items-center justify-between border-b pb-4">
                   <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
@@ -495,7 +596,7 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
                       )}
 
                       {activeTab === "image" && (
-                        <div className="flex flex-col items-center">
+                        <div className="flex flex-col items-center w-full gap-2">
                           {imagePreview ? (
                             <div className="relative w-full aspect-video rounded-xl overflow-hidden border">
                               <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
@@ -508,6 +609,7 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
                             </div>
                           ) : (
                             <button
+                              type="button"
                               onClick={() => fileInputRef.current?.click()}
                               className="w-full aspect-video border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors"
                             >
@@ -515,6 +617,13 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
                               <span className="text-sm font-medium text-slate-500">주문서 캡처 사진 올리기</span>
                             </button>
                           )}
+                          <p className="text-[11px] text-slate-500 text-center leading-relaxed px-1">
+                            웹·카톡 등에서 이미지를 복사한 뒤, 이 탭을 연 상태에서{" "}
+                            <kbd className="px-1 py-0.5 rounded bg-slate-100 border text-[10px]">Ctrl</kbd>
+                            {" + "}
+                            <kbd className="px-1 py-0.5 rounded bg-slate-100 border text-[10px]">V</kbd>
+                            {" "}(Mac: ⌘V)로 붙여넣을 수 있어요.
+                          </p>
                           <input 
                             type="file" 
                             ref={fileInputRef} 
@@ -539,58 +648,265 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
                 )}
               </div>
             ) : (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between border-b pb-4">
-                  <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2 text-violet-600">
-                    <Check className="w-5 h-5" />
-                    AI가 분석한 주문 내용
-                  </h3>
-                  <Button variant="ghost" size="icon" onClick={() => setAiResult(null)}>
+              <div className="flex flex-col gap-3 max-h-[min(78vh,580px)] min-h-0">
+                <div className="flex items-start justify-between gap-2 border-b pb-3 shrink-0">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2 text-violet-600">
+                      <Check className="w-5 h-5 shrink-0" />
+                      AI가 분석한 주문 내용
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-1">
+                      아래에서 바로 수정한 뒤「이대로 입력하기」를 눌러 주세요.
+                    </p>
+                  </div>
+                  <Button variant="ghost" size="icon" onClick={() => setAiReviewDraft(null)} className="shrink-0">
                     <X className="w-4 h-4" />
                   </Button>
                 </div>
 
-                <div className="bg-violet-50/50 p-4 rounded-2xl border border-violet-100 space-y-3">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p className="text-xs text-slate-400 mb-1">주문자</p>
-                      <p className="font-bold text-slate-800">{aiResult.orderer?.name || "미입력"}</p>
-                      <p className="text-xs text-slate-500">{aiResult.orderer?.contact || ""}</p>
+                <div className="flex-1 min-h-0 overflow-y-auto pr-1 -mr-1">
+                  <div className="bg-violet-50/50 p-4 rounded-2xl border border-violet-100 space-y-4 text-sm">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-xs text-slate-500">주문자 이름</Label>
+                        <Input
+                          value={String((aiReviewDraft.orderer as Record<string, string> | undefined)?.name ?? "")}
+                          onChange={(e) =>
+                            setAiReviewDraft((prev) => {
+                              if (!prev) return prev;
+                              const o = { ...((prev.orderer as Record<string, string>) || {}) };
+                              return { ...prev, orderer: { ...o, name: e.target.value } };
+                            })
+                          }
+                          placeholder="미입력"
+                          className="bg-white"
+                        />
+                        <Label className="text-xs text-slate-500">주문자 연락처</Label>
+                        <Input
+                          value={String((aiReviewDraft.orderer as Record<string, string> | undefined)?.contact ?? "")}
+                          onChange={(e) =>
+                            setAiReviewDraft((prev) => {
+                              if (!prev) return prev;
+                              const o = { ...((prev.orderer as Record<string, string>) || {}) };
+                              return { ...prev, orderer: { ...o, contact: e.target.value } };
+                            })
+                          }
+                          className="bg-white"
+                        />
+                        <Label className="text-xs text-slate-500">주문자 회사(선택)</Label>
+                        <Input
+                          value={String((aiReviewDraft.orderer as Record<string, string> | undefined)?.company ?? "")}
+                          onChange={(e) =>
+                            setAiReviewDraft((prev) => {
+                              if (!prev) return prev;
+                              const o = { ...((prev.orderer as Record<string, string>) || {}) };
+                              return { ...prev, orderer: { ...o, company: e.target.value } };
+                            })
+                          }
+                          className="bg-white"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs text-slate-500">수령인 이름</Label>
+                        <Input
+                          value={String((aiReviewDraft.recipient as Record<string, string> | undefined)?.name ?? "")}
+                          onChange={(e) =>
+                            setAiReviewDraft((prev) => {
+                              if (!prev) return prev;
+                              const r = { ...((prev.recipient as Record<string, string>) || {}) };
+                              return { ...prev, recipient: { ...r, name: e.target.value } };
+                            })
+                          }
+                          className="bg-white"
+                        />
+                        <Label className="text-xs text-slate-500">수령인 연락처</Label>
+                        <Input
+                          value={String((aiReviewDraft.recipient as Record<string, string> | undefined)?.contact ?? "")}
+                          onChange={(e) =>
+                            setAiReviewDraft((prev) => {
+                              if (!prev) return prev;
+                              const r = { ...((prev.recipient as Record<string, string>) || {}) };
+                              return { ...prev, recipient: { ...r, contact: e.target.value } };
+                            })
+                          }
+                          className="bg-white"
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-xs text-slate-400 mb-1">수령인</p>
-                      <p className="font-bold text-slate-800">{aiResult.recipient?.name || "미입력"}</p>
-                      <p className="text-xs text-slate-500">{aiResult.recipient?.contact || ""}</p>
+
+                    <div className="space-y-2 pt-2 border-t border-violet-100">
+                      <Label className="text-xs text-slate-500">배송·픽업 유형</Label>
+                      <select
+                        className="h-8 w-full rounded-lg border border-input bg-white px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
+                        value={String((aiReviewDraft.delivery as Record<string, string> | undefined)?.type ?? "delivery_reservation")}
+                        onChange={(e) =>
+                          setAiReviewDraft((prev) => {
+                            if (!prev) return prev;
+                            const del = { ...((prev.delivery as Record<string, string>) || {}) };
+                            return { ...prev, delivery: { ...del, type: e.target.value } };
+                          })
+                        }
+                      >
+                        {DELIVERY_TYPES.map((t) => (
+                          <option key={t.value} value={t.value}>
+                            {t.label}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label className="text-xs text-slate-500">날짜 (YYYY-MM-DD)</Label>
+                          <Input
+                            value={String((aiReviewDraft.delivery as Record<string, string> | undefined)?.date ?? "")}
+                            onChange={(e) =>
+                              setAiReviewDraft((prev) => {
+                                if (!prev) return prev;
+                                const del = { ...((prev.delivery as Record<string, string>) || {}) };
+                                return { ...prev, delivery: { ...del, date: e.target.value } };
+                              })
+                            }
+                            placeholder="2026-04-18"
+                            className="bg-white"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs text-slate-500">시간 (HH:mm)</Label>
+                          <Input
+                            value={String((aiReviewDraft.delivery as Record<string, string> | undefined)?.time ?? "")}
+                            onChange={(e) =>
+                              setAiReviewDraft((prev) => {
+                                if (!prev) return prev;
+                                const del = { ...((prev.delivery as Record<string, string>) || {}) };
+                                return { ...prev, delivery: { ...del, time: e.target.value } };
+                              })
+                            }
+                            placeholder="15:00"
+                            className="bg-white"
+                          />
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="pt-2 border-t border-violet-100">
-                    <p className="text-xs text-slate-400 mb-1">배송지</p>
-                    <p className="text-sm font-medium text-slate-700">
-                      {aiResult.recipient?.address} {aiResult.recipient?.detailAddress}
-                    </p>
-                  </div>
-                  <div className="pt-2 border-t border-violet-100">
-                    <p className="text-xs text-slate-400 mb-1">일시 및 상품</p>
-                    <p className="text-sm font-bold text-violet-700">
-                      {aiResult.delivery?.date} {aiResult.delivery?.time}
-                    </p>
-                    <p className="text-sm font-medium text-slate-800 mt-1">
-                      {aiResult.items?.[0]?.name} {aiResult.items?.[0]?.price?.toLocaleString()}원
-                    </p>
+
+                    <div className="space-y-2 pt-2 border-t border-violet-100">
+                      <Label className="text-xs text-slate-500">상품 (첫 줄)</Label>
+                      <Input
+                        value={String((aiReviewDraft.items as Array<Record<string, unknown>>)?.[0]?.name ?? "")}
+                        onChange={(e) =>
+                          setAiReviewDraft((prev) => {
+                            if (!prev) return prev;
+                            const items = [...((prev.items as Array<Record<string, unknown>>) || [{ name: "", price: 0, quantity: 1 }])];
+                            items[0] = { ...items[0], name: e.target.value };
+                            return { ...prev, items };
+                          })
+                        }
+                        className="bg-white"
+                      />
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label className="text-xs text-slate-500">가격 (원)</Label>
+                          <Input
+                            type="number"
+                            min={0}
+                            value={Number((aiReviewDraft.items as Array<Record<string, unknown>>)?.[0]?.price) || 0}
+                            onChange={(e) =>
+                              setAiReviewDraft((prev) => {
+                                if (!prev) return prev;
+                                const items = [...((prev.items as Array<Record<string, unknown>>) || [{ name: "", price: 0, quantity: 1 }])];
+                                items[0] = { ...items[0], price: Number(e.target.value) || 0 };
+                                return { ...prev, items };
+                              })
+                            }
+                            className="bg-white"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs text-slate-500">수량</Label>
+                          <Input
+                            type="number"
+                            min={1}
+                            value={Number((aiReviewDraft.items as Array<Record<string, unknown>>)?.[0]?.quantity) || 1}
+                            onChange={(e) =>
+                              setAiReviewDraft((prev) => {
+                                if (!prev) return prev;
+                                const items = [...((prev.items as Array<Record<string, unknown>>) || [{ name: "", price: 0, quantity: 1 }])];
+                                items[0] = { ...items[0], quantity: Math.max(1, Number(e.target.value) || 1) };
+                                return { ...prev, items };
+                              })
+                            }
+                            className="bg-white"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 pt-2 border-t border-violet-100">
+                      <Label className="text-xs text-slate-500">주소</Label>
+                      <Input
+                        value={String((aiReviewDraft.recipient as Record<string, string> | undefined)?.address ?? "")}
+                        onChange={(e) =>
+                          setAiReviewDraft((prev) => {
+                            if (!prev) return prev;
+                            const r = { ...((prev.recipient as Record<string, string>) || {}) };
+                            return { ...prev, recipient: { ...r, address: e.target.value } };
+                          })
+                        }
+                        className="bg-white"
+                      />
+                      <Label className="text-xs text-slate-500">상세 주소</Label>
+                      <Input
+                        value={String((aiReviewDraft.recipient as Record<string, string> | undefined)?.detailAddress ?? "")}
+                        onChange={(e) =>
+                          setAiReviewDraft((prev) => {
+                            if (!prev) return prev;
+                            const r = { ...((prev.recipient as Record<string, string>) || {}) };
+                            return { ...prev, recipient: { ...r, detailAddress: e.target.value } };
+                          })
+                        }
+                        className="bg-white"
+                      />
+                    </div>
+
+                    <div className="space-y-2 pt-2 border-t border-violet-100">
+                      <Label className="text-xs text-slate-500">리본·카드 문구</Label>
+                      <Textarea
+                        value={String((aiReviewDraft.message as Record<string, string> | undefined)?.content ?? "")}
+                        onChange={(e) =>
+                          setAiReviewDraft((prev) => {
+                            if (!prev) return prev;
+                            const m = { ...((prev.message as Record<string, string>) || {}) };
+                            return { ...prev, message: { ...m, content: e.target.value } };
+                          })
+                        }
+                        rows={3}
+                        className="bg-white text-sm min-h-[72px]"
+                        placeholder="리본·카드에 넣을 문구"
+                      />
+                    </div>
+
+                    <div className="space-y-2 pt-2 border-t border-violet-100">
+                      <Label className="text-xs text-slate-500">특이사항·메모</Label>
+                      <Textarea
+                        value={String(aiReviewDraft.memo ?? "")}
+                        onChange={(e) => setAiReviewDraft((prev) => (prev ? { ...prev, memo: e.target.value } : prev))}
+                        rows={2}
+                        className="bg-white text-sm min-h-[56px]"
+                        placeholder="배송 요청 등"
+                      />
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex gap-2">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setAiResult(null)}
+                <div className="flex gap-2 shrink-0 pt-1">
+                  <Button
+                    variant="outline"
+                    onClick={() => setAiReviewDraft(null)}
                     className="flex-1 rounded-xl h-12"
                   >
                     다시 하기
                   </Button>
-                  <Button 
+                  <Button
                     onClick={handleApply}
-                    className="flex-2 rounded-xl h-12 bg-violet-600 hover:bg-violet-700 text-white font-bold px-8"
+                    className="flex-[1.4] rounded-xl h-12 bg-violet-600 hover:bg-violet-700 text-white font-bold px-6"
                   >
                     이대로 입력하기 <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>

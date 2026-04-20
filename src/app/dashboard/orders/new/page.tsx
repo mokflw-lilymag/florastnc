@@ -552,7 +552,12 @@ export default function NewOrderPage() {
       if (data.delivery.time) setScheduleTime(data.delivery.time);
     }
 
-    if (data.message?.content) setMessageContent(data.message.content);
+    const aiRibbonText =
+      (typeof data.message?.content === "string" && data.message.content.trim()) ||
+      (typeof data.ribbonMessage === "string" && data.ribbonMessage.trim()) ||
+      (typeof data.ribbon_message === "string" && data.ribbon_message.trim()) ||
+      "";
+    if (aiRibbonText) setMessageContent(aiRibbonText);
     if (data.memo) setSpecialRequest(data.memo);
   };
 
