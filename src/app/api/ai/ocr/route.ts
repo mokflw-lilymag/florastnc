@@ -6,7 +6,10 @@ export async function POST(req: Request) {
     const apiKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
     if (!apiKey.trim()) {
       return NextResponse.json(
-        { error: "GEMINI_API_KEY가 설정되지 않았습니다. .env.local을 확인해 주세요." },
+        {
+          error:
+            "GEMINI_API_KEY가 서버에 없습니다. Vercel이면 Project → Settings → Environment Variables에 추가 후 Redeploy 하세요. 로컬 개발만 .env.local을 씁니다.",
+        },
         { status: 503 }
       );
     }

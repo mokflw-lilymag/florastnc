@@ -67,7 +67,7 @@ export async function parseOrderWithAi(params: {
   try {
     if (!geminiApiKey?.trim()) {
       throw new Error(
-        "GEMINI_API_KEY가 서버에 없습니다. Vercel·로컬 .env에 GEMINI_API_KEY를 설정해 주세요."
+        "GEMINI_API_KEY가 서버에 없습니다. Vercel: Project → Environment Variables에 GEMINI_API_KEY(또는 NEXT_PUBLIC_GEMINI_API_KEY) 추가 후 Redeploy. 로컬: .env.local만 해당합니다."
       );
     }
 
