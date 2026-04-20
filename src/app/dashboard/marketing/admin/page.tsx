@@ -33,7 +33,11 @@ export default function MarketingAdmin() {
   }, []);
 
   const fetchConfig = async () => {
-    const { data } = await supabase.from('platform_config').select('*');
+    const { data, error } = await supabase.from('platform_config').select('*');
+    if (error) {
+      toast.error(`설정 불러오기 실패: ${error.message}`);
+      return;
+    }
     if (data) {
       const configMap = data.reduce((acc: any, item: any) => {
         acc[item.key] = item.value;
@@ -50,7 +54,17 @@ export default function MarketingAdmin() {
       .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: 'key' });
     
     if (error) {
-      toast.error('설정 저장 중 오류가 발생했습니다.');
+      const msg = error.message.toLowerCase();
+      const rlsBlocked =
+        error.code === '42501' ||
+        msg.includes('permission') ||
+        msg.includes('row-level security') ||
+        msg.includes('policy');
+      toast.error(
+        rlsBlocked
+          ? '저장 권한이 없습니다. Supabase SQL Editor에서 supabase/platform_config_schema.sql을 실행했는지, super_admin 계정으로 로그인했는지 확인하세요.'
+          : `설정 저장 실패: ${error.message}`
+      );
     } else {
       toast.success('설정이 저장되었습니다.');
       fetchConfig();
