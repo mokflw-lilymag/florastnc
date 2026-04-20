@@ -83,7 +83,7 @@ BEGIN
   v_shop_name := new.raw_user_meta_data->>'shop_name';
   
   -- ✅ 요청하신 최고 관리자 이메일 하드코딩 지정
-  IF new.email = 'lilymag0301@gmail.com' THEN
+  IF lower(new.email) IN ('lilymag0301@gmail.com', 'mokflw@gmail.com') THEN
     v_role := 'super_admin';
   ELSE
     v_role := 'tenant_admin';

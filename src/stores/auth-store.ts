@@ -2,6 +2,7 @@
 
 import { create } from 'zustand';
 import { createClient } from '@/utils/supabase/client';
+import { isPlatformSuperEmail } from '@/lib/platform-super-emails';
 
 interface AuthState {
   user: any;
@@ -53,7 +54,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           return;
         }
 
-        const isMasterEmail = user.email === 'lilymag0301@gmail.com' || user.email === 'test@test.com';
+        const isMasterEmail = isPlatformSuperEmail(user.email);
         set({ user });
 
         const { data, error: profileError } = await supabase
@@ -103,7 +104,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           const isOrphaned =
             !data.tenant_id && data.role !== "super_admin" && data.role !== "org_admin";
           set({ profile: merged, tenantId: effectiveTenantId, isOrphaned });
-        } else if (isMasterEmail) {
+        } else if (isPlatformSuperEmail(user.email)) {
           const defaultTenantId = '50551f4c-0b6b-45ab-8db9-047ca3ff88de';
           const mockProfile = {
             role: 'super_admin',

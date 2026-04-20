@@ -2,10 +2,14 @@
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || '');
+const geminiApiKey =
+  process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
+
+const genAI = new GoogleGenerativeAI(geminiApiKey);
 
 /**
  * AI Order Parser: 텍스트 또는 이미지를 분석하여 주문 데이터 추출
+ * (음성 파일은 브라우저 Web Speech API로 텍스트화한 뒤 text로 넘기는 것을 권장 — Gemini가 audio/webm 미지원·불안정)
  */
 export async function parseOrderWithAi(params: {
   text?: string;
@@ -14,6 +18,16 @@ export async function parseOrderWithAi(params: {
   mimeType?: string;
 }) {
   try {
+    if (!geminiApiKey?.trim()) {
+      throw new Error(
+        "GEMINI_API_KEY가 서버에 없습니다. Vercel·로컬 .env에 GEMINI_API_KEY를 설정해 주세요."
+      );
+    }
+
+    const hasInput = !!(params.text?.trim() || params.image || params.audio);
+    if (!hasInput) {
+      throw new Error("분석할 텍스트·이미지·음성이 없습니다.");
+    }
     // 사장님의 프로젝트(Free Tier)에서 허용되는 가장 똑똑하고 빠른 최신 Flash 모델을 사용합니다.
     const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 

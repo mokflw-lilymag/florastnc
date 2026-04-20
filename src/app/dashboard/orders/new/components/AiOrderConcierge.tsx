@@ -18,6 +18,13 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { parseOrderWithAi } from "@/app/actions/ai/order-parser";
 
+/** 마이크 녹음 시 사용자가 참고할 말하기 예시 (입력폼 안내용) */
+const VOICE_ORDER_SCRIPT_EXAMPLE = `000님 주문, 0만 원 꽃다발, 0월 0일 0시 픽업 또는 배송.
+
+주소: 도로명주소, 수령인 이름, 연락처.
+
+카드/리본 메시지 — 메시지 블라블라 등 원하시는 문구.`;
+
 interface AiOrderConciergeProps {
   onApply: (data: any) => void;
 }
@@ -41,6 +48,11 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  /** Chrome/Edge: Web Speech API로 음성→텍스트 후 Gemini에 텍스트만 전달 */
+  const speechRecognitionRef = useRef<{ stop: () => void; abort?: () => void } | null>(null);
+  const usingSpeechRecognitionRef = useRef(false);
+  const speechTranscriptRef = useRef("");
+  const speechVizIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Image State
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -54,11 +66,110 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
     return () => {
       if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
       if (audioContextRef.current) audioContextRef.current.close();
-      if (streamRef.current) streamRef.current.getTracks().forEach(track => track.stop());
+      if (streamRef.current) streamRef.current.getTracks().forEach((track) => track.stop());
+      if (speechVizIntervalRef.current) {
+        clearInterval(speechVizIntervalRef.current);
+        speechVizIntervalRef.current = null;
+      }
+      try {
+        speechRecognitionRef.current?.stop();
+      } catch {
+        /* ignore */
+      }
     };
   }, []);
 
-  const startRecording = async () => {
+  function getSpeechRecognitionCtor(): (new () => EventTarget & { start: () => void; stop: () => void }) | null {
+    if (typeof window === "undefined") return null;
+    const w = window as unknown as {
+      SpeechRecognition?: new () => EventTarget & { start: () => void; stop: () => void };
+      webkitSpeechRecognition?: new () => EventTarget & { start: () => void; stop: () => void };
+    };
+    return w.SpeechRecognition || w.webkitSpeechRecognition || null;
+  }
+
+  const startBrowserSpeechRecognition = () => {
+    const Ctor = getSpeechRecognitionCtor();
+    if (!Ctor) return false;
+
+    speechTranscriptRef.current = "";
+    setTextInput("");
+    usingSpeechRecognitionRef.current = true;
+
+    const rec = new Ctor() as EventTarget & {
+      lang: string;
+      continuous: boolean;
+      interimResults: boolean;
+      start: () => void;
+      stop: () => void;
+      onresult: ((this: unknown, ev: { results: { 0: { transcript: string }; length: number }[] }) => void) | null;
+      onerror: ((this: unknown, ev: { error?: string }) => void) | null;
+      onend: (() => void) | null;
+    };
+
+    rec.lang = "ko-KR";
+    rec.continuous = true;
+    rec.interimResults = true;
+
+    rec.onresult = (event: { results: ArrayLike<{ 0: { transcript: string }; isFinal?: boolean }> }) => {
+      let txt = "";
+      for (let i = 0; i < event.results.length; i++) {
+        const r = event.results[i];
+        if (r?.[0]?.transcript) txt += r[0].transcript;
+      }
+      speechTranscriptRef.current = txt;
+      setTextInput(txt);
+    };
+
+    rec.onerror = (ev: { error?: string }) => {
+      console.error("SpeechRecognition error:", ev);
+      toast.error(
+        ev.error === "not-allowed"
+          ? "마이크·음성 인식 권한이 필요합니다."
+          : `음성 인식 오류${ev.error ? `: ${ev.error}` : ""}`
+      );
+      stopSpeechRecognitionUi();
+    };
+
+    rec.onend = () => {
+      if (!usingSpeechRecognitionRef.current) return;
+      stopSpeechRecognitionUi();
+      const t = speechTranscriptRef.current.trim();
+      if (t) {
+        void runAiAnalysis({ textOverride: t });
+      } else {
+        toast.error("인식된 말이 없습니다. 조금 더 크게 말하거나 텍스트로 입력해 보세요.");
+      }
+    };
+
+    speechRecognitionRef.current = rec;
+    try {
+      rec.start();
+      setIsListening(true);
+      speechVizIntervalRef.current = setInterval(() => {
+        setAudioLevels(Array.from({ length: 10 }, () => 4 + Math.random() * 28));
+      }, 120);
+      return true;
+    } catch (e) {
+      console.error(e);
+      usingSpeechRecognitionRef.current = false;
+      speechRecognitionRef.current = null;
+      return false;
+    }
+  };
+
+  const stopSpeechRecognitionUi = () => {
+    if (speechVizIntervalRef.current) {
+      clearInterval(speechVizIntervalRef.current);
+      speechVizIntervalRef.current = null;
+    }
+    setAudioLevels(new Array(10).fill(2));
+    setIsListening(false);
+    usingSpeechRecognitionRef.current = false;
+    speechRecognitionRef.current = null;
+  };
+
+  const startMediaRecorder = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
@@ -94,11 +205,11 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
         if (e.data.size > 0) audioChunksRef.current.push(e.data);
       };
       recorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
         const reader = new FileReader();
         reader.onloadend = () => {
-          const base64 = (reader.result as string).split(',')[1];
-          runAiAnalysis(base64);
+          const base64 = (reader.result as string).split(",")[1];
+          void runAiAnalysis({ audioBase64: base64 });
         };
         reader.readAsDataURL(audioBlob);
       };
@@ -106,20 +217,38 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
       mediaRecorderRef.current = recorder;
       recorder.start();
       setIsListening(true);
-
     } catch (e) {
       console.error("Recording error:", e);
       toast.error("마이크를 시작할 수 없습니다. 권한 설정을 확인해 주세요.");
     }
   };
 
+  const startRecording = async () => {
+    usingSpeechRecognitionRef.current = false;
+    if (startBrowserSpeechRecognition()) {
+      toast.message("말씀해 주세요. 끝나면 마이크를 다시 눌러 주세요. (Chrome·Edge 권장)");
+      return;
+    }
+    toast.message("이 브라우저는 음성→글자 변환을 지원하지 않아 녹음 파일로 시도합니다. 실패 시 크롬으로 시도하거나 텍스트를 입력해 주세요.");
+    await startMediaRecorder();
+  };
+
   const stopRecording = () => {
+    if (usingSpeechRecognitionRef.current && speechRecognitionRef.current) {
+      try {
+        speechRecognitionRef.current.stop();
+      } catch {
+        /* onend still runs */
+      }
+      return;
+    }
+
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
       mediaRecorderRef.current.stop();
     }
-    
+
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
     }
 
@@ -137,7 +266,7 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
     if (isListening) {
       stopRecording();
     } else {
-      startRecording();
+      void startRecording();
       setActiveTab("smart");
     }
   };
@@ -154,33 +283,54 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
     }
   };
 
-  const runAiAnalysis = async (audioBase64?: string | any) => {
+  const runAiAnalysis = async (opts?: { audioBase64?: string; textOverride?: string }) => {
     setIsProcessing(true);
     setProgress(10);
-    
+
     try {
       const interval = setInterval(() => {
-        setProgress(prev => (prev < 90 ? prev + 10 : prev));
+        setProgress((prev) => (prev < 90 ? prev + 10 : prev));
       }, 500);
 
-      let result;
-      // React Event 객체가 넘어오는 것을 방지하기 위해 typeof 체크 추가
-      if (typeof audioBase64 === 'string' && audioBase64) {
-        result = await parseOrderWithAi({ audio: audioBase64, mimeType: "audio/webm" });
+      const textForSmart = (opts?.textOverride ?? textInput).trim();
+
+      let result: Awaited<ReturnType<typeof parseOrderWithAi>> | undefined;
+
+      if (opts?.audioBase64) {
+        try {
+          result = await parseOrderWithAi({ audio: opts.audioBase64, mimeType: "audio/webm" });
+        } catch (audioErr) {
+          if (textForSmart) {
+            result = await parseOrderWithAi({ text: textForSmart });
+          } else {
+            throw audioErr;
+          }
+        }
       } else if (activeTab === "smart") {
-        result = await parseOrderWithAi({ text: textInput });
+        if (!textForSmart) {
+          clearInterval(interval);
+          toast.error("내용을 입력하거나 음성으로 말씀해 주세요.");
+          return;
+        }
+        result = await parseOrderWithAi({ text: textForSmart });
       } else if (activeTab === "image" && imagePreview) {
-        const base64 = imagePreview.split(',')[1];
-        const mimeType = imagePreview.split(';')[0].split(':')[1];
+        const base64 = imagePreview.split(",")[1];
+        const mimeType = imagePreview.split(";")[0].split(":")[1];
         result = await parseOrderWithAi({ image: base64, mimeType });
       }
 
       clearInterval(interval);
       setProgress(100);
-      setAiResult(result);
-      toast.success("AI 분석이 완료되었습니다!");
-    } catch (error) {
-      toast.error("분석에 실패했습니다. 다시 시도해 주세요.");
+      if (result) {
+        setAiResult(result);
+        toast.success("AI 분석이 완료되었습니다!");
+      }
+    } catch (error: unknown) {
+      const msg =
+        error instanceof Error
+          ? error.message
+          : "분석에 실패했습니다. 텍스트로 입력하거나 Chrome에서 다시 시도해 주세요.";
+      toast.error(msg);
     } finally {
       setIsProcessing(false);
     }
@@ -274,11 +424,21 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
                   ) : (
                     <>
                       {activeTab === "smart" && (
-                        <div className="relative group">
+                        <div className="relative group space-y-2">
+                          <div className="rounded-xl border border-violet-100 bg-violet-50/60 px-3 py-2.5 text-xs text-slate-600 leading-relaxed">
+                            <p className="font-semibold text-violet-800 mb-1">마이크로 말할 때 예시</p>
+                            <pre className="whitespace-pre-wrap font-sans text-[11px] sm:text-xs text-slate-700">
+                              {VOICE_ORDER_SCRIPT_EXAMPLE}
+                            </pre>
+                          </div>
                           <textarea
                             value={textInput}
                             onChange={(e) => setTextInput(e.target.value)}
-                            placeholder={isListening ? "사장님의 말씀을 듣고 있습니다. 말씀이 끝나면 마이크를 다시 눌러주세요!" : "카톡 내용을 붙여넣거나 마이크를 눌러 말씀해 주세요..."}
+                            placeholder={
+                              isListening
+                                ? "사장님의 말씀을 듣고 있습니다. 말씀이 끝나면 마이크를 다시 눌러 주세요!"
+                                : "위 예시처럼 말씀해 주시거나, 카톡·문자 내용을 여기에 붙여 넣어 주세요."
+                            }
                             className={`w-full h-40 p-5 bg-slate-50 rounded-2xl border-2 transition-all text-sm resize-none ${
                               isListening 
                                 ? "border-violet-400 bg-violet-50/30 ring-4 ring-violet-100" 
@@ -371,7 +531,7 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
                 {!isProcessing && (
                   <Button 
                     disabled={!textInput && !imagePreview}
-                    onClick={runAiAnalysis}
+                    onClick={() => void runAiAnalysis()}
                     className="w-full h-12 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold"
                   >
                     AI 비서에게 건네주기 <ArrowRight className="w-4 h-4 ml-2" />

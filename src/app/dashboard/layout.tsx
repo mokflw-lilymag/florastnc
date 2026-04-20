@@ -7,6 +7,7 @@ import { QuickChat } from "@/components/chat/quick-chat";
 import { DashboardMain } from "@/components/layout/dashboard-main";
 import { AnnualRenewalReminder } from "@/components/layout/annual-renewal-reminder";
 import { AndroidAppChrome } from "@/components/layout/android-app-chrome";
+import { effectiveIsSuperAdmin } from "@/lib/auth-api-guards";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -27,7 +28,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     console.error("DashboardLayout: Error fetching profile:", error);
   }
 
-  const isSuperAdmin = !!(profile?.role === "super_admin" || user.email === 'lilymag0301@gmail.com');
+  const isSuperAdmin = effectiveIsSuperAdmin(profile, user.email ?? undefined);
 
   let isOrgUser = false;
   const { count: orgMembershipCount, error: orgMemberError } = await supabase

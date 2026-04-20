@@ -1,13 +1,11 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
-/** 클라이언트와 동일: DB에 super가 아니어도 운영 계정 이메일은 슈퍼 권한으로 처리 */
-const PLATFORM_SUPER_EMAILS = new Set(
-  ["lilymag0301@gmail.com", "test@test.com"].map((e) => e.toLowerCase())
-);
+import { isPlatformSuperEmail } from "@/lib/platform-super-emails";
 
+/** 클라이언트와 동일: DB에 super가 아니어도 운영 계정 이메일은 슈퍼 권한으로 처리 */
 export function effectiveIsSuperAdmin(profile: { role?: string } | null, email: string | undefined): boolean {
   if (profile?.role === "super_admin") return true;
-  if (email && PLATFORM_SUPER_EMAILS.has(email.toLowerCase())) return true;
+  if (isPlatformSuperEmail(email)) return true;
   return false;
 }
 
