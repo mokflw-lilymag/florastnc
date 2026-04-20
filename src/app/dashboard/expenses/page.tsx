@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import {
   PlusCircle,
   Search,
@@ -177,14 +177,19 @@ async function runPool<T, R>(items: T[], concurrency: number, worker: (item: T, 
 export default function ExpensesPage() {
   const { expenses, loading: expensesLoading, addExpense, addExpenses, updateExpense, deleteExpense } = useExpenses();
   const { uploadReceipt } = useExpenseStorage();
-  const { suppliers, loading: suppliersLoading } = useSuppliers();
-  const { materials, loading: materialsLoading } = useMaterials();
+  const { suppliers } = useSuppliers();
+  const { materials } = useMaterials();
   const { updateOrder } = useOrders(false);
-  const loading = expensesLoading || suppliersLoading || materialsLoading;
+  /** 목록은 지출만 로드되면 표시 (거래처·자재 로딩과 분리 — 로컬에서 자재/거래처 지연 시 스켈레톤만 보이던 현상 완화) */
+  const listLoading = expensesLoading;
 
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const editingExpenseRef = useRef<Expense | null>(null);
+  useEffect(() => {
+    editingExpenseRef.current = editingExpense;
+  }, [editingExpense]);
   const [detailExpense, setDetailExpense] = useState<Expense | null>(null);
   const [sortKey, setSortKey] = useState<string>("date");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -462,7 +467,7 @@ export default function ExpensesPage() {
     setFormData({
       category: expense.category || "materials",
       sub_category: expense.sub_category || "",
-      amount: expense.amount,
+      amount: Math.trunc(Number(expense.amount)) || 0,
       description: expense.description,
       expense_date: format(new Date(expense.expense_date), "yyyy-MM-dd"),
       payment_method: expense.payment_method || "card",
@@ -501,8 +506,16 @@ export default function ExpensesPage() {
     }
   };
 
+  const isInvalidSingleLineExpense = (data: ExpenseFormData) => {
+    if (data.items.length > 0) return false;
+    const amt = Number(data.amount);
+    const descOk = Boolean(data.description?.trim());
+    // 0만 불가 — 할인·환급 등 음수 금액 허용
+    return !descOk || !Number.isFinite(amt) || amt === 0;
+  };
+
   const performExpenseSubmit = async () => {
-    if (formData.items.length === 0 && (formData.amount <= 0 || !formData.description)) {
+    if (isInvalidSingleLineExpense(formData)) {
       toast.error("지출 내역과 금액을 정확히 입력해 주세요.");
       return;
     }
@@ -511,7 +524,10 @@ export default function ExpensesPage() {
       const payload = {
         category: formData.category,
         sub_category: formData.sub_category,
-        amount: formData.amount,
+        amount: (() => {
+          const n = Math.trunc(Number(formData.amount));
+          return Number.isFinite(n) ? n : 0;
+        })(),
         description: formData.description,
         expense_date: new Date(formData.expense_date).toISOString(),
         payment_method: formData.payment_method,
@@ -523,10 +539,11 @@ export default function ExpensesPage() {
         receipt_file_id: formData.receipt_file_id,
         storage_provider: formData.storage_provider
       };
-      await updateExpense(editingExpense.id, payload);
+      const updated = await updateExpense(editingExpense.id, payload);
+      if (!updated) return;
       // 배송비인 경우 연결된 주문의 actual_delivery_cost도 동기화
       if (editingExpense.sub_category === '배송비' && editingExpense.related_order_id) {
-        await updateOrder(editingExpense.related_order_id, { actual_delivery_cost: formData.amount } as any);
+        await updateOrder(editingExpense.related_order_id, { actual_delivery_cost: payload.amount } as any);
       }
     } else {
       if (formData.items.length > 0) {
@@ -545,7 +562,8 @@ export default function ExpensesPage() {
           receipt_file_id: formData.receipt_file_id,
           storage_provider: formData.storage_provider
         }));
-        await addExpenses(payloads);
+        const inserted = await addExpenses(payloads);
+        if (!inserted) return;
       } else {
         const singlePayload = {
           category: formData.category,
@@ -562,7 +580,8 @@ export default function ExpensesPage() {
           receipt_file_id: formData.receipt_file_id,
           storage_provider: formData.storage_provider
         };
-        await addExpense(singlePayload);
+        const inserted = await addExpense(singlePayload);
+        if (!inserted) return;
       }
     }
 
@@ -572,7 +591,7 @@ export default function ExpensesPage() {
   };
 
   const handleSubmit = async () => {
-    if (formData.items.length === 0 && (formData.amount <= 0 || !formData.description)) {
+    if (isInvalidSingleLineExpense(formData)) {
       toast.error("지출 내역과 금액을 정확히 입력해 주세요.");
       return;
     }
@@ -845,13 +864,16 @@ export default function ExpensesPage() {
         supplier_id: firstStore
           ? suppliers.find((s) => s.name.includes(firstStore) || firstStore.includes(s.name))?.id || "none"
           : prev.supplier_id,
-        amount: receipts.reduce((sum, r) => sum + (Number((r as { total_amount?: unknown }).total_amount) || 0), 0),
+        amount: Math.trunc(
+          receipts.reduce((sum, r) => sum + (Number((r as { total_amount?: unknown }).total_amount) || 0), 0)
+        ),
         description: mainStoreName
           ? receipts.length > 1
             ? `${mainStoreName} 외 ${receipts.length - 1}건`
             : mainStoreName
           : prev.description,
-        items: allNewItems.length > 0 ? allNewItems : prev.items,
+        // 수정 모드는 단일 지출 행만 갱신 — OCR 품목 배열을 두면 검증/합계 로직만 꼬이고 금액 필드와 불일치할 수 있음
+        items: editingExpenseRef.current ? [] : allNewItems.length > 0 ? allNewItems : prev.items,
         receipt_url: firstUpload?.url || prev.receipt_url,
         receipt_file_id: firstUpload?.id || prev.receipt_file_id,
       }));
@@ -1492,9 +1514,22 @@ export default function ExpensesPage() {
                       <Input
                         id="amount"
                         type="number"
+                        inputMode="numeric"
+                        step={1}
                         className="pl-10 h-12 text-lg font-black text-indigo-700 bg-white border-slate-200"
                         value={formData.amount}
-                        onChange={e => setFormData(prev => ({ ...prev, amount: parseInt(e.target.value) || 0 }))}
+                        onValueChange={(v) => {
+                          const t = v.trim();
+                          if (t === "") {
+                            setFormData((prev) => ({ ...prev, amount: 0 }));
+                            return;
+                          }
+                          const n = Number(t);
+                          setFormData((prev) => ({
+                            ...prev,
+                            amount: Number.isFinite(n) ? Math.trunc(n) : prev.amount,
+                          }));
+                        }}
                       />
                     </div>
                   </div>
@@ -2064,7 +2099,7 @@ export default function ExpensesPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {listLoading ? (
             <div className="space-y-3">
               {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-14 w-full rounded-lg" />)}
             </div>

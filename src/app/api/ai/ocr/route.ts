@@ -56,6 +56,8 @@ export async function POST(req: Request) {
     // 주문 파서·지원 챗봇과 동일 계열(구 gemini-1.5-flash ID 폐기/지역 제한 대비)
     const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
+    const todaySeoul = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Seoul" });
+
     const prompt = `
       이 이미지(영수증 사진)를 분석하여 지출 내역을 JSON 형식으로 추출해줘. 
       만약 한 사진에 여러 개의 영수증이 있다면, 각각 별도의 객체로 추출하여 배열에 담아줘.
@@ -81,6 +83,8 @@ export async function POST(req: Request) {
       }
       
       - 날짜 형식은 반드시 YYYY-MM-DD여야 해.
+      - 영수증에 인쇄된 날짜를 date에 최우선 반영해. 연도가 없거나 읽을 수 없을 때만 아래 기준일의 연도(YYYY)를 써서 월·일과 맞춰 완성해.
+      - **기준일(한국 서울) = ${todaySeoul}** — 임의로 2024 등 과거 연도를 추측하지 마.
       - 꽃집 자재(오아시스, 포장지, 리본)나 꽃 이름(장미, 소국 등)이 있으면 한국어로 정확하게 추출해줘.
       - 이미지에 영수증이 1개만 있다면 receipts 배열에 1개의 객체만 넣어줘.
       - 부가세와 합계 금액을 잘 구분해서 '최종 결제 금액'을 total_amount에 넣어줘.

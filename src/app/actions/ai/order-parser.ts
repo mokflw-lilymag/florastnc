@@ -78,6 +78,8 @@ export async function parseOrderWithAi(params: {
     // 사장님의 프로젝트(Free Tier)에서 허용되는 가장 똑똑하고 빠른 최신 Flash 모델을 사용합니다.
     const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
+    const todaySeoul = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Seoul" });
+
     const systemPrompt = `
       당신은 꽃집 사장님을 돕는 유능한 주문 비서입니다. 
       입력되는 데이터(텍스트, 이미지, 또는 음성 파일)에서 아래 JSON 구조에 맞춰 주문 정보를 추출해주세요.
@@ -99,7 +101,7 @@ export async function parseOrderWithAi(params: {
       [지침]
       1. 한국어 주소와 전화번호 형식을 준수하세요.
       2. 상품 가격이 있으면 숫자로 추출하고, 없으면 0으로 표시하세요.
-      3. 날짜 표현(예: '내일', '모레', '이번주 토요일')은 현재 날짜(${new Date().toLocaleDateString()})를 기준으로 변환하세요.
+      3. 날짜 표현(예: '내일', '모레', '이번주 토요일', '4월 18일'처럼 연도 없음)은 **기준일(한국 서울) ${todaySeoul}**을 사용해 연도를 맞추세요. 임의로 2024 등 과거 연도를 넣지 마세요.
       4. 입력에 「문구:」「리본문구:」「리본메시지:」「리본:」「카드:」 등으로 적힌 문장은 전부 message.content에 넣으세요. 접두어(문구 등)는 빼고 본문만 넣어도 됩니다.
       5. 화환·축하화분 등 리본이 달리는 상품이면 문구가 있으면 반드시 message.content에 채우세요.
       6. 확실하지 않은 정보는 빈 문자열("")로 남겨두세요.
