@@ -15,6 +15,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { format, parseISO, isAfter, addDays, differenceInMinutes } from "date-fns";
 import { toast } from "sonner";
+import { FLORASYNC_FLOATING_UI_EVENT, type FlorasyncFloatingUiDetail } from "@/lib/floating-ui-bridge";
 
 const inquirySoundUrl = "https://assets.mixkit.co/active_storage/sfx/212/212-preview.mp3";
 const messageSoundUrl = "https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3";
@@ -48,6 +49,23 @@ export function QuickChat() {
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
     const [faqAnswer, setFaqAnswer] = useState<{q: string, a: string} | null>(null);
     const [faqSuggestions, setFaqSuggestions] = useState<any[]>([]); // 실시간 제안
+    /** 카메라 권한 등: Android 오버레이 감지 완화를 위해 플로팅 UI 일시 숨김 */
+    const [overlaysSuppressed, setOverlaysSuppressed] = useState(false);
+
+    useEffect(() => {
+        const onFloatingUi = (e: Event) => {
+            const ce = e as CustomEvent<FlorasyncFloatingUiDetail>;
+            if (typeof ce.detail?.suppressOverlays === "boolean") {
+                setOverlaysSuppressed(ce.detail.suppressOverlays);
+            }
+        };
+        window.addEventListener(FLORASYNC_FLOATING_UI_EVENT, onFloatingUi as EventListener);
+        return () => window.removeEventListener(FLORASYNC_FLOATING_UI_EVENT, onFloatingUi as EventListener);
+    }, []);
+
+    useEffect(() => {
+        if (overlaysSuppressed) setIsOpen(false);
+    }, [overlaysSuppressed]);
 
     // [수정 핵심] 강력하고 독특한 프리미엄 알림음 (Max Volume, Preloaded)
     const playNewInquirySound = () => {
@@ -667,6 +685,10 @@ export function QuickChat() {
     }
 
     if (!tenantId && !isSuperAdmin) {
+        return null;
+    }
+
+    if (overlaysSuppressed) {
         return null;
     }
 

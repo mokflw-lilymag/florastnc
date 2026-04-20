@@ -65,6 +65,10 @@ import { useOrders } from "@/hooks/use-orders";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { toast } from 'sonner';
+import {
+  setFlorasyncFloatingUiSuppressed,
+  waitForFloatingUiHiddenFrame,
+} from "@/lib/floating-ui-bridge";
 
 /** 미리보기와 동일한 변환을 캔버스 캡처에 적용 (모바일 카메라 방향·좌우 보정) */
 function applyVideoFrameToCanvas(
@@ -885,6 +889,9 @@ export default function ExpensesPage() {
       return;
     }
 
+    /* Android: 플로팅 UI(퀵챗 등)가 있으면 "다른 앱 오버레이"로 카메라 권한이 막히는 경우가 있음 */
+    setFlorasyncFloatingUiSuppressed(true);
+
     webcamModeRef.current = mode;
     setWebcamMode(mode);
     setWebcamQueue([]);
@@ -892,6 +899,7 @@ export default function ExpensesPage() {
     setIsWebcamOpen(true);
     setTimeout(async () => {
       try {
+        await waitForFloatingUiHiddenFrame();
         // 1순위: 후면 카메라 시도
         let stream;
         try {
@@ -912,10 +920,12 @@ export default function ExpensesPage() {
       } catch (err: any) {
         // Next.js 개발 모드에서 console.error 시 오버레이 크래시 화면이 뜨는 것을 방지
         console.warn("Camera access fallback triggered:", err.message);
+        setFlorasyncFloatingUiSuppressed(false);
         setIsWebcamOpen(false);
         setWebcamMode(null);
         webcamModeRef.current = "single";
         setWebcamQueue([]);
+        setWebcamPreviewTransform({ rotation: 0, flipH: false });
 
         if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
           toast.error("기기에 연결된 카메라를 찾을 수 없습니다.");
@@ -924,8 +934,14 @@ export default function ExpensesPage() {
         } else {
           toast.error(`카메라를 시작할 수 없습니다: ${err.message || '알 수 없는 오류'}`);
         }
+        if (typeof navigator !== "undefined" && /Android/i.test(navigator.userAgent)) {
+          toast.message(
+            "카카오·메신저 말풍선, ‘다른 앱 위에 표시’ 앱이 켜져 있으면 권한 창이 막힐 수 있어요. 접은 뒤 다시 시도해 주세요.",
+            { duration: 6000 }
+          );
+        }
       }
-    }, 100);
+    }, 180);
   };
 
   const closeWebcam = () => {
@@ -933,6 +949,7 @@ export default function ExpensesPage() {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
+    setFlorasyncFloatingUiSuppressed(false);
     setIsWebcamOpen(false);
     setWebcamMode(null);
     webcamModeRef.current = "single";
@@ -955,6 +972,7 @@ export default function ExpensesPage() {
     webcamModeRef.current = "single";
     setWebcamQueue([]);
     setWebcamPreviewTransform({ rotation: 0, flipH: false });
+    setFlorasyncFloatingUiSuppressed(false);
     await processReceiptFiles(files);
   };
 
