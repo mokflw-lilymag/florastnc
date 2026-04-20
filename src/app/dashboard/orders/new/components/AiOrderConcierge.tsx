@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { 
   Sparkles, 
   Mic, 
@@ -20,6 +21,8 @@ import { Label } from "@/components/ui/label";
 import Textarea from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { parseOrderWithAi } from "@/app/actions/ai/order-parser";
+import { setFlorasyncFloatingUiSuppressed } from "@/lib/floating-ui-bridge";
+import { cn } from "@/lib/utils";
 
 /** 마이크 녹음 시 사용자가 참고할 말하기 예시 (입력폼 안내용) */
 const VOICE_ORDER_SCRIPT_EXAMPLE = `000님 주문, 0만 원 꽃다발, 0월 0일 0시 픽업 또는 배송.
@@ -127,6 +130,18 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
 
   /** AI 분석 결과 — 검토 화면에서 사용자가 직접 수정한 뒤 적용 */
   const [aiReviewDraft, setAiReviewDraft] = useState<Record<string, unknown> | null>(null);
+  const [portalReady, setPortalReady] = useState(false);
+
+  useEffect(() => {
+    setPortalReady(true);
+  }, []);
+
+  /** 패널 열릴 때 퀵챗 FAB 숨김 — 모바일·PC 공통 (뷰포트 고정 모달과 겹침 방지) */
+  useEffect(() => {
+    if (!isOpen) return;
+    setFlorasyncFloatingUiSuppressed(true);
+    return () => setFlorasyncFloatingUiSuppressed(false);
+  }, [isOpen]);
 
   // Cleanup
   useEffect(() => {
@@ -447,7 +462,7 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
   };
 
   return (
-    <div className="relative z-10">
+    <div className="relative z-20 shrink-0">
       {/* Trigger Button */}
       <Button 
         onClick={() => setIsOpen(!isOpen)}
@@ -466,17 +481,39 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
         <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
       </Button>
 
-      {/* Main Panel */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div 
-            initial={{ opacity: 0, y: 10, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.95 }}
-            className="absolute top-16 left-0 w-full md:w-[500px] bg-white rounded-3xl shadow-2xl border border-indigo-50 p-6 overflow-hidden"
-          >
+      {/* Main Panel — body 포털: 상위 transform/스택에 묶이지 않고 항상 뷰포트 기준 */}
+      {portalReady &&
+        createPortal(
+          <AnimatePresence>
+            {isOpen && (
+              <>
+                <motion.div
+                  key="ai-order-backdrop"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="fixed inset-0 z-[130] bg-black/45 md:bg-black/35"
+                  aria-hidden
+                  onClick={() => setIsOpen(false)}
+                />
+                <motion.div
+                  key="ai-order-panel"
+                  initial={{ opacity: 0, y: 16, scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 16, scale: 0.96 }}
+                  transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                  className={cn(
+                    "fixed z-[140] flex flex-col overflow-hidden border border-indigo-50 bg-white shadow-2xl",
+                    "left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2",
+                    "w-[min(36rem,calc(100vw-1rem))] md:w-[min(32rem,calc(100vw-2rem))]",
+                    "max-h-[min(90dvh,860px)] rounded-2xl md:rounded-3xl",
+                    "p-6 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]"
+                  )}
+                  onClick={(e) => e.stopPropagation()}
+                >
             {!aiReviewDraft ? (
-              <div className="space-y-6">
+              <div className="flex flex-col flex-1 min-h-0 gap-6">
                 <div className="flex items-center justify-between border-b pb-4">
                   <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                     <History className="w-4 h-4 text-violet-500" />
@@ -487,27 +524,33 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
                   </Button>
                 </div>
 
-                {/* Tabs */}
-                <div className="flex p-1 bg-slate-100 rounded-xl">
+                {/* Tabs — 좁은 폭에서도 아이콘·긴 문구가 한 줄에 겹치지 않도록 세로 스택 */}
+                <div className="grid grid-cols-2 gap-1 p-1 bg-slate-100 rounded-xl">
                   {[
                     { id: "smart", icon: Sparkles, label: "음성/텍스트 통합 입력" },
-                    { id: "image", icon: ImageIcon, label: "주문서 이미지/사진" }
-                  ].map(tab => (
+                    { id: "image", icon: ImageIcon, label: "주문서 이미지/사진" },
+                  ].map((tab) => (
                     <button
                       key={tab.id}
-                      onClick={() => setActiveTab(tab.id as any)}
-                      className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all ${
-                        activeTab === tab.id ? "bg-white text-violet-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
-                      }`}
+                      type="button"
+                      onClick={() => setActiveTab(tab.id as "smart" | "image")}
+                      className={cn(
+                        "flex min-h-[4.25rem] min-w-0 flex-col items-center justify-center gap-1.5 rounded-lg px-2 py-2.5 text-center transition-all",
+                        activeTab === tab.id
+                          ? "bg-white text-violet-600 shadow-sm"
+                          : "text-slate-500 hover:bg-white/60 hover:text-slate-700"
+                      )}
                     >
-                      <tab.icon className="w-4 h-4" />
-                      {tab.label}
+                      <tab.icon className="h-4 w-4 shrink-0" aria-hidden />
+                      <span className="text-[11px] font-medium leading-snug break-keep sm:text-xs">
+                        {tab.label}
+                      </span>
                     </button>
                   ))}
                 </div>
 
                 {/* Tab Contents */}
-                <div className="min-h-[200px] flex flex-col justify-center">
+                <div className="flex flex-1 min-h-0 flex-col justify-center overflow-y-auto">
                   {isProcessing ? (
                     <div className="flex flex-col items-center justify-center space-y-4">
                       <motion.div 
@@ -641,14 +684,14 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
                   <Button 
                     disabled={!textInput && !imagePreview}
                     onClick={() => void runAiAnalysis()}
-                    className="w-full h-12 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold"
+                    className="w-full h-12 shrink-0 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold"
                   >
                     AI 비서에게 건네주기 <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
                 )}
               </div>
             ) : (
-              <div className="flex flex-col gap-3 max-h-[min(78vh,580px)] min-h-0">
+              <div className="flex flex-col gap-3 flex-1 min-h-0 md:max-h-[min(78vh,580px)]">
                 <div className="flex items-start justify-between gap-2 border-b pb-3 shrink-0">
                   <div>
                     <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2 text-violet-600">
@@ -913,9 +956,12 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
                 </div>
               </div>
             )}
-          </motion.div>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>,
+          document.body
         )}
-      </AnimatePresence>
     </div>
   );
 }

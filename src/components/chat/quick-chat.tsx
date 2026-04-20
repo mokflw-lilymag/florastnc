@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { usePathname } from "next/navigation";
 import { 
     MessageCircle, X, Send, User, Building2, Clock, 
     ChevronRight, ChevronLeft, Bell, RefreshCw, Paperclip, Shield,
@@ -31,7 +32,11 @@ if (typeof window !== 'undefined') {
 
 export function QuickChat() {
     const supabase = createClient();
+    const pathname = usePathname();
     const { tenantId, user, profile } = useAuth();
+    /** 새 주문 모바일: 하단 고정 요약·주문하기 바 위로 FAB 올려 겹침 완화 */
+    const orderNewMobileBoost =
+        typeof pathname === "string" && pathname.includes("/dashboard/orders/new");
     const [isOpen, setIsOpen] = useState(false);
     const [rooms, setRooms] = useState<any[]>([]);
     const [selectedRoom, setSelectedRoom] = useState<any>(null);
@@ -694,7 +699,12 @@ export function QuickChat() {
 
     return (
         <>
-            <div className="fixed bottom-24 md:bottom-8 right-4 md:right-8 z-[100]">
+            <div
+                className={cn(
+                    "fixed right-4 z-[100] md:bottom-8 md:right-8",
+                    orderNewMobileBoost ? "bottom-[12.75rem]" : "bottom-24"
+                )}
+            >
                 <Button 
                     variant="default" 
                     className={cn(
@@ -710,7 +720,9 @@ export function QuickChat() {
             {isOpen && (
                 <div 
                     className={cn(
-                        "fixed bottom-40 md:bottom-28 right-4 md:right-8 bg-white rounded-[2rem] md:rounded-[3rem] shadow-2xl z-[100] overflow-hidden flex flex-col border border-slate-100 animate-in slide-in-from-bottom-5 transition-all duration-500",
+                        "fixed right-4 bg-white rounded-[2rem] md:rounded-[3rem] shadow-2xl z-[100] overflow-hidden flex flex-col border border-slate-100 animate-in slide-in-from-bottom-5 transition-all duration-500",
+                        orderNewMobileBoost ? "bottom-[17.25rem]" : "bottom-40",
+                        "md:bottom-28 md:right-8",
                         isSuperAdmin ? "w-[850px] h-[650px]" : "w-[calc(100vw-2rem)] max-w-[400px] h-[600px] max-h-[70vh] md:max-h-[600px]"
                     )}
                 >

@@ -1518,8 +1518,8 @@ export default function ExpensesPage() {
                         step={1}
                         className="pl-10 h-12 text-lg font-black text-indigo-700 bg-white border-slate-200"
                         value={formData.amount}
-                        onValueChange={(v) => {
-                          const t = v.trim();
+                        onChange={(e) => {
+                          const t = e.target.value.trim();
                           if (t === "") {
                             setFormData((prev) => ({ ...prev, amount: 0 }));
                             return;

@@ -185,10 +185,15 @@ export function ManualDrawer() {
 
   return (
     <Dialog>
-      <DialogTrigger className="relative group flex items-center justify-center border-2 border-indigo-200 hover:border-indigo-500 bg-white hover:bg-indigo-50 transition-all rounded-full h-11 px-5 font-bold text-indigo-700 gap-3 shadow-lg shadow-indigo-100/50 outline-none cursor-pointer">
-          <BookOpen className="w-5 h-5 group-hover:rotate-6 transition-transform text-indigo-500" />
-          <span className="text-sm">플로라싱크 완벽 세팅 가이드</span>
-          <div className="flex h-5 w-5 bg-indigo-100 text-indigo-600 rounded text-[10px] items-center justify-center font-black animate-bounce group-hover:animate-none">F1</div>
+      <DialogTrigger className="relative group flex max-w-full min-w-0 shrink items-center gap-2 rounded-full border-2 border-indigo-200 bg-white px-3 py-2 font-bold text-indigo-700 shadow-lg shadow-indigo-100/50 outline-none cursor-pointer transition-all hover:border-indigo-500 hover:bg-indigo-50 md:h-11 md:gap-3 md:px-5">
+          <BookOpen className="h-4 w-4 shrink-0 text-indigo-500 transition-transform group-hover:rotate-6 md:h-5 md:w-5" />
+          <span className="hidden min-w-0 truncate text-xs sm:inline sm:text-sm md:max-w-[11rem] lg:max-w-none">
+            플로라싱크 완벽 세팅 가이드
+          </span>
+          <span className="text-xs sm:hidden">가이드</span>
+          <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-indigo-100 text-[10px] font-black text-indigo-600 animate-bounce group-hover:animate-none">
+            F1
+          </div>
       </DialogTrigger>
 
       <DialogContent className="max-w-[95vw] sm:max-w-4xl p-0 border-0 shadow-[0_32px_128px_rgba(0,0,0,0.25)] overflow-hidden rounded-[2.5rem] bg-white">
