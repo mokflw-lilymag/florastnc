@@ -16,7 +16,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { format, parseISO, isAfter, addDays, differenceInMinutes } from "date-fns";
 import { toast } from "sonner";
-import { FLORASYNC_FLOATING_UI_EVENT, type FlorasyncFloatingUiDetail } from "@/lib/floating-ui-bridge";
+import { FLOXYNC_FLOATING_UI_EVENT, type FloxyncFloatingUiDetail } from "@/lib/floating-ui-bridge";
 
 const inquirySoundUrl = "https://assets.mixkit.co/active_storage/sfx/212/212-preview.mp3";
 const messageSoundUrl = "https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3";
@@ -59,13 +59,13 @@ export function QuickChat() {
 
     useEffect(() => {
         const onFloatingUi = (e: Event) => {
-            const ce = e as CustomEvent<FlorasyncFloatingUiDetail>;
+            const ce = e as CustomEvent<FloxyncFloatingUiDetail>;
             if (typeof ce.detail?.suppressOverlays === "boolean") {
                 setOverlaysSuppressed(ce.detail.suppressOverlays);
             }
         };
-        window.addEventListener(FLORASYNC_FLOATING_UI_EVENT, onFloatingUi as EventListener);
-        return () => window.removeEventListener(FLORASYNC_FLOATING_UI_EVENT, onFloatingUi as EventListener);
+        window.addEventListener(FLOXYNC_FLOATING_UI_EVENT, onFloatingUi as EventListener);
+        return () => window.removeEventListener(FLOXYNC_FLOATING_UI_EVENT, onFloatingUi as EventListener);
     }, []);
 
     useEffect(() => {
@@ -641,7 +641,7 @@ export function QuickChat() {
                 sender_tenant_id: ADMIN_TENANT_ID,
                 is_ai: true,
                 ai_sender_name: 'Flora AI 비서',
-                content: "안녕하세요 사장님! 플로라싱크 헬프데스크에 오신 것을 정중히 환영합니다. 꽃집을 운영하시면서 생기는 궁금증이나 불편한 점을 제가 친절하게 해결해 드릴게요. 무엇부터 도와드릴까요? 🌸"
+                content: "안녕하세요 사장님! 플록싱크 헬프데스크에 오신 것을 정중히 환영합니다. 꽃집을 운영하시면서 생기는 궁금증이나 불편한 점을 제가 친절하게 해결해 드릴게요. 무엇부터 도와드릴까요? 🌸"
             });
             if (welcomeError) console.error('[AI] Welcome message error:', welcomeError);
 

@@ -237,7 +237,7 @@ export function AutomationSettings({
                   <div className="space-y-2">
                     <Label className="text-[10px] font-bold text-slate-500 uppercase px-1">발신 채널 ID (@아이디)</Label>
                     <Input 
-                      placeholder="@플로라싱크"
+                      placeholder="@플록싱크"
                       value={settings.kakaoSenderId}
                       onChange={e => saveSettings({...settings, kakaoSenderId: e.target.value})}
                       className="h-9 bg-white"

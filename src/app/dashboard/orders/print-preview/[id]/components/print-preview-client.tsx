@@ -137,7 +137,7 @@ export function PrintPreviewClient({ orderId }: PrintPreviewClientProps) {
         messageType: order.message?.type === 'ribbon' ? 'ribbon' : 'card',
         isAnonymous: order.outsource_info?.hideCustomerInfo || false,
         shopInfo: {
-            name: order.outsource_info?.sender_branding?.name || settings?.siteName || profile?.tenants?.name || "플로라싱크",
+            name: order.outsource_info?.sender_branding?.name || settings?.siteName || profile?.tenants?.name || "플록싱크",
             address: order.outsource_info?.sender_branding?.address || settings?.address || profile?.tenants?.address || "",
             contact: order.outsource_info?.sender_branding?.contact || settings?.contactPhone || profile?.tenants?.contact_phone || "",
             account: profile?.tenants?.account || "",

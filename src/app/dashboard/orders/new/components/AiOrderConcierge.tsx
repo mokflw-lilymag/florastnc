@@ -21,7 +21,7 @@ import { Label } from "@/components/ui/label";
 import Textarea from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { parseOrderWithAi } from "@/app/actions/ai/order-parser";
-import { setFlorasyncFloatingUiSuppressed } from "@/lib/floating-ui-bridge";
+import { setFloxyncFloatingUiSuppressed } from "@/lib/floating-ui-bridge";
 import { cn } from "@/lib/utils";
 
 /** 마이크 녹음 시 사용자가 참고할 말하기 예시 (입력폼 안내용) */
@@ -139,8 +139,8 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
   /** 패널 열릴 때 퀵챗 FAB 숨김 — 모바일·PC 공통 (뷰포트 고정 모달과 겹침 방지) */
   useEffect(() => {
     if (!isOpen) return;
-    setFlorasyncFloatingUiSuppressed(true);
-    return () => setFlorasyncFloatingUiSuppressed(false);
+    setFloxyncFloatingUiSuppressed(true);
+    return () => setFloxyncFloatingUiSuppressed(false);
   }, [isOpen]);
 
   // Cleanup

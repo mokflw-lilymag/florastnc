@@ -15,7 +15,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-const STORAGE_KEY_PREFIX = "florasync_renewal_notice_dismissed";
+const STORAGE_KEY_PREFIX = "floxync_renewal_notice_dismissed";
 
 /** 결제 시 subscription_start~end 간격이 길면 연간(12m) 등 장기 플랜으로 간주 (6m·월간 제외) */
 export function isAnnualBillingPeriod(

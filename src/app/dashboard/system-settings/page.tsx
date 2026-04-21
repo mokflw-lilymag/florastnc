@@ -58,11 +58,11 @@ export default function SystemSettingsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="site-name">사이트 명칭</Label>
-                  <Input id="site-name" defaultValue="Florasync SaaS" />
+                  <Input id="site-name" defaultValue="Floxync SaaS" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="admin-email">관리자 수신 이메일</Label>
-                  <Input id="admin-email" defaultValue="admin@florasync.io" />
+                  <Input id="admin-email" defaultValue="admin@floxync.io" />
                 </div>
               </div>
               <div className="flex items-center justify-between py-2">

@@ -188,7 +188,7 @@ export function ManualDrawer() {
       <DialogTrigger className="relative group flex max-w-full min-w-0 shrink items-center gap-2 rounded-full border-2 border-indigo-200 bg-white px-3 py-2 font-bold text-indigo-700 shadow-lg shadow-indigo-100/50 outline-none cursor-pointer transition-all hover:border-indigo-500 hover:bg-indigo-50 md:h-11 md:gap-3 md:px-5">
           <BookOpen className="h-4 w-4 shrink-0 text-indigo-500 transition-transform group-hover:rotate-6 md:h-5 md:w-5" />
           <span className="hidden min-w-0 truncate text-xs sm:inline sm:text-sm md:max-w-[11rem] lg:max-w-none">
-            플로라싱크 완벽 세팅 가이드
+            플록싱크 완벽 세팅 가이드
           </span>
           <span className="text-xs sm:hidden">가이드</span>
           <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-indigo-100 text-[10px] font-black text-indigo-600 animate-bounce group-hover:animate-none">
@@ -264,7 +264,7 @@ export function ManualDrawer() {
                 <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
                 <p className="text-xs text-slate-800">Support Center Open: 1588-8888</p>
              </div>
-             <p className="text-[10px] text-slate-400 uppercase tracking-widest">&copy; 2026 Mokflw-Lilymag Florasync Project</p>
+             <p className="text-[10px] text-slate-400 uppercase tracking-widest">&copy; 2026 Mokflw-Lilymag Floxync Project</p>
           </div>
         </div>
       </DialogContent>

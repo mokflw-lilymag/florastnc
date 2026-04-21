@@ -129,7 +129,7 @@ export default function LoginPage() {
 
       if (data.user) {
         toast.success('반갑습니다!', {
-          description: 'Florasync에 성공적으로 로그인했습니다.',
+          description: 'Floxync에 성공적으로 로그인했습니다.',
         });
         router.push('/dashboard');
         router.refresh();
@@ -196,13 +196,13 @@ export default function LoginPage() {
       <div className="w-full max-w-md px-4 z-10">
         <Card className="border-0 shadow-2xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl ring-1 ring-slate-200 dark:ring-slate-800">
           <CardHeader className="space-y-4 pb-0 text-center">
-            <div className="mx-auto flex h-16 w-full items-center justify-center p-2 mb-2">
+            <div className="mx-auto flex w-full items-center justify-center mt-2 mb-2">
               <Image
-                src="https://ecimg.cafe24img.com/pg1472b45444056090/lilymagflower/web/upload/category/logo/v2_d13ecd48bab61a0269fab4ecbe56ce07_lZMUZ1lORo_top.jpg"
+                src="/floxync-logo.png"
                 alt="Logo"
-                width={200}
-                height={50}
-                className="w-auto h-12 object-contain"
+                width={400}
+                height={100}
+                className="w-auto h-[100px] object-contain"
                 priority
               />
             </div>
@@ -218,7 +218,7 @@ export default function LoginPage() {
               <TabsContent value="login" className="space-y-5">
                 <div className="text-center mb-4">
                   <CardTitle className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
-                    Florasync 로그인
+                    Floxync 로그인
                   </CardTitle>
                 </div>
                 <form onSubmit={handleLogin} className="space-y-4">

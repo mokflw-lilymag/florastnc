@@ -325,7 +325,7 @@ export default function SettingsPage() {
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `FloraSync_Backup_${storeName}_${new Date().toISOString().split('T')[0]}.json`;
+      link.download = `Floxync_Backup_${storeName}_${new Date().toISOString().split('T')[0]}.json`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

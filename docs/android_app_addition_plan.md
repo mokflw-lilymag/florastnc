@@ -1,4 +1,4 @@
-# Florasync Android 클라이언트 추가 (구현 요약)
+# Floxync Android 클라이언트 추가 (구현 요약)
 
 PC/랩탑은 기존 웹 브라우저 그대로 사용하고, **Android는 Capacitor WebView**로 동일 배포 URL을 로드합니다. 비즈니스 로직·API는 변경하지 않으며, **리본 프린터(로컬 브릿지)** 는 Android에서 메뉴·라우트 가드로 비노출합니다.
 
@@ -33,8 +33,8 @@ PC/랩탑은 기존 웹 브라우저 그대로 사용하고, **Android는 Capaci
    ```
 
 3. 빌드 변형  
-   - **prod:** `com.florasync.partner`  
-   - **staging:** `com.florasync.partner.staging` (`applicationIdSuffix`)
+   - **prod:** `com.floxync.partner`  
+   - **staging:** `com.floxync.partner.staging` (`applicationIdSuffix`)
 
    스테이징·프로덕션 **WebView URL**은 Capacitor가 `npx cap sync` 시점의 `capacitor.config.ts`를 반영합니다. 환경별로 **다른 URL을 쓰려면** 스테이징 빌드 전에 `CAP_SERVER_URL`을 바꾼 뒤 `npm run cap:sync`를 다시 실행하세요.
 

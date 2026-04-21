@@ -35,7 +35,7 @@
 
 | 단계 | 주체 | 내용 |
 |------|------|------|
-| A. 신청 | 고객(예정 본사) | 공식 채널에서 “다매장·본사 패키지” 문의 또는 앱 내 **신청 폼**(선택) 제출: 상호, 사업자번호, 대표 연락처, **포함 예정 지점 수·지점명 목록**, 현재 각 지점 Florasync 사용 여부 |
+| A. 신청 | 고객(예정 본사) | 공식 채널에서 “다매장·본사 패키지” 문의 또는 앱 내 **신청 폼**(선택) 제출: 상호, 사업자번호, 대표 연락처, **포함 예정 지점 수·지점명 목록**, 현재 각 지점 Floxync 사용 여부 |
 | B. 검토 | 플랫폼 CS/영업 | 계약·과금 단위 확정, 지점이 이미 가입돼 있는지 확인, 법적 동의(지점 데이터 본사 열람) 필요 시 별도 동의서 |
 | C. 개설 | 플랫폼 관리자(`super_admin`) | `organizations` 생성, 지점(`tenants`) 매핑, `organization_members`에 **조직 슈퍼 사용자** 등록 |
 | D. 온보딩 | 조직 사용자 | 초대 메일/임시 비밀번호 또는 매직링크로 로그인 → 비밀번호 변경 → **본사 대시보드** 진입 |
@@ -72,7 +72,7 @@
 
 ### 3.2 “얼마가 적당한가”에 대한 현실적인 시작점
 
-- **기준:** 지점당 **이미 내는 Florasync 구독(pro/erp 등)** 은 유지하고, 그 위에 **본사 레이어 요금**을 올리는 이중 구조가 이해하기 쉽다.
+- **기준:** 지점당 **이미 내는 Floxync 구독(pro/erp 등)** 은 유지하고, 그 위에 **본사 레이어 요금**을 올리는 이중 구조가 이해하기 쉽다.
 - **볼륨 가이드(예시, 실제는 원가·경쟁사·LTV 반영해 조정):**
   - **조직 기본료:** 월 5만~15만 원대 — 비교 대시보드·지점 배정·계정 1~2개
   - **지점 슬롯:** 지점당 월 1만~3만 원 **추가** 또는 패키지에 N개 포함
@@ -131,15 +131,15 @@
 
 - **데이터:** `organizations`, 조직↔지점 매핑, `organization_members`; 지점 데이터는 기존 `tenant_id` 스키마 유지
 - **RLS:** `org_admin`에게 “소속 `tenant_id` 집합”에 대한 SELECT(및 정책에 따른 UPDATE) 허용; 또는 MVP에서 집계만 **서버 API + 권한 검증**으로 제한
-- **앱 변경:** [dashboard/layout.tsx](d:\mapp\florasync-saas\src\app\dashboard\layout.tsx) 역할 분기, 사이드바에 HQ 섹션, 관리자용 조직 CRUD 화면
+- **앱 변경:** [dashboard/layout.tsx](d:\mapp\floxync-saas\src\app\dashboard\layout.tsx) 역할 분기, 사이드바에 HQ 섹션, 관리자용 조직 CRUD 화면
 
 ### 5.1 코드 반영 현황 (MVP)
 
-- **DB 스크립트:** [supabase/organization_schema.sql](d:\mapp\florasync-saas\supabase\organization_schema.sql) — Supabase SQL Editor에서 실행 후 사용.
-- **본사 공지 테이블:** [supabase/organization_announcements_schema.sql](d:\mapp\florasync-saas\supabase\organization_announcements_schema.sql) — 조직 스키마 적용 후 실행.
+- **DB 스크립트:** [supabase/organization_schema.sql](d:\mapp\floxync-saas\supabase\organization_schema.sql) — Supabase SQL Editor에서 실행 후 사용.
+- **본사 공지 테이블:** [supabase/organization_announcements_schema.sql](d:\mapp\floxync-saas\supabase\organization_announcements_schema.sql) — 조직 스키마 적용 후 실행.
 - **플랫폼 관리:** `/dashboard/admin/organizations` — 조직 생성, 지점(`tenants`)에 `organization_id` 연결, 본사 사용자 이메일로 멤버 추가(API가 `org_admin` 갱신).
 - **본사 화면:** `/dashboard/hq` — 지점별 매출·객단가, 일자별 스택 차트, 배송/픽업/매장 수령 카드, 취소 비율, 본사 공지 작성·목록. 집계는 `/api/hq/summary`. 공지 API는 `/api/hq/announcements`. **`.env`에 `SUPABASE_SERVICE_ROLE_KEY` 필요(집계).**
-- **지점 배너:** 소속 조직 공지는 일반 대시보드 상단([dashboard-main](d:\mapp\florasync-saas\src\components\layout\dashboard-main.tsx) + [OrgAnnouncementBanner](d:\mapp\florasync-saas\src\components\hq\org-announcement-banner.tsx))에 표시(`/dashboard/hq`에서는 중복 방지로 숨김).
+- **지점 배너:** 소속 조직 공지는 일반 대시보드 상단([dashboard-main](d:\mapp\floxync-saas\src\components\layout\dashboard-main.tsx) + [OrgAnnouncementBanner](d:\mapp\floxync-saas\src\components\hq\org-announcement-banner.tsx))에 표시(`/dashboard/hq`에서는 중복 방지로 숨김).
 - **기존 매장:** `organization_id`가 NULL이면 동작·RLS와 동일한 단일 매장 모델.
 
 ---
@@ -147,7 +147,7 @@
 ## 6. 다음 액션 체크리스트
 
 1. [ ] 신청 채널 확정(폼 vs 이메일) 및 계약서/동의 문구 초안  
-2. [x] Supabase: [organization_schema.sql](d:\mapp\florasync-saas\supabase\organization_schema.sql) 적용  
+2. [x] Supabase: [organization_schema.sql](d:\mapp\floxync-saas\supabase\organization_schema.sql) 적용  
 3. [x] 관리자 UI: 조직·지점·멤버(이메일)  
 4. [x] HQ MVP: 비교 대시보드(지점 **업무 화면 전환**은 추후)  
 5. [ ] 가격표 v0 내부 확정 후 파일럿 1곳 적용  

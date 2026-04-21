@@ -10,7 +10,7 @@ export function isCapacitorNative(): boolean {
   }
 }
 
-/** True when the Florasync Android app WebView is hosting this session. */
+/** True when the Floxync Android app WebView is hosting this session. */
 export function isCapacitorAndroid(): boolean {
   if (typeof window === "undefined") return false;
   try {

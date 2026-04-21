@@ -185,7 +185,7 @@ export default function SubscriptionPage() {
         successUrl: window.location.origin + "/dashboard/subscription/success",
         failUrl: window.location.origin + "/dashboard/subscription/fail",
         customerEmail: user?.email || "",
-        customerName: tenantData?.name || "FloraSync 가입자",
+        customerName: tenantData?.name || "Floxync 가입자",
       });
     } catch (error: any) {
       toast.error("결제 프로세스 에러", { description: error.message });
@@ -287,7 +287,7 @@ export default function SubscriptionPage() {
              transition={{ delay: 0.5 }}
              className="text-slate-400 max-w-3xl mx-auto text-lg md:text-xl font-medium leading-relaxed"
           >
-             전 세계 상위 1% 릴리맥 파트너사가 선택한 FloraSync와 함께하세요. <br />
+             전 세계 상위 1% 릴리맥 파트너사가 선택한 Floxync와 함께하세요. <br />
              복잡한 매장 운영은 저희가 맡고, 사장님은 아름다움에만 집중하세요.
           </motion.p>
           

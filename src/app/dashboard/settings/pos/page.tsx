@@ -228,7 +228,7 @@ export default function PosSettingsPage() {
               </div>
               <h3 className="text-xl font-bold leading-tight">이지체크 파트너십<br />연동 안내</h3>
               <p className="text-sm text-blue-100/80 leading-relaxed">
-                이지체크 API 사용을 위해서는 이지체크 본사와 FloraSync 플랫폼 간의 파트너 계약이 필요합니다. 연동이 어려우신 경우 고객센터로 연락주세요.
+                이지체크 API 사용을 위해서는 이지체크 본사와 Floxync 플랫폼 간의 파트너 계약이 필요합니다. 연동이 어려우신 경우 고객센터로 연락주세요.
               </p>
               <Button variant="secondary" className="w-full bg-white/20 hover:bg-white/30 border-none text-white font-bold rounded-2xl py-6 gap-2 group">
                  고객센터 가이드 <ExternalLink className="w-4 h-4 group-hover:translate-x-1 transition-transform" />

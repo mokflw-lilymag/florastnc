@@ -1,5 +1,5 @@
 -- ==============================================================================
--- Florasync SaaS - Delivery Booking Schema Extensions
+-- Floxync SaaS - Delivery Booking Schema Extensions
 -- ==============================================================================
 
 -- 1. 매장별 배달 설정(Store Settings) 테이블 생성

@@ -51,7 +51,7 @@ export function EstimateDialog({ customer, isOpen, onOpenChange }: EstimateDialo
     { id: Math.random().toString(36).substr(2, 9), name: "", quantity: 1, price: 0 }
   ]);
   const [businessInfo, setBusinessInfo] = useState({
-    name: "FloraSync Florist Group",
+    name: "Floxync Florist Group",
     representative: "김미화",
     address: "서울특별시 서초구 꽃시장길 12",
     contact: "02-1234-5678",
@@ -100,7 +100,7 @@ export function EstimateDialog({ customer, isOpen, onOpenChange }: EstimateDialo
         if (settings?.data) {
           const d = settings.data;
           setBusinessInfo({
-            name: tenant?.name || d.siteName || "FloraSync Florist Group",
+            name: tenant?.name || d.siteName || "Floxync Florist Group",
             representative: d.representative || "김미화",
             address: d.address || "서울특별시 서초구 꽃시장길 12",
             contact: d.contactPhone || "02-1234-5678",

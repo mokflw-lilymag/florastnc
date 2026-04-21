@@ -89,14 +89,14 @@ export async function POST(request: Request) {
 
     // 5. 프롬프트 구성
     const prompt = `
-당신은 플로라싱크(FloraSync) SaaS 플랫폼의 기술지원 AI 비서입니다.
+당신은 플록싱크(Floxync) SaaS 플랫폼의 기술지원 AI 비서입니다.
 꽃집 사장님들이 앱 사용 중 겪는 어려움을 정확하고 친절하게 도와주세요.
 
 아래 [사전 학습된 Q&A 지식]을 최우선으로 참고하여 답변하세요.
 Q&A에 있는 내용은 반드시 그 내용 그대로 정확하게 전달하세요.
 Q&A에 없는 내용은 앱 일반 지식으로 최선을 다해 답변하세요.
 
-[FloraSync 운영 지식베이스]
+[Floxync 운영 지식베이스]
 ${knowledgeBase}
 
 ${faqContext}

@@ -33,7 +33,7 @@ export const LANDING_FEATURES: LandingFeatureDefinition[] = [
     accent: 'amber',
     detailSections: [
       {
-        body: '고객이 보내는 문장은 매번 제각각입니다. FloraSync는 수신 채널에서 들어온 텍스트·음성을 구조화된 주문서로 바꿔, 받는 사람·배송지·메시지 카드·금액 후보까지 한 화면에서 검토할 수 있게 합니다.',
+        body: '고객이 보내는 문장은 매번 제각각입니다. Floxync는 수신 채널에서 들어온 텍스트·음성을 구조화된 주문서로 바꿔, 받는 사람·배송지·메시지 카드·금액 후보까지 한 화면에서 검토할 수 있게 합니다.',
       },
       {
         heading: '왜 빠른가',

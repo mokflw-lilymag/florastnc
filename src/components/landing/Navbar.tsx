@@ -44,7 +44,7 @@ export function Navbar() {
           </motion.div>
           <div className="flex flex-col -gap-1">
             <span className="font-title text-2xl tracking-tighter text-white leading-tight">
-              FLORASYNC <span className="text-[10px] text-emerald-500 font-bold tracking-widest bg-emerald-500/10 px-1.5 py-0.5 rounded ml-1 border border-emerald-500/20">PRO</span>
+              FLOXYNC <span className="text-[10px] text-emerald-500 font-bold tracking-widest bg-emerald-500/10 px-1.5 py-0.5 rounded ml-1 border border-emerald-500/20">PRO</span>
             </span>
             <span className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.3em] font-sans">Tech x Floral ERP</span>
           </div>

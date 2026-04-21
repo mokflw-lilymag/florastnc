@@ -74,7 +74,7 @@ export const ShopSettingsModal: React.FC<ShopSettingsModalProps> = ({ isOpen, on
                 <div className="relative group">
                   <User size={16} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
                   <input 
-                    type="text" placeholder="매장 이름 (예: 플로라싱크 강남점)" 
+                    type="text" placeholder="매장 이름 (예: 플록싱크 강남점)" 
                     value={shopSettings.name} 
                     onChange={(e) => updateShopSettings({ name: e.target.value })}
                     className="w-full pl-12 pr-6 py-4 bg-slate-50 border-transparent rounded-2xl text-sm font-bold outline-none ring-4 ring-transparent focus:bg-white focus:ring-indigo-50 transition-all" 

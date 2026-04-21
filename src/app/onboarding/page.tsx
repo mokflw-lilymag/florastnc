@@ -104,7 +104,7 @@ export default function OnboardingPage() {
                   {loading ? (
                     <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> 설정 중...</>
                   ) : (
-                    '플로라싱크 시작하기'
+                    '플록싱크 시작하기'
                   )}
                 </Button>
               </div>

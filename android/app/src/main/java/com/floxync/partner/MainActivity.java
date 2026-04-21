@@ -1,4 +1,4 @@
-package com.florasync.partner;
+package com.floxync.partner;
 
 import com.getcapacitor.BridgeActivity;
 

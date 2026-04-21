@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace "com.florasync.partner"
+    namespace "com.floxync.partner"
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.florasync.partner"
+        applicationId "com.floxync.partner"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

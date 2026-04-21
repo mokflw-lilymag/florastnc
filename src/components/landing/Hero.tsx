@@ -11,8 +11,8 @@ export function Hero() {
       <div className="absolute inset-0 z-0">
         <div className="absolute inset-0 bg-gradient-to-b from-[#0A0F0D]/80 via-[#0A0F0D]/40 to-[#0A0F0D] z-10" />
         <img 
-          src="/florasync_premium_hero_1776419130551.png" 
-          alt="FloraSync High-Tech Floral ERP" 
+          src="/floxync_premium_hero_1776419130551.png" 
+          alt="Floxync High-Tech Floral ERP" 
           className="w-full h-full object-cover opacity-60 scale-105 animate-pulse-slow"
         />
       </div>

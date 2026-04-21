@@ -1,4 +1,4 @@
-# Florasync SaaS 수정 계획서 (테스트 단계 경량 버전)
+# Floxync SaaS 수정 계획서 (테스트 단계 경량 버전)
 
 작성일: 2026-04-17  
 적용 범위: `src/app`, `src/components`, `src/stores`, `supabase`, `docs`

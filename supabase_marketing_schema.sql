@@ -1,5 +1,5 @@
 -- ==============================================================================
--- FloraSync SaaS - Marketing & AI Promotion Schema
+-- Floxync SaaS - Marketing & AI Promotion Schema
 -- ==============================================================================
 
 -- 1. 매장 마케팅 설정 테이블 (Shop Settings)

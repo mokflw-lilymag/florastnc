@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     const externalOrderId = orderData.order_id || `CAFE24_MOCK_${Date.now()}`;
     const shopNo = payload.mall_id || 'default-mall-id';
 
-    // 2. FloraSync 통합 스키마에 맞게 정제(Normalization)
+    // 2. Floxync 통합 스키마에 맞게 정제(Normalization)
     const newOrder = {
       id: crypto.randomUUID(), 
       source_mall: 'cafe24',

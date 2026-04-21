@@ -86,7 +86,7 @@ export const defaultSettings: SystemSettings = {
   googleSheetName: "",
   googleSheetOrdersId: "",
   googleSheetExpensesId: "",
-  siteName: "FloraSync SaaS",
+  siteName: "Floxync SaaS",
   siteDescription: "플라워샵 통합 관리 시스템",
   siteWebsite: "",
   storeEmail: "",

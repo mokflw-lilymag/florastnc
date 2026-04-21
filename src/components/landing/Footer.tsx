@@ -17,7 +17,7 @@ export function Footer() {
                 <Leaf size={20} />
               </div>
               <span className="font-title text-2xl tracking-tighter text-white">
-                FLORASYNC <span className="text-xs text-slate-500 font-sans tracking-widest ml-1">SYSTEMS</span>
+                FLOXYNC <span className="text-xs text-slate-500 font-sans tracking-widest ml-1">SYSTEMS</span>
               </span>
             </Link>
             <p className="text-slate-400 mb-10 leading-relaxed text-lg font-light">
@@ -31,7 +31,7 @@ export function Footer() {
               </div>
               <div className="flex flex-col gap-2">
                 <span className="text-slate-600">Official Channel</span>
-                <span className="text-white">KAKAOTALK @FLORASYNC</span>
+                <span className="text-white">KAKAOTALK @FLOXYNC</span>
               </div>
             </div>
           </div>

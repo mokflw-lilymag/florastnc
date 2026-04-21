@@ -15,7 +15,7 @@ const gaegu = Gaegu({ weight: ["400", "700"], subsets: ["latin"], variable: "--f
 const jua = Jua({ weight: "400", subsets: ["latin"], variable: "--font-jua" });
 
 export const metadata: Metadata = {
-  title: "Florasync SaaS",
+  title: "Floxync SaaS",
   description: "Next-generation floral management and ribbon printing.",
 };
 

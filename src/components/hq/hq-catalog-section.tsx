@@ -153,7 +153,7 @@ export function HqCatalogSection({
     ];
     const ws = XLSX.utils.aoa_to_sheet(data);
     XLSX.utils.book_append_sheet(wb, ws, "공동상품");
-    XLSX.writeFile(wb, "florasync_공동상품_양식.xlsx");
+    XLSX.writeFile(wb, "floxync_공동상품_양식.xlsx");
   };
 
   const onExcelSelected = async (e: ChangeEvent<HTMLInputElement>) => {

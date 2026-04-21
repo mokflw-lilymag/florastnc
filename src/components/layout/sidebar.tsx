@@ -255,7 +255,7 @@ export function Sidebar({
       <div className="p-6 pb-2">
         <Image
           src={logoUrl || "https://ecimg.cafe24img.com/pg1472b45444056090/lilymagflower/web/upload/category/logo/v2_d13ecd48bab61a0269fab4ecbe56ce07_lZMUZ1lORo_top.jpg"}
-          alt="Florasync Logo"
+          alt="Floxync Logo"
           width={180}
           height={40}
           priority={true}
@@ -350,7 +350,7 @@ export function Sidebar({
       
       {/* Footer Info */}
       <div className="p-4 border-t border-slate-100 dark:border-slate-800">
-        <p className="text-[10px] text-center text-slate-400 font-normal uppercase tracking-widest">Florasync v25.0</p>
+        <p className="text-[10px] text-center text-slate-400 font-normal uppercase tracking-widest">Floxync v25.0</p>
       </div>
     </aside>
   );

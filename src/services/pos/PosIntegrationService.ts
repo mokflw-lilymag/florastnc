@@ -205,7 +205,7 @@ export const PosIntegrationService = {
   },
 
   /**
-   * POS 결제 → FloraSync 주문 자동 생성 (핵심 메서드)
+   * POS 결제 → Floxync 주문 자동 생성 (핵심 메서드)
    */
   async processPosTransaction(
     supabase: SupabaseClient,

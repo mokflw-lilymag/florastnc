@@ -66,7 +66,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { toast } from 'sonner';
 import {
-  setFlorasyncFloatingUiSuppressed,
+  setFloxyncFloatingUiSuppressed,
   waitForFloatingUiHiddenFrame,
 } from "@/lib/floating-ui-bridge";
 
@@ -920,7 +920,7 @@ export default function ExpensesPage() {
     }
 
     /* Android: 플로팅 UI(퀵챗 등)가 있으면 "다른 앱 오버레이"로 카메라 권한이 막히는 경우가 있음 */
-    setFlorasyncFloatingUiSuppressed(true);
+    setFloxyncFloatingUiSuppressed(true);
 
     webcamModeRef.current = mode;
     setWebcamMode(mode);
@@ -950,7 +950,7 @@ export default function ExpensesPage() {
       } catch (err: any) {
         // Next.js 개발 모드에서 console.error 시 오버레이 크래시 화면이 뜨는 것을 방지
         console.warn("Camera access fallback triggered:", err.message);
-        setFlorasyncFloatingUiSuppressed(false);
+        setFloxyncFloatingUiSuppressed(false);
         setIsWebcamOpen(false);
         setWebcamMode(null);
         webcamModeRef.current = "single";
@@ -979,7 +979,7 @@ export default function ExpensesPage() {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
-    setFlorasyncFloatingUiSuppressed(false);
+    setFloxyncFloatingUiSuppressed(false);
     setIsWebcamOpen(false);
     setWebcamMode(null);
     webcamModeRef.current = "single";
@@ -1002,7 +1002,7 @@ export default function ExpensesPage() {
     webcamModeRef.current = "single";
     setWebcamQueue([]);
     setWebcamPreviewTransform({ rotation: 0, flipH: false });
-    setFlorasyncFloatingUiSuppressed(false);
+    setFloxyncFloatingUiSuppressed(false);
     await processReceiptFiles(files);
   };
 

@@ -30,7 +30,7 @@ export const FONT_CATALOG: FontCatalogItem[] = [
     { name: 'NanumSquare', family: 'NanumSquare', url: 'https://hangeul.pstatic.net/hangeul_static/css/nanum-square.css', source: 'naver', category: 'gothic', preview: '깔끔한 나눔스퀘어' },
 ];
 
-const ACTIVE_FONTS_KEY = 'florasync_active_fonts';
+const ACTIVE_FONTS_KEY = 'floxync_active_fonts';
 
 const DEFAULT_ACTIVE_FONTS = [
     'Noto Sans KR', 'Nanum Gothic', 'Pretendard',

@@ -18,7 +18,7 @@ function PrintContent() {
   const [loading, setLoading] = useState(true);
   const [useVat, setUseVat] = useState(false);
   const [businessInfo, setBusinessInfo] = useState({
-    name: "FloraSync Florist Group",
+    name: "Floxync Florist Group",
     representative: "김미화",
     address: "서울특별시 서초구 꽃시장길 12",
     contact: "02-1234-5678",
@@ -101,7 +101,7 @@ function PrintContent() {
          if (settings?.data) {
            const d = settings.data;
            setBusinessInfo({
-             name: tenant?.name || d.siteName || "FloraSync Florist Group",
+             name: tenant?.name || d.siteName || "Floxync Florist Group",
              representative: d.representative || "김미화",
              address: d.address || "서울특별시 서초구 꽃시장길 12",
              contact: d.contactPhone || "02-1234-5678",

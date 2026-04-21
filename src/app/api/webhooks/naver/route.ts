@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     const shopId = payload.SellerId || 'default-shop-id'; // 실제 환경에선 seller 식별자 매핑
 
     if (status === 'PAYED') {
-      // 2. FloraSync 통합 스키마에 맞게 정제(Normalization)
+      // 2. Floxync 통합 스키마에 맞게 정제(Normalization)
       const newOrder = {
         id: crypto.randomUUID(), 
         source_mall: 'naver_commerce',
@@ -31,11 +31,11 @@ export async function POST(request: Request) {
         delivery_address: `${payload.BaseAddress || ''} ${payload.DetailedAddress || ''}`,
         total_amount: payload.TotalPaymentAmount || 0,
         memo: payload.ShippingMemo || '',
-        status: 'pending', // FloraSync 기본 상태 '접수대기'
+        status: 'pending', // Floxync 기본 상태 '접수대기'
         created_at: new Date().toISOString()
       };
 
-      // 3. pos_orders 또는 deliveries(FloraSync 메인 주문 테이블)에 삽입
+      // 3. pos_orders 또는 deliveries(Floxync 메인 주문 테이블)에 삽입
       // 임시로 pos_orders 테이블이라고 가정
       const { error } = await supabase
         .from('pos_orders')

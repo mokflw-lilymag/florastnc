@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 
 export const metadata: Metadata = {
-  title: "Florasync Kiosk | 고객 주문 입력",
+  title: "Floxync Kiosk | 고객 주문 입력",
   description: "고객이 직접 배송/메시지 정보를 입력하는 키오스크 화면입니다.",
 };
 

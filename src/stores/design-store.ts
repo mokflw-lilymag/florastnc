@@ -858,7 +858,7 @@ export const useEditorStore = create<EditorState>()(
       }
     }),
     {
-      name: 'florasync-design-studio-storage-v2',
+      name: 'floxync-design-studio-storage-v2',
       storage: createJSONStorage(() => ({
         getItem: async (name) => (await idbGet(name)) ?? null,
         setItem: async (name, value) => await idbSet(name, value),

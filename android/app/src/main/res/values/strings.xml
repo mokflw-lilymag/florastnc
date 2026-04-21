@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Florasync</string>
-    <string name="title_activity_main">Florasync</string>
-    <string name="package_name">com.florasync.partner</string>
-    <string name="custom_url_scheme">com.florasync.partner</string>
+    <string name="app_name">Floxync</string>
+    <string name="title_activity_main">Floxync</string>
+    <string name="package_name">com.floxync.partner</string>
+    <string name="custom_url_scheme">com.floxync.partner</string>
 </resources>

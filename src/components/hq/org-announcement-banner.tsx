@@ -23,7 +23,7 @@ type Ann = {
   confirmedAt?: string | null;
 };
 
-const DISMISS_PREFIX = "florasync_org_ann_dismiss_";
+const DISMISS_PREFIX = "floxync_org_ann_dismiss_";
 
 export function OrgAnnouncementBanner() {
   const pathname = usePathname();

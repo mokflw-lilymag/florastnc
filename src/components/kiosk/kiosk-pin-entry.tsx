@@ -39,7 +39,7 @@ export function KioskPinEntry({ onComplete }: KioskPinEntryProps) {
             <Store className="w-10 h-10 text-white" />
           </div>
         </div>
-        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Florasync Kiosk</h1>
+        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Floxync Kiosk</h1>
         <p className="text-slate-500 font-semibold tracking-tight">직원 화면의 3자리 핀번호를 입력해주세요</p>
       </div>
 

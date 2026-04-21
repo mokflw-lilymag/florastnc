@@ -43,7 +43,7 @@ async function resetPassword() {
       email: targetEmail,
       password: newPassword,
       email_confirm: true,
-      user_metadata: { shop_name: '플로라싱크 테스트 매장' }
+      user_metadata: { shop_name: '플록싱크 테스트 매장' }
     });
     
     if (createError) {

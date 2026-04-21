@@ -1,5 +1,5 @@
 -- ============================================================
--- FloraSync FAQ 봇 테이블 + 초기 데이터
+-- Floxync FAQ 봇 테이블 + 초기 데이터
 -- Supabase SQL Editor에서 실행
 -- ============================================================
 
@@ -67,7 +67,7 @@ INSERT INTO support_faq (category, category_icon, category_order, question, answ
 '**솔라피 알림톡 연동 순서**
 
 1. [솔라피 회원가입](https://solapi.com) 후 API키 발급
-2. FloraSync → 설정 → 자동화 → 솔라피 연동
+2. Floxync → 설정 → 자동화 → 솔라피 연동
 3. **API Key / API Secret** 입력 후 저장
 4. 발신번호 등록 (솔라피 대시보드에서 사전 등록 필요)
 
@@ -87,25 +87,25 @@ INSERT INTO support_faq (category, category_icon, category_order, question, answ
 ('POS 연동', '🏪', 3, 'POS와 연동은 어떻게 하나요?',
 '**POS 연동 설정 방법**
 
-1. FloraSync → 설정 → POS 연동 탭
+1. Floxync → 설정 → POS 연동 탭
 2. 사용 중인 POS 브랜드 선택
 3. **가맹점 ID / 시크릿키** 입력
 4. 테스트 주문으로 연동 확인
 
 현재 지원 POS: **토스페이먼츠, KIS, NICE** 등
 
-💡 POS 연동 후 매출이 자동으로 플로라싱크에 동기화됩니다!', 1, true),
+💡 POS 연동 후 매출이 자동으로 플록싱크에 동기화됩니다!', 1, true),
 
 -- 🚕 카카오T 배차 연동
 ('카카오T 배차', '🚕', 4, '카카오T 배차 연동 방법을 알려주세요',
 '**카카오T 배차 연동 순서**
 
 1. 카카오모빌리티 파트너 센터에서 API 키 발급
-2. FloraSync → 설정 → 배송/배차 → 카카오T 연동
+2. Floxync → 설정 → 배송/배차 → 카카오T 연동
 3. **Client ID / Client Secret** 입력 후 저장
 4. 배송 주문 시 "카카오T 배차" 버튼으로 기사 호출
 
-💡 배차 상태가 실시간으로 플로라싱크 대시보드에 업데이트됩니다!', 1, true),
+💡 배차 상태가 실시간으로 플록싱크 대시보드에 업데이트됩니다!', 1, true),
 
 ('카카오T 배차', '🚕', 4, '배차가 안 잡혀요',
 '**배차 실패 시 확인사항**

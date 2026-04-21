@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return { title: '기능' };
   }
   return {
-    title: `${feature.title} · FloraSync`,
+    title: `${feature.title} · Floxync`,
     description: feature.description,
   };
 }
@@ -46,7 +46,7 @@ export default async function FeatureDetailPage({ params }: Props) {
           </Link>
 
           <header className="mb-12 md:mb-16">
-            <p className="text-xs font-black text-emerald-500 uppercase tracking-[0.25em] mb-4">FloraSync capability</p>
+            <p className="text-xs font-black text-emerald-500 uppercase tracking-[0.25em] mb-4">Floxync capability</p>
             <h1 className="text-4xl md:text-6xl font-black text-white tracking-tighter leading-tight mb-6">
               {feature.title}
             </h1>

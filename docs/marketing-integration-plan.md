@@ -1,7 +1,7 @@
 # Marketing SaaS Integration Plan (LilyMag x Autopus ADK)
 
 ## 1. Overview
-This document outlines the strategic integration of the high-performance AI marketing engine from `marketing-saas` into the `florasync-saas` (LilyMag) ecosystem. The goal is to provide florists with an automated, high-conversion SNS marketing solution powered by "Harness Engineering" and "Multi-Agent Orchestration".
+This document outlines the strategic integration of the high-performance AI marketing engine from `marketing-saas` into the `floxync-saas` (LilyMag) ecosystem. The goal is to provide florists with an automated, high-conversion SNS marketing solution powered by "Harness Engineering" and "Multi-Agent Orchestration".
 
 ## 2. Core Architectural Principles
 - **Standardized Harnessing**: All AI logic will follow the Harness Engineering protocol (Specification -> Constraint -> Generation -> Audit).
