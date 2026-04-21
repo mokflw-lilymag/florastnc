@@ -14,6 +14,7 @@ import {
   Package,
   Receipt,
   ClipboardList,
+  Database,
 } from "lucide-react";
 import Image from "next/image";
 import { createClient } from "@/utils/supabase/client";
@@ -122,6 +123,7 @@ export function Sidebar({
         { name: "직원(Staff) 관리", href: "/dashboard/admin/staff", icon: Users },
         { name: "일일 체크리스트", href: "/dashboard/admin/checklist", icon: ShieldCheck },
         { name: "전국 화원사 관리", href: "/dashboard/tenants", icon: Store },
+        { name: "초기 기초자료 시드", href: "/dashboard/admin/tenant-master-seed", icon: Database },
         { name: "조직(본사) 관리", href: "/dashboard/admin/organizations", icon: Building2 },
         { name: "구독 · 결제 관제", href: "/dashboard/billing-admin", icon: CreditCard },
         { name: "글로벌 공지", href: "/dashboard/announcements", icon: ScrollText },

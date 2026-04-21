@@ -21,16 +21,14 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { 
-  AlertDialog, 
-  AlertDialogAction, 
-  AlertDialogCancel, 
-  AlertDialogContent, 
-  AlertDialogDescription, 
-  AlertDialogFooter, 
-  AlertDialogHeader, 
-  AlertDialogTitle, 
-  AlertDialogTrigger 
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { MoreHorizontal, Pencil, Trash2, Package } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -41,7 +39,8 @@ interface ProductTableProps {
   products: Product[];
   onSelectionChange: (selectedIds: string[]) => void;
   onEdit: (product: Product) => void;
-  onDelete: (id: string) => void;
+  /** true 이면 다이얼로그를 닫습니다. */
+  onDelete: (id: string) => Promise<boolean>;
   selectedProducts?: string[];
 }
 
@@ -53,6 +52,8 @@ export function ProductTable({
   selectedProducts = [] 
 }: ProductTableProps) {
   const [selectedRows, setSelectedRows] = useState<Record<string, boolean>>({});
+  const [pendingDelete, setPendingDelete] = useState<Product | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const handleSelectionChange = (id: string) => {
     const newSelection = { ...selectedRows, [id]: !selectedRows[id] };
@@ -163,48 +164,32 @@ export function ProductTable({
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <AlertDialog>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger render={
+                      <DropdownMenu>
+                        <DropdownMenuTrigger
+                          render={
                             <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500">
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
-                          } />
-                          <DropdownMenuContent align="end" className="w-40">
-                            <DropdownMenuGroup>
-                              <DropdownMenuLabel className="text-xs text-slate-500 px-2 py-1.5">관리</DropdownMenuLabel>
-                            </DropdownMenuGroup>
-                            <DropdownMenuItem onClick={() => onEdit(product)}>
-                              <Pencil className="mr-2 h-4 w-4" />
-                              수정
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <AlertDialogTrigger nativeButton={false} render={
-                              <DropdownMenuItem className="text-red-600 focus:text-red-600">
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                삭제
-                              </DropdownMenuItem>
-                            } />
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle className="text-slate-900">상품 삭제</AlertDialogTitle>
-                            <AlertDialogDescription className="text-slate-500">
-                              정말로 '{product.name}' 상품을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>취소</AlertDialogCancel>
-                            <AlertDialogAction 
-                              className="bg-red-600 hover:bg-red-700"
-                              onClick={() => onDelete(product.id)}
-                            >
-                              삭제
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                          }
+                        />
+                        <DropdownMenuContent align="end" className="w-40">
+                          <DropdownMenuGroup>
+                            <DropdownMenuLabel className="text-xs text-slate-500 px-2 py-1.5">관리</DropdownMenuLabel>
+                          </DropdownMenuGroup>
+                          <DropdownMenuItem onClick={() => onEdit(product)}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            수정
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-red-600 focus:text-red-600"
+                            onClick={() => setPendingDelete(product)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            삭제
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 );
@@ -222,6 +207,42 @@ export function ProductTable({
           </TableBody>
         </Table>
       </CardContent>
+
+      <AlertDialog
+        open={pendingDelete !== null}
+        onOpenChange={(open) => {
+          if (!open && !deleting) setPendingDelete(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-slate-900">상품 삭제</AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-500">
+              정말로 &apos;{pendingDelete?.name}&apos; 상품을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>취소</AlertDialogCancel>
+            <Button
+              type="button"
+              className="bg-red-600 hover:bg-red-700 text-white"
+              disabled={deleting}
+              onClick={async () => {
+                if (!pendingDelete) return;
+                setDeleting(true);
+                try {
+                  const ok = await onDelete(pendingDelete.id);
+                  if (ok) setPendingDelete(null);
+                } finally {
+                  setDeleting(false);
+                }
+              }}
+            >
+              {deleting ? "삭제 중…" : "삭제"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }

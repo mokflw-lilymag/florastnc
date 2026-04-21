@@ -90,18 +90,15 @@ export default function TenantsPage() {
   const fetchTenants = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('tenants')
-        .select(`
-          *,
-          profiles(email, role)
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setTenants((data as any[]) || []);
-    } catch (err: any) {
-      console.error("Error fetching tenants:", err);
+      const res = await fetch("/api/admin/tenants");
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(typeof json?.error === "string" ? json.error : res.statusText);
+      }
+      setTenants((json.tenants as TenantWithProfile[]) || []);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("Error fetching tenants:", msg, err);
       if (isSuperAdmin) {
         toast.error("데이터를 불러오지 못했습니다.");
       }

@@ -198,17 +198,20 @@ export class PrintCommander {
       }];
 
       for (const renderData of pagesToRender) {
-        // 폼텍 라벨 인쇄 시 출력 용지는 항상 A4(210x297)로 고정
-        const outputWidthMm = 210;
-        const outputHeightMm = 148 * 2; // = 297
-
         // [핵심] 디자인의 기준이 되는 폭과 높이 (그리드면 라벨 1칸 크기, 아니면 디자인 크기)
-        const designWidthMm = isGrid && config ? config.widthMm : (jobData.paperSizeMm.widthMm || outputWidthMm);
-        const designHeightMm = isGrid && config ? config.heightMm : (jobData.paperSizeMm.heightMm || outputHeightMm);
+        const isGrid = !!jobData.labelType;
+        const config = isGrid ? LABEL_CONFIGS[jobData.labelType!] : null;
+
+        // 출력 용지 사이즈 결정
+        const outputWidthMm = isGrid ? 210 : (jobData.paperSizeMm?.widthMm || 210);
+        const outputHeightMm = isGrid ? 297 : (jobData.paperSizeMm?.heightMm || 297);
+
+        const designWidthMm = isGrid && config ? config.widthMm : outputWidthMm;
+        const designHeightMm = isGrid && config ? config.heightMm : outputHeightMm;
 
         const page = pdfDoc.addPage([
           outputWidthMm * MM_TO_PT,
-          297 * MM_TO_PT
+          outputHeightMm * MM_TO_PT
         ]);
 
         // 그리드 모드일 때 선택된 칸이 없으면 '전체 칸'을 기본값으로 설정

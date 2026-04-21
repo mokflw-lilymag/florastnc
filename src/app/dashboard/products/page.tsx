@@ -122,13 +122,14 @@ export default function ProductsPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    try {
-      const success = await deleteProduct(id);
-      if (success) toast.success("상품이 삭제되었습니다.");
-    } catch (error) {
-      toast.error("삭제 중 오류가 발생했습니다.");
+  const handleDelete = async (id: string): Promise<boolean> => {
+    const result = await deleteProduct(id);
+    if (result.ok) {
+      toast.success("상품이 삭제되었습니다.");
+      return true;
     }
+    toast.error(result.message);
+    return false;
   };
 
   const handleLoadSamples = async () => {
