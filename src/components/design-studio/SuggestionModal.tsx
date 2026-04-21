@@ -40,24 +40,28 @@ export const SuggestionModal: React.FC<SuggestionModalProps> = ({ isOpen, onClos
   const handleSelect = (suggestion: any) => {
     const isFolding = foldType === 'half';
     const isLandscape = currentDimension.widthMm > currentDimension.heightMm;
-    const isInsidePage = activePage === 'inside';
     const isLabel = selectedPresetId?.startsWith('formtec-');
 
-    let startX = (margins.left + (currentDimension.widthMm - margins.right)) / 2;
-    let startY = (margins.top + (currentDimension.heightMm - margins.bottom)) / 2;
-    let width = (currentDimension.widthMm - margins.left - margins.right) - 10;
+    // 기본값: 전체 중앙
+    const fullWidth = currentDimension.widthMm;
+    const fullHeight = currentDimension.heightMm;
+    
+    // 카드 패널 너비 (절반)
+    const panelW = isFolding ? fullWidth / 2 : fullWidth;
+    
+    // 블록 너비 결정 (패널 너비의 약 80~90% 수준으로 넉넉하게)
+    const blockW = isLabel ? (fullWidth - 20) : Math.min(panelW - 20, 100);
+
+    // X 좌표 계산 (왼쪽 상단 기준)
+    let startX = (fullWidth - blockW) / 2;
+    // Y 좌표 계산 (상하 중앙 근처)
+    let startY = (fullHeight / 2) - 10;
 
     if (type === 'quote') {
-      if (isFolding) {
-        if (isLandscape) {
-          // 가로 접이의 왼쪽 면 정밀 중앙: (여백 ~ 접힘선)의 중간
-          startX = (margins.left + (currentDimension.widthMm / 2)) / 2;
-          width = (currentDimension.widthMm / 2) - margins.left - 10;
-        } else {
-          // 세로 접이의 상단 면 정밀 중앙: (여백 ~ 접힘선)의 중간
-          startY = (margins.top + (currentDimension.heightMm / 2)) / 2;
-          width = currentDimension.widthMm - margins.left - margins.right - 10;
-        }
+      if (isFolding && isLandscape) {
+        // 가로 접이 카드: 명언은 대개 '뒷면' 혹은 '내지 왼쪽'에 위치 (왼쪽 패널 0~105mm)
+        const panelCenter = panelW / 2;
+        startX = panelCenter - (blockW / 2);
       }
 
       if (suggestedQuoteBlockId) removeTextBlock(suggestedQuoteBlockId);
@@ -67,29 +71,23 @@ export const SuggestionModal: React.FC<SuggestionModalProps> = ({ isOpen, onClos
         y: startY,
         fontSize: 14,
         textAlign: 'center',
-        colorHex: isInsidePage ? '#1e293b' : '#ffffff',
-        strokeWidth: isInsidePage ? 0 : 0.5,
-        strokeColor: isInsidePage ? 'transparent' : '#000000',
+        colorHex: '#1e293b',
+        strokeWidth: 0,
+        strokeColor: '#ffffff',
         fontFamily: "'Gowun Batang', serif",
-        opacity: isInsidePage ? 1.0 : 0.8,
-        width: width,
+        opacity: 1.0,
+        width: blockW,
         lineHeight: 1.6,
-        textShadow: isInsidePage ? 'none' : 'rgba(0,0,0,0.5) 0px 2px 4px'
+        textShadow: 'none'
       });
       setSuggestedQuoteBlockId(id);
       if (!isLabel && activePage === 'outside') setActivePage('inside');
       else if (isLabel) setSelectedBlockId(id);
     } else {
-      if (isFolding) {
-        if (isLandscape) {
-          // 가로 접이의 오른쪽 면 정밀 중앙: (접힘선 ~ 우측 여백 제외 끝)의 중간
-          startX = (currentDimension.widthMm / 2 + (currentDimension.widthMm - margins.right)) / 2;
-          width = (currentDimension.widthMm / 2) - margins.right - 10;
-        } else {
-          // 세로 접이의 하단 면 정밀 중앙: (접힘선 ~ 하단 여백 제외 끝)의 중간
-          startY = (currentDimension.heightMm / 2 + (currentDimension.heightMm - margins.bottom)) / 2;
-          width = currentDimension.widthMm - margins.left - margins.right - 10;
-        }
+      if (isFolding && isLandscape) {
+        // 가로 접이 카드: 메시지는 '내지 오른쪽' (오른쪽 패널 105~210mm)
+        const panelCenter = (fullWidth * 0.75);
+        startX = panelCenter - (blockW / 2);
       }
 
       if (suggestedMessageBlockId) removeTextBlock(suggestedMessageBlockId);
@@ -97,16 +95,16 @@ export const SuggestionModal: React.FC<SuggestionModalProps> = ({ isOpen, onClos
         text: suggestion.content,
         x: startX,
         y: startY,
-        fontSize: 15, // [교정] 조건 없이 기본 15px로 고정
+        fontSize: 15,
         textAlign: 'center',
-        colorHex: isInsidePage ? '#000000' : '#ffffff',
-        strokeWidth: isInsidePage ? 0 : 0.5,
-        strokeColor: isInsidePage ? 'transparent' : '#000000',
+        colorHex: '#1e293b',
+        strokeWidth: 0,
+        strokeColor: '#ffffff',
         fontFamily: "'Gowun Batang', serif",
         opacity: 1.0,
-        width: width,
+        width: blockW,
         lineHeight: 1.6,
-        textShadow: isInsidePage ? 'none' : 'rgba(0,0,0,0.5) 0px 2px 4px'
+        textShadow: 'none'
       });
       setSuggestedMessageBlockId(id);
       if (!isLabel && activePage === 'outside') setActivePage('inside');
@@ -119,7 +117,7 @@ export const SuggestionModal: React.FC<SuggestionModalProps> = ({ isOpen, onClos
     .filter(s => s.category === selectedCategory && s.lang === selectedLang);
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[1000] flex items-center justify-center p-4 animate-in fade-in duration-300">
       <div className="bg-white rounded-[2.5rem] w-full max-w-5xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden border border-white/20">
         {/* Header */}
         <div className={`p-8 border-b border-gray-100 flex items-center justify-between ${type === 'quote' ? 'bg-emerald-50/30' : 'bg-blue-50/30'}`}>

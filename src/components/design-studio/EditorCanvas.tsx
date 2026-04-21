@@ -11,7 +11,7 @@ import {
 import { useEditorStore } from '@/stores/design-store';
 import { DraggableText } from './DraggableText';
 import { DraggableImage } from './DraggableImage';
-import { Trash2, Sparkles } from 'lucide-react';
+import { Trash2, Sparkles, Maximize2, Minimize2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 export const EditorCanvas: React.FC = () => {
@@ -100,6 +100,25 @@ export const EditorCanvas: React.FC = () => {
   };
 
   const containerRef = React.useRef<HTMLDivElement>(null);
+  const [isFullscreen, setIsFullscreen] = React.useState(false);
+
+  React.useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      containerRef.current?.requestFullscreen().catch(err => {
+        console.error(`Error attempting to enable fullscreen mode: ${err.message}`);
+      });
+    } else {
+      document.exitFullscreen();
+    }
+  };
 
   React.useEffect(() => {
     const container = containerRef.current;
@@ -138,8 +157,16 @@ export const EditorCanvas: React.FC = () => {
     <div className="flex flex-col gap-4 w-full h-full">
       <div 
         ref={containerRef}
-        className="flex-1 w-full flex justify-center items-center p-3 sm:p-8 lg:p-12 bg-slate-50/50 rounded-2xl sm:rounded-[40px] border-2 border-dashed border-slate-200/60 shadow-inner overflow-auto relative group transition-all min-h-[200px]"
+        className={`flex-1 w-full flex justify-center items-center p-3 sm:p-8 lg:p-12 ${isFullscreen ? 'bg-slate-200/90' : 'bg-slate-100 rounded-2xl sm:rounded-[40px] shadow-inner'} overflow-auto relative group transition-all min-h-[200px]`}
       >
+        <button
+          onClick={toggleFullscreen}
+          className="absolute top-4 right-4 z-[90] p-2.5 bg-white/80 backdrop-blur-sm rounded-xl shadow-sm text-slate-500 hover:text-indigo-600 hover:scale-110 transition-all border border-slate-200"
+          title={isFullscreen ? "원래 화면으로 축소" : "전체 모니터 꽉 차게 보기"}
+        >
+          {isFullscreen ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
+        </button>
+
         <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
           <div
             onClick={() => useEditorStore.getState().setSelectedBlockId(null)}
@@ -148,10 +175,23 @@ export const EditorCanvas: React.FC = () => {
               width: `${canvasWidthPx}px`,
               height: `${canvasHeightPx}px`,
               backgroundColor: '#ffffff',
-              boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+              boxShadow: '0 20px 40px -10px rgba(0,0,0,0.15), 0 0 10px rgba(0,0,0,0.03)',
               overflow: 'hidden',
+              // [추가] 정밀 작업용 mm 그리드 배경
+              backgroundImage: `
+                linear-gradient(to right, rgba(0,0,0,0.03) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(0,0,0,0.03) 1px, transparent 1px),
+                linear-gradient(to right, rgba(0,0,0,0.08) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(0,0,0,0.08) 1px, transparent 1px)
+              `,
+              backgroundSize: `
+                ${zoom}px ${zoom}px,
+                ${zoom}px ${zoom}px,
+                ${zoom * 10}px ${zoom * 10}px,
+                ${zoom * 10}px ${zoom * 10}px
+              `,
             }}
-            className="ring-1 ring-gray-200"
+            className="ring-1 ring-slate-900/5 transition-all duration-300"
           >
             {/* Background Layers */}
             <div style={{ position: 'absolute', inset: 0, zIndex: 0, display: 'flex', flexDirection: isLandscape ? 'row' : 'column', backgroundColor: '#ffffff' }}>
@@ -166,9 +206,11 @@ export const EditorCanvas: React.FC = () => {
                       backgroundSize: 'cover',
                       backgroundPosition: 'center',
                       backgroundColor: '#f8fafc',
-                      borderRight: isLandscape ? '0.5px solid rgba(0,0,0,0.05)' : 'none',
-                      borderBottom: !isLandscape ? '0.5px solid rgba(0,0,0,0.05)' : 'none'
-                    }} />
+                      borderRight: isLandscape ? '1px solid rgba(0,0,0,0.05)' : 'none',
+                      borderBottom: !isLandscape ? '1px solid rgba(0,0,0,0.05)' : 'none'
+                    }}>
+                      <div className="absolute top-2 left-2 text-[8px] font-black text-gray-200 uppercase tracking-widest z-[10]">Back Cover (Left)</div>
+                    </div>
                     <div style={{ 
                       flex: 1, 
                       backgroundImage: frontBackgroundUrl ? `url('${frontBackgroundUrl}')` : undefined, 
@@ -177,7 +219,7 @@ export const EditorCanvas: React.FC = () => {
                       backgroundColor: '#f1f5f9',
                       position: 'relative'
                     }}>
-                      {/* Loading Overlay for AI Generation */}
+                      <div className="absolute top-2 left-2 text-[8px] font-black text-gray-200 uppercase tracking-widest z-[10]">Front Cover (Right)</div>
                       {!frontBackgroundUrl && (
                         <div className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-gray-300 uppercase tracking-tighter">
                           Front Cover
@@ -192,8 +234,11 @@ export const EditorCanvas: React.FC = () => {
                     backgroundImage: backgroundUrl ? `url('${backgroundUrl}')` : 'none',
                     backgroundColor: backgroundUrl ? 'transparent' : '#ffffff',
                     backgroundSize: 'cover',
-                    backgroundPosition: 'center'
-                  }} />
+                    backgroundPosition: 'center',
+                    position: 'relative'
+                  }}>
+                     <div className="absolute top-2 left-2 text-[8px] font-black text-gray-200 uppercase tracking-widest z-[10]">Inside Page</div>
+                  </div>
                 )
               ) : (
                 // 일반 카드 (Flat)

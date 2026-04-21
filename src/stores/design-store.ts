@@ -52,7 +52,8 @@ export interface TextBlock {
   opacity?: number;
   isLocked?: boolean;
   width?: number; // 가로 너비 (mm)
-  lineHeight?: number; // 줄 간격 (기본 1.0)
+  lineHeight?: number; // 줄 간격 (기본 1.6)
+  letterSpacing?: number; // 자간 (mm 또는 em, 여기선 mm 기준 가공 예정)
   rotation?: number; // 회전 (도)
   textShadow?: string; // CSS 텍스트 그림자 속성
   strokeColor?: string; // 테두리 색상
@@ -142,6 +143,8 @@ interface EditorState {
   suggestedQuoteBlockId: string | null;
   zoom: number;
   isGenerating: boolean;
+  formtecSelectedCells: number[];
+  formtecAdditionalMessage: string;
 
   shopSettings: ShopSettings;
   tenantId: string | null;
@@ -157,6 +160,8 @@ interface EditorState {
   setFromBlockId: (id: string | null) => void;
   setSuggestedMessageBlockId: (id: string | null) => void;
   setSuggestedQuoteBlockId: (id: string | null) => void;
+  setFormtecSelectedCells: (cells: number[]) => void;
+  setFormtecAdditionalMessage: (msg: string) => void;
   setActivePage: (page: 'outside' | 'inside') => void;
   setDimension: (dimension: Dimension, presetId: string) => void;
   setOrientation: (orientation: Orientation) => void;
@@ -186,11 +191,12 @@ interface EditorState {
   setDesignId: (id: string | null) => void;
   setTenantId: (id: string | null) => void;
   toggleFoldingGuide: () => void;
-
   updateShopSettings: (updates: Partial<ShopSettings>) => void;
   applyShopBranding: (target: 'front' | 'back', options?: BrandingOptions) => void;
   moveSelectedBlocks: (dx: number, dy: number) => void;
   resetDesign: () => void;
+  alignDesignCenter: (specificDimension?: { widthMm: number, heightMm: number }) => void;
+  setPaperSize: (dimension: { widthMm: number, heightMm: number }) => void;
   currentOrderId: string | null;
   setCurrentOrderId: (id: string | null) => void;
 }
@@ -233,8 +239,12 @@ export const useEditorStore = create<EditorState>()(
       zoom: 3.78,
       isGenerating: false,
       currentOrderId: null,
+      formtecSelectedCells: [],
+      formtecAdditionalMessage: '',
 
       setCurrentOrderId: (id) => set({ currentOrderId: id }),
+      setFormtecSelectedCells: (cells) => set({ formtecSelectedCells: cells }),
+      setFormtecAdditionalMessage: (msg) => set({ formtecAdditionalMessage: msg }),
 
       resetDesign: () => set((state) => ({
         designId: null,
@@ -386,55 +396,77 @@ export const useEditorStore = create<EditorState>()(
         const scaleY = dimension.heightMm / state.currentDimension.heightMm;
         const scaleFont = Math.min(scaleX, scaleY);
 
+        const wasLabel = state.selectedPresetId?.startsWith('formtec-');
         const isLabel = presetId?.startsWith('formtec-');
         const isCard = presetId === 'a5' || presetId === 'a6' || presetId === 'postcard' || dimension.widthMm === 210;
-        const newMargins = { top: 5, right: 5, bottom: 5, left: 5 };
+        const panelWidth = isCard ? dimension.widthMm / 2 : dimension.widthMm;
+        const newMargins = { top: 10, right: 10, bottom: 10, left: 10 };
         const newFoldType: FoldType = isLabel ? 'none' : 'half';
+        const newActivePage: PageSide = (wasLabel && isCard) ? 'inside' : state.activePage;
 
         // [지능형 판단] 용지 종류에 따른 자동 정렬 위치 값 (mm 단위)
-        const getAutoX = (currentX: number, blockWidth: number = 0) => {
-          if (isLabel) return dimension.widthMm / 2 - (blockWidth / 2);
-          if (isCard && state.activePage === 'inside') return (dimension.widthMm * 0.75) - (blockWidth / 2);
-          if (isCard && state.activePage === 'outside') return (dimension.widthMm * 0.5) - (blockWidth / 2);
+        const getAutoX = (currentX: number, blockWidth: number = 0, targetPage: PageSide) => {
+          if (isLabel) return (dimension.widthMm / 2) - (blockWidth / 2);
+          
+          if (isCard) {
+            const panelStartX = dimension.widthMm / 2;
+            const panelCenter = panelStartX + (panelWidth / 2);
+            return panelCenter - (blockWidth / 2); // 왼쪽 상단 좌표 반환
+          }
+          
           return currentX * scaleX;
         };
 
-        const getAutoY = (currentY: number) => {
-          if (isLabel || isCard) return dimension.heightMm * 0.45; // 약간 위쪽 중앙
+        const getAutoWidth = (currentWidth: number | undefined) => {
+          if (!currentWidth) return undefined;
+          const scaledWidth = currentWidth * scaleX;
+          if (isCard) return Math.min(scaledWidth, panelWidth - 20);
+          return scaledWidth;
+        };
+
+        const getAutoY = (currentY: number, blockHeight: number = 0) => {
+          if (isLabel || isCard) return (dimension.heightMm * 0.45) - (blockHeight / 2); // 위쪽 중앙 기준 왼쪽 상단 좌표
           return currentY * scaleY;
         };
 
-        const scaleTextBlocks = (blocks: TextBlock[]) => blocks.map(b => {
-          const newWidth = b.width ? b.width * scaleX : undefined;
+        const scaleTextBlocks = (blocks: TextBlock[], targetPage: PageSide) => blocks.map(b => {
+          const newW = getAutoWidth(b.width) || panelWidth * 0.8;
           return {
             ...b,
-            x: getAutoX(b.x, b.width),
+            x: getAutoX(b.x, newW, targetPage),
             y: getAutoY(b.y),
-            width: newWidth,
+            width: newW,
             fontSize: b.fontSize * scaleFont,
           };
         });
 
-        const scaleImageBlocks = (blocks: ImageBlock[]) => blocks.map(b => ({
-          ...b,
-          x: getAutoX(b.x, b.width),
-          y: getAutoY(b.y),
-          width: b.width * scaleX,
-          height: b.height * scaleY,
-        }));
+        const scaleImageBlocks = (blocks: ImageBlock[], targetPage: PageSide) => blocks.map(b => {
+          const newW = getAutoWidth(b.width) || panelWidth * 0.5;
+          return {
+            ...b,
+            x: getAutoX(b.x, newW, targetPage),
+            y: getAutoY(b.y),
+            width: newW,
+            height: b.height * scaleY,
+          };
+        });
+
+        // 라벨에서 카드로 갈 때는 현재 내용을 내지로 복사
+        const sourceTextBlocks = (wasLabel && isCard) ? state.textBlocks : state.pages.outside.textBlocks;
+        const sourceImageBlocks = (wasLabel && isCard) ? state.imageBlocks : state.pages.outside.imageBlocks;
 
         const updatedPages = {
           outside: {
             ...state.pages.outside,
             margins: newMargins,
-            textBlocks: scaleTextBlocks(state.pages.outside.textBlocks),
-            imageBlocks: scaleImageBlocks(state.pages.outside.imageBlocks)
+            textBlocks: scaleTextBlocks(state.pages.outside.textBlocks, 'outside'),
+            imageBlocks: scaleImageBlocks(state.pages.outside.imageBlocks, 'outside')
           },
           inside: {
             ...state.pages.inside,
             margins: newMargins,
-            textBlocks: scaleTextBlocks(state.pages.inside.textBlocks),
-            imageBlocks: scaleImageBlocks(state.pages.inside.imageBlocks)
+            textBlocks: scaleTextBlocks((wasLabel && isCard) ? state.textBlocks : state.pages.inside.textBlocks, 'inside'),
+            imageBlocks: scaleImageBlocks((wasLabel && isCard) ? state.imageBlocks : state.pages.inside.imageBlocks, 'inside')
           }
         };
 
@@ -442,9 +474,10 @@ export const useEditorStore = create<EditorState>()(
           currentDimension: dimension,
           selectedPresetId: presetId || null,
           foldType: newFoldType,
+          activePage: newActivePage,
           margins: newMargins,
-          textBlocks: scaleTextBlocks(state.textBlocks),
-          imageBlocks: scaleImageBlocks(state.imageBlocks),
+          textBlocks: newActivePage === 'inside' ? updatedPages.inside.textBlocks : updatedPages.outside.textBlocks,
+          imageBlocks: newActivePage === 'inside' ? updatedPages.inside.imageBlocks : updatedPages.outside.imageBlocks,
           pages: updatedPages
         };
       }),
@@ -827,34 +860,76 @@ export const useEditorStore = create<EditorState>()(
 
         if (options.tel && shopSettings.tel) {
           addTextBlock({
-            text: `Tel. ${shopSettings.tel}`,
-            x: sectionCenterX,
-            y: currentY + (TEL_H / 2),
-            fontSize: 7,
-            fontFamily: "'GmarketSansBold', sans-serif",
-            textAlign: 'center',
-            colorHex: '#475569',
-            width: TEXT_W,
-            opacity: 0.9,
-            rotation: rotation
+            x: sectionCenterX - (TEXT_W / 2),
+            y: currentY,
           });
           currentY += TEL_H + GAP;
         }
+      },
+      setPaperSize: (dimension) => set({ currentDimension: dimension }),
+      alignDesignCenter: (specificDimension) => {
+        const state = get();
+        const { textBlocks, imageBlocks, currentDimension, activePage, pages, selectedPresetId } = state;
+        const targetDimension = specificDimension || currentDimension;
+        const isCard = selectedPresetId === 'a5' || selectedPresetId === 'a6' || selectedPresetId === 'postcard' || targetDimension.widthMm === 210;
+        
+        if (textBlocks.length === 0 && imageBlocks.length === 0) return;
 
-        if (options.website && shopSettings.website) {
-          addTextBlock({
-            text: shopSettings.website,
-            x: sectionCenterX,
-            y: currentY + (WEB_H / 2),
-            fontSize: 6,
-            fontFamily: "'Noto Sans KR', sans-serif",
-            textAlign: 'center',
-            colorHex: '#94a3b8',
-            width: TEXT_W,
-            opacity: 0.8,
-            rotation: rotation
+        // [지능형 영역 판단] 카드인 경우 우측 패널 중앙을 목표로 함
+        const targetAreaX = isCard ? targetDimension.widthMm * 0.5 : 0;
+        const targetAreaWidth = isCard ? targetDimension.widthMm * 0.5 : targetDimension.widthMm;
+
+        // 1. Calculate bounding box
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        [...textBlocks, ...imageBlocks].forEach(block => {
+          const w = block.width || (('text' in block) ? targetAreaWidth * 0.8 : 20);
+          const h = block.height || (('text' in block) ? 10 : 20);
+          minX = Math.min(minX, block.x);
+          minY = Math.min(minY, block.y);
+          maxX = Math.max(maxX, block.x + w);
+          maxY = Math.max(maxY, block.y + h);
+        });
+
+        const contentWidth = maxX - minX;
+        const contentHeight = maxY - minY;
+        
+        // 2. [특수 로직] 단일 블록일 경우
+        if (textBlocks.length === 1 && imageBlocks.length === 0) {
+          const b = textBlocks[0];
+          const newW = Math.min(b.width || targetAreaWidth * 0.8, targetAreaWidth - 20);
+          const newTextBlocks = [{
+            ...b,
+            width: newW,
+            x: targetAreaX + (targetAreaWidth - newW) / 2, // 패널 내 중앙 배치 (왼쪽 상단 좌표)
+            y: (targetDimension.heightMm - (b.height || 20)) / 2,
+            textAlign: 'center' as const
+          }];
+          set({
+            textBlocks: newTextBlocks,
+            pages: { ...pages, [activePage]: { ...pages[activePage], textBlocks: newTextBlocks } }
           });
+          return;
         }
+
+        // 3. 다중 블록 일괄 이동
+        const offsetX = targetAreaX + (targetAreaWidth - contentWidth) / 2 - minX;
+        const offsetY = (targetDimension.heightMm - contentHeight) / 2 - minY;
+
+        const newTextBlocks = textBlocks.map(b => ({ ...b, x: b.x + offsetX, y: b.y + offsetY }));
+        const newImageBlocks = imageBlocks.map(b => ({ ...b, x: b.x + offsetX, y: b.y + offsetY }));
+
+        set({
+          textBlocks: newTextBlocks,
+          imageBlocks: newImageBlocks,
+          pages: {
+            ...pages,
+            [activePage]: {
+              ...pages[activePage],
+              textBlocks: newTextBlocks,
+              imageBlocks: newImageBlocks
+            }
+          }
+        });
       }
     }),
     {

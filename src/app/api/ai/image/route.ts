@@ -15,14 +15,14 @@ export async function POST(req: NextRequest) {
 
     const selectedStyle = styleKeywords[style as keyof typeof styleKeywords] || styleKeywords.photo;
     const timestamp = Date.now();
-    const finalPrompt = `Premium greeting card art: ${prompt}, ${theme} theme, in ${selectedStyle} style, no text, masterpiece, high quality, 8k, elegant --v ${timestamp}`;
+    const finalPrompt = `FRAMELESS MACRO TEXTURE. Edge-to-edge full bleed background covering the entire frame. STRICTLY NO borders, NO margins, NO frames, NO white edges, NO polaroid effects, NO humans, NO people, NO figures. A beautiful pure background texture with ${prompt}, ${theme} theme, in ${selectedStyle} style. 100% NO text, NO typography, NO alphabets, NO symbols. Abstract pattern or continuous botanical texture only, clear uncluttered area, subtle design, masterpiece, high quality, 8k --v ${timestamp}`;
 
     console.log(`--- [SERVER] AI Multi-Image Generation (${count} images) ---`);
 
     // 병렬 생성을 위해 여러 개의 프로미스 생성
     const generationPromises = Array.from({ length: count }).map(async (_, idx) => {
       const seed = Math.floor(Math.random() * 2147483647);
-      let pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(finalPrompt)}?width=1024&height=1024&seed=${seed}&nologo=true&enhance=true&model=flux`;
+      let pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(finalPrompt)}?width=1024&height=1024&seed=${seed}&nologo=true&model=flux`;
       if (apiKey) pollinationsUrl += `&key=${apiKey}`;
 
       const headers: Record<string, string> = {

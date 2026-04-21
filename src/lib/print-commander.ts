@@ -124,8 +124,25 @@ export class PrintCommander {
       jobData.pages?.forEach(p => p.textBlocks.forEach(b => b.fontFamily && uniqueFonts.add(b.fontFamily)));
       jobData.textBlocks?.forEach(b => b.fontFamily && uniqueFonts.add(b.fontFamily));
 
+      // [폰트 URL 로드]
+      const getFontUrl = (family: string) => {
+        const clean = family.replace(/['"]/g, '').toLowerCase();
+        const matchedKey = Object.keys(FONT_URLS).find(k => {
+          const cleanK = k.replace(/['"]/g, '').toLowerCase();
+          return cleanK === clean || cleanK.split(',')[0].trim() === clean;
+        });
+        
+        if (matchedKey) return FONT_URLS[matchedKey];
+        
+        // 특정 폰트(고운바탕/명조)에 대한 하드코딩된 백업 주소
+        if (clean.includes('batang') || clean.includes('myungjo')) {
+          return "https://fonts.gstatic.com/s/gowunbatang/v5/rax_HiS_Ym6_B_Y2G0x906fKzL6K.ttf";
+        }
+        return null;
+      };
+
       for (const family of Array.from(uniqueFonts)) {
-        const url = FONT_URLS[family];
+        const url = getFontUrl(family);
         if (!url || family === "sans-serif") continue;
         
         try {
@@ -134,6 +151,15 @@ export class PrintCommander {
           const fontBytes = await res.arrayBuffer();
           embeddedFonts[family] = await pdfDoc.embedFont(fontBytes);
         } catch (e) {
+          // 백업 주소로 한 번 더 시도 (고운바탕인 경우)
+          if (family.toLowerCase().includes('batang')) {
+            try {
+              const res2 = await fetch("https://fonts.gstatic.com/s/gowunbatang/v5/rax_HiS_Ym6_B_Y2G0x906fKzL6K.ttf");
+              const bytes2 = await res2.arrayBuffer();
+              embeddedFonts[family] = await pdfDoc.embedFont(bytes2);
+              continue;
+            } catch(e2) {}
+          }
           console.warn(`Font load failed for ${family}. Falling back to default CJK font.`, e);
           embeddedFonts[family] = primaryCJKFont;
         }
@@ -141,32 +167,55 @@ export class PrintCommander {
       
       const getFont = (family?: string) => {
         if (!family) return primaryCJKFont;
-        const cleanFamily = family.replace(/['"]/g, '').trim(); 
-        // 폰트명 정규화 매칭 시도
-        const matched = embeddedFonts[family] || embeddedFonts[Object.keys(embeddedFonts).find(k => k.includes(cleanFamily)) || ""] || primaryCJKFont;
-        return matched;
-      };
+        const cleanFamily = family.replace(/['"]/g, '').replace(/\s+/g, '').toLowerCase().trim(); 
+        
+        // 1. 직접 매칭 시도
+        const matchedKey = Object.keys(embeddedFonts).find(k => {
+          const cleanKey = k.replace(/['"]/g, '').replace(/\s+/g, '').toLowerCase();
+          return cleanKey === cleanFamily || cleanKey.split(',')[0].trim() === cleanFamily;
+        });
 
-      const pagesToRender = jobData.pages || [{
-        backgroundUrl: jobData.backgroundUrl || null,
-        textBlocks: jobData.textBlocks || []
-      }];
+        if (matchedKey) return embeddedFonts[matchedKey];
+        
+        // 2. 스타일 기반 매칭 (손글씨 등)
+        if (cleanFamily.includes('pen') || cleanFamily.includes('script') || cleanFamily.includes('hand') || cleanFamily.includes('cursive')) {
+           const scriptKey = Object.keys(embeddedFonts).find(k => 
+             k.toLowerCase().includes('pen') || k.toLowerCase().includes('script') || k.toLowerCase().includes('cursive')
+           );
+           if (scriptKey) return embeddedFonts[scriptKey];
+        }
+
+        return primaryCJKFont;
+      };
 
       const isGrid = !!jobData.labelType;
       const config = isGrid ? LABEL_CONFIGS[jobData.labelType!] : null;
 
+      const pagesToRender = jobData.pages || [{
+        backgroundUrl: jobData.backgroundUrl || null,
+        textBlocks: jobData.textBlocks || [],
+        imageBlocks: jobData.imageBlocks || []
+      }];
+
       for (const renderData of pagesToRender) {
         // 폼텍 라벨 인쇄 시 출력 용지는 항상 A4(210x297)로 고정
-        const outputWidthMm = isGrid ? 210 : (jobData.paperSizeMm.widthMm || 210);
-        const outputHeightMm = isGrid ? 297 : (jobData.paperSizeMm.heightMm || 148);
+        const outputWidthMm = 210;
+        const outputHeightMm = 148 * 2; // = 297
+
+        // [핵심] 디자인의 기준이 되는 폭과 높이 (그리드면 라벨 1칸 크기, 아니면 디자인 크기)
+        const designWidthMm = isGrid && config ? config.widthMm : (jobData.paperSizeMm.widthMm || outputWidthMm);
+        const designHeightMm = isGrid && config ? config.heightMm : (jobData.paperSizeMm.heightMm || outputHeightMm);
 
         const page = pdfDoc.addPage([
           outputWidthMm * MM_TO_PT,
-          outputHeightMm * MM_TO_PT
+          297 * MM_TO_PT
         ]);
 
+        // 그리드 모드일 때 선택된 칸이 없으면 '전체 칸'을 기본값으로 설정
         const cellsToRender = isGrid 
-          ? (jobData.selectedCells?.length ? jobData.selectedCells : Array.from({length: config!.cells}, (_, i) => i))
+          ? (jobData.selectedCells && jobData.selectedCells.length > 0 
+              ? jobData.selectedCells 
+              : Array.from({length: config!.cells}, (_, i) => i))
           : [0];
 
         for (const cellIndex of cellsToRender) {
@@ -234,16 +283,16 @@ export class PrintCommander {
                   const imgDims = img.size();
                   const imgAspect = imgDims.width / imgDims.height;
                   
-                  // 물리적 크기 환산
-                  let drawW = (imgBlock.width / 210) * cellWidth;
-                  let drawH = (imgBlock.height / 148) * cellHeight;
+                  // [정교한 보정] 디자인 기준 사이즈를 사용하여 비율 계산
+                  let drawW = (imgBlock.width / designWidthMm) * cellWidth;
+                  let drawH = (imgBlock.height / designHeightMm) * cellHeight;
                   const containerAspect = drawW / drawH;
 
                   if (imgAspect > containerAspect) drawH = drawW / imgAspect;
                   else drawW = drawH * imgAspect;
                   
-                  const pdfCenterX = offsetX + (imgBlock.x / outputWidthMm) * cellWidth;
-                  const pdfCenterY = offsetY + cellHeight - ((imgBlock.y / outputHeightMm) * cellHeight);
+                  const pdfCenterX = offsetX + (imgBlock.x / designWidthMm) * cellWidth;
+                  const pdfCenterY = offsetY + cellHeight - ((imgBlock.y / designHeightMm) * cellHeight);
                   
                   page.drawImage(img, {
                     x: pdfCenterX - (drawW / 2),
@@ -259,30 +308,24 @@ export class PrintCommander {
           // [최종 병기] 텍스트 블록 렌더링 - 구역 가두기 및 자동 줄바꿈 적용
           for (const block of renderData.textBlocks) {
             const font = getFont(block.fontFamily);
-            // [정밀 보정] 브라우저(96dpi) px 단위를 PDF(72dpi) pt 단위로 1:1 매칭 (0.75배)
             const pdfFontSize = block.size * 0.75; 
             const color = this.hexToRgb(block.colorHex);
-            const lineHeight = pdfFontSize * 1.1; // 줄 간격을 더 타이트하게 조정
+            const lineHeight = pdfFontSize * (block.lineHeight || 1.6); 
 
-            // [구역 감지 및 가로폭 제한]
-            const isLeftSegment = block.x < 105;
-            const horizontalMarginMm = jobData.margins?.left || 10;
+            // 라벨 인쇄일 경우 별도의 내부 마진을 과하게 주지 않음 (디자인 그대로 반영)
+            const horizontalMarginMm = isGrid ? 0 : (jobData.margins?.left || 10);
             const marginPt = horizontalMarginMm * MM_TO_PT; 
-            const segmentWidthPt = (cellWidth / 2);
-            const maxContentWidthPt = segmentWidthPt - (marginPt * 2); // 여백(좌/우)을 제외한 가용 폭
+            const segmentWidthPt = isGrid ? cellWidth : (cellWidth / 2);
+            const maxContentWidthPt = segmentWidthPt - (marginPt * 2); 
 
             // [전문가형 자동 줄바꿈 로직]
-            const words = block.text.split(/(\s+)/);
-            let lines: string[] = [];
-            let currentLine = '';
-
-            // 강제 줄바꿈(\n) 처리 포함
+            const lines: string[] = [];
             block.text.split('\n').forEach(paragraph => {
                 const pWords = paragraph.split(' ');
                 let pLine = '';
                 for (const word of pWords) {
                     const testLine = pLine ? pLine + ' ' + word : word;
-                    const testWidth = font.widthOfTextAtSize(testLine, pdfFontSize);
+                    const testWidth = font ? font.widthOfTextAtSize(testLine, pdfFontSize) : 0;
                     if (testWidth > maxContentWidthPt && pLine) {
                         lines.push(pLine);
                         pLine = word;
@@ -296,21 +339,30 @@ export class PrintCommander {
             const totalHeight = lines.length * lineHeight;
 
             lines.forEach((line, index) => {
-              const textWidth = font.widthOfTextAtSize(line, pdfFontSize);
+              const textWidth = font ? font.widthOfTextAtSize(line, pdfFontSize) : 0;
               
-              // [전문가 로직] 기하학적 절대 좌표 산출 (여백에 휘둘리지 않는 1:1 매칭)
-              const pX = (block.x / outputWidthMm) * cellWidth;
-              const pY = (block.y / outputHeightMm) * cellHeight;
+              // [전문가 로직] 디자인 사이즈 기준의 절대 좌표 산출 (이미 Top-Left 기준)
+              const pX = (block.x / designWidthMm) * cellWidth;
+              const pY = (block.y / designHeightMm) * cellHeight;
+              
+              // 글상자 좌측 모서리 좌표
+              const boxLeftX = offsetX + pX;
+              const boxTopY = offsetY + cellHeight - pY;
 
-              let drawX = offsetX + pX;
-              // 텍스트 블록의 x/y는 블록의 '중앙' 기준이므로, 정렬 방식에 따라 오프셋 조정
-              if (block.textAlign === 'center') drawX -= (textWidth / 2);
-              else if (block.textAlign === 'right') drawX -= textWidth;
+              // 글상자 너비 환산
+              const blockWidthPt = (block.width! / designWidthMm) * cellWidth;
 
-              let drawY = offsetY + cellHeight - pY;
-              // 수직 중앙 정렬 보정: 텍스트 줄 수에 따른 높이 보정치를 수학적으로 산출
+              // [교정] 글상자 내에서의 텍스트 정렬 (글상자 좌측 X + (상자너비 - 글자너비)/2)
+              let drawX = boxLeftX;
+              if (block.textAlign === 'center') {
+                drawX = boxLeftX + (blockWidthPt - textWidth) / 2;
+              } else if (block.textAlign === 'right') {
+                drawX = boxLeftX + (blockWidthPt - textWidth);
+              }
+
+              // 세로 중앙 정렬 보정
               const verticalOffset = (totalHeight / 2) - (index * lineHeight) - (pdfFontSize * 0.35);
-              drawY += verticalOffset;
+              const drawY = boxTopY + verticalOffset;
 
               // 테두리 렌더링 (인쇄소 퀄리티용 8방향 셰도우)
               if (block.strokeWidth && block.strokeWidth > 0) {

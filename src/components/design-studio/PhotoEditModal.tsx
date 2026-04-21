@@ -233,8 +233,19 @@ export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose 
       tmpImg.onload = () => {
         setOriginalUrl(dataUrl); setCurrentUrl(dataUrl); setStickers([]);
         const imgAspect = tmpImg.naturalWidth / tmpImg.naturalHeight;
-        let initialScale = 0.95;
-        if (currentCardAspect && imgAspect > currentCardAspect) { initialScale = (currentCardAspect / imgAspect) * 0.95; }
+        let initialScale = 1.0;
+        
+        // --- Magic Auto-Cover Logic ---
+        // Instead of shrinking to 95% (which leaves white margins),
+        // we automatically calculate the scale needed to act like 'object-fit: cover'.
+        if (currentCardAspect) {
+          if (imgAspect > currentCardAspect) {
+            initialScale = imgAspect / currentCardAspect;
+          } else {
+            initialScale = currentCardAspect / imgAspect;
+          }
+        }
+        
         // Magic Auto-Fix on upload: subtle boost
         setTransform({ 
           ...DEFAULT_TRANSFORM, 
@@ -256,8 +267,14 @@ export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose 
       try {
         const img = await loadImage(currentUrl);
         const imgAspect = img.naturalWidth / img.naturalHeight;
-        let newScale = 0.95;
-        if (imgAspect > currentCardAspect) newScale = (currentCardAspect / imgAspect) * 0.95;
+        let newScale = 1.0;
+        if (currentCardAspect) {
+          if (imgAspect > currentCardAspect) {
+            newScale = imgAspect / currentCardAspect;
+          } else {
+            newScale = currentCardAspect / imgAspect;
+          }
+        }
         setTransform(prev => ({ ...prev, scale: newScale, x: 0, y: 0 }));
       } catch (e) {}
     };
@@ -731,7 +748,7 @@ export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[9000] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={onClose} />
       <div className="relative bg-white shadow-2xl rounded-[2.5rem] flex flex-col overflow-hidden animate-in zoom-in duration-300 border border-white/20" style={{ width: 'min(98vw, 1100px)', maxHeight: '92vh' }}>
         <div className="flex items-center justify-between px-8 py-5 border-b border-gray-100 bg-white shrink-0">

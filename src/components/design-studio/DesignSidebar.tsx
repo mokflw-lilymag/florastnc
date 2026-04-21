@@ -4,7 +4,8 @@ import React, { useState } from 'react';
 import {
   Type, Image as ImageIcon, Sparkles, Grid, Maximize, ArrowDown,
   MessageSquareText, User, Settings, Search, AlignLeft, AlignCenter,
-  AlignRight, ArrowUp, X, Store, Phone, MapPin, Camera, Wand2, Globe
+  AlignRight, ArrowUp, X, Store, Phone, MapPin, Camera, Wand2, Globe,
+  RotateCw, Layers, AlignJustify, MoveHorizontal
 } from 'lucide-react';
 import { useEditorStore } from '@/stores/design-store';
 import { PAPER_PRESETS } from '@/lib/constants/templates';
@@ -84,9 +85,14 @@ export const DesignSidebar: React.FC<DesignSidebarProps> = ({
       x: currentDimension.widthMm / 2,
       y: currentDimension.heightMm / 2,
       fontSize: 20,
-      colorHex: '#000000',
+      colorHex: '#1e293b',
       fontFamily: "'Bagel Fat One', cursive",
-      textAlign: 'center'
+      textAlign: 'center',
+      lineHeight: 1.6,
+      opacity: 1,
+      strokeWidth: 0,
+      strokeColor: '#ffffff',
+      textShadow: 'none'
     });
   };
 
@@ -105,8 +111,17 @@ export const DesignSidebar: React.FC<DesignSidebarProps> = ({
     <aside className="w-full lg:w-[340px] lg:shrink-0 border-r bg-white flex flex-col h-full min-h-0 shadow-xl z-20 overflow-hidden">
       <div className="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-4">
 
+        <div className="mb-2">
+          <button
+            onClick={handleAddText}
+            className="w-full flex items-center justify-center gap-2 p-4 bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-2xl hover:bg-indigo-100 font-black text-[13px] transition-all active:scale-95 shadow-sm"
+          >
+            <Type size={18} /> 카드 표지에 텍스트 쓰기
+          </button>
+        </div>
+
         {/* Quick Tools */}
-        <div className="grid grid-cols-2 gap-3 mb-2">
+        <div className="grid grid-cols-2 gap-3 mb-5">
           <button
             onClick={onOpenPhotoEditor}
             className="flex flex-col items-center justify-center p-4 bg-rose-50 border border-rose-100 rounded-[2rem] hover:border-rose-400 hover:bg-rose-100 transition-all group active:scale-95 shadow-sm"
@@ -114,7 +129,7 @@ export const DesignSidebar: React.FC<DesignSidebarProps> = ({
             <div className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center shadow-sm mb-2 group-hover:scale-110 transition-transform">
               <Camera size={20} className="text-rose-600" />
             </div>
-            <span className="text-[11px] font-black text-slate-700">매직 스튜지오</span>
+            <span className="text-[11px] font-black text-slate-700">매직 스튜디오</span>
           </button>
           <button
             onClick={onOpenAIFontWizard}
@@ -385,24 +400,63 @@ export const DesignSidebar: React.FC<DesignSidebarProps> = ({
                         </div>
                       </div>
 
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-center px-1">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">ROTATION (DEGREE)</label>
-                          <span className="text-[10px] font-black text-indigo-500">{(selectedBlock as any).rotation || 0}°</span>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center px-1">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">ROTATION</label>
+                            <span className="text-[10px] font-black text-indigo-500">{(selectedBlock as any).rotation || 0}°</span>
+                          </div>
+                          <div className="flex items-center gap-2 p-2.5 bg-slate-50 rounded-2xl">
+                             <RotateCw size={14} className="text-slate-300" />
+                             <input
+                               type="number"
+                               value={(selectedBlock as any).rotation || 0}
+                               onChange={(e) => updateTextBlockContent(selectedBlock.id, { rotation: parseInt(e.target.value) || 0 })}
+                               className="w-full bg-transparent text-xs font-black text-slate-600 border-none p-0 outline-none"
+                             />
+                          </div>
                         </div>
-                        <div className="flex items-center gap-4 p-3 bg-slate-50 rounded-2xl">
-                          <input
-                            type="range" min="-180" max="180" step="1"
-                            value={(selectedBlock as any).rotation || 0}
-                            onChange={(e) => updateTextBlockContent(selectedBlock.id, { rotation: parseInt(e.target.value) })}
-                            className="flex-1 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-                          />
-                          <input
-                            type="number"
-                            value={(selectedBlock as any).rotation || 0}
-                            onChange={(e) => updateTextBlockContent(selectedBlock.id, { rotation: parseInt(e.target.value) || 0 })}
-                            className="w-12 bg-transparent text-xs font-black text-slate-600 border-none p-0 outline-none text-right"
-                          />
+                        <div className="space-y-2">
+                           <div className="flex justify-between items-center px-1">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">OPACITY</label>
+                            <span className="text-[10px] font-black text-indigo-500">{Math.round(((selectedBlock as any).opacity ?? 1) * 100)}%</span>
+                          </div>
+                          <div className="flex items-center gap-2 p-2.5 bg-slate-50 rounded-2xl">
+                             <Layers size={14} className="text-slate-300" />
+                             <input
+                               type="range" min="0.1" max="1" step="0.1"
+                               value={(selectedBlock as any).opacity ?? 1}
+                               onChange={(e) => updateTextBlockContent(selectedBlock.id, { opacity: parseFloat(e.target.value) })}
+                               className="flex-1 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                             />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">LINE HEIGHT</label>
+                          <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl">
+                            <AlignJustify size={14} className="text-slate-300" />
+                            <input
+                              type="number" step="0.1" min="0.8" max="3"
+                              value={(selectedBlock as any).lineHeight || 1.6}
+                              onChange={(e) => updateTextBlockContent(selectedBlock.id, { lineHeight: Number(e.target.value) })}
+                              className="w-full bg-transparent text-xs font-black text-slate-600 border-none p-0 outline-none"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">LETTER SPACING</label>
+                          <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl">
+                            <MoveHorizontal size={14} className="text-slate-300" />
+                            <input
+                              type="number" step="0.1" min="-2" max="10"
+                              value={(selectedBlock as any).letterSpacing || 0}
+                              onChange={(e) => updateTextBlockContent(selectedBlock.id, { letterSpacing: Number(e.target.value) })}
+                              className="w-full bg-transparent text-xs font-black text-slate-600 border-none p-0 outline-none"
+                            />
+                          </div>
                         </div>
                       </div>
 
@@ -483,6 +537,22 @@ export const DesignSidebar: React.FC<DesignSidebarProps> = ({
                     </>
                   ) : (
                     <div className="space-y-6">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">IMAGE UPLOAD (사진/로고 등록)</label>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const url = URL.createObjectURL(file);
+                              updateImageBlockContent(selectedBlock.id, { url });
+                            }
+                          }}
+                          className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-indigo-100 file:text-indigo-700 hover:file:bg-indigo-200"
+                        />
+                      </div>
+
                       <button
                         onClick={onOpenPhotoEditor}
                         className="w-full py-6 bg-indigo-600 text-white rounded-[2rem] font-black text-sm shadow-xl hover:bg-indigo-700 transition-all flex items-center justify-center gap-3"

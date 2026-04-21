@@ -58,7 +58,9 @@ function DesignStudioContent() {
     resetDesign,
     currentOrderId,
     setCurrentOrderId,
+    setSelectedBlockId,
     textBlocks, 
+    imageBlocks,
     addTextBlock, 
     setDimension, 
     selectedPresetId, 
@@ -78,25 +80,32 @@ function DesignStudioContent() {
     setToBlockId,
     setFromBlockId,
     setMargins,
-    saveDesign
+    saveDesign,
+    setFormtecSelectedCells
   } = useEditorStore();
   const { tenantId } = useAuth();
   const touchUi = usePartnerTouchUi();
   const isAndroidApp = useIsCapacitorAndroid();
   const [mobileStudioTab, setMobileStudioTab] = useState<'tools' | 'canvas'>('canvas');
 
-  /** 모바일에서 미리보기 탭일 때 카드가 화면에 들어가도록 줌 자동 맞춤 */
+  /** 화면 크기에 맞춰 종이가 꽉 차도록 줌(Zoom) 자동 조절 */
   useEffect(() => {
-    if (!touchUi || mobileStudioTab !== 'canvas') return;
     const fit = () => {
       const { currentDimension: dim, setZoom: sz } = useEditorStore.getState();
-      const vw = window.innerWidth - 20;
-      const vh = window.innerHeight - (isAndroidApp ? 220 : 180);
-      const zByW = (vw * 0.96) / dim.widthMm;
+      
+      // 데스크톱 사이드바(340px) 고려하여 가용한 넓이 계산
+      const sidebarWidth = window.innerWidth >= 1024 ? 340 : 0;
+      const vw = window.innerWidth - sidebarWidth - (touchUi ? 20 : 60);
+      const vh = window.innerHeight - (touchUi ? (isAndroidApp ? 240 : 200) : 160);
+      
+      const zByW = (vw * 0.95) / dim.widthMm;
       const zByH = (vh * 0.92) / dim.heightMm;
-      const z = Math.max(0.65, Math.min(8, Math.min(zByW, zByH)));
+      
+      // 너무 작거나 크지 않게 제한 (데스크톱에서는 좀 더 유연하게)
+      const z = Math.max(0.5, Math.min(10, Math.min(zByW, zByH)));
       sz(z);
     };
+    
     const id = requestAnimationFrame(fit);
     const onResize = () => requestAnimationFrame(fit);
     window.addEventListener('resize', onResize);
@@ -104,7 +113,7 @@ function DesignStudioContent() {
       cancelAnimationFrame(id);
       window.removeEventListener('resize', onResize);
     };
-  }, [touchUi, mobileStudioTab, currentDimension.widthMm, currentDimension.heightMm, isAndroidApp]);
+  }, [currentDimension.widthMm, currentDimension.heightMm, touchUi, isAndroidApp, mobileStudioTab]);
 
   const showToolsPanel = !touchUi || mobileStudioTab === 'tools';
   const showCanvasPanel = !touchUi || mobileStudioTab === 'canvas';
@@ -156,8 +165,16 @@ function DesignStudioContent() {
     }
   }, [supabase, tenantId, updateShopSettings, setTenantId]);
 
+  // Sidebar에서 PDF 인쇄 버튼 클릭 시 이벤트 수신
+  useEffect(() => {
+    const handleRequestPrint = () => handlePrintRequest();
+    window.addEventListener('request-print', handleRequestPrint);
+    return () => window.removeEventListener('request-print', handleRequestPrint);
+  }, [selectedPresetId, zoom, textBlocks, imageBlocks, activePage]);
+
   const handlePrintRequest = async () => {
     if (selectedPresetId?.startsWith('formtec-')) {
+      setSelectedBlockId(null);
       setIsFormtecModalOpen(true);
       return;
     }
@@ -247,6 +264,7 @@ function DesignStudioContent() {
             if (isFormtec) {
               const preset = PAPER_PRESETS.find(p => p.id === 'formtec-8');
               if (preset) setDimension({ widthMm: preset.widthMm, heightMm: preset.heightMm }, preset.id);
+              setFormtecSelectedCells([0]); // 첫 번째 칸 기본 선택
             } else {
               setDimension({ widthMm: 210, heightMm: 148 }, 'a5');
               setActivePage('inside');
@@ -262,21 +280,24 @@ function DesignStudioContent() {
             const processedMsg = message.replace(/(.{22})/g, '$1\n').trim(); 
             
             const margins = useEditorStore.getState().margins;
+            const TEXT_BOX_WIDTH = isCard ? (widthMm / 2 - 20) : (widthMm - 20);
+            
             const msgX = isCard 
-              ? (widthMm * 0.75) 
-              : (widthMm / 2);
-            const msgY = heightMm / 2;
+              ? (widthMm * 0.75) - (TEXT_BOX_WIDTH / 2)
+              : (widthMm / 2) - (TEXT_BOX_WIDTH / 2);
+            
+            const msgY = (heightMm / 2) - 10; // 세로 중앙에서 살짝 위로
             
             const msgId = addTextBlock({
               text: processedMsg || '새로운 메시지',
               x: msgX, 
               y: msgY, 
-              fontSize: 15, // 무조건 15px로 고정
+              fontSize: 15, 
               textAlign: 'center',
               fontFamily: "'Gowun Batang', serif", 
               colorHex: isInside ? '#000000' : '#ffffff',
               strokeWidth: isInside ? 0 : 0.5,
-              width: isCard ? (widthMm / 2 - margins.right - 20) : (widthMm - margins.left - margins.right - 20)
+              width: TEXT_BOX_WIDTH
             });
             setSuggestedMessageBlockId(msgId);
             
@@ -501,22 +522,49 @@ function DesignStudioContent() {
         <FormtecModal 
           isOpen={isFormtecModalOpen} 
           onClose={() => setIsFormtecModalOpen(false)}
-          config={selectedPresetId ? (LABEL_CONFIGS as any)[selectedPresetId] : undefined}
-          formtecLabelType={selectedPresetId || ''}
-          formtecSelectedCells={[]} // Simplified for now, would need state in store if persist wanted
-          setFormtecSelectedCells={() => {}} 
-          formtecMessage="" setFormtecMessage={() => {}} 
-          formtecFontSize={12} setFormtecFontSize={() => {}}
-          formtecIsBold={false} setFormtecIsBold={() => {}}
-          formtecTextAlign="center" setFormtecTextAlign={() => {}}
-          formtecBgColor="#ffffff" setFormtecBgColor={() => {}}
-          formtecTextColor="#000000" setFormtecTextColor={() => {}}
           onPrint={async () => {
-             // Logic to call PrintCommander with cells
-             toast.success('라벨 PDF 생성을 시작합니다.');
-             setIsFormtecModalOpen(false);
+             const state = useEditorStore.getState();
+             setIsGenerating(true);
+             toast.loading('대량 라벨 PDF를 생성하고 있습니다...', { id: 'label-print' });
+             
+             try {
+               // 캔버스 데이터 + 추가 메시지 블록 조합
+               const messageToAdd = state.formtecAdditionalMessage;
+               let finalBlocks = [...state.textBlocks];
+               
+               if (messageToAdd) {
+                  finalBlocks.push({
+                    id: 'bulk-extra',
+                    text: messageToAdd,
+                    x: state.currentDimension.widthMm / 2,
+                    y: state.currentDimension.heightMm - 10,
+                    fontSize: 10,
+                    textAlign: 'center',
+                    colorHex: '#64748b'
+                  } as any);
+               }
+
+               const pdfBytes = await PrintCommander.generatePdf({
+                 paperSizeMm: state.currentDimension,
+                 labelType: state.selectedPresetId || 'formtec-8',
+                 selectedCells: state.formtecSelectedCells,
+                 textBlocks: finalBlocks.map(tb => ({ ...tb, size: tb.fontSize })),
+                 imageBlocks: state.imageBlocks.map(img => ({ ...img, isPrintable: true }))
+               });
+
+               if (pdfBytes) {
+                 PrintCommander.triggerPrintPopup(pdfBytes);
+                 toast.success('라벨 PDF 생성이 완료되었습니다.', { id: 'label-print' });
+               }
+               setIsFormtecModalOpen(false);
+             } catch (e) {
+               console.error(e);
+               toast.error('라벨 인쇄 중 오류가 발생했습니다.', { id: 'label-print' });
+             } finally {
+               setIsGenerating(false);
+             }
           }}
-          isGenerating={false}
+          isGenerating={isGenerating}
         />
       )}
 
