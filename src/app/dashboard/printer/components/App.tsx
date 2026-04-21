@@ -187,19 +187,19 @@ function FontSelector({ value, onChange, mode, fonts }: { value: string, onChang
     <div className="relative w-full text-left font-sans">
       <button 
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between bg-slate-900 text-white rounded-lg p-2 text-sm border border-slate-700 outline-none hover:bg-slate-800 transition shadow-sm"
+        className="w-full flex items-center justify-between bg-white text-slate-900 rounded-lg p-2.5 text-sm border border-slate-200 outline-none hover:bg-slate-50 hover:border-slate-300 transition shadow-sm"
       >
-        <span className={cn(selectedFont.value, "text-[15px]")}>{selectedFont.name}</span>
-        <ChevronDown className="w-4 h-4 text-slate-400" />
+        <span className={cn(selectedFont.value, "text-[15px] text-slate-900")}>{selectedFont.name}</span>
+        <ChevronDown className="w-4 h-4 text-slate-500" />
       </button>
       
       {open && (
-        <div className="absolute z-[100] top-full left-0 right-0 mt-2 bg-slate-800 border border-slate-700 rounded-lg shadow-2xl overflow-hidden flex flex-col">
-          <div className="flex items-center px-3 border-b border-slate-700 bg-slate-800/50">
-             <Search className="w-4 h-4 text-slate-400" />
+        <div className="absolute z-[100] top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-lg shadow-xl overflow-hidden flex flex-col">
+          <div className="flex items-center px-3 border-b border-slate-100 bg-slate-50/80">
+             <Search className="w-4 h-4 text-slate-500 shrink-0" />
              <input 
                type="text" 
-               className="w-full bg-transparent border-none outline-none p-2.5 text-sm text-white placeholder:text-slate-500 font-sans" 
+               className="w-full bg-transparent border-none outline-none p-2.5 text-sm text-slate-900 placeholder:text-slate-400 font-sans" 
                placeholder="폰트 검색..."
                value={search}
                onChange={e => setSearch(e.target.value)}
@@ -214,21 +214,21 @@ function FontSelector({ value, onChange, mode, fonts }: { value: string, onChang
                  onMouseLeave={() => setHoveredFont(null)}
                  onClick={() => { onChange(f.value); setOpen(false); setSearch(""); setHoveredFont(null); }}
                  className={cn(
-                   "flex flex-col text-left px-3 py-3 rounded hover:bg-slate-700 transition-colors cursor-pointer w-full group border-b border-slate-700/50 last:border-0",
-                   f.value === value ? "bg-blue-900/40" : ""
+                   "flex flex-col text-left px-3 py-3 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer w-full group border-b border-slate-100 last:border-0",
+                   f.value === value ? "bg-slate-100 ring-1 ring-slate-200/80" : ""
                  )}
                >
                  <div className="flex w-full items-center justify-between">
                    <div className="flex flex-col w-full pr-2">
                      <span className={cn(
                        (f.value === value || hoveredFont === f.value) ? f.value : "font-sans", 
-                       "text-[26px] text-white leading-tight mb-1 group-hover:text-blue-300 transition-colors"
+                       "text-[26px] text-slate-900 leading-tight mb-1 group-hover:text-slate-800 transition-colors"
                      )}>
                        {f.preview}
                      </span>
-                     <span className="text-[12px] text-slate-400 font-sans">{f.name}</span>
+                     <span className="text-[12px] text-slate-600 font-sans">{f.name}</span>
                    </div>
-                   {f.value === value && <Check className="w-5 h-5 text-blue-400 shrink-0" />}
+                   {f.value === value && <Check className="w-5 h-5 text-blue-600 shrink-0" />}
                  </div>
                </button>
              ))}
@@ -492,7 +492,7 @@ const RibbonCanvas = ({
       translate="no"
       className={cn(
         "relative flex justify-center transition-all duration-300 notranslate",
-        isActive ? "ring-4 ring-blue-500 shadow-[0_0_30px_rgba(59,130,246,0.3)] z-10" : "hover:scale-[1.01] cursor-pointer"
+        isActive ? "ring-4 ring-blue-600/90 shadow-[0_0_28px_rgba(37,99,235,0.22)] z-10" : "hover:scale-[1.01] cursor-pointer"
       )}
       style={{
         width: `${width * scaleRatio}px`,
@@ -514,9 +514,9 @@ const RibbonCanvas = ({
               [side === 'left' ? 'marginRight' : 'marginLeft']: `${20 / zoom}px`
             }}
           >
-            <span style={{ transform: `scale(${1/zoom})`, transformOrigin: side === 'left' ? 'right top' : 'left top', fontSize: '14px', color: '#94a3b8', fontWeight: 'bold' }}>0</span>
-            <div style={{ width: `${1/zoom}px` }} className={cn("h-full bg-gray-500/50 absolute top-0 bottom-0", side === 'left' ? "right-0" : "left-0")}></div>
-            <span style={{ transform: `scale(${1/zoom})`, transformOrigin: side === 'left' ? 'right bottom' : 'left bottom', fontSize: '14px', color: '#94a3b8', fontWeight: 'bold' }}>{length}</span>
+            <span style={{ transform: `scale(${1/zoom})`, transformOrigin: side === 'left' ? 'right top' : 'left top', fontSize: '14px', color: '#475569', fontWeight: '600' }}>0</span>
+            <div style={{ width: `${1/zoom}px` }} className={cn("h-full bg-slate-400/40 absolute top-0 bottom-0", side === 'left' ? "right-0" : "left-0")}></div>
+            <span style={{ transform: `scale(${1/zoom})`, transformOrigin: side === 'left' ? 'right bottom' : 'left bottom', fontSize: '14px', color: '#475569', fontWeight: '600' }}>{length}</span>
           </div>
 
           {/* Margins Indicators Outside the Ribbon */}
@@ -531,7 +531,7 @@ const RibbonCanvas = ({
             }}
           >
             <span 
-              className={cn("absolute text-[14px] text-red-500 font-bold bg-[#0f172a] px-1 whitespace-nowrap", side === 'left' ? "left-0" : "right-0")}
+              className={cn("absolute text-[13px] text-red-700 font-semibold bg-white/95 ring-1 ring-red-200/80 px-1.5 py-0.5 rounded shadow-sm whitespace-nowrap", side === 'left' ? "left-0" : "right-0")}
               style={{ 
                 transform: `scale(${1/zoom})`, 
                 transformOrigin: side === 'left' ? 'left bottom' : 'right bottom',
@@ -553,7 +553,7 @@ const RibbonCanvas = ({
             }}
           >
             <span 
-              className={cn("absolute text-[14px] text-red-500 font-bold bg-[#0f172a] px-1 whitespace-nowrap", side === 'left' ? "left-0" : "right-0")}
+              className={cn("absolute text-[13px] text-red-700 font-semibold bg-white/95 ring-1 ring-red-200/80 px-1.5 py-0.5 rounded shadow-sm whitespace-nowrap", side === 'left' ? "left-0" : "right-0")}
               style={{ 
                 transform: `scale(${1/zoom})`, 
                 transformOrigin: side === 'left' ? 'left top' : 'right top',
@@ -567,16 +567,24 @@ const RibbonCanvas = ({
       )}
 
       {/* Ribbon Body */}
-      <div className={cn("relative overflow-hidden flex flex-col items-center", !isPrintMode ? "bg-white ribbon-texture shadow-2xl" : "bg-white")} style={{ width: '100%', height: '100%' }}>
+      <div
+        className={cn(
+          "relative overflow-hidden flex flex-col items-center",
+          !isPrintMode
+            ? "ribbon-texture shadow-xl ring-1 ring-slate-200/90"
+            : "bg-white"
+        )}
+        style={{ width: "100%", height: "100%" }}
+      >
         
         {/* Lace Effects */}
         {!isPrintMode && lace > 0 && (
           <>
-            <div className="absolute left-0 top-0 bottom-0 border-r border-[#00000010] flex flex-col overflow-hidden" style={{ width: `${lace * scaleRatio}px` }}>
-               <div className="flex-1 w-full bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-amber-200/20 to-transparent" style={{ backgroundSize: '4px 4px' }} />
+            <div className="absolute left-0 top-0 bottom-0 border-r border-slate-200/50 flex flex-col overflow-hidden" style={{ width: `${lace * scaleRatio}px` }}>
+               <div className="flex-1 w-full bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-300/12 to-transparent" style={{ backgroundSize: '4px 4px' }} />
             </div>
-            <div className="absolute right-0 top-0 bottom-0 border-l border-[#00000010] flex flex-col overflow-hidden" style={{ width: `${lace * scaleRatio}px` }}>
-               <div className="flex-1 w-full bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-amber-200/20 to-transparent" style={{ backgroundSize: '4px 4px' }} />
+            <div className="absolute right-0 top-0 bottom-0 border-l border-slate-200/50 flex flex-col overflow-hidden" style={{ width: `${lace * scaleRatio}px` }}>
+               <div className="flex-1 w-full bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-300/12 to-transparent" style={{ backgroundSize: '4px 4px' }} />
             </div>
           </>
         )}
@@ -634,7 +642,11 @@ const RibbonCanvas = ({
             return (
               <div 
                 key={lIdx} 
-                className={cn("flex flex-col items-center shrink-0 w-max text-black whitespace-nowrap", isBold && "font-semibold")}
+                className={cn(
+                  "flex flex-col items-center shrink-0 w-max whitespace-nowrap antialiased",
+                  isBold && "font-semibold",
+                  isPrintMode ? "text-black" : "text-slate-950 [text-shadow:_0_1px_0_rgb(255_255_255_/_0.75)]"
+                )}
                 style={{
                   height: squashRatio < 1 ? `${totalRequiredHeight}px` : (spacing === 0 ? '100%' : 'auto'),
                   transform: squashRatio < 1 ? `scaleY(${squashRatio})` : 'none',
@@ -663,7 +675,7 @@ const RibbonCanvas = ({
                        return (
                          <div 
                            key={node.id} 
-                           className={cn("flex flex-col items-center justify-between shrink-0 py-1 cursor-pointer hover:text-blue-600 transition-colors", charFont)} 
+                           className={cn("flex flex-col items-center justify-between shrink-0 py-1 cursor-pointer hover:text-blue-800 transition-colors", charFont)} 
                            style={{ height: blockHeight + (actualFontSize * 0.5), width: nodeW }}
                            onClick={() => onCharClick(node.id)}
                          >
@@ -684,7 +696,7 @@ const RibbonCanvas = ({
                     return (
                       <div 
                         key={node.id} 
-                        className={cn("flex justify-center items-center shrink-0 cursor-pointer hover:text-blue-600 transition-colors", charFont)} 
+                        className={cn("flex justify-center items-center shrink-0 cursor-pointer hover:text-blue-800 transition-colors", charFont)} 
                         style={{ height: actualFontSize, width: nodeW }}
                         onClick={() => onCharClick(node.id)}
                       >
@@ -711,7 +723,7 @@ const RibbonCanvas = ({
                     return (
                       <div 
                         key={node.id} 
-                        className={cn("flex flex-col items-center shrink-0 leading-none py-1 cursor-pointer hover:text-blue-600 transition-colors", chars.length > 1 ? "justify-between" : "justify-center")} 
+                        className={cn("flex flex-col items-center shrink-0 leading-none py-1 cursor-pointer hover:text-blue-800 transition-colors", chars.length > 1 ? "justify-between" : "justify-center")} 
                         style={{ 
                           height: blockHeight + (actualFontSize * 0.6), 
                           width: nodeW
@@ -744,7 +756,7 @@ const RibbonCanvas = ({
                       return (
                         <div 
                           key={node.id} 
-                          className="flex flex-col items-center shrink-0 leading-none py-1 cursor-pointer hover:text-blue-600 transition-colors justify-between" 
+                          className="flex flex-col items-center shrink-0 leading-none py-1 cursor-pointer hover:text-blue-800 transition-colors justify-between" 
                           style={{ height: blockHeight + (actualFontSize * 0.6), width: nodeW }}
                           onClick={() => onCharClick(node.id)}
                         >
@@ -777,7 +789,7 @@ const RibbonCanvas = ({
                     return (
                       <div 
                         key={node.id} 
-                        className="flex flex-row items-center justify-center shrink-0 py-1 cursor-pointer hover:text-blue-600 transition-colors" 
+                        className="flex flex-row items-center justify-center shrink-0 py-1 cursor-pointer hover:text-blue-800 transition-colors" 
                         style={{ height: blockHeight + (actualFontSize * 0.6), width: nodeW }}
                         onClick={() => onCharClick(node.id)}
                       >
@@ -816,7 +828,7 @@ const RibbonCanvas = ({
                   return (
                     <div 
                       key={node.id} 
-                      className="cursor-pointer hover:text-blue-600 transition-colors flex justify-center items-center shrink-0 leading-none"
+                      className="cursor-pointer hover:text-blue-800 transition-colors flex justify-center items-center shrink-0 leading-none"
                       style={{ height: nodeH, width: nodeW }}
                       onClick={() => onCharClick(node.id)}
                     >
@@ -1600,7 +1612,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
       
       {/* 1. Left Panel: Config Sidebar (Mobile/Desktop Sync) */}
       <aside className={cn(
-        "glass-panel relative lg:sticky top-0 left-0 bottom-0 h-full shrink-0 z-40 p-4 lg:p-5 overflow-y-auto border-r border-slate-700 transition-all duration-300 transform-gpu bg-slate-900/95 lg:bg-transparent",
+        "relative lg:sticky top-0 left-0 bottom-0 h-full shrink-0 z-40 p-4 lg:p-5 overflow-y-auto border-r border-slate-200/90 transition-all duration-300 transform-gpu bg-white/98 backdrop-blur-md shadow-[4px_0_32px_-12px_rgba(15,23,42,0.1)]",
         isSidebarOpen 
           ? "w-[260px] sm:w-72 lg:w-80 translate-x-0" 
           : "w-0 p-0 overflow-hidden border-none -translate-x-10 lg:absolute lg:opacity-0"
@@ -1610,13 +1622,13 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
             <div className="flex flex-col">
               <h1 className="text-xl font-bold flex items-center gap-2">
                 <img src="/logo.png" alt="Ribbonist Logo" className="w-6 h-6 object-contain" />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">Ribbonist</span>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-slate-800 to-slate-600">Ribbonist</span>
               </h1>
               <span className="text-[8px] text-slate-500 uppercase tracking-widest ml-8 font-medium">Friends of Florist</span>
             </div>
             <button 
               onClick={() => setIsSidebarOpen(false)}
-              className="p-1.5 hover:bg-slate-700 rounded-lg text-slate-500 hover:text-white transition"
+              className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-slate-900 transition"
               title="메뉴 닫기"
             >
               <ChevronLeft size={18} />
@@ -1624,7 +1636,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
           </div>
             <div className="flex items-center gap-1.5">
               <button 
-                className="lg:hidden p-1.5 rounded-lg bg-slate-700 text-white"
+                className="lg:hidden p-1.5 rounded-lg bg-slate-100 text-slate-700 border border-slate-200"
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <X size={20} />
@@ -1632,7 +1644,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
             {isAdmin && (
               <button
                 onClick={onShowAdmin}
-                className="p-1.5 rounded-lg hover:bg-amber-500/20 text-slate-400 hover:text-amber-400 transition" 
+                className="p-1.5 rounded-lg hover:bg-amber-50 text-slate-600 hover:text-amber-800 border border-transparent hover:border-amber-200/80 transition" 
                 title="관리자 대시보드"
               >
                 <Shield size={18} />
@@ -1643,21 +1655,21 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
                 try { await fetch('http://127.0.0.1:8002/api/queue/clear', { method: 'POST', signal: AbortSignal.timeout(1000) }); } catch(e){}
                 await supabase.auth.signOut();
               }}
-              className="p-1.5 rounded-lg hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition" title="로그아웃"
+              className="p-1.5 rounded-lg hover:bg-red-50 text-slate-600 hover:text-red-700 border border-transparent hover:border-red-100 transition" title="로그아웃"
             >
               <LogOut size={18} />
             </button>
           </div>
         </div>
         <div>
-          <p className="text-[10px] text-slate-400 font-mono">Build 2026.03 (Full-Fit Engine)</p>
+          <p className="text-[10px] text-slate-500 font-mono">Build 2026.03 (Full-Fit Engine)</p>
           {session?.user?.email && (
-            <p className="text-[10px] text-blue-400/80 mt-1 truncate" title={session.user.email}>👤 {session.user.email}</p>
+            <p className="text-[10px] text-blue-700 mt-1 truncate font-medium" title={session.user.email}>👤 {session.user.email}</p>
           )}
 
 
           <div 
-            className="mt-1 px-2 py-1 rounded-lg text-[9px] font-bold text-center border border-slate-700/50 text-slate-500 hover:text-slate-300 hover:bg-slate-800 transition-all cursor-pointer"
+            className="mt-1 px-2 py-1 rounded-lg text-[9px] font-bold text-center border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all cursor-pointer"
             onClick={() => setIsTroubleshootModalOpen(true)}
           >
             ⚙️ 브릿지 연결 문제 해결 및 초기화
@@ -1667,10 +1679,10 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
           {true && (
             <div className={`mt-2 px-2 py-1.5 rounded-lg text-[10px] font-medium text-center border tracking-wide ${
               isAdmin
-                ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                ? 'bg-amber-50 text-amber-900 border-amber-200'
                 : hasAccess 
-                  ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' 
-                  : 'bg-red-500/15 text-red-400 border-red-500/30'
+                  ? 'bg-emerald-50 text-emerald-900 border-emerald-200' 
+                  : 'bg-red-50 text-red-800 border-red-200'
             }`}>
               {isAdmin
                 ? '🛡️ 관리자 - 모든 기능 가능'
@@ -1684,10 +1696,10 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
         {/* 1. 출력 프린터 / 브릿지 상태 (최상단) */}
         <div className="pt-2">
           <div className="flex items-center justify-between mb-2">
-            <label className="text-xs text-slate-400 font-bold uppercase tracking-wider">출력 프린터</label>
+            <label className="text-xs text-slate-700 font-bold uppercase tracking-wider">출력 프린터</label>
             <div className="flex items-center gap-1.5">
               <div className={cn("w-2 h-2 rounded-full animate-pulse", printers.length > 0 ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" : "bg-red-500")} />
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Bridge Engine v{bridgeVersion || '?.?'}</span>
+              <span className="text-[10px] font-bold text-slate-600 uppercase tracking-tighter">Bridge Engine v{bridgeVersion || '?.?'}</span>
             </div>
           </div>
           <div className="flex gap-2">
@@ -1698,7 +1710,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
                 setSelectedPrinter(newName);
                 localStorage.setItem('ribbon_selected_printer', newName);
               }}
-              className="flex-1 p-2 rounded-lg text-sm bg-slate-800 border-slate-700 text-white outline-none focus:ring-2 ring-blue-500/50"
+              className="flex-1 p-2 rounded-lg text-sm bg-white border border-slate-200 text-slate-900 outline-none focus:ring-2 focus:ring-blue-500/40"
             >
               {printers.length === 0 && <option value="">☁️ 매장 기본 프린터로 원격 전송</option>}
               {printers.map((p: any) => (
@@ -1715,7 +1727,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
                   .catch(() => setPrinters([])); // Clear on failure
               }}
               title="프린터 목록 갱신"
-              className="p-2 bg-slate-800 border border-slate-700 rounded-lg hover:bg-slate-700 transition"
+              className="p-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-700 transition"
             >
               <RotateCw size={14} className={isPrinting ? "animate-spin" : ""} />
             </button>
@@ -1723,9 +1735,9 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
           {printers.length > 0 && (() => {
             const selected = printers.find((p: any) => p.name === selectedPrinter);
             if (!selected) return null;
-            const engineColor = selected.brand === 'epson' ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
-              : selected.brand === 'hp' ? 'bg-blue-500/15 text-blue-400 border-blue-500/30'
-              : 'bg-slate-500/15 text-slate-400 border-slate-500/30';
+            const engineColor = selected.brand === 'epson' ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
+              : selected.brand === 'hp' ? 'bg-blue-50 text-blue-900 border-blue-200'
+              : 'bg-slate-100 text-slate-700 border-slate-200';
             return (
               <div className={`mt-1.5 px-2 py-1 rounded text-[10px] font-medium text-center border ${engineColor}`}>
                 🔧 {selected.engine || 'GDI Variable Height Engine'}
@@ -1734,13 +1746,13 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
           })()}
         </div>
 
-        <div className="h-px bg-slate-700/50 my-2" />
+        <div className="h-px bg-slate-200 my-2" />
 
         {/* 2. 하드웨어 규격 (프리셋, 폭, 길이) */}
         <div className="space-y-4">
           <div>
-            <label className="text-xs text-slate-400 block mb-1 font-bold">
-              리본 프리셋 {selectedPrinterType === 'xprinter' && <span className="text-amber-400 text-[10px] ml-1">🏷️ Xprinter (≤105mm)</span>}
+            <label className="text-xs text-slate-700 block mb-1 font-bold">
+              리본 프리셋 {selectedPrinterType === 'xprinter' && <span className="text-amber-800 text-[10px] ml-1 font-semibold">🏷️ Xprinter (≤105mm)</span>}
             </label>
             <select 
               value={ribbonType} 
@@ -1756,48 +1768,48 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
                   setMarginBottom(selected.marginBottom || 0);
                 }
               }}
-              className="w-full p-2 rounded-lg text-sm bg-slate-800 border-slate-700 text-white outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-2 rounded-lg text-sm bg-white border border-slate-200 text-slate-900 outline-none focus:ring-2 focus:ring-blue-500/40"
             >
               {availablePresets.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
             </select>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[10px] text-slate-500 block mb-1 uppercase tracking-tighter">폭 (Width mm)</label>
-              <input type="number" value={width} onChange={e => setWidth(Number(e.target.value))} className="w-full p-2.5 rounded-lg text-sm text-center font-bold font-mono bg-slate-900 border border-slate-700 text-white" />
+              <label className="text-[10px] text-slate-600 block mb-1 uppercase tracking-tighter font-medium">폭 (Width mm)</label>
+              <input type="number" value={width} onChange={e => setWidth(Number(e.target.value))} className="w-full p-2.5 rounded-lg text-sm text-center font-bold font-mono bg-white border border-slate-200 text-slate-900" />
             </div>
             <div>
-              <label className="text-[10px] text-slate-500 block mb-1 uppercase tracking-tighter">길이 (Length mm)</label>
-              <input type="number" value={length} onChange={e => setLength(Number(e.target.value))} className="w-full p-2.5 rounded-lg text-sm text-center font-bold font-mono bg-slate-900 border border-slate-700 text-white" />
+              <label className="text-[10px] text-slate-600 block mb-1 uppercase tracking-tighter font-medium">길이 (Length mm)</label>
+              <input type="number" value={length} onChange={e => setLength(Number(e.target.value))} className="w-full p-2.5 rounded-lg text-sm text-center font-bold font-mono bg-white border border-slate-200 text-slate-900" />
             </div>
           </div>
         </div>
 
-        <div className="h-px bg-slate-700/50 my-2" />
+        <div className="h-px bg-slate-200 my-2" />
 
         {/* 3. 상단 하단 레이스 */}
         <div className="grid grid-cols-3 gap-3">
           <div>
-            <label className="text-[10px] text-slate-500 block mb-1 font-bold">상단여백</label>
-            <input type="number" value={marginTop} onChange={e => setMarginTop(Number(e.target.value))} className="w-full p-2 rounded-lg text-sm text-center font-mono bg-slate-900 border border-slate-700 text-white" title="헤드 시작점부터 글자까지 (mm)" />
+            <label className="text-[10px] text-slate-600 block mb-1 font-bold">상단여백</label>
+            <input type="number" value={marginTop} onChange={e => setMarginTop(Number(e.target.value))} className="w-full p-2 rounded-lg text-sm text-center font-mono bg-white border border-slate-200 text-slate-900" title="헤드 시작점부터 글자까지 (mm)" />
           </div>
           <div>
-            <label className="text-[10px] text-slate-500 block mb-1 font-bold">하단여백</label>
-            <input type="number" value={marginBottom} onChange={e => setMarginBottom(Number(e.target.value))} className="w-full p-2 rounded-lg text-sm text-center font-mono bg-slate-900 border border-slate-700 text-white" title="글자 끝부터 다음 용지까지 (mm)" />
+            <label className="text-[10px] text-slate-600 block mb-1 font-bold">하단여백</label>
+            <input type="number" value={marginBottom} onChange={e => setMarginBottom(Number(e.target.value))} className="w-full p-2 rounded-lg text-sm text-center font-mono bg-white border border-slate-200 text-slate-900" title="글자 끝부터 다음 용지까지 (mm)" />
           </div>
           <div>
-            <label className="text-[10px] text-slate-500 block mb-1 font-bold">양쪽레이스</label>
-            <input type="number" value={lace} onChange={e => setLace(Number(e.target.value))} className="w-full p-2 rounded-lg text-sm text-center font-mono bg-slate-900 border border-slate-700 text-white" title="리본 양 끝 여백 (mm)" />
+            <label className="text-[10px] text-slate-600 block mb-1 font-bold">양쪽레이스</label>
+            <input type="number" value={lace} onChange={e => setLace(Number(e.target.value))} className="w-full p-2 rounded-lg text-sm text-center font-mono bg-white border border-slate-200 text-slate-900" title="리본 양 끝 여백 (mm)" />
           </div>
         </div>
 
         {/* 4. 양쪽 보정 (M) */}
         <div className="pt-1">
           <div className="flex items-center justify-between mb-1">
-            <label className="text-xs text-slate-400 font-bold flex items-center gap-1">
+            <label className="text-xs text-slate-700 font-bold flex items-center gap-1">
               ↔️ 수평(좌우) 보정 <span className="text-[10px] text-slate-500 uppercase font-normal">(Micro-Adjustment)</span>
             </label>
-            <span className={cn("text-xs font-mono font-bold", marginOffset === 0 ? "text-slate-500" : "text-blue-400")}>
+            <span className={cn("text-xs font-mono font-bold", marginOffset === 0 ? "text-slate-500" : "text-blue-700")}>
               {marginOffset > 0 ? `+${marginOffset}` : marginOffset}mm
             </span>
           </div>
@@ -1814,24 +1826,24 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
           </div>
         </div>
 
-        <div className="h-px bg-slate-700/50 my-2" />
+        <div className="h-px bg-slate-200 my-2" />
 
         {/* 5. 인쇄 대상 & 용지 옵션 (커팅, 롤리본, 고속) */}
         <div className="space-y-3">
           <div>
-            <label className="text-xs text-slate-400 block mb-2 font-bold uppercase">인쇄 대상</label>
+            <label className="text-xs text-slate-700 block mb-2 font-bold uppercase">인쇄 대상</label>
             <div className="grid grid-cols-3 gap-2">
                <button 
                 onClick={() => setPrintTarget('both')}
-                className={cn("p-2 rounded-lg text-xs font-bold transition", printTarget === 'both' ? "bg-blue-600 text-white shadow-lg shadow-blue-900/40" : "bg-slate-800 text-slate-400 hover:bg-slate-700")}
+                className={cn("p-2 rounded-lg text-xs font-bold transition border", printTarget === 'both' ? "bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/20" : "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200/80")}
                >양쪽 모두</button>
                <button 
                 onClick={() => setPrintTarget('left')}
-                className={cn("p-2 rounded-lg text-xs font-bold transition", printTarget === 'left' ? "bg-blue-600 text-white shadow-lg shadow-blue-900/40" : "bg-slate-800 text-slate-400 hover:bg-slate-700")}
+                className={cn("p-2 rounded-lg text-xs font-bold transition border", printTarget === 'left' ? "bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/20" : "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200/80")}
                >경조사어</button>
                <button 
                 onClick={() => setPrintTarget('right')}
-                className={cn("p-2 rounded-lg text-xs font-bold transition", printTarget === 'right' ? "bg-blue-600 text-white shadow-lg shadow-blue-900/40" : "bg-slate-800 text-slate-400 hover:bg-slate-700")}
+                className={cn("p-2 rounded-lg text-xs font-bold transition border", printTarget === 'right' ? "bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/20" : "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200/80")}
                >보내는이</button>
             </div>
           </div>
@@ -1848,7 +1860,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
                    setMediaType(v);
                  }
                }}
-               className="p-2 rounded-lg text-xs font-bold bg-slate-800 border-slate-700 text-slate-200 outline-none focus:ring-1"
+               className="p-2 rounded-lg text-xs font-bold bg-white border border-slate-200 text-slate-800 outline-none focus:ring-2 focus:ring-blue-500/30"
              >
                <option value="cut">📄 컷 리본</option>
                <option value="roll">🔄 롤 리본 (개발중)</option>
@@ -1856,7 +1868,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
              <select 
                value={printQuality} 
                onChange={e => setPrintQuality(e.target.value as any)}
-               className="p-2 rounded-lg text-xs font-bold bg-slate-800 border-slate-700 text-slate-200 outline-none focus:ring-1"
+               className="p-2 rounded-lg text-xs font-bold bg-white border border-slate-200 text-slate-800 outline-none focus:ring-2 focus:ring-blue-500/30"
              >
                <option value="fast">⚡ 고속 인쇄</option>
                <option value="high">💎 고급(저속)</option>
@@ -1865,44 +1877,44 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
                <select 
                  value={cuttingMargin} 
                  onChange={e => setCuttingMargin(Number(e.target.value))}
-                 className="p-2 rounded-lg text-xs font-bold bg-slate-800 border-slate-700 text-blue-400 focus:ring-1"
+                 className="p-2 rounded-lg text-xs font-bold bg-white border border-slate-200 text-blue-800 outline-none focus:ring-2 focus:ring-blue-500/30"
                >
                  {[1,2,3,4,5,6,7,8,9,10].map(cm => (
                    <option key={cm} value={cm * 10}>✂️ {cm}cm 커팅</option>
                  ))}
                </select>
              ) : (
-               <div className="p-2 rounded-lg text-xs bg-slate-900/50 text-slate-500 flex items-center justify-center italic">커팅 NO</div>
+               <div className="p-2 rounded-lg text-xs bg-slate-100 border border-slate-200 text-slate-500 flex items-center justify-center italic">커팅 NO</div>
              )}
           </div>
         </div>
 
-        <div className="h-px bg-slate-700/50 my-2" />
+        <div className="h-px bg-slate-200 my-2" />
 
         {/* 6. 좌측 리본 (경조사) */}
         <div className="space-y-2">
-          <div className="flex items-center justify-between text-slate-300 font-semibold mb-1 border-b border-slate-700/50 pb-2">
-            <div className="flex items-center gap-2"><Type size={16} className="text-blue-400" /> 좌측 리본 (경조사)</div>
+          <div className="flex items-center justify-between text-slate-800 font-semibold mb-1 border-b border-slate-200 pb-2">
+            <div className="flex items-center gap-2"><Type size={16} className="text-blue-600" /> 좌측 리본 (경조사)</div>
             <div className="flex items-center gap-1">
-              <button onClick={() => handleRotateAll('left')} className="hover:bg-slate-700 p-1 rounded text-slate-400 hover:text-white" title="90도 회전"><RotateCw size={14} /></button>
-              <button onClick={() => setActiveSide('left')} className={cn("text-[10px] px-2 py-0.5 rounded font-bold ml-1", activeSide === 'left' ? "bg-blue-600 text-white" : "bg-slate-700 text-slate-400")}>ACTIVE</button>
+              <button onClick={() => handleRotateAll('left')} className="hover:bg-slate-100 p-1 rounded text-slate-600 hover:text-slate-900 border border-transparent hover:border-slate-200" title="90도 회전"><RotateCw size={14} /></button>
+              <button onClick={() => setActiveSide('left')} className={cn("text-[10px] px-2 py-0.5 rounded font-bold ml-1 border", activeSide === 'left' ? "bg-blue-600 text-white border-blue-600" : "bg-slate-100 text-slate-600 border-slate-200")}>ACTIVE</button>
             </div>
           </div>
           <input 
             type="text" value={leftText} 
             onChange={e => setLeftText(e.target.value)} onFocus={() => setActiveSide('left')}
             translate="no"
-            className="w-full p-2.5 rounded-xl text-sm font-bold bg-slate-850 border border-slate-700 text-white focus:ring-2 ring-blue-500/50 outline-none notranslate" placeholder="내용 입력"
+            className="w-full p-2.5 rounded-xl text-sm font-semibold bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500/35 outline-none notranslate" placeholder="내용 입력"
           />
-          <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700 flex flex-col gap-3">
+          <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-blue-300">폰트 마법사</span>
+              <span className="text-[11px] font-bold text-blue-800">폰트 마법사</span>
               <div className="flex gap-1 items-center">
-                <button onClick={() => setLeftIsBold(!leftIsBold)} className={cn("text-[10px] px-2 py-0.5 rounded font-bold mr-1", leftIsBold ? "bg-blue-600 text-white" : "bg-slate-700 text-slate-400")} title="굵게 (Bold)">
+                <button onClick={() => setLeftIsBold(!leftIsBold)} className={cn("text-[10px] px-2 py-0.5 rounded font-bold mr-1 border", leftIsBold ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-600 border-slate-200")} title="굵게 (Bold)">
                   B
                 </button>
                 {(['ko', 'hj', 'en', 'sym'] as const).map(type => (
-                  <button key={type} onClick={() => setFontWizardMode(type)} className={cn("text-[10px] px-1.5 py-0.5 rounded", fontWizardMode === type ? "bg-blue-600 text-white" : "bg-slate-700 text-slate-400")}>
+                  <button key={type} onClick={() => setFontWizardMode(type)} className={cn("text-[10px] px-1.5 py-0.5 rounded border", fontWizardMode === type ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-600 border-slate-200")}>
                     {type === 'ko' ? '한' : type === 'hj' ? '漢' : type === 'en' ? 'A' : '★'}
                   </button>
                 ))}
@@ -1910,13 +1922,13 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
             </div>
             <FontSelector value={leftFontConfig[fontWizardMode]} onChange={val => setLeftFontConfig(prev => ({ ...prev, [fontWizardMode]: val }))} mode={fontWizardMode} fonts={availableFonts} />
             <div className="grid grid-cols-2 gap-2">
-               <div className="flex bg-slate-900 rounded-lg overflow-hidden border border-slate-700">
-                  <span className="bg-slate-700 text-[9px] text-slate-400 px-1.5 flex items-center">가로%</span>
-                  <input type="number" value={leftRatioX} onChange={e => setLeftRatioX(Number(e.target.value))} className="w-full p-1.5 text-xs text-center font-mono bg-transparent text-white" />
+               <div className="flex bg-white rounded-lg overflow-hidden border border-slate-200">
+                  <span className="bg-slate-100 text-[9px] text-slate-600 px-1.5 flex items-center font-medium">가로%</span>
+                  <input type="number" value={leftRatioX} onChange={e => setLeftRatioX(Number(e.target.value))} className="w-full p-1.5 text-xs text-center font-mono bg-transparent text-slate-900" />
                </div>
-               <div className="flex bg-slate-900 rounded-lg overflow-hidden border border-slate-700">
-                  <span className="bg-slate-700 text-[9px] text-slate-400 px-1.5 flex items-center">세로%</span>
-                  <input type="number" value={leftRatioY} onChange={e => setLeftRatioY(Number(e.target.value))} className="w-full p-1.5 text-xs text-center font-mono bg-transparent text-white" />
+               <div className="flex bg-white rounded-lg overflow-hidden border border-slate-200">
+                  <span className="bg-slate-100 text-[9px] text-slate-600 px-1.5 flex items-center font-medium">세로%</span>
+                  <input type="number" value={leftRatioY} onChange={e => setLeftRatioY(Number(e.target.value))} className="w-full p-1.5 text-xs text-center font-mono bg-transparent text-slate-900" />
                </div>
             </div>
           </div>
@@ -1924,28 +1936,28 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
 
         {/* 7. 우측 리본 (보내는이) */}
         <div className="space-y-2 mt-4">
-          <div className="flex items-center justify-between text-slate-300 font-semibold mb-1 border-b border-slate-700/50 pb-2">
-            <div className="flex items-center gap-2"><Type size={16} className="text-emerald-400" /> 우측 리본 (보내는이)</div>
+          <div className="flex items-center justify-between text-slate-800 font-semibold mb-1 border-b border-slate-200 pb-2">
+            <div className="flex items-center gap-2"><Type size={16} className="text-emerald-600" /> 우측 리본 (보내는이)</div>
             <div className="flex items-center gap-1">
-              <button onClick={() => handleRotateAll('right')} className="hover:bg-slate-700 p-1 rounded text-slate-400 hover:text-white" title="90도 회전"><RotateCw size={14} /></button>
-              <button onClick={() => setActiveSide('right')} className={cn("text-[10px] px-2 py-0.5 rounded font-bold ml-1", activeSide === 'right' ? "bg-emerald-600 text-white" : "bg-slate-700 text-slate-400")}>ACTIVE</button>
+              <button onClick={() => handleRotateAll('right')} className="hover:bg-slate-100 p-1 rounded text-slate-600 hover:text-slate-900 border border-transparent hover:border-slate-200" title="90도 회전"><RotateCw size={14} /></button>
+              <button onClick={() => setActiveSide('right')} className={cn("text-[10px] px-2 py-0.5 rounded font-bold ml-1 border", activeSide === 'right' ? "bg-emerald-600 text-white border-emerald-600" : "bg-slate-100 text-slate-600 border-slate-200")}>ACTIVE</button>
             </div>
           </div>
           <input 
             type="text" value={rightText} 
             onChange={e => setRightText(e.target.value)} onFocus={() => setActiveSide('right')}
             translate="no"
-            className="w-full p-2.5 rounded-xl text-sm font-bold bg-slate-850 border border-slate-700 text-white focus:ring-2 ring-emerald-500/50 outline-none notranslate" placeholder="내용 입력"
+            className="w-full p-2.5 rounded-xl text-sm font-semibold bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500/35 outline-none notranslate" placeholder="내용 입력"
           />
-          <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700 flex flex-col gap-3">
+          <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 flex flex-col gap-3">
              <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-emerald-300">폰트 마법사</span>
+              <span className="text-[11px] font-bold text-emerald-800">폰트 마법사</span>
               <div className="flex gap-1 items-center">
-                <button onClick={() => setRightIsBold(!rightIsBold)} className={cn("text-[10px] px-2 py-0.5 rounded font-bold mr-1", rightIsBold ? "bg-emerald-600 text-white" : "bg-slate-700 text-slate-400")} title="굵게 (Bold)">
+                <button onClick={() => setRightIsBold(!rightIsBold)} className={cn("text-[10px] px-2 py-0.5 rounded font-bold mr-1 border", rightIsBold ? "bg-emerald-600 text-white border-emerald-600" : "bg-white text-slate-600 border-slate-200")} title="굵게 (Bold)">
                   B
                 </button>
                 {(['ko', 'hj', 'en', 'sym'] as const).map(type => (
-                  <button key={type} onClick={() => setFontWizardModeRight(type)} className={cn("text-[10px] px-1.5 py-0.5 rounded", fontWizardModeRight === type ? "bg-emerald-600 text-white" : "bg-slate-700 text-slate-400")}>
+                  <button key={type} onClick={() => setFontWizardModeRight(type)} className={cn("text-[10px] px-1.5 py-0.5 rounded border", fontWizardModeRight === type ? "bg-emerald-600 text-white border-emerald-600" : "bg-white text-slate-600 border-slate-200")}>
                     {type === 'ko' ? '한' : type === 'hj' ? '漢' : type === 'en' ? 'A' : '★'}
                   </button>
                 ))}
@@ -1953,47 +1965,47 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
             </div>
             <FontSelector value={rightFontConfig[fontWizardModeRight]} onChange={val => setRightFontConfig(prev => ({ ...prev, [fontWizardModeRight]: val }))} mode={fontWizardModeRight} fonts={availableFonts} />
             <div className="grid grid-cols-2 gap-2">
-               <div className="flex bg-slate-900 rounded-lg overflow-hidden border border-slate-700">
-                  <span className="bg-slate-700 text-[9px] text-slate-400 px-1.5 flex items-center">가로%</span>
-                  <input type="number" value={rightRatioX} onChange={e => setRightRatioX(Number(e.target.value))} className="w-full p-1.5 text-xs text-center font-mono bg-transparent text-white" />
+               <div className="flex bg-white rounded-lg overflow-hidden border border-slate-200">
+                  <span className="bg-slate-100 text-[9px] text-slate-600 px-1.5 flex items-center font-medium">가로%</span>
+                  <input type="number" value={rightRatioX} onChange={e => setRightRatioX(Number(e.target.value))} className="w-full p-1.5 text-xs text-center font-mono bg-transparent text-slate-900" />
                </div>
-               <div className="flex bg-slate-900 rounded-lg overflow-hidden border border-slate-700">
-                  <span className="bg-slate-700 text-[9px] text-slate-400 px-1.5 flex items-center">세로%</span>
-                  <input type="number" value={rightRatioY} onChange={e => setRightRatioY(Number(e.target.value))} className="w-full p-1.5 text-xs text-center font-mono bg-transparent text-white" />
+               <div className="flex bg-white rounded-lg overflow-hidden border border-slate-200">
+                  <span className="bg-slate-100 text-[9px] text-slate-600 px-1.5 flex items-center font-medium">세로%</span>
+                  <input type="number" value={rightRatioY} onChange={e => setRightRatioY(Number(e.target.value))} className="w-full p-1.5 text-xs text-center font-mono bg-transparent text-slate-900" />
                </div>
             </div>
           </div>
         </div>
 
-        <div className="h-px bg-slate-700/50 my-2" />
+        <div className="h-px bg-slate-200 my-2" />
 
         {/* 9. 자주 쓰는 문구 */}
-        <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700">
-          <div className="flex items-center justify-between mb-2 pb-2 border-b border-slate-700">
+        <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+          <div className="flex items-center justify-between mb-2 pb-2 border-b border-slate-200">
              <div className="flex items-center gap-2">
-               <h3 className="text-xs font-bold text-slate-300">자주 쓰는 문구</h3>
-               <button onClick={() => setIsPhraseManagerOpen(true)} className="p-1 hover:bg-slate-700 rounded text-slate-400"><Settings size={14} /></button>
+               <h3 className="text-xs font-bold text-slate-800">자주 쓰는 문구</h3>
+               <button onClick={() => setIsPhraseManagerOpen(true)} className="p-1 hover:bg-white rounded text-slate-600 border border-transparent hover:border-slate-200"><Settings size={14} /></button>
              </div>
-             <select value={phraseCategory} onChange={e => setPhraseCategory(Number(e.target.value))} className="bg-slate-900 border border-slate-700 text-[10px] rounded px-2 py-1 text-slate-300 outline-none">
+             <select value={phraseCategory} onChange={e => setPhraseCategory(Number(e.target.value))} className="bg-white border border-slate-200 text-[10px] rounded px-2 py-1 text-slate-800 outline-none">
                {phraseCategories.map((cat, idx) => <option key={idx} value={idx}>{cat.name.split(' ')[1] || cat.name}</option>)}
              </select>
           </div>
           <div className="grid grid-cols-2 gap-1.5 max-h-40 overflow-y-auto pr-1 notranslate" translate="no">
             {phraseCategories[phraseCategory]?.phrases.map((item, idx) => (
-               <button key={idx} onClick={() => { if (activeSide === 'left') setLeftText(item.text); else setRightText(item.text); }} className="bg-slate-900 hover:bg-blue-900/40 border border-slate-700 hover:border-blue-500 rounded p-2 text-center transition-all group">
-                 <span className="text-[11px] font-bold text-slate-200 block truncate group-hover:text-blue-300">{item.text}</span>
-                 <span className="text-[9px] text-slate-500 truncate">{item.desc}</span>
+               <button key={idx} onClick={() => { if (activeSide === 'left') setLeftText(item.text); else setRightText(item.text); }} className="bg-white hover:bg-blue-50 border border-slate-200 hover:border-blue-300 rounded-lg p-2 text-center transition-all group">
+                 <span className="text-[11px] font-semibold text-slate-900 block truncate group-hover:text-blue-900">{item.text}</span>
+                 <span className="text-[9px] text-slate-600 truncate">{item.desc}</span>
                </button>
             ))}
           </div>
         </div>
 
         {/* 10. 특수 기호 */}
-        <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700 mt-4">
-          <h3 className="text-xs font-bold text-slate-300 mb-2">특수 기호</h3>
+        <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 mt-4">
+          <h3 className="text-xs font-bold text-slate-800 mb-2">특수 기호</h3>
           <div className="grid grid-cols-6 gap-1 notranslate" translate="no">
             {SYMBOL_BANK.map(sym => (
-               <button key={sym} onClick={() => insertSymbol(sym)} className="bg-slate-900 hover:bg-blue-600 border border-slate-700 hover:border-blue-500 rounded py-1.5 text-xs text-slate-300 hover:text-white transition-colors">
+               <button key={sym} onClick={() => insertSymbol(sym)} className="bg-white hover:bg-slate-900 border border-slate-200 hover:border-slate-900 rounded py-1.5 text-xs text-slate-800 hover:text-white transition-colors font-medium">
                  {sym}
                </button>
             ))}
@@ -2001,9 +2013,9 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
         </div>
 
         {/* 10. 매장 로고 (Final Section) */}
-        <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700 mt-4 mb-20">
+        <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 mt-4 mb-20">
           <div className="flex items-center justify-between mb-2">
-            <label className="text-xs text-slate-300 font-bold flex items-center gap-1.5">🏪 내 점포 로고</label>
+            <label className="text-xs text-slate-800 font-bold flex items-center gap-1.5">🏪 내 점포 로고</label>
             <div className="flex items-center gap-2">
               {shopLogo && <button 
                    onClick={async () => {
@@ -2018,12 +2030,12 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
                  </button>}
               <label className="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" className="sr-only peer" checked={printLogo} onChange={e => setPrintLogo(e.target.checked)} disabled={!shopLogo} />
-                <div className="w-7 h-4 bg-slate-700 peer-checked:bg-blue-600 rounded-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:after:translate-x-full"></div>
+                <div className="w-7 h-4 bg-slate-300 peer-checked:bg-blue-600 rounded-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:after:translate-x-full"></div>
               </label>
             </div>
           </div>
           {!shopLogo ? (
-            <label className="flex items-center justify-center w-full p-3 border-2 border-dashed border-slate-700 rounded-xl cursor-pointer hover:bg-slate-900 transition text-slate-500 hover:text-slate-300">
+            <label className="flex items-center justify-center w-full p-3 border-2 border-dashed border-slate-300 rounded-xl cursor-pointer hover:bg-white transition text-slate-600 hover:text-slate-900">
               <span className="text-xs flex flex-col items-center gap-1"><Upload size={18}/> 로고 등록</span>
               <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
             </label>
@@ -2038,7 +2050,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
         <div className="mt-4 mb-2 w-full select-none">
           <button
             onClick={() => setIsManualOpen(true)}
-            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-3 px-4 rounded-xl shadow-lg border border-blue-400/30 transition-all hover:scale-[1.02] active:scale-[0.98]"
+            className="w-full flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 px-4 rounded-xl shadow-md border border-slate-700 transition-all hover:scale-[1.01] active:scale-[0.99]"
           >
             <BookOpen size={18} />
             Ribbonist 초보자 매뉴얼
@@ -2047,19 +2059,19 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
 
         {/* Customer Support / QA */}
         <div className="mb-10 w-full select-none">
-          <div className="bg-slate-800/60 border border-slate-700 p-3.5 rounded-xl border-l-4 border-l-blue-500 flex flex-col gap-1">
-            <h3 className="text-xs font-bold text-slate-300 flex items-center gap-1.5 mb-1">
+          <div className="bg-white border border-slate-200 p-3.5 rounded-xl border-l-4 border-l-blue-600 flex flex-col gap-1 shadow-sm">
+            <h3 className="text-xs font-bold text-slate-800 flex items-center gap-1.5 mb-1">
               🎧 고객센터 & QnA 핫라인
             </h3>
-            <p className="text-[10px] text-slate-400">장애 및 구독 관련 언제든 문의주세요.</p>
-            <div className="flex flex-col gap-1 mt-1 text-[11px] font-mono text-slate-300 bg-slate-900/50 p-2 rounded">
+            <p className="text-[10px] text-slate-600">장애 및 구독 관련 언제든 문의주세요.</p>
+            <div className="flex flex-col gap-1 mt-1 text-[11px] font-mono text-slate-800 bg-slate-50 border border-slate-100 p-2 rounded-lg">
               <div className="flex justify-between items-center">
                 <span>📞 전화:</span>
-                <span className="text-blue-300 font-bold">1588-0000</span>
+                <span className="text-blue-700 font-bold">1588-0000</span>
               </div>
               <div className="flex justify-between items-center">
                 <span>💬 카톡:</span>
-                <span className="text-amber-400 font-bold cursor-pointer hover:underline border-b border-transparent">@ribbonprint</span>
+                <span className="text-amber-800 font-bold cursor-pointer hover:underline">@ribbonprint</span>
               </div>
             </div>
           </div>
@@ -2074,7 +2086,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
         onMouseUp={stopDragging}
         onMouseLeave={stopDragging}
         className={cn(
-          "flex-1 relative overflow-auto p-4 sm:p-12 bg-[#0f172a] min-w-0 transition-all duration-300",
+          "flex-1 relative overflow-auto p-4 sm:p-12 bg-slate-100 min-w-0 transition-all duration-300",
           isSidebarOpen ? "lg:ml-0" : "ml-0",
           "mr-0",
           isDragging ? "cursor-grabbing" : "cursor-grab"
@@ -2084,7 +2096,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
         {!isSidebarOpen && (
           <button 
             onClick={() => setIsSidebarOpen(true)}
-            className="fixed top-1/2 left-0 -translate-y-1/2 z-[45] p-2.5 bg-blue-600 text-white rounded-r-xl shadow-lg border-y border-r border-blue-400/50 hover:bg-blue-500 transition-all active:scale-95 group"
+            className="fixed top-1/2 left-0 -translate-y-1/2 z-[45] p-2.5 bg-slate-900 text-white rounded-r-xl shadow-lg border-y border-r border-slate-700 hover:bg-slate-800 transition-all active:scale-95 group"
             title="설정 메뉴 열기"
           >
             <ChevronRight size={24} className="group-hover:translate-x-0.5 transition-transform" />
@@ -2096,7 +2108,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
         {!isSidebarOpen && (
           <button 
             onClick={() => setIsSidebarOpen(true)}
-            className="lg:hidden fixed top-4 left-4 z-30 p-2.5 bg-blue-600/90 text-white rounded-xl shadow-lg shadow-blue-900/40 backdrop-blur hover:bg-blue-500 transition active:scale-95"
+            className="lg:hidden fixed top-4 left-4 z-30 p-2.5 bg-slate-900 text-white rounded-xl shadow-lg border border-slate-700 backdrop-blur hover:bg-slate-800 transition active:scale-95"
             title="메뉴 열기"
           >
             <Menu size={24} />
@@ -2121,16 +2133,16 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
           <div className={cn(
             "flex absolute top-0 left-1/2 -translate-x-1/2 transition-all duration-300",
             isPreviewMode ? "gap-4 flex-col items-center" : "flex-col lg:flex-row gap-12 lg:gap-24 items-center",
-            isPreviewMode && "bg-slate-800/40 p-10 rounded-3xl border border-slate-700/50 backdrop-blur"
+            isPreviewMode && "bg-white/90 p-10 rounded-3xl border border-slate-200 shadow-sm backdrop-blur-sm"
           )}>
           {isPreviewMode ? (
             // ================= PREVIEW MODE =================
             <div className="flex flex-col items-center">
-              <div className="text-blue-400 font-semibold mb-8 text-2xl uppercase tracking-widest border-b border-blue-400/30 pb-2">
+              <div className="text-slate-800 font-semibold mb-8 text-2xl uppercase tracking-widest border-b border-slate-200 pb-2">
                 Print Preview ({printTarget === 'both' ? (printLayout === 'connected' ? 'Connected' : 'Separate Both') : printTarget})
               </div>
               
-              <div className="flex flex-col items-center bg-white shadow-2xl p-4 border-[10px] border-slate-700 rounded-sm">
+              <div className="flex flex-col items-center bg-white shadow-xl p-4 border-[8px] border-slate-200 rounded-md ring-1 ring-slate-100">
                 {printTarget === 'left' && (
                   <div style={{ transform: 'rotate(180deg)', transformOrigin: 'center center' }}>
                       <RibbonCanvas 
@@ -2209,7 +2221,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
             // ================= DESIGN MODE =================
             <div 
               ref={printAreaRef}
-              className="flex gap-24 transition-transform duration-300 bg-[#0f172a]" 
+              className="flex gap-24 transition-transform duration-300 bg-slate-100" 
               style={{ transformOrigin: 'top center' }}
             >
               <RibbonCanvas 
@@ -2238,37 +2250,37 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
 
       {/* Floating Actions Toolbar */}
         <div className={cn(
-          "fixed bottom-8 left-1/2 -translate-x-1/2 bg-slate-800/90 backdrop-blur-xl p-2 rounded-full border border-slate-600/50 flex gap-1 sm:gap-2 shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[60] transition-all duration-300"
+          "fixed bottom-8 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-xl p-2 rounded-full border border-slate-200 flex gap-1 sm:gap-2 shadow-[0_12px_40px_-8px_rgba(15,23,42,0.18)] z-[60] transition-all duration-300"
         )}>
           <button 
             onClick={() => checkSubscriptionAction(() => setIsTemplateManagerOpen(true))} 
-            className="p-2 rounded-full hover:bg-slate-700 text-amber-400 transition-colors flex items-center gap-2 px-4 whitespace-nowrap"
+            className="p-2 rounded-full hover:bg-amber-50 text-amber-900 border border-transparent hover:border-amber-200 transition-colors flex items-center gap-2 px-4 whitespace-nowrap"
           >
             <FolderOpen size={18} />
             <span className="text-xs font-semibold uppercase">Templates</span>
           </button>
-          <div className="w-px h-6 bg-slate-600 my-auto mx-1"></div>
+          <div className="w-px h-6 bg-slate-200 my-auto mx-1"></div>
           <button 
             onClick={() => setIsPreviewMode(!isPreviewMode)} 
             className={cn(
-              "p-2 rounded-full transition-colors flex items-center gap-2 px-4 whitespace-nowrap", 
-              isPreviewMode ? "bg-blue-600 text-white" : "hover:bg-slate-700 text-slate-300"
+              "p-2 rounded-full transition-colors flex items-center gap-2 px-4 whitespace-nowrap border", 
+              isPreviewMode ? "bg-blue-600 text-white border-blue-600" : "hover:bg-slate-100 text-slate-700 border-transparent"
             )}
           >
             {isPreviewMode ? <Maximize2 size={18} /> : <Eye size={18} />}
             <span className="text-xs font-semibold uppercase">{isPreviewMode ? "Design" : "Preview"}</span>
           </button>
-          <div className="w-px h-6 bg-slate-600 my-auto"></div>
-          <button onClick={() => setZoom(z => Math.max(0.1, z - 0.1))} className="p-2 hover:bg-slate-700 rounded-full transition-colors"><Minimize2 size={18} /></button>
-          <div className="px-3 flex items-center justify-center font-mono text-xs text-white">{Math.round(zoom * 100)}%</div>
-          <button onClick={() => setZoom(z => Math.min(2.0, z + 0.1))} className="p-2 hover:bg-slate-700 rounded-full transition-colors"><Maximize2 size={18} /></button>
-          <div className="w-px h-6 bg-slate-600 my-auto mx-1"></div>
+          <div className="w-px h-6 bg-slate-200 my-auto"></div>
+          <button onClick={() => setZoom(z => Math.max(0.1, z - 0.1))} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-700"><Minimize2 size={18} /></button>
+          <div className="px-3 flex items-center justify-center font-mono text-xs text-slate-800 font-medium">{Math.round(zoom * 100)}%</div>
+          <button onClick={() => setZoom(z => Math.min(2.0, z + 0.1))} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-700"><Maximize2 size={18} /></button>
+          <div className="w-px h-6 bg-slate-200 my-auto mx-1"></div>
           <button 
             onClick={() => checkSubscriptionAction(handlePrint)}
             disabled={isPrinting}
             className={cn(
-              "flex items-center gap-2 px-6 py-2 rounded-full font-bold transition-all shadow-lg",
-              isPrinting ? "bg-slate-600 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-500 text-white"
+              "flex items-center gap-2 px-6 py-2 rounded-full font-bold transition-all shadow-md border",
+              isPrinting ? "bg-slate-300 cursor-not-allowed text-slate-600 border-slate-300" : "bg-slate-900 hover:bg-slate-800 text-white border-slate-900"
             )}
           >
             {isPrinting ? (

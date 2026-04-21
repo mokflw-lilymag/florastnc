@@ -1,0 +1,31 @@
+/**
+ * 광화문(본점) 기준 서울 자치구별 배송비 — 주문 화면·환경설정 기본값과 테넌트 마스터 시드에서 공통 사용.
+ */
+export const GWANGHWAMUN_DISTRICT_DELIVERY_FEES: Array<{ district: string; fee: number }> = [
+  { district: "종로구", fee: 10000 },
+  { district: "동작구", fee: 18000 },
+  { district: "중구", fee: 10000 },
+  { district: "광진구", fee: 18000 },
+  { district: "서대문구", fee: 13000 },
+  { district: "중랑구", fee: 18000 },
+  { district: "성북구", fee: 13000 },
+  { district: "강북구", fee: 20000 },
+  { district: "성동구", fee: 13000 },
+  { district: "송파구", fee: 20000 },
+  { district: "용산구", fee: 14000 },
+  { district: "강동구", fee: 20000 },
+  { district: "동대문구", fee: 14000 },
+  { district: "구로구", fee: 20000 },
+  { district: "영등포구", fee: 15000 },
+  { district: "강서구", fee: 20000 },
+  { district: "은평구", fee: 15000 },
+  { district: "관악구", fee: 20000 },
+  { district: "마포구", fee: 16000 },
+  { district: "노원구", fee: 20000 },
+  { district: "양천구", fee: 18000 },
+  { district: "도봉구", fee: 20000 },
+  { district: "강남구", fee: 18000 },
+  { district: "금천구", fee: 20000 },
+  { district: "서초구", fee: 18000 },
+  { district: "기타", fee: 25000 },
+];

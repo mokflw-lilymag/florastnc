@@ -4,6 +4,7 @@ import {
   DEFAULT_PRODUCT_CATEGORIES,
 } from "@/lib/category-defaults";
 import type { TenantMasterSeed } from "../types";
+import { TENANT_MASTER_SEED_DELIVERY_GWANGHWAMUN } from "./delivery-gwanghwamun";
 
 /**
  * 표준 시드 v2026-04-21 — 앱 기본 카테고리 + 샘플 마스터(최소 20건 단위로 구성).
@@ -249,4 +250,5 @@ export const TENANT_MASTER_SEED_V2026_04_21: TenantMasterSeed = {
     { name: "비닐 포장지(샘플)", main_category: "포장재", mid_category: "비닐", unit: "매", spec: "" },
     { name: "조화 잎사귀(샘플)", main_category: "부자재", mid_category: "조화", unit: "단", spec: "" },
   ],
+  delivery: { ...TENANT_MASTER_SEED_DELIVERY_GWANGHWAMUN },
 };

@@ -164,7 +164,7 @@ export function RibbonPrintLayout({ order, initialContent, initialSender }: Ribb
                 </div>
 
                 {/* Preview Area */}
-                <div className="flex-1 p-10 overflow-auto bg-slate-200 flex justify-center items-start print:p-0 print:bg-white print:overflow-visible">
+                <div className="flex-1 p-10 overflow-auto bg-slate-100 flex justify-center items-start print:p-0 print:bg-white print:overflow-visible">
                      <style jsx global>{`
                         @media print {
                             body * {
@@ -189,11 +189,11 @@ export function RibbonPrintLayout({ order, initialContent, initialSender }: Ribb
                      <div id="ribbon-printable" className="flex gap-8 print:gap-0 print:flex-col">
                         {/* Right Ribbon (Content) */}
                         <div 
-                           className="bg-white shadow-2xl print:shadow-none flex items-center justify-center p-4 min-h-[500px]"
+                           className="bg-[#f8fafc] shadow-xl ring-1 ring-slate-200/90 print:shadow-none print:ring-0 flex items-center justify-center p-4 min-h-[500px]"
                            style={{ width: ribbonWidth, fontFamily }}
                         >
                             <div 
-                                className="writing-vertical-rl text-center font-bold tracking-[0.2em] notranslate"
+                                className="writing-vertical-rl text-center font-semibold text-slate-950 tracking-[0.18em] notranslate antialiased [text-shadow:_0_1px_0_rgb(255_255_255_/_0.8)] print:text-black print:[text-shadow:none]"
                                 style={{ fontSize: `${fontSize}pt` }}
                                 translate="no"
                             >
@@ -203,11 +203,11 @@ export function RibbonPrintLayout({ order, initialContent, initialSender }: Ribb
 
                         {/* Left Ribbon (Sender) */}
                         <div 
-                           className="bg-white shadow-2xl print:shadow-none flex items-center justify-center p-4 min-h-[500px]"
+                           className="bg-[#f8fafc] shadow-xl ring-1 ring-slate-200/90 print:shadow-none print:ring-0 flex items-center justify-center p-4 min-h-[500px]"
                            style={{ width: ribbonWidth, fontFamily }}
                         >
                             <div 
-                                className="writing-vertical-rl text-center font-bold tracking-[0.2em] notranslate"
+                                className="writing-vertical-rl text-center font-semibold text-slate-950 tracking-[0.18em] notranslate antialiased [text-shadow:_0_1px_0_rgb(255_255_255_/_0.8)] print:text-black print:[text-shadow:none]"
                                 style={{ fontSize: `${fontSize}pt` }}
                                 translate="no"
                             >

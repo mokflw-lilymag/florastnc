@@ -26,6 +26,13 @@ export interface TenantMasterSeedMaterialRow {
   spec?: string;
 }
 
+/** 시드에 포함 시 적용: delivery_fees_by_region upsert + 일반 설정의 배송 필드 병합 */
+export interface TenantMasterSeedDelivery {
+  districtDeliveryFees: Array<{ district: string; fee: number }>;
+  defaultDeliveryFee?: number;
+  freeDeliveryThreshold?: number;
+}
+
 export interface TenantMasterSeed {
   version: string;
   label: string;
@@ -35,6 +42,7 @@ export interface TenantMasterSeed {
   suppliers: TenantMasterSeedSupplierRow[];
   products: TenantMasterSeedProductRow[];
   materials: TenantMasterSeedMaterialRow[];
+  delivery?: TenantMasterSeedDelivery;
 }
 
 export interface TenantMasterSeedResult {
@@ -45,6 +53,7 @@ export interface TenantMasterSeedResult {
   suppliers: { toInsert: number; toSkip: number };
   products: { toInsert: number; toSkip: number };
   materials: { toInsert: number; toSkip: number };
+  delivery: { regionsToUpsert: number; willMergeGeneralDeliveryFields: boolean };
   warnings: string[];
   auditId?: string | null;
 }

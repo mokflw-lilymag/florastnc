@@ -28,6 +28,11 @@ export async function GET(req: Request) {
       "자재: 단가·재고 0, 메모에 FS-SEED|버전|M|순번",
       "거래처: 샘플명만 (실제 사업자 정보는 매장에서 수정)",
       "카테고리(상품·자재·지출): system_settings 에 덮어쓰기",
+      ...(seed.delivery?.districtDeliveryFees?.length
+        ? [
+            "배송비: delivery_fees_by_region upsert + 일반 설정(settings_{tenant})의 districtDeliveryFees·기본료·무료배송 기준 병합",
+          ]
+        : []),
     ],
     counts: {
       productCategoryMains: seed.productCategories.main.length,
@@ -36,6 +41,7 @@ export async function GET(req: Request) {
       suppliers: seed.suppliers.length,
       products: seed.products.length,
       materials: seed.materials.length,
+      deliveryDistrictRows: seed.delivery?.districtDeliveryFees?.length ?? 0,
     },
     productCategories: seed.productCategories,
     materialCategories: seed.materialCategories,

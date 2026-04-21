@@ -26,6 +26,22 @@ export async function runTenantMasterSeed(
     "카테고리는 시드 버전 기준으로 system_settings 에 덮어씁니다.",
   ];
 
+  const delivery = seed.delivery;
+  const districtRows = (delivery?.districtDeliveryFees ?? []).filter((x) =>
+    String(x.district ?? "").trim()
+  );
+  const regionsToUpsert = districtRows.length;
+  const willMergeGeneralDeliveryFields =
+    districtRows.length > 0 ||
+    typeof delivery?.defaultDeliveryFee === "number" ||
+    typeof delivery?.freeDeliveryThreshold === "number";
+
+  if (districtRows.length > 0) {
+    warnings.push(
+      "배송비: 자치구별 금액은 delivery_fees_by_region 과 일반 설정의 districtDeliveryFees 에 함께 반영됩니다."
+    );
+  }
+
   const { data: tenant, error: tenantErr } = await admin
     .from("tenants")
     .select("id")
@@ -197,6 +213,54 @@ export async function runTenantMasterSeed(
       });
       if (error) throw error;
     }
+
+    if (districtRows.length > 0) {
+      const { error: dFeeErr } = await admin.from("delivery_fees_by_region").upsert(
+        districtRows.map((r) => ({
+          tenant_id: tenantId,
+          region_name: String(r.district).trim(),
+          fee: Number(r.fee),
+        })),
+        { onConflict: "tenant_id, region_name" }
+      );
+      if (dFeeErr) throw dFeeErr;
+    }
+
+    if (willMergeGeneralDeliveryFields) {
+      const { data: genRows, error: genSelErr } = await admin
+        .from("system_settings")
+        .select("id, data")
+        .eq("tenant_id", tenantId)
+        .in("id", [`settings_${tenantId}`, "general"]);
+      if (genSelErr) throw genSelErr;
+      const genRow =
+        genRows?.find((r) => r.id === `settings_${tenantId}`) ??
+        genRows?.find((r) => r.id === "general");
+      const prev =
+        genRow?.data && typeof genRow.data === "object" && genRow.data !== null && !Array.isArray(genRow.data)
+          ? { ...(genRow.data as Record<string, unknown>) }
+          : {};
+      const next: Record<string, unknown> = { ...prev };
+      if (districtRows.length > 0) {
+        next.districtDeliveryFees = districtRows.map((r) => ({
+          district: String(r.district).trim(),
+          fee: Number(r.fee),
+        }));
+      }
+      if (typeof delivery?.defaultDeliveryFee === "number") {
+        next.defaultDeliveryFee = delivery.defaultDeliveryFee;
+      }
+      if (typeof delivery?.freeDeliveryThreshold === "number") {
+        next.freeDeliveryThreshold = delivery.freeDeliveryThreshold;
+      }
+      const { error: genUpErr } = await admin.from("system_settings").upsert({
+        id: `settings_${tenantId}`,
+        tenant_id: tenantId,
+        data: next,
+        updated_at: now,
+      });
+      if (genUpErr) throw genUpErr;
+    }
   }
 
   let auditId: string | null = null;
@@ -206,6 +270,10 @@ export async function runTenantMasterSeed(
       suppliers: { inserted: supInsert, skipped: supSkip },
       products: { inserted: prodInsert, skipped: prodSkip },
       materials: { inserted: matInsert, skipped: matSkip },
+      delivery: {
+        regionsUpserted: regionsToUpsert,
+        mergedGeneralDeliveryFields: willMergeGeneralDeliveryFields,
+      },
     };
     const { data: auditRow, error: auditErr } = await admin
       .from("tenant_master_seed_audit")
@@ -228,6 +296,7 @@ export async function runTenantMasterSeed(
     suppliers: { toInsert: supInsert, toSkip: supSkip },
     products: { toInsert: prodInsert, toSkip: prodSkip },
     materials: { toInsert: matInsert, toSkip: matSkip },
+    delivery: { regionsToUpsert, willMergeGeneralDeliveryFields },
     warnings,
     auditId,
   };

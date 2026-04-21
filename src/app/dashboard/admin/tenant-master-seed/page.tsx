@@ -70,6 +70,115 @@ function isAbortError(e: unknown) {
   return e instanceof DOMException && e.name === "AbortError";
 }
 
+function seedRowTotal(row: { toInsert: number; toSkip: number }) {
+  return row.toInsert + row.toSkip;
+}
+
+function SeedPreviewBreakdown({
+  title,
+  row,
+}: {
+  title: string;
+  row: { toInsert: number; toSkip: number };
+}) {
+  const total = seedRowTotal(row);
+  const ins = row.toInsert;
+  const sk = row.toSkip;
+  const insPct = total > 0 ? Math.round((ins / total) * 100) : 0;
+  const skPct = total > 0 ? Math.round((sk / total) * 100) : 0;
+  return (
+    <div className="space-y-1.5">
+      <div className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
+        <span className="font-medium text-slate-800">{title}</span>
+        <span className="text-xs text-slate-600 tabular-nums text-right">
+          시드 정의 합계 <strong>{total}</strong>건 · 신규{" "}
+          <strong className="text-emerald-700">{ins}</strong>
+          {total > 0 ? ` (${insPct}%)` : ""} · 스킵 <strong className="text-slate-500">{sk}</strong>
+          {total > 0 ? ` (${skPct}%)` : ""}
+        </span>
+      </div>
+      <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-slate-200/80">
+        {total === 0 ? (
+          <div className="h-full w-full bg-slate-100" title="시드에 해당 항목 없음" />
+        ) : (
+          <>
+            <div
+              className="h-full bg-emerald-500 transition-[width] duration-300"
+              style={{ width: `${insPct}%` }}
+              title={`신규 적용 ${ins}건 (${insPct}%)`}
+            />
+            <div
+              className="h-full bg-slate-400/70 transition-[width] duration-300"
+              style={{ width: `${skPct}%` }}
+              title={`건너뜀 ${sk}건 (${skPct}%)`}
+            />
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SeedApplyPreviewPanel({ preview }: { preview: TenantMasterSeedResult }) {
+  return (
+    <div className="space-y-4">
+      <p className="text-xs text-muted-foreground leading-relaxed border-l-2 border-sky-200 bg-sky-50/40 pl-3 py-2 rounded-r-md">
+        <strong className="text-slate-800">이 미리보기가 보여 주는 것:</strong> 위에서 고른{" "}
+        <strong className="text-slate-900">이 매장 DB</strong>에 대해, 서버가 시드를{" "}
+        <code className="text-[10px]">dryRun</code>으로 돌려{" "}
+        <strong className="text-emerald-800">실제로 INSERT될 건수</strong>와{" "}
+        <strong className="text-slate-700">이미 있어 스킵될 건수</strong>만 계산한 결과입니다. 시드 파일에 들어 있는{" "}
+        <strong>전체 행·코드·메모</strong>는 이 화면 아래 <strong>「시드 구성 보기」</strong>에서 확인하세요.
+      </p>
+      <p className="text-[11px] text-slate-600 leading-snug rounded-md bg-slate-100/80 px-3 py-2 border border-slate-200/60">
+        아래 초록·회색 막대는 <strong className="text-slate-800">업로드·적용이 진행되는 실시간 진행률이 아닙니다.</strong>{" "}
+        응답이 한 번 끝난 뒤, 그때 집계된 신규/스킵 비율을 막대로만 보여 주는{" "}
+        <strong className="text-slate-800">정적 요약</strong>이라서 숫자가 정해지면 움직이지 않습니다. (「적용 결과」도 같은
+        방식으로, 방금 실행에서 실제로 넣거나 건너뛴 건수 비율입니다.)
+      </p>
+      <p className="text-[11px] font-medium text-slate-700">신규 vs 스킵 비율</p>
+      <SeedPreviewBreakdown title="거래처" row={preview.suppliers} />
+      <SeedPreviewBreakdown title="상품" row={preview.products} />
+      <SeedPreviewBreakdown title="자재" row={preview.materials} />
+      {(preview.delivery.regionsToUpsert > 0 || preview.delivery.willMergeGeneralDeliveryFields) && (
+        <div className="rounded-lg border border-sky-200/80 bg-sky-50/50 px-3 py-2 text-xs text-sky-950/90 leading-snug">
+          <strong className="text-slate-900">배송비</strong> — 자치구·기타 구역{" "}
+          <strong className="tabular-nums">{preview.delivery.regionsToUpsert}</strong>건을{" "}
+          <code className="text-[10px]">delivery_fees_by_region</code> 에 UPSERT하고, 일반 설정의 배송 필드 병합{" "}
+          <strong>{preview.delivery.willMergeGeneralDeliveryFields ? "예" : "아니오"}</strong>
+          {preview.delivery.regionsToUpsert === 0 && preview.delivery.willMergeGeneralDeliveryFields
+            ? " (기본 배송료·무료배송 기준만)"
+            : ""}
+          .
+        </div>
+      )}
+      <div className="rounded-lg border border-amber-200/80 bg-amber-50/60 px-3 py-2 text-xs text-amber-950/90 leading-snug">
+        <strong>카테고리</strong>는 건수 비율이 아니라, 상품·자재·지출{" "}
+        <code className="text-[10px]">system_settings</code> 세트를 시드 버전 내용으로{" "}
+        <strong>통째로 덮어씁니다</strong> (적용 실행 시 1회 반영).
+      </div>
+    </div>
+  );
+}
+
+function aggregateBulkSeedDeltas(tenants: TenantMasterSeedBulkResult["tenants"]) {
+  const acc = {
+    suppliers: { toInsert: 0, toSkip: 0 },
+    products: { toInsert: 0, toSkip: 0 },
+    materials: { toInsert: 0, toSkip: 0 },
+  };
+  for (const row of tenants) {
+    if (!row.ok || !row.result) continue;
+    acc.suppliers.toInsert += row.result.suppliers.toInsert;
+    acc.suppliers.toSkip += row.result.suppliers.toSkip;
+    acc.products.toInsert += row.result.products.toInsert;
+    acc.products.toSkip += row.result.products.toSkip;
+    acc.materials.toInsert += row.result.materials.toInsert;
+    acc.materials.toSkip += row.result.materials.toSkip;
+  }
+  return acc;
+}
+
 export default function TenantMasterSeedPage() {
   const { isSuperAdmin, isLoading: authLoading } = useAuth();
   const [tenants, setTenants] = useState<TenantRow[]>([]);
@@ -588,6 +697,12 @@ export default function TenantMasterSeedPage() {
                 </Button>
               </div>
 
+              <p className="text-xs text-muted-foreground leading-snug">
+                「미리보기」는 <strong className="text-slate-700">선택 매장의 현재 DB</strong>와 비교한{" "}
+                <strong>신규/스킵 건수·비율</strong>만 가져옵니다. 시드에 들어 있는{" "}
+                <strong>전체 목록·실제 저장 값</strong>은 페이지 하단 「시드 구성 보기」입니다.
+              </p>
+
               <div className="flex flex-wrap gap-3">
                 <Button
                   type="button"
@@ -608,20 +723,9 @@ export default function TenantMasterSeedPage() {
               {preview && (
                 <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-4 space-y-3 text-sm">
                   <p className="font-medium text-slate-800">
-                    {preview.dryRun ? "미리보기" : "적용 결과"} · {preview.seedVersion}
+                    {preview.dryRun ? "미리보기 (DB 미반영)" : "적용 결과"} · {preview.seedVersion}
                   </p>
-                  <ul className="space-y-1 text-slate-600">
-                    <li>
-                      거래처: 신규 {preview.suppliers.toInsert}건 / 스킵 {preview.suppliers.toSkip}건
-                    </li>
-                    <li>
-                      상품: 신규 {preview.products.toInsert}건 / 스킵 {preview.products.toSkip}건
-                    </li>
-                    <li>
-                      자재: 신규 {preview.materials.toInsert}건 / 스킵 {preview.materials.toSkip}건
-                    </li>
-                    <li>카테고리(상품·자재·지출): 반영 예정</li>
-                  </ul>
+                  <SeedApplyPreviewPanel preview={preview} />
                   {preview.auditId && (
                     <p className="text-xs font-mono text-slate-500">감사 로그 ID: {preview.auditId}</p>
                   )}
@@ -760,12 +864,36 @@ export default function TenantMasterSeedPage() {
               {bulkPreview && applyTab === "tenants" && (
                 <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-4 space-y-3 text-sm">
                   <p className="font-medium text-slate-800">
-                    {bulkPreview.dryRun ? "일괄 미리보기" : "일괄 적용 결과"} · {bulkPreview.seedVersion}{" "}
+                    {bulkPreview.dryRun ? "일괄 미리보기 (DB 미반영)" : "일괄 적용 결과"} · {bulkPreview.seedVersion}{" "}
                     · 매장 {bulkPreview.tenantCount}곳 (성공 {bulkPreview.okCount} / 실패 {bulkPreview.failCount})
                   </p>
                   <p className="text-xs text-muted-foreground leading-snug">
-                    위 숫자는 선택한 매장 전체 집계입니다. 표는 높이가 제한되어 있어 일부 행만 보일 수 있으니, 안쪽을 스크롤하면 나머지
-                    매장도 모두 확인할 수 있습니다.
+                    매장별 미리보기는 각 매장 DB 기준 신규/스킵입니다. 아래 막대는{" "}
+                    <strong className="text-slate-700">성공한 매장만</strong> 합산한 총 신규·스킵 비율입니다. 시드 원본 목록은 하단
+                    「시드 구성 보기」를 보세요.
+                  </p>
+                  {bulkPreview.okCount > 0 && (
+                    <div className="rounded-lg border border-slate-200/90 bg-white px-3 py-3 space-y-3 shadow-sm">
+                      <p className="text-xs font-semibold text-slate-800">
+                        {bulkPreview.dryRun ? "합산 (미리보기 성공 매장)" : "합산 (적용 성공 매장)"}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground leading-snug">
+                        막대는 매장별로 순차 처리되는 진행률이 아니라, 응답이 모인 뒤의 합산 신규/스킵 비율입니다.
+                      </p>
+                      {(() => {
+                        const agg = aggregateBulkSeedDeltas(bulkPreview.tenants);
+                        return (
+                          <>
+                            <SeedPreviewBreakdown title="거래처" row={agg.suppliers} />
+                            <SeedPreviewBreakdown title="상품" row={agg.products} />
+                            <SeedPreviewBreakdown title="자재" row={agg.materials} />
+                          </>
+                        );
+                      })()}
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground leading-snug">
+                    표는 높이가 제한되어 있어 일부 행만 보일 수 있으니, 안쪽을 스크롤하면 나머지 매장도 모두 확인할 수 있습니다.
                   </p>
                   <ScrollArea className="h-[min(20rem,55vh)] min-h-[200px] rounded-md border bg-white">
                     <Table>
@@ -788,6 +916,11 @@ export default function TenantMasterSeedPage() {
                                 <span className="text-emerald-800">
                                   거래처 +{row.result.suppliers.toInsert} / 상품 +{row.result.products.toInsert} / 자재 +
                                   {row.result.materials.toInsert}
+                                  {row.result.delivery.regionsToUpsert > 0 || row.result.delivery.willMergeGeneralDeliveryFields
+                                    ? ` / 배송 구역 ${row.result.delivery.regionsToUpsert}·설정병합${
+                                        row.result.delivery.willMergeGeneralDeliveryFields ? "O" : "—"
+                                      }`
+                                    : ""}
                                 </span>
                               ) : (
                                 <span className="text-red-700">{row.error ?? "실패"}</span>
@@ -909,12 +1042,36 @@ export default function TenantMasterSeedPage() {
               {bulkPreview && applyTab === "organization" && (
                 <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-4 space-y-3 text-sm">
                   <p className="font-medium text-slate-800">
-                    {bulkPreview.dryRun ? "일괄 미리보기" : "일괄 적용 결과"} · {bulkPreview.seedVersion}{" "}
+                    {bulkPreview.dryRun ? "일괄 미리보기 (DB 미반영)" : "일괄 적용 결과"} · {bulkPreview.seedVersion}{" "}
                     · 매장 {bulkPreview.tenantCount}곳 (성공 {bulkPreview.okCount} / 실패 {bulkPreview.failCount})
                   </p>
                   <p className="text-xs text-muted-foreground leading-snug">
-                    위 숫자는 조직 소속 매장 전체 집계입니다. 표는 높이가 제한되어 있어 일부 행만 보일 수 있으니, 안쪽을 스크롤하면 나머지
-                    매장도 모두 확인할 수 있습니다.
+                    조직 소속 매장별 미리보기는 각 DB 기준입니다. 아래 막대는{" "}
+                    <strong className="text-slate-700">성공한 매장만</strong> 합산한 총 신규·스킵 비율입니다. 시드 원본은 하단 「시드
+                    구성 보기」입니다.
+                  </p>
+                  {bulkPreview.okCount > 0 && (
+                    <div className="rounded-lg border border-slate-200/90 bg-white px-3 py-3 space-y-3 shadow-sm">
+                      <p className="text-xs font-semibold text-slate-800">
+                        {bulkPreview.dryRun ? "합산 (미리보기 성공 매장)" : "합산 (적용 성공 매장)"}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground leading-snug">
+                        막대는 매장별로 순차 처리되는 진행률이 아니라, 응답이 모인 뒤의 합산 신규/스킵 비율입니다.
+                      </p>
+                      {(() => {
+                        const agg = aggregateBulkSeedDeltas(bulkPreview.tenants);
+                        return (
+                          <>
+                            <SeedPreviewBreakdown title="거래처" row={agg.suppliers} />
+                            <SeedPreviewBreakdown title="상품" row={agg.products} />
+                            <SeedPreviewBreakdown title="자재" row={agg.materials} />
+                          </>
+                        );
+                      })()}
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground leading-snug">
+                    표는 높이가 제한되어 있어 일부 행만 보일 수 있으니, 안쪽을 스크롤하면 나머지 매장도 모두 확인할 수 있습니다.
                   </p>
                   <ScrollArea className="h-[min(20rem,55vh)] min-h-[200px] rounded-md border bg-white">
                     <Table>
@@ -937,6 +1094,11 @@ export default function TenantMasterSeedPage() {
                                 <span className="text-emerald-800">
                                   거래처 +{row.result.suppliers.toInsert} / 상품 +{row.result.products.toInsert} / 자재 +
                                   {row.result.materials.toInsert}
+                                  {row.result.delivery.regionsToUpsert > 0 || row.result.delivery.willMergeGeneralDeliveryFields
+                                    ? ` / 배송 구역 ${row.result.delivery.regionsToUpsert}·설정병합${
+                                        row.result.delivery.willMergeGeneralDeliveryFields ? "O" : "—"
+                                      }`
+                                    : ""}
                                 </span>
                               ) : (
                                 <span className="text-red-700">{row.error ?? "실패"}</span>
@@ -1040,6 +1202,14 @@ export default function TenantMasterSeedPage() {
                   <span>
                     자재 <strong className="text-slate-800">{seedDetail.counts.materials}</strong>
                   </span>
+                  {(seedDetail.counts.deliveryDistrictRows ?? 0) > 0 && (
+                    <>
+                      <span className="text-slate-300">·</span>
+                      <span>
+                        배송 구역 <strong className="text-slate-800">{seedDetail.counts.deliveryDistrictRows}</strong>
+                      </span>
+                    </>
+                  )}
                   <span className="text-slate-300">·</span>
                   <span>
                     상품 카테고리(대) <strong className="text-slate-800">{seedDetail.counts.productCategoryMains}</strong>

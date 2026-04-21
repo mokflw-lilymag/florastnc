@@ -30,6 +30,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { toast } from 'sonner';
 import { createClient } from '@/utils/supabase/client';
 import { 
@@ -517,10 +518,21 @@ export default function MarketingStudio() {
                         </div>
                         <div className="flex flex-wrap gap-2 pt-2">
                            {themes.length === 0 && <span className="text-xs text-slate-400 italic font-medium">등록된 홍보 주제가 없습니다. 주제를 추가해 주세요.</span>}
-                           {themes.map((t) => (
-                             <Badge key={t} variant="secondary" className="px-3 py-1.5 rounded-full gap-2 bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300">
-                               {t}
-                               <Trash2 className="w-3.5 h-3.5 cursor-pointer hover:text-red-500" onClick={() => removeTheme(t)} />
+                           {themes.map((t, idx) => (
+                             <Badge key={`${t}-${idx}`} variant="secondary" className="px-3 py-1.5 rounded-full gap-2 bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300">
+                               <span className="max-w-[200px] truncate" title={t}>{t}</span>
+                               <button
+                                 type="button"
+                                 className="inline-flex shrink-0 rounded-sm p-0.5 text-indigo-600 hover:bg-indigo-100 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                                 aria-label={`주제 삭제: ${t}`}
+                                 onClick={(e) => {
+                                   e.preventDefault();
+                                   e.stopPropagation();
+                                   removeTheme(t);
+                                 }}
+                               >
+                                 <Trash2 className="w-3.5 h-3.5 pointer-events-none" />
+                               </button>
                              </Badge>
                            ))}
                         </div>
@@ -560,12 +572,47 @@ export default function MarketingStudio() {
                        <CardTitle className="text-lg flex items-center gap-2"><Zap className="w-5 h-5 text-yellow-400" /> 자율 주행 마케팅 (Auto-Pilot)</CardTitle>
                     </CardHeader>
                     <CardContent className="p-6 space-y-6">
-                       <div className="flex items-center justify-between">
-                          <span className="text-sm font-bold">24시간 자동 모드 활성화</span>
-                          <Switch 
-                            checked={shopSettings.auto_pilot_enabled}
-                            onCheckedChange={(val) => setShopSettings({...shopSettings, auto_pilot_enabled: val})}
-                          />
+                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="space-y-1 min-w-0">
+                            <span className="text-sm font-bold">24시간 자동 모드 활성화</span>
+                            <p className="text-[11px] leading-snug text-slate-400">
+                              {shopSettings.auto_pilot_enabled ? (
+                                <span className="font-semibold text-emerald-400">상태: 켜짐 — 자동으로 콘텐츠가 생성·게시됩니다.</span>
+                              ) : (
+                                <span className="text-slate-500">상태: 꺼짐 — 저장 후에도 자동 실행되지 않습니다.</span>
+                              )}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0 self-end sm:self-auto">
+                            <span
+                              className={cn(
+                                "rounded-full px-2.5 py-1 text-[11px] font-bold tabular-nums border",
+                                shopSettings.auto_pilot_enabled
+                                  ? "border-emerald-400/50 bg-emerald-500/15 text-emerald-300"
+                                  : "border-slate-500 bg-slate-800 text-slate-400"
+                              )}
+                              aria-hidden
+                            >
+                              {shopSettings.auto_pilot_enabled ? "ON · 켜짐" : "OFF · 꺼짐"}
+                            </span>
+                            <Switch
+                              checked={shopSettings.auto_pilot_enabled}
+                              onCheckedChange={(val) =>
+                                setShopSettings({ ...shopSettings, auto_pilot_enabled: val })
+                              }
+                              className={cn(
+                                "h-7 w-12 shrink-0 border shadow-sm",
+                                "data-checked:border-emerald-400/70 data-checked:bg-emerald-500",
+                                "data-unchecked:border-slate-500 data-unchecked:bg-slate-600",
+                                "[&_[data-slot=switch-thumb]]:bg-white [&_[data-slot=switch-thumb]]:shadow"
+                              )}
+                              aria-label={
+                                shopSettings.auto_pilot_enabled
+                                  ? "24시간 자동 모드 끄기"
+                                  : "24시간 자동 모드 켜기"
+                              }
+                            />
+                          </div>
                        </div>
                        <p className="text-xs text-slate-400 leading-relaxed bg-slate-800/50 p-4 rounded-xl border border-slate-700">
                           활성화 시, AI가 매일 가장 트렌디한 주제를 선정하여 설정된 페르소나와 홍보 주제에 맞춰 자동으로 콘텐츠를 생성하고 각 SNS에 업로드합니다.
