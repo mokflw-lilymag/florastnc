@@ -8,7 +8,7 @@ import { ProductTable } from "./components/product-table";
 import { ProductForm } from "./components/product-form";
 import { useProducts } from "@/hooks/use-products";
 import { Product, ProductData } from "@/types/product";
-import { Plus, Search, RefreshCw, Package, Tag, AlertCircle } from "lucide-react";
+import { Plus, Search, RefreshCw, Package, Tag, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
@@ -19,19 +19,24 @@ import { useSettings } from "@/hooks/use-settings";
 import { Download, Upload, Settings2 } from "lucide-react";
 import Link from "next/link";
 import { SAMPLE_PRODUCTS } from "@/utils/sample-data";
+import { DASHBOARD_LIST_PAGE_SIZE } from "@/lib/dashboard-list-limit";
 
 export default function ProductsPage() {
   const { profile, isSuperAdmin, isLoading: authLoading } = useAuth();
   const plan = profile?.tenants?.plan || (isSuperAdmin ? "pro" : "free");
 
-  const { 
-    products, 
-    loading, 
-    isRefreshing, 
-    fetchProducts, 
-    addProduct, 
-    updateProduct, 
-    deleteProduct 
+  const {
+    products,
+    loading,
+    isRefreshing,
+    fetchProducts,
+    addProduct,
+    updateProduct,
+    deleteProduct,
+    productStats,
+    productsTotalCount,
+    listPage,
+    setListPageAndFetch,
   } = useProducts();
 
   const { productCategories } = useSettings();
@@ -51,15 +56,6 @@ export default function ProductsPage() {
       (p.code?.toLowerCase().includes(lowerSearch))
     );
   }, [products, searchTerm]);
-
-  const stats = useMemo(() => {
-    return {
-      total: products.length,
-      active: products.filter(p => p.status === 'active' && p.stock > 0).length,
-      lowStock: products.filter(p => p.stock > 0 && p.stock < 10).length,
-      outOfStock: products.filter(p => p.stock <= 0).length
-    };
-  }, [products]);
 
   const handleCreateNew = () => {
     setEditingProduct(null);
@@ -133,7 +129,7 @@ export default function ProductsPage() {
   };
 
   const handleLoadSamples = async () => {
-    if (products.length > 0) {
+    if (productStats.total > 0) {
       if (!window.confirm("현재 상품이 이미 존재합니다. 샘플 데이터를 추가로 불러오시겠습니까?")) return;
     }
     
@@ -233,13 +229,17 @@ export default function ProductsPage() {
         </div>
       </PageHeader>
 
+      <p className="text-xs text-muted-foreground px-1">
+        상단 요약 카드는 매장 전체 상품 기준입니다. 아래 표는 이름순으로 한 번에 {DASHBOARD_LIST_PAGE_SIZE}건씩 페이지를 나눠 불러옵니다. 검색은 현재 페이지 안에서만 적용됩니다.
+      </p>
+
       {/* Stats Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="border-none shadow-sm bg-blue-50/50">
           <CardContent className="p-4 flex flex-col pt-4">
             <span className="text-xs text-blue-600 font-semibold mb-1 uppercase tracking-wider">전체 상품</span>
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-blue-900">{stats.total}</span>
+              <span className="text-2xl font-bold text-blue-900">{productStats.total}</span>
               <Package className="h-4 w-4 text-blue-300" />
             </div>
           </CardContent>
@@ -248,7 +248,7 @@ export default function ProductsPage() {
           <CardContent className="p-4 flex flex-col pt-4">
             <span className="text-xs text-emerald-600 font-semibold mb-1 uppercase tracking-wider">판매 중</span>
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-emerald-900">{stats.active}</span>
+              <span className="text-2xl font-bold text-emerald-900">{productStats.active}</span>
               <Tag className="h-4 w-4 text-emerald-300" />
             </div>
           </CardContent>
@@ -257,7 +257,7 @@ export default function ProductsPage() {
           <CardContent className="p-4 flex flex-col pt-4">
             <span className="text-xs text-amber-600 font-semibold mb-1 uppercase tracking-wider">재고 부족</span>
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-amber-900">{stats.lowStock}</span>
+              <span className="text-2xl font-bold text-amber-900">{productStats.lowStock}</span>
               <AlertCircle className="h-4 w-4 text-amber-300" />
             </div>
           </CardContent>
@@ -266,7 +266,7 @@ export default function ProductsPage() {
           <CardContent className="p-4 flex flex-col pt-4">
             <span className="text-xs text-red-600 font-semibold mb-1 uppercase tracking-wider">품절</span>
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-red-900">{stats.outOfStock}</span>
+              <span className="text-2xl font-bold text-red-900">{productStats.outOfStock}</span>
               <AlertCircle className="h-4 w-4 text-red-300" />
             </div>
           </CardContent>
@@ -287,7 +287,7 @@ export default function ProductsPage() {
       </div>
 
       {/* Product Table */}
-      {products.length === 0 && !loading ? (
+      {productStats.total === 0 && !loading ? (
         <Card className="border-dashed border-2 border-slate-200 bg-slate-50/50">
           <CardContent className="flex flex-col items-center justify-center py-20 text-center space-y-4">
             <div className="p-4 bg-white rounded-full shadow-sm">
@@ -312,12 +312,48 @@ export default function ProductsPage() {
           </CardContent>
         </Card>
       ) : (
-        <ProductTable
-          products={filteredProducts}
-          onSelectionChange={setSelectedIds}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-        />
+        <>
+          <ProductTable
+            products={filteredProducts}
+            pageProducts={products}
+            registeredTotal={productStats.total}
+            onSelectionChange={setSelectedIds}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
+          {productsTotalCount > 0 && (
+            <div className="flex flex-wrap items-center justify-center gap-3 py-4 text-sm text-muted-foreground">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={listPage <= 0 || isRefreshing}
+                onClick={() => void setListPageAndFetch(listPage - 1)}
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                이전
+              </Button>
+              <span>
+                {productsTotalCount === 0
+                  ? "0"
+                  : `${listPage * DASHBOARD_LIST_PAGE_SIZE + 1}–${Math.min((listPage + 1) * DASHBOARD_LIST_PAGE_SIZE, productsTotalCount)}`}{" "}
+                / 전체 {productsTotalCount}건 · 페이지 {listPage + 1} / {Math.max(1, Math.ceil(productsTotalCount / DASHBOARD_LIST_PAGE_SIZE))}
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={
+                  isRefreshing || (listPage + 1) * DASHBOARD_LIST_PAGE_SIZE >= productsTotalCount
+                }
+                onClick={() => void setListPageAndFetch(listPage + 1)}
+              >
+                다음
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          )}
+        </>
       )}
 
       <ProductForm

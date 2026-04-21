@@ -36,7 +36,12 @@ import { cn } from "@/lib/utils";
 import { Product } from "@/types/product";
 
 interface ProductTableProps {
+  /** 현재 페이지에서 불러온 행(검색·필터 적용 후 표시) */
   products: Product[];
+  /** 같은 페이지의 행(검색 전). 빈 상태 문구를 구분할 때 사용 */
+  pageProducts?: Product[];
+  /** 요약 카드의 전체 상품 수. 있으면 '빈 페이지'와 '진짜로 없음'을 구분 */
+  registeredTotal?: number;
   onSelectionChange: (selectedIds: string[]) => void;
   onEdit: (product: Product) => void;
   /** true 이면 다이얼로그를 닫습니다. */
@@ -46,11 +51,21 @@ interface ProductTableProps {
 
 export function ProductTable({ 
   products, 
+  pageProducts,
+  registeredTotal,
   onSelectionChange, 
   onEdit, 
   onDelete, 
   selectedProducts = [] 
 }: ProductTableProps) {
+  const pageRows = pageProducts ?? products;
+  const emptyListMessage =
+    pageRows.length > 0
+      ? "검색 결과가 없습니다."
+      : registeredTotal != null && registeredTotal > 0
+        ? "이 페이지에 표시할 상품이 없습니다. 이전 페이지로 이동해 보세요."
+        : "등록된 상품이 없습니다.";
+
   const [selectedRows, setSelectedRows] = useState<Record<string, boolean>>({});
   const [pendingDelete, setPendingDelete] = useState<Product | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -199,7 +214,7 @@ export function ProductTable({
                 <TableCell colSpan={7} className="h-40 text-center">
                   <div className="flex flex-col items-center justify-center text-slate-400 gap-2">
                     <Package className="h-8 w-8 opacity-20" />
-                    <p>등록된 상품이 없습니다.</p>
+                    <p>{emptyListMessage}</p>
                   </div>
                 </TableCell>
               </TableRow>

@@ -22,8 +22,11 @@ import {
   RefreshCw,
   Building2,
   Check,
-  ChevronsUpDown
+  ChevronsUpDown,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
+import { DASHBOARD_LIST_PAGE_SIZE } from '@/lib/dashboard-list-limit';
 import { useMaterials, Material } from '@/hooks/use-materials';
 import { useSuppliers } from '@/hooks/use-suppliers';
 import { SAMPLE_MATERIALS } from "@/utils/sample-data";
@@ -42,7 +45,17 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 
 export default function InventoryPage() {
-  const { materials, loading: materialsLoading, stats, addMaterial, updateMaterial, deleteMaterial } = useMaterials();
+  const {
+    materials,
+    loading: materialsLoading,
+    stats,
+    materialsTotalCount,
+    listPage,
+    setListPage,
+    addMaterial,
+    updateMaterial,
+    deleteMaterial,
+  } = useMaterials();
   const { suppliers, loading: suppliersLoading } = useSuppliers();
   const { materialCategories, loading: settingsLoading } = useSettings();
   const loading = materialsLoading || settingsLoading || suppliersLoading;
@@ -110,7 +123,7 @@ export default function InventoryPage() {
   };
 
   const handleLoadSamples = async () => {
-    if (materials.length > 0) {
+    if (stats.totalTypes > 0) {
       if (!window.confirm("현재 자재가 이미 존재합니다. 샘플 데이터를 추가로 불러오시겠습니까?")) return;
     }
     
@@ -287,6 +300,10 @@ export default function InventoryPage() {
         </div>
       </PageHeader>
 
+      <p className="text-xs text-muted-foreground px-1">
+        상단 요약 카드는 매장 전체 자재 기준입니다. 아래 표는 이름순으로 한 번에 {DASHBOARD_LIST_PAGE_SIZE}건씩 페이지를 나눠 불러옵니다. 검색·분류 필터는 현재 페이지 안에서만 적용됩니다.
+      </p>
+
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card className="border-none shadow-md bg-gradient-to-br from-blue-50 to-white overflow-hidden group hover:shadow-lg transition-all border-l-4 border-l-blue-500">
@@ -424,7 +441,7 @@ export default function InventoryPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {materials.length === 0 ? (
+                  {stats.totalTypes === 0 && materials.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={13} className="h-96 text-center text-muted-foreground font-medium">
                         <div className="flex flex-col items-center justify-center space-y-6 py-12">
@@ -454,6 +471,12 @@ export default function InventoryPage() {
                         </div>
                       </TableCell>
                     </TableRow>
+                  ) : materials.length === 0 && stats.totalTypes > 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={13} className="h-64 text-center text-muted-foreground font-medium">
+                        <p>이 페이지에 표시할 자재가 없습니다. 위의 이전 페이지 버튼으로 돌아가 보거나 새로고침 해 보세요.</p>
+                      </TableCell>
+                    </TableRow>
                   ) : filteredMaterials.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={13} className="h-64 text-center text-muted-foreground font-medium">
@@ -464,7 +487,7 @@ export default function InventoryPage() {
                     filteredMaterials.map((material, idx) => (
                       <TableRow key={material.id} className="group hover:bg-gray-50/50 transition-colors">
                         <TableCell className="text-center font-mono text-xs text-slate-400">
-                          {idx + 1}
+                          {listPage * DASHBOARD_LIST_PAGE_SIZE + idx + 1}
                         </TableCell>
                         <TableCell className="font-mono text-[10px] text-slate-500 truncate max-w-[80px]" title={material.id}>
                           {material.id.split('-')[0]}...
@@ -534,6 +557,39 @@ export default function InventoryPage() {
                   )}
                 </TableBody>
               </Table>
+            </div>
+          )}
+          {!loading && materialsTotalCount > 0 && (
+            <div className="flex flex-wrap items-center justify-center gap-3 py-4 text-sm text-muted-foreground border-t">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={listPage <= 0 || materialsLoading}
+                onClick={() => void setListPage(listPage - 1)}
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                이전
+              </Button>
+              <span>
+                {materialsTotalCount === 0
+                  ? "0"
+                  : `${listPage * DASHBOARD_LIST_PAGE_SIZE + 1}–${Math.min((listPage + 1) * DASHBOARD_LIST_PAGE_SIZE, materialsTotalCount)}`}{" "}
+                / 전체 {materialsTotalCount}건 · 페이지 {listPage + 1} /{" "}
+                {Math.max(1, Math.ceil(materialsTotalCount / DASHBOARD_LIST_PAGE_SIZE))}
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={
+                  materialsLoading || (listPage + 1) * DASHBOARD_LIST_PAGE_SIZE >= materialsTotalCount
+                }
+                onClick={() => void setListPage(listPage + 1)}
+              >
+                다음
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
             </div>
           )}
         </CardContent>
