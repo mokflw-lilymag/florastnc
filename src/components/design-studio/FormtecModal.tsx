@@ -53,7 +53,9 @@ const CanvasDesignMiniPreview: React.FC<{ scale: number; widthMm: number; height
               transform: `rotate(${img.rotation}deg)`,
             }}
           >
-            <img src={img.url} className="w-full h-full object-contain" alt="mini-img" />
+            {img.url ? (
+              <img src={img.url} className="w-full h-full object-contain" alt="mini-img" />
+            ) : null}
           </div>
         ))}
 

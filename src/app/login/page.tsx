@@ -196,7 +196,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md px-4 z-10">
         <Card className="border-0 shadow-2xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl ring-1 ring-slate-200 dark:ring-slate-800">
           <CardHeader className="space-y-4 pb-0 text-center">
-            <div className="mx-auto flex w-full items-center justify-center mt-2 mb-2">
+            <div className="mx-auto flex h-16 w-full items-center justify-center p-2 mb-2">
               <Image
                 src="/floxync-logo.png"
                 alt="Logo"

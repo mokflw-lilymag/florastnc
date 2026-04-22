@@ -52,6 +52,7 @@ export interface TextBlock {
   opacity?: number;
   isLocked?: boolean;
   width?: number; // 가로 너비 (mm)
+  height?: number; // 세로 영역 (mm, 리사이즈·정렬용)
   lineHeight?: number; // 줄 간격 (기본 1.6)
   letterSpacing?: number; // 자간 (mm 또는 em, 여기선 mm 기준 가공 예정)
   rotation?: number; // 회전 (도)
@@ -80,6 +81,7 @@ export interface Dimension {
 
 export type Orientation = 'landscape' | 'portrait';
 export type FoldType = 'none' | 'half'; // none: Flat, half: Folding
+export type PageSide = 'outside' | 'inside';
 
 export interface PageData {
   backgroundUrl: string | null;
@@ -860,8 +862,16 @@ export const useEditorStore = create<EditorState>()(
 
         if (options.tel && shopSettings.tel) {
           addTextBlock({
-            x: sectionCenterX - (TEXT_W / 2),
-            y: currentY,
+            text: shopSettings.tel,
+            x: sectionCenterX,
+            y: currentY + TEL_H / 2,
+            fontSize: 8,
+            fontFamily: "'GmarketSansBold', sans-serif",
+            textAlign: "center",
+            colorHex: "#334155",
+            width: TEXT_W,
+            opacity: 1.0,
+            rotation: rotation,
           });
           currentY += TEL_H + GAP;
         }

@@ -18,7 +18,9 @@ export interface PrintPageData {
     textShadow?: string,
     opacity?: number,
     strokeWidth?: number,
-    strokeColor?: string
+    strokeColor?: string,
+    lineHeight?: number,
+    width?: number,
   }[];
   imageBlocks?: {
     url: string | null,
@@ -36,6 +38,8 @@ export interface PrintJobData {
   pages?: PrintPageData[];
   backgroundUrl?: string | null;
   textBlocks?: PrintPageData['textBlocks'];
+  /** pages 가 없을 때 단일 페이지 렌더용 (라벨 그리드 등) */
+  imageBlocks?: PrintPageData['imageBlocks'];
   labelType?: string;
   selectedCells?: number[];
   margins?: { top: number; right: number; bottom: number; left: number };
