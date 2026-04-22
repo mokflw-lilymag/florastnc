@@ -30,6 +30,10 @@ export function Footer() {
                 <span className="text-white">1588-0000</span>
               </div>
               <div className="flex flex-col gap-2">
+                <span className="text-slate-600">Official Mail</span>
+                <a href="mailto:admin@floxync.com" className="text-white hover:text-emerald-400 transition-colors">admin@floxync.com</a>
+              </div>
+              <div className="flex flex-col gap-2 col-span-2">
                 <span className="text-slate-600">Official Channel</span>
                 <span className="text-white">KAKAOTALK @FLOXYNC</span>
               </div>

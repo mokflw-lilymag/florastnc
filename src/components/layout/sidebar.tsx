@@ -352,7 +352,10 @@ export function Sidebar({
       
       {/* Footer Info */}
       <div className="p-4 border-t border-slate-100 dark:border-slate-800">
-        <p className="text-[10px] text-center text-slate-400 font-normal uppercase tracking-widest">Floxync v25.0</p>
+        <p className="text-[10px] text-center text-slate-400 font-normal uppercase tracking-widest mb-1">Floxync v25.0</p>
+        <p className="text-[10px] text-center text-slate-400/80">
+          고객지원: <a href="mailto:admin@floxync.com" className="hover:text-slate-600 transition-colors font-medium">admin@floxync.com</a>
+        </p>
       </div>
     </aside>
   );
