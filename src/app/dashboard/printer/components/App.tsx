@@ -93,7 +93,8 @@ async function embedActiveFontsIntoElement(element: HTMLElement) {
           const family = rule.style.fontFamily?.replace(/['"]/g, '').trim();
           if (family && usedFonts.has(family)) {
             const cssText = rule.cssText;
-            const urlMatch = cssText.match(/url\(['"]?([^'"]+)['"]?\)/);
+            // WOFF/WOFF2/TTF URL 파싱 정규식 (따옴표 포함 URL 오파싱 방지)
+            const urlMatch = cssText.match(/url\(["']?([^"')]+)["']?\)/);
             if (urlMatch) {
               const fontUrl = urlMatch[1];
               // Completely ignore Next.js internal/layout fonts to prevent 404s and console clutter
@@ -945,7 +946,8 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
   // Printer State
   const [printers, setPrinters] = useState<any[]>([]);
   const [selectedPrinter, setSelectedPrinter] = useState(() => localStorage.getItem('ribbon_selected_printer') || '');
-  const [selectedPrinterType, setSelectedPrinterType] = useState<'epson_m105' | 'xprinter' | 'generic'>('epson_m105');
+  // Fix 3: L시리즈 타입 추가 (epson_l_series는 M105와 동일 GDI 엔진 사용)
+  const [selectedPrinterType, setSelectedPrinterType] = useState<'epson_m105' | 'epson_l_series' | 'xprinter' | 'generic'>('epson_m105');
   const [isPrinting, setIsPrinting] = useState(false);
 
   const lastPrinterRetryRef = useRef<number>(0);
@@ -1334,15 +1336,25 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
         if (!ref.current) throw new Error(`캡처 영역(${label})을 찾을 수 없습니다.`);
         console.log(`[Print] Capturing ${label} (rotate=${rotate})...`);
         const captureStart = Date.now();
-        await embedActiveFontsIntoElement(ref.current);
+
+        // Fix 1: 폰트 <style> 주입 후 반환값(styleEl) 저장 (나중에 정리용)
+        const injectedStyle = await embedActiveFontsIntoElement(ref.current);
+
+        // Fix 1: 폰트가 DOM에 주입된 후 렌더링 안정화 대기
+        // L210 등 첫 세션에서 CDN 폰트 응답 타이밍 문제 방지
+        await new Promise(r => setTimeout(r, 150));
+
         const dataUrl = await toPng(ref.current, {
           pixelRatio: 2.0, 
           backgroundColor: '#ffffff',
-          cacheBust: false,
+          cacheBust: true,   // Fix 1: 첫 세션 캐시 문제 방지 (false → true)
           skipAutoScale: true,
-          skipFonts: true,
+          skipFonts: false,  // Fix 1: 라이브러리 자체 폰트 임베딩도 활성화 (이중 보호)
           style: { transform: 'none' }
         });
+
+        // Fix 1: 캡처 완료 후 주입된 스타일 정리 (DOM 메모리 관리)
+        if (injectedStyle) injectedStyle.remove();
         
         let processedUrl = dataUrl;
         if (rotate) {
