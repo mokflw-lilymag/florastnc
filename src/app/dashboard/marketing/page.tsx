@@ -158,6 +158,19 @@ export default function MarketingStudio() {
       return;
     }
 
+    if (provider === 'youtube') {
+      const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
+      const redirectUri = encodeURIComponent(`${window.location.origin}/api/auth/callback/google`);
+      // 유튜브 업로드 및 프로필 조회를 위한 스코프
+      const scope = encodeURIComponent('https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube.readonly openid email profile');
+      const state = Math.random().toString(36).substring(7);
+      
+      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&state=${state}&access_type=offline&prompt=consent`;
+      
+      window.location.href = authUrl;
+      return;
+    }
+
     setIsLoginProcessing(true);
     try {
       // 타 플랫폼은 아직 시뮬레이션 유지 또는 추후 확장
