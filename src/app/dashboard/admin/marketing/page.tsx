@@ -43,9 +43,9 @@ export default function AdminMarketingSettings() {
 
   const fetchSettings = async () => {
     const { data, error } = await supabase
-      .from('system_settings')
+      .from('platform_config')
       .select('*')
-      .eq('category', 'marketing_keys')
+      .eq('key', 'marketing_keys')
       .maybeSingle();
     
     if (data && data.value) {
@@ -57,12 +57,12 @@ export default function AdminMarketingSettings() {
     setIsSaving(true);
     try {
       const { error } = await supabase
-        .from('system_settings')
+        .from('platform_config')
         .upsert({
-          category: 'marketing_keys',
+          key: 'marketing_keys',
           value: settings,
           updated_at: new Date().toISOString()
-        }, { onConflict: 'category' });
+        }, { onConflict: 'key' });
 
       if (error) throw error;
       toast.success('마스터 API 키가 DB에 안전하게 저장되었습니다.');

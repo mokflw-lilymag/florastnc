@@ -561,10 +561,13 @@ export default function MarketingStudio() {
                   </CardHeader>
                   <CardContent className="p-8 space-y-6">
                      {[
-                       { id: 'instagram', name: 'Instagram / Facebook', icon: <Instagram className="w-5 h-5 text-pink-500" /> },
+                       { id: 'instagram', name: 'Instagram', icon: <Instagram className="w-5 h-5 text-pink-500" /> },
+                       { id: 'facebook', name: 'Facebook', icon: <Globe className="w-5 h-5 text-blue-600" /> },
+                       { id: 'threads', name: 'Threads', icon: <MessageSquare className="w-5 h-5 text-purple-500" /> },
                        { id: 'youtube', name: 'YouTube Shorts', icon: <Youtube className="w-5 h-5 text-red-600" /> },
+                       { id: 'tiktok', name: 'TikTok', icon: <Zap className="w-5 h-5 text-slate-900" /> },
+                       { id: 'blogger', name: 'Google Blogger', icon: <Globe className="w-5 h-5 text-orange-500" /> },
                        { id: 'naver', name: 'Naver Blog', icon: <Zap className="w-5 h-5 text-green-600" /> },
-                       { id: 'tiktok', name: 'TikTok', icon: <Globe className="w-5 h-5 text-slate-900" /> },
                      ].map((p) => (
                         <div key={p.id} className="flex items-center justify-between p-5 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
                            <div className="flex items-center gap-4">

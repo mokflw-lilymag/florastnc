@@ -16,7 +16,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT * FROM system_settings WHERE category = 'marketing_keys' LIMIT 1"
+        "query": "SELECT * FROM platform_config WHERE key = 'marketing_keys' LIMIT 1"
       },
       "name": "Get_Master_Keys",
       "type": "n8n-nodes-base.supabase",
