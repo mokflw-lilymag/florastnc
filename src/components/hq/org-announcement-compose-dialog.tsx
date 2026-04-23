@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, ImagePlus, X } from "lucide-react";
+import { Loader2, ImagePlus, X, Calendar as CalendarIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,10 +13,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { OrgAnnouncementRichEditor } from "@/components/hq/org-announcement-rich-editor";
 import { compressImageFile } from "@/lib/compress-image";
 import { isRichTextBodyEmpty } from "@/lib/html-plain-text";
 import { toast } from "sonner";
+import { format, addDays, startOfToday } from "date-fns";
+import { ko } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 
 const PRIORITY_LABEL: Record<string, string> = {
   normal: "일반",
@@ -45,6 +50,7 @@ export function OrgAnnouncementComposeDialog({
   const [postTitle, setPostTitle] = useState("");
   const [postBodyHtml, setPostBodyHtml] = useState("<p></p>");
   const [postPriority, setPostPriority] = useState("normal");
+  const [postExpiresAt, setPostExpiresAt] = useState<Date>(addDays(startOfToday(), 7));
   const [postAttachmentUrls, setPostAttachmentUrls] = useState<string[]>([]);
   const [uploadBusy, setUploadBusy] = useState(false);
   const [posting, setPosting] = useState(false);
@@ -55,6 +61,7 @@ export function OrgAnnouncementComposeDialog({
     setPostTitle("");
     setPostBodyHtml("<p></p>");
     setPostPriority("normal");
+    setPostExpiresAt(addDays(startOfToday(), 7)); // 기본 7일 후 만료
     setPostAttachmentUrls([]);
     const first = organizations[0]?.id ?? "";
     setPostOrgId(defaultOrganizationId && organizations.some((o) => o.id === defaultOrganizationId) ? defaultOrganizationId : first);
@@ -106,6 +113,7 @@ export function OrgAnnouncementComposeDialog({
       return;
     }
     setPosting(true);
+
     try {
       const res = await fetch("/api/hq/announcements", {
         method: "POST",
@@ -116,6 +124,7 @@ export function OrgAnnouncementComposeDialog({
           body: postBodyHtml.trim(),
           priority: postPriority,
           attachmentUrls: postAttachmentUrls,
+          expiresAt: postExpiresAt.toISOString(),
         }),
       });
       const json = await res.json().catch(() => ({}));
@@ -205,20 +214,49 @@ export function OrgAnnouncementComposeDialog({
               </div>
             ) : null}
           </div>
-          <div className="grid gap-2">
-            <Label>강조</Label>
-            <Select value={postPriority} onValueChange={(v) => v && setPostPriority(v)}>
-              <SelectTrigger className="w-full min-w-0">
-                <SelectValue placeholder="강조 선택">{priorityLabel}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="normal">일반</SelectItem>
-                <SelectItem value="high">중요 (배너 강조색)</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <Label>강조</Label>
+              <Select value={postPriority} onValueChange={(v) => v && setPostPriority(v)}>
+                <SelectTrigger className="w-full min-w-0">
+                  <SelectValue placeholder="강조 선택">{priorityLabel}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="normal">일반</SelectItem>
+                  <SelectItem value="high">중요 (배너 강조색)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label>전광판 노출 만료일</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !postExpiresAt && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {postExpiresAt ? format(postExpiresAt, "yyyy년 M월 d일", { locale: ko }) : <span>날짜 선택</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={postExpiresAt}
+                    onSelect={(date) => date && setPostExpiresAt(date)}
+                    initialFocus
+                    disabled={(date) => date < startOfToday() || date > addDays(new Date(), 60)}
+                    locale={ko}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
           <p className="text-[11px] text-muted-foreground leading-snug">
-            게시 시점 기준 <strong>30일 후</strong> 자동 삭제·비노출됩니다.
+            선택한 <strong>{format(postExpiresAt, "M월 d일")}</strong> 이후 자동으로 전광판에서 사라지며 게시판에서 삭제됩니다. (최대 60일 후까지 선택 가능)
           </p>
         </div>
         <DialogFooter className="gap-2 sm:gap-0">

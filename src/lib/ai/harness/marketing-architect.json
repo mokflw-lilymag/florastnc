@@ -19,8 +19,15 @@
       "voice": "Inspirational, storytelling, premium lifestyle"
     },
     "naver_blog": {
-      "hook_style": "Informative, SEO-optimized titles",
-      "voice": "Expert, detailed, local-focused (neighborhood florist)"
+      "hook_style": "Informative, SEO-optimized titles (e.g., '동네 이름 + 꽃집 추천')",
+      "voice": "Expert, detailed, local-focused (neighborhood florist)",
+      "structure": [
+        "Introduction: Current seasonal mood and specific flower highlights",
+        "Body 1: Detailed flower care tips and why this arrangement is special",
+        "Body 2: Behind-the-scenes story (market trip or design process)",
+        "Conclusion: Reservation info, store location, and Map link encouragement"
+      ],
+      "seo_rules": "Include keywords at least 3-5 times, use clear subheadings, and add 15-20 relevant hashtags at the bottom."
     }
   },
   "self_correction_rules": [

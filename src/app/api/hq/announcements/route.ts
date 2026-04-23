@@ -295,10 +295,16 @@ export async function POST(req: Request) {
   const content = (body?.body as string | undefined)?.trim();
   const priority = (body?.priority as string) === "high" ? "high" : "normal";
   const attachmentUrls = normalizeAttachmentUrlList(body?.attachmentUrls, 8);
+  const expiresAt = body?.expiresAt as string | undefined;
 
   if (!organizationId || !title || !content) {
     return NextResponse.json({ error: "organizationId, title, body 필요" }, { status: 400 });
   }
+
+  // 기본 만료일 설정 (30일 후)
+  const defaultExpiry = new Date();
+  defaultExpiry.setDate(defaultExpiry.getDate() + 30);
+  const finalExpiresAt = expiresAt || defaultExpiry.toISOString();
 
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
   const isSuper = profile?.role === "super_admin";
@@ -324,6 +330,7 @@ export async function POST(req: Request) {
       priority,
       attachment_urls: attachmentUrls,
       created_by: user.id,
+      expires_at: finalExpiresAt,
     })
     .select("id")
     .single();

@@ -140,12 +140,27 @@ export default function MarketingStudio() {
   };
 
   const handleConnectSNS = async (provider: string) => {
-    setIsLoginProcessing(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) {
+      toast.error('로그인이 필요합니다.');
+      return;
+    }
 
+    if (provider === 'tiktok') {
+      const clientKey = process.env.NEXT_PUBLIC_TIKTOK_CLIENT_KEY || 'awv3n8m5e8u7j7j7'; // Placeholder if env not synced to client
+      const redirectUri = encodeURIComponent(`${window.location.origin}/api/auth/callback/tiktok`);
+      const scope = 'user.info.profile,user.info.stats,video.publish,video.upload';
+      const state = Math.random().toString(36).substring(7);
+      
+      const authUrl = `https://www.tiktok.com/v2/auth/authorize/?client_key=${clientKey}&scope=${scope}&response_type=code&redirect_uri=${redirectUri}&state=${state}`;
+      
+      window.location.href = authUrl;
+      return;
+    }
+
+    setIsLoginProcessing(true);
     try {
-      // Simulate OAuth Delay
+      // 타 플랫폼은 아직 시뮬레이션 유지 또는 추후 확장
       await new Promise(resolve => setTimeout(resolve, 1500));
 
       const { error } = await supabase
@@ -201,16 +216,80 @@ export default function MarketingStudio() {
     setThemes(themes.filter(item => item !== t));
   };
 
-  const startOrchestration = () => {
+  const [generatedBlog, setGeneratedBlog] = useState<any>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const startOrchestration = async () => {
     setIsProcessing(true);
     setStep(1);
-    setTimeout(() => setStep(2), 2000);
-    setTimeout(() => setStep(3), 4000);
-    setTimeout(() => {
+    
+    try {
+      // 1. Topic selection
+      const selectedTopic = themes.length > 0 
+        ? themes[Math.floor(Math.random() * themes.length)]
+        : "감동을 전하는 오늘의 꽃 선물";
+
+      const targetPlatform = shopSettings.target_platforms.length > 0 
+        ? shopSettings.target_platforms[0] 
+        : 'instagram';
+
+      // 2. Generate Blog Post (Simulating Agent Collaboration)
+      setTimeout(() => setStep(2), 2000);
+      
+      const response = await fetch('/api/ai/marketing/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          topic: selectedTopic,
+          persona: shopSettings.store_persona,
+          platform: targetPlatform
+        })
+      });
+      
+      const data = await response.json();
+      setGeneratedBlog({ ...data, platform: targetPlatform });
+      
+      setTimeout(() => setStep(3), 4000);
+      
+      setTimeout(() => {
+        setIsProcessing(false);
+        setStep(0);
+        toast.success(`${targetPlatform} 원고가 생성되었습니다! 하단에서 확인하세요.`);
+      }, 6000);
+
+    } catch (err) {
+      toast.error('원고 생성 중 오류가 발생했습니다.');
       setIsProcessing(false);
       setStep(0);
-      toast.success('AI 홍보 작전이 성공적으로 배포되었습니다!');
-    }, 6000);
+    }
+  };
+
+  const [isPublishing, setIsPublishing] = useState(false);
+  const handlePublish = async () => {
+    if (!generatedBlog) return;
+    setIsPublishing(true);
+    try {
+      const response = await fetch('/api/ai/marketing/publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          platform: generatedBlog.platform,
+          title: generatedBlog.title,
+          content: generatedBlog.content,
+          imageUrl: 'https://images.unsplash.com/photo-1563241597-12a414531d5e?q=80&w=1000&auto=format&fit=crop'
+        })
+      });
+      const data = await response.json();
+      if (response.ok) {
+        toast.success(data.message || '포스팅이 성공적으로 완료되었습니다.');
+      } else {
+        toast.error(`포스팅 실패: ${data.error}`);
+      }
+    } catch (error) {
+      toast.error('포스팅 요청 중 오류가 발생했습니다.');
+    } finally {
+      setIsPublishing(false);
+    }
   };
 
   return (
@@ -392,6 +471,44 @@ export default function MarketingStudio() {
                 </Card>
               </div>
             </div>
+
+            {/* Blog Preview Section */}
+            {generatedBlog && (
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-8"
+              >
+                <Card className="border-none shadow-2xl overflow-hidden ring-1 ring-emerald-100 dark:ring-emerald-900/30">
+                  <div className="bg-emerald-600 p-4 text-white flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Zap className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                      <span className="font-bold">{generatedBlog.platform?.toUpperCase()} 초안 완성 (AI 생성)</span>
+                    </div>
+                    <Button 
+                      variant="secondary" 
+                      size="sm" 
+                      className="font-bold text-emerald-700 bg-white hover:bg-emerald-50"
+                      onClick={handlePublish}
+                      disabled={isPublishing}
+                    >
+                      {isPublishing ? <Zap className="w-4 h-4 animate-spin mr-2" /> : null}
+                      {isPublishing ? '포스팅 중...' : '이대로 포스팅하기'}
+                    </Button>
+                  </div>
+                  <CardContent className="p-10 bg-white dark:bg-slate-900">
+                    <div className="max-w-3xl mx-auto space-y-6">
+                      <h3 className="text-2xl font-black text-slate-900 dark:text-white border-b pb-4">
+                        {generatedBlog.title}
+                      </h3>
+                      <div className="prose prose-slate dark:prose-invert max-w-none whitespace-pre-wrap text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+                        {generatedBlog.content}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
           </TabsContent>
 
           <TabsContent value="sns">
