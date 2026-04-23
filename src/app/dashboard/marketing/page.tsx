@@ -96,7 +96,7 @@ export default function MarketingStudio() {
   const [currentConnectingPlatform, setCurrentConnectingPlatform] = useState<any>(null);
   const [isLoginProcessing, setIsLoginProcessing] = useState(false);
   const [loginStep, setLoginStep] = useState<'info' | 'input'>('info');
-  const [loginInput, setLoginInput] = useState({ id: '', pw: '' });
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   
   const supabase = createClient();
 
@@ -289,14 +289,9 @@ export default function MarketingStudio() {
       
       const data = await response.json();
       setGeneratedBlog({ ...data, platform: targetPlatform });
-      
-      setTimeout(() => setStep(3), 4000);
-      
-      setTimeout(() => {
-        setIsProcessing(false);
-        setStep(0);
-        toast.success(`${targetPlatform} 원고가 생성되었습니다! 하단에서 확인하세요.`);
-      }, 6000);
+      setIsProcessing(false);
+      setStep(0);
+      setIsPreviewOpen(true); // 팝업 열기 추가
 
     } catch (err) {
       toast.error('원고 생성 중 오류가 발생했습니다.');
@@ -909,6 +904,67 @@ export default function MarketingStudio() {
                   </div>
                </div>
              )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* AI Generated Preview Dialog */}
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto border-none shadow-2xl p-0">
+          <div className="bg-emerald-600 p-6 text-white sticky top-0 z-10 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                <Sparkles className="w-6 h-6 text-yellow-300" />
+              </div>
+              <div>
+                <DialogTitle className="text-xl font-bold">홍보 작전 초안 완성!</DialogTitle>
+                <DialogDescription className="text-emerald-100 text-xs font-medium">AI 에이전트들이 협업하여 사장님께 딱 맞는 문구를 만들었습니다.</DialogDescription>
+              </div>
+            </div>
+            <Badge className="bg-white/20 text-white border-none px-3 py-1 font-bold">
+              {generatedBlog?.platform?.toUpperCase()}
+            </Badge>
+          </div>
+          
+          <div className="p-8 space-y-6 bg-white dark:bg-slate-950">
+            <div className="space-y-4">
+              <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                <div className="w-1 h-3 bg-emerald-500 rounded-full" /> 제목 (Title)
+              </h4>
+              <div className="text-xl font-black text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-900 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+                {generatedBlog?.title}
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                <div className="w-1 h-3 bg-emerald-500 rounded-full" /> 본문 (Content)
+              </h4>
+              <div className="text-base font-medium text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 whitespace-pre-wrap leading-relaxed shadow-inner min-h-[200px]">
+                {generatedBlog?.content}
+              </div>
+            </div>
+
+            <div className="flex gap-4 pt-4 sticky bottom-0 bg-white dark:bg-slate-950 pb-2">
+              <Button 
+                variant="outline" 
+                className="flex-1 h-14 rounded-2xl font-bold"
+                onClick={() => setIsPreviewOpen(false)}
+              >
+                나중에 하기
+              </Button>
+              <Button 
+                className="flex-[2] h-14 rounded-2xl font-black bg-gradient-to-r from-emerald-600 to-teal-600 hover:scale-[1.02] transition-all gap-2 text-lg shadow-lg shadow-emerald-100 dark:shadow-none"
+                onClick={() => {
+                  handlePublish();
+                  setIsPreviewOpen(false);
+                }}
+                disabled={isPublishing}
+              >
+                {isPublishing ? <Zap className="w-5 h-5 animate-spin" /> : <Workflow className="w-5 h-5" />}
+                {isPublishing ? '로봇에게 전달 중...' : '지금 바로 로봇에게 전송하기'}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

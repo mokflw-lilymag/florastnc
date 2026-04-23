@@ -1,5 +1,5 @@
 {
-  "name": "Floxync_V11_GodMode_HTTP_Only",
+  "name": "Floxync_V13_Ultimate_GodMode",
   "nodes": [
     {
       "parameters": {
@@ -15,37 +15,35 @@
     },
     {
       "parameters": {
-        "url": "=https://[사장님프로젝트ID].supabase.co/rest/v1/platform_config?key=eq.marketing_keys&select=value",
+        "url": "https://mheqfhiyfsgnsglvxdrn.supabase.co/rest/v1/platform_config?key=eq.marketing_keys&select=value",
         "method": "GET",
         "headerParametersUi": {
           "parameter": [
-            { "name": "apikey", "value": "[여기에 서비스 롤 키]" },
-            { "name": "Authorization", "value": "Bearer [여기에 서비스 롤 키]" }
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1oZXFmaGl5ZnNnbnNnbHZ4ZHJuIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDE0Mzk5MywiZXhwIjoyMDg5NzE5OTkzfQ.eI8RIAygYVSz0BHiSfK1kNRqfYFBadZ-ub1nt23n1ls" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1oZXFmaGl5ZnNnbnNnbHZ4ZHJuIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDE0Mzk5MywiZXhwIjoyMDg5NzE5OTkzfQ.eI8RIAygYVSz0BHiSfK1kNRqfYFBadZ-ub1nt23n1ls" }
           ]
         }
       },
       "name": "Get_Global_App_Keys",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [-280, 400],
-      "id": "global-keys-v11"
+      "position": [-280, 400]
     },
     {
       "parameters": {
-        "url": "=https://[사장님프로젝트ID].supabase.co/rest/v1/user_credentials?user_id=eq.{{$node[\"SaaS_Webhook_Trigger\"].json[\"body\"][\"user_id\"]}}&provider=eq.{{$node[\"SaaS_Webhook_Trigger\"].json[\"body\"][\"platform\"]}}&select=access_token",
+        "url": "={{\"https://mheqfhiyfsgnsglvxdrn.supabase.co/rest/v1/user_credentials?user_id=eq.\" + $node[\"SaaS_Webhook_Trigger\"].json[\"body\"][\"user_id\"] + \"&provider=eq.\" + $node[\"SaaS_Webhook_Trigger\"].json[\"body\"][\"platform\"] + \"&select=access_token\"}}",
         "method": "GET",
         "headerParametersUi": {
           "parameter": [
-            { "name": "apikey", "value": "[여기에 서비스 롤 키]" },
-            { "name": "Authorization", "value": "Bearer [여기에 서비스 롤 키]" }
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1oZXFmaGl5ZnNnbnNnbHZ4ZHJuIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDE0Mzk5MywiZXhwIjoyMDg5NzE5OTkzfQ.eI8RIAygYVSz0BHiSfK1kNRqfYFBadZ-ub1nt23n1ls" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1oZXFmaGl5ZnNnbnNnbHZ4ZHJuIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDE0Mzk5MywiZXhwIjoyMDg5NzE5OTkzfQ.eI8RIAygYVSz0BHiSfK1kNRqfYFBadZ-ub1nt23n1ls" }
           ]
         }
       },
       "name": "Get_User_Token",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [-60, 400],
-      "id": "user-token-v11"
+      "position": [-60, 400]
     },
     {
       "parameters": {
@@ -54,7 +52,7 @@
       "name": "Is_Instagram?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [150, 0]
+      "position": [160, -100]
     },
     {
       "parameters": {
@@ -63,7 +61,7 @@
       "name": "Is_Facebook?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [150, 140]
+      "position": [160, 40]
     },
     {
       "parameters": {
@@ -72,7 +70,7 @@
       "name": "Is_Threads?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [150, 280]
+      "position": [160, 180]
     },
     {
       "parameters": {
@@ -81,7 +79,7 @@
       "name": "Is_TikTok?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [150, 420]
+      "position": [160, 320]
     },
     {
       "parameters": {
@@ -90,7 +88,7 @@
       "name": "Is_YouTube?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [150, 560]
+      "position": [160, 460]
     },
     {
       "parameters": {
@@ -99,7 +97,7 @@
       "name": "Is_Blogger?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [150, 700]
+      "position": [160, 600]
     },
     {
       "parameters": {
@@ -108,16 +106,18 @@
       "name": "Is_Naver?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [150, 840]
+      "position": [160, 740]
     },
     {
       "parameters": {
         "url": "https://graph.facebook.com/v19.0/me/media",
         "method": "POST",
+        "sendBody": true,
         "bodyParametersUi": {
           "parameter": [
             { "name": "image_url", "value": "={{$node[\"SaaS_Webhook_Trigger\"].json[\"body\"][\"media_url\"]}}" },
             { "name": "caption", "value": "={{$node[\"SaaS_Webhook_Trigger\"].json[\"body\"][\"content\"]}}" },
+            { "name": "media_type", "value": "IMAGE" },
             { "name": "access_token", "value": "={{$node[\"Get_User_Token\"].json[0][\"access_token\"]}}" }
           ]
         }
@@ -125,15 +125,17 @@
       "name": "Pub_Instagram",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [400, -20]
+      "position": [420, -120]
     },
     {
       "parameters": {
         "url": "https://graph.facebook.com/v19.0/me/feed",
         "method": "POST",
+        "sendBody": true,
         "bodyParametersUi": {
           "parameter": [
             { "name": "message", "value": "={{$node[\"SaaS_Webhook_Trigger\"].json[\"body\"][\"content\"]}}" },
+            { "name": "link", "value": "={{$node[\"SaaS_Webhook_Trigger\"].json[\"body\"][\"media_url\"]}}" },
             { "name": "access_token", "value": "={{$node[\"Get_User_Token\"].json[0][\"access_token\"]}}" }
           ]
         }
@@ -141,14 +143,16 @@
       "name": "Pub_Facebook",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [400, 120]
+      "position": [420, 20]
     },
     {
       "parameters": {
         "url": "https://graph.threads.net/v1.0/me/threads",
         "method": "POST",
+        "sendBody": true,
         "bodyParametersUi": {
           "parameter": [
+            { "name": "media_type", "value": "TEXT" },
             { "name": "text", "value": "={{$node[\"SaaS_Webhook_Trigger\"].json[\"body\"][\"content\"]}}" },
             { "name": "access_token", "value": "={{$node[\"Get_User_Token\"].json[0][\"access_token\"]}}" }
           ]
@@ -157,79 +161,106 @@
       "name": "Pub_Threads",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [400, 260]
+      "position": [420, 160]
     },
     {
       "parameters": {
-        "url": "https://open.tiktokapis.com/v2/post/publish/video/init/",
+        "url": "https://open.tiktokapis.com/v2/post/publish/content/init/",
         "method": "POST",
+        "sendHeaders": true,
         "headerParametersUi": {
-          "parameter": [ { "name": "Authorization", "value": "=Bearer {{$node[\"Get_User_Token\"].json[0][\"access_token\"]}}" } ]
-        }
+          "parameter": [
+            { "name": "Authorization", "value": "={{\"Bearer \" + $node[\"Get_User_Token\"].json[0][\"access_token\"]}}" },
+            { "name": "Content-Type", "value": "application/json; charset=UTF-8" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"post_info\":{\"title\":\"{{$node[\\\"SaaS_Webhook_Trigger\\\"].json[\\\"body\\\"][\\\"content\\\"]}}\",\"privacy_level\":\"SELF_ONLY\",\"disable_duet\":false,\"disable_comment\":false,\"disable_stitch\":false},\"source_info\":{\"source\":\"PULL_FROM_URL\",\"video_url\":\"{{$node[\\\"SaaS_Webhook_Trigger\\\"].json[\\\"body\\\"][\\\"media_url\\\"]}}\"}}"
       },
       "name": "Pub_TikTok",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [400, 400]
+      "position": [420, 300]
     },
     {
       "parameters": {
-        "url": "https://www.googleapis.com/youtube/v3/videos",
+        "url": "https://www.googleapis.com/upload/youtube/v3/videos?part=snippet,status",
         "method": "POST",
+        "sendHeaders": true,
         "headerParametersUi": {
-          "parameter": [ { "name": "Authorization", "value": "=Bearer {{$node[\"Get_User_Token\"].json[0][\"access_token\"]}}" } ]
-        }
+          "parameter": [
+            { "name": "Authorization", "value": "={{\"Bearer \" + $node[\"Get_User_Token\"].json[0][\"access_token\"]}}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"snippet\":{\"title\":\"{{$node[\\\"SaaS_Webhook_Trigger\\\"].json[\\\"body\\\"][\\\"content\\\"].substring(0,100)}}\",\"description\":\"{{$node[\\\"SaaS_Webhook_Trigger\\\"].json[\\\"body\\\"][\\\"content\\\"]}}\",\"categoryId\":\"22\"},\"status\":{\"privacyStatus\":\"public\"}}"
       },
       "name": "Pub_YouTube",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [400, 540]
+      "position": [420, 440]
     },
     {
       "parameters": {
-        "url": "=https://www.googleapis.com/blogger/v3/blogs/{{$node[\"SaaS_Webhook_Trigger\"].json[\"body\"][\"blog_id\"]}}/posts",
+        "url": "={{\"https://www.googleapis.com/blogger/v3/blogs/\" + $node[\"SaaS_Webhook_Trigger\"].json[\"body\"][\"blog_id\"] + \"/posts\"}}",
         "method": "POST",
+        "sendHeaders": true,
         "headerParametersUi": {
-          "parameter": [ { "name": "Authorization", "value": "=Bearer {{$node[\"Get_User_Token\"].json[0][\"access_token\"]}}" } ]
-        }
+          "parameter": [
+            { "name": "Authorization", "value": "={{\"Bearer \" + $node[\"Get_User_Token\"].json[0][\"access_token\"]}}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"kind\":\"blogger#post\",\"title\":\"{{$node[\\\"SaaS_Webhook_Trigger\\\"].json[\\\"body\\\"][\\\"content\\\"].substring(0,100)}}\",\"content\":\"{{$node[\\\"SaaS_Webhook_Trigger\\\"].json[\\\"body\\\"][\\\"content\\\"]}}\"}"
       },
       "name": "Pub_Blogger",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [400, 680]
+      "position": [420, 580]
     },
     {
       "parameters": {
         "url": "https://openapi.naver.com/blog/writePost.json",
         "method": "POST",
+        "sendHeaders": true,
         "headerParametersUi": {
           "parameter": [
-            { "name": "X-Naver-Client-Id", "value": "={{$node[\"Get_Global_App_Keys\"].json[0][\"value\"][\"naver_client_id\"]}}" },
-            { "name": "X-Naver-Client-Secret", "value": "={{$node[\"Get_Global_App_Keys\"].json[0][\"value\"][\"naver_client_secret\"]}}" },
-            { "name": "Authorization", "value": "=Bearer {{$node[\"Get_User_Token\"].json[0][\"access_token\"]}}" }
+            { "name": "X-Naver-Client-Id", "value": "FRdtlmD88bWG7rmZHxPW" },
+            { "name": "X-Naver-Client-Secret", "value": "H7MajGVVeS" },
+            { "name": "Authorization", "value": "={{\"Bearer \" + $node[\"Get_User_Token\"].json[0][\"access_token\"]}}" }
           ]
-        }
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"title\":\"{{$node[\\\"SaaS_Webhook_Trigger\\\"].json[\\\"body\\\"][\\\"content\\\"].substring(0,50)}}\",\"contents\":\"{{$node[\\\"SaaS_Webhook_Trigger\\\"].json[\\\"body\\\"][\\\"content\\\"]}}\"}"
       },
       "name": "Pub_Naver",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [400, 820]
+      "position": [420, 720]
     }
   ],
   "connections": {
     "SaaS_Webhook_Trigger": { "main": [[{ "node": "Get_Global_App_Keys", "type": "main", "index": 0 }]] },
     "Get_Global_App_Keys": { "main": [[{ "node": "Get_User_Token", "type": "main", "index": 0 }]] },
-    "Get_User_Token": { "main": [
-      [
-        { "node": "Is_Instagram?", "type": "main", "index": 0 },
-        { "node": "Is_Facebook?", "type": "main", "index": 0 },
-        { "node": "Is_Threads?", "type": "main", "index": 0 },
-        { "node": "Is_TikTok?", "type": "main", "index": 0 },
-        { "node": "Is_YouTube?", "type": "main", "index": 0 },
-        { "node": "Is_Blogger?", "type": "main", "index": 0 },
-        { "node": "Is_Naver?", "type": "main", "index": 0 }
+    "Get_User_Token": {
+      "main": [
+        [
+          { "node": "Is_Instagram?", "type": "main", "index": 0 },
+          { "node": "Is_Facebook?", "type": "main", "index": 0 },
+          { "node": "Is_Threads?", "type": "main", "index": 0 },
+          { "node": "Is_TikTok?", "type": "main", "index": 0 },
+          { "node": "Is_YouTube?", "type": "main", "index": 0 },
+          { "node": "Is_Blogger?", "type": "main", "index": 0 },
+          { "node": "Is_Naver?", "type": "main", "index": 0 }
+        ]
       ]
-    ]},
+    },
     "Is_Instagram?": { "main": [[{ "node": "Pub_Instagram", "type": "main", "index": 0 }]] },
     "Is_Facebook?": { "main": [[{ "node": "Pub_Facebook", "type": "main", "index": 0 }]] },
     "Is_Threads?": { "main": [[{ "node": "Pub_Threads", "type": "main", "index": 0 }]] },
