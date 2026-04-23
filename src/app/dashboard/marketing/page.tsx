@@ -146,6 +146,34 @@ export default function MarketingStudio() {
       return;
     }
 
+    if (loginStep === 'input') {
+      setIsLoginProcessing(true);
+      try {
+        const { error } = await supabase
+          .from('user_credentials')
+          .upsert({
+            user_id: user.id,
+            provider: provider,
+            is_active: true,
+            access_token: loginInput.id, // 토큰 필드로 사용
+            refresh_token: loginInput.pw, // 비밀번호 필드를 리프레시 토큰/추가 키로 활용
+            updated_at: new Date().toISOString()
+          });
+
+        if (error) throw error;
+        toast.success(`${provider} 토큰이 수동으로 등록되었습니다.`);
+        fetchCredentials();
+        setIsConnectDialogOpen(false);
+        setLoginStep('info');
+        setLoginInput({ id: '', pw: '' });
+      } catch (err) {
+        toast.error('토큰 등록 중 오류가 발생했습니다.');
+      } finally {
+        setIsLoginProcessing(false);
+      }
+      return;
+    }
+
     if (provider === 'tiktok') {
       const clientKey = process.env.NEXT_PUBLIC_TIKTOK_CLIENT_KEY || 'awv3n8m5e8u7j7j7'; // Placeholder if env not synced to client
       const redirectUri = encodeURIComponent(`${window.location.origin}/api/auth/callback/tiktok`);
@@ -555,17 +583,31 @@ export default function MarketingStudio() {
                                  <CheckCircle2 className="w-3 h-3" /> 연결됨
                               </Badge>
                            ) : (
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
-                                className="rounded-xl h-9 text-xs font-bold hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
-                                onClick={() => {
-                                  setCurrentConnectingPlatform(p);
-                                  setIsConnectDialogOpen(true);
-                                }}
-                              >
-                                계정 연결하기
-                              </Button>
+                              <div className="flex gap-2">
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  className="rounded-xl h-9 text-xs font-bold hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
+                                  onClick={() => {
+                                    setCurrentConnectingPlatform(p);
+                                    setIsConnectDialogOpen(true);
+                                  }}
+                                >
+                                  자동 연결
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost" 
+                                  className="rounded-xl h-9 text-xs font-bold border border-slate-200"
+                                  onClick={() => {
+                                    setCurrentConnectingPlatform(p);
+                                    setLoginStep('input'); // 수동 입력 단계로 바로 이동
+                                    setIsConnectDialogOpen(true);
+                                  }}
+                                >
+                                  수동 입력
+                                </Button>
+                              </div>
                            )}
                         </div>
                      ))}
@@ -771,7 +813,7 @@ export default function MarketingStudio() {
               </DialogTitle>
               <DialogDescription className="text-white/80 font-medium">
                 AI 홍보 마스터가 사장님 대신 콘텐츠를 게시할 수 있도록 <br/>
-                {loginStep === 'info' ? '공식 API 권한을 승인해 주세요.' : '해단 SNS 계정 정보를 입력해 주세요.'}
+                {loginStep === 'info' ? '공식 API 권한을 승인해 주세요.' : '해당 SNS 계정 정보를 입력해 주세요.'}
               </DialogDescription>
             </DialogHeader>
           </div>
@@ -804,10 +846,10 @@ export default function MarketingStudio() {
                  <div className="flex flex-col gap-3">
                     <Button 
                       className="w-full h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-lg gap-3 shadow-lg shadow-indigo-100 dark:shadow-none"
-                      onClick={() => setLoginStep('input')}
+                      onClick={() => handleConnectSNS(currentConnectingPlatform?.id)}
                     >
                       {currentConnectingPlatform?.icon}
-                      {currentConnectingPlatform?.name} 로그인 및 연동
+                      {currentConnectingPlatform?.name} 공식 연동 시작
                     </Button>
                     <Button 
                       variant="ghost" 

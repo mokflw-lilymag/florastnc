@@ -1,0 +1,141 @@
+{
+  "name": "Floxync_Master_Automation_V2",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "marketing-trigger-v2",
+        "options": {}
+      },
+      "name": "SaaS_Global_Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "id": "webhook-node-id"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM system_settings WHERE category = 'marketing_keys' LIMIT 1"
+      },
+      "name": "Get_Master_Keys",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [450, 300],
+      "id": "master-keys-node-id"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "table": "user_credentials",
+        "filters": {
+          "conditions": [
+            {
+              "key": "user_id",
+              "operator": "equal",
+              "value": "={{$node[\"SaaS_Global_Webhook\"].json[\"body\"][\"user_id\"]}}"
+            },
+            {
+              "key": "provider",
+              "operator": "equal",
+              "value": "={{$node[\"SaaS_Global_Webhook\"].json[\"body\"][\"platform\"]}}"
+            }
+          ]
+        }
+      },
+      "name": "Get_User_Token",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [650, 300],
+      "id": "user-token-node-id"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$node[\"SaaS_Global_Webhook\"].json[\"body\"][\"platform\"]}}",
+              "value2": "instagram"
+            }
+          ]
+        }
+      },
+      "name": "Platform_Router",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [850, 300],
+      "id": "router-node-id"
+    },
+    {
+      "parameters": {
+        "url": "https://graph.facebook.com/v18.0/me/media",
+        "method": "POST",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "bodyParametersUi": {
+          "parameter": [
+            { "name": "image_url", "value": "={{$node[\"SaaS_Global_Webhook\"].json[\"body\"][\"media_url\"]}}" },
+            { "name": "caption", "value": "={{$node[\"SaaS_Global_Webhook\"].json[\"body\"][\"content\"]}}" },
+            { "name": "access_token", "value": "={{$node[\"Get_User_Token\"].json[\"access_token\"]}}" }
+          ]
+        }
+      },
+      "name": "Instagram_Publish",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1100, 100],
+      "id": "insta-pub-id"
+    },
+    {
+      "parameters": {
+        "url": "https://open.tiktokapis.com/v2/post/publish/video/init/",
+        "method": "POST",
+        "headerParametersUi": {
+          "parameter": [
+            { "name": "Authorization", "value": "=Bearer {{$node[\"Get_User_Token\"].json[\"access_token\"]}}" }
+          ]
+        }
+      },
+      "name": "TikTok_Publish",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1100, 300],
+      "id": "tiktok-pub-id"
+    },
+    {
+      "parameters": {
+        "resource": "video",
+        "title": "={{$node[\"SaaS_Global_Webhook\"].json[\"body\"][\"title\"]}}",
+        "videoFile": "={{$node[\"SaaS_Global_Webhook\"].json[\"body\"][\"media_url\"]}}"
+      },
+      "name": "YouTube_Shorts",
+      "type": "n8n-nodes-base.youtube",
+      "typeVersion": 1,
+      "position": [1100, 500],
+      "id": "youtube-pub-id"
+    },
+    {
+      "parameters": {
+        "blogId": "={{$node[\"SaaS_Global_Webhook\"].json[\"body\"][\"blog_id\"]}}",
+        "title": "={{$node[\"SaaS_Global_Webhook\"].json[\"body\"][\"title\"]}}",
+        "content": "={{$node[\"SaaS_Global_Webhook\"].json[\"body\"][\"content\"]}}"
+      },
+      "name": "Google_Blogger",
+      "type": "n8n-nodes-base.googleBlogger",
+      "typeVersion": 1,
+      "position": [1100, 700],
+      "id": "blogger-pub-id"
+    }
+  ],
+  "connections": {
+    "SaaS_Global_Webhook": {
+      "main": [[{ "node": "Get_Master_Keys", "type": "main", "index": 0 }]]
+    },
+    "Get_Master_Keys": {
+      "main": [[{ "node": "Get_User_Token", "type": "main", "index": 0 }]]
+    },
+    "Get_User_Token": {
+      "main": [[{ "node": "Platform_Router", "type": "main", "index": 0 }]]
+    }
+  }
+}
