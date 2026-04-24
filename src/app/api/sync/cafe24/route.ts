@@ -78,43 +78,50 @@ export async function POST(req: Request) {
 
     // 3. Cafe24 주문 데이터를 프록싱크 DB 구조로 매핑
     const mappedOrders = cafe24Orders.map((o: any) => {
-      // 1. 상품 정보 추출
-      const items = (o.items || []).map((item: any) => ({
+      // 1. 상품 정보 추출 (embed=items 대응)
+      const rawItems = o.items || [];
+      const items = rawItems.map((item: any) => ({
         name: item.product_name || item.product_name_default || "기타 상품",
         quantity: Number(item.quantity || 1),
         price: Number(item.product_price || 0)
       }));
 
-      // 2. 수령인 정보 (배송지 정보)
-      const receiver = o.receivers?.[0] || {};
+      // 2. 수령인 정보 (embed=receivers 대응)
+      const receiver = (o.receivers && o.receivers.length > 0) ? o.receivers[0] : {};
       
-      // 3. 결제 금액 정보
-      const actualAmount = Number(o.actual_order_amount || o.payment_amount || 0);
-      const initialAmount = Number(o.initial_order_amount || actualAmount || 0);
-      const shippingFee = Number(o.shipping_fee || 0);
+      // 3. 결제 금액 정보 (다양한 필드 시도)
+      // actual_order_amount: 실제 결제액, payment_amount: 결제된 금액
+      const actualAmount = Number(o.actual_order_amount || o.payment_amount || o.total_order_amount || 0) || 0;
+      const initialAmount = Number(o.initial_order_amount || o.total_order_price || actualAmount || 0) || 0;
+      const shippingFee = Number(o.shipping_fee || 0) || 0;
+      const discountAmount = Number(o.total_discount_amount || 0) || 0;
+
+      // 4. 고객명 (주문자 정보가 없으면 수령인 정보로 대체)
+      const customerName = o.buyer_name || receiver.name || "고객";
+      const customerContact = o.buyer_cellphone || o.buyer_phone || receiver.cellphone || "";
 
       return {
         tenant_id: tenant_id,
         order_number: `C24-${o.order_id}`,
         orderer: { 
-          name: o.buyer_name || receiver.name || "고객", 
-          contact: o.buyer_cellphone || o.buyer_phone || receiver.cellphone || "" 
+          name: customerName, 
+          contact: customerContact 
         },
         items: items.length > 0 ? items : [{ name: "기타 상품", quantity: 1, price: actualAmount }],
         summary: { 
           subtotal: initialAmount, 
-          discountAmount: Number(o.total_discount_amount || 0), 
+          discountAmount: discountAmount, 
           discountRate: 0, 
           deliveryFee: shippingFee, 
           total: actualAmount 
         },
         payment: { 
-          method: "shopping_mall", 
+          method: o.payment_method?.[0] || "shopping_mall", 
           status: (o.payment_status === "T" || o.order_status === "N10") ? "paid" : "pending" 
         },
         delivery_info: { 
-          recipientName: receiver.name || o.buyer_name || "", 
-          recipientContact: receiver.cellphone || receiver.phone || o.buyer_cellphone || "", 
+          recipientName: receiver.name || customerName, 
+          recipientContact: receiver.cellphone || receiver.phone || customerContact, 
           address: `${receiver.address_full || ''} ${receiver.address_detail || ''}`.trim(),
           district: "" 
         },
@@ -122,22 +129,19 @@ export async function POST(req: Request) {
         order_date: o.order_date || new Date().toISOString(),
         receipt_type: "delivery_reservation",
         source: "online", 
-        memo: o.buyer_message || ""
+        memo: o.buyer_message || "",
+        extra_data: { raw_cafe24: o } // 디버깅용 원본 데이터 저장
       };
     });
 
-    // 4. Supabase DB에 주문 데이터 삽입 (order_number 중복 방지를 위한 upsert 등 추가 가능)
-    // 현재는 단순 insert 처리 (에러 발생 시 catch 로 넘김)
+    // 4. Supabase DB에 주문 데이터 업서트 (중복 시 업데이트하여 빈 데이터 채움)
     for (const order of mappedOrders) {
-      const { error: insertError } = await supabaseAdmin
+      const { error: upsertError } = await supabaseAdmin
         .from('orders')
-        .insert([order]);
+        .upsert(order, { onConflict: 'tenant_id, order_number' });
         
-      if (insertError) {
-         // 고유값 중복(이미 불러온 주문) 에러는 무시
-         if (insertError.code !== '23505') { 
-           console.error("Order Insert Error", insertError);
-         }
+      if (upsertError) {
+        console.error("Order Upsert Error", upsertError);
       }
     }
 
