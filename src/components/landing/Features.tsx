@@ -9,104 +9,43 @@ import { LANDING_FEATURES } from '@/data/landing-features';
 import { FeatureCardIcon, featureAccentIconClass } from '@/components/landing/feature-visual';
 
 export function Features() {
-  const [stats, setStats] = useState({
-    tenants: 0,
-    orders: 0,
-    delivery: 0,
-    uptime: '99.99%'
-  });
-
-  useEffect(() => {
-    async function fetchStats() {
-      const supabase = createClient();
-      try {
-        const { count: tenantCount } = await supabase.from('tenants').select('*', { count: 'exact', head: true });
-        const { count: orderCount } = await supabase.from('orders').select('*', { count: 'exact', head: true });
-        setStats({
-          tenants: tenantCount || 12,
-          orders: orderCount || 2450,
-          delivery: Math.floor((orderCount || 2450) * 0.7),
-          uptime: '99.9%'
-        });
-      } catch (error) {
-        console.error('Error fetching landing stats:', error);
-      }
-    }
-    fetchStats();
-  }, []);
-
   return (
-    <section id="features" className="py-32 bg-[#0A0F0D] relative overflow-hidden">
+    <section id="technology" className="py-24 md:py-32 bg-[#0A0F0D] relative overflow-hidden">
       {/* Dynamic Background Elements */}
       <div className="absolute top-1/2 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/5 to-transparent" />
       <div className="absolute top-1/4 -left-20 w-80 h-80 bg-emerald-500/5 rounded-full blur-[100px]" />
-      <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-indigo-500/5 rounded-full blur-[100px]" />
+      <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-cyan-500/5 rounded-full blur-[100px]" />
       
       <div className="container mx-auto px-6 md:px-12 relative z-10">
         
-        {/* Stats Glass Counter */}
-        <motion.div 
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8 }}
-          className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-32 bg-white/[0.03] backdrop-blur-xl border border-white/10 p-10 rounded-[40px] shadow-2xl"
-        >
-          <div className="flex flex-col items-center">
-            <span className="text-4xl md:text-5xl font-black text-white mb-2 font-title tracking-tighter">
-              {stats.tenants}+
-            </span>
-            <span className="text-[10px] text-emerald-500 font-black uppercase tracking-[0.2em]">Active Studios</span>
-          </div>
-          <div className="flex flex-col items-center border-x border-white/5">
-            <span className="text-4xl md:text-5xl font-black text-white mb-2 font-title tracking-tighter">
-              {(stats.orders / 1000).toFixed(1)}k
-            </span>
-            <span className="text-[10px] text-blue-400 font-black uppercase tracking-[0.2em]">Data Processed</span>
-          </div>
-          <div className="flex flex-col items-center border-r border-white/5">
-            <span className="text-4xl md:text-5xl font-black text-white mb-2 font-title tracking-tighter">
-              {stats.delivery}+
-            </span>
-            <span className="text-[10px] text-amber-400 font-black uppercase tracking-[0.2em]">Auto Deliveries</span>
-          </div>
-          <div className="flex flex-col items-center">
-            <span className="text-4xl md:text-5xl font-black text-white mb-2 font-title tracking-tighter">
-              {stats.uptime}
-            </span>
-            <span className="text-[10px] text-indigo-400 font-black uppercase tracking-[0.2em]">System Reliability</span>
-          </div>
-        </motion.div>
-
-        <div className="text-center max-w-4xl mx-auto mb-24">
+        <div className="text-center max-w-4xl mx-auto mb-20">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-white/5 text-slate-400 font-bold text-xs mb-8 border border-white/10 uppercase tracking-widest"
+            className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-white/5 text-emerald-400 font-bold text-xs mb-8 border border-white/10 uppercase tracking-widest"
           >
-            <Sparkles size={14} className="text-emerald-500" />
-            Cutting-Edge Capability
+            <Sparkles size={14} />
+            Next-Gen Core Protocol
           </motion.div>
           <motion.h2 
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.2 }}
-            className="text-4xl md:text-7xl font-black text-white tracking-tighter mb-8 leading-tight"
+            className="text-4xl md:text-6xl font-black text-white tracking-tighter mb-6 leading-tight"
           >
-            복잡한 화원 업무의 <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-indigo-500">지능형 자동화.</span>
+            차세대 <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">코어 프로토콜</span>
           </motion.h2>
           <motion.p 
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.3 }}
-            className="text-lg md:text-2xl text-slate-500 font-light"
+            className="text-lg md:text-2xl text-slate-400 font-light"
           >
-            모든 기술은 오직 당신의 창작 시간을 확보하기 위해 존재합니다. <br className="hidden md:block" />
-            더 이상 숫자에 매몰되지 마세요. 혁신이 당신의 뒤를 지킵니다.
+            우리의 전문 모듈이 모든 복잡한 과정을 처리합니다. <br className="hidden md:block" />
+            당신은 오직 화훼의 예술성과 창작에만 집중하세요.
           </motion.p>
         </div>
 
@@ -143,6 +82,99 @@ export function Features() {
               </motion.div>
             </Link>
           ))}
+        </div>
+
+        {/* Integrated Intelligence Section */}
+        <div className="mt-32 border-t border-white/5 pt-32">
+          <div className="flex flex-col lg:flex-row items-center gap-16">
+            <div className="lg:w-1/2">
+              <motion.div 
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-emerald-500/10 text-emerald-400 font-bold text-xs mb-8 border border-emerald-500/20 uppercase tracking-widest"
+              >
+                Integrated Intelligence
+              </motion.div>
+              <motion.h2 
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.1 }}
+                className="text-4xl md:text-5xl font-black text-white tracking-tighter mb-6 leading-tight"
+              >
+                통합 <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-400">커머스 인공지능 망</span>
+              </motion.h2>
+              <motion.p 
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.2 }}
+                className="text-lg text-slate-400 font-light mb-8 leading-relaxed"
+              >
+                Floxync는 국내 최고의 커머스 플랫폼들과 완벽하게 연동됩니다. 네이버 커머스 API와 카페24 개발자 API를 통한 실시간 양방향 데이터 동기화로 주문, 재고, 상품 관리를 자동화하여 최상의 비즈니스 결정을 내리도록 돕습니다.
+              </motion.p>
+              
+              <motion.ul 
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.3 }}
+                className="space-y-4"
+              >
+                {[
+                  "네이버 커머스 API 연동 (스마트스토어 주문/배송 실시간 처리)",
+                  "카페24(Cafe24) 개발자 API를 통한 자사몰 상품/재고 동기화",
+                  "시즌별 피크 수요를 예측하는 통합 데이터 모델링"
+                ].map((item, i) => (
+                  <li key={i} className="flex items-center gap-3 text-slate-300">
+                    <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 flex-shrink-0">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    </div>
+                    {item}
+                  </li>
+                ))}
+              </motion.ul>
+            </div>
+            
+            <div className="lg:w-1/2 w-full">
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6 }}
+                className="relative aspect-square w-full max-w-lg mx-auto"
+              >
+                <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500/20 to-cyan-500/20 rounded-[40px] blur-3xl" />
+                <div className="relative h-full bg-black/40 backdrop-blur-xl border border-white/10 rounded-[40px] p-8 flex flex-col items-center justify-center overflow-hidden">
+                  <div className="w-32 h-32 rounded-full border border-emerald-500/30 flex items-center justify-center relative z-10 animate-pulse-slow bg-[#0A0F0D]">
+                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-[0_0_40px_rgba(16,185,129,0.5)]">
+                      <Sparkles className="text-[#0A0F0D] w-10 h-10" />
+                    </div>
+                  </div>
+                  
+                  {/* Orbit rings & API Nodes */}
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] border border-white/5 rounded-full animate-[spin_20s_linear_infinite]">
+                    {/* Naver Node */}
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full bg-[#03C75A] border-4 border-[#0A0F0D] shadow-[0_0_20px_rgba(3,199,90,0.6)] flex items-center justify-center text-white font-black text-xs animate-[spin_20s_linear_infinite_reverse]">
+                      NAVER
+                    </div>
+                  </div>
+                  
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] border border-white/5 rounded-full animate-[spin_15s_linear_infinite_reverse]">
+                    {/* Cafe24 Node */}
+                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-16 h-16 rounded-full bg-white border-4 border-[#0A0F0D] shadow-[0_0_20px_rgba(255,255,255,0.4)] flex items-center justify-center text-black font-black text-xs animate-[spin_15s_linear_infinite]">
+                      CAFE24
+                    </div>
+                  </div>
+                  
+                  <div className="absolute bottom-10 text-center z-10 bg-[#0A0F0D]/60 px-6 py-2 rounded-full backdrop-blur-md border border-white/5">
+                    <p className="text-emerald-400 font-bold tracking-widest text-sm uppercase">Commerce API Bridge</p>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          </div>
         </div>
       </div>
     </section>

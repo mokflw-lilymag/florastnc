@@ -135,6 +135,7 @@ export function Sidebar({
       links: [
         { name: "FAQ · AI 지식", href: "/dashboard/admin/faq", icon: FileText },
         { name: "플랫폼 홍보 마스터", href: "/dashboard/marketing/admin", icon: Sparkles },
+        { name: "디자인 템플릿 관리", href: "/dashboard/admin/design-templates", icon: Layout },
       ],
     },
     {
@@ -255,15 +256,29 @@ export function Sidebar({
   return (
     <aside className={cn("flex w-64 flex-col bg-white border-r border-slate-100 h-full z-20 shadow-sm", className)}>
       <div className="p-6 pb-2">
-        <Image
-          src={logoUrl || "https://ecimg.cafe24img.com/pg1472b45444056090/lilymagflower/web/upload/category/logo/v2_d13ecd48bab61a0269fab4ecbe56ce07_lZMUZ1lORo_top.jpg"}
-          alt="Floxync Logo"
-          width={180}
-          height={40}
-          priority={true}
-          style={{ width: 'auto', height: 'auto' }}
-          className="h-10 w-auto object-contain mx-auto mix-blend-multiply dark:mix-blend-normal dark:invert"
-        />
+        {logoUrl ? (
+          <Image
+            src={logoUrl}
+            alt="Store Logo"
+            width={180}
+            height={40}
+            priority={true}
+            style={{ width: 'auto', height: 'auto', maxHeight: '40px' }}
+            className="h-10 w-auto object-contain mx-auto mix-blend-multiply dark:mix-blend-normal dark:invert"
+          />
+        ) : (
+          <div className="flex items-center justify-center py-1">
+            <Image
+              src="/floxync-logo.png"
+              alt="Floxync Logo"
+              width={160}
+              height={36}
+              priority={true}
+              style={{ width: 'auto', height: 'auto', maxHeight: '36px' }}
+              className="h-9 w-auto object-contain mx-auto mix-blend-multiply dark:mix-blend-normal dark:invert"
+            />
+          </div>
+        )}
         <div className="mt-3 text-center">
            <span className={cn(
              "text-[10px] font-bold px-2.5 py-0.5 rounded-full inline-block border",

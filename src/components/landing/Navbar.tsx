@@ -18,10 +18,10 @@ export function Navbar() {
   }, []);
 
   const navLinks = [
-    { name: '기술력', href: '#vision' },
-    { name: 'AI 오더', href: '#ai-concierge' },
-    { name: '멀티채널 자동화', href: '#integrations' },
-    { name: '도입 문의', href: '#' },
+    { name: '솔루션', href: '#solutions' },
+    { name: '테크놀로지', href: '#technology' },
+    { name: '네트워크', href: '#network' },
+    { name: '문서', href: '#documentation' },
   ];
 
   return (

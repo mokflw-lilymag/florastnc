@@ -14,8 +14,8 @@ export type AdminGalleryTheme = {
 };
 
 interface DesignGalleryAdminPanelProps {
-  onBack: () => void;
-  onCatalogChanged: () => void;
+  onBack?: () => void;
+  onCatalogChanged?: () => void;
 }
 
 export function DesignGalleryAdminPanel({ onBack, onCatalogChanged }: DesignGalleryAdminPanelProps) {
@@ -65,7 +65,7 @@ export function DesignGalleryAdminPanel({ onBack, onCatalogChanged }: DesignGall
       if (!res.ok) throw new Error(json.error || '저장 실패');
       toast.success('테마가 저장되었습니다.');
       await load();
-      onCatalogChanged();
+      onCatalogChanged?.();
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : '저장 오류');
     } finally {
@@ -92,7 +92,7 @@ export function DesignGalleryAdminPanel({ onBack, onCatalogChanged }: DesignGall
       setNewThemeSlug('');
       setNewThemeLabel('');
       await load();
-      onCatalogChanged();
+      onCatalogChanged?.();
       if (json.theme?.id) setSelectedId(json.theme.id);
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : '추가 오류');
@@ -114,7 +114,7 @@ export function DesignGalleryAdminPanel({ onBack, onCatalogChanged }: DesignGall
       toast.success('테마가 삭제되었습니다.');
       setSelectedId(null);
       await load();
-      onCatalogChanged();
+      onCatalogChanged?.();
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : '삭제 오류');
     } finally {
@@ -137,7 +137,7 @@ export function DesignGalleryAdminPanel({ onBack, onCatalogChanged }: DesignGall
       toast.success('디자인 이미지가 추가되었습니다.');
       setNewAssetUrl('');
       await load();
-      onCatalogChanged();
+      onCatalogChanged?.();
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : '추가 오류');
     } finally {
@@ -157,7 +157,7 @@ export function DesignGalleryAdminPanel({ onBack, onCatalogChanged }: DesignGall
       if (!res.ok) throw new Error(json.error || '삭제 실패');
       toast.success('삭제되었습니다.');
       await load();
-      onCatalogChanged();
+      onCatalogChanged?.();
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : '삭제 오류');
     } finally {
@@ -168,13 +168,15 @@ export function DesignGalleryAdminPanel({ onBack, onCatalogChanged }: DesignGall
   return (
     <div className="flex flex-1 flex-col min-h-0 bg-slate-50">
       <div className="flex items-center gap-3 border-b border-slate-200 bg-white px-6 py-4 shrink-0">
-        <button
-          type="button"
-          onClick={onBack}
-          className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100"
-        >
-          <ArrowLeft size={18} /> 보관함으로
-        </button>
+        {onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100"
+          >
+            <ArrowLeft size={18} /> 이전으로
+          </button>
+        )}
         <h4 className="text-sm font-black text-slate-800">템플릿 · 테마 관리</h4>
         {saving && <Loader2 className="ml-auto animate-spin text-emerald-600" size={20} />}
       </div>

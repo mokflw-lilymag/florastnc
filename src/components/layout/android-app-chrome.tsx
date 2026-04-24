@@ -78,6 +78,7 @@ function adminMoreLinks(): MoreItem[] {
     { href: "/dashboard/announcements", label: "글로벌 공지", icon: FileText },
     { href: "/dashboard/admin/faq", label: "FAQ · AI 지식", icon: FileText },
     { href: "/dashboard/marketing/admin", label: "플랫폼 홍보 마스터", icon: Sparkles },
+    { href: "/dashboard/admin/design-templates", label: "디자인 템플릿 관리", icon: Layout },
     { href: "/dashboard/system-settings", label: "전역 설정", icon: Settings },
     { href: "/dashboard/settings", label: "화원사 환경 설정", icon: Settings },
   ];

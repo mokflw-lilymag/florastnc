@@ -6,7 +6,6 @@ import { GALLERY_CATEGORIES, FREE_TEMPLATES } from '@/lib/constants/templates';
 import { useEditorStore } from '@/stores/design-store';
 import { createClient } from '@/utils/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
-import { DesignGalleryAdminPanel } from '@/components/design-studio/DesignGalleryAdminPanel';
 import { toast } from 'sonner';
 
 interface GalleryModalProps {
@@ -45,7 +44,6 @@ export const GalleryModal: React.FC<GalleryModalProps> = ({ isOpen, onClose }) =
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [catalogSource, setCatalogSource] = useState<'remote' | 'legacy'>('legacy');
   const [remoteThemes, setRemoteThemes] = useState<RemoteTheme[]>([]);
-  const [manageMode, setManageMode] = useState(false);
 
   const refreshCatalog = useCallback(async () => {
     setCatalogLoading(true);
@@ -98,8 +96,6 @@ export const GalleryModal: React.FC<GalleryModalProps> = ({ isOpen, onClose }) =
   useEffect(() => {
     if (isOpen) {
       refreshCatalog();
-    } else {
-      setManageMode(false);
     }
   }, [isOpen, refreshCatalog]);
 
@@ -163,24 +159,14 @@ export const GalleryModal: React.FC<GalleryModalProps> = ({ isOpen, onClose }) =
             </div>
             <div className="min-w-0">
               <h3 className="text-2xl font-black text-gray-800 tracking-tight truncate">
-                {manageMode ? '템플릿 관리' : '마이 디자인 & 프로 템플릿'}
+                마이 디자인 & 프로 템플릿
               </h3>
               <p className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.3em] mt-1">
-                {manageMode ? 'Super Admin · Gallery' : 'Template Architecture v4.0'}
+                Template Architecture v4.0
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            {isSuperAdmin && !manageMode && (
-              <button
-                type="button"
-                onClick={() => setManageMode(true)}
-                className="flex items-center gap-2 rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-xs font-black text-emerald-800 shadow-sm hover:bg-emerald-50 transition-all"
-              >
-                <Settings2 size={18} />
-                템플릿 관리
-              </button>
-            )}
             <button
               type="button"
               onClick={onClose}
@@ -191,13 +177,7 @@ export const GalleryModal: React.FC<GalleryModalProps> = ({ isOpen, onClose }) =
           </div>
         </div>
 
-        {manageMode && isSuperAdmin ? (
-          <DesignGalleryAdminPanel
-            onBack={() => setManageMode(false)}
-            onCatalogChanged={() => refreshCatalog()}
-          />
-        ) : (
-          <div className="flex flex-1 overflow-hidden min-h-0">
+        <div className="flex flex-1 overflow-hidden min-h-0">
             {/* Navigation Sidebar */}
             <aside className="w-64 bg-gray-50/50 border-r border-gray-100 p-8 shrink-0 overflow-y-auto custom-scrollbar">
               <div className="space-y-8">
@@ -318,15 +298,6 @@ export const GalleryModal: React.FC<GalleryModalProps> = ({ isOpen, onClose }) =
                 <div className="flex flex-col items-center justify-center py-24 text-slate-400 gap-2">
                   <Search size={40} className="opacity-20" />
                   <p className="text-sm font-black">이 테마에 등록된 디자인이 없습니다.</p>
-                  {isSuperAdmin && (
-                    <button
-                      type="button"
-                      onClick={() => setManageMode(true)}
-                      className="mt-4 text-xs font-black text-emerald-600 underline"
-                    >
-                      템플릿 관리에서 이미지 URL 추가
-                    </button>
-                  )}
                 </div>
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 animate-in zoom-in-95 duration-300">
@@ -365,7 +336,6 @@ export const GalleryModal: React.FC<GalleryModalProps> = ({ isOpen, onClose }) =
               )}
             </div>
           </div>
-        )}
       </div>
 
       <style jsx global>{`
