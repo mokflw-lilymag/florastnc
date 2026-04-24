@@ -47,7 +47,7 @@ export async function POST(req: Request) {
     const start_date = startDate.toISOString().split('T')[0];
     const end_date = endDate.toISOString().split('T')[0];
 
-    const ordersUrl = `https://${mall_id}.cafe24api.com/api/v2/admin/orders?start_date=${start_date}&end_date=${end_date}`;
+    const ordersUrl = `https://${mall_id}.cafe24api.com/api/v2/admin/orders?start_date=${start_date}&end_date=${end_date}&embed=items,receivers`;
 
     const ordersResponse = await fetch(ordersUrl, {
       headers: {
@@ -77,38 +77,54 @@ export async function POST(req: Request) {
     }
 
     // 3. Cafe24 주문 데이터를 프록싱크 DB 구조로 매핑
-    const mappedOrders = cafe24Orders.map((o: any) => ({
-      tenant_id: tenant_id,
-      order_number: `C24-${o.order_id}`,
-      orderer: { 
-        name: o.buyer_name || "고객", 
-        contact: o.buyer_cellphone || o.buyer_phone || "" 
-      },
-      items: (o.items || []).map((item: any) => ({
-        name: item.product_name,
-        quantity: item.quantity,
-        price: Number(item.product_price)
-      })),
-      summary: { 
-        subtotal: Number(o.initial_order_amount || 0), 
-        discountAmount: 0, 
-        discountRate: 0, 
-        deliveryFee: Number(o.shipping_fee || 0), 
-        total: Number(o.actual_order_amount || 0) 
-      },
-      payment: { method: "card", status: o.payment_status === "T" ? "paid" : "pending" },
-      delivery_info: { 
-        recipientName: o.receivers?.[0]?.name || o.buyer_name, 
-        recipientContact: o.receivers?.[0]?.cellphone || o.buyer_cellphone, 
-        address: `${o.receivers?.[0]?.address_full || ''}`.trim(),
-        district: "" // 구(district)는 주소 파싱이 필요하므로 임시 공란
-      },
-      status: "processing", // 기본 준비중 상태
-      order_date: o.order_date || new Date().toISOString(),
-      receipt_type: "delivery_reservation",
-      source: "online", 
-      memo: o.buyer_message || ""
-    }));
+    const mappedOrders = cafe24Orders.map((o: any) => {
+      // 1. 상품 정보 추출
+      const items = (o.items || []).map((item: any) => ({
+        name: item.product_name || item.product_name_default || "기타 상품",
+        quantity: Number(item.quantity || 1),
+        price: Number(item.product_price || 0)
+      }));
+
+      // 2. 수령인 정보 (배송지 정보)
+      const receiver = o.receivers?.[0] || {};
+      
+      // 3. 결제 금액 정보
+      const actualAmount = Number(o.actual_order_amount || o.payment_amount || 0);
+      const initialAmount = Number(o.initial_order_amount || actualAmount || 0);
+      const shippingFee = Number(o.shipping_fee || 0);
+
+      return {
+        tenant_id: tenant_id,
+        order_number: `C24-${o.order_id}`,
+        orderer: { 
+          name: o.buyer_name || receiver.name || "고객", 
+          contact: o.buyer_cellphone || o.buyer_phone || receiver.cellphone || "" 
+        },
+        items: items.length > 0 ? items : [{ name: "기타 상품", quantity: 1, price: actualAmount }],
+        summary: { 
+          subtotal: initialAmount, 
+          discountAmount: Number(o.total_discount_amount || 0), 
+          discountRate: 0, 
+          deliveryFee: shippingFee, 
+          total: actualAmount 
+        },
+        payment: { 
+          method: "shopping_mall", 
+          status: (o.payment_status === "T" || o.order_status === "N10") ? "paid" : "pending" 
+        },
+        delivery_info: { 
+          recipientName: receiver.name || o.buyer_name || "", 
+          recipientContact: receiver.cellphone || receiver.phone || o.buyer_cellphone || "", 
+          address: `${receiver.address_full || ''} ${receiver.address_detail || ''}`.trim(),
+          district: "" 
+        },
+        status: "processing",
+        order_date: o.order_date || new Date().toISOString(),
+        receipt_type: "delivery_reservation",
+        source: "online", 
+        memo: o.buyer_message || ""
+      };
+    });
 
     // 4. Supabase DB에 주문 데이터 삽입 (order_number 중복 방지를 위한 upsert 등 추가 가능)
     // 현재는 단순 insert 처리 (에러 발생 시 catch 로 넘김)
