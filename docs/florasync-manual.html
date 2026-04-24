@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ko" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FloraSync Official Documentation</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+    .sidebar-link { transition: all 0.2s; }
+    .sidebar-link:hover { background-color: #f3f4f6; color: #059669; padding-left: 1rem; }
+    .img-placeholder { 
+      background: linear-gradient(45deg, #f3f4f6 25%, #e5e7eb 25%, #e5e7eb 50%, #f3f4f6 50%, #f3f4f6 75%, #e5e7eb 75%, #e5e7eb 100%);
+      background-size: 20px 20px;
+      display: flex; align-items: center; justify-content: center;
+      color: #6b7280; font-weight: 500; border: 2px dashed #d1d5db; border-radius: 0.5rem;
+    }
+  </style>
+</head>
+<body class="bg-white text-gray-800 antialiased">
+
+  <!-- Navbar -->
+  <nav class="fixed top-0 z-50 w-full bg-white border-b border-gray-200 shadow-sm">
+    <div class="px-3 py-3 lg:px-5 lg:pl-3">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center justify-start rtl:justify-end">
+          <span class="self-center text-xl font-bold sm:text-2xl whitespace-nowrap text-emerald-600 ml-2">FloraSync Docs</span>
+        </div>
+        <div class="hidden md:block">
+          <span class="text-sm text-gray-500">웹계의 스위스 아미 나이프, 꽃집 비즈니스의 모든 것</span>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Sidebar -->
+  <aside id="logo-sidebar" class="fixed top-0 left-0 z-40 w-64 h-screen pt-20 transition-transform -translate-x-full bg-white border-r border-gray-200 sm:translate-x-0" aria-label="Sidebar">
+     <div class="h-full px-3 pb-4 overflow-y-auto bg-white">
+        <ul class="space-y-2 font-medium">
+           <li><a href="#intro" class="flex items-center p-2 text-gray-900 rounded-lg sidebar-link">시작하기</a></li>
+           <li><a href="#settings" class="flex items-center p-2 text-gray-900 rounded-lg sidebar-link">1. 환경 설정 (기초 공사)</a></li>
+           <li><a href="#orders" class="flex items-center p-2 text-gray-900 rounded-lg sidebar-link">2. 주문 관리 & AI</a></li>
+           <li><a href="#remote-print" class="flex items-center p-2 text-gray-900 rounded-lg sidebar-link">3. 원격 클라우드 출력 🚀</a></li>
+           <li><a href="#customers" class="flex items-center p-2 text-gray-900 rounded-lg sidebar-link">4. 고객 및 캘린더</a></li>
+           <li><a href="#pos-future" class="flex items-center p-2 text-gray-900 rounded-lg sidebar-link">5. 향후 POS 연동</a></li>
+        </ul>
+        
+        <div class="mt-8 p-4 bg-emerald-50 rounded-lg border border-emerald-100">
+          <h4 class="text-sm font-bold text-emerald-800 mb-2">초기 세팅이 어려우신가요?</h4>
+          <p class="text-xs text-emerald-600 mb-3">엑셀 업로드부터 디자인 템플릿까지 완벽한 맞춤형 세팅을 대행해 드립니다.</p>
+          <button class="w-full bg-emerald-600 text-white text-xs font-bold py-2 rounded shadow hover:bg-emerald-700">전문가 셋업 요청 (유료)</button>
+        </div>
+     </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="p-4 sm:ml-64 pt-20">
+    <div class="max-w-4xl mx-auto space-y-16 pb-20">
+
+      <!-- Intro -->
+      <section id="intro">
+        <h1 class="text-4xl font-extrabold tracking-tight text-gray-900 mb-4">FloraSync 공식 매뉴얼</h1>
+        <p class="text-lg text-gray-600 mb-8">FloraSync는 온라인 주문부터 매장 출력, 향후 오프라인 POS까지 모든 꽃집 업무를 유기적으로 연결하는 차세대 SaaS 플랫폼입니다. 본 매뉴얼을 통해 완벽한 워라밸을 달성하세요.</p>
+        <div class="w-full h-64 img-placeholder mb-4">[ 대시보드 전체 화면 캡처 자리 ]</div>
+      </section>
+
+      <!-- Settings -->
+      <section id="settings" class="border-t border-gray-200 pt-12">
+        <h2 class="text-3xl font-bold text-gray-900 mb-6">1. 환경 설정 (기초 공사)</h2>
+        <p class="mb-4 text-gray-600">플로라싱크의 AI 기능과 원격 출력이 완벽하게 작동하려면 <strong class="text-emerald-600">기초 데이터 세팅</strong>이 필수입니다. 이곳에서 등록한 카테고리와 템플릿은 전체 앱의 근간이 됩니다.</p>
+        
+        <div class="space-y-8">
+          <div>
+            <h3 class="text-xl font-semibold mb-2">1-1. 상품 및 카테고리 관리</h3>
+            <p class="text-sm text-gray-600 mb-3">꽃다발, 바구니, 화환 등 매장의 카테고리를 설정하고 자주 판매하는 상품을 등록합니다. (엑셀 일괄 업로드 지원)</p>
+            <div class="w-full h-48 img-placeholder mb-2">[ 상품/카테고리 설정 화면 캡처 자리 ]</div>
+            <ul class="list-disc list-inside text-sm text-gray-700 space-y-1 ml-2">
+              <li><strong>엑셀 업로드 버튼:</strong> 대량의 상품을 한 번에 등록할 수 있습니다.</li>
+              <li><strong>카테고리 연동:</strong> 여기서 설정한 카테고리는 주문 등록 시 AI가 상품명을 분석할 때 매칭 기준이 됩니다.</li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 class="text-xl font-semibold mb-2">1-2. 디자인 템플릿 관리</h3>
+            <p class="text-sm text-gray-600 mb-3">리본, 카드, 인수증의 글꼴, 크기, 위치를 세팅합니다.</p>
+            <div class="w-full h-48 img-placeholder mb-2">[ 디자인 템플릿 에디터 화면 캡처 자리 ]</div>
+            <p class="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg border border-gray-200">💡 <strong>꿀팁:</strong> 한 번만 완벽하게 위치를 맞춰두면, 앞으로 주문이 들어올 때마다 이름과 경조사어만 바뀌어 자동으로 생성됩니다.</p>
+          </div>
+
+          <div>
+            <h3 class="text-xl font-semibold mb-2">1-3. 쇼핑몰 연동 관리 (네이버/카페24)</h3>
+            <p class="text-sm text-gray-600 mb-3">스마트스토어와 카페24의 주문을 실시간으로 가져옵니다.</p>
+            <div class="w-full h-48 img-placeholder mb-2">[ 쇼핑몰 API 연동 화면 캡처 자리 ]</div>
+            <div class="bg-emerald-50 border-l-4 border-emerald-500 p-4">
+              <p class="font-bold text-emerald-800 text-sm">※ 14일 무한 갱신 규칙</p>
+              <p class="text-xs text-emerald-700 mt-1">최초 1회 [재인증(로그인)] 버튼을 눌러 연동해두면, 앱을 사용할 때마다 자동으로 토큰이 14일씩 갱신됩니다. 즉, 14일 넘게 아예 접속을 안 하지 않는 이상 두 번 다시 로그인하실 필요가 없습니다.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Orders & AI -->
+      <section id="orders" class="border-t border-gray-200 pt-12">
+        <h2 class="text-3xl font-bold text-gray-900 mb-6">2. 주문 관리 & AI 주문 입력</h2>
+        <p class="mb-4 text-gray-600">더 이상 손으로 타이핑하지 마세요. 쇼핑몰 주문은 자동으로 들어오고, 카톡/문자 주문은 AI가 해결합니다.</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div>
+            <h3 class="text-lg font-bold mb-2">💬 AI 원클릭 주문 입력</h3>
+            <div class="w-full h-40 img-placeholder mb-3">[ AI 주문 텍스트 붙여넣기 창 캡처 ]</div>
+            <p class="text-sm text-gray-700">고객이 보낸 카톡("내일 오후 2시까지 여의도 자이아파트로 10만원짜리 꽃바구니 보내주세요. 리본은 축하합니다/홍길동")을 그대로 복사해서 붙여넣으세요.</p>
+            <p class="text-sm text-gray-700 mt-2">AI가 수령인, 날짜, 주소, 상품명, 리본 문구 좌/우를 완벽하게 분리하여 칸에 채워 넣습니다.</p>
+          </div>
+          <div>
+            <h3 class="text-lg font-bold mb-2">🛒 다채널 통합 관리</h3>
+            <div class="w-full h-40 img-placeholder mb-3">[ 쇼핑몰 뱃지가 달린 주문 리스트 캡처 ]</div>
+            <p class="text-sm text-gray-700">스마트스토어(N), 카페24(C), 카카오톡(K) 등 모든 채널의 주문이 하나의 리스트로 통합됩니다. 필터 버튼을 통해 채널별, 날짜별로 한눈에 확인하세요.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Remote Print (Killer Feature) -->
+      <section id="remote-print" class="border-t border-gray-200 pt-12">
+        <h2 class="text-3xl font-bold text-emerald-600 mb-6 flex items-center gap-2">
+          <span>3. 원격 클라우드 출력</span>
+          <span class="px-2 py-1 bg-red-100 text-red-600 text-xs rounded-full uppercase tracking-wider font-bold">Killer Feature</span>
+        </h2>
+        <p class="mb-6 text-gray-600 text-lg">타사 서비스에는 없는 플로라싱크만의 독보적 기능! <strong>"안방에서 누르면 매장에서 나옵니다."</strong></p>
+
+        <div class="bg-gray-900 text-white p-6 rounded-xl shadow-lg relative overflow-hidden">
+          <div class="absolute top-0 right-0 w-32 h-32 bg-emerald-500 rounded-full blur-3xl opacity-20 -mr-10 -mt-10"></div>
+          
+          <h3 class="text-xl font-bold mb-4 flex items-center gap-2">🖨️ 어떻게 작동하나요?</h3>
+          <div class="w-full h-56 img-placeholder border-gray-700 bg-gray-800 text-gray-400 mb-4">[ 모바일 화면의 출력버튼 + 매장 프린터 분할 캡처 ]</div>
+          
+          <ul class="space-y-4 text-sm text-gray-300">
+            <li class="flex items-start gap-3">
+              <div class="bg-emerald-500 text-white rounded-full w-6 h-6 flex items-center justify-center font-bold shrink-0">1</div>
+              <p>퇴근 후 집이나 외부에서 스마트폰/패드로 플로라싱크 주문 상세창을 엽니다.</p>
+            </li>
+            <li class="flex items-start gap-3">
+              <div class="bg-emerald-500 text-white rounded-full w-6 h-6 flex items-center justify-center font-bold shrink-0">2</div>
+              <p>환경설정에서 미리 만들어둔 템플릿이 적용된 주문건의 <strong>[리본 출력]</strong>, <strong>[카드 출력]</strong>, <strong>[인수증 출력]</strong> 버튼을 누릅니다.</p>
+            </li>
+            <li class="flex items-start gap-3">
+              <div class="bg-emerald-500 text-white rounded-full w-6 h-6 flex items-center justify-center font-bold shrink-0">3</div>
+              <p>명령이 클라우드를 타고 매장에 켜져있는 PC로 즉시 전송되며, 매장 프린터에서 리본과 영수증이 쫙쫙 출력됩니다!</p>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Pos Future -->
+      <section id="pos-future" class="border-t border-gray-200 pt-12">
+        <h2 class="text-3xl font-bold text-gray-900 mb-6">5. 넥스트 스텝: 오프라인 POS 연동 (예정)</h2>
+        <div class="flex flex-col md:flex-row gap-6 items-center bg-blue-50 p-6 rounded-xl border border-blue-100">
+          <div class="w-full md:w-1/3 h-40 img-placeholder bg-white">[ POS 연동 개념도 일러스트 ]</div>
+          <div class="w-full md:w-2/3">
+            <h3 class="text-lg font-bold text-blue-900 mb-2">온/오프라인 매출의 완벽한 통합</h3>
+            <p class="text-sm text-blue-800 mb-3">현재 입력하고 계신 기초 자료(카테고리, 상품)와 온라인 주문 데이터는 결코 버려지지 않습니다. 추후 업데이트될 <strong>플로라싱크 POS</strong>와 실시간으로 연동되어, 워크인(Walk-in) 고객의 현장 결제 데이터까지 이 화면 하나에서 통합 관리하게 될 것입니다.</p>
+            <p class="text-sm font-bold text-blue-900">꽃집 비즈니스의 완벽한 스케일업, 플로라싱크가 함께합니다.</p>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <script>
+    // Smooth scroll for sidebar links
+    document.querySelectorAll('.sidebar-link').forEach(anchor => {
+      anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        document.querySelector(this.getAttribute('href')).scrollIntoView({
+          behavior: 'smooth'
+        });
+      });
+    });
+  </script>
+</body>
+</html>
