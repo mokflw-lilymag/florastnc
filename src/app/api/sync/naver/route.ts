@@ -142,6 +142,11 @@ export async function POST(req: Request) {
       const order = detailData.data;
       if (!order) continue;
 
+      const rawOrderDate = order.orderDate || new Date().toISOString();
+      const d = new Date(rawOrderDate);
+      const deliveryDateOnly = d.toISOString().split('T')[0];
+      const deliveryTimeOnly = d.toTimeString().split(' ')[0].substring(0, 5);
+
       const mappedOrder = {
         tenant_id: tenant_id,
         order_number: `NV-${order.orderId || productOrderId}`,
@@ -166,16 +171,23 @@ export async function POST(req: Request) {
           status: order.paymentDate ? 'paid' : 'pending'
         },
         delivery_info: {
+          date: deliveryDateOnly,
+          time: deliveryTimeOnly,
           recipientName: order.shippingAddress?.name || order.order?.ordererName || '',
           recipientContact: order.shippingAddress?.tel1 || '',
           address: `${order.shippingAddress?.baseAddress || ''} ${order.shippingAddress?.detailedAddress || ''}`.trim(),
           district: ''
         },
         status: 'processing',
-        order_date: order.orderDate || new Date().toISOString(),
+        order_date: rawOrderDate,
+        created_at: rawOrderDate,
         receipt_type: 'delivery_reservation',
         source: 'online',
-        memo: order.shippingMemo || ''
+        memo: order.shippingMemo || '',
+        message: {
+          type: order.shippingMemo ? 'card' : 'none',
+          content: order.shippingMemo || ''
+        }
       };
 
       const { error: insertError } = await supabaseAdmin

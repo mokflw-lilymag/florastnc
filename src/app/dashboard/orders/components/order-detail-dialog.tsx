@@ -274,10 +274,22 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
                     <span className="text-slate-500">수령/배송일</span>
                     <span className="font-bold text-blue-600">{info?.date || '-'} {info?.time || '-'}</span>
                   </div>
-                  {order.message?.type !== 'none' && (
+                  {order.memo && (
                     <div className="pt-2">
-                       <Label className="text-[10px] font-bold text-slate-400 uppercase">메시지 ({order.message?.type})</Label>
-                       <div className="mt-1 p-3 bg-white rounded-xl border border-slate-200 text-xs italic">
+                       <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                         <FileText className="h-3 w-3" /> 고객 요청사항 (메모)
+                       </Label>
+                       <div className="mt-1 p-3 bg-white rounded-xl border border-blue-100 text-xs font-medium text-slate-700 shadow-sm">
+                         {order.memo}
+                       </div>
+                    </div>
+                  )}
+                  {order.message?.type !== 'none' && order.message?.content !== order.memo && (
+                    <div className="pt-2">
+                       <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                         <MessageSquare className="h-3 w-3" /> 메시지 ({order.message?.type})
+                       </Label>
+                       <div className="mt-1 p-3 bg-white rounded-xl border border-slate-200 text-xs italic text-slate-600">
                          {order.message?.content || '내용 없음'}
                        </div>
                     </div>

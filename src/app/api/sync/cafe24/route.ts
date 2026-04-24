@@ -99,15 +99,19 @@ export async function POST(req: Request) {
       const receiver = (o.receivers && o.receivers.length > 0) ? o.receivers[0] : {};
       
       // 3. 결제 금액 정보 (다양한 필드 시도)
-      // actual_order_amount: 실제 결제액, payment_amount: 결제된 금액
-      const actualAmount = Number(o.actual_order_amount || o.payment_amount || o.total_order_amount || 0) || 0;
-      const initialAmount = Number(o.initial_order_amount || o.total_order_price || actualAmount || 0) || 0;
+      // payment_amount: 결제된 금액 (가장 정확), actual_order_amount: 실제 결제액
+      const actualAmount = Number(o.payment_amount || o.actual_order_amount || o.total_order_amount || 0) || 0;
+      const initialAmount = Number(o.total_order_price || o.initial_order_amount || actualAmount || 0) || 0;
       const shippingFee = Number(o.shipping_fee || 0) || 0;
       const discountAmount = Number(o.total_discount_amount || 0) || 0;
 
-      // 4. 고객명 (주문자 정보가 없으면 수령인 정보로 대체)
-      const customerName = o.buyer_name || receiver.name || "고객";
-      const customerContact = o.buyer_cellphone || o.buyer_phone || receiver.cellphone || "";
+      // 5. 희망배송일 (없으면 주문일) 분리 처리
+      const rawDeliveryDate = o.hope_shipment_date || o.order_date || new Date().toISOString();
+      const d = new Date(rawDeliveryDate);
+      const deliveryDateOnly = d.toISOString().split('T')[0];
+      const deliveryTimeOnly = d.toTimeString().split(' ')[0].substring(0, 5); // HH:mm
+
+      const shippingMemo = o.buyer_message || receiver.shipping_message || "";
 
       return {
         tenant_id: tenant_id,
@@ -129,16 +133,23 @@ export async function POST(req: Request) {
           status: (o.payment_status === "T" || o.order_status === "N10") ? "paid" : "pending" 
         },
         delivery_info: { 
+          date: deliveryDateOnly,
+          time: deliveryTimeOnly,
           recipientName: receiver.name || customerName, 
           recipientContact: receiver.cellphone || receiver.phone || customerContact, 
           address: `${receiver.address_full || ''} ${receiver.address_detail || ''}`.trim(),
           district: "" 
         },
         status: "processing",
-        order_date: o.order_date || new Date().toISOString(),
+        order_date: rawDeliveryDate,
+        created_at: o.order_date || new Date().toISOString(),
         receipt_type: "delivery_reservation",
         source: "online", 
-        memo: o.buyer_message || "",
+        memo: shippingMemo,
+        message: {
+          type: shippingMemo ? 'card' : 'none',
+          content: shippingMemo
+        },
         extra_data: { raw_cafe24: o } // 디버깅용 원본 데이터 저장
       };
     });
