@@ -114,8 +114,9 @@ export async function POST(req: Request) {
       console.error('Naver Commerce API Error:', naverData);
       return NextResponse.json({
         success: false,
-        error: `네이버 통신 오류: ${naverData.message || naverData.error?.message || JSON.stringify(naverData)}`
-      }, { status: 400 });
+        message: `네이버 통신 오류: ${naverData.message || naverData.error?.message || '인증이 만료되었을 수 있습니다.'}`,
+        synced_count: 0
+      }, { status: 200 });
     }
 
     const productOrders = naverData.data?.lastChangeStatuses || [];
@@ -190,8 +191,8 @@ export async function POST(req: Request) {
         source: 'online',
         memo: order.shippingMemo || '',
         message: {
-          type: order.shippingMemo ? 'card' : 'none',
-          content: order.shippingMemo || ''
+          type: 'none',
+          content: ''
         }
       };
 

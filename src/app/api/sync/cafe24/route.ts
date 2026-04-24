@@ -77,8 +77,9 @@ export async function POST(req: Request) {
       console.error('Cafe24 Orders API Error:', cafe24Data);
       return NextResponse.json({ 
         success: false, 
-        error: `카페24 통신 오류: ${cafe24Data.error?.message || '알 수 없는 오류'}`
-      }, { status: 400 });
+        message: `카페24 통신 오류: ${cafe24Data.error?.message || '인증이 만료되었을 수 있습니다. 다시 로그인해 주세요.'}`,
+        synced_count: 0
+      }, { status: 200 });
     }
 
     const cafe24Orders = cafe24Data.orders || [];
@@ -103,24 +104,32 @@ export async function POST(req: Request) {
       // 2. 수령인 정보 (embed=receivers 대응)
       const receiver = (o.receivers && o.receivers.length > 0) ? o.receivers[0] : {};
       
-      // 3. 결제 금액 정보 (다양한 필드 시도)
-      // payment_amount: 결제된 금액 (가장 정확), actual_order_amount: 실제 결제액
-      const actualAmount = Number(o.payment_amount || o.actual_order_amount || o.total_order_amount || 0) || 0;
-      const initialAmount = Number(o.total_order_price || o.initial_order_amount || actualAmount || 0) || 0;
-      const shippingFee = Number(o.shipping_fee || 0) || 0;
-      const discountAmount = Number(o.total_discount_amount || 0) || 0;
+      // 3. 결제 금액 정보 (오브젝트 형태 대응)
+      // 입금 전 주문은 o.payment_amount가 0일 수 있으므로 actual_order_amount 객체 확인
+      const actualAmount = Number(o.actual_order_amount?.total_amount_due || o.payment_amount || o.actual_order_amount?.order_price_amount || 0);
+      const initialAmount = Number(o.actual_order_amount?.order_price_amount || o.initial_order_amount?.order_price_amount || actualAmount);
+      const shippingFee = Number(o.actual_order_amount?.shipping_fee || o.shipping_fee || 0);
+      const discountAmount = Number(o.actual_order_amount?.coupon_discount_price || 0) + Number(o.actual_order_amount?.app_discount_amount || 0) + Number(o.total_discount_amount || 0);
 
-      // 5. 희망배송일 (없으면 주문일) 분리 처리
-      const rawDeliveryDate = o.hope_shipment_date || o.order_date || new Date().toISOString();
+      // 4. 주문자 정보 추출
+      const customerName = o.buyer_name || o.billing_name || "비회원";
+      const customerContact = o.buyer_cellphone || o.buyer_phone || "";
+
+      // 5. 희망배송일 처리 (날짜 형식이 아닐 경우 대응)
+      const wishedDateStr = o.wished_delivery_date || receiver.wished_delivery_date || "";
+      const isDateValid = !isNaN(Date.parse(wishedDateStr));
+      
+      const rawDeliveryDate = isDateValid ? wishedDateStr : (o.order_date || new Date().toISOString());
       const d = new Date(rawDeliveryDate);
       const deliveryDateOnly = d.toISOString().split('T')[0];
       const deliveryTimeOnly = d.toTimeString().split(' ')[0].substring(0, 5); // HH:mm
 
-      // 4. 주문자 정보 추출
-      const customerName = o.buyer_name || "비회원";
-      const customerContact = o.buyer_cellphone || o.buyer_phone || "";
-
+      // 메시지 및 메모 (희망배송일이 텍스트면 메모에 추가)
       const shippingMemo = o.buyer_message || receiver.shipping_message || "";
+      const fullMemo = [
+        shippingMemo,
+        (!isDateValid && wishedDateStr) ? `[배송요청: ${wishedDateStr}]` : ""
+      ].filter(Boolean).join(' / ');
 
       return {
         tenant_id: tenant_id,
@@ -139,7 +148,7 @@ export async function POST(req: Request) {
         },
         payment: { 
           method: o.payment_method?.[0] || "shopping_mall", 
-          status: (o.payment_status === "T" || o.order_status === "N10") ? "paid" : "pending" 
+          status: (o.payment_status === "T" || o.order_status === "N10" || o.paid === "T") ? "paid" : "pending" 
         },
         delivery_info: { 
           date: deliveryDateOnly,
@@ -149,17 +158,17 @@ export async function POST(req: Request) {
           address: `${receiver.address_full || ''} ${receiver.address_detail || ''}`.trim(),
           district: "" 
         },
-        status: "processing",
+        status: (o.canceled === "T") ? "canceled" : "processing",
         order_date: rawDeliveryDate,
         created_at: o.order_date || new Date().toISOString(),
         receipt_type: "delivery_reservation",
         source: "online", 
-        memo: shippingMemo,
+        memo: fullMemo,
         message: {
-          type: shippingMemo ? 'card' : 'none',
-          content: shippingMemo
+          type: 'none',
+          content: ''
         },
-        extra_data: { raw_cafe24: o } // 디버깅용 원본 데이터 저장
+        extra_data: { raw_cafe24: o }
       };
     });
 
