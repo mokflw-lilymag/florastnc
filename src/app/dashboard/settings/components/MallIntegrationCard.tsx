@@ -83,7 +83,14 @@ export function MallIntegrationCard({ tenantId }: { tenantId: string }) {
             <div className="flex items-center gap-3">
               <div className="bg-green-500 text-white p-2 rounded-lg font-bold">N</div>
               <div>
-                <h4 className="font-bold text-slate-800">네이버 커머스 API</h4>
+                <div className="flex items-center gap-2">
+                  <h4 className="font-bold text-slate-800">네이버 커머스 API</h4>
+                  {naverClientId && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold">
+                      <CheckCircle2 className="w-3 h-3" /> 연동됨
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-slate-500">스마트스토어 주문을 실시간으로 가져옵니다.</p>
               </div>
             </div>
@@ -129,7 +136,14 @@ export function MallIntegrationCard({ tenantId }: { tenantId: string }) {
             <div className="flex items-center gap-3">
               <div className="bg-slate-800 text-white p-2 rounded-lg font-bold text-sm">Cafe24</div>
               <div>
-                <h4 className="font-bold text-slate-800">카페24 개발자 API</h4>
+                <div className="flex items-center gap-2">
+                  <h4 className="font-bold text-slate-800">카페24 개발자 API</h4>
+                  {cafeClientId && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold">
+                      <CheckCircle2 className="w-3 h-3" /> 연동됨
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-slate-500">자사몰 주문을 실시간으로 가져옵니다.</p>
               </div>
             </div>
