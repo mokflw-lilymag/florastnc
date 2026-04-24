@@ -146,38 +146,59 @@ export default function OrdersPage() {
     else if (currentPeriod === 'all') fetchOrdersByRange(new Date(2000, 0, 1), new Date(), filterBasis);
   }, [currentPeriod, filterBasis, searchParams, pathname, router, fetchOrdersByRange]);
 
-  // Cafe24 자동 동기화 (5분마다 폴링)
-  const syncCafe24Orders = async (silent = false) => {
+  // 쇼핑몰 통합 동기화 (카페24 + 네이버)
+  const syncShopOrders = async (silent = false) => {
     if (!tenantId) return;
     if (!silent) setIsCafe24Syncing(true);
+
+    const refreshOrders = () => {
+      if (currentPeriod === '2months') fetchOrdersByRange(subDays(new Date(), 60), new Date(), filterBasis);
+      else if (currentPeriod === '3months') fetchOrdersByRange(subDays(new Date(), 90), new Date(), filterBasis);
+      else if (currentPeriod === '6months') fetchOrdersByRange(subDays(new Date(), 180), new Date(), filterBasis);
+      else if (currentPeriod === '1year') fetchOrdersByRange(subDays(new Date(), 365), new Date(), filterBasis);
+      else if (currentPeriod === 'all') fetchOrdersByRange(new Date(2000, 0, 1), new Date(), filterBasis);
+    };
+
     try {
-      const res = await fetch('/api/sync/cafe24', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tenant_id: tenantId })
-      });
-      const data = await res.json();
-      if (data.success && data.synced_count > 0) {
-        toast.success(`🛒 카페24 새 주문 ${data.synced_count}건`, {
-          description: '주문 목록이 자동으로 갱신됩니다.',
+      // 카페24 + 네이버 동시 호출
+      const [cafe24Res, naverRes] = await Promise.allSettled([
+        fetch('/api/sync/cafe24', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tenant_id: tenantId })
+        }).then(r => r.json()),
+        fetch('/api/sync/naver', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tenant_id: tenantId })
+        }).then(r => r.json())
+      ]);
+
+      let totalSynced = 0;
+      const messages: string[] = [];
+
+      // 카페24 결과 처리
+      if (cafe24Res.status === 'fulfilled' && cafe24Res.value.success && cafe24Res.value.synced_count > 0) {
+        totalSynced += cafe24Res.value.synced_count;
+        messages.push(`카페24 ${cafe24Res.value.synced_count}건`);
+      }
+
+      // 네이버 결과 처리
+      if (naverRes.status === 'fulfilled' && naverRes.value.success && naverRes.value.synced_count > 0) {
+        totalSynced += naverRes.value.synced_count;
+        messages.push(`네이버 ${naverRes.value.synced_count}건`);
+      }
+
+      if (totalSynced > 0) {
+        toast.success(`🛒 새 주문 ${totalSynced}건 동기화!`, {
+          description: messages.join(', ') + ' - 주문 목록이 갱신됩니다.',
           duration: 5000,
         });
-        // 주문 목록 새로고침
-        if (currentPeriod === '2months') fetchOrdersByRange(subDays(new Date(), 60), new Date(), filterBasis);
-        else if (currentPeriod === '3months') fetchOrdersByRange(subDays(new Date(), 90), new Date(), filterBasis);
-        else if (currentPeriod === '6months') fetchOrdersByRange(subDays(new Date(), 180), new Date(), filterBasis);
-        else if (currentPeriod === '1year') fetchOrdersByRange(subDays(new Date(), 365), new Date(), filterBasis);
-        else if (currentPeriod === 'all') fetchOrdersByRange(new Date(2000, 0, 1), new Date(), filterBasis);
-      } else if (!silent && data.success) {
-        toast.info('새로운 카페24 주문이 없습니다.');
-      } else if (!data.success && !silent) {
-        // 연동 안 된 경우 무시 (설정 안 한 사용자)
-        if (!data.error?.includes('연동 정보가 없습니다') && !data.error?.includes('인증을 완료')) {
-          toast.error('동기화 실패', { description: data.error });
-        }
+        refreshOrders();
+      } else if (!silent) {
+        toast.info('새로운 쇼핑몰 주문이 없습니다.');
       }
     } catch {
-      // 네트워크 에러는 조용히 무시 (자동 폴링 시)
       if (!silent) toast.error('동기화 중 오류가 발생했습니다.');
     } finally {
       setIsCafe24Syncing(false);
@@ -187,9 +208,9 @@ export default function OrdersPage() {
   useEffect(() => {
     if (!tenantId) return;
     // 페이지 진입 시 1회 동기화 (조용히)
-    const initialTimer = setTimeout(() => syncCafe24Orders(true), 3000);
+    const initialTimer = setTimeout(() => syncShopOrders(true), 3000);
     // 5분마다 자동 폴링
-    const interval = setInterval(() => syncCafe24Orders(true), 5 * 60 * 1000);
+    const interval = setInterval(() => syncShopOrders(true), 5 * 60 * 1000);
     return () => {
       clearTimeout(initialTimer);
       clearInterval(interval);
@@ -484,7 +505,7 @@ export default function OrdersPage() {
           {!isAndroidApp && (
           <Button 
             variant="outline"
-            onClick={() => syncCafe24Orders(false)}
+            onClick={() => syncShopOrders(false)}
             disabled={isCafe24Syncing}
             className="flex-1 lg:flex-none h-11 lg:h-12 px-6 rounded-2xl border-2 border-blue-100 bg-blue-50/20 hover:bg-blue-50 text-blue-700 font-bold transition-all shadow-sm gap-2"
           >
