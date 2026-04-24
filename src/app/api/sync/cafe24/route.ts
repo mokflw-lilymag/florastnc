@@ -63,7 +63,7 @@ export async function POST(req: Request) {
 
     const ordersUrl = `https://${mall_id}.cafe24api.com/api/v2/admin/orders?start_date=${start_date}&end_date=${end_date}&embed=items,receivers`;
 
-    const ordersResponse = await fetch(ordersUrl, {
+    let ordersResponse = await fetch(ordersUrl, {
       headers: {
         'Authorization': `Bearer ${access_token}`,
         'Content-Type': 'application/json',
@@ -71,13 +71,61 @@ export async function POST(req: Request) {
       }
     });
 
+    // 토큰 만료 처리: 401 Unauthorized
+    if (ordersResponse.status === 401 && refresh_token) {
+      console.log('Cafe24 token expired. Auto-refreshing...');
+      const tokenUrl = `https://${mall_id}.cafe24api.com/api/v2/oauth/token`;
+      
+      const authString = Buffer.from(`${client_id}:${client_secret}`).toString('base64');
+      const refreshParams = new URLSearchParams();
+      refreshParams.append('grant_type', 'refresh_token');
+      refreshParams.append('refresh_token', refresh_token);
+
+      const refreshRes = await fetch(tokenUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${authString}`,
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: refreshParams.toString()
+      });
+
+      if (refreshRes.ok) {
+        const refreshData = await refreshRes.json();
+        
+        // 1. DB에 새 토큰 저장
+        await supabaseAdmin
+          .from('shop_integrations')
+          .update({
+            access_token: refreshData.access_token,
+            refresh_token: refreshData.refresh_token, // 새로 발급받은 refresh_token 덮어쓰기
+            updated_at: new Date().toISOString()
+          })
+          .eq('shop_id', tenant_id)
+          .eq('platform', 'cafe24');
+
+        console.log('Cafe24 auto-refresh successful!');
+
+        // 2. 새로운 Access Token으로 다시 주문 목록 요청
+        ordersResponse = await fetch(ordersUrl, {
+          headers: {
+            'Authorization': `Bearer ${refreshData.access_token}`,
+            'Content-Type': 'application/json',
+            'X-Cafe24-Api-Version': '2026-03-01'
+          }
+        });
+      } else {
+        console.error('Cafe24 token auto-refresh failed:', await refreshRes.json().catch(()=>({})));
+      }
+    }
+
     const cafe24Data = await ordersResponse.json();
 
     if (!ordersResponse.ok) {
       console.error('Cafe24 Orders API Error:', cafe24Data);
       return NextResponse.json({ 
         success: false, 
-        message: `카페24 통신 오류: ${cafe24Data.error?.message || '인증이 만료되었을 수 있습니다. 다시 로그인해 주세요.'}`,
+        message: `카페24 통신 오류: ${cafe24Data.error?.message || '인증이 만료되었습니다. [설정]에서 [재인증]을 진행해 주세요.'}`,
         synced_count: 0
       }, { status: 200 });
     }
