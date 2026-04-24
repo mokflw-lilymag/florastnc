@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ShoppingBag, Loader2, Save, ShoppingCart, RefreshCw, KeyRound, CheckCircle2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -19,6 +19,31 @@ export function MallIntegrationCard({ tenantId }: { tenantId: string }) {
   const [isCafeActive, setIsCafeActive] = useState(false);
   const [cafeClientId, setCafeClientId] = useState("");
   const [cafeSecret, setCafeSecret] = useState("");
+
+  useEffect(() => {
+    async function loadIntegrations() {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("shop_integrations")
+        .select("*")
+        .eq("shop_id", tenantId);
+
+      if (data && !error) {
+        data.forEach(integration => {
+          if (integration.platform === "naver_commerce") {
+            setIsNaverActive(integration.is_active);
+            setNaverClientId(integration.client_id || "");
+            setNaverSecret(integration.client_secret || "");
+          } else if (integration.platform === "cafe24") {
+            setIsCafeActive(integration.is_active);
+            setCafeClientId(integration.client_id || "");
+            setCafeSecret(integration.client_secret || "");
+          }
+        });
+      }
+    }
+    loadIntegrations();
+  }, [tenantId]);
 
   const handleTestAndSave = async (platform: string) => {
     setIsTesting(true);
