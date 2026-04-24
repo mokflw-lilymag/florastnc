@@ -230,17 +230,19 @@ export function OrgAnnouncementComposeDialog({
             <div className="grid gap-2">
               <Label>전광판 노출 만료일</Label>
               <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant={"outline"}
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !postExpiresAt && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {postExpiresAt ? format(postExpiresAt, "yyyy년 M월 d일", { locale: ko }) : <span>날짜 선택</span>}
-                  </Button>
+                <PopoverTrigger
+                  render={
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !postExpiresAt && "text-muted-foreground"
+                      )}
+                    />
+                  }
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {postExpiresAt ? format(postExpiresAt, "yyyy년 M월 d일", { locale: ko }) : <span>날짜 선택</span>}
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar

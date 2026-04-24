@@ -96,6 +96,7 @@ export default function MarketingStudio() {
   const [currentConnectingPlatform, setCurrentConnectingPlatform] = useState<any>(null);
   const [isLoginProcessing, setIsLoginProcessing] = useState(false);
   const [loginStep, setLoginStep] = useState<'info' | 'input'>('info');
+  const [loginInput, setLoginInput] = useState({ id: '', pw: '' });
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   
   const supabase = createClient();
