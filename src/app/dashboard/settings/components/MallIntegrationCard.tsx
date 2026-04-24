@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ShoppingBag, Loader2, Save, ShoppingCart, RefreshCw, KeyRound, CheckCircle2 } from "lucide-react";
+import { ShoppingBag, Loader2, Save, ShoppingCart, RefreshCw, KeyRound, CheckCircle2, Download } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,8 @@ export function MallIntegrationCard({ tenantId }: { tenantId: string }) {
   const [cafeClientId, setCafeClientId] = useState("");
   const [cafeSecret, setCafeSecret] = useState("");
   const [cafeMallId, setCafeMallId] = useState("");
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [hasAccessToken, setHasAccessToken] = useState(false);
 
   useEffect(() => {
     async function loadIntegrations() {
@@ -39,7 +41,8 @@ export function MallIntegrationCard({ tenantId }: { tenantId: string }) {
             setIsCafeActive(integration.is_active);
             setCafeClientId(integration.client_id || "");
             setCafeSecret(integration.client_secret || "");
-            setCafeMallId(integration.mall_id || ""); // 추가된 라인
+            setCafeMallId(integration.mall_id || "");
+            setHasAccessToken(!!integration.access_token);
           }
         });
       }
@@ -69,6 +72,32 @@ export function MallIntegrationCard({ tenantId }: { tenantId: string }) {
       }, { onConflict: 'shop_id, platform' });
 
     }, 1500);
+  };
+
+  const handleSyncOrders = async () => {
+    setIsSyncing(true);
+    try {
+      const res = await fetch('/api/sync/cafe24', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tenant_id: tenantId })
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(`🎉 ${data.message}`, {
+          description: data.synced_count > 0 
+            ? `${data.synced_count}건의 주문이 주문 목록에 추가되었습니다. 새로고침해 주세요.`
+            : '새 주문이 없습니다.',
+          duration: 6000,
+        });
+      } else {
+        toast.error('동기화 실패', { description: data.error });
+      }
+    } catch (err: any) {
+      toast.error('동기화 오류', { description: err.message });
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   return (
@@ -151,29 +180,37 @@ export function MallIntegrationCard({ tenantId }: { tenantId: string }) {
                 <p className="text-xs text-slate-500">자사몰 주문을 실시간으로 가져옵니다.</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              {hasAccessToken && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleSyncOrders}
+                  disabled={isSyncing}
+                  className="h-8 text-xs font-bold border-blue-200 text-blue-600 hover:bg-blue-50 gap-1 rounded-full px-3"
+                >
+                  {isSyncing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
+                  {isSyncing ? '동기화 중...' : '주문 수동 동기화'}
+                </Button>
+              )}
               {cafeClientId && (
                 <Button 
                   variant="outline" 
                   size="sm"
                   onClick={async (e) => {
                     e.stopPropagation();
-                    // Cafe24 OAuth Redirect Logic
                     if (!cafeMallId) {
                       toast.error("쇼핑몰 아이디(Mall ID)를 입력해주세요.");
                       return;
                     }
-                    // 카페24 정책상 IP(127.0.0.1) 및 http를 절대 허용하지 않으므로 무조건 floxync.com으로 요청합니다.
                     const redirectUri = encodeURIComponent(`https://floxync.com/api/sync/cafe24/callback`);
-                    // mall_id를 콜백에서 다시 받기 위해 state에 포함시킵니다 (tenantId:mallId 형식)
                     const state = `${tenantId}:${cafeMallId}`;
                     const oauthUrl = `https://${cafeMallId}.cafe24api.com/api/v2/oauth/authorize?response_type=code&client_id=${cafeClientId}&state=${state}&redirect_uri=${redirectUri}&scope=mall.read_order`;
-                    
                     window.open(oauthUrl, '_blank', 'width=800,height=800');
                   }}
                   className="h-8 text-xs font-bold border-emerald-200 text-emerald-600 hover:bg-emerald-50 gap-1 rounded-full px-3"
                 >
-                  <KeyRound className="w-3 h-3" /> 카페24 로그인 연동
+                  <KeyRound className="w-3 h-3" /> {hasAccessToken ? '재인증' : '카페24 로그인 연동'}
                 </Button>
               )}
               <Switch 

@@ -8,7 +8,7 @@ import {
   Package, Target, RefreshCw, Trash2, XCircle,
   Calendar as CalendarIcon, ExternalLink, Printer, ClipboardList, Info,
   TrendingUp, CreditCard, ShoppingBag, ArrowUpRight, Share2, Loader2, AlertCircle,
-  BarChart3, DollarSign, CheckCircle2, Monitor
+  BarChart3, DollarSign, CheckCircle2, Monitor, CloudDownload
 } from "lucide-react";
 import { format, addMonths, startOfMonth, endOfMonth, isToday, isThisMonth, isThisYear, parseISO, startOfToday, subDays } from "date-fns";
 import { toast } from "sonner";
@@ -119,6 +119,7 @@ export default function OrdersPage() {
   const [exportStartDate, setExportStartDate] = useState(() => format(startOfMonth(new Date()), 'yyyy-MM-dd'));
   const [exportEndDate, setExportEndDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
   const [isExporting, setIsExporting] = useState(false);
+  const [isCafe24Syncing, setIsCafe24Syncing] = useState(false);
   
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -144,6 +145,56 @@ export default function OrdersPage() {
     else if (currentPeriod === '1year') fetchOrdersByRange(subDays(new Date(), 365), new Date(), filterBasis);
     else if (currentPeriod === 'all') fetchOrdersByRange(new Date(2000, 0, 1), new Date(), filterBasis);
   }, [currentPeriod, filterBasis, searchParams, pathname, router, fetchOrdersByRange]);
+
+  // Cafe24 자동 동기화 (5분마다 폴링)
+  const syncCafe24Orders = async (silent = false) => {
+    if (!tenantId) return;
+    if (!silent) setIsCafe24Syncing(true);
+    try {
+      const res = await fetch('/api/sync/cafe24', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tenant_id: tenantId })
+      });
+      const data = await res.json();
+      if (data.success && data.synced_count > 0) {
+        toast.success(`🛒 카페24 새 주문 ${data.synced_count}건`, {
+          description: '주문 목록이 자동으로 갱신됩니다.',
+          duration: 5000,
+        });
+        // 주문 목록 새로고침
+        if (currentPeriod === '2months') fetchOrdersByRange(subDays(new Date(), 60), new Date(), filterBasis);
+        else if (currentPeriod === '3months') fetchOrdersByRange(subDays(new Date(), 90), new Date(), filterBasis);
+        else if (currentPeriod === '6months') fetchOrdersByRange(subDays(new Date(), 180), new Date(), filterBasis);
+        else if (currentPeriod === '1year') fetchOrdersByRange(subDays(new Date(), 365), new Date(), filterBasis);
+        else if (currentPeriod === 'all') fetchOrdersByRange(new Date(2000, 0, 1), new Date(), filterBasis);
+      } else if (!silent && data.success) {
+        toast.info('새로운 카페24 주문이 없습니다.');
+      } else if (!data.success && !silent) {
+        // 연동 안 된 경우 무시 (설정 안 한 사용자)
+        if (!data.error?.includes('연동 정보가 없습니다') && !data.error?.includes('인증을 완료')) {
+          toast.error('동기화 실패', { description: data.error });
+        }
+      }
+    } catch {
+      // 네트워크 에러는 조용히 무시 (자동 폴링 시)
+      if (!silent) toast.error('동기화 중 오류가 발생했습니다.');
+    } finally {
+      setIsCafe24Syncing(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!tenantId) return;
+    // 페이지 진입 시 1회 동기화 (조용히)
+    const initialTimer = setTimeout(() => syncCafe24Orders(true), 3000);
+    // 5분마다 자동 폴링
+    const interval = setInterval(() => syncCafe24Orders(true), 5 * 60 * 1000);
+    return () => {
+      clearTimeout(initialTimer);
+      clearInterval(interval);
+    };
+  }, [tenantId]);
 
 
   const handleToggleSelectAll = () => {
@@ -430,6 +481,17 @@ export default function OrdersPage() {
             {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />} 
             <span>구글 시트</span>
           </Button>
+          {!isAndroidApp && (
+          <Button 
+            variant="outline"
+            onClick={() => syncCafe24Orders(false)}
+            disabled={isCafe24Syncing}
+            className="flex-1 lg:flex-none h-11 lg:h-12 px-6 rounded-2xl border-2 border-blue-100 bg-blue-50/20 hover:bg-blue-50 text-blue-700 font-bold transition-all shadow-sm gap-2"
+          >
+            {isCafe24Syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <CloudDownload className="h-4 w-4" />}
+            <span>쇼핑몰 동기화</span>
+          </Button>
+          )}
           {!isAndroidApp && (
           <Button 
             className="w-full lg:w-auto h-11 lg:h-12 px-8 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl shadow-lg shadow-slate-200 transition-all gap-2"
