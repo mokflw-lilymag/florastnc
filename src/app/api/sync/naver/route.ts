@@ -2,15 +2,16 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 
-// 네이버 커머스 API HMAC 서명 생성
+// 네이버 커머스 API HMAC 서명 생성 (API 호출용)
 function generateNaverSignature(clientId: string, clientSecret: string, timestamp: number, path: string): string {
-  // 밀리초 단위 타임스탬프 사용
   const message = `${path}\n${timestamp}`;
-  const signature = crypto
-    .createHmac('SHA256', clientSecret)
-    .update(message)
-    .digest('base64');
-  return signature;
+  return crypto.createHmac('SHA256', clientSecret).update(message).digest('base64');
+}
+
+// 네이버 커머스 API 토큰 발급용 서명 생성
+function generateTokenSignature(clientId: string, clientSecret: string, timestamp: number): string {
+  const message = `${clientId}_${timestamp}`;
+  return crypto.createHmac('SHA256', clientSecret).update(message).digest('base64');
 }
 
 export async function POST(req: Request) {
@@ -47,10 +48,37 @@ export async function POST(req: Request) {
       }, { status: 400 });
     }
 
-    // 2. 네이버 커머스 API 호출 - 최근 주문 조회
+    // 2. 네이버 커머스 Access Token 발급
+    const tokenTimestamp = Date.now();
+    const tokenSignature = generateTokenSignature(client_id, client_secret, tokenTimestamp);
+    
+    const tokenParams = new URLSearchParams();
+    tokenParams.append('client_id', client_id);
+    tokenParams.append('timestamp', tokenTimestamp.toString());
+    tokenParams.append('grant_type', 'client_credentials');
+    tokenParams.append('client_secret_sign', tokenSignature);
+    tokenParams.append('type', 'SELF');
+
+    const tokenRes = await fetch('https://api.commerce.naver.com/external/v1/oauth2/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: tokenParams
+    });
+
+    const tokenData = await tokenRes.json();
+    if (!tokenRes.ok) {
+      console.error('Naver Token API Error:', tokenData);
+      return NextResponse.json({ 
+        success: false, 
+        error: `네이버 인증 실패: ${tokenData.message || 'API 키를 확인해주세요.'}` 
+      }, { status: 400 });
+    }
+
+    const accessToken = tokenData.access_token;
+
+    // 3. 네이버 커머스 API 호출 - 최근 주문 조회
     const timestamp = Date.now();
     const path = '/v1/pay-order/seller/product-orders/last-changed-statuses';
-    const signature = generateNaverSignature(client_id, client_secret, timestamp, path);
 
     // 최근 24시간 주문 상태 변경 조회
     const since = new Date();
@@ -61,11 +89,8 @@ export async function POST(req: Request) {
 
     const ordersResponse = await fetch(apiUrl, {
       headers: {
-        'Authorization': `${client_id}:${signature}`,
-        'Content-Type': 'application/json',
-        'X-Timestamp': timestamp.toString(),
-        'X-Naver-Client-Id': client_id,
-        'X-Naver-Client-Secret': client_secret,
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
       }
     });
 
@@ -94,16 +119,11 @@ export async function POST(req: Request) {
     for (const po of productOrders) {
       const productOrderId = po.productOrderId;
       const detailPath = `/v1/pay-order/seller/product-orders/${productOrderId}`;
-      const detailTimestamp = Date.now();
-      const detailSignature = generateNaverSignature(client_id, client_secret, detailTimestamp, detailPath);
 
       const detailRes = await fetch(`https://api.commerce.naver.com/external${detailPath}`, {
         headers: {
-          'Authorization': `${client_id}:${detailSignature}`,
-          'Content-Type': 'application/json',
-          'X-Timestamp': detailTimestamp.toString(),
-          'X-Naver-Client-Id': client_id,
-          'X-Naver-Client-Secret': client_secret,
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
         }
       });
 

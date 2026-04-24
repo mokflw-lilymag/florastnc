@@ -140,7 +140,10 @@ export function useOrders(initialFetch = true) {
         (payload) => {
           if (payload.eventType === 'INSERT') {
             const mapped = OrderService.mapRowToOrder(payload.new);
-            setOrders(prev => [mapped, ...prev]);
+            setOrders(prev => {
+              if (prev.some(o => o.id === mapped.id)) return prev;
+              return [mapped, ...prev];
+            });
           } else if (payload.eventType === 'UPDATE') {
             const mapped = OrderService.mapRowToOrder(payload.new);
             setOrders(prev => prev.map(o => o.id === mapped.id ? mapped : o));
