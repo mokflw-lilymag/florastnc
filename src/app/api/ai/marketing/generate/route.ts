@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     
     // 2. SNS Platforms (Instagram, TikTok, Threads, etc.)
     try {
-      const copy = await engine.generateMarketingCopy({
+      const copy = await MarketingEngine.generateMarketingCopy({
         topic,
         persona,
         description,
