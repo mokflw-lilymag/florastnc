@@ -39,6 +39,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: '네이버 커머스 연동 정보가 없습니다.' }, { status: 400 });
     }
 
+    // 활성화 상태 체크
+    if (!integration.is_active) {
+      return NextResponse.json({ 
+        success: true, 
+        message: '네이버 동기화가 비활성화 상태입니다.',
+        synced_count: 0 
+      });
+    }
+
     const { client_id, client_secret } = integration;
 
     if (!client_id || !client_secret) {

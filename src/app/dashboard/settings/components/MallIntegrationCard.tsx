@@ -100,6 +100,53 @@ export function MallIntegrationCard({ tenantId }: { tenantId: string }) {
     }
   };
 
+  const handleToggleActive = async (platform: string, active: boolean) => {
+    // 1. UI 상태 즉시 업데이트
+    if (platform === 'naver_commerce') setIsNaverActive(active);
+    else if (platform === 'cafe24') setIsCafeActive(active);
+    
+    // 2. DB 업데이트
+    const supabase = createClient();
+    
+    // 먼저 레코드가 있는지 확인 (없으면 upsert 해야함)
+    const { data: existing } = await supabase
+      .from('shop_integrations')
+      .select('id')
+      .eq('shop_id', tenantId)
+      .eq('platform', platform)
+      .single();
+
+    let error;
+    if (existing) {
+      const { error: updateError } = await supabase
+        .from('shop_integrations')
+        .update({ is_active: active, updated_at: new Date().toISOString() })
+        .eq('shop_id', tenantId)
+        .eq('platform', platform);
+      error = updateError;
+    } else {
+      // 레코드가 없으면 기본값으로 생성 (비활성화 상태에서 토글했을 때 대비)
+      const { error: insertError } = await supabase
+        .from('shop_integrations')
+        .insert({
+          shop_id: tenantId,
+          platform: platform,
+          is_active: active,
+          updated_at: new Date().toISOString()
+        });
+      error = insertError;
+    }
+
+    if (error) {
+      toast.error("설정 변경 실패", { description: error.message });
+      // 실패 시 UI 복구
+      if (platform === 'naver_commerce') setIsNaverActive(!active);
+      else if (platform === 'cafe24') setIsCafeActive(!active);
+    } else {
+      toast.success(`${platform === 'naver_commerce' ? '네이버' : '카페24'} 연동이 ${active ? '활성화' : '비활성화'}되었습니다.`);
+    }
+  };
+
   return (
     <Card className="border-0 shadow-sm ring-1 ring-emerald-500 bg-emerald-50/5 overflow-hidden my-6">
       <CardHeader className="bg-emerald-600 text-white">
@@ -130,7 +177,7 @@ export function MallIntegrationCard({ tenantId }: { tenantId: string }) {
             <Switch 
               className="data-[state=checked]:bg-emerald-600"
               checked={isNaverActive}
-              onCheckedChange={setIsNaverActive}
+              onCheckedChange={(val) => handleToggleActive('naver_commerce', val)}
             />
           </div>
 
@@ -215,7 +262,7 @@ export function MallIntegrationCard({ tenantId }: { tenantId: string }) {
               )}
               <Switch 
                 checked={isCafeActive}
-                onCheckedChange={setIsCafeActive}
+                onCheckedChange={(val) => handleToggleActive('cafe24', val)}
               />
             </div>
           </div>

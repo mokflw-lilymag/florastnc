@@ -28,6 +28,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Cafe24 연동 정보가 없습니다.' }, { status: 400 });
     }
 
+    // 활성화 상태 체크
+    if (!integration.is_active) {
+      return NextResponse.json({ 
+        success: true, 
+        message: '카페24 동기화가 비활성화 상태입니다.',
+        synced_count: 0 
+      });
+    }
+
     const { mall_id, access_token } = integration;
 
     if (!mall_id || !access_token) {
