@@ -116,8 +116,8 @@ export class PrintableOrder extends React.Component<PrintableOrderProps> {
                                 <td className="border border-black p-1 font-bold text-center bg-slate-50/50">결제정보</td>
                                 <td className="border border-black p-1" colSpan={5}>
                                     <div className="flex items-center justify-between text-[12px]">
-                                        <span className="whitespace-nowrap overflow-hidden text-ellipsis">금액: ₩{data.totalAmount.toLocaleString()}</span>
-                                        <span className="whitespace-nowrap overflow-hidden text-ellipsis">배송비: ₩{data.deliveryFee.toLocaleString()}</span>
+                                        <span className="whitespace-nowrap overflow-hidden text-ellipsis">금액: ₩{(data.totalAmount || 0).toLocaleString()}</span>
+                                        <span className="whitespace-nowrap overflow-hidden text-ellipsis">배송비: ₩{(data.deliveryFee || 0).toLocaleString()}</span>
                                         <div className="flex items-center gap-2">
                                             <span className="whitespace-nowrap overflow-hidden text-ellipsis">결제수단: {paymentMethodText}</span>
                                             <div className="flex items-center gap-2 pr-2">

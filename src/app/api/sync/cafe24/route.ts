@@ -25,7 +25,11 @@ export async function POST(req: Request) {
       .single();
 
     if (integrationError || !integration || !integration.client_id) {
-      return NextResponse.json({ error: 'Cafe24 연동 정보가 없습니다.' }, { status: 400 });
+      return NextResponse.json({ 
+        success: false, 
+        message: 'Cafe24 연동 설정이 필요합니다.',
+        synced_count: 0 
+      }, { status: 200 }); // 400 대신 200으로 반환하여 콘솔 에러 방지
     }
 
     // 활성화 상태 체크
@@ -42,8 +46,9 @@ export async function POST(req: Request) {
     if (!mall_id || !access_token) {
       return NextResponse.json({ 
         success: false, 
-        error: '실제 데이터를 가져오려면 먼저 [카페24 로그인 연동] 버튼을 눌러 인증을 완료해주세요.'
-      }, { status: 400 });
+        message: '카페24 인증(로그인)이 완료되지 않았습니다.',
+        synced_count: 0
+      }, { status: 200 });
     }
 
     // 2. 실제 통신: 카페24 API에서 주문 목록 가져오기
@@ -110,6 +115,10 @@ export async function POST(req: Request) {
       const d = new Date(rawDeliveryDate);
       const deliveryDateOnly = d.toISOString().split('T')[0];
       const deliveryTimeOnly = d.toTimeString().split(' ')[0].substring(0, 5); // HH:mm
+
+      // 4. 주문자 정보 추출
+      const customerName = o.buyer_name || "비회원";
+      const customerContact = o.buyer_cellphone || o.buyer_phone || "";
 
       const shippingMemo = o.buyer_message || receiver.shipping_message || "";
 

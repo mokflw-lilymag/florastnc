@@ -349,20 +349,20 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
                     <div className="space-y-2">
                        <div className="flex justify-between text-xs text-slate-400 font-medium">
                          <span>상품 합계</span>
-                         <span>₩{order.summary.subtotal.toLocaleString()}</span>
+                         <span>₩{(order.summary?.subtotal || 0).toLocaleString()}</span>
                        </div>
                        <div className="flex justify-between text-xs text-rose-400 font-medium">
                          <span>할인 금액</span>
-                         <span>- ₩{order.summary.discountAmount.toLocaleString()}</span>
+                         <span>- ₩{(order.summary?.discountAmount || 0).toLocaleString()}</span>
                        </div>
                        <div className="flex justify-between text-xs text-slate-400 font-medium">
                          <span>배송비</span>
-                         <span>+ ₩{order.summary.deliveryFee.toLocaleString()}</span>
+                         <span>+ ₩{(order.summary?.deliveryFee || 0).toLocaleString()}</span>
                        </div>
                        <Separator className="bg-slate-800" />
                        <div className="flex justify-between items-end pt-1">
                          <span className="text-sm font-bold">최종 결제액</span>
-                         <span className="text-2xl font-black text-emerald-400">₩{order.summary.total.toLocaleString()}</span>
+                         <span className="text-2xl font-black text-emerald-400">₩{(order.summary?.total || 0).toLocaleString()}</span>
                        </div>
                        <div className="text-[10px] text-slate-500 text-right uppercase tracking-widest mt-2">
                          Payment: {getPaymentMethodText(order.payment?.method || '')}

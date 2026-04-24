@@ -36,7 +36,11 @@ export async function POST(req: Request) {
       .single();
 
     if (integrationError || !integration || !integration.client_id) {
-      return NextResponse.json({ error: '네이버 커머스 연동 정보가 없습니다.' }, { status: 400 });
+      return NextResponse.json({ 
+        success: false, 
+        message: '네이버 커머스 연동 설정이 필요합니다.',
+        synced_count: 0
+      }, { status: 200 }); // 400 -> 200
     }
 
     // 활성화 상태 체크
@@ -53,8 +57,9 @@ export async function POST(req: Request) {
     if (!client_id || !client_secret) {
       return NextResponse.json({
         success: false,
-        error: '네이버 커머스 API 키를 설정 페이지에서 먼저 입력해주세요.'
-      }, { status: 400 });
+        message: '네이버 커머스 API 키 설정이 완료되지 않았습니다.',
+        synced_count: 0
+      }, { status: 200 });
     }
 
     // 2. 네이버 커머스 Access Token 발급
@@ -79,8 +84,8 @@ export async function POST(req: Request) {
       console.error('Naver Token API Error:', tokenData);
       return NextResponse.json({ 
         success: false, 
-        error: `네이버 인증 실패: ${tokenData.message || 'API 키를 확인해주세요.'}` 
-      }, { status: 400 });
+        message: `네이버 인증 실패: API 키를 확인해주세요.` 
+      }, { status: 200 });
     }
 
     const accessToken = tokenData.access_token;
@@ -190,14 +195,12 @@ export async function POST(req: Request) {
         }
       };
 
-      const { error: insertError } = await supabaseAdmin
+      const { error: upsertError } = await supabaseAdmin
         .from('orders')
-        .insert([mappedOrder]);
+        .upsert(mappedOrder, { onConflict: 'tenant_id, order_number' });
 
-      if (insertError) {
-        if (insertError.code !== '23505') {
-          console.error('Naver Order Insert Error:', insertError);
-        }
+      if (upsertError) {
+        console.error('Naver Order Upsert Error:', upsertError);
       } else {
         syncedCount++;
       }
