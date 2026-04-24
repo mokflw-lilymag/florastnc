@@ -163,7 +163,14 @@ export default function AdminMarketingSettings() {
   );
 }
 
-function KeyCard({ title, desc, icon, children }: any) {
+interface KeyCardProps {
+  title: string;
+  desc: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}
+
+function KeyCard({ title, desc, icon, children }: KeyCardProps) {
   return (
     <Card className="border-none shadow-2xl bg-white dark:bg-slate-900 overflow-hidden">
       <CardHeader className="flex flex-row items-center gap-6 p-8 bg-slate-50 dark:bg-slate-800/50">
@@ -182,7 +189,15 @@ function KeyCard({ title, desc, icon, children }: any) {
   );
 }
 
-function InputGroup({ label, value, onChange, type = 'text', placeholder }: any) {
+interface InputGroupProps {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  type?: string;
+  placeholder?: string;
+}
+
+function InputGroup({ label, value, onChange, type = 'text', placeholder }: InputGroupProps) {
   return (
     <div className="space-y-2">
       <Label className="text-xs font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
