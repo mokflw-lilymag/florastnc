@@ -147,10 +147,39 @@ export function MallIntegrationCard({ tenantId }: { tenantId: string }) {
                 <p className="text-xs text-slate-500">자사몰 주문을 실시간으로 가져옵니다.</p>
               </div>
             </div>
-            <Switch 
-              checked={isCafeActive}
-              onCheckedChange={setIsCafeActive}
-            />
+            <div className="flex items-center gap-3">
+              {cafeClientId && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    try {
+                      const res = await fetch('/api/sync/cafe24', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ tenant_id: tenantId })
+                      });
+                      const data = await res.json();
+                      if (data.success) {
+                        toast.success(data.message || "주문 동기화 성공!");
+                      } else {
+                        toast.error(data.error || "동기화 실패");
+                      }
+                    } catch (err) {
+                      toast.error("서버 통신 오류가 발생했습니다.");
+                    }
+                  }}
+                  className="h-8 text-xs font-bold border-slate-200 text-slate-600 hover:bg-slate-50 gap-1 rounded-full px-3"
+                >
+                  <RefreshCw className="w-3 h-3" /> 수동 동기화
+                </Button>
+              )}
+              <Switch 
+                checked={isCafeActive}
+                onCheckedChange={setIsCafeActive}
+              />
+            </div>
           </div>
 
           {isCafeActive && (
