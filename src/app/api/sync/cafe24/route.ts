@@ -104,12 +104,20 @@ export async function POST(req: Request) {
       // 2. 수령인 정보 (embed=receivers 대응)
       const receiver = (o.receivers && o.receivers.length > 0) ? o.receivers[0] : {};
       
-      // 3. 결제 금액 정보 (오브젝트 형태 대응)
-      // 입금 전 주문은 o.payment_amount가 0일 수 있으므로 actual_order_amount 객체 확인
-      const actualAmount = Number(o.actual_order_amount?.total_amount_due || o.payment_amount || o.actual_order_amount?.order_price_amount || 0);
-      const initialAmount = Number(o.actual_order_amount?.order_price_amount || o.initial_order_amount?.order_price_amount || actualAmount);
-      const shippingFee = Number(o.actual_order_amount?.shipping_fee || o.shipping_fee || 0);
-      const discountAmount = Number(o.actual_order_amount?.coupon_discount_price || 0) + Number(o.actual_order_amount?.app_discount_amount || 0) + Number(o.total_discount_amount || 0);
+      // 3. 결제 금액 정보 (오브젝트 및 평면 필드 모두 대응)
+      // 카페24는 데이터가 o.actual_order_amount 객체에 있을 수도 있고, o.total_order_amount 등 평면 필드에 있을 수도 있습니다.
+      const totalDue = o.actual_order_amount?.total_amount_due || o.total_order_amount || o.payment_amount || 0;
+      const orderPrice = o.actual_order_amount?.order_price_amount || o.initial_order_amount?.order_price_amount || o.total_order_price || totalDue;
+      const shipFee = o.actual_order_amount?.shipping_fee || o.shipping_fee || 0;
+      const discAmt = (Number(o.actual_order_amount?.coupon_discount_price || 0) + 
+                       Number(o.actual_order_amount?.app_discount_amount || 0) + 
+                       Number(o.total_discount_amount || 0) +
+                       Number(o.actual_order_amount?.membership_discount_amount || 0));
+
+      const actualAmount = Number(totalDue) || 0;
+      const initialAmount = Number(orderPrice) || actualAmount;
+      const shippingFee = Number(shipFee) || 0;
+      const discountAmount = Number(discAmt) || 0;
 
       // 4. 주문자 정보 추출
       const customerName = o.buyer_name || o.billing_name || "비회원";
