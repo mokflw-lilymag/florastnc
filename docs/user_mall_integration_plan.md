@@ -1,57 +1,226 @@
-# 🛍️ 사용자 주도형 외부 쇼핑몰(네이버, 카페24) 연동 설계서
+# 🛍️ 외부 쇼핑몰(카페24·네이버) 연동 — 설계 및 구현 보고서
 
-사용자(꽃집 사장님)가 앱 내에서 본인의 API 키를 직접 입력하고 관리하면, 시스템이 해당 키를 활용해 각 상점의 쇼핑몰 주문을 끌어오도록 만드는 'SaaS형 파이프라인 아키텍처' 계획서입니다.
-
----
-
-## 1. 🗄️ 데이터베이스: API 키 전용 금고 만들기 (Supabase)
-운영자(꽃집)마다 각자의 네이버/카페24 API 키를 안전하게 보관할 수 있는 전용 테이블을 구축합니다.
-
-- **테이블 명**: `shop_integrations`
-- **목적**: 쇼핑몰 연동 상태 관리 및 인증 키(Token) 보관
-- **주요 필드**:
-    - `id` (Primary Key)
-    - `shop_id` (꽃집 식별자, FK)
-    - `platform` (naver_commerce, cafe24 등)
-    - `client_id` (사용자가 입력한 클라이언트 아이디)
-    - `client_secret` (사용자가 입력한 시크릿 키 - *보안 암호화 저장*)
-    - `is_active` (연결 활성화 상태 boolean)
-
-## 2. 🖥️ 연동 관리 UI: "API 설정 화면" 개발
-사장님들이 코딩을 몰라도 버튼 몇 번으로 쉽게 키를 붙여넣고 연동을 켜고 끌 수 있는 시스템 설정 화면(Settings)을 개발합니다.
-
-- **접근 경로**: 대시보드 하단 `[환경 설정] > [외부 연동]`
-- **제공 기능**:
-    - **플랫폼 토글**: 네이버 스토어, 카페24 등 활성화 버튼
-    - **인증 폼**: 플랫폼 선택 시 활성화되는 `Client ID` 및 `Client Secret` 입력 모달창
-    - **연결 확인 핑 (Ping Test)**: 키를 적고 [저장]을 누르면, 백엔드에서 실제로 해당 API가 유효한지 즉석에서 테스트 후 "✅ 연동 성공" 마크 부여
-    - **인라인 가이드**: "API 키는 어디서 발급받나요?" 가이드 문서를 모달 옆면에 시각적으로 배치하여 이탈 방지
-
-## 3. ⚙️ 백엔드 동기화 엔진: 주문 끌어오기 (Next.js & Edge Functions)
-사용자가 정상적으로 키를 저장하면 백그라운드 데이터 수집기가 동작합니다.
-
-1. **자동 토큰 갱신 (OAuth)**: 각 플랫폼의 시크릿 키를 기반으로 Access Token을 주기적으로 리프레시하여 유효성을 유지.
-2. **주문 가져오기 스케줄러 (Cron Jobs / Webhooks)**:
-    - **Webhooks**: 플랫폼에서 지원할 경우, 신규 주문 시 Floxync 서버 알림 엔드포인트 `/api/webhooks/orders`로 즉각 전송받음.
-    - **Polling**: 지원하지 않는 플랫폼의 경우 10~15분 주기로 `/api/sync/orders`가 "새로 들어온 주문 가져와!" 요청.
-3. **데이터 표정화 (Normalization)**: 카페24의 주문 JSON과 네이버의 주문 JSON은 구조가 다름. 이를 Floxync 공통 스키마(`pos_orders`, `deliveries`)로 규격 변환하여 삽입.
-4. **실시간 알람 연동**: Supabase Realtime을 통해 새 주문 테이블에 삽입되는 즉시 대시보드 화면 우측 하단에 "🔔 네이버 스토어에서 새로운 주문이 들어왔습니다!" 알람 팝업.
+> **최종 업데이트**: 2026-04-24  
+> **상태**: 카페24 ✅ 구현 완료 / 네이버 커머스 ⏳ API 준비 완료 (테스트 대기)
 
 ---
 
-## 🚀 사용자 경험 (UX) 흐름도
+## 1. 🗄️ 데이터베이스 — `shop_integrations` 테이블
 
-시스템을 처음 접하는 꽃집 사장님의 연동 여정입니다.
+사용자(꽃집)마다 각자의 쇼핑몰 API 키를 안전하게 보관하는 전용 테이블입니다.
 
-1. 대시보드의 **[설정]** 메뉴에서 **[쇼핑몰 연동 관리]** 탭 진입.
-2. **[네이버 스마트스토어 추가]** 버튼 클릭.
-3. 팝업창에서 안내하는 링크를 타고 네이버 커머스 센터로 이동, 발급받은 문자열(키) 2개를 복사해 옴.
-4. Floxync의 빈칸에 키를 붙여넣고 **[연결 테스트 후 저장]** 완료.
-5. 시스템이 3초간 로딩 후 **"✅ 네이버 스마트스토어와 완벽하게 연결되었습니다! 이제부터 모든 새로운 주문이 자동으로 대시보드로 수집됩니다."** 출력 완료!
+| 필드 | 타입 | 설명 |
+|---|---|---|
+| `id` | uuid (PK) | 고유 식별자 |
+| `shop_id` | uuid (FK → tenants) | 꽃집 식별자 (tenant_id) |
+| `platform` | text | `cafe24` 또는 `naver_commerce` |
+| `client_id` | text | 사용자가 입력한 Client ID |
+| `client_secret` | text | 사용자가 입력한 Client Secret |
+| `mall_id` | text | 카페24 쇼핑몰 ID (예: lilymagflower) |
+| `access_token` | text | OAuth 인증 후 발급된 액세스 토큰 |
+| `refresh_token` | text | 토큰 갱신용 리프레시 토큰 |
+| `is_active` | boolean | 연동 활성화 여부 |
+| `last_sync_at` | timestamptz | 마지막 동기화 시각 |
+| `updated_at` | timestamptz | 설정 수정 시각 |
+
+> **Unique Constraint**: `(shop_id, platform)` — 1개 꽃집 당 플랫폼별 1개 연동만 허용
 
 ---
-### 💡 에이전트 개발 진행 단계
-본 계획서 승인 시, 아래 순서로 코어 작업을 진행합니다.
-1. `supabase/shop_integrations.sql` 데이터베이스 설계 및 적용
-2. `src/app/dashboard/settings/` 하위 연동 관리 UI 컴포넌트 프론트엔드 제작
-3. API 테스트를 위한 모의(Mock) 핸들러 작성
+
+## 2. 🖥️ 연동 관리 UI — MallIntegrationCard
+
+**경로**: `대시보드 > 설정 > 쇼핑몰 연동 관리`  
+**파일**: `src/app/dashboard/settings/components/MallIntegrationCard.tsx`
+
+### 제공 기능
+- **플랫폼 토글**: 카페24 / 네이버 스마트스토어 ON/OFF 스위치
+- **인증 폼**: Mall ID, Client ID, Client Secret 입력 필드
+- **[인증 테스트 및 저장]** 버튼: 입력값을 DB에 upsert
+- **[카페24 로그인 연동]** 버튼: OAuth2 인증 팝업 → 토큰 발급
+- **[주문 수동 동기화]** 버튼: 연동 완료 후 즉시 주문 가져오기 (파란색)
+- **상태 표시**: 연동 전 → "카페24 로그인 연동" / 연동 후 → "재인증"
+
+---
+
+## 3. ⚙️ 카페24 연동 파이프라인 (✅ 구현 완료)
+
+### 3-1. 인증 흐름 (OAuth2)
+
+```
+[사용자] → [카페24 로그인 연동] 클릭
+  ↓
+[카페24 OAuth 페이지] — 사용자 로그인 & 권한 동의
+  ↓ (redirect_uri로 code 전달)
+[/api/sync/cafe24/callback] — code + state(tenantId:mallId) 수신
+  ↓
+[카페24 Token API] — code → access_token + refresh_token 발급
+  ↓
+[shop_integrations DB] — 토큰 저장 완료
+  ↓
+[✅ 연동 성공! 안내 HTML 표시]
+```
+
+**주요 파일**: `src/app/api/sync/cafe24/callback/route.ts`
+
+#### 핵심 설계 결정
+1. **state 파라미터 활용**: 카페24 OAuth redirect 시 `state`에 `tenantId:mallId`를 포함시켜 콜백에서 복원
+2. **Redirect URI 고정**: 카페24 정책상 IP/http 불가 → `https://floxync.com/api/sync/cafe24/callback` 고정
+3. **상세 에러 진단**: 각 실패 단계별 HTML 에러 페이지로 디버깅 용이하게 설계
+
+### 3-2. 주문 동기화 API
+
+**엔드포인트**: `POST /api/sync/cafe24`  
+**파일**: `src/app/api/sync/cafe24/route.ts`
+
+- **조회 범위**: 최근 7일 주문
+- **API 버전**: `X-Cafe24-Api-Version: 2026-03-01`
+- **데이터 매핑**: 카페24 JSON → Floxync `orders` 테이블 스키마로 변환
+- **중복 방지**: `order_number` 유니크 제약(23505 에러) 자동 스킵
+
+#### 매핑 규칙
+
+| 카페24 필드 | → Floxync 필드 | 비고 |
+|---|---|---|
+| `order_id` | `order_number` | `C24-` 접두어 부착 |
+| `buyer_name` | `orderer.name` | |
+| `buyer_cellphone` | `orderer.contact` | |
+| `items[].product_name` | `items[].name` | |
+| `initial_order_amount` | `summary.subtotal` | |
+| `actual_order_amount` | `summary.total` | |
+| `shipping_fee` | `summary.deliveryFee` | |
+| `receivers[0].name` | `delivery_info.recipientName` | |
+| `receivers[0].address_full` | `delivery_info.address` | |
+
+---
+
+## 4. ⚙️ 네이버 커머스 연동 파이프라인 (⏳ API 준비 완료)
+
+### 4-1. 인증 방식 (HMAC 서명)
+
+네이버 커머스 API는 OAuth가 아닌 **HMAC-SHA256 서명** 방식을 사용합니다.  
+Client ID와 Secret만 저장하면 별도의 브라우저 로그인 없이 바로 API 호출이 가능합니다.
+
+```
+Signature = HMAC-SHA256(clientSecret, "{path}\n{timestamp}")
+Authorization: {clientId}:{signature}
+```
+
+**파일**: `src/app/api/sync/naver/route.ts`
+
+### 4-2. 주문 동기화 API
+
+**엔드포인트**: `POST /api/sync/naver`
+
+- **조회 범위**: 최근 24시간 주문 상태 변경
+- **데이터 매핑**: 네이버 JSON → Floxync `orders` 테이블 스키마로 변환
+- **주문번호 접두어**: `NV-`
+
+### ⚠️ 남은 과제: 고정 IP
+
+네이버 커머스 API는 **서버 IP 화이트리스트 등록이 필수**입니다.  
+Vercel은 서버리스이므로 고정 IP가 없어, 프록시 서버가 필요합니다.
+
+| 해결 방안 | 비용 | 상태 |
+|---|---|---|
+| Oracle Cloud 무료 VM 프록시 | 무료 | 🔜 예정 (다음 작업) |
+| Cloudflare Workers | 무료~$5/월 | 대안 |
+| QuotaGuard (Vercel 애드온) | $20/월~ | 대안 |
+
+---
+
+## 5. 📥 통합 동기화 시스템
+
+### 주문 페이지 자동/수동 동기화
+
+**파일**: `src/app/dashboard/orders/page.tsx`
+
+#### 자동 폴링
+- 주문 페이지 진입 시 **3초 후 1회** 자동 동기화 (사일런트)
+- 이후 **5분 간격**으로 자동 폴링
+- 새 주문 발견 시 토스트 알림 + 주문 목록 자동 갱신
+
+#### 수동 동기화
+- 주문 페이지 상단 **[쇼핑몰 동기화]** 버튼 (파란색)
+- 카페24 + 네이버 API를 **동시 호출** (`Promise.allSettled`)
+- 결과를 합산하여 토스트로 표시
+
+#### 에러 처리
+- 연동 미설정 사용자: 에러 무시 (조용히 스킵)
+- 네트워크 오류 (자동 폴링): 조용히 무시
+- 네트워크 오류 (수동 클릭): 에러 토스트 표시
+
+---
+
+## 6. 🔑 환경 변수 설정
+
+### Vercel 대시보드 (필수)
+
+| 변수명 | 설명 | 등록 위치 |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase 프로젝트 URL | ✅ 등록됨 |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase 서비스 역할 키 | ✅ 등록됨 (2026-04-24 추가) |
+
+> **주의**: `SUPABASE_SERVICE_ROLE_KEY`가 Vercel에 없으면 콜백 라우트에서 500 에러 발생  
+> `.env.local`은 로컬 전용이므로 Vercel 대시보드에서 **반드시** 별도 등록 필요
+
+### 로컬 .env.local (참고용)
+
+```
+CAFE24_CLIENT_ID=Ru6eXOKoIafrufljCKS2vE
+CAFE24_CLIENT_SECRET=fKDHWE71RikMdYRsXHbS0E
+CAFE24_WEBHOOK_SECRET=e7600f08-20df-48e6-bbc8-ede746d8eaf1
+NAVER_COMMERCE_CLIENT_ID=6CDGcSZe35CCFo9JmLNL7S
+NAVER_COMMERCE_CLIENT_SECRET=$2a$04$vjYmxxwNUHRThdmdBLNDF.
+```
+
+---
+
+## 7. 🐛 트러블슈팅 히스토리
+
+### 해결된 이슈
+
+| 날짜 | 이슈 | 원인 | 해결 |
+|---|---|---|---|
+| 2026-04-24 | OAuth 콜백 500 에러 | `SUPABASE_SERVICE_ROLE_KEY` Vercel 미등록 | Vercel 환경변수 추가 + Redeploy |
+| 2026-04-24 | OAuth 콜백에서 mall_id 누락 | state에 tenantId만 전달됨 | state에 `tenantId:mallId` 형식 적용 |
+| 2026-04-24 | DB client_secret 잘못 저장 | Webhook Secret을 Client Secret 란에 입력 | DB 직접 수정 (`fKDHWE71RikMdYRsXHbS0E`) |
+| 2026-04-24 | 카페24 API 버전 오류 | `2024-03-01` 버전 만료 | `2026-03-01`으로 변경 |
+| 2026-04-24 | 빌드 에러 (implicit any) | `KeyCardProps` 등 타입 미정의 | TypeScript 인터페이스 추가 |
+| 2026-04-24 | 빌드 에러 (static method) | `engine.generateMarketingCopy` 인스턴스 호출 | `MarketingEngine.generateMarketingCopy` 정적 호출로 변경 |
+
+---
+
+## 8. 📁 관련 파일 맵
+
+```
+src/
+├── app/
+│   ├── api/sync/
+│   │   ├── cafe24/
+│   │   │   ├── route.ts          ← 카페24 주문 동기화 API
+│   │   │   └── callback/
+│   │   │       └── route.ts      ← 카페24 OAuth 콜백 (토큰 발급)
+│   │   └── naver/
+│   │       └── route.ts          ← 네이버 커머스 주문 동기화 API
+│   └── dashboard/
+│       ├── orders/
+│       │   └── page.tsx          ← 주문 목록 (동기화 버튼 + 자동 폴링)
+│       └── settings/
+│           └── components/
+│               └── MallIntegrationCard.tsx  ← 연동 설정 UI
+```
+
+---
+
+## 9. 🚀 향후 작업 계획
+
+1. **Oracle Cloud 무료 VM 프록시 구축** — 네이버 커머스 고정 IP 문제 해결
+2. **토큰 자동 갱신** — 카페24 Refresh Token 만료 시 자동 재발급 로직
+3. **Webhook 수신** — 카페24 주문 Webhook으로 실시간 알림 (폴링 대체)
+4. **네이버 커머스 실제 테스트** — 네이버 쇼핑몰 보유 사용자 확보 후 E2E 테스트
+5. **연동 가이드 팝업** — "API 키는 어디서 발급받나요?" 인라인 안내 UI
+
+---
+
+**작성자**: Antigravity AI  
+**Copyright © 2026 Floxync. All Rights Reserved.**
