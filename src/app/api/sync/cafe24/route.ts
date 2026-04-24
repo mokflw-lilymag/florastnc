@@ -53,7 +53,7 @@ export async function POST(req: Request) {
       headers: {
         'Authorization': `Bearer ${access_token}`,
         'Content-Type': 'application/json',
-        'X-Cafe24-Api-Version': '2024-03-01'
+        'X-Cafe24-Api-Version': '2026-03-01'
       }
     });
 
