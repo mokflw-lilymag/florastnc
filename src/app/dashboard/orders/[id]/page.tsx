@@ -158,7 +158,7 @@ export default function OrderDetailPage() {
               </div>
               <div className="md:text-right">
                 <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">총 결제 금액</div>
-                <div className="text-2xl font-black text-indigo-600">₩{order.summary.total.toLocaleString()}</div>
+                <div className="text-2xl font-black text-indigo-600">₩{(order.summary?.total || 0).toLocaleString()}</div>
               </div>
             </div>
 
@@ -215,22 +215,22 @@ export default function OrderDetailPage() {
                 <div className="mt-4 p-4 rounded-2xl bg-indigo-50/30 border border-indigo-50 flex flex-col gap-2">
                    <div className="flex justify-between text-xs font-medium text-slate-600">
                       <span>상품 소계</span>
-                      <span>₩{order.summary.subtotal.toLocaleString()}</span>
+                      <span>₩{(order.summary?.subtotal || 0).toLocaleString()}</span>
                    </div>
                    <div className="flex justify-between text-xs font-medium text-slate-600">
                       <span>배송비</span>
-                      <span>+ ₩{order.summary.deliveryFee.toLocaleString()}</span>
+                      <span>+ ₩{(order.summary?.deliveryFee || 0).toLocaleString()}</span>
                    </div>
-                   {order.summary.discountAmount > 0 && (
+                   {(order.summary?.discountAmount || 0) > 0 && (
                      <div className="flex justify-between text-xs font-medium text-rose-500">
                         <span>할인 금액</span>
-                        <span>- ₩{order.summary.discountAmount.toLocaleString()}</span>
+                        <span>- ₩{(order.summary?.discountAmount || 0).toLocaleString()}</span>
                      </div>
                    )}
                    <Separator className="my-1 bg-indigo-100" />
                    <div className="flex justify-between text-sm font-black text-indigo-700">
                       <span>최종 결제 금액</span>
-                      <span>₩{order.summary.total.toLocaleString()}</span>
+                      <span>₩{(order.summary?.total || 0).toLocaleString()}</span>
                    </div>
                 </div>
               </div>
@@ -266,9 +266,7 @@ export default function OrderDetailPage() {
           </Card>
         </div>
 
-        {/* Sidebar Info Column */}
         <div className="space-y-6">
-          {/* Customer / Recipient Card */}
           <Card className="rounded-3xl border-none shadow-sm overflow-hidden bg-white">
             <CardHeader className="bg-slate-50/50 border-b p-5">
                <CardTitle className="text-sm font-black text-slate-800 flex items-center gap-2">
@@ -319,7 +317,6 @@ export default function OrderDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Actual Costs/Expense Action Card */}
           <Card className="rounded-3xl border-none shadow-sm overflow-hidden bg-indigo-900 text-white">
             <CardHeader className="pb-3 p-5">
                <CardTitle className="text-sm font-bold flex items-center gap-2">
@@ -337,7 +334,7 @@ export default function OrderDetailPage() {
                  <div className="space-y-1.5 px-1">
                    <div className="flex justify-between text-xs">
                      <span className="text-indigo-200">배송 수취액 (매출)</span>
-                     <span className="font-bold font-mono">₩{order.summary.deliveryFee.toLocaleString()}</span>
+                     <span className="font-bold font-mono">₩{(order.summary?.deliveryFee || 0).toLocaleString()}</span>
                    </div>
                    <div className="flex justify-between text-xs">
                      <span className="text-indigo-200">배송 결제 수단</span>

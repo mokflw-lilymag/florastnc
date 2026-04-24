@@ -315,7 +315,7 @@ export default function OrdersPage() {
         order.order_number.toLowerCase().includes(searchStr) ||
         order.orderer.name.toLowerCase().includes(searchStr) ||
         order.orderer.contact.includes(searchTerm) ||
-        order.summary.total.toString().includes(searchTerm) ||
+        (order.summary?.total || 0).toString().includes(searchTerm) ||
         (order.delivery_info?.recipientName?.toLowerCase().includes(searchStr)) ||
         (order.delivery_info?.address?.toLowerCase().includes(searchStr));
 
@@ -330,10 +330,10 @@ export default function OrdersPage() {
     const totalCount = orders.length;
     const processingCount = orders.filter(o => o.status === 'processing').length;
     const completedCount = orders.filter(o => o.status === 'completed').length;
-    const totalAmount = orders.filter(o => o.status !== 'canceled').reduce((sum, o) => sum + o.summary.total, 0);
+    const totalAmount = orders.filter(o => o.status !== 'canceled').reduce((sum, o) => sum + (o.summary?.total || 0), 0);
     
     const todayOrders = orders.filter(o => isToday(parseISO(o.order_date)));
-    const todayAmount = todayOrders.reduce((sum, o) => sum + o.summary.total, 0);
+    const todayAmount = todayOrders.reduce((sum, o) => sum + (o.summary?.total || 0), 0);
     const todayCount = todayOrders.length;
 
     return { totalCount, processingCount, completedCount, totalAmount, todayCount, todayAmount };
@@ -578,7 +578,7 @@ export default function OrdersPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-black text-white">₩{stats.totalAmount.toLocaleString()}</div>
+            <div className="text-2xl font-black text-white">₩{(stats.totalAmount || 0).toLocaleString()}</div>
             <p className="text-xs text-slate-500 mt-2 font-medium">선택된 기간의 총 매출액</p>
           </CardContent>
         </Card>
@@ -779,7 +779,7 @@ export default function OrdersPage() {
                           </TableCell>
                           <TableCell className="py-6">
                             <div className="space-y-1">
-                              <div className="text-sm font-black text-slate-900">₩{order.summary.total.toLocaleString()}</div>
+                              <div className="text-sm font-black text-slate-900">₩{(order.summary?.total || 0).toLocaleString()}</div>
                               <div className="text-[10px] font-bold text-slate-400 uppercase">{order.payment?.method || "-"}</div>
                             </div>
                           </TableCell>
@@ -952,7 +952,7 @@ export default function OrdersPage() {
                           </div>
                           <div className="space-y-1">
                             <div className="text-[10px] font-bold text-slate-400 uppercase">금액</div>
-                            <div className="text-xs font-black text-slate-900">₩{order.summary.total.toLocaleString()}</div>
+                            <div className="text-xs font-black text-slate-900">₩{(order.summary?.total || 0).toLocaleString()}</div>
                             <div className="text-[10px] text-slate-500 uppercase">{order.payment?.method || "-"}</div>
                           </div>
                         </div>

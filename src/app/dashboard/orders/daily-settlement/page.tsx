@@ -398,8 +398,8 @@ export default function DailySettlementPage() {
                         <DollarSign className="h-4 w-4 text-indigo-300" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-light">₩{stats?.totalSales.toLocaleString() || 0}</div>
-                        <p className="text-[11px] text-indigo-200 mt-2 font-light">신규 ₩{ (stats.totalSales - stats.prevOrderPaymentTotal).toLocaleString() } + 이월 ₩{stats.prevOrderPaymentTotal.toLocaleString()}</p>
+                        <div className="text-2xl font-light">₩{(stats?.totalSales || 0).toLocaleString()}</div>
+                        <p className="text-[11px] text-indigo-200 mt-2 font-light">신규 ₩{ ((stats?.totalSales || 0) - (stats?.prevOrderPaymentTotal || 0)).toLocaleString() } + 이월 ₩{(stats?.prevOrderPaymentTotal || 0).toLocaleString()}</p>
                     </CardContent>
                 </Card>
 
@@ -413,7 +413,7 @@ export default function DailySettlementPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-light">₩{( (stats?.cashSales || 0) + (stats?.transferSales || 0) ).toLocaleString()}</div>
-                        <p className="text-[11px] text-slate-400 mt-2 font-light">카드 결제: ₩{stats?.cardSales.toLocaleString() || 0}</p>
+                        <p className="text-[11px] text-slate-400 mt-2 font-light">카드 결제: ₩{(stats?.cardSales || 0).toLocaleString()}</p>
                     </CardContent>
                 </Card>
 
@@ -423,7 +423,7 @@ export default function DailySettlementPage() {
                         <Target className="h-4 w-4 text-indigo-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-light text-indigo-600">₩{vaultCash.currentBalance.toLocaleString()}</div>
+                        <div className="text-2xl font-light text-indigo-600">₩{(vaultCash.currentBalance || 0).toLocaleString()}</div>
                         <p className="text-[11px] text-slate-400 mt-2 font-light uppercase tracking-tighter">현재 포스기 보유 추정액</p>
                     </CardContent>
                 </Card>
@@ -435,7 +435,7 @@ export default function DailySettlementPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-light text-slate-900">{stats?.orderCount || 0}건</div>
-                        <p className="text-[11px] text-red-500 mt-2 font-medium uppercase tracking-tighter">미결제 {stats.pendingOrdersToday.length}건 / ₩{stats.pendingAmountToday.toLocaleString()}</p>
+                        <p className="text-[11px] text-red-500 mt-2 font-medium uppercase tracking-tighter">미결제 {stats.pendingOrdersToday.length}건 / ₩{(stats.pendingAmountToday || 0).toLocaleString()}</p>
                     </CardContent>
                 </Card>
             </div>
@@ -471,15 +471,15 @@ export default function DailySettlementPage() {
                             </div>
                             <div className="flex items-center justify-between py-2 border-b border-dashed border-slate-100">
                                 <Label className="text-slate-600 font-light text-xs">금일 현금 매출 (직접 수금)</Label>
-                                <span className="text-xs font-medium text-blue-600">+ ₩{vaultCash.cashSales.toLocaleString()}</span>
+                                <span className="text-xs font-medium text-blue-600">+ ₩{(vaultCash.cashSales || 0).toLocaleString()}</span>
                             </div>
                             <div className="flex items-center justify-between py-2 border-b border-dashed border-slate-100">
                                 <Label className="text-slate-600 font-light text-xs">배송비 현금 지급액 (지출)</Label>
-                                <span className="text-xs font-medium text-rose-600">- ₩{vaultCash.deliveryCostCash.toLocaleString()}</span>
+                                <span className="text-xs font-medium text-rose-600">- ₩{(vaultCash.deliveryCostCash || 0).toLocaleString()}</span>
                             </div>
                             <div className="flex items-center justify-between py-2 border-b border-dashed border-slate-100">
                                 <Label className="text-slate-600 font-light text-xs">기타 현금 지출 (자재/잡비)</Label>
-                                <span className="text-xs font-medium text-rose-600">- ₩{vaultCash.cashExpenses.toLocaleString()}</span>
+                                <span className="text-xs font-medium text-rose-600">- ₩{(vaultCash.cashExpenses || 0).toLocaleString()}</span>
                             </div>
                             <div className="flex items-center justify-between py-2 border-b border-dashed border-slate-100">
                                 <Label className="text-slate-600 font-light text-xs">관리자 시재 입금/출금 (은행 등)</Label>
@@ -495,7 +495,7 @@ export default function DailySettlementPage() {
                             </div>
                             <div className="flex items-center justify-between py-5 bg-indigo-50/50 rounded-2xl px-5 mt-6 border border-indigo-100/50 shadow-inner">
                                 <Label className="text-indigo-900 font-bold text-sm uppercase tracking-wider">최종 마감 예정 잔액</Label>
-                                <span className="text-2xl font-light text-indigo-700 tracking-tight">₩{vaultCash.currentBalance.toLocaleString()}</span>
+                                <span className="text-2xl font-light text-indigo-700 tracking-tight">₩{(vaultCash.currentBalance || 0).toLocaleString()}</span>
                             </div>
                         </div>
                     </CardContent>
@@ -512,11 +512,11 @@ export default function DailySettlementPage() {
                             <div className="grid grid-cols-2 gap-3">
                                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 group hover:border-indigo-200 transition-colors">
                                     <span className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mb-1 block">운송비 (현금)</span>
-                                    <span className="text-lg font-light text-slate-900">₩{vaultCash.deliveryCostCash.toLocaleString()}</span>
+                                    <span className="text-lg font-light text-slate-900">₩{(vaultCash.deliveryCostCash || 0).toLocaleString()}</span>
                                 </div>
                                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 group hover:border-indigo-200 transition-colors">
                                     <span className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mb-1 block">기타 지출 (현금)</span>
-                                    <span className="text-lg font-light text-slate-900">₩{vaultCash.cashExpenses.toLocaleString()}</span>
+                                    <span className="text-lg font-light text-slate-900">₩{(vaultCash.cashExpenses || 0).toLocaleString()}</span>
                                 </div>
                             </div>
                             
