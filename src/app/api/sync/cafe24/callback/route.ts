@@ -4,10 +4,19 @@ import { createClient } from '@supabase/supabase-js';
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const code = url.searchParams.get('code');
-  const state = url.searchParams.get('state'); // tenantId
-  const mall_id = url.searchParams.get('mall_id');
+  const state = url.searchParams.get('state'); // tenantId:mallId
+  
+  // mall_id가 쿼리에 없으면 state에서 파싱 시도
+  let mall_id = url.searchParams.get('mall_id');
+  let tenantId = state;
 
-  if (!code || !state || !mall_id) {
+  if (state && state.includes(':')) {
+    const parts = state.split(':');
+    tenantId = parts[0];
+    mall_id = mall_id || parts[1];
+  }
+
+  if (!code || !tenantId || !mall_id) {
     return new NextResponse('Missing required parameters (code, state, or mall_id)', { status: 400 });
   }
 
@@ -21,7 +30,7 @@ export async function GET(request: Request) {
     const { data: integration, error: getError } = await supabaseAdmin
       .from('shop_integrations')
       .select('*')
-      .eq('shop_id', state)
+      .eq('shop_id', tenantId)
       .eq('platform', 'cafe24')
       .single();
 
@@ -62,7 +71,7 @@ export async function GET(request: Request) {
         refresh_token: tokenData.refresh_token,
         last_sync_at: new Date().toISOString()
       })
-      .eq('shop_id', state)
+      .eq('shop_id', tenantId)
       .eq('platform', 'cafe24');
 
     if (updateError) {

@@ -165,7 +165,9 @@ export function MallIntegrationCard({ tenantId }: { tenantId: string }) {
                     }
                     // 카페24 정책상 IP(127.0.0.1) 및 http를 절대 허용하지 않으므로 무조건 floxync.com으로 요청합니다.
                     const redirectUri = encodeURIComponent(`https://floxync.com/api/sync/cafe24/callback`);
-                    const oauthUrl = `https://${cafeMallId}.cafe24api.com/api/v2/oauth/authorize?response_type=code&client_id=${cafeClientId}&state=${tenantId}&redirect_uri=${redirectUri}&scope=mall.read_order`;
+                    // mall_id를 콜백에서 다시 받기 위해 state에 포함시킵니다 (tenantId:mallId 형식)
+                    const state = `${tenantId}:${cafeMallId}`;
+                    const oauthUrl = `https://${cafeMallId}.cafe24api.com/api/v2/oauth/authorize?response_type=code&client_id=${cafeClientId}&state=${state}&redirect_uri=${redirectUri}&scope=mall.read_order`;
                     
                     window.open(oauthUrl, '_blank', 'width=800,height=800');
                   }}
