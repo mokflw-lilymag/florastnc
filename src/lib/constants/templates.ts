@@ -71,25 +71,6 @@ export const FREE_TEMPLATES: Record<string, string[]> = {
   ]
 };
 
-export const CALLIGRAPHY_PHRASES: Record<string, string[]> = {
-  birthday: ["생일 축하해", "태어나줘서 고마워", "오늘 하루가 선물이야", "너의 특별한 날"],
-  thanks: ["감사합니다", "고맙습니다", "너때문에 행복한 하루였어", "오늘도 수고했어"],
-  respect: ["부모님 감사합니다", "엄마 사랑해요", "아빠 사랑해요", "소중한 마음을 담아"],
-  lover: ["사랑해", "당신이 있어 행복해", "영원히 함께", "너는 나의 전부"],
-  christmas: ["메리 크리스마스", "따뜻한 성탄절", "행복 가득 크리스마스", "선물같은 하루"]
-};
-
-/** 캘리그라피 손글씨 폰트 목록 */
-export const CALLIGRAPHY_FONTS = [
-  "'Dokdo', cursive",
-  "'East Sea Dokdo', cursive",
-  "'Gaegu', cursive",
-  "'Gamja Flower', cursive",
-  "'Hi Melody', cursive",
-  "'Nanum Pen Script', cursive",
-  "'Yeon Sung', cursive"
-];
-
 export const PAPER_PRESETS = [
   // 용지 규격
   { id: 'a5', label: 'A5 (210x148mm)', widthMm: 210, heightMm: 148, group: '용지 규격' },

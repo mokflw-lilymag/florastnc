@@ -30,8 +30,6 @@ import { EditorCanvas } from '@/components/design-studio/EditorCanvas';
 import { DesignSidebar } from '@/components/design-studio/DesignSidebar';
 import { PhotoEditModal } from '@/components/design-studio/PhotoEditModal';
 import { ShopSettingsModal } from '@/components/design-studio/ShopSettingsModal';
-import { AIFontWizardModal } from '@/components/design-studio/AIFontWizardModal';
-import { AIWizardModal } from '@/components/design-studio/AIWizardModal';
 import { SuggestionModal } from '@/components/design-studio/SuggestionModal';
 import { GalleryModal } from '@/components/design-studio/GalleryModal';
 import { FormtecModal } from '@/components/design-studio/FormtecModal';
@@ -121,8 +119,6 @@ function DesignStudioContent() {
   // Modal States
   const [isPhotoEditorOpen, setIsPhotoEditorOpen] = useState(false);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
-  const [isAiWizardOpen, setIsAiWizardOpen] = useState(false);
-  const [isAIFontWizardOpen, setIsAIFontWizardOpen] = useState(false);
   const [activeSuggestionType, setActiveSuggestionType] = useState<'quote' | 'message' | null>(null);
   const [isSuggestionModalOpen, setIsSuggestionModalOpen] = useState(false);
   const [isShopSettingsOpen, setIsShopSettingsOpen] = useState(false);
@@ -460,8 +456,6 @@ function DesignStudioContent() {
         >
           <DesignSidebar 
             onOpenGallery={() => setIsGalleryOpen(true)}
-            onOpenAIWizard={() => setIsAiWizardOpen(true)}
-            onOpenAIFontWizard={() => setIsAIFontWizardOpen(true)}
             onOpenSuggestion={(type) => { setActiveSuggestionType(type); setIsSuggestionModalOpen(true); }}
             onOpenShopSettings={() => setIsShopSettingsOpen(true)}
             onOpenPhotoEditor={() => setIsPhotoEditorOpen(true)}
@@ -512,8 +506,6 @@ function DesignStudioContent() {
 
       {/* Modals Assembly */}
       <PhotoEditModal isOpen={isPhotoEditorOpen} onClose={() => setIsPhotoEditorOpen(false)} />
-      <AIWizardModal isOpen={isAiWizardOpen} onClose={() => setIsAiWizardOpen(false)} />
-      <AIFontWizardModal isOpen={isAIFontWizardOpen} onClose={() => setIsAIFontWizardOpen(false)} />
       <SuggestionModal isOpen={isSuggestionModalOpen} onClose={() => setIsSuggestionModalOpen(false)} type={activeSuggestionType || 'message'} />
       <GalleryModal isOpen={isGalleryOpen} onClose={() => setIsGalleryOpen(false)} />
       <ShopSettingsModal isOpen={isShopSettingsOpen} onClose={() => setIsShopSettingsOpen(false)} />

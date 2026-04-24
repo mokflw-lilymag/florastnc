@@ -833,8 +833,8 @@ export const useEditorStore = create<EditorState>()(
         if (options.logo && shopSettings.logoUrl) {
           addImageBlock({
             url: shopSettings.logoUrl,
-            x: sectionCenterX,
-            y: currentY + (LOGO_H / 2),
+            x: sectionCenterX - LOGO_W / 2,
+            y: currentY,
             width: LOGO_W,
             height: LOGO_H,
             opacity: 1.0,
@@ -847,8 +847,8 @@ export const useEditorStore = create<EditorState>()(
         if (options.name && shopSettings.name) {
           addTextBlock({
             text: shopSettings.name,
-            x: sectionCenterX,
-            y: currentY + (NAME_H / 2),
+            x: sectionCenterX - TEXT_W / 2,
+            y: currentY,
             fontSize: 9,
             fontFamily: "'GmarketSansBold', sans-serif",
             textAlign: 'center',
@@ -863,8 +863,8 @@ export const useEditorStore = create<EditorState>()(
         if (options.tel && shopSettings.tel) {
           addTextBlock({
             text: shopSettings.tel,
-            x: sectionCenterX,
-            y: currentY + TEL_H / 2,
+            x: sectionCenterX - TEXT_W / 2,
+            y: currentY,
             fontSize: 8,
             fontFamily: "'GmarketSansBold', sans-serif",
             textAlign: "center",

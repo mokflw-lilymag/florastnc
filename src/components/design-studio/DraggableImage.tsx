@@ -3,6 +3,7 @@
 import React, { useRef, useState } from 'react';
 import { useEditorStore } from '@/stores/design-store';
 import { Image as ImageIcon, X } from 'lucide-react';
+import { useDraggable } from '@dnd-kit/core';
 
 interface DraggableImageProps {
   id: string;
@@ -32,65 +33,15 @@ export const DraggableImage: React.FC<DraggableImageProps> = ({
   onContextMenu
 }) => {
   const { 
-    updateImageBlockPosition, 
     setSelectedBlockId, 
     toggleBlockSelection,
-    selectedBlockIds,
-    moveSelectedBlocks,
     removeImageBlock 
   } = useEditorStore();
-  const [isDragging, setIsDragging] = useState(false);
-  const dragStartRef = useRef({ x: 0, y: 0 });
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    
-    if (e.shiftKey) {
-      toggleBlockSelection(id);
-    } else {
-      setSelectedBlockId(id);
-    }
-
-    setIsDragging(true);
-    dragStartRef.current = {
-      x: e.clientX - x * zoom,
-      y: e.clientY - y * zoom,
-    };
-  };
-
-  const handleMouseMove = (e: MouseEvent) => {
-    if (!isDragging) return;
-
-    const currentX = (e.clientX - dragStartRef.current.x) / zoom;
-    const currentY = (e.clientY - dragStartRef.current.y) / zoom;
-    
-    const dx = currentX - x;
-    const dy = currentY - y;
-    
-    if (selectedBlockIds.includes(id)) {
-      moveSelectedBlocks(dx, dy);
-    } else {
-      updateImageBlockPosition(id, currentX, currentY);
-    }
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-
-  React.useEffect(() => {
-    if (isDragging) {
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
-    } else {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    }
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [isDragging]);
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: id,
+    data: { id, url, x, y, width, height, isPrintable, isSelected, zoom, rotation },
+  });
 
   const style: React.CSSProperties = {
     position: 'absolute',
@@ -99,25 +50,38 @@ export const DraggableImage: React.FC<DraggableImageProps> = ({
     width: `${width * zoom}px`,
     height: `${height * zoom}px`,
     cursor: isDragging ? 'grabbing' : 'grab',
-    border: isSelected ? '2px solid #3b82f6' : '1px dashed transparent',
-    transform: `translate(-50%, -50%) rotate(${rotation || 0}deg)`, // Center anchored
-    transformOrigin: 'center center',
+    border: transform ? '1px dashed transparent' : (isSelected ? '2px solid #3b82f6' : '1px dashed transparent'),
+    transform: `translate3d(${transform?.x || 0}px, ${transform?.y || 0}px, 0) rotate(${rotation || 0}deg)`,
+    transformOrigin: 'top left',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     userSelect: 'none',
     boxSizing: 'content-box',
     overflow: 'visible',
-    zIndex: 50
+    zIndex: isSelected ? 50 : 10
   };
 
   return (
-    <div style={style} onMouseDown={handleMouseDown} onContextMenu={onContextMenu}>
+    <div 
+      ref={setNodeRef}
+      style={style} 
+      {...listeners}
+      {...attributes}
+      onContextMenu={onContextMenu}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (e.shiftKey) toggleBlockSelection(id);
+        else setSelectedBlockId(id);
+      }}
+      className={transform ? 'bg-white/50 rounded shadow-lg' : 'hover:border-blue-300 rounded'}
+    >
       {url ? (
         <img 
           src={url} 
           alt="User logo" 
           style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
+          draggable={false}
         />
       ) : (
         <div className={`w-full h-full flex flex-col items-center justify-center p-2 rounded-md ${isSelected ? 'bg-blue-50' : 'bg-gray-100'} border-2 border-dashed ${isSelected ? 'border-blue-300' : 'border-gray-300'}`}>
@@ -129,13 +93,13 @@ export const DraggableImage: React.FC<DraggableImageProps> = ({
         </div>
       )}
 
-      {isSelected && (
+      {isSelected && !isDragging && (
         <button
           onClick={(e) => {
             e.stopPropagation();
             removeImageBlock(id);
           }}
-          className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center shadow-md hover:bg-red-600 transition"
+          className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center shadow-md hover:bg-red-600 transition z-50"
         >
           <X size={10} />
         </button>

@@ -208,9 +208,7 @@ export const EditorCanvas: React.FC = () => {
                       backgroundColor: '#f8fafc',
                       borderRight: isLandscape ? '1px solid rgba(0,0,0,0.05)' : 'none',
                       borderBottom: !isLandscape ? '1px solid rgba(0,0,0,0.05)' : 'none'
-                    }}>
-                      <div className="absolute top-2 left-2 text-[8px] font-black text-gray-200 uppercase tracking-widest z-[10]">Back Cover (Left)</div>
-                    </div>
+                    }} />
                     <div style={{ 
                       flex: 1, 
                       backgroundImage: frontBackgroundUrl ? `url('${frontBackgroundUrl}')` : undefined, 
@@ -218,14 +216,7 @@ export const EditorCanvas: React.FC = () => {
                       backgroundPosition: 'center',
                       backgroundColor: '#f1f5f9',
                       position: 'relative'
-                    }}>
-                      <div className="absolute top-2 left-2 text-[8px] font-black text-gray-200 uppercase tracking-widest z-[10]">Front Cover (Right)</div>
-                      {!frontBackgroundUrl && (
-                        <div className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-gray-300 uppercase tracking-tighter">
-                          Front Cover
-                        </div>
-                      )}
-                    </div>
+                    }} />
                   </>
                 ) : (
                   // 내지: 깨끗한 배경 혹은 내지용 배경(backgroundUrl) 출력

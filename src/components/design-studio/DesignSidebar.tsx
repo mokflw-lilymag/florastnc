@@ -12,8 +12,6 @@ import { PAPER_PRESETS } from '@/lib/constants/templates';
 
 interface DesignSidebarProps {
   onOpenGallery: () => void;
-  onOpenAIWizard: () => void;
-  onOpenAIFontWizard: () => void;
   onOpenSuggestion: (type: 'quote' | 'message') => void;
   onOpenShopSettings: () => void;
   onOpenPhotoEditor: () => void;
@@ -21,8 +19,6 @@ interface DesignSidebarProps {
 
 export const DesignSidebar: React.FC<DesignSidebarProps> = ({
   onOpenGallery,
-  onOpenAIWizard,
-  onOpenAIFontWizard,
   onOpenSuggestion,
   onOpenShopSettings,
   onOpenPhotoEditor
@@ -79,11 +75,34 @@ export const DesignSidebar: React.FC<DesignSidebarProps> = ({
   const isTextBlock = selectedBlockId?.startsWith('text-');
   const isImageBlock = selectedBlockId?.startsWith('image-');
 
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const getSpawnCoords = (blockWidth: number, blockHeight: number) => {
+    const isFolding = foldType === 'half';
+    const isLandscape = orientation === 'landscape';
+    const { widthMm, heightMm } = currentDimension;
+
+    let targetX = widthMm / 2;
+    let targetY = heightMm / 2;
+
+    if (isFolding && activePage === 'outside') {
+      // 표지 (Outside) 일 때는 기본적으로 뒷면(Back Cover, 왼쪽)의 중앙에 스폰
+      targetX = isLandscape ? widthMm / 4 : widthMm / 2;
+      targetY = isLandscape ? heightMm / 2 : heightMm / 4;
+    }
+
+    return {
+      x: targetX - (blockWidth / 2),
+      y: targetY - (blockHeight / 2)
+    };
+  };
+
   const handleAddText = () => {
+    const { x, y } = getSpawnCoords(80, 20); // 예상 너비 80mm
     addTextBlock({
       text: '새 텍스트',
-      x: currentDimension.widthMm / 2,
-      y: currentDimension.heightMm / 2,
+      x,
+      y,
       fontSize: 20,
       colorHex: '#1e293b',
       fontFamily: "'Bagel Fat One', cursive",
@@ -92,81 +111,89 @@ export const DesignSidebar: React.FC<DesignSidebarProps> = ({
       opacity: 1,
       strokeWidth: 0,
       strokeColor: '#ffffff',
-      textShadow: 'none'
+      textShadow: 'none',
+      width: 80
     });
   };
 
   const handleAddImage = () => {
-    addImageBlock({
-      url: null,
-      x: currentDimension.widthMm / 4,
-      y: currentDimension.heightMm / 4,
-      width: 50,
-      height: 50,
-      isPrintable: true
-    });
+    fileInputRef.current?.click();
+  };
+
+  const onImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      const { x, y } = getSpawnCoords(40, 40); // 기본 이미지 크기 40x40mm
+      addImageBlock({
+        url,
+        x,
+        y,
+        width: 40,
+        height: 40,
+        isPrintable: true
+      });
+      e.target.value = ''; // Reset for subsequent uploads
+    }
   };
 
   return (
     <aside className="w-full lg:w-[340px] lg:shrink-0 border-r bg-white flex flex-col h-full min-h-0 shadow-xl z-20 overflow-hidden">
       <div className="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-4">
 
-        <div className="mb-2">
+        <div className="mb-2 space-y-2">
           <button
             onClick={handleAddText}
             className="w-full flex items-center justify-center gap-2 p-4 bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-2xl hover:bg-indigo-100 font-black text-[13px] transition-all active:scale-95 shadow-sm"
           >
-            <Type size={18} /> 카드 표지에 텍스트 쓰기
+            <Type size={18} /> 텍스트 레이어 추가
+          </button>
+          
+          <input 
+            type="file" 
+            accept="image/*" 
+            ref={fileInputRef} 
+            onChange={onImageFileChange} 
+            className="hidden" 
+          />
+          <button
+            onClick={handleAddImage}
+            className="w-full flex items-center justify-center gap-2 p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl hover:bg-emerald-100 font-black text-[13px] transition-all active:scale-95 shadow-sm"
+          >
+            <ImageIcon size={18} /> PNG·이미지 레이어 추가
           </button>
         </div>
 
         {/* Quick Tools */}
-        <div className="grid grid-cols-2 gap-3 mb-5">
+        <div className="mb-5">
           <button
             onClick={onOpenPhotoEditor}
-            className="flex flex-col items-center justify-center p-4 bg-rose-50 border border-rose-100 rounded-[2rem] hover:border-rose-400 hover:bg-rose-100 transition-all group active:scale-95 shadow-sm"
+            className="w-full flex items-center justify-center gap-3 p-4 bg-rose-50 border border-rose-100 rounded-[2rem] hover:border-rose-400 hover:bg-rose-100 transition-all group active:scale-95 shadow-sm"
           >
-            <div className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center shadow-sm mb-2 group-hover:scale-110 transition-transform">
+            <div className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
               <Camera size={20} className="text-rose-600" />
             </div>
-            <span className="text-[11px] font-black text-slate-700">매직 스튜디오</span>
-          </button>
-          <button
-            onClick={onOpenAIFontWizard}
-            className="flex flex-col items-center justify-center p-4 bg-amber-50 border border-amber-100 rounded-[2rem] hover:border-amber-400 hover:bg-amber-100 transition-all group active:scale-95 shadow-sm"
-          >
-            <div className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center shadow-sm mb-2 group-hover:scale-110 transition-transform">
-              <Wand2 size={20} className="text-amber-600" />
-            </div>
-            <span className="text-[11px] font-black text-slate-700">AI 폰트 마법사</span>
+            <span className="text-[12px] font-black text-slate-700">매직 스튜디오 (배경 제거 & 편집)</span>
           </button>
         </div>
 
-        {/* AI & Gallery Hero Section */}
-        <div className="space-y-3 mb-6">
-          <button
-            onClick={onOpenAIWizard}
-            className="w-full relative overflow-hidden group p-6 bg-gradient-to-br from-indigo-600 via-indigo-500 to-purple-600 text-white rounded-[2.5rem] shadow-lg shadow-indigo-100 transition-all hover:scale-[1.02] active:scale-95 flex items-center gap-4"
-          >
-            <div className="relative z-10 p-3 bg-white/20 backdrop-blur-md rounded-2xl shadow-inner group-hover:rotate-12 transition-transform">
-              <Sparkles size={24} className="animate-pulse" />
-            </div>
-            <div className="text-left relative z-10">
-              <p className="text-lg font-black tracking-tight leading-none">AI 스마트 디자인</p>
-              <p className="text-[10px] font-bold text-white/60 uppercase tracking-widest mt-1">Premium AI Artwork</p>
-            </div>
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-1000" />
-          </button>
-
+        {/* Saved templates & gallery */}
+        <div className="mb-6">
           <button
             onClick={onOpenGallery}
-            className="w-full flex items-center gap-4 px-6 py-5 bg-white border-2 border-slate-100 text-slate-700 rounded-[2.5rem] hover:border-indigo-400 hover:text-indigo-600 transition-all font-black text-sm active:scale-95 shadow-sm group"
+            className="w-full flex items-center gap-4 px-6 py-5 bg-gradient-to-br from-indigo-50 to-white border-2 border-indigo-100 text-slate-800 rounded-[2.5rem] hover:border-indigo-400 hover:text-indigo-700 transition-all font-black text-sm active:scale-95 shadow-sm group"
           >
-            <div className="w-8 h-8 rounded-xl bg-slate-50 flex items-center justify-center group-hover:bg-indigo-50 transition-colors">
-              <Grid size={18} className="text-slate-400 group-hover:text-indigo-600" />
+            <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-sm group-hover:bg-indigo-50 transition-colors border border-slate-100">
+              <Grid size={20} className="text-indigo-600" />
             </div>
-            <span>디자인 템플릿 보관함</span>
+            <div className="text-left">
+              <span className="block leading-tight">디자인 템플릿 보관함</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">저장한 디자인 불러오기</span>
+            </div>
           </button>
+          <p className="text-[10px] text-slate-500 font-bold leading-relaxed px-1 mt-2">
+            배경만 불러온 뒤, 위의 텍스트·이미지 버튼으로 문구를 직접 올리면 됩니다.
+          </p>
         </div>
 
         {/* Paper Format Section */}
