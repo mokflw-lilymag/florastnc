@@ -193,71 +193,112 @@
         <!-- 1-5 -->
         <div id="settings-mall" class="anchor-offset mb-8">
           <h3 class="text-xl font-bold mb-4 flex items-center gap-2"><span class="w-1.5 h-6 bg-emerald-500 rounded-full"></span> 1-5. 쇼핑몰 연동 실전 가이드 (네이버/카페24)</h3>
-          <p class="text-gray-600 text-sm mb-6">스마트스토어와 카페24의 주문을 플로라싱크로 실시간으로 가져오는 마법의 첫걸음입니다. 특히 카페24 연동은 처음이시라면 아래 순서대로 천천히 따라와 주세요.</p>
+          <p class="text-gray-600 text-sm mb-6">스마트스토어와 카페24의 주문을 플로라싱크로 실시간으로 가져오는 마법의 첫걸음입니다. 각 쇼핑몰의 연동 방법을 순서대로 천천히 따라와 주세요.</p>
           
-          <div class="space-y-6">
-            <!-- Step 1 -->
-            <div class="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-              <div class="bg-gray-50 px-5 py-3 border-b border-gray-200 font-bold text-gray-800 flex items-center gap-2">
-                <span class="bg-gray-800 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">1</span> 
-                카페24 개발자센터에서 '열쇠(API 키)' 발급받기
+          <!-- 네이버 커머스 연동 가이드 -->
+          <div class="mb-12">
+            <h4 class="text-lg font-bold text-gray-800 mb-4 px-2 border-l-4 border-green-500">A. 네이버 커머스 (스마트스토어) 연동하기</h4>
+            <div class="space-y-6">
+              <!-- Naver Step 1 -->
+              <div class="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                <div class="bg-green-50 px-5 py-3 border-b border-green-100 font-bold text-green-900 flex items-center gap-2">
+                  <span class="bg-green-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">1</span> 
+                  네이버 커머스 API 센터에서 '애플리케이션' 생성하기
+                </div>
+                <div class="p-5 text-sm text-gray-700 space-y-3">
+                  <ol class="list-decimal list-inside space-y-2 ml-2">
+                    <li><a href="https://dev.commerce.naver.com/" target="_blank" class="text-blue-600 font-bold hover:underline">네이버 커머스 API 센터</a>에 접속하여 스마트스토어 판매자 아이디로 로그인합니다.</li>
+                    <li>좌측 메뉴에서 <strong>[애플리케이션 관리] -> [애플리케이션 등록]</strong> 버튼을 누릅니다.</li>
+                    <li>앱 이름은 '플로라싱크'로 적어주시고, 아래의 API 권한 선택에서 <strong>[주문]</strong>, <strong>[상품]</strong> 관련 권한을 필수로 체크해 줍니다.</li>
+                    <li>등록을 완료하면 <strong>Application ID</strong>와 <strong>Application Secret</strong> 코드가 발급됩니다. 이 창을 닫지 말고 열어두세요.</li>
+                  </ol>
+                </div>
               </div>
-              <div class="p-5 text-sm text-gray-700 space-y-3">
-                <p>가장 먼저, 카페24 쇼핑몰의 주문 정보를 플로라싱크가 읽어올 수 있도록 허락(권한)을 받아야 합니다.</p>
-                <ol class="list-decimal list-inside space-y-2 ml-2">
-                  <li><a href="https://developer.cafe24.com/" target="_blank" class="text-blue-600 font-bold hover:underline">카페24 개발자센터</a>에 접속하여 쇼핑몰 관리자 아이디로 로그인합니다.</li>
-                  <li>상단 메뉴에서 <strong>[나의 앱]</strong> 클릭 후, 우측 상단의 <strong>[앱 만들기]</strong> 버튼을 누릅니다. (앱 이름은 '플로라싱크 연동'으로 자유롭게 입력하세요)</li>
-                  <li><strong class="text-red-600">가장 중요한 단계!</strong> 앱 설정 화면에서 <strong>[API 권한]</strong> 탭을 클릭하고, 수많은 권한 목록 중 <strong><code>mall.read_order</code> (주문 읽기)</strong>를 찾아 반드시 체크합니다.</li>
-                  <li>설정을 저장하면 <strong>Client ID</strong>와 <strong>Client Secret</strong>이라는 두 개의 긴 영문/숫자 코드가 발급됩니다. 이 창을 그대로 열어두세요.</li>
-                </ol>
+
+              <!-- Naver Step 2 -->
+              <div class="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                <div class="bg-green-50 px-5 py-3 border-b border-green-100 font-bold text-green-900 flex items-center gap-2">
+                  <span class="bg-green-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">2</span> 
+                  플로라싱크 앱에 정보 입력하고 저장하기
+                </div>
+                <div class="p-5 text-sm text-gray-700 space-y-3">
+                  <ol class="list-decimal list-inside space-y-2 ml-2">
+                    <li>플로라싱크 <strong>[환경 설정] -> [쇼핑몰 연동 관리]</strong> 메뉴에서 <strong>'네이버 커머스 API'</strong> 스위치를 켭니다.</li>
+                    <li>발급받은 <strong>Application ID</strong>와 <strong>Application Secret</strong>을 빈칸에 정확히 복사해서 붙여넣습니다.</li>
+                    <li>우측 하단의 <strong>[인증 테스트 및 저장]</strong> 버튼을 누릅니다. 네이버는 재인증 과정 없이 이것으로 모든 연동이 끝납니다!</li>
+                  </ol>
+                </div>
               </div>
             </div>
+          </div>
 
-            <!-- Step 2 -->
-            <div class="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-              <div class="bg-emerald-50 px-5 py-3 border-b border-emerald-100 font-bold text-emerald-900 flex items-center gap-2">
-                <span class="bg-emerald-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">2</span> 
-                플로라싱크 앱에 열쇠(키) 입력하고 저장하기
+          <!-- 카페24 연동 가이드 -->
+          <div class="mb-4">
+            <h4 class="text-lg font-bold text-gray-800 mb-4 px-2 border-l-4 border-gray-800">B. 카페24 자사몰 연동하기</h4>
+            <div class="space-y-6">
+              <!-- Cafe24 Step 1 -->
+              <div class="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                <div class="bg-gray-50 px-5 py-3 border-b border-gray-200 font-bold text-gray-800 flex items-center gap-2">
+                  <span class="bg-gray-800 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">1</span> 
+                  카페24 개발자센터에서 '열쇠(API 키)' 발급받기
+                </div>
+                <div class="p-5 text-sm text-gray-700 space-y-3">
+                  <p>가장 먼저, 카페24 쇼핑몰의 주문 정보를 플로라싱크가 읽어올 수 있도록 허락(권한)을 받아야 합니다.</p>
+                  <ol class="list-decimal list-inside space-y-2 ml-2">
+                    <li><a href="https://developer.cafe24.com/" target="_blank" class="text-blue-600 font-bold hover:underline">카페24 개발자센터</a>에 접속하여 쇼핑몰 관리자 아이디로 로그인합니다.</li>
+                    <li>상단 메뉴에서 <strong>[나의 앱]</strong> 클릭 후, 우측 상단의 <strong>[앱 만들기]</strong> 버튼을 누릅니다. (앱 이름은 '플로라싱크 연동'으로 자유롭게 입력하세요)</li>
+                    <li><strong class="text-red-600">가장 중요한 단계!</strong> 앱 설정 화면에서 <strong>[API 권한]</strong> 탭을 클릭하고, 수많은 권한 목록 중 <strong><code>mall.read_order</code> (주문 읽기)</strong>를 찾아 반드시 체크합니다.</li>
+                    <li>설정을 저장하면 <strong>Client ID</strong>와 <strong>Client Secret</strong>이라는 두 개의 긴 영문/숫자 코드가 발급됩니다. 이 창을 그대로 열어두세요.</li>
+                  </ol>
+                </div>
               </div>
-              <div class="p-5 text-sm text-gray-700 space-y-3">
-                <p>이제 플로라싱크로 돌아와서 아까 받은 열쇠를 꽂아줄 차례입니다.</p>
-                <div class="w-full h-40 img-placeholder mb-3 border-emerald-100 bg-white">[ 환경설정 > 쇼핑몰 연동 관리 화면 캡처 자리 ]</div>
-                <ol class="list-decimal list-inside space-y-2 ml-2">
-                  <li>플로라싱크 <strong>[환경 설정] -> [쇼핑몰 연동 관리]</strong> 메뉴에서 <strong>'카페24 개발자 API'</strong> 스위치를 켭니다.</li>
-                  <li>아래 3개의 빈칸을 정확히 채워 넣습니다:
-                    <ul class="list-disc list-inside ml-6 mt-2 text-gray-600 space-y-1">
-                      <li><strong>쇼핑몰 아이디 (Mall ID):</strong> 사장님의 카페24 관리자 아이디 (예: florasync)</li>
-                      <li><strong>Client ID:</strong> 1단계에서 띄워둔 Client ID를 복사 & 붙여넣기</li>
-                      <li><strong>Client Secret:</strong> 1단계에서 띄워둔 Client Secret을 복사 & 붙여넣기</li>
-                    </ul>
-                  </li>
-                  <li class="mt-2">작성이 끝났다면 우측 하단의 <strong>[인증 테스트 및 저장]</strong> 버튼을 누릅니다. (설정이 저장되었습니다 메시지 확인)</li>
-                </ol>
-              </div>
-            </div>
 
-            <!-- Step 3 -->
-            <div class="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-              <div class="bg-emerald-50 px-5 py-3 border-b border-emerald-100 font-bold text-emerald-900 flex items-center gap-2">
-                <span class="bg-emerald-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">3</span> 
-                마지막 관문: [재인증(로그인 연동)] 버튼 누르기
+              <!-- Cafe24 Step 2 -->
+              <div class="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                <div class="bg-emerald-50 px-5 py-3 border-b border-emerald-100 font-bold text-emerald-900 flex items-center gap-2">
+                  <span class="bg-emerald-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">2</span> 
+                  플로라싱크 앱에 열쇠(키) 입력하고 저장하기
+                </div>
+                <div class="p-5 text-sm text-gray-700 space-y-3">
+                  <p>이제 플로라싱크로 돌아와서 아까 받은 열쇠를 꽂아줄 차례입니다.</p>
+                  <div class="w-full h-40 img-placeholder mb-3 border-emerald-100 bg-white">[ 환경설정 > 카페24 연동 관리 화면 캡처 자리 ]</div>
+                  <ol class="list-decimal list-inside space-y-2 ml-2">
+                    <li>플로라싱크 <strong>[환경 설정] -> [쇼핑몰 연동 관리]</strong> 메뉴에서 <strong>'카페24 개발자 API'</strong> 스위치를 켭니다.</li>
+                    <li>아래 3개의 빈칸을 정확히 채워 넣습니다:
+                      <ul class="list-disc list-inside ml-6 mt-2 text-gray-600 space-y-1">
+                        <li><strong>쇼핑몰 아이디 (Mall ID):</strong> 사장님의 카페24 관리자 아이디 (예: florasync)</li>
+                        <li><strong>Client ID:</strong> 1단계에서 띄워둔 Client ID를 복사 & 붙여넣기</li>
+                        <li><strong>Client Secret:</strong> 1단계에서 띄워둔 Client Secret을 복사 & 붙여넣기</li>
+                      </ul>
+                    </li>
+                    <li class="mt-2">작성이 끝났다면 우측 하단의 <strong>[인증 테스트 및 저장]</strong> 버튼을 누릅니다. (설정이 저장되었습니다 메시지 확인)</li>
+                  </ol>
+                </div>
               </div>
-              <div class="p-5 text-sm text-gray-700 space-y-3">
-                <p>설정이 저장되었다면 마지막으로 카페24 본진의 승인을 받아야 합니다.</p>
-                <ol class="list-decimal list-inside space-y-2 ml-2">
-                  <li>키 입력칸 바로 위에 있는 초록색 글씨의 <strong>[카페24 로그인 연동] (또는 [재인증])</strong> 버튼을 클릭합니다.</li>
-                  <li>팝업창으로 카페24 로그인 화면이 뜨면, 쇼핑몰 관리자 아이디/비밀번호를 입력하고 로그인합니다.</li>
-                  <li>권한 허용 창이 나오면 <strong>[동의함]</strong>을 눌러줍니다.</li>
-                  <li>팝업창이 닫히며 <strong>"성공적으로 연동되었습니다"</strong> 메시지가 뜨면 완벽하게 끝났습니다! 🎉</li>
-                  <li class="mt-2 text-emerald-700 font-medium">이제 좌측 [주문 관리] 메뉴로 가셔서 우측 상단의 [쇼핑몰 동기화] 버튼을 누르시면, 방금 연동한 카페24의 주문들이 촤르륵 쏟아져 들어옵니다.</li>
-                </ol>
+
+              <!-- Cafe24 Step 3 -->
+              <div class="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                <div class="bg-emerald-50 px-5 py-3 border-b border-emerald-100 font-bold text-emerald-900 flex items-center gap-2">
+                  <span class="bg-emerald-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">3</span> 
+                  마지막 관문: [재인증(로그인 연동)] 버튼 누르기
+                </div>
+                <div class="p-5 text-sm text-gray-700 space-y-3">
+                  <p>설정이 저장되었다면 마지막으로 카페24 본진의 승인을 받아야 합니다.</p>
+                  <ol class="list-decimal list-inside space-y-2 ml-2">
+                    <li>키 입력칸 바로 위에 있는 초록색 글씨의 <strong>[카페24 로그인 연동] (또는 [재인증])</strong> 버튼을 클릭합니다.</li>
+                    <li>팝업창으로 카페24 로그인 화면이 뜨면, 쇼핑몰 관리자 아이디/비밀번호를 입력하고 로그인합니다.</li>
+                    <li>권한 허용 창이 나오면 <strong>[동의함]</strong>을 눌러줍니다.</li>
+                    <li>팝업창이 닫히며 <strong>"성공적으로 연동되었습니다"</strong> 메시지가 뜨면 완벽하게 끝났습니다! 🎉</li>
+                    <li class="mt-2 text-emerald-700 font-medium">이제 좌측 [주문 관리] 메뉴로 가셔서 우측 상단의 [쇼핑몰 동기화] 버튼을 누르시면, 방금 연동한 카페24의 주문들이 촤르륵 쏟아져 들어옵니다.</li>
+                  </ol>
+                </div>
               </div>
             </div>
           </div>
 
           <!-- 14-day rule -->
           <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-5 shadow-sm mt-8">
-            <h4 class="font-bold text-emerald-800 mb-2 flex items-center gap-2"><span class="text-xl">🔥</span> 플로라싱크의 14일 토큰 무한 갱신 마법</h4>
+            <h4 class="font-bold text-emerald-800 mb-2 flex items-center gap-2"><span class="text-xl">🔥</span> 플로라싱크의 14일 토큰 무한 갱신 마법 (카페24)</h4>
             <p class="text-sm text-emerald-700 leading-relaxed mb-3">
               보안상 카페24의 열쇠(접근 토큰)는 원래 <strong>2시간마다 만료</strong>됩니다. 플로라싱크가 아닌 다른 프로그램을 쓰신다면, 2시간마다 매번 로그인(재인증)을 새로 해주셔야만 주문이 수집됩니다. <strong>하지만 플로라싱크는 다릅니다.</strong>
             </p>
