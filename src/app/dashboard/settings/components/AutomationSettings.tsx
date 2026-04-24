@@ -70,6 +70,31 @@ export function AutomationSettings({
     }
   };
 
+  const playTestSound = () => {
+    try {
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const playTone = (freq: number, start: number, duration: number) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, start);
+        osc.frequency.exponentialRampToValueAtTime(freq * 0.5, start + duration);
+        gain.gain.setValueAtTime(0.5, start);
+        gain.gain.exponentialRampToValueAtTime(0.01, start + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(start);
+        osc.stop(start + duration);
+      };
+      const now = audioCtx.currentTime;
+      playTone(880, now, 0.4);
+      playTone(660, now + 0.15, 0.5);
+      toast.info("알림음 테스트 중... 🔊");
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   return (
     <div className="space-y-8">
       {/* 0. 실시간 알림 설정 (소리) */}
@@ -90,15 +115,25 @@ export function AutomationSettings({
                 <p className="text-sm text-slate-500">쇼핑몰이나 POS에서 주문이 들어오면 우렁찬 소리로 즉시 알려드립니다.</p>
               </div>
             </div>
-            <div className="flex items-center gap-4 bg-white p-3 rounded-2xl border border-indigo-100 shadow-sm min-w-[140px] justify-between">
-              <div className="flex items-center gap-2">
-                <Volume2 className={cn("h-4 w-4", settings.orderNotificationSound ? "text-indigo-600" : "text-slate-300")} />
-                <span className="text-xs font-bold text-slate-700">{settings.orderNotificationSound ? "ON" : "OFF"}</span>
+            <div className="flex items-center gap-3">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-9 rounded-xl border-indigo-200 text-indigo-600 hover:bg-indigo-50"
+                onClick={playTestSound}
+              >
+                테스트 소리 듣기
+              </Button>
+              <div className="flex items-center gap-4 bg-white p-3 rounded-2xl border border-indigo-100 shadow-sm min-w-[120px] justify-between">
+                <div className="flex items-center gap-2">
+                  <Volume2 className={cn("h-4 w-4", settings.orderNotificationSound ? "text-indigo-600" : "text-slate-300")} />
+                  <span className="text-xs font-bold text-slate-700">{settings.orderNotificationSound ? "ON" : "OFF"}</span>
+                </div>
+                <Switch 
+                  checked={settings.orderNotificationSound !== false}
+                  onCheckedChange={handleToggleSound}
+                />
               </div>
-              <Switch 
-                checked={settings.orderNotificationSound !== false}
-                onCheckedChange={handleToggleSound}
-              />
             </div>
           </div>
           <div className="px-6 pb-4">

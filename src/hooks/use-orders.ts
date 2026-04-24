@@ -145,11 +145,35 @@ export function useOrders(initialFetch = true) {
             
             // Play notification sound if enabled in DB settings
             if (settings.orderNotificationSound !== false) {
-              const audio = new Audio('/sounds/notification.mp3');
-              audio.volume = 0.9; // 조금 더 우렁차게
-              audio.play().catch(err => {
-                console.warn('Notification sound blocked by browser or file missing:', err);
-              });
+              try {
+                const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+                
+                // Play two-tone "ding-dong" sound
+                const playTone = (freq: number, start: number, duration: number) => {
+                  const osc = audioCtx.createOscillator();
+                  const gain = audioCtx.createGain();
+                  
+                  osc.type = 'sine';
+                  osc.frequency.setValueAtTime(freq, start);
+                  osc.frequency.exponentialRampToValueAtTime(freq * 0.5, start + duration);
+                  
+                  gain.gain.setValueAtTime(0.5, start);
+                  gain.gain.exponentialRampToValueAtTime(0.01, start + duration);
+                  
+                  osc.connect(gain);
+                  gain.connect(audioCtx.destination);
+                  
+                  osc.start(start);
+                  osc.stop(start + duration);
+                };
+
+                const now = audioCtx.currentTime;
+                playTone(880, now, 0.4);      // High tone
+                playTone(660, now + 0.15, 0.5); // Slightly lower, overlapping
+                
+              } catch (err) {
+                console.warn('Programmatic notification sound failed:', err);
+              }
             }
 
             setOrders(prev => {
