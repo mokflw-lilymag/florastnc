@@ -19,6 +19,7 @@ export function MallIntegrationCard({ tenantId }: { tenantId: string }) {
   const [isCafeActive, setIsCafeActive] = useState(false);
   const [cafeClientId, setCafeClientId] = useState("");
   const [cafeSecret, setCafeSecret] = useState("");
+  const [cafeMallId, setCafeMallId] = useState("");
 
   useEffect(() => {
     async function loadIntegrations() {
@@ -38,6 +39,7 @@ export function MallIntegrationCard({ tenantId }: { tenantId: string }) {
             setIsCafeActive(integration.is_active);
             setCafeClientId(integration.client_id || "");
             setCafeSecret(integration.client_secret || "");
+            setCafeMallId(integration.mall_id || ""); // 추가된 라인
           }
         });
       }
@@ -50,8 +52,8 @@ export function MallIntegrationCard({ tenantId }: { tenantId: string }) {
     // TODO: 실제로 백엔드 API를 호출하여 유효성을 검증하는 로직 추가
     setTimeout(async () => {
       setIsTesting(false);
-      toast.success(`${platform === 'naver' ? '네이버 스마트스토어' : '카페24'} API 연결에 성공했습니다!`, {
-        description: "이제 새 주문이 자동으로 동기화됩니다.",
+      toast.success(`${platform === 'naver' ? '네이버 스마트스토어' : '카페24'} 설정이 저장되었습니다!`, {
+        description: "권한 인증을 완료해야 실제 수집이 시작됩니다.",
       });
       
       // 데모용: 로컬 스토리지에 저장하거나, 실제로는 Supabase에 upsert 합니다.
@@ -61,7 +63,9 @@ export function MallIntegrationCard({ tenantId }: { tenantId: string }) {
         platform: platform === 'naver' ? 'naver_commerce' : 'cafe24',
         client_id: platform === 'naver' ? naverClientId : cafeClientId,
         client_secret: platform === 'naver' ? naverSecret : cafeSecret,
-        is_active: platform === 'naver' ? isNaverActive : isCafeActive
+        mall_id: platform === 'cafe24' ? cafeMallId : null,
+        is_active: platform === 'naver' ? isNaverActive : isCafeActive,
+        updated_at: new Date().toISOString()
       }, { onConflict: 'shop_id, platform' });
 
     }, 1500);
@@ -154,25 +158,20 @@ export function MallIntegrationCard({ tenantId }: { tenantId: string }) {
                   size="sm"
                   onClick={async (e) => {
                     e.stopPropagation();
-                    try {
-                      const res = await fetch('/api/sync/cafe24', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ tenant_id: tenantId })
-                      });
-                      const data = await res.json();
-                      if (data.success) {
-                        toast.success(data.message || "주문 동기화 성공!");
-                      } else {
-                        toast.error(data.error || "동기화 실패");
-                      }
-                    } catch (err) {
-                      toast.error("서버 통신 오류가 발생했습니다.");
+                    // Cafe24 OAuth Redirect Logic
+                    if (!cafeMallId) {
+                      toast.error("쇼핑몰 아이디(Mall ID)를 입력해주세요.");
+                      return;
                     }
+                    // 카페24 정책상 IP(127.0.0.1) 및 http를 절대 허용하지 않으므로 무조건 floxync.com으로 요청합니다.
+                    const redirectUri = encodeURIComponent(`https://floxync.com/api/sync/cafe24/callback`);
+                    const oauthUrl = `https://${cafeMallId}.cafe24api.com/api/v2/oauth/authorize?response_type=code&client_id=${cafeClientId}&state=${tenantId}&redirect_uri=${redirectUri}&scope=mall.read_order`;
+                    
+                    window.open(oauthUrl, '_blank', 'width=800,height=800');
                   }}
-                  className="h-8 text-xs font-bold border-slate-200 text-slate-600 hover:bg-slate-50 gap-1 rounded-full px-3"
+                  className="h-8 text-xs font-bold border-emerald-200 text-emerald-600 hover:bg-emerald-50 gap-1 rounded-full px-3"
                 >
-                  <RefreshCw className="w-3 h-3" /> 수동 동기화
+                  <KeyRound className="w-3 h-3" /> 카페24 로그인 연동
                 </Button>
               )}
               <Switch 
@@ -183,7 +182,15 @@ export function MallIntegrationCard({ tenantId }: { tenantId: string }) {
           </div>
 
           {isCafeActive && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-white rounded-xl border border-slate-200">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-white rounded-xl border border-slate-200">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-bold text-slate-500 uppercase">쇼핑몰 아이디 (Mall ID)</Label>
+                <Input 
+                  placeholder="예: florasync"
+                  value={cafeMallId}
+                  onChange={e => setCafeMallId(e.target.value)}
+                />
+              </div>
               <div className="space-y-2">
                 <Label className="text-[10px] font-bold text-slate-500 uppercase">Client ID</Label>
                 <Input 

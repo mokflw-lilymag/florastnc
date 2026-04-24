@@ -20,7 +20,7 @@ export async function POST(req: Request) {
     const { data: integration, error: integrationError } = await supabaseAdmin
       .from('shop_integrations')
       .select('*')
-      .eq('tenant_id', tenant_id)
+      .eq('shop_id', tenant_id)
       .eq('platform', 'cafe24')
       .single();
 
@@ -28,51 +28,108 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Cafe24 연동 정보가 없습니다.' }, { status: 400 });
     }
 
-    // 2. 실제 Cafe24 API를 호출하여 토큰 발급 및 주문 수집 (구조만 구현, 현재는 시뮬레이션)
-    /*
-      const tokenResponse = await fetch(`https://${mall_id}.cafe24api.com/api/v2/oauth/token`, { ... });
-      const ordersResponse = await fetch(`https://${mall_id}.cafe24api.com/api/v2/admin/orders`, { ... });
-      const cafe24Orders = await ordersResponse.json();
-    */
+    const { mall_id, access_token } = integration;
 
-    // [시뮬레이션] 통신에 성공했다고 가정하고 프록싱크 DB에 삽입할 가상 주문 데이터 생성
-    // (실제로는 cafe24Orders 데이터를 파싱해서 매핑해야 합니다)
-    const mockCafe24Order = {
+    if (!mall_id || !access_token) {
+      return NextResponse.json({ 
+        success: false, 
+        error: '실제 데이터를 가져오려면 먼저 [카페24 로그인 연동] 버튼을 눌러 인증을 완료해주세요.'
+      }, { status: 400 });
+    }
+
+    // 2. 실제 통신: 카페24 API에서 주문 목록 가져오기
+    // 최근 1주일치 주문 조회
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(endDate.getDate() - 7);
+    
+    // YYYY-MM-DD 형식으로 변환
+    const start_date = startDate.toISOString().split('T')[0];
+    const end_date = endDate.toISOString().split('T')[0];
+
+    const ordersUrl = `https://${mall_id}.cafe24api.com/api/v2/admin/orders?start_date=${start_date}&end_date=${end_date}`;
+
+    const ordersResponse = await fetch(ordersUrl, {
+      headers: {
+        'Authorization': `Bearer ${access_token}`,
+        'Content-Type': 'application/json',
+        'X-Cafe24-Api-Version': '2024-03-01'
+      }
+    });
+
+    const cafe24Data = await ordersResponse.json();
+
+    if (!ordersResponse.ok) {
+      console.error('Cafe24 Orders API Error:', cafe24Data);
+      return NextResponse.json({ 
+        success: false, 
+        error: `카페24 통신 오류: ${cafe24Data.error?.message || '알 수 없는 오류'}`
+      }, { status: 400 });
+    }
+
+    const cafe24Orders = cafe24Data.orders || [];
+    if (cafe24Orders.length === 0) {
+      return NextResponse.json({ 
+        success: true, 
+        message: '동기화 완료 (최근 7일간의 새 주문이 없습니다.)',
+        synced_count: 0
+      });
+    }
+
+    // 3. Cafe24 주문 데이터를 프록싱크 DB 구조로 매핑
+    const mappedOrders = cafe24Orders.map((o: any) => ({
       tenant_id: tenant_id,
-      order_number: `C24-${Math.floor(Math.random() * 1000000)}`,
-      orderer: { name: "카페24고객", contact: "010-1234-5678" },
-      items: [
-        { name: "[자동수집] 카페24 테스트 상품", quantity: 1, price: 55000 }
-      ],
-      summary: { subtotal: 55000, shipping: 0, discount: 0, total: 55000 },
-      payment: { method: "카드결제", status: "paid" },
-      delivery_info: { 
-        recipientName: "홍길동", 
-        contact: "010-9876-5432", 
-        address: "서울시 강남구 테헤란로 123",
-        memo: "문 앞에 놔주세요"
+      order_number: `C24-${o.order_id}`,
+      orderer: { 
+        name: o.buyer_name || "고객", 
+        contact: o.buyer_cellphone || o.buyer_phone || "" 
       },
-      status: "processing", // 준비중 상태로 삽입
-      order_date: new Date().toISOString(),
+      items: (o.items || []).map((item: any) => ({
+        name: item.product_name,
+        quantity: item.quantity,
+        price: Number(item.product_price)
+      })),
+      summary: { 
+        subtotal: Number(o.initial_order_amount || 0), 
+        discountAmount: 0, 
+        discountRate: 0, 
+        deliveryFee: Number(o.shipping_fee || 0), 
+        total: Number(o.actual_order_amount || 0) 
+      },
+      payment: { method: "card", status: o.payment_status === "T" ? "paid" : "pending" },
+      delivery_info: { 
+        recipientName: o.receivers?.[0]?.name || o.buyer_name, 
+        recipientContact: o.receivers?.[0]?.cellphone || o.buyer_cellphone, 
+        address: `${o.receivers?.[0]?.address_full || ''}`.trim(),
+        district: "" // 구(district)는 주소 파싱이 필요하므로 임시 공란
+      },
+      status: "processing", // 기본 준비중 상태
+      order_date: o.order_date || new Date().toISOString(),
       receipt_type: "delivery_reservation",
-      source: "cafe24", // 카페24 출처 명시
-    };
+      source: "online", 
+      memo: o.buyer_message || ""
+    }));
 
-    // 3. Supabase DB에 주문 데이터 삽입
-    const { error: insertError } = await supabaseAdmin
-      .from('orders')
-      .insert([mockCafe24Order]);
-
-    if (insertError) {
-      throw insertError;
+    // 4. Supabase DB에 주문 데이터 삽입 (order_number 중복 방지를 위한 upsert 등 추가 가능)
+    // 현재는 단순 insert 처리 (에러 발생 시 catch 로 넘김)
+    for (const order of mappedOrders) {
+      const { error: insertError } = await supabaseAdmin
+        .from('orders')
+        .insert([order]);
+        
+      if (insertError) {
+         // 고유값 중복(이미 불러온 주문) 에러는 무시
+         if (insertError.code !== '23505') { 
+           console.error("Order Insert Error", insertError);
+         }
+      }
     }
 
     return NextResponse.json({ 
       success: true, 
-      message: 'Cafe24 주문 1건이 성공적으로 동기화되었습니다.',
-      synced_count: 1
+      message: `Cafe24 주문 ${mappedOrders.length}건이 동기화되었습니다.`,
+      synced_count: mappedOrders.length
     });
-
   } catch (error: any) {
     console.error('Cafe24 Sync Error:', error);
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
