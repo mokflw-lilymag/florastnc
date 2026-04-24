@@ -62,6 +62,8 @@ export interface SystemSettings {
   dashboardTickerEnabled: boolean;
   /** true면 사용자가 환경설정에서 전광판을 끔. 미설정/false면 표시(기본). 구버전 false만 있던 저장은 무시하고 표시. */
   hideDashboardTicker?: boolean;
+  /** 새 주문 발생 시 우렁찬 알림음 재생 여부 */
+  orderNotificationSound?: boolean;
 }
 
 export const defaultSettings: SystemSettings = {
@@ -110,6 +112,7 @@ export const defaultSettings: SystemSettings = {
   currency: 'KRW',
   dashboardTickerEnabled: true,
   hideDashboardTicker: false,
+  orderNotificationSound: true,
 };
 
 function mergeTenantGeneralSettings(raw: unknown): SystemSettings {

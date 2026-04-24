@@ -13,7 +13,9 @@ import {
   CheckCircle2,
   Trash2,
   Plus,
-  Coins
+  Coins,
+  Volume2,
+  BellRing
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -57,8 +59,57 @@ export function AutomationSettings({
         return false;
     }
   };
+
+  const handleToggleSound = async (checked: boolean) => {
+    const success = await saveSettings({
+      ...settings,
+      orderNotificationSound: checked
+    });
+    if (success) {
+      toast.success(checked ? "주문 알림음이 활성화되었습니다. 🔔" : "주문 알림음이 비활성화되었습니다.");
+    }
+  };
+
   return (
     <div className="space-y-8">
+      {/* 0. 실시간 알림 설정 (소리) */}
+      <Card className="border-0 shadow-lg ring-1 ring-indigo-200 bg-gradient-to-br from-indigo-50/50 to-white overflow-hidden">
+        <CardContent className="p-0">
+          <div className="flex flex-col md:flex-row items-center justify-between p-6 gap-4">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-indigo-600 rounded-2xl text-white shadow-md shadow-indigo-200">
+                <BellRing className="h-6 w-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                  새 주문 실시간 알림음
+                  {settings.orderNotificationSound && (
+                    <Badge className="bg-emerald-500 hover:bg-emerald-500 animate-pulse">LIVE</Badge>
+                  )}
+                </h3>
+                <p className="text-sm text-slate-500">쇼핑몰이나 POS에서 주문이 들어오면 우렁찬 소리로 즉시 알려드립니다.</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4 bg-white p-3 rounded-2xl border border-indigo-100 shadow-sm min-w-[140px] justify-between">
+              <div className="flex items-center gap-2">
+                <Volume2 className={cn("h-4 w-4", settings.orderNotificationSound ? "text-indigo-600" : "text-slate-300")} />
+                <span className="text-xs font-bold text-slate-700">{settings.orderNotificationSound ? "ON" : "OFF"}</span>
+              </div>
+              <Switch 
+                checked={settings.orderNotificationSound !== false}
+                onCheckedChange={handleToggleSound}
+              />
+            </div>
+          </div>
+          <div className="px-6 pb-4">
+             <div className="text-[11px] text-indigo-400 bg-indigo-50/50 p-2 rounded-lg border border-indigo-100/50 flex items-center gap-2">
+               <Info className="h-3 w-3" />
+               브라우저 정책상 페이지 접속 후 최소 한 번은 화면을 클릭해야 소리가 재생됩니다.
+             </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* 1. POS 연동 (기존 POS 연동 카드) */}
       <PosIntegrationCard 
         posIntegration={posIntegration} 

@@ -1,12 +1,14 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useAuth } from './use-auth';
+import { useSettings } from './use-settings';
 import { Order, OrderData } from '@/types/order';
 import { OrderService } from '@/services/order-service';
 
 export function useOrders(initialFetch = true) {
   const supabase = useMemo(() => createClient(), []);
   const { tenantId, isLoading: authLoading } = useAuth();
+  const { settings } = useSettings();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(initialFetch);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -140,6 +142,16 @@ export function useOrders(initialFetch = true) {
         (payload) => {
           if (payload.eventType === 'INSERT') {
             const mapped = OrderService.mapRowToOrder(payload.new);
+            
+            // Play notification sound if enabled in DB settings
+            if (settings.orderNotificationSound !== false) {
+              const audio = new Audio('/sounds/notification.mp3');
+              audio.volume = 0.9; // 조금 더 우렁차게
+              audio.play().catch(err => {
+                console.warn('Notification sound blocked by browser or file missing:', err);
+              });
+            }
+
             setOrders(prev => {
               if (prev.some(o => o.id === mapped.id)) return prev;
               return [mapped, ...prev];
