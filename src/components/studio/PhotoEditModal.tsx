@@ -20,6 +20,8 @@ import {
   FRAME_DEFS,
 } from '@/lib/photo/filterPresets';
 import { QUICK_BG_COLORS, removeImageBackground } from '@/lib/photo/backgroundRemoval';
+import { usePreferredLocale } from '@/hooks/use-preferred-locale';
+import { getMessages } from '@/i18n/getMessages';
 
 // Dynamic import helper for the heavy AI removal library
 let removeBackgroundFn: any = null;
@@ -152,6 +154,8 @@ const Slider: React.FC<{
 );
 
 export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose }) => {
+  const locale = usePreferredLocale();
+  const D = getMessages(locale).dashboard.designStudio;
   const {
     foldType, setFrontBackgroundUrl, setBackgroundUrl,
     addImageBlock, currentDimension
@@ -902,7 +906,7 @@ export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose 
                         style={{ 
                           filter: `brightness(${transform.brightness}) contrast(${transform.contrast}) saturate(${transform.saturation}) blur(${transform.blur}px) ${isPortraitMode ? 'drop-shadow(0 20px 40px rgba(0,0,0,0.3))' : ''}`
                         }}
-                        alt="Main" 
+                        alt={D.altPhotoEditMain}
                       />
                     )}
 
@@ -925,7 +929,7 @@ export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose 
                           style={{ 
                             filter: `blur(${isPortraitMode ? portraitBlur : 0}px) brightness(${transform.brightness * 0.85}) contrast(${transform.contrast}) saturate(${transform.saturation * 0.75})`
                           }}
-                          alt="BG"
+                          alt={D.altPhotoEditBg}
                         />
                         {/* Intelligent Vignette for Depth */}
                         <div className="absolute inset-0 bg-radial-gradient from-transparent via-transparent to-black/20 -z-9 pointer-events-none" />
@@ -987,7 +991,7 @@ export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose 
                         window.addEventListener('mousemove', move); window.addEventListener('mouseup', up);
                       }}
                     >
-                      <img src={s.url} className="w-full h-auto pointer-events-none block" alt="Sticker"/>
+                      <img src={s.url} className="w-full h-auto pointer-events-none block" alt={D.altStickerOnCanvas}/>
                       
                       {/* Selection UI & Handles */}
                       {selectedStickerId === s.id && (
@@ -1209,7 +1213,7 @@ export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose 
                       </div>
                       <div className="grid grid-cols-4 gap-3 max-h-[220px] overflow-y-auto pr-1 custom-scrollbar">
                         {STICKER_CATEGORIES[stickerCategory as keyof typeof STICKER_CATEGORIES].map(s => (
-                          <button key={s.id} onClick={() => addSticker(s.url)} className="p-1.5 bg-slate-50 rounded-2xl border border-transparent hover:border-rose-300 transition-all hover:scale-110 shadow-sm hover:shadow-md"><img src={s.url} className="w-full h-full" alt="S"/></button>
+                          <button key={s.id} onClick={() => addSticker(s.url)} className="p-1.5 bg-slate-50 rounded-2xl border border-transparent hover:border-rose-300 transition-all hover:scale-110 shadow-sm hover:shadow-md"><img src={s.url} className="w-full h-full" alt={D.altStickerPicker}/></button>
                         ))}
                       </div>
                       <div className="pt-2 border-t border-slate-100">

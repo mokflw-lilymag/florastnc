@@ -5,6 +5,8 @@ import { useSearchParams } from "next/navigation";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import { createClient } from "@/utils/supabase/client";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
 
 function PrintContent() {
   const searchParams = useSearchParams();
@@ -24,6 +26,9 @@ function PrintContent() {
     contact: "02-1234-5678",
     businessNumber: "123-45-67890"
   });
+  const locale = usePreferredLocale();
+  const isKo = toBaseLocale(locale) === "ko";
+  const tr = (ko: string, en: string) => (isKo ? ko : en);
 
   useEffect(() => {
     const ids = searchParams.get("ids")?.split(",") || [];
@@ -145,7 +150,7 @@ function PrintContent() {
     }
   };
 
-  if (loading) return <div className="p-10 text-center">인쇄 대기 중...</div>;
+  if (loading) return <div className="p-10 text-center">{tr("인쇄 대기 중...", "Preparing print...")}</div>;
 
   const flattenedItems = items.flatMap(order => {
     const products = (order.items || []).map((item: any) => ({
@@ -160,7 +165,7 @@ function PrintContent() {
     if (order.summary?.deliveryFee > 0) {
       products.push({
         date: order.order_date,
-        name: "배송비",
+        name: tr("배송비", "Delivery fee"),
         quantity: 1,
         price: order.summary.deliveryFee,
         amount: order.summary.deliveryFee,
@@ -171,7 +176,7 @@ function PrintContent() {
     if (order.summary?.discountAmount > 0) {
       products.push({
         date: order.order_date,
-        name: "할인",
+        name: tr("할인", "Discount"),
         quantity: 1,
         price: -order.summary.discountAmount,
         amount: -order.summary.discountAmount,
@@ -191,12 +196,12 @@ function PrintContent() {
       <div className="flex justify-between items-start border-b-2 border-slate-900 pb-4 mb-8">
         <div>
           <h1 className="text-3xl font-black tracking-tighter mb-1">
-            {type === 'statement' ? '거 래 명 세 서' : type === 'estimate' ? '견 적 서' : '간 이 영 수 증'}
+            {type === 'statement' ? tr('거 래 명 세 서', 'STATEMENT') : type === 'estimate' ? tr('견 적 서', 'ESTIMATE') : tr('간 이 영 수 증', 'RECEIPT')}
           </h1>
         </div>
         <div className="text-right">
           <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">발행일자</p>
-          <p className="text-sm font-black">{format(new Date(), 'yyyy년 MM월 dd일')}</p>
+          <p className="text-sm font-black">{isKo ? format(new Date(), 'yyyy년 MM월 dd일') : format(new Date(), 'yyyy-MM-dd')}</p>
         </div>
       </div>
 
@@ -220,10 +225,10 @@ function PrintContent() {
           </div>
           <p className="text-xs leading-relaxed text-slate-500 italic font-bold">
             {type === 'estimate' 
-              ? '아래와 같이 품목 및 규격에 따른 견적을 제출하오니 검토하여 주시기 바랍니다.'
-              : '아래와 같이 거래 내역을 명세하오니 확인하여 주시기 바랍니다.'
+              ? tr('아래와 같이 품목 및 규격에 따른 견적을 제출하오니 검토하여 주시기 바랍니다.', 'Please review the estimate below by item/spec.')
+              : tr('아래와 같이 거래 내역을 명세하오니 확인하여 주시기 바랍니다.', 'Please review the transaction details below.')
             }<br />
-            항상 저희를 믿고 거래해 주셔서 깊은 감사를 드립니다.
+            {tr("항상 저희를 믿고 거래해 주셔서 깊은 감사를 드립니다.", "Thank you for your trust and business.")}
           </p>
         </div>
         
@@ -318,7 +323,7 @@ function PrintContent() {
 
 export default function PrintPage() {
   return (
-    <Suspense fallback={<div className="p-10 text-center">인쇄 대기 중...</div>}>
+    <Suspense fallback={<div className="p-10 text-center">Preparing print...</div>}>
       <PrintContent />
     </Suspense>
   );

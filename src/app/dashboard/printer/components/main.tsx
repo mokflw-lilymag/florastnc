@@ -6,8 +6,12 @@ import Auth from './Auth'
 import AdminDashboard from './AdminDashboard'
 import { supabase } from './lib/supabase'
 import type { Session } from '@supabase/supabase-js'
+import { usePreferredLocale } from '@/hooks/use-preferred-locale'
+import { getMessages } from '@/i18n/getMessages'
 
 function Root() {
+  const locale = usePreferredLocale()
+  const bootLabel = getMessages(locale).dashboard.ribbon.printerBootLoading
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -58,7 +62,7 @@ function Root() {
       <div className="min-h-screen bg-slate-900 flex items-center justify-center font-sans">
         <div className="animate-pulse flex flex-col items-center">
           <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="mt-4 text-blue-400 font-medium">초기화 중...</p>
+          <p className="mt-4 text-blue-400 font-medium">{bootLabel}</p>
         </div>
       </div>
     );

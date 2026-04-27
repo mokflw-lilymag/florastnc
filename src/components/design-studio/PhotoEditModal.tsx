@@ -20,6 +20,8 @@ import {
   FRAME_DEFS,
 } from '@/lib/photo/filterPresets';
 import { QUICK_BG_COLORS, removeImageBackground } from '@/lib/photo/backgroundRemoval';
+import { usePreferredLocale } from '@/hooks/use-preferred-locale';
+import { getMessages } from '@/i18n/getMessages';
 
 // Dynamic import helper for the heavy AI removal library
 let removeBackgroundFn: any = null;
@@ -71,44 +73,44 @@ const DEFAULT_TRANSFORM: TransformState = {
 };
 
 const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
-  { id: 'enhance', label: '보정', icon: <Sparkles size={18} /> },
-  { id: 'adjust', label: '상세', icon: <Sliders size={18} /> },
-  { id: 'nukkgi', label: '누끼', icon: <Scissors size={18} /> },
-  { id: 'sticker', label: '스티커', icon: <Smile size={18} /> },
-  { id: 'frame', label: '프레임', icon: <ImageIcon size={18} /> },
-  { id: 'crop', label: '자르기', icon: <Scissors size={18} /> },
+  { id: 'enhance', label: 'enhance', icon: <Sparkles size={18} /> },
+  { id: 'adjust', label: 'adjust', icon: <Sliders size={18} /> },
+  { id: 'nukkgi', label: 'cutout', icon: <Scissors size={18} /> },
+  { id: 'sticker', label: 'sticker', icon: <Smile size={18} /> },
+  { id: 'frame', label: 'frame', icon: <ImageIcon size={18} /> },
+  { id: 'crop', label: 'crop', icon: <Scissors size={18} /> },
 ];
 
 const STICKER_CATEGORIES = {
-  '❤️ 사랑': [
+  love: [
     { id: 'h1', url: 'https://api.iconify.design/noto:heart-decoration.svg' },
     { id: 'h2', url: 'https://api.iconify.design/noto:heart-with-arrow.svg' },
     { id: 'h3', url: 'https://api.iconify.design/noto:revolving-hearts.svg' },
     { id: 'h4', url: 'https://api.iconify.design/noto:love-letter.svg' },
     { id: 'h5', url: 'https://api.iconify.design/noto:kiss-mark.svg' },
   ],
-  '🎉 파티': [
+  party: [
     { id: 'p1', url: 'https://api.iconify.design/noto:party-popper.svg' },
     { id: 'p2', url: 'https://api.iconify.design/noto:confetti-ball.svg' },
     { id: 'p3', url: 'https://api.iconify.design/noto:birthday-cake.svg' },
     { id: 'p4', url: 'https://api.iconify.design/noto:balloon.svg' },
     { id: 'p5', url: 'https://api.iconify.design/noto:clinking-glasses.svg' },
   ],
-  '🌸 자연': [
+  nature: [
     { id: 'n1', url: 'https://api.iconify.design/noto:cherry-blossom.svg' },
     { id: 'n2', url: 'https://api.iconify.design/noto:sunflower.svg' },
     { id: 'n3', url: 'https://api.iconify.design/noto:four-leaf-clover.svg' },
     { id: 'n4', url: 'https://api.iconify.design/noto:sun-with-face.svg' },
     { id: 'n5', url: 'https://api.iconify.design/noto:rainbow.svg' },
   ],
-  '✨ 장식': [
+  decor: [
     { id: 'd1', url: 'https://api.iconify.design/noto:star.svg' },
     { id: 'd2', url: 'https://api.iconify.design/noto:sparkles.svg' },
     { id: 'd3', url: 'https://api.iconify.design/noto:ribbon.svg' },
     { id: 'd4', url: 'https://api.iconify.design/noto:gem-stone.svg' },
     { id: 'd5', url: 'https://api.iconify.design/noto:crown.svg' },
   ],
-  '😊 미소': [
+  smile: [
     { id: 'e1', url: 'https://api.iconify.design/noto:smiling-face-with-heart-eyes.svg' },
     { id: 'e2', url: 'https://api.iconify.design/noto:winking-face-with-tongue.svg' },
     { id: 'e3', url: 'https://api.iconify.design/noto:grinning-face-with-star-eyes.svg' },
@@ -152,6 +154,8 @@ const Slider: React.FC<{
 );
 
 export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose }) => {
+  const locale = usePreferredLocale();
+  const D = getMessages(locale).dashboard.designStudio;
   const {
     foldType, setFrontBackgroundUrl, setBackgroundUrl,
     addImageBlock, currentDimension
@@ -184,7 +188,7 @@ export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose 
   const [selectedBgColor, setSelectedBgColor] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>('crop');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [processingMsg, setProcessingMsg] = useState('이미지 처리 중...');
+  const [processingMsg, setProcessingMsg] = useState(D.photoHiResProcessing);
   const [isRemovingBG, setIsRemovingBG] = useState(false);
   const [bgProgress, setBgProgress] = useState(0);
   const [nukkgiDone, setNukkgiDone] = useState(false);
@@ -200,14 +204,30 @@ export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose 
   const [previewSize, setPreviewSize] = useState({ w: 480, h: 360 });
   const [stickers, setStickers] = useState<StickerInstance[]>([]);
   const [selectedStickerId, setSelectedStickerId] = useState<string | null>(null);
-  const [stickerCategory, setStickerCategory] = useState<string>('❤️ 사랑');
+  const [stickerCategory, setStickerCategory] = useState<string>('love');
   const [cropArea, setCropArea] = useState({ x: 10, y: 10, w: 80, h: 80 });
   const [isDrawingCrop, setIsDrawingCrop] = useState(false);
   const [cropStart, setCropStart] = useState({ x: 0, y: 0 });
   const [history, setHistory] = useState<string[]>([]);
-  const [aiPrompt, setAiPrompt] = useState('핑크빛 구름이 떠있는 몽환적인 저녁 노을');
+  const [aiPrompt, setAiPrompt] = useState(D.photoPromptDefault);
   const [isGeneratingBG, setIsGeneratingBG] = useState(false);
   const [aiSceneryUrl, setAiSceneryUrl] = useState<string | null>(null);
+  const tabLabel = (id: TabId) => {
+    if (id === 'enhance') return D.photoTabEnhance;
+    if (id === 'adjust') return D.photoTabAdjust;
+    if (id === 'nukkgi') return D.photoTabCutout;
+    if (id === 'sticker') return D.photoTabSticker;
+    if (id === 'frame') return D.photoTabFrame;
+    return D.photoTabCrop;
+  };
+  const stickerCategoryLabel = (cat: string) => {
+    if (cat === 'love') return D.photoCategoryLove;
+    if (cat === 'party') return D.photoCategoryParty;
+    if (cat === 'nature') return D.photoCategoryNature;
+    if (cat === 'decor') return D.photoCategoryDecor;
+    if (cat === 'smile') return D.photoCategorySmile;
+    return cat;
+  };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const addPhotoInputRef = useRef<HTMLInputElement>(null);
@@ -223,9 +243,9 @@ export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose 
   }, []);
 
   const handleUpload = useCallback(async (file: File) => {
-    if (!file?.type.startsWith('image/')) return alert('이미지 파일만 가능합니다.');
+    if (!file?.type.startsWith('image/')) return alert(D.photoImagesOnly);
     setIsProcessing(true);
-    setProcessingMsg('사진을 불러오는 중...');
+    setProcessingMsg(D.photoLoadPhoto);
     const reader = new FileReader();
     reader.onload = (e) => {
       const dataUrl = e.target?.result as string;
@@ -305,7 +325,7 @@ export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose 
     if (currentUrl) pushHistory(currentUrl);
     setPrevUrl(currentUrl); 
     setIsProcessing(true); 
-    setProcessingMsg('효과 적용 중...');
+    setProcessingMsg(D.photoApplyingEffect);
     setLastEffect(effectId);
     try {
       const result = await applyCanvasEffect(currentUrl, effect.fn);
@@ -316,7 +336,7 @@ export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose 
   const applyCrop = async () => {
     if (!currentUrl || isProcessing) return;
     setIsProcessing(true);
-    setProcessingMsg('사진 자르는 중...');
+    setProcessingMsg(D.photoCropping);
     try {
       const img = await loadImage(currentUrl);
       const imgAspect = img.naturalWidth / img.naturalHeight;
@@ -360,7 +380,7 @@ export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose 
       setNukkgiDone(false); // Reset nukkgi so users can re-apply portrait on new crop
       setCropArea({ x: 10, y: 10, w: 80, h: 80 }); 
     } catch(e) { 
-      alert('사진 영역 안에서 드래그해주세요!');
+      alert(D.photoCropOutside);
     } finally { setIsProcessing(false); }
   };
 
@@ -396,11 +416,11 @@ export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose 
     try {
       const result = await removeImageBackground(currentUrl, (p) => {
         setBgProgress(p);
-        setProcessingMsg(p < 30 ? 'AI 분석 중...' : '배경 제거 중...');
+        setProcessingMsg(p < 30 ? D.photoAiAnalyzing : D.photoRemovingBg);
       });
       setCurrentUrl(result);
       setNukkgiDone(true);
-    } catch { alert('실패했습니다.'); } finally { setIsProcessing(false); }
+    } catch { alert(D.photoGenericFail); } finally { setIsProcessing(false); }
   };
 
   const handleAIRemoveBG = async () => {
@@ -410,7 +430,7 @@ export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose 
     try {
       setIsRemovingBG(true);
       setIsProcessing(true); // Ensure global loading UI is shown
-      setProcessingMsg('AI가 인물을 분석하고 있습니다...');
+      setProcessingMsg(D.photoAiAnalyzingSubject);
       setBgProgress(10); 
       
       const removeBG = await loadAI();
@@ -445,7 +465,7 @@ export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose 
       
     } catch (error) {
       console.error('AI BG Removal failed:', error);
-      alert('AI 배경 제거 중 오류가 발생했습니다. 다른 사진으로 시도해보세요!');
+      alert(D.photoAiErr);
       setIsRemovingBG(false);
       setBgProgress(0);
     }
@@ -494,7 +514,7 @@ export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose 
       contrast: 1.15, 
       saturation: 1.25 
     }));
-    alert('✨ AI 자동 보정이 완료되었습니다!');
+    alert(`✨ ${D.photoAiEnhanceDone}`);
   };
 
   const handlePortraitBlurToggle = () => {
@@ -507,7 +527,7 @@ export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose 
 
   const handleAIGenBackground = async () => {
     if (!nukkgiDone) {
-      alert('배경을 합성하려면 먼저 [누끼따기]를 실행해주세요!');
+      alert(D.photoNeedCutout);
       return;
     }
     
@@ -520,7 +540,7 @@ export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose 
     setAiSceneryUrl(mockGeneratedBg);
     setIsGeneratingBG(false);
     setIsPortraitMode(true); // Automatically enable blur for depth
-    alert('✨ 아티가 당신의 사진을 위해 환상적인 배경을 그렸습니다!');
+    alert(`✨ ${D.photoBgDone}`);
   };
 
   const initEraserCanvas = (imgUrl: string) => {
@@ -597,7 +617,7 @@ export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose 
   const compositeAndApply = async (mode: 'background' | 'block' = 'background') => {
     if (!currentUrl || isProcessing) return;
     setIsProcessing(true);
-    setProcessingMsg('고해상도 이미지 처리 중...');
+    setProcessingMsg(D.photoHiResProcessing ?? 'Processing high-resolution image...');
     try {
       const DPI_FACTOR = 11.811;
       
@@ -727,7 +747,7 @@ export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose 
       onClose();
     } catch (err) { 
       console.error(err);
-      alert('고해상도 카드 생성 중 오류가 발생했습니다.'); 
+      alert(D.photoHiResErr); 
     } finally { 
       setIsProcessing(false); 
     }
@@ -755,18 +775,33 @@ export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose 
           <div className="flex items-center gap-6">
             <div className="w-10 h-10 bg-rose-500 rounded-xl flex items-center justify-center text-white"><Camera size={20}/></div>
             <div>
-              <h2 className="text-base font-black text-gray-900 tracking-tight">아트 레이어 스튜디오</h2>
+              <h2 className="text-base font-black text-gray-900 tracking-tight">{D.photoStudioTitle}</h2>
               <div className="flex items-center gap-2 mt-1">
-                <div className="flex bg-gray-100 p-0.5 rounded-lg w-fit">
-                  <button onClick={() => setOrientation('portrait')} className={`px-2 py-0.5 rounded text-[8px] font-black transition-all ${orientation === 'portrait' ? 'bg-white text-rose-600 shadow-sm' : 'text-gray-400'}`}>세로형</button>
-                  <button onClick={() => setOrientation('landscape')} className={`px-2 py-0.5 rounded text-[8px] font-black transition-all ${orientation === 'landscape' ? 'bg-white text-rose-600 shadow-sm' : 'text-gray-400'}`}>가로형</button>
+                <div className="flex flex-col gap-1">
+                  <div className="flex bg-gray-100 p-0.5 rounded-lg w-fit">
+                    <button
+                      onClick={() => setOrientation('portrait')}
+                      title={D.photoOrientationHint}
+                      className={`px-2 py-0.5 rounded text-[9px] font-black transition-all ${orientation === 'portrait' ? 'bg-white text-rose-600 shadow-sm' : 'text-gray-400'}`}
+                    >
+                      {D.photoCoverPortrait}
+                    </button>
+                    <button
+                      onClick={() => setOrientation('landscape')}
+                      title={D.photoOrientationHint}
+                      className={`px-2 py-0.5 rounded text-[9px] font-black transition-all ${orientation === 'landscape' ? 'bg-white text-rose-600 shadow-sm' : 'text-gray-400'}`}
+                    >
+                      {D.photoCoverLandscape}
+                    </button>
+                  </div>
+                  <p className="text-[9px] text-gray-400 font-bold">{D.photoOrientationHint}</p>
                 </div>
                 <button 
                   onClick={() => fileInputRef.current?.click()} 
                   className="flex items-center gap-1.5 px-2.5 py-1 bg-rose-50 border border-rose-100 rounded-lg text-[9px] font-black text-rose-600 hover:bg-rose-100 transition-all"
                 >
                   <Upload size={12} />
-                  <span>새 사진 불러오기</span>
+                  <span>{D.photoNewImage}</span>
                 </button>
               </div>
             </div>
@@ -776,10 +811,10 @@ export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose 
               <button 
                 onClick={handleUndo} 
                 className="flex items-center gap-1.5 px-3 py-2 bg-gray-50 border border-gray-100 rounded-xl text-[11px] font-black text-gray-600 hover:bg-gray-100 transition-all"
-                title="되돌리기 (최대 3단계)"
+                title={D.photoUndoTitle}
               >
                 <RotateCcw size={14} className="text-rose-500" />
-                <span>되돌리기</span>
+                <span>{D.photoUndo}</span>
                 <span className="w-5 h-5 flex items-center justify-center bg-rose-500 text-white rounded-full text-[9px]">{history.length}</span>
               </button>
             )}
@@ -792,7 +827,7 @@ export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose 
             {!currentUrl ? (
               <div className="w-full max-w-sm aspect-video border-2 border-dashed border-gray-300 rounded-3xl flex flex-col items-center justify-center gap-4 cursor-pointer hover:bg-gray-100 transition-all" onClick={() => fileInputRef.current?.click()}>
                 <Upload size={32} className="text-gray-300"/>
-                <p className="text-xs font-black text-gray-500">편집할 사진을 불러오세요</p>
+                <p className="text-xs font-black text-gray-500">{D.photoNoImage}</p>
               </div>
             ) : (
               <div className="w-full h-full flex flex-col items-center justify-center p-4 relative">
@@ -917,7 +952,7 @@ export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose 
                         style={{ 
                           filter: `brightness(${transform.brightness}) contrast(${transform.contrast}) saturate(${transform.saturation}) blur(${transform.blur}px) ${isPortraitMode ? 'drop-shadow(0 20px 40px rgba(0,0,0,0.3))' : ''}`
                         }}
-                        alt="Main" 
+                        alt={D.altPhotoEditMain} 
                       />
                     )}
 
@@ -940,7 +975,7 @@ export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose 
                           style={{ 
                             filter: `blur(${isPortraitMode ? portraitBlur : 0}px) brightness(${transform.brightness * 0.85}) contrast(${transform.contrast}) saturate(${transform.saturation * 0.75})`
                           }}
-                          alt="BG"
+                          alt={D.altPhotoEditBg}
                         />
                         {/* Intelligent Vignette for Depth */}
                         <div className="absolute inset-0 bg-radial-gradient from-transparent via-transparent to-black/20 -z-9 pointer-events-none" />
@@ -1002,7 +1037,7 @@ export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose 
                         window.addEventListener('mousemove', move); window.addEventListener('mouseup', up);
                       }}
                     >
-                      <img src={s.url} className="w-full h-auto pointer-events-none block" alt="Sticker"/>
+                      <img src={s.url} className="w-full h-auto pointer-events-none block" alt={D.altStickerOnCanvas}/>
                       
                       {/* Selection UI & Handles */}
                       {selectedStickerId === s.id && (
@@ -1066,7 +1101,7 @@ export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose 
                 </div>
                 <div className="mt-6 flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-md rounded-full border border-gray-100 shadow-sm pointer-events-none">
                   <Move size={12} className="text-gray-400" />
-                  <span className="text-[10px] font-black text-gray-400 tracking-tight">드래그로 이동 • 휠로 확대/축소 가능</span>
+                  <span className="text-[10px] font-black text-gray-400 tracking-tight">{D.photoDragHint}</span>
                 </div>
               </div>
             )}
@@ -1074,10 +1109,11 @@ export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose 
 
           {/* Controls */}
           <div className="w-[320px] border-l border-gray-100 flex flex-col bg-white">
-            <div className="flex bg-gray-50 border-b border-gray-100 p-1">
+            <div className="grid grid-cols-3 gap-1.5 bg-gray-50 border-b border-gray-100 p-2">
               {TABS.map(tab => (
-                <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex-1 flex flex-col items-center py-2.5 rounded-lg transition-all ${activeTab === tab.id ? 'bg-white text-rose-500 shadow-sm' : 'text-gray-400'}`}>
-                  {tab.icon}<span className="text-[8px] font-black mt-1 uppercase">{tab.label}</span>
+                <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex flex-col items-center justify-center min-h-[60px] px-1 py-2 rounded-lg transition-all ${activeTab === tab.id ? 'bg-white text-rose-500 shadow-sm' : 'text-gray-500 hover:bg-white/70'}`}>
+                  {tab.icon}
+                  <span className="text-[10px] font-bold mt-1 leading-tight text-center">{tabLabel(tab.id)}</span>
                 </button>
               ))}
             </div>
@@ -1094,27 +1130,27 @@ export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose 
                            className="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-rose-50 to-white border border-rose-100 rounded-3xl hover:border-rose-300 transition-all group shadow-sm"
                          >
                            <span className="text-2xl mb-1 group-hover:scale-110 transition-transform">✨</span>
-                           <span className="text-[12px] font-black text-slate-800">자동 보정</span>
+                          <span className="text-[12px] font-black text-slate-800">{D.photoAutoEnhanceBtn}</span>
                          </button>
                          <button 
                            onClick={handlePortraitBlurToggle}
                            className={`flex flex-col items-center justify-center p-4 border rounded-3xl transition-all group ${isPortraitMode ? 'bg-rose-500 border-rose-600 shadow-lg' : 'bg-white border-slate-100 hover:border-rose-200 shadow-sm'}`}
                          >
                            <span className="text-2xl mb-1 group-hover:scale-110 transition-transform">🌸</span>
-                           <span className={`text-[12px] font-black ${isPortraitMode ? 'text-white' : 'text-slate-800'}`}>인물 사진</span>
+                          <span className={`text-[12px] font-black ${isPortraitMode ? 'text-white' : 'text-slate-800'}`}>{D.photoPortraitBtn}</span>
                          </button>
                        </div>
 
                        <div className="space-y-3">
-                         <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">감성 테마 프리셋</h4>
+                         <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">{D.photoThemePresetTitle}</h4>
                          <div className="grid grid-cols-2 gap-2.5">
                            {[
-                             { id: 'romantic', label: '로맨틱', icon: '🌷', color: 'from-pink-50' },
-                             { id: 'natural', label: '내추럴', icon: '🌿', color: 'from-green-50' },
-                             { id: 'golden', label: '골든', icon: '🌟', color: 'from-amber-50' },
-                             { id: 'bw', label: '흑백', icon: '⬛', color: 'from-slate-50' },
-                             { id: 'warm', label: '따뜻하게', icon: '🌙', color: 'from-orange-50' },
-                             { id: 'cool', label: '차갑게', icon: '❄️', color: 'from-blue-50' }
+                             { id: 'romantic', label: D.photoPresetRomantic, icon: '🌷', color: 'from-pink-50' },
+                             { id: 'natural', label: D.photoPresetNatural, icon: '🌿', color: 'from-green-50' },
+                             { id: 'golden', label: D.photoPresetGolden, icon: '🌟', color: 'from-amber-50' },
+                             { id: 'bw', label: D.photoPresetBw, icon: '⬛', color: 'from-slate-50' },
+                             { id: 'warm', label: D.photoPresetWarm, icon: '🌙', color: 'from-orange-50' },
+                             { id: 'cool', label: D.photoPresetCool, icon: '❄️', color: 'from-blue-50' }
                            ].map(preset => (
                              <button
                                key={preset.id}
@@ -1134,8 +1170,8 @@ export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose 
                          <div className="flex items-center gap-3">
                            <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-xl">🌘</div>
                            <div>
-                             <h5 className="text-[12px] font-bold text-white">비네팅 효과</h5>
-                             <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tight">가장자리 집중 효과</p>
+                            <h5 className="text-[12px] font-bold text-white">{D.photoVignetteTitle}</h5>
+                            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tight">{D.photoVignetteSub}</p>
                            </div>
                          </div>
                          <button 
@@ -1151,17 +1187,17 @@ export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose 
                   {/* --- ADVANCED ADJUST --- */}
                   {activeTab === 'adjust' && (
                     <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2">
-                       <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">정밀 이미지 보정</h3>
+                       <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">{D.photoFineAdjustTitle}</h3>
                        
                        <div className="p-3 bg-slate-50 rounded-2xl space-y-4">
-                         <Slider label="밝기" min={0.4} max={1.6} step={0.01} value={transform.brightness} onChange={v => setTransform(p=>({...p, brightness:v}))} onReset={()=>setTransform(p=>({...p, brightness:1}))} />
-                         <Slider label="대비" min={0.4} max={1.6} step={0.01} value={transform.contrast} onChange={v => setTransform(p=>({...p, contrast:v}))} onReset={()=>setTransform(p=>({...p, contrast:1}))} />
-                         <Slider label="채도" min={0} max={2} step={0.01} value={transform.saturation} onChange={v => setTransform(p=>({...p, saturation:v}))} onReset={()=>setTransform(p=>({...p, saturation:1}))} />
+                         <Slider label={D.photoBrightness} min={0.4} max={1.6} step={0.01} value={transform.brightness} onChange={v => setTransform(p=>({...p, brightness:v}))} onReset={()=>setTransform(p=>({...p, brightness:1}))} />
+                         <Slider label={D.photoContrast} min={0.4} max={1.6} step={0.01} value={transform.contrast} onChange={v => setTransform(p=>({...p, contrast:v}))} onReset={()=>setTransform(p=>({...p, contrast:1}))} />
+                         <Slider label={D.photoSaturation} min={0} max={2} step={0.01} value={transform.saturation} onChange={v => setTransform(p=>({...p, saturation:v}))} onReset={()=>setTransform(p=>({...p, saturation:1}))} />
                          
                          {/* Intelligent Blur Logic: Focus on Background if separated */}
                          {nukkgiDone ? (
                            <Slider 
-                             label="배경 흐림 (Portrait)" 
+                             label={D.photoBgBlurPortrait} 
                              min={0} max={40} step={1} 
                              value={portraitBlur} 
                              display={`${portraitBlur}px`} 
@@ -1173,7 +1209,7 @@ export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose 
                            />
                          ) : (
                            <Slider 
-                             label="전체 소프트 포커스" 
+                             label={D.photoSoftFocusGlobal} 
                              min={0} max={4} step={0.5} 
                              value={transform.blur} 
                              display={`${transform.blur}px`} 
@@ -1184,14 +1220,14 @@ export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose 
                        </div>
 
                        <div className="space-y-3">
-                         <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">배치 및 구도</h3>
+                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">{D.photoLayoutTitle}</h3>
                          <div className="grid grid-cols-2 gap-2">
-                           <button onClick={() => setTransform(p=>({...p, flipH:!p.flipH}))} className="p-3 bg-white border border-slate-100 rounded-2xl text-[11px] font-black flex items-center justify-center gap-2 hover:bg-slate-50 transition-all shadow-sm"><FlipHorizontal size={14}/> 가로반전</button>
-                           <button onClick={() => setTransform(p=>({...p, flipV:!p.flipV}))} className="p-3 bg-white border border-slate-100 rounded-2xl text-[11px] font-black flex items-center justify-center gap-2 hover:bg-slate-50 transition-all shadow-sm"><FlipVertical size={14}/> 세로반전</button>
+                          <button onClick={() => setTransform(p=>({...p, flipH:!p.flipH}))} className="p-3 bg-white border border-slate-100 rounded-2xl text-[11px] font-black flex items-center justify-center gap-2 hover:bg-slate-50 transition-all shadow-sm"><FlipHorizontal size={14}/> {D.photoFlipH}</button>
+                          <button onClick={() => setTransform(p=>({...p, flipV:!p.flipV}))} className="p-3 bg-white border border-slate-100 rounded-2xl text-[11px] font-black flex items-center justify-center gap-2 hover:bg-slate-50 transition-all shadow-sm"><FlipVertical size={14}/> {D.photoFlipV}</button>
                          </div>
                          <div className="p-3 bg-slate-50 rounded-2xl space-y-4">
-                            <Slider label="줌 (Scale)" min={0.1} max={3} step={0.01} value={transform.scale} display={`${Math.round(transform.scale*100)}%`} onChange={v => setTransform(p=>({...p, scale:v}))} onReset={()=>setTransform(p=>({...p, scale:1}))} />
-                            <Slider label="회전 (Angle)" min={-180} max={180} step={1} value={transform.rotation} display={`${transform.rotation}°`} onChange={v => setTransform(p=>({...p, rotation:v}))} onReset={()=>setTransform(p=>({...p, rotation:0}))} />
+                           <Slider label={D.photoZoomScale} min={0.1} max={3} step={0.01} value={transform.scale} display={`${Math.round(transform.scale*100)}%`} onChange={v => setTransform(p=>({...p, scale:v}))} onReset={()=>setTransform(p=>({...p, scale:1}))} />
+                           <Slider label={D.photoRotateAngle} min={-180} max={180} step={1} value={transform.rotation} display={`${transform.rotation}°`} onChange={v => setTransform(p=>({...p, rotation:v}))} onReset={()=>setTransform(p=>({...p, rotation:0}))} />
                          </div>
                        </div>
                     </div>
@@ -1200,16 +1236,16 @@ export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose 
                   {/* --- OTHER TABS --- */}
                   {activeTab === 'crop' && (
                     <div className="space-y-4 animate-in fade-in slide-in-from-left-2">
-                       <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">사진 자르기 도구</h3>
+                       <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">{D.photoCropToolTitle}</h3>
                        <div className="bg-rose-50 p-5 rounded-[32px] border border-rose-100 flex items-start gap-4">
                           <div className="w-10 h-10 bg-rose-500 rounded-full flex items-center justify-center text-white shrink-0 shadow-lg shadow-rose-200"><Scissors size={18}/></div>
                           <div>
-                            <p className="text-[12px] font-black text-rose-600 mb-0.5">드래그해서 선택하세요</p>
-                            <p className="text-[10px] font-bold text-rose-400 leading-tight">마우스로 사진 위를 드래그하면 자를 구역이 지정됩니다.</p>
+                            <p className="text-[12px] font-black text-rose-600 mb-0.5">{D.photoCropDragTitle}</p>
+                            <p className="text-[10px] font-bold text-rose-400 leading-tight">{D.photoCropDragSub}</p>
                           </div>
                        </div>
                        <button onClick={applyCrop} className="group relative w-full py-5 bg-slate-900 text-white rounded-[32px] text-sm font-black hover:bg-black transition-all shadow-xl shadow-gray-200 overflow-hidden mt-4">
-                         <span className="relative z-10 flex items-center justify-center gap-2">선택 영역 자르기 적용 <Check size={18}/></span>
+                         <span className="relative z-10 flex items-center justify-center gap-2">{D.photoApplyCrop} <Check size={18}/></span>
                          <div className="absolute inset-0 bg-gradient-to-r from-rose-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                        </button>
                     </div>
@@ -1219,39 +1255,39 @@ export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose 
                     <div className="space-y-4 animate-in fade-in slide-in-from-right-2">
                       <div className="flex flex-wrap gap-1.5 p-1.5 bg-slate-100 rounded-2xl">
                         {Object.keys(STICKER_CATEGORIES).map(cat => (
-                          <button key={cat} onClick={() => setStickerCategory(cat)} className={`flex-1 px-2 py-2 rounded-xl text-[10px] font-black transition-all ${stickerCategory === cat ? 'bg-white text-rose-500 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>{cat}</button>
+                          <button key={cat} onClick={() => setStickerCategory(cat)} className={`flex-1 px-2 py-2 rounded-xl text-[10px] font-black transition-all ${stickerCategory === cat ? 'bg-white text-rose-500 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>{stickerCategoryLabel(cat)}</button>
                         ))}
                       </div>
                       <div className="grid grid-cols-4 gap-3 max-h-[220px] overflow-y-auto pr-1 custom-scrollbar">
                         {STICKER_CATEGORIES[stickerCategory as keyof typeof STICKER_CATEGORIES].map(s => (
-                          <button key={s.id} onClick={() => addSticker(s.url)} className="p-1.5 bg-slate-50 rounded-2xl border border-transparent hover:border-rose-300 transition-all hover:scale-110 shadow-sm hover:shadow-md"><img src={s.url} className="w-full h-full" alt="S"/></button>
+                          <button key={s.id} onClick={() => addSticker(s.url)} className="p-1.5 bg-slate-50 rounded-2xl border border-transparent hover:border-rose-300 transition-all hover:scale-110 shadow-sm hover:shadow-md"><img src={s.url} className="w-full h-full" alt={D.altStickerPicker}/></button>
                         ))}
                       </div>
                       <div className="pt-2 border-t border-slate-100">
                         <button onClick={() => addPhotoInputRef.current?.click()} className="w-full py-4 bg-rose-50 text-rose-600 rounded-[28px] flex items-center justify-center gap-2 text-[11px] font-black hover:bg-rose-100 transition-all shadow-sm">
-                           <ImageIcon size={16} /> 갤러리에서 사진 레이어 추가
+                           <ImageIcon size={16} /> {D.photoAddGalleryLayer}
                         </button>
                       </div>
                       
                       {selectedStickerId && (
                         <div className="p-5 bg-gradient-to-br from-rose-50 to-white rounded-[32px] space-y-4 border border-rose-100 animate-in zoom-in-95 duration-200 shadow-lg">
                           <div className="text-[10px] font-black text-rose-500 uppercase tracking-widest flex items-center gap-2">
-                             <div className="w-2 h-4 bg-rose-500 rounded-full" /> 스티커 상세 조절
+                             <div className="w-2 h-4 bg-rose-500 rounded-full" /> {D.photoStickerControls}
                           </div>
                           <Slider 
-                            label="크기" min={0.01} max={1.0} step={0.01} 
+                            label={D.photoSize} min={0.01} max={1.0} step={0.01}
                             value={stickers.find(s=>s.id===selectedStickerId)?.scale || 0.2} 
                             display={`${Math.round((stickers.find(s=>s.id===selectedStickerId)?.scale || 0.2) * 100)}%`}
                             onChange={v => updateSticker(selectedStickerId, {scale: v})} 
                           />
                           <Slider 
-                            label="회전" min={-180} max={180} step={1} 
+                            label={D.photoRotation} min={-180} max={180} step={1}
                             value={stickers.find(s=>s.id===selectedStickerId)?.rotation || 0} 
                             display={`${stickers.find(s=>s.id===selectedStickerId)?.rotation || 0}°`}
                             onChange={v => updateSticker(selectedStickerId, {rotation: v})} 
                             onReset={() => updateSticker(selectedStickerId, {rotation: 0})}
                           />
-                          <button onClick={() => removeSticker(selectedStickerId)} className="w-full py-3.5 bg-rose-500 text-white rounded-2xl text-[11px] font-black shadow-xl shadow-rose-200 hover:bg-rose-600 transition-all">이 스티커 삭제</button>
+                          <button onClick={() => removeSticker(selectedStickerId)} className="w-full py-3.5 bg-rose-500 text-white rounded-2xl text-[11px] font-black shadow-xl shadow-rose-200 hover:bg-rose-600 transition-all">{D.photoDeleteSticker}</button>
                         </div>
                       )}
                     </div>
@@ -1259,11 +1295,11 @@ export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose 
 
                   {activeTab === 'frame' && (
                     <div className="grid grid-cols-2 gap-3 animate-in fade-in">
-                       <h3 className="col-span-2 text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">프레임 및 테두리</h3>
+                       <h3 className="col-span-2 text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">{D.photoFrameBorderTitle}</h3>
                       {Object.keys(FRAME_DEFS).map(id => (
                         <button key={id} onClick={() => setActiveFrame(id)} className={`p-4 rounded-3xl border-2 transition-all flex flex-col items-center gap-2 ${activeFrame === id ? 'border-rose-500 bg-rose-50 text-rose-600 shadow-inner' : 'bg-slate-50 border-transparent text-slate-400 hover:border-slate-200 hover:bg-white'}`}>
                           <span className="text-2xl">{FRAME_DEFS[id]?.emoji || '🚫'}</span>
-                          <span className="text-[11px] font-black uppercase tracking-tighter">{FRAME_DEFS[id]?.label || '없음'}</span>
+                          <span className="text-[11px] font-black uppercase tracking-tighter">{FRAME_DEFS[id]?.label || D.photoNone}</span>
                         </button>
                       ))}
                     </div>
@@ -1282,10 +1318,10 @@ export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose 
                       </div>
                       
                       <div>
-                        <h4 className="text-sm font-black text-slate-800">AI 마법 배경 제거</h4>
+                        <h4 className="text-sm font-black text-slate-800">{D.photoAiBgRemoveTitle}</h4>
                         <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">
-                          복잡한 배경도 AI가 클릭 한 번으로<br/>
-                          깔끔하게 지워드립니다.
+                          {D.photoAiBgRemoveLine1}<br/>
+                          {D.photoAiBgRemoveLine2}
                         </p>
                       </div>
                       
@@ -1302,19 +1338,19 @@ export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose 
                           {isRemovingBG ? (
                             <>
                               <Loader2 className="animate-spin" size={20} />
-                              배경 분석 중.. ({Math.floor(bgProgress)}%)
+                              {D.photoAnalyzingBg} ({Math.floor(bgProgress)}%)
                             </>
                           ) : (
                             <>
                               <Wand2 size={20} className="text-rose-400" />
-                              AI 배경 제거 시작
+                              {D.photoStartAiRemove}
                             </>
                           )}
                         </button>
                       ) : (
                         <div className="space-y-3">
                            <div className="py-3 px-4 bg-white border-2 border-green-100 rounded-2xl flex items-center justify-center gap-2 text-[11px] font-black text-green-600">
-                             <Check size={16} /> 배경 제거 완료!
+                             <Check size={16} /> {D.photoBgRemoved}
                            </div>
                            
                            {/* Eraser Toggle */}
@@ -1322,7 +1358,7 @@ export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose 
                              <div className="flex items-center justify-between mb-3">
                                <div className="flex items-center gap-2">
                                  <Scissors className={isEraserMode ? 'text-white' : 'text-rose-500'} size={16} />
-                                 <span className={`text-[12px] font-black ${isEraserMode ? 'text-white' : 'text-slate-700'}`}>수동 지우개 가동</span>
+                                <span className={`text-[12px] font-black ${isEraserMode ? 'text-white' : 'text-slate-700'}`}>{D.photoManualEraser}</span>
                                </div>
                                <button 
                                  onClick={() => {
@@ -1338,7 +1374,7 @@ export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose 
                              {isEraserMode && (
                                <div className="space-y-2 animate-in fade-in zoom-in-95">
                                  <div className="flex justify-between text-[10px] font-bold text-white/80 uppercase">
-                                   <span>지우개 크기</span>
+                                  <span>{D.photoEraserSize}</span>
                                    <span>{eraserSize}px</span>
                                  </div>
                                  <input 
@@ -1346,7 +1382,7 @@ export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose 
                                    onChange={(e) => setEraserSize(Number(e.target.value))}
                                    className="w-full h-1 bg-white/30 rounded-full accent-white cursor-pointer"
                                  />
-                                 <p className="text-[9px] text-white/70 leading-tight">지우고 싶은 잔여물 위를 드래그하세요.</p>
+                                 <p className="text-[9px] text-white/70 leading-tight">{D.photoEraserDragHint}</p>
                                </div>
                              )}
                            </div>
@@ -1355,7 +1391,7 @@ export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose 
                              onClick={() => { setNukkgiDone(false); handleAIRemoveBG(); }}
                              className="w-full py-3 bg-gray-50 text-gray-400 rounded-xl text-[10px] font-bold hover:bg-gray-100 transition-colors"
                            >
-                             AI로 다시 분석하기
+                             {D.photoRerunAi}
                            </button>
                         </div>
                       )}
@@ -1377,18 +1413,18 @@ export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose 
                             <Wand2 size={22} />
                           </div>
                           <div>
-                            <h4 className="text-[13px] font-black text-white">AI 마법 배경 합성</h4>
-                            <p className="text-[9px] text-indigo-400 font-black uppercase tracking-widest">Arty's Special AI Scenery</p>
+                            <h4 className="text-[13px] font-black text-white">{D.photoAiBgCompositeTitle}</h4>
+                            <p className="text-[9px] text-indigo-400 font-black uppercase tracking-widest">{D.photoAiSceneryTagline}</p>
                           </div>
                        </div>
 
                        <div className="bg-white/5 rounded-2xl p-3 border border-white/10 group-focus-within:border-indigo-500/50 transition-colors">
-                          <label className="text-[9px] font-black text-indigo-300 uppercase block mb-2 px-1 tracking-tighter">아티의 배경 추천 프롬프트</label>
+                          <label className="text-[9px] font-black text-indigo-300 uppercase block mb-2 px-1 tracking-tighter">{D.photoPromptLabel}</label>
                           <textarea 
                             value={aiPrompt}
                             onChange={(e) => setAiPrompt(e.target.value)}
                             className="w-full bg-transparent text-white text-[11px] font-bold outline-none resize-none h-16 leading-relaxed custom-scrollbar placeholder:text-slate-600"
-                            placeholder="어떤 배경을 원하시나요?"
+                            placeholder={D.photoPromptPlaceholder}
                           />
                        </div>
 
@@ -1404,17 +1440,17 @@ export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose 
                          {isGeneratingBG ? (
                             <div className="flex items-center gap-2">
                               <Loader2 className="animate-spin" size={18}/>
-                              <span className="animate-pulse">아티가 배경을 그리는 중...</span>
+                              <span className="animate-pulse">{D.photoAiDrawingBg}</span>
                             </div>
                          ) : (
                             <>
                               <Sparkles size={18} className="text-amber-300" />
-                              <span>새로운 AI 세계 합성 시작</span>
+                              <span>{D.photoGenerateAiWorld}</span>
                             </>
                          )}
                        </button>
                        {!nukkgiDone && (
-                          <p className="text-[9px] text-indigo-400/70 text-center font-bold">배경 제거 후에 새로운 배경을 만들 수 있어요!</p>
+                          <p className="text-[9px] text-indigo-400/70 text-center font-bold">{D.photoNeedCutoutHint}</p>
                        )}
                     </div>
                   </div>
@@ -1435,7 +1471,7 @@ export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose 
                 }} 
                 className="w-full py-2 bg-white border border-gray-200 rounded-lg text-[10px] font-bold text-gray-500 hover:bg-white flex items-center justify-center gap-2 transition-all shadow-sm"
                >
-                 <Trash2 size={12} /> 전체 초기화
+                 <Trash2 size={12} /> {D.photoResetAll}
                </button>
               <div className="grid grid-cols-2 gap-3">
                 <button 
@@ -1443,14 +1479,14 @@ export const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose 
                   disabled={!currentUrl || isProcessing} 
                   className="py-4 bg-gray-900 text-white rounded-xl text-xs font-black shadow-lg hover:bg-black transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                 >
-                  <Maximize2 size={14} /> 배경으로 설정
+                  <Maximize2 size={14} /> {D.photoSetBackground}
                 </button>
                 <button 
                   onClick={() => compositeAndApply('block')} 
                   disabled={!currentUrl || isProcessing} 
                   className="py-4 bg-rose-500 text-white rounded-xl text-xs font-black shadow-lg shadow-rose-200 hover:bg-rose-600 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                 >
-                  <Layers size={14} /> 이미지 레이어 추가
+                  <Layers size={14} /> {D.photoAddImageLayer}
                 </button>
               </div>
             </div>

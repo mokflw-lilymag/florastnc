@@ -1,4 +1,8 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { usePreferredLocale } from '@/hooks/use-preferred-locale';
+import { getMessages } from '@/i18n/getMessages';
+import { toBaseLocale } from '@/i18n/config';
+import RIBBON_PHRASE_DESC_EN from '@/i18n/messages/ribbon-phrase-desc-en.json';
 import { toPng } from 'html-to-image';
 import { 
   Printer, 
@@ -36,6 +40,14 @@ import { twMerge } from 'tailwind-merge';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
+}
+
+function fillDashboardTemplate(template: string, vars: Record<string, string | number>): string {
+  let s = template;
+  for (const [key, val] of Object.entries(vars)) {
+    s = s.split(`{{${key}}}`).join(String(val));
+  }
+  return s;
 }
 
 const getRemainingDays = (expiresAt: string | null) => {
@@ -169,7 +181,19 @@ const FONTS: FontItem[] = [
   { value: 'font-bold', name: '블랙한산스 (굵음)', langs: ['ko', 'en', 'sym'], preview: '강렬한 굵은 글씨' },
 ];
 
-function FontSelector({ value, onChange, mode, fonts }: { value: string, onChange: (v: string) => void, mode: FontLang, fonts: FontItem[] }) {
+function FontSelector({
+  value,
+  onChange,
+  mode,
+  fonts,
+  ui,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  mode: FontLang;
+  fonts: FontItem[];
+  ui: { fontSearch: string; fontNotFound: string };
+}) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [hoveredFont, setHoveredFont] = useState<string | null>(null);
@@ -201,13 +225,13 @@ function FontSelector({ value, onChange, mode, fonts }: { value: string, onChang
              <input 
                type="text" 
                className="w-full bg-transparent border-none outline-none p-2.5 text-sm text-slate-900 placeholder:text-slate-400 font-sans" 
-               placeholder="폰트 검색..."
+               placeholder={ui.fontSearch}
                value={search}
                onChange={e => setSearch(e.target.value)}
             />
           </div>
           <div className="max-h-[300px] overflow-y-auto p-1.5 flex flex-col gap-1">
-             {filteredFonts.length === 0 && <div className="py-6 text-center text-sm text-slate-500 font-sans">폰트를 찾을 수 없습니다.</div>}
+             {filteredFonts.length === 0 && <div className="py-6 text-center text-sm text-slate-500 font-sans">{ui.fontNotFound}</div>}
              {filteredFonts.map(f => (
                <button
                  key={f.value}
@@ -242,23 +266,23 @@ function FontSelector({ value, onChange, mode, fonts }: { value: string, onChang
   );
 }
 
-const RIBBON_TYPES = [
-  { id: 'bouquet', name: '꽃다발 38x400mm', width: 38, lace: 5, length: 400, marginTop: 80, marginBottom: 50, fontSize: 30, marginOffset: 53 },
-  { id: 'oriental_45', name: '동양란 45x450mm', width: 45, lace: 7, length: 450, marginTop: 100, marginBottom: 50, fontSize: 35, marginOffset: 57 },
-  { id: 'oriental_50', name: '동양란 50x500mm', width: 50, lace: 10, length: 500, marginTop: 120, marginBottom: 80, fontSize: 40, marginOffset: 60 },
-  { id: 'orchid_55', name: '동/서양란 55x500mm', width: 55, lace: 10, length: 500, marginTop: 120, marginBottom: 80, fontSize: 42, marginOffset: 62 },
-  { id: 'western_60', name: '서양란 60/65x700mm', width: 60, lace: 10, length: 700, marginTop: 150, marginBottom: 100, fontSize: 45, marginOffset: 65 },
-  { id: 'movie_70', name: '영화(중) 70x750mm', width: 70, lace: 10, length: 750, marginTop: 150, marginBottom: 100, fontSize: 55, marginOffset: 70 },
-  { id: 'ribbon_85', name: '리본 85x850mm', width: 85, lace: 10, length: 850, marginTop: 160, marginBottom: 120, fontSize: 65, marginOffset: 76 },
-  { id: 'basket_95', name: '장바구니 95x1000mm', width: 95, lace: 10, length: 1000, marginTop: 180, marginBottom: 130, fontSize: 75, marginOffset: 82 },
-  { id: 'pot_small', name: '화분 소 105/110x1100mm', width: 105, lace: 23, length: 1100, marginTop: 200, marginBottom: 150, fontSize: 80, marginOffset: 87 },
-  { id: 'pot_medium', name: '화분 중 135x1500mm', width: 135, lace: 23, length: 1500, marginTop: 300, marginBottom: 200, fontSize: 100, marginOffset: 102 },
-  { id: 'pot_large', name: '화분 대 150x1800mm', width: 150, lace: 23, length: 1800, marginTop: 350, marginBottom: 350, fontSize: 110, marginOffset: 110 },
-  { id: 'wreath_1', name: '근조 1단 115x1200mm', width: 115, lace: 23, length: 1200, marginTop: 250, marginBottom: 150, fontSize: 90, marginOffset: 92 },
-  { id: 'wreath_2', name: '근조 2단 135x1700mm', width: 135, lace: 23, length: 1700, marginTop: 300, marginBottom: 200, fontSize: 100, marginOffset: 102 },
-  { id: 'wreath_3', name: '근조 3단 165x2200mm', width: 165, lace: 23, length: 2200, marginTop: 400, marginBottom: 300, fontSize: 130, marginOffset: 117 },
-  { id: 'celebration_3', name: '축화 3단 165x2200mm', width: 165, lace: 23, length: 2200, marginTop: 400, marginBottom: 300, fontSize: 130, marginOffset: 117 },
-];
+const RIBBON_SPECS = [
+  { id: 'bouquet', width: 38, lace: 5, length: 400, marginTop: 80, marginBottom: 50, fontSize: 30, marginOffset: 53 },
+  { id: 'oriental_45', width: 45, lace: 7, length: 450, marginTop: 100, marginBottom: 50, fontSize: 35, marginOffset: 57 },
+  { id: 'oriental_50', width: 50, lace: 10, length: 500, marginTop: 120, marginBottom: 80, fontSize: 40, marginOffset: 60 },
+  { id: 'orchid_55', width: 55, lace: 10, length: 500, marginTop: 120, marginBottom: 80, fontSize: 42, marginOffset: 62 },
+  { id: 'western_60', width: 60, lace: 10, length: 700, marginTop: 150, marginBottom: 100, fontSize: 45, marginOffset: 65 },
+  { id: 'movie_70', width: 70, lace: 10, length: 750, marginTop: 150, marginBottom: 100, fontSize: 55, marginOffset: 70 },
+  { id: 'ribbon_85', width: 85, lace: 10, length: 850, marginTop: 160, marginBottom: 120, fontSize: 65, marginOffset: 76 },
+  { id: 'basket_95', width: 95, lace: 10, length: 1000, marginTop: 180, marginBottom: 130, fontSize: 75, marginOffset: 82 },
+  { id: 'pot_small', width: 105, lace: 23, length: 1100, marginTop: 200, marginBottom: 150, fontSize: 80, marginOffset: 87 },
+  { id: 'pot_medium', width: 135, lace: 23, length: 1500, marginTop: 300, marginBottom: 200, fontSize: 100, marginOffset: 102 },
+  { id: 'pot_large', width: 150, lace: 23, length: 1800, marginTop: 350, marginBottom: 350, fontSize: 110, marginOffset: 110 },
+  { id: 'wreath_1', width: 115, lace: 23, length: 1200, marginTop: 250, marginBottom: 150, fontSize: 90, marginOffset: 92 },
+  { id: 'wreath_2', width: 135, lace: 23, length: 1700, marginTop: 300, marginBottom: 200, fontSize: 100, marginOffset: 102 },
+  { id: 'wreath_3', width: 165, lace: 23, length: 2200, marginTop: 400, marginBottom: 300, fontSize: 130, marginOffset: 117 },
+  { id: 'celebration_3', width: 165, lace: 23, length: 2200, marginTop: 400, marginBottom: 300, fontSize: 130, marginOffset: 117 },
+] as const;
 
 const DEFAULT_PHRASE_CATEGORIES = [
   {
@@ -466,12 +490,16 @@ interface RibbonCanvasProps {
   shopLogo?: string | null;
   printLogo?: boolean;
   isBold?: boolean;
+  marginLabelTop?: string;
+  marginLabelBottom?: string;
 }
 
 const RibbonCanvas = ({ 
   text, fontConfig, ratioX, ratioY, width, lace, length, marginTop, marginBottom, 
   rotatedIds, onCharClick, scaleRatio, zoom, spacing, side = 'left', isActive, onClick, isPrintMode = false, marginOffset: _marginOffset = 0,
-  shopLogo = null, printLogo = false, isBold = true
+  shopLogo = null, printLogo = false, isBold = true,
+  marginLabelTop = 'Top margin',
+  marginLabelBottom = 'Bottom margin'
 }: RibbonCanvasProps) => {
   // Parse lines
   const lines = text.split('\n').filter(l => l.trim() !== '');
@@ -539,7 +567,7 @@ const RibbonCanvas = ({
                 bottom: `${0.3/zoom}rem`
               }}
             >
-              상단여백 {marginTop}
+              {marginLabelTop} {marginTop}
             </span>
           </div>
 
@@ -561,7 +589,7 @@ const RibbonCanvas = ({
                 top: `${0.3/zoom}rem`
               }}
             >
-              하단여백 {marginBottom}
+              {marginLabelBottom} {marginBottom}
             </span>
           </div>
         </>
@@ -881,7 +909,59 @@ const RibbonCanvas = ({
 import type { Session } from '@supabase/supabase-js';
 
 const REQUIRED_BRIDGE_VERSION = '25.0';
+
+function fontRibbonSlug(fontValue: string) {
+  return fontValue.replace(/^font-/, '').replace(/-/g, '_');
+}
+
 export default function App({ session, isAdmin, onShowAdmin, initialLeftText, initialRightText, userPlan, tenantLogo }: { session?: any; isAdmin?: boolean; onShowAdmin?: () => void, initialLeftText?: string, initialRightText?: string, userPlan?: string, tenantLogo?: string | null }) {
+  const locale = usePreferredLocale();
+  const baseLocaleUi = toBaseLocale(locale);
+  const R = getMessages(locale).dashboard.ribbon;
+  const ribbonTypesLocalized = useMemo(
+    () =>
+      RIBBON_SPECS.map((s) => ({
+        ...s,
+        name: R[`preset_${s.id}`] ?? s.id,
+      })),
+    [R]
+  );
+  const phraseCategoryLabel = (catName: string) => {
+    const idx = DEFAULT_PHRASE_CATEGORIES.findIndex((c) => c.name === catName);
+    if (idx >= 0) return R[`phraseCat_${idx}`] ?? catName;
+    return catName;
+  };
+  const fontUi = useMemo(() => ({ fontSearch: R.fontSearch, fontNotFound: R.fontNotFound }), [R.fontSearch, R.fontNotFound]);
+
+  const localizedBaseFonts = useMemo(() => {
+    const RM = R as Record<string, string>;
+    return FONTS.map((f) => {
+      const slug = fontRibbonSlug(f.value);
+      const preview =
+        baseLocaleUi === 'ko' ? f.preview : RM[`fontItem_${slug}_preview`] ?? f.preview;
+      return {
+        ...f,
+        name: RM[`fontItem_${slug}_name`] ?? f.name,
+        preview,
+      };
+    });
+  }, [R, baseLocaleUi]);
+
+  const fontWizardLangLabel = (type: FontLang) =>
+    type === 'ko'
+      ? R.ribbonLangKo
+      : type === 'hj'
+        ? R.ribbonLangHan
+        : type === 'en'
+          ? R.ribbonLangLatn
+          : R.ribbonLangSym;
+
+  const phraseDescForUi = (catIndex: number, phraseIndex: number, fallback: string) => {
+    if (baseLocaleUi === 'ko') return fallback;
+    const arr = RIBBON_PHRASE_DESC_EN[String(catIndex) as keyof typeof RIBBON_PHRASE_DESC_EN];
+    return (arr && arr[phraseIndex]) || fallback;
+  };
+
   const mainRef = useRef<HTMLElement>(null);
   const printAreaRef = useRef<HTMLDivElement>(null);
 
@@ -932,7 +1012,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
 
   const checkSubscriptionAction = async (action: () => void) => {
     if (session?.user?.email === 'test@test.com') {
-      alert("🚨 실제 인쇄 및 저장은 개인 계정 가입 후 무료로 이용 가능합니다.\n지금 1분 만에 가입하세요!");
+      alert(R.signupRequired);
       await supabase.auth.signOut();
       return;
     }
@@ -997,6 +1077,17 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
   // User Print Settings
   const [printTarget, setPrintTarget] = useState<'both' | 'left' | 'right'>('both');
   const [printLayout, setPrintLayout] = useState<'connected' | 'separate'>('connected');
+  const previewHeadingText = useMemo(() => {
+    const target =
+      printTarget === "both"
+        ? printLayout === "connected"
+          ? R.previewConnected
+          : R.previewSeparate
+        : printTarget === "left"
+          ? R.congratText
+          : R.senderLabel;
+    return fillDashboardTemplate(R.previewHeading, { target });
+  }, [R, printTarget, printLayout]);
   const [mediaType, setMediaType] = useState<'roll' | 'cut'>('cut');
   const [cuttingMargin, setCuttingMargin] = useState(50); // 커팅 여유분 (mm), 기본 5cm = 50mm
   const [printQuality, setPrintQuality] = useState<'fast' | 'high'>('fast');
@@ -1006,12 +1097,12 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
   const separateRightRef = useRef<HTMLDivElement>(null);
 
   // Specs State
-  const [ribbonType, setRibbonType] = useState(RIBBON_TYPES[0].id);
-  const [length, setLength] = useState(RIBBON_TYPES[0].length);
-  const [width, setWidth] = useState(RIBBON_TYPES[0].width);
-  const [lace, setLace] = useState(RIBBON_TYPES[0].lace);
-  const [marginTop, setMarginTop] = useState(RIBBON_TYPES[0].marginTop);
-  const [marginBottom, setMarginBottom] = useState(RIBBON_TYPES[0].marginBottom);
+  const [ribbonType, setRibbonType] = useState<string>(RIBBON_SPECS[0].id);
+  const [length, setLength] = useState<number>(RIBBON_SPECS[0].length);
+  const [width, setWidth] = useState<number>(RIBBON_SPECS[0].width);
+  const [lace, setLace] = useState<number>(RIBBON_SPECS[0].lace);
+  const [marginTop, setMarginTop] = useState<number>(RIBBON_SPECS[0].marginTop);
+  const [marginBottom, setMarginBottom] = useState<number>(RIBBON_SPECS[0].marginBottom);
   const [marginOffset, setMarginOffset] = useState(0); // 사용자 수동 보정값 (기본 0)
 
   // ─── Sync Printer Type & Invariants ───
@@ -1025,9 +1116,9 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
 
   useEffect(() => {
     if (selectedPrinterType === 'xprinter') {
-      const currentPreset = RIBBON_TYPES.find(t => t.id === ribbonType);
+      const currentPreset = RIBBON_SPECS.find(t => t.id === ribbonType);
       if (currentPreset && currentPreset.width > 105) {
-        const first = RIBBON_TYPES.filter(t => t.width <= 105)[0];
+        const first = RIBBON_SPECS.filter(t => t.width <= 105)[0];
         if (first) {
           setRibbonType(first.id);
           setWidth(first.width);
@@ -1042,8 +1133,8 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
 
   // Xprinter: 최대 인쇄폭 108mm → width ≤ 105mm 프리셋만 표시
   const availablePresets = selectedPrinterType === 'xprinter'
-    ? RIBBON_TYPES.filter(t => t.width <= 105)
-    : RIBBON_TYPES;
+    ? ribbonTypesLocalized.filter(t => t.width <= 105)
+    : ribbonTypesLocalized;
 
   // Left Ribbon State
   const [leftText, setLeftText] = useState(initialLeftText || '祝發展');
@@ -1060,7 +1151,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
   const [leftSpacing, setLeftSpacing] = useState(0); // 0 = auto
 
   // Right Ribbon State
-  const [rightText, setRightText] = useState(initialRightText || '(주)릴리맥플라워랩 [CEO] 홍길동');
+  const [rightText, setRightText] = useState(initialRightText || R.defaultRightText);
   const [rightFontConfig, setRightFontConfig] = useState<FontConfig>({
     ko: 'font-chosun',
     en: 'font-chosun',
@@ -1268,10 +1359,10 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
 
       await Promise.all(updatePromises);
       
-      alert("✅ 로고가 가맹점 정보에 통합 업데이트되었습니다.");
+      alert(R.logoUpdated);
     } catch (err: any) {
       console.error('Logo upload error:', err);
-      alert("로고 업로드 오류: " + err.message);
+      alert(fillDashboardTemplate(R.logoUploadErr, { msg: err.message }));
     }
   };
 
@@ -1333,7 +1424,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
       
       // Helper to process a single ref into a rotated base64 image
       const captureRef = async (ref: React.RefObject<HTMLDivElement | null>, label: string, rotate: boolean = true) => {
-        if (!ref.current) throw new Error(`캡처 영역(${label})을 찾을 수 없습니다.`);
+        if (!ref.current) throw new Error(fillDashboardTemplate(R.captureMissing, { label }));
         console.log(`[Print] Capturing ${label} (rotate=${rotate})...`);
         const captureStart = Date.now();
 
@@ -1392,7 +1483,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
               cutting_margin_mm: selectedPrinterType === 'xprinter' ? cuttingMargin : (mediaType === 'roll' ? cuttingMargin : 0),
               print_quality: printQuality,
               // 모든 프린터(M105, Xprinter) 상관없이 사용자 보정치 값 전달
-              margin_offset_mm: (RIBBON_TYPES.find(r => r.id === ribbonType)?.marginOffset || 0) + marginOffset
+              margin_offset_mm: (RIBBON_SPECS.find(r => r.id === ribbonType)?.marginOffset || 0) + marginOffset
             }),
             signal: controller.signal
           });
@@ -1405,22 +1496,22 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
               console.log(`[Print] ✅ Local print success (${result.method || 'native'})`);
               return; // 성공!
             }
-            throw new Error(result.message || '인쇄 실패');
+            throw new Error(result.message || R.printFail);
           } else {
             throw new Error(`Bridge HTTP ${response.status}`);
           }
         } catch (err: any) {
-          if (err.name === 'AbortError') throw new Error('인쇄 시간이 초과되었습니다 (60초). 프린터 연결을 확인해주세요.');
+          if (err.name === 'AbortError') throw new Error(R.printTimeout);
           console.error(`[Print] Local bridge error: ${err.message}`);
           throw err;
         }
       };
 
       if (printTarget === 'left') {
-        await sendJob([{ref: separateLeftRef, label: '경조사'}], width, length, '경조사');
-        alert("✅ 경조사 인쇄 완료!");
+        await sendJob([{ref: separateLeftRef, label: R.congratText}], width, length, R.congratText);
+        alert(R.printDoneLeft);
       } else if (printTarget === 'right') {
-        await sendJob([{ref: separateRightRef, label: '보내는이'}], width, length, '보내는이');
+        await sendJob([{ref: separateRightRef, label: R.senderLabel}], width, length, R.senderLabel);
       } else {
         // 양쪽 모두 (UI 레이아웃 설정과 무관하게 항상 개별 캡처 후 브릿지에서 병합)
         // [수정] 인쇄 순서 및 회전 반전: 
@@ -1428,24 +1519,24 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
         // 2. 왼쪽 리본 (보내는이): 그 다음 출력, 회전 없음 (정방향)
         // [최종 교정] 인쇄 순서 및 참조(Ref) 매핑 정상화
         await sendJob([
-          {ref: separateLeftRef, label: '경조사', rotate: true},   // 1번 (Y=0): 경조사어 (화면 왼쪽 리본 / TOP / 180도 회전)
-          {ref: separateRightRef, label: '보내는이', rotate: false} // 2번 (Y=Length): 보내는이 (화면 오른쪽 리본 / BOTTOM / 정방향)
-        ], width, length, '양쪽배너통합');
+          {ref: separateLeftRef, label: R.congratText, rotate: true},
+          {ref: separateRightRef, label: R.senderLabel, rotate: false}
+        ], width, length, 'both');
         
         // 작업 추가 후 대기열 열기
         if (typeof setShowQueue === 'function') setShowQueue(true);
-        alert("🚀 인쇄 작업이 대기열에 추가되었습니다. 우측 하단 모니터에서 확인하세요.");
+        alert(R.printQueueAdded);
       }
     } catch (error: any) {
        console.error("[Print] Error:", error);
        
        // 사용자 친화적 에러 메시지
-       let userMessage = error.message || '알 수 없는 오류';
+       let userMessage = error.message || R.printFail;
        if (userMessage.includes('fetch') || userMessage.includes('network')) {
-         userMessage = '프린터 브릿지에 연결할 수 없습니다.\n\n💡 해결방법:\n1. RibbonBridge가 실행 중인지 확인\n2. 방화벽 설정 확인\n3. 프린터가 켜져있는지 확인';
+         userMessage = R.printBridgeHint;
        }
        
-       alert("❌ 인쇄 오류: " + userMessage);
+       alert("❌ " + userMessage);
     } finally {
        setIsPrinting(false);
 
@@ -1468,7 +1559,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
   };
 
   const handleResetBridge = () => {
-    if (confirm("⚠️ 리본 브릿지 설정을 초기화하시겠습니까?\n\n이 작업은 브라우저에 저장된 업데이트 알림 무시 설정 및 기존 프린터 연결 정보를 초기화합니다. (브릿지 프로그램 자체는 삭제되지 않습니다.)")) {
+    if (confirm(R.resetBridgeConfirm)) {
       // 1. Clear LocalStorage keys
       localStorage.removeItem('bridge_update_dismissed');
       localStorage.removeItem('ribbon_bridge_ignore_version');
@@ -1485,7 +1576,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
       // 4. Force Reload Printer List
       loadPrinters();
       
-      alert("✅ 브릿지 설정이 초기화되었습니다. 페이지를 새로고침하여 연결을 다시 시도합니다.");
+      alert(R.resetBridgeDone);
       window.location.reload();
     }
   };
@@ -1497,8 +1588,8 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
       langs: ['ko', 'hj', 'en', 'sym'],
       preview: '祝發展 謹弔'
     }));
-    return [...custom, ...FONTS];
-  }, [customFontItems]);
+    return [...custom, ...localizedBaseFonts];
+  }, [customFontItems, localizedBaseFonts]);
 
   const availableFonts = useMemo(() => {
     return extendedFonts.filter(f => !hiddenFonts.includes(f.value));
@@ -1633,15 +1724,15 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
           <div className="flex items-center justify-between">
             <div className="flex flex-col">
               <h1 className="text-xl font-bold flex items-center gap-2">
-                <img src="/logo.png" alt="Ribbonist Logo" className="w-6 h-6 object-contain" />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-slate-800 to-slate-600">Ribbonist</span>
+                <img src="/logo.png" alt="Floxync" className="w-6 h-6 object-contain" />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-slate-800 to-slate-600">Floxync</span>
               </h1>
-              <span className="text-[8px] text-slate-500 uppercase tracking-widest ml-8 font-medium">Friends of Florist</span>
+              <span className="text-[8px] text-slate-500 uppercase tracking-widest ml-8 font-medium">{R.floristTagline}</span>
             </div>
             <button 
               onClick={() => setIsSidebarOpen(false)}
               className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-slate-900 transition"
-              title="메뉴 닫기"
+              title={R.closeMenu}
             >
               <ChevronLeft size={18} />
             </button>
@@ -1657,7 +1748,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
               <button
                 onClick={onShowAdmin}
                 className="p-1.5 rounded-lg hover:bg-amber-50 text-slate-600 hover:text-amber-800 border border-transparent hover:border-amber-200/80 transition" 
-                title="관리자 대시보드"
+                title={R.adminDashboard}
               >
                 <Shield size={18} />
               </button>
@@ -1667,14 +1758,14 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
                 try { await fetch('http://127.0.0.1:8002/api/queue/clear', { method: 'POST', signal: AbortSignal.timeout(1000) }); } catch(e){}
                 await supabase.auth.signOut();
               }}
-              className="p-1.5 rounded-lg hover:bg-red-50 text-slate-600 hover:text-red-700 border border-transparent hover:border-red-100 transition" title="로그아웃"
+              className="p-1.5 rounded-lg hover:bg-red-50 text-slate-600 hover:text-red-700 border border-transparent hover:border-red-100 transition" title={R.logout}
             >
               <LogOut size={18} />
             </button>
           </div>
         </div>
         <div>
-          <p className="text-[10px] text-slate-500 font-mono">Build 2026.03 (Full-Fit Engine)</p>
+          <p className="text-[10px] text-slate-500 font-mono">{R.buildLabel}</p>
           {session?.user?.email && (
             <p className="text-[10px] text-blue-700 mt-1 truncate font-medium" title={session.user.email}>👤 {session.user.email}</p>
           )}
@@ -1684,7 +1775,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
             className="mt-1 px-2 py-1 rounded-lg text-[9px] font-bold text-center border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all cursor-pointer"
             onClick={() => setIsTroubleshootModalOpen(true)}
           >
-            ⚙️ 브릿지 연결 문제 해결 및 초기화
+            ⚙️ {R.bridgeTroubleshoot}
           </div>
 
           {/* Subscription Badge */}
@@ -1697,10 +1788,10 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
                   : 'bg-red-50 text-red-800 border-red-200'
             }`}>
               {isAdmin
-                ? '🛡️ 관리자 - 모든 기능 가능'
+                ? `🛡️ ${R.adminAllFeatures}`
                 : hasAccess 
-                  ? `✅ 사용 권한 확인됨 (${userPlan || '기본'})`
-                  : '🔓 무료 체험 중 (인쇄 제한)'}
+                  ? `✅ ${fillDashboardTemplate(R.accessOkPlan, { plan: userPlan || 'basic' })}`
+                  : `🔓 ${R.freeTrialPrintLimited}`}
             </div>
           )}
         </div>
@@ -1708,10 +1799,12 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
         {/* 1. 출력 프린터 / 브릿지 상태 (최상단) */}
         <div className="pt-2">
           <div className="flex items-center justify-between mb-2">
-            <label className="text-xs text-slate-700 font-bold uppercase tracking-wider">출력 프린터</label>
+            <label className="text-xs text-slate-700 font-bold uppercase tracking-wider">{R.outputPrinter}</label>
             <div className="flex items-center gap-1.5">
               <div className={cn("w-2 h-2 rounded-full animate-pulse", printers.length > 0 ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" : "bg-red-500")} />
-              <span className="text-[10px] font-bold text-slate-600 uppercase tracking-tighter">Bridge Engine v{bridgeVersion || '?.?'}</span>
+              <span className="text-[10px] font-bold text-slate-600 uppercase tracking-tighter">
+                {fillDashboardTemplate(R.bridgeEngineVersion, { version: bridgeVersion || '?.?' })}
+              </span>
             </div>
           </div>
           <div className="flex gap-2">
@@ -1724,7 +1817,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
               }}
               className="flex-1 p-2 rounded-lg text-sm bg-white border border-slate-200 text-slate-900 outline-none focus:ring-2 focus:ring-blue-500/40"
             >
-              {printers.length === 0 && <option value="">☁️ 매장 기본 프린터로 원격 전송</option>}
+              {printers.length === 0 && <option value="">☁️ {R.remoteDefaultPrinter}</option>}
               {printers.map((p: any) => (
                 <option key={p.name} value={p.name}>
                   {p.type === 'xprinter' ? '🏷️' : p.brand === 'epson' ? '🟢' : p.brand === 'hp' ? '🔵' : '⚪'} {p.name} {p.status === 'Ready' ? '✅' : '⚠️'}
@@ -1738,7 +1831,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
                   .then(res => res.status === 'success' && setPrinters(res.data))
                   .catch(() => setPrinters([])); // Clear on failure
               }}
-              title="프린터 목록 갱신"
+              title={R.refreshPrintersTitle}
               className="p-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-700 transition"
             >
               <RotateCw size={14} className={isPrinting ? "animate-spin" : ""} />
@@ -1764,12 +1857,12 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
         <div className="space-y-4">
           <div>
             <label className="text-xs text-slate-700 block mb-1 font-bold">
-              리본 프리셋 {selectedPrinterType === 'xprinter' && <span className="text-amber-800 text-[10px] ml-1 font-semibold">🏷️ Xprinter (≤105mm)</span>}
+              {R.ribbonPreset} {selectedPrinterType === 'xprinter' && <span className="text-amber-800 text-[10px] ml-1 font-semibold">🏷️ {R.xprinterBadge105}</span>}
             </label>
             <select 
               value={ribbonType} 
               onChange={e => {
-                const presets = selectedPrinterType === 'xprinter' ? availablePresets : RIBBON_TYPES;
+                const presets = selectedPrinterType === 'xprinter' ? availablePresets : ribbonTypesLocalized;
                 const selected = presets.find(t => t.id === e.target.value);
                 if (selected) {
                   setRibbonType(selected.id);
@@ -1787,11 +1880,11 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[10px] text-slate-600 block mb-1 uppercase tracking-tighter font-medium">폭 (Width mm)</label>
+              <label className="text-[10px] text-slate-600 block mb-1 uppercase tracking-tighter font-medium">{R.widthMm}</label>
               <input type="number" value={width} onChange={e => setWidth(Number(e.target.value))} className="w-full p-2.5 rounded-lg text-sm text-center font-bold font-mono bg-white border border-slate-200 text-slate-900" />
             </div>
             <div>
-              <label className="text-[10px] text-slate-600 block mb-1 uppercase tracking-tighter font-medium">길이 (Length mm)</label>
+              <label className="text-[10px] text-slate-600 block mb-1 uppercase tracking-tighter font-medium">{R.lengthMm}</label>
               <input type="number" value={length} onChange={e => setLength(Number(e.target.value))} className="w-full p-2.5 rounded-lg text-sm text-center font-bold font-mono bg-white border border-slate-200 text-slate-900" />
             </div>
           </div>
@@ -1802,16 +1895,16 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
         {/* 3. 상단 하단 레이스 */}
         <div className="grid grid-cols-3 gap-3">
           <div>
-            <label className="text-[10px] text-slate-600 block mb-1 font-bold">상단여백</label>
-            <input type="number" value={marginTop} onChange={e => setMarginTop(Number(e.target.value))} className="w-full p-2 rounded-lg text-sm text-center font-mono bg-white border border-slate-200 text-slate-900" title="헤드 시작점부터 글자까지 (mm)" />
+            <label className="text-[10px] text-slate-600 block mb-1 font-bold">{R.topMargin}</label>
+            <input type="number" value={marginTop} onChange={e => setMarginTop(Number(e.target.value))} className="w-full p-2 rounded-lg text-sm text-center font-mono bg-white border border-slate-200 text-slate-900" title={R.topMarginTitle} />
           </div>
           <div>
-            <label className="text-[10px] text-slate-600 block mb-1 font-bold">하단여백</label>
-            <input type="number" value={marginBottom} onChange={e => setMarginBottom(Number(e.target.value))} className="w-full p-2 rounded-lg text-sm text-center font-mono bg-white border border-slate-200 text-slate-900" title="글자 끝부터 다음 용지까지 (mm)" />
+            <label className="text-[10px] text-slate-600 block mb-1 font-bold">{R.bottomMargin}</label>
+            <input type="number" value={marginBottom} onChange={e => setMarginBottom(Number(e.target.value))} className="w-full p-2 rounded-lg text-sm text-center font-mono bg-white border border-slate-200 text-slate-900" title={R.bottomMarginTitle} />
           </div>
           <div>
-            <label className="text-[10px] text-slate-600 block mb-1 font-bold">양쪽레이스</label>
-            <input type="number" value={lace} onChange={e => setLace(Number(e.target.value))} className="w-full p-2 rounded-lg text-sm text-center font-mono bg-white border border-slate-200 text-slate-900" title="리본 양 끝 여백 (mm)" />
+            <label className="text-[10px] text-slate-600 block mb-1 font-bold">{R.sideLace}</label>
+            <input type="number" value={lace} onChange={e => setLace(Number(e.target.value))} className="w-full p-2 rounded-lg text-sm text-center font-mono bg-white border border-slate-200 text-slate-900" title={R.sideLaceTitle} />
           </div>
         </div>
 
@@ -1819,14 +1912,14 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
         <div className="pt-1">
           <div className="flex items-center justify-between mb-1">
             <label className="text-xs text-slate-700 font-bold flex items-center gap-1">
-              ↔️ 수평(좌우) 보정 <span className="text-[10px] text-slate-500 uppercase font-normal">(Micro-Adjustment)</span>
+              ↔️ {R.horizAdjust} <span className="text-[10px] text-slate-500 uppercase font-normal">{R.microAdjust}</span>
             </label>
             <span className={cn("text-xs font-mono font-bold", marginOffset === 0 ? "text-slate-500" : "text-blue-700")}>
               {marginOffset > 0 ? `+${marginOffset}` : marginOffset}mm
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] text-slate-500">L</span>
+            <span className="text-[10px] text-slate-500">{R.leftShort}</span>
             <input 
               type="range" 
               min="-2" max="2" step="0.5" 
@@ -1834,7 +1927,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
               onChange={e => setMarginOffset(Number(e.target.value))}
               className="flex-1 accent-blue-500"
             />
-            <span className="text-[10px] text-slate-500">R</span>
+            <span className="text-[10px] text-slate-500">{R.rightShort}</span>
           </div>
         </div>
 
@@ -1843,20 +1936,20 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
         {/* 5. 인쇄 대상 & 용지 옵션 (커팅, 롤리본, 고속) */}
         <div className="space-y-3">
           <div>
-            <label className="text-xs text-slate-700 block mb-2 font-bold uppercase">인쇄 대상</label>
+            <label className="text-xs text-slate-700 block mb-2 font-bold uppercase">{R.printTarget}</label>
             <div className="grid grid-cols-3 gap-2">
                <button 
                 onClick={() => setPrintTarget('both')}
                 className={cn("p-2 rounded-lg text-xs font-bold transition border", printTarget === 'both' ? "bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/20" : "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200/80")}
-               >양쪽 모두</button>
+               >{R.bothSides}</button>
                <button 
                 onClick={() => setPrintTarget('left')}
                 className={cn("p-2 rounded-lg text-xs font-bold transition border", printTarget === 'left' ? "bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/20" : "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200/80")}
-               >경조사어</button>
+               >{R.congratText}</button>
                <button 
                 onClick={() => setPrintTarget('right')}
                 className={cn("p-2 rounded-lg text-xs font-bold transition border", printTarget === 'right' ? "bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/20" : "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200/80")}
-               >보내는이</button>
+               >{R.senderLabel}</button>
             </div>
           </div>
 
@@ -1866,7 +1959,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
                onChange={e => {
                  const v = e.target.value as 'roll' | 'cut';
                  if (v === 'roll') {
-                   alert('🔧 롤리본 정밀 제어 기능은 현재 개발 중입니다.\n컷 리본 모드를 사용해 주세요.');
+                   alert(`🔧 ${R.rollRibbonAlert}`);
                    setMediaType('cut');
                  } else {
                    setMediaType(v);
@@ -1874,16 +1967,16 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
                }}
                className="p-2 rounded-lg text-xs font-bold bg-white border border-slate-200 text-slate-800 outline-none focus:ring-2 focus:ring-blue-500/30"
              >
-               <option value="cut">📄 컷 리본</option>
-               <option value="roll">🔄 롤 리본 (개발중)</option>
+               <option value="cut">📄 {R.cutRibbon}</option>
+               <option value="roll">🔄 {R.rollRibbonDev}</option>
              </select>
              <select 
                value={printQuality} 
                onChange={e => setPrintQuality(e.target.value as any)}
                className="p-2 rounded-lg text-xs font-bold bg-white border border-slate-200 text-slate-800 outline-none focus:ring-2 focus:ring-blue-500/30"
              >
-               <option value="fast">⚡ 고속 인쇄</option>
-               <option value="high">💎 고급(저속)</option>
+               <option value="fast">⚡ {R.fastPrint}</option>
+               <option value="high">💎 {R.highQuality}</option>
              </select>
              {mediaType === 'roll' ? (
                <select 
@@ -1892,11 +1985,11 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
                  className="p-2 rounded-lg text-xs font-bold bg-white border border-slate-200 text-blue-800 outline-none focus:ring-2 focus:ring-blue-500/30"
                >
                  {[1,2,3,4,5,6,7,8,9,10].map(cm => (
-                   <option key={cm} value={cm * 10}>✂️ {cm}cm 커팅</option>
+                   <option key={cm} value={cm * 10}>{fillDashboardTemplate(R.cuttingCm, { n: cm })}</option>
                  ))}
                </select>
              ) : (
-               <div className="p-2 rounded-lg text-xs bg-slate-100 border border-slate-200 text-slate-500 flex items-center justify-center italic">커팅 NO</div>
+               <div className="p-2 rounded-lg text-xs bg-slate-100 border border-slate-200 text-slate-500 flex items-center justify-center italic">{R.cuttingNo}</div>
              )}
           </div>
         </div>
@@ -1906,40 +1999,40 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
         {/* 6. 좌측 리본 (경조사) */}
         <div className="space-y-2">
           <div className="flex items-center justify-between text-slate-800 font-semibold mb-1 border-b border-slate-200 pb-2">
-            <div className="flex items-center gap-2"><Type size={16} className="text-blue-600" /> 좌측 리본 (경조사)</div>
+            <div className="flex items-center gap-2"><Type size={16} className="text-blue-600" /> {R.leftRibbon}</div>
             <div className="flex items-center gap-1">
-              <button onClick={() => handleRotateAll('left')} className="hover:bg-slate-100 p-1 rounded text-slate-600 hover:text-slate-900 border border-transparent hover:border-slate-200" title="90도 회전"><RotateCw size={14} /></button>
-              <button onClick={() => setActiveSide('left')} className={cn("text-[10px] px-2 py-0.5 rounded font-bold ml-1 border", activeSide === 'left' ? "bg-blue-600 text-white border-blue-600" : "bg-slate-100 text-slate-600 border-slate-200")}>ACTIVE</button>
+              <button onClick={() => handleRotateAll('left')} className="hover:bg-slate-100 p-1 rounded text-slate-600 hover:text-slate-900 border border-transparent hover:border-slate-200" title={R.rotate90}><RotateCw size={14} /></button>
+              <button onClick={() => setActiveSide('left')} className={cn("text-[10px] px-2 py-0.5 rounded font-bold ml-1 border", activeSide === 'left' ? "bg-blue-600 text-white border-blue-600" : "bg-slate-100 text-slate-600 border-slate-200")}>{R.activeLabel}</button>
             </div>
           </div>
           <input 
             type="text" value={leftText} 
             onChange={e => setLeftText(e.target.value)} onFocus={() => setActiveSide('left')}
             translate="no"
-            className="w-full p-2.5 rounded-xl text-sm font-semibold bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500/35 outline-none notranslate" placeholder="내용 입력"
+            className="w-full p-2.5 rounded-xl text-sm font-semibold bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500/35 outline-none notranslate" placeholder={R.contentPlaceholder}
           />
           <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-blue-800">폰트 마법사</span>
+              <span className="text-[11px] font-bold text-blue-800">{R.fontWizard}</span>
               <div className="flex gap-1 items-center">
-                <button onClick={() => setLeftIsBold(!leftIsBold)} className={cn("text-[10px] px-2 py-0.5 rounded font-bold mr-1 border", leftIsBold ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-600 border-slate-200")} title="굵게 (Bold)">
+                <button onClick={() => setLeftIsBold(!leftIsBold)} className={cn("text-[10px] px-2 py-0.5 rounded font-bold mr-1 border", leftIsBold ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-600 border-slate-200")} title={R.boldTitle}>
                   B
                 </button>
                 {(['ko', 'hj', 'en', 'sym'] as const).map(type => (
                   <button key={type} onClick={() => setFontWizardMode(type)} className={cn("text-[10px] px-1.5 py-0.5 rounded border", fontWizardMode === type ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-600 border-slate-200")}>
-                    {type === 'ko' ? '한' : type === 'hj' ? '漢' : type === 'en' ? 'A' : '★'}
+                    {fontWizardLangLabel(type)}
                   </button>
                 ))}
               </div>
             </div>
-            <FontSelector value={leftFontConfig[fontWizardMode]} onChange={val => setLeftFontConfig(prev => ({ ...prev, [fontWizardMode]: val }))} mode={fontWizardMode} fonts={availableFonts} />
+            <FontSelector value={leftFontConfig[fontWizardMode]} onChange={val => setLeftFontConfig(prev => ({ ...prev, [fontWizardMode]: val }))} mode={fontWizardMode} fonts={availableFonts} ui={fontUi} />
             <div className="grid grid-cols-2 gap-2">
                <div className="flex bg-white rounded-lg overflow-hidden border border-slate-200">
-                  <span className="bg-slate-100 text-[9px] text-slate-600 px-1.5 flex items-center font-medium">가로%</span>
+                  <span className="bg-slate-100 text-[9px] text-slate-600 px-1.5 flex items-center font-medium">{R.ratioW}</span>
                   <input type="number" value={leftRatioX} onChange={e => setLeftRatioX(Number(e.target.value))} className="w-full p-1.5 text-xs text-center font-mono bg-transparent text-slate-900" />
                </div>
                <div className="flex bg-white rounded-lg overflow-hidden border border-slate-200">
-                  <span className="bg-slate-100 text-[9px] text-slate-600 px-1.5 flex items-center font-medium">세로%</span>
+                  <span className="bg-slate-100 text-[9px] text-slate-600 px-1.5 flex items-center font-medium">{R.ratioH}</span>
                   <input type="number" value={leftRatioY} onChange={e => setLeftRatioY(Number(e.target.value))} className="w-full p-1.5 text-xs text-center font-mono bg-transparent text-slate-900" />
                </div>
             </div>
@@ -1949,40 +2042,40 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
         {/* 7. 우측 리본 (보내는이) */}
         <div className="space-y-2 mt-4">
           <div className="flex items-center justify-between text-slate-800 font-semibold mb-1 border-b border-slate-200 pb-2">
-            <div className="flex items-center gap-2"><Type size={16} className="text-emerald-600" /> 우측 리본 (보내는이)</div>
+            <div className="flex items-center gap-2"><Type size={16} className="text-emerald-600" /> {R.rightRibbon}</div>
             <div className="flex items-center gap-1">
-              <button onClick={() => handleRotateAll('right')} className="hover:bg-slate-100 p-1 rounded text-slate-600 hover:text-slate-900 border border-transparent hover:border-slate-200" title="90도 회전"><RotateCw size={14} /></button>
-              <button onClick={() => setActiveSide('right')} className={cn("text-[10px] px-2 py-0.5 rounded font-bold ml-1 border", activeSide === 'right' ? "bg-emerald-600 text-white border-emerald-600" : "bg-slate-100 text-slate-600 border-slate-200")}>ACTIVE</button>
+              <button onClick={() => handleRotateAll('right')} className="hover:bg-slate-100 p-1 rounded text-slate-600 hover:text-slate-900 border border-transparent hover:border-slate-200" title={R.rotate90}><RotateCw size={14} /></button>
+              <button onClick={() => setActiveSide('right')} className={cn("text-[10px] px-2 py-0.5 rounded font-bold ml-1 border", activeSide === 'right' ? "bg-emerald-600 text-white border-emerald-600" : "bg-slate-100 text-slate-600 border-slate-200")}>{R.activeLabel}</button>
             </div>
           </div>
           <input 
             type="text" value={rightText} 
             onChange={e => setRightText(e.target.value)} onFocus={() => setActiveSide('right')}
             translate="no"
-            className="w-full p-2.5 rounded-xl text-sm font-semibold bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500/35 outline-none notranslate" placeholder="내용 입력"
+            className="w-full p-2.5 rounded-xl text-sm font-semibold bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500/35 outline-none notranslate" placeholder={R.contentPlaceholder}
           />
           <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 flex flex-col gap-3">
              <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-emerald-800">폰트 마법사</span>
+              <span className="text-[11px] font-bold text-emerald-800">{R.fontWizard}</span>
               <div className="flex gap-1 items-center">
-                <button onClick={() => setRightIsBold(!rightIsBold)} className={cn("text-[10px] px-2 py-0.5 rounded font-bold mr-1 border", rightIsBold ? "bg-emerald-600 text-white border-emerald-600" : "bg-white text-slate-600 border-slate-200")} title="굵게 (Bold)">
+                <button onClick={() => setRightIsBold(!rightIsBold)} className={cn("text-[10px] px-2 py-0.5 rounded font-bold mr-1 border", rightIsBold ? "bg-emerald-600 text-white border-emerald-600" : "bg-white text-slate-600 border-slate-200")} title={R.boldTitle}>
                   B
                 </button>
                 {(['ko', 'hj', 'en', 'sym'] as const).map(type => (
                   <button key={type} onClick={() => setFontWizardModeRight(type)} className={cn("text-[10px] px-1.5 py-0.5 rounded border", fontWizardModeRight === type ? "bg-emerald-600 text-white border-emerald-600" : "bg-white text-slate-600 border-slate-200")}>
-                    {type === 'ko' ? '한' : type === 'hj' ? '漢' : type === 'en' ? 'A' : '★'}
+                    {fontWizardLangLabel(type)}
                   </button>
                 ))}
               </div>
             </div>
-            <FontSelector value={rightFontConfig[fontWizardModeRight]} onChange={val => setRightFontConfig(prev => ({ ...prev, [fontWizardModeRight]: val }))} mode={fontWizardModeRight} fonts={availableFonts} />
+            <FontSelector value={rightFontConfig[fontWizardModeRight]} onChange={val => setRightFontConfig(prev => ({ ...prev, [fontWizardModeRight]: val }))} mode={fontWizardModeRight} fonts={availableFonts} ui={fontUi} />
             <div className="grid grid-cols-2 gap-2">
                <div className="flex bg-white rounded-lg overflow-hidden border border-slate-200">
-                  <span className="bg-slate-100 text-[9px] text-slate-600 px-1.5 flex items-center font-medium">가로%</span>
+                  <span className="bg-slate-100 text-[9px] text-slate-600 px-1.5 flex items-center font-medium">{R.ratioW}</span>
                   <input type="number" value={rightRatioX} onChange={e => setRightRatioX(Number(e.target.value))} className="w-full p-1.5 text-xs text-center font-mono bg-transparent text-slate-900" />
                </div>
                <div className="flex bg-white rounded-lg overflow-hidden border border-slate-200">
-                  <span className="bg-slate-100 text-[9px] text-slate-600 px-1.5 flex items-center font-medium">세로%</span>
+                  <span className="bg-slate-100 text-[9px] text-slate-600 px-1.5 flex items-center font-medium">{R.ratioH}</span>
                   <input type="number" value={rightRatioY} onChange={e => setRightRatioY(Number(e.target.value))} className="w-full p-1.5 text-xs text-center font-mono bg-transparent text-slate-900" />
                </div>
             </div>
@@ -1995,18 +2088,18 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
         <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
           <div className="flex items-center justify-between mb-2 pb-2 border-b border-slate-200">
              <div className="flex items-center gap-2">
-               <h3 className="text-xs font-bold text-slate-800">자주 쓰는 문구</h3>
+               <h3 className="text-xs font-bold text-slate-800">{R.frequentPhrases}</h3>
                <button onClick={() => setIsPhraseManagerOpen(true)} className="p-1 hover:bg-white rounded text-slate-600 border border-transparent hover:border-slate-200"><Settings size={14} /></button>
              </div>
              <select value={phraseCategory} onChange={e => setPhraseCategory(Number(e.target.value))} className="bg-white border border-slate-200 text-[10px] rounded px-2 py-1 text-slate-800 outline-none">
-               {phraseCategories.map((cat, idx) => <option key={idx} value={idx}>{cat.name.split(' ')[1] || cat.name}</option>)}
+               {phraseCategories.map((cat, idx) => <option key={idx} value={idx}>{phraseCategoryLabel(cat.name)}</option>)}
              </select>
           </div>
           <div className="grid grid-cols-2 gap-1.5 max-h-40 overflow-y-auto pr-1 notranslate" translate="no">
             {phraseCategories[phraseCategory]?.phrases.map((item, idx) => (
                <button key={idx} onClick={() => { if (activeSide === 'left') setLeftText(item.text); else setRightText(item.text); }} className="bg-white hover:bg-blue-50 border border-slate-200 hover:border-blue-300 rounded-lg p-2 text-center transition-all group">
                  <span className="text-[11px] font-semibold text-slate-900 block truncate group-hover:text-blue-900">{item.text}</span>
-                 <span className="text-[9px] text-slate-600 truncate">{item.desc}</span>
+                 <span className="text-[9px] text-slate-600 truncate">{phraseDescForUi(phraseCategory, idx, item.desc)}</span>
                </button>
             ))}
           </div>
@@ -2014,7 +2107,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
 
         {/* 10. 특수 기호 */}
         <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 mt-4">
-          <h3 className="text-xs font-bold text-slate-800 mb-2">특수 기호</h3>
+          <h3 className="text-xs font-bold text-slate-800 mb-2">{R.specialSymbols}</h3>
           <div className="grid grid-cols-6 gap-1 notranslate" translate="no">
             {SYMBOL_BANK.map(sym => (
                <button key={sym} onClick={() => insertSymbol(sym)} className="bg-white hover:bg-slate-900 border border-slate-200 hover:border-slate-900 rounded py-1.5 text-xs text-slate-800 hover:text-white transition-colors font-medium">
@@ -2027,18 +2120,18 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
         {/* 10. 매장 로고 (Final Section) */}
         <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 mt-4 mb-20">
           <div className="flex items-center justify-between mb-2">
-            <label className="text-xs text-slate-800 font-bold flex items-center gap-1.5">🏪 내 점포 로고</label>
+            <label className="text-xs text-slate-800 font-bold flex items-center gap-1.5">🏪 {R.shopLogo}</label>
             <div className="flex items-center gap-2">
               {shopLogo && <button 
                    onClick={async () => {
                      setShopLogo(null);
                      setPrintLogo(false);
                      await supabase.auth.updateUser({ data: { shop_logo: "" } });
-                     alert("로고가 서버에서 완전히 삭제되었습니다.");
+                     alert(R.logoDeletedFromServer);
                    }} 
                    className="text-[10px] text-red-500 font-bold hover:text-red-400"
                  >
-                   삭제
+                   {R.deleteLogo}
                  </button>}
               <label className="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" className="sr-only peer" checked={printLogo} onChange={e => setPrintLogo(e.target.checked)} disabled={!shopLogo} />
@@ -2048,7 +2141,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
           </div>
           {!shopLogo ? (
             <label className="flex items-center justify-center w-full p-3 border-2 border-dashed border-slate-300 rounded-xl cursor-pointer hover:bg-white transition text-slate-600 hover:text-slate-900">
-              <span className="text-xs flex flex-col items-center gap-1"><Upload size={18}/> 로고 등록</span>
+              <span className="text-xs flex flex-col items-center gap-1"><Upload size={18}/> {R.registerLogo}</span>
               <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
             </label>
           ) : (
@@ -2065,7 +2158,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
             className="w-full flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 px-4 rounded-xl shadow-md border border-slate-700 transition-all hover:scale-[1.01] active:scale-[0.99]"
           >
             <BookOpen size={18} />
-            Ribbonist 초보자 매뉴얼
+            {R.beginnerManual}
           </button>
         </div>
 
@@ -2073,16 +2166,16 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
         <div className="mb-10 w-full select-none">
           <div className="bg-white border border-slate-200 p-3.5 rounded-xl border-l-4 border-l-blue-600 flex flex-col gap-1 shadow-sm">
             <h3 className="text-xs font-bold text-slate-800 flex items-center gap-1.5 mb-1">
-              🎧 고객센터 & QnA 핫라인
+              🎧 {R.supportTitle}
             </h3>
-            <p className="text-[10px] text-slate-600">장애 및 구독 관련 언제든 문의주세요.</p>
+            <p className="text-[10px] text-slate-600">{R.supportBody}</p>
             <div className="flex flex-col gap-1 mt-1 text-[11px] font-mono text-slate-800 bg-slate-50 border border-slate-100 p-2 rounded-lg">
               <div className="flex justify-between items-center">
-                <span>📞 전화:</span>
+                <span>📞 {R.phoneLabel}:</span>
                 <span className="text-blue-700 font-bold">1588-0000</span>
               </div>
               <div className="flex justify-between items-center">
-                <span>💬 카톡:</span>
+                <span>💬 {R.kakaoLabel}:</span>
                 <span className="text-amber-800 font-bold cursor-pointer hover:underline">@ribbonprint</span>
               </div>
             </div>
@@ -2109,7 +2202,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
           <button 
             onClick={() => setIsSidebarOpen(true)}
             className="fixed top-1/2 left-0 -translate-y-1/2 z-[45] p-2.5 bg-slate-900 text-white rounded-r-xl shadow-lg border-y border-r border-slate-700 hover:bg-slate-800 transition-all active:scale-95 group"
-            title="설정 메뉴 열기"
+            title={R.openSettingsMenu}
           >
             <ChevronRight size={24} className="group-hover:translate-x-0.5 transition-transform" />
           </button>
@@ -2121,7 +2214,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
           <button 
             onClick={() => setIsSidebarOpen(true)}
             className="lg:hidden fixed top-4 left-4 z-30 p-2.5 bg-slate-900 text-white rounded-xl shadow-lg border border-slate-700 backdrop-blur hover:bg-slate-800 transition active:scale-95"
-            title="메뉴 열기"
+            title={R.openMenu}
           >
             <Menu size={24} />
           </button>
@@ -2151,7 +2244,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
             // ================= PREVIEW MODE =================
             <div className="flex flex-col items-center">
               <div className="text-slate-800 font-semibold mb-8 text-2xl uppercase tracking-widest border-b border-slate-200 pb-2">
-                Print Preview ({printTarget === 'both' ? (printLayout === 'connected' ? 'Connected' : 'Separate Both') : printTarget})
+                {previewHeadingText}
               </div>
               
               <div className="flex flex-col items-center bg-white shadow-xl p-4 border-[8px] border-slate-200 rounded-md ring-1 ring-slate-100">
@@ -2160,9 +2253,10 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
                       <RibbonCanvas 
                         text={leftText} fontConfig={leftFontConfig} ratioX={leftRatioX} ratioY={leftRatioY} lace={lace}
                         width={width} length={length} marginTop={marginTop} marginBottom={marginBottom}
+                        marginLabelTop={R.topMarginCanvas} marginLabelBottom={R.bottomMarginCanvas}
                         rotatedIds={leftRotated} onCharClick={() => {}}
                         scaleRatio={2} zoom={1} spacing={leftSpacing} side="left" 
-                        marginOffset={(RIBBON_TYPES.find(r => r.id === ribbonType)?.marginOffset || 0) + marginOffset} 
+                        marginOffset={(RIBBON_SPECS.find(r => r.id === ribbonType)?.marginOffset || 0) + marginOffset} 
                         shopLogo={shopLogo} printLogo={printLogo} isBold={leftIsBold}
                       />
                   </div>
@@ -2172,9 +2266,10 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
                     <RibbonCanvas 
                       text={rightText} fontConfig={rightFontConfig} ratioX={rightRatioX} ratioY={rightRatioY} lace={lace}
                       width={width} length={length} marginTop={marginTop} marginBottom={marginBottom}
+                      marginLabelTop={R.topMarginCanvas} marginLabelBottom={R.bottomMarginCanvas}
                       rotatedIds={rightRotated} onCharClick={() => {}}
                       scaleRatio={2} zoom={1} spacing={rightSpacing} side="right" 
-                      marginOffset={(RIBBON_TYPES.find(r => r.id === ribbonType)?.marginOffset || 0) + marginOffset} 
+                      marginOffset={(RIBBON_SPECS.find(r => r.id === ribbonType)?.marginOffset || 0) + marginOffset} 
                       shopLogo={shopLogo} printLogo={printLogo} isBold={rightIsBold}
                     />
                   </div>
@@ -2185,9 +2280,10 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
                       <RibbonCanvas 
                         text={leftText} fontConfig={leftFontConfig} ratioX={leftRatioX} ratioY={leftRatioY} lace={lace}
                         width={width} length={length} marginTop={marginTop} marginBottom={marginBottom}
+                        marginLabelTop={R.topMarginCanvas} marginLabelBottom={R.bottomMarginCanvas}
                         rotatedIds={leftRotated} onCharClick={() => {}}
                         scaleRatio={2} zoom={1} spacing={leftSpacing} side="left" 
-                        marginOffset={(RIBBON_TYPES.find(r => r.id === ribbonType)?.marginOffset || 0) + marginOffset} 
+                        marginOffset={(RIBBON_SPECS.find(r => r.id === ribbonType)?.marginOffset || 0) + marginOffset} 
                         shopLogo={shopLogo} printLogo={printLogo} isBold={leftIsBold}
                       />
                     </div>
@@ -2196,9 +2292,10 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
                     <RibbonCanvas 
                       text={rightText} fontConfig={rightFontConfig} ratioX={rightRatioX} ratioY={rightRatioY} lace={lace}
                       width={width} length={length} marginTop={marginTop} marginBottom={marginBottom}
+                      marginLabelTop={R.topMarginCanvas} marginLabelBottom={R.bottomMarginCanvas}
                       rotatedIds={rightRotated} onCharClick={() => {}}
                       scaleRatio={2} zoom={1} spacing={rightSpacing} side="right" 
-                      marginOffset={(RIBBON_TYPES.find(r => r.id === ribbonType)?.marginOffset || 0) + marginOffset} 
+                      marginOffset={(RIBBON_SPECS.find(r => r.id === ribbonType)?.marginOffset || 0) + marginOffset} 
                       shopLogo={shopLogo} printLogo={printLogo} isBold={rightIsBold}
                     />
                   </div>
@@ -2209,9 +2306,10 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
                       <RibbonCanvas 
                         text={leftText} fontConfig={leftFontConfig} ratioX={leftRatioX} ratioY={leftRatioY} lace={lace}
                         width={width} length={length} marginTop={marginTop} marginBottom={marginBottom}
+                        marginLabelTop={R.topMarginCanvas} marginLabelBottom={R.bottomMarginCanvas}
                         rotatedIds={leftRotated} onCharClick={() => {}}
                         scaleRatio={2} zoom={1} spacing={leftSpacing} side="left" 
-                        marginOffset={(RIBBON_TYPES.find(r => r.id === ribbonType)?.marginOffset || 0) + marginOffset} 
+                        marginOffset={(RIBBON_SPECS.find(r => r.id === ribbonType)?.marginOffset || 0) + marginOffset} 
                         shopLogo={shopLogo} printLogo={printLogo} isBold={leftIsBold}
                       />
                     </div>
@@ -2219,9 +2317,10 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
                       <RibbonCanvas 
                         text={rightText} fontConfig={rightFontConfig} ratioX={rightRatioX} ratioY={rightRatioY} lace={lace}
                         width={width} length={length} marginTop={marginTop} marginBottom={marginBottom}
+                        marginLabelTop={R.topMarginCanvas} marginLabelBottom={R.bottomMarginCanvas}
                         rotatedIds={rightRotated} onCharClick={() => {}}
                         scaleRatio={2} zoom={1} spacing={rightSpacing} side="right" 
-                        marginOffset={(RIBBON_TYPES.find(r => r.id === ribbonType)?.marginOffset || 0) + marginOffset} 
+                        marginOffset={(RIBBON_SPECS.find(r => r.id === ribbonType)?.marginOffset || 0) + marginOffset} 
                         shopLogo={shopLogo} printLogo={printLogo} isBold={rightIsBold}
                       />
                     </div>
@@ -2239,18 +2338,20 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
               <RibbonCanvas 
                 text={leftText} fontConfig={leftFontConfig} ratioX={leftRatioX} ratioY={leftRatioY} lace={lace}
                 width={width} length={length} marginTop={marginTop} marginBottom={marginBottom}
+                marginLabelTop={R.topMarginCanvas} marginLabelBottom={R.bottomMarginCanvas}
                 rotatedIds={leftRotated} onCharClick={(id) => toggleRotation(id, 'left')}
                 scaleRatio={2} zoom={zoom} spacing={leftSpacing} isActive={activeSide === 'left'} 
-                marginOffset={(RIBBON_TYPES.find(r => r.id === ribbonType)?.marginOffset || 0) + marginOffset} 
+                marginOffset={(RIBBON_SPECS.find(r => r.id === ribbonType)?.marginOffset || 0) + marginOffset} 
                 shopLogo={shopLogo} printLogo={printLogo} isBold={leftIsBold}
                 onClick={() => setActiveSide('left')} side="left"
               />
               <RibbonCanvas 
                 text={rightText} fontConfig={rightFontConfig} ratioX={rightRatioX} ratioY={rightRatioY} lace={lace}
                 width={width} length={length} marginTop={marginTop} marginBottom={marginBottom}
+                marginLabelTop={R.topMarginCanvas} marginLabelBottom={R.bottomMarginCanvas}
                 rotatedIds={rightRotated} onCharClick={(id) => toggleRotation(id, 'right')}
                 scaleRatio={2} zoom={zoom} spacing={rightSpacing} isActive={activeSide === 'right'} 
-                marginOffset={(RIBBON_TYPES.find(r => r.id === ribbonType)?.marginOffset || 0) + marginOffset} 
+                marginOffset={(RIBBON_SPECS.find(r => r.id === ribbonType)?.marginOffset || 0) + marginOffset} 
                 shopLogo={shopLogo} printLogo={printLogo} isBold={rightIsBold}
                 onClick={() => setActiveSide('right')} side="right"
               />
@@ -2269,7 +2370,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
             className="p-2 rounded-full hover:bg-amber-50 text-amber-900 border border-transparent hover:border-amber-200 transition-colors flex items-center gap-2 px-4 whitespace-nowrap"
           >
             <FolderOpen size={18} />
-            <span className="text-xs font-semibold uppercase">Templates</span>
+            <span className="text-xs font-semibold uppercase">{R.templatesBtn}</span>
           </button>
           <div className="w-px h-6 bg-slate-200 my-auto mx-1"></div>
           <button 
@@ -2280,7 +2381,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
             )}
           >
             {isPreviewMode ? <Maximize2 size={18} /> : <Eye size={18} />}
-            <span className="text-xs font-semibold uppercase">{isPreviewMode ? "Design" : "Preview"}</span>
+            <span className="text-xs font-semibold uppercase">{isPreviewMode ? R.designMode : R.previewMode}</span>
           </button>
           <div className="w-px h-6 bg-slate-200 my-auto"></div>
           <button onClick={() => setZoom(z => Math.max(0.1, z - 0.1))} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-700"><Minimize2 size={18} /></button>
@@ -2300,7 +2401,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
             ) : (
               <Printer size={16} />
             )}
-            {isPrinting ? "SENDING..." : "PRINT"}
+            {isPrinting ? R.printSendingUpper : R.printBtn}
           </button>
         </div>
       </main>
@@ -2329,7 +2430,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
           setIsFontManagerOpen(false);
           loadFontSettings();
         }} 
-        baseFonts={FONTS}
+        baseFonts={localizedBaseFonts}
         onSettingsChanged={loadFontSettings}
       />
 
@@ -2380,6 +2481,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
             <RibbonCanvas
               text={leftText} fontConfig={leftFontConfig} ratioX={leftRatioX} ratioY={leftRatioY} lace={lace}
               width={width} length={length} marginTop={marginTop} marginBottom={marginBottom}
+              marginLabelTop={R.topMarginCanvas} marginLabelBottom={R.bottomMarginCanvas}
               rotatedIds={leftRotated} onCharClick={() => {}}
               scaleRatio={3} zoom={1} spacing={leftSpacing} side="left" isPrintMode={true}
               shopLogo={shopLogo} printLogo={printLogo} isBold={leftIsBold}
@@ -2390,6 +2492,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
           <RibbonCanvas
             text={rightText} fontConfig={rightFontConfig} ratioX={rightRatioX} ratioY={rightRatioY} lace={lace}
             width={width} length={length} marginTop={marginTop} marginBottom={marginBottom}
+            marginLabelTop={R.topMarginCanvas} marginLabelBottom={R.bottomMarginCanvas}
             rotatedIds={rightRotated} onCharClick={() => {}}
             scaleRatio={3} zoom={1} spacing={rightSpacing} side="right" isPrintMode={true}
             shopLogo={shopLogo} printLogo={printLogo} isBold={rightIsBold}
@@ -2401,6 +2504,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
           <RibbonCanvas
             text={leftText} fontConfig={leftFontConfig} ratioX={leftRatioX} ratioY={leftRatioY} lace={lace}
             width={width} length={length} marginTop={marginTop} marginBottom={marginBottom}
+            marginLabelTop={R.topMarginCanvas} marginLabelBottom={R.bottomMarginCanvas}
             rotatedIds={leftRotated} onCharClick={() => {}}
             scaleRatio={3} zoom={1} spacing={leftSpacing} side="left" isPrintMode={true}
             shopLogo={shopLogo} printLogo={printLogo} isBold={leftIsBold}
@@ -2410,6 +2514,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
           <RibbonCanvas 
             text={rightText} fontConfig={rightFontConfig} ratioX={rightRatioX} ratioY={rightRatioY} lace={lace}
             width={width} length={length} marginTop={marginTop} marginBottom={marginBottom}
+            marginLabelTop={R.topMarginCanvas} marginLabelBottom={R.bottomMarginCanvas}
             rotatedIds={rightRotated} onCharClick={() => {}}
             scaleRatio={3} zoom={1} spacing={rightSpacing} side="right" isPrintMode={true}
             shopLogo={shopLogo} printLogo={printLogo} isBold={rightIsBold}
@@ -2425,18 +2530,18 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500"></div>
             
             <div className="text-5xl mb-6">🚀</div>
-            <h2 className="text-2xl font-bold text-white mb-2">최신 인쇄 브릿지 필수 설치 [v{REQUIRED_BRIDGE_VERSION}]</h2>
-            <p className="text-amber-400 font-medium mb-4">새로운 고성능 가변 길이 엔진(v{REQUIRED_BRIDGE_VERSION})이 출시되었습니다!</p>
+            <h2 className="text-2xl font-bold text-white mb-2">{fillDashboardTemplate(R.updateModalTitle, { ver: REQUIRED_BRIDGE_VERSION })}</h2>
+            <p className="text-amber-400 font-medium mb-4">{fillDashboardTemplate(R.updateModalSubtitle, { ver: REQUIRED_BRIDGE_VERSION })}</p>
             
             <div className="bg-slate-800/50 rounded-2xl p-4 text-left mb-6 border border-slate-700">
               <ul className="text-sm text-slate-300 space-y-2">
-                <li className="flex items-start gap-2">✅ <span className="text-white font-semibold">가변 길이 무제한:</span> 에이포(A4) 한계를 넘어선 초장문 리본 인쇄 가능</li>
-                <li className="flex items-start gap-2">✅ <span className="text-white font-semibold">자동 중간선 가이드:</span> 양쪽 인쇄 시 절단 및 접기 위치 자동 표시</li>
-                <li className="flex items-start gap-2">✅ <span className="text-white font-semibold">안정성 향상:</span> 구버전에서 발생하던 통신 오류를 완벽히 해결</li>
+                <li className="flex items-start gap-2">✅ <span className="text-white font-semibold">{R.updateBullet1}</span></li>
+                <li className="flex items-start gap-2">✅ <span className="text-white font-semibold">{R.updateBullet2}</span></li>
+                <li className="flex items-start gap-2">✅ <span className="text-white font-semibold">{R.updateBullet3}</span></li>
               </ul>
             </div>
 
-            <p className="text-slate-400 text-xs mb-8">기존 브릿지를 사용 중이라면, 아래 버튼을 눌러 v25.0 설치 파일을 받아주세요.<br/>(다운로드 후 실행하면 즉시 교체 및 영구 설치됩니다.)</p>
+            <p className="text-slate-400 text-xs mb-8 whitespace-pre-line">{R.updateFooter}</p>
 
             <div className="flex flex-col gap-3">
               <a 
@@ -2444,7 +2549,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
                 download
                 className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-2xl transition-all shadow-lg hover:scale-[1.02] active:scale-[0.98]"
               >
-                📥 v{REQUIRED_BRIDGE_VERSION} 최신 리본 브릿지 설치하기
+                📥 {fillDashboardTemplate(R.updateDownload, { ver: REQUIRED_BRIDGE_VERSION })}
               </a>
               <button 
                 onClick={() => {
@@ -2453,7 +2558,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
                 }}
                 className="text-slate-500 hover:text-slate-300 text-sm py-2"
               >
-                다음에 할게요 (기능이 제한될 수 있습니다)
+                {R.updateDismiss}
               </button>
             </div>
           </div>
@@ -2463,32 +2568,32 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[200]">
           <div className="bg-slate-800 rounded-2xl border border-slate-700 shadow-2xl w-full max-w-md p-8 text-center">
             <div className="text-6xl mb-4">🔒</div>
-            <h2 className="text-2xl font-semibold text-white mb-2">구독이 필요합니다</h2>
-            <p className="text-slate-400 mb-6">인쇄 기능을 사용하려면 유효한 구독이 필요합니다.<br/>아래에서 요금제를 선택해주세요.</p>
+            <h2 className="text-2xl font-semibold text-white mb-2">{R.paywallTitle}</h2>
+            <p className="text-slate-400 mb-6 whitespace-pre-line">{R.paywallBody}</p>
             <div className="grid grid-cols-3 gap-3 mb-6">
               <div className="bg-slate-700/50 rounded-xl p-4 border border-slate-600 hover:border-blue-500 cursor-pointer transition">
-                <p className="text-lg font-semibold text-white">1개월</p>
+                <p className="text-lg font-semibold text-white">{R.paywallMonthly}</p>
                 <p className="text-blue-400 font-semibold text-xl mt-1">₩29,900</p>
-                <p className="text-slate-500 text-xs mt-1">월간 결제</p>
+                <p className="text-slate-500 text-xs mt-1">{R.paywallPerMonth}</p>
               </div>
               <div className="bg-blue-600/20 rounded-xl p-4 border-2 border-blue-500 cursor-pointer transition relative">
-                <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-blue-500 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">인기</div>
-                <p className="text-lg font-semibold text-white">3개월</p>
+                <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-blue-500 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">{R.paywallPopular}</div>
+                <p className="text-lg font-semibold text-white">{R.paywallQuarter}</p>
                 <p className="text-blue-400 font-semibold text-xl mt-1">₩79,900</p>
-                <p className="text-slate-500 text-xs mt-1">11% 할인</p>
+                <p className="text-slate-500 text-xs mt-1">{R.paywallDisc11}</p>
               </div>
               <div className="bg-slate-700/50 rounded-xl p-4 border border-slate-600 hover:border-blue-500 cursor-pointer transition">
-                <p className="text-lg font-semibold text-white">12개월</p>
+                <p className="text-lg font-semibold text-white">{R.paywallYear}</p>
                 <p className="text-blue-400 font-semibold text-xl mt-1">₩269,900</p>
-                <p className="text-slate-500 text-xs mt-1">25% 할인</p>
+                <p className="text-slate-500 text-xs mt-1">{R.paywallDisc25}</p>
               </div>
             </div>
-            <p className="text-xs text-slate-500 mb-4">결제 시스템은 준비 중입니다. 관리자에게 문의해주세요.</p>
+            <p className="text-xs text-slate-500 mb-4">{R.paywallBillingNote}</p>
             <button
               onClick={() => setShowPaywall(false)}
               className="w-full py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-semibold transition"
             >
-              닫기
+              {R.paywallClose}
             </button>
           </div>
         </div>
@@ -2503,9 +2608,9 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
             name,
             config: currentConfig
           });
-          if (error) alert('저장 실패: ' + error.message);
+          if (error) alert(fillDashboardTemplate(R.saveFailed, { msg: error.message }));
           else {
-            alert('저장되었습니다!');
+            alert(R.saveOk);
             setIsSaveDialogOpen(false);
           }
         }}
@@ -2524,25 +2629,23 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
           <div className="bg-slate-800 rounded-2xl border border-slate-700 shadow-2xl w-full max-w-md p-8 text-center relative overflow-hidden">
             <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-blue-500 to-emerald-400"></div>
             <div className="text-6xl mb-4">🖨️</div>
-            <h2 className="text-2xl font-semibold text-white mb-2">프린트 브릿지 설치 필요</h2>
-            <p className="text-slate-400 mb-6 text-sm">
-              인쇄를 시작하려면 <b>최초 1회 브릿지 마법사</b> 설치가 필요합니다.<br/>
-              다운로드 후 [설치 마법사]를 열고 딱 1번만 실행하시면<br/>
-              앞으로 <b>자동으로 컴퓨터가 켜질 때마다 영구적으로 연결</b>됩니다!
+            <h2 className="text-2xl font-semibold text-white mb-2">{R.bridgeInstallTitle}</h2>
+            <p className="text-slate-400 mb-6 text-sm whitespace-pre-line">
+              {R.bridgeInstallBody}
             </p>
             <div className="bg-blue-900/30 border border-blue-500/20 rounded-xl p-5 mb-8 text-left space-y-4">
               <div>
                 <p className="text-blue-300 text-xs font-bold mb-1.5 flex items-center gap-2">
-                  <span className="bg-blue-400/20 px-2 py-0.5 rounded text-[10px]">GUIDE</span>
-                  Windows SmartScreen 대처 안내
+                  <span className="bg-blue-400/20 px-2 py-0.5 rounded text-[10px]">{R.bridgeGuideBadge}</span>
+                  {R.bridgeSmartScreenTitle}
                 </p>
                 <p className="text-slate-300 text-[11px] leading-relaxed">
-                  설치 시 <span className="text-white font-bold opacity-100 underline decoration-blue-500 underline-offset-4">PC 보호 창</span>이 나타나면, 왼쪽의 <span className="text-blue-400 font-bold">'추가 정보'</span>를 클릭한 뒤 우측 하단의 <span className="text-white font-bold bg-blue-600/30 px-1 rounded">'실행'</span> 버튼을 눌러주세요.
+                  {R.bridgeSmartScreenBody}
                 </p>
               </div>
               <div className="pt-3 border-t border-blue-500/10 flex items-center justify-between">
                 <p className="text-emerald-400 text-[10px] font-bold flex items-center gap-1.5">
-                  🛡️ 전 세계 표준 보안 통신 프로토콜 적용
+                  🛡️ {R.bridgeCertLine}
                 </p>
                 <span className="text-[9px] text-slate-500 font-mono tracking-tighter">CERTIFIED v{REQUIRED_BRIDGE_VERSION}</span>
               </div>
@@ -2553,7 +2656,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
                 onClick={() => setIsBridgeModalOpen(false)}
                 className="flex-1 px-4 py-4 rounded-xl font-bold bg-slate-700/50 hover:bg-slate-700 text-slate-300 transition-all text-sm"
               >
-                나중에 하기
+                {R.bridgeLater}
               </button>
               <a 
                 href={`/RibbonBridge_Setup_v${REQUIRED_BRIDGE_VERSION.replace('.', '_')}.exe`}
@@ -2561,8 +2664,8 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
                 onClick={() => setIsBridgeModalOpen(false)}
                 className="flex-[2] flex flex-col items-center justify-center px-6 py-4 rounded-xl font-bold bg-blue-600 hover:bg-blue-500 text-white transition-all shadow-lg shadow-blue-900/40 hover:scale-[1.02] active:scale-95 group"
               >
-                <span className="text-base">자동 설치 패키지 다운로드</span>
-                <span className="text-[10px] opacity-70 group-hover:opacity-100 transition-opacity font-normal">Download for Windows 10/11</span>
+                <span className="text-base">{R.bridgeDownloadPkg}</span>
+                <span className="text-[10px] opacity-70 group-hover:opacity-100 transition-opacity font-normal">{R.bridgeDownloadSub}</span>
               </a>
             </div>
           </div>
@@ -2582,8 +2685,8 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
                   <ShieldAlert className="text-blue-400 w-8 h-8" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-white tracking-tight">브릿지 연결 문제 해결</h2>
-                  <p className="text-slate-400 text-sm mt-1">인쇄 연결에 문제가 있나요? 아래 가이드에 따라 해결해 보세요.</p>
+                  <h2 className="text-2xl font-bold text-white tracking-tight">{R.troubleshootTitle}</h2>
+                  <p className="text-slate-400 text-sm mt-1">{R.troubleshootSubtitle}</p>
                 </div>
               </div>
               <button 
@@ -2599,9 +2702,9 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
               <div className="flex gap-4 p-5 bg-slate-800/40 rounded-3xl border border-slate-700/50 group hover:border-blue-500/30 transition-all">
                 <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center font-bold text-blue-400 group-hover:bg-blue-500 group-hover:text-white transition-all shrink-0">1</div>
                 <div>
-                  <h3 className="font-bold text-slate-200">리본 브릿지가 실행 중인가요?</h3>
+                  <h3 className="font-bold text-slate-200">{R.troubleshootStep1Title}</h3>
                   <p className="text-slate-400 text-xs mt-1 leading-relaxed">
-                    작업표시줄(우측 하단)의 숨겨진 아이콘에서 <span className="text-blue-400 font-bold">R 아이콘</span>이 있는지 확인하세요. 아이콘이 없다면 바탕화면의 <span className="text-white font-semibold">RibbonBridge</span>를 실행해 주세요.
+                    {R.troubleshootStep1Body}
                   </p>
                 </div>
               </div>
@@ -2610,9 +2713,9 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
               <div className="flex gap-4 p-5 bg-slate-800/40 rounded-3xl border border-slate-700/50 group hover:border-blue-500/30 transition-all">
                 <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center font-bold text-blue-400 group-hover:bg-blue-500 group-hover:text-white transition-all shrink-0">2</div>
                 <div>
-                  <h3 className="font-bold text-slate-200">브라우저 설정을 초기화해 보세요</h3>
+                  <h3 className="font-bold text-slate-200">{R.troubleshootStep2Title}</h3>
                   <p className="text-slate-400 text-xs mt-1 leading-relaxed">
-                    업데이트 알림을 무시했거나, 잘못된 연결 정보가 저장된 경우 초기화로 해결됩니다. 아래의 <span className="text-amber-500 font-bold">브릿지 설정 초기화</span> 버튼을 눌러주세요.
+                    {R.troubleshootStep2Body}
                   </p>
                 </div>
               </div>
@@ -2621,9 +2724,9 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
               <div className="flex gap-4 p-5 bg-slate-800/40 rounded-3xl border border-slate-700/50 group hover:border-blue-500/30 transition-all">
                 <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center font-bold text-blue-400 group-hover:bg-blue-500 group-hover:text-white transition-all shrink-0">3</div>
                 <div>
-                  <h3 className="font-bold text-slate-200">백신/방화벽 확인</h3>
+                  <h3 className="font-bold text-slate-200">{R.troubleshootStep3Title}</h3>
                   <p className="text-slate-400 text-xs mt-1 leading-relaxed">
-                    V3, 알약 또는 윈도우 방화벽에서 <span className="text-red-400 font-bold">8002번 포트</span>를 차단하고 있는지 확인해 보세요. (보통 처음 실행 시 '액세스 허용'을 눌러야 합니다.)
+                    {R.troubleshootStep3Body}
                   </p>
                 </div>
               </div>
@@ -2636,14 +2739,14 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
                 className="flex-1 py-4 bg-blue-600 hover:bg-blue-500 text-white font-extrabold rounded-2xl transition-all shadow-lg hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
               >
                 <Download size={18} />
-                리본 브릿지 재설치
+                {R.troubleshootReinstall}
               </a>
               <button 
                 onClick={handleResetBridge}
                 className="flex-1 py-4 bg-slate-100 hover:bg-white text-slate-900 font-extrabold rounded-2xl transition-all shadow-lg hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
               >
                 <RefreshCw size={18} />
-                브릿지 설정 초기화 (Reset)
+                {R.troubleshootReset}
               </button>
             </div>
             
@@ -2651,12 +2754,12 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
                 onClick={() => setIsTroubleshootModalOpen(false)}
                 className="w-full mt-3 py-3 bg-slate-800/80 hover:bg-slate-800 text-slate-400 hover:text-white font-bold rounded-2xl transition-all border border-slate-700/50"
               >
-                닫기
+                {R.paywallClose}
             </button>
             
             <div className="mt-6 text-center">
               <p className="text-[10px] text-slate-500">
-                초기화 후에도 문제가 해결되지 않는다면 고객센터(1588-0000)로 문의해 주세요.
+                {R.troubleshootFooterContact}
               </p>
             </div>
           </div>
@@ -2675,21 +2778,23 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
 
 function SaveConfigDialog({ isOpen, onClose, onSave }: { isOpen: boolean, onClose: () => void, onSave: (name: string) => void }) {
   const [name, setName] = useState('');
+  const locale = usePreferredLocale();
+  const R = getMessages(locale).dashboard.ribbon;
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[300]">
       <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 w-full max-w-sm">
-        <h3 className="text-lg font-bold text-white mb-4">현재 작업 저장</h3>
+        <h3 className="text-lg font-bold text-white mb-4">{R.saveWorkTitle}</h3>
         <input 
           type="text" 
           value={name} 
           onChange={e => setName(e.target.value)}
-          placeholder="템플릿 이름 입력"
+          placeholder={R.templateNamePlaceholder}
           className="w-full p-2 rounded bg-slate-900 border border-slate-700 text-white mb-4 outline-none focus:ring-1 ring-blue-500"
         />
         <div className="flex gap-2">
-          <button onClick={onClose} className="flex-1 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded">취소</button>
-          <button onClick={() => { onSave(name); setName(''); }} className="flex-1 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded">저장</button>
+          <button onClick={onClose} className="flex-1 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded">{R.cancel}</button>
+          <button onClick={() => { onSave(name); setName(''); }} className="flex-1 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded">{R.saveAction}</button>
         </div>
       </div>
     </div>
@@ -2698,6 +2803,8 @@ function SaveConfigDialog({ isOpen, onClose, onSave }: { isOpen: boolean, onClos
 
 function LoadConfigDialog({ isOpen, onClose, onLoad, userId }: { isOpen: boolean, onClose: () => void, onLoad: (config: any) => void, userId?: string }) {
   const [configs, setConfigs] = useState<any[]>([]);
+  const locale = usePreferredLocale();
+  const R = getMessages(locale).dashboard.ribbon;
   useEffect(() => {
     if (isOpen && userId) {
       supabase.from('saved_configs').select('*').eq('user_id', userId).order('created_at', { ascending: false })
@@ -2709,7 +2816,7 @@ function LoadConfigDialog({ isOpen, onClose, onLoad, userId }: { isOpen: boolean
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[300]">
       <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 w-full max-w-sm">
-        <h3 className="text-lg font-bold text-white mb-4">저장된 템플릿</h3>
+        <h3 className="text-lg font-bold text-white mb-4">{R.savedTemplatesTitle}</h3>
         <div className="max-h-60 overflow-y-auto space-y-2 mb-4">
           {configs.map(c => (
             <button 
@@ -2721,14 +2828,16 @@ function LoadConfigDialog({ isOpen, onClose, onLoad, userId }: { isOpen: boolean
               <div className="text-[10px] text-slate-500">{new Date(c.created_at).toLocaleString()}</div>
             </button>
           ))}
-          {configs.length === 0 && <div className="text-center py-4 text-slate-500">저장된 내역이 없습니다.</div>}
+          {configs.length === 0 && <div className="text-center py-4 text-slate-500">{R.noSavedTemplates}</div>}
         </div>
-        <button onClick={onClose} className="w-full py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded">닫기</button>
+        <button onClick={onClose} className="w-full py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded">{R.paywallClose}</button>
       </div>
     </div>
   );
 }
-function PrintQueueMonitor({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
+function PrintQueueMonitor({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  const locale = usePreferredLocale();
+  const Rq = getMessages(locale).dashboard.ribbon;
   const [queue, setQueue] = useState<any[]>([]); // Restored
   const pollRef = useRef<any>(null); // Restored
 
@@ -2754,14 +2863,14 @@ function PrintQueueMonitor({ isOpen, onClose }: { isOpen: boolean, onClose: () =
     try {
       await fetch(`http://127.0.0.1:8002/api/queue/retry/${id}`, { method: 'POST' });
       fetchQueue();
-    } catch (e) { alert("재시도 실패"); }
+    } catch (e) { alert(Rq.retryFailed); }
   };
 
   const handleDelete = async (id: string) => {
     try {
       await fetch(`http://127.0.0.1:8002/api/queue/${id}`, { method: 'DELETE' });
       fetchQueue();
-    } catch (e) { alert("삭제 실패"); }
+    } catch (e) { alert(Rq.deleteFailed); }
   };
 
   if (!isOpen) return (
@@ -2785,7 +2894,7 @@ function PrintQueueMonitor({ isOpen, onClose }: { isOpen: boolean, onClose: () =
         <div className="p-4 bg-slate-700/50 border-b border-slate-600 flex justify-between items-center">
           <div className="flex items-center gap-2">
             <div className={cn("w-2 h-2 rounded-full", hasActiveJob ? "bg-green-500 animate-pulse" : "bg-slate-500")} />
-            <h3 className="text-sm font-bold text-white">인쇄 작업 모니터</h3>
+            <h3 className="text-sm font-bold text-white">{Rq.queueMonitorTitle}</h3>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-white">✕</button>
         </div>
@@ -2793,7 +2902,7 @@ function PrintQueueMonitor({ isOpen, onClose }: { isOpen: boolean, onClose: () =
         <div className="max-h-96 overflow-y-auto p-2 space-y-2">
           {queue.length === 0 ? (
             <div className="text-center py-8 text-slate-500 text-xs text-pretty">
-              현재 대기 중인 작업이 없습니다.
+              {Rq.queueEmpty}
             </div>
           ) : (
             queue.map(job => {
@@ -2819,7 +2928,7 @@ function PrintQueueMonitor({ isOpen, onClose }: { isOpen: boolean, onClose: () =
                   <div className="flex justify-between items-start mb-1">
                     <div>
                       <div className="text-[11px] font-bold text-slate-300">{job.printer}</div>
-                      <div className="text-[10px] text-slate-500">{job.width}mm x {job.length}mm ({job.segments}단)</div>
+                      <div className="text-[10px] text-slate-500">{job.width}mm x {job.length}mm ({fillDashboardTemplate(Rq.queueSegments, { n: job.segments })})</div>
                     </div>
                     <div className={cn(
                       "px-2 py-0.5 rounded text-[9px] font-bold",
@@ -2827,7 +2936,7 @@ function PrintQueueMonitor({ isOpen, onClose }: { isOpen: boolean, onClose: () =
                       job.status === 'completed' ? "bg-emerald-900/40 text-emerald-400" :
                       "bg-red-900/40 text-red-400"
                     )}>
-                      {job.status === 'printing' ? '인쇄 중' : job.status === 'completed' ? '완료' : '오류'}
+                      {job.status === 'printing' ? Rq.queueStatusPrinting : job.status === 'completed' ? Rq.queueStatusDone : Rq.queueStatusErr}
                     </div>
                   </div>
 
@@ -2839,7 +2948,7 @@ function PrintQueueMonitor({ isOpen, onClose }: { isOpen: boolean, onClose: () =
                     )}>
                       {timeLeft}s
                     </div>
-                    <span className="text-[9px] text-slate-500">후 목록에서 자동 삭제됩니다.</span>
+                    <span className="text-[9px] text-slate-500">{Rq.queueAutoRemoveHint}</span>
                   </div>
                   
                   <div className="flex gap-1">
@@ -2848,14 +2957,14 @@ function PrintQueueMonitor({ isOpen, onClose }: { isOpen: boolean, onClose: () =
                         onClick={() => handleRetry(job.id)}
                         className="flex-1 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-[10px] rounded transition-colors"
                       >
-                        🔄 다시 출력
+                        🔄 {Rq.queueRetry}
                       </button>
                     )}
                     <button 
                       onClick={() => handleDelete(job.id)}
                       className="flex-1 py-1.5 bg-slate-700 hover:bg-red-900/40 text-slate-300 text-[10px] rounded transition-colors"
                     >
-                      🗑️ 바로 삭제
+                      🗑️ {Rq.queueDeleteNow}
                     </button>
                   </div>
                 </div>

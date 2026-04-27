@@ -20,8 +20,10 @@ import { compressImageFile } from "@/lib/compress-image";
 import { isRichTextBodyEmpty } from "@/lib/html-plain-text";
 import { toast } from "sonner";
 import { format, addDays, startOfToday } from "date-fns";
-import { ko } from "date-fns/locale";
+import { enUS, ko } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
 
 const PRIORITY_LABEL: Record<string, string> = {
   normal: "일반",
@@ -45,6 +47,9 @@ export function OrgAnnouncementComposeDialog({
   defaultOrganizationId,
   onPosted,
 }: OrgAnnouncementComposeDialogProps) {
+  const locale = usePreferredLocale();
+  const isKo = toBaseLocale(locale) === "ko";
+  const tr = (koText: string, enText: string) => (isKo ? koText : enText);
   const [editorResetKey, setEditorResetKey] = useState(0);
   const [postOrgId, setPostOrgId] = useState("");
   const [postTitle, setPostTitle] = useState("");
@@ -78,7 +83,7 @@ export function OrgAnnouncementComposeDialog({
     try {
       for (const file of Array.from(files)) {
         if (count >= 8) {
-          toast.message("이미지는 최대 8장까지 첨부할 수 있습니다.");
+          toast.message(tr("이미지는 최대 8장까지 첨부할 수 있습니다.", "You can attach up to 8 images."));
           break;
         }
         if (!file.type.startsWith("image/")) continue;
@@ -89,7 +94,7 @@ export function OrgAnnouncementComposeDialog({
         const res = await fetch("/api/hq/announcements/upload", { method: "POST", body: fd });
         const json = await res.json().catch(() => ({}));
         if (!res.ok) {
-          toast.error(typeof json?.error === "string" ? json.error : "이미지 업로드 실패");
+          toast.error(typeof json?.error === "string" ? json.error : tr("이미지 업로드 실패", "Image upload failed"));
           break;
         }
         if (typeof json.url === "string") {
@@ -104,12 +109,17 @@ export function OrgAnnouncementComposeDialog({
   };
 
   const selectedOrgLabel =
-    organizations.find((o) => o.id === postOrgId)?.name?.trim() || (postOrgId ? "(조직명 없음)" : "");
-  const priorityLabel = PRIORITY_LABEL[postPriority] ?? postPriority;
+    organizations.find((o) => o.id === postOrgId)?.name?.trim() || (postOrgId ? tr("(조직명 없음)", "(No organization name)") : "");
+  const priorityLabel =
+    postPriority === "normal"
+      ? tr("일반", "Normal")
+      : postPriority === "high"
+      ? tr("중요 (배너 강조색)", "Important (banner highlight)")
+      : postPriority;
 
   const submitAnnouncement = async () => {
     if (!postOrgId || !postTitle.trim() || isRichTextBodyEmpty(postBodyHtml)) {
-      toast.error("조직, 제목, 본문을 입력하세요.");
+      toast.error(tr("조직, 제목, 본문을 입력하세요.", "Please enter organization, title, and body."));
       return;
     }
     setPosting(true);
@@ -129,10 +139,10 @@ export function OrgAnnouncementComposeDialog({
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(typeof json?.error === "string" ? json.error : "등록 실패");
+        toast.error(typeof json?.error === "string" ? json.error : tr("등록 실패", "Failed to publish"));
         return;
       }
-      toast.success("게시물을 등록했습니다. 지점 본사 게시판·배너에 반영됩니다.");
+      toast.success(tr("게시물을 등록했습니다. 지점 본사 게시판·배너에 반영됩니다.", "Announcement published. It is reflected in branch HQ board/banner."));
       onOpenChange(false);
       onPosted?.();
     } finally {
@@ -144,14 +154,14 @@ export function OrgAnnouncementComposeDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[92vh] overflow-y-auto gap-4">
         <DialogHeader>
-          <DialogTitle>본사 게시물 작성</DialogTitle>
+          <DialogTitle>{tr("본사 게시물 작성", "Write HQ announcement")}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div className="grid gap-2">
-            <Label>조직</Label>
+            <Label>{tr("조직", "Organization")}</Label>
             <Select value={postOrgId} onValueChange={(v) => v && setPostOrgId(v)} disabled={organizations.length === 0}>
               <SelectTrigger className="w-full min-w-0">
-                <SelectValue placeholder="조직 선택">{selectedOrgLabel}</SelectValue>
+                <SelectValue placeholder={tr("조직 선택", "Select organization")}>{selectedOrgLabel}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {organizations.map((o) => (
@@ -163,11 +173,11 @@ export function OrgAnnouncementComposeDialog({
             </Select>
           </div>
           <div className="grid gap-2">
-            <Label>제목</Label>
-            <Input value={postTitle} onChange={(e) => setPostTitle(e.target.value)} placeholder="공지 제목" />
+            <Label>{tr("제목", "Title")}</Label>
+            <Input value={postTitle} onChange={(e) => setPostTitle(e.target.value)} placeholder={tr("공지 제목", "Announcement title")} />
           </div>
           <div className="grid gap-2">
-            <Label>본문</Label>
+            <Label>{tr("본문", "Body")}</Label>
             <OrgAnnouncementRichEditor
               resetKey={editorResetKey}
               disabled={posting}
@@ -177,7 +187,7 @@ export function OrgAnnouncementComposeDialog({
           <div className="grid gap-2">
             <Label className="flex items-center gap-2">
               <ImagePlus className="h-4 w-4" aria-hidden />
-              이미지 첨부 (최대 8장, 업로드 전 자동 압축)
+              {tr("이미지 첨부 (최대 8장, 업로드 전 자동 압축)", "Attach images (up to 8, auto-compressed before upload)")}
             </Label>
             <div className="flex flex-wrap items-center gap-2">
               <Input
@@ -191,7 +201,7 @@ export function OrgAnnouncementComposeDialog({
               {uploadBusy ? (
                 <span className="text-xs text-muted-foreground flex items-center gap-1">
                   <Loader2 className="h-3 w-3 animate-spin" />
-                  업로드 중…
+                  {tr("업로드 중…", "Uploading...")}
                 </span>
               ) : null}
             </div>
@@ -205,7 +215,7 @@ export function OrgAnnouncementComposeDialog({
                       type="button"
                       className="absolute -top-1 -right-1 rounded-full bg-slate-900 text-white p-0.5 shadow"
                       onClick={() => setPostAttachmentUrls((prev) => prev.filter((u) => u !== url))}
-                      aria-label="첨부 제거"
+                      aria-label={tr("첨부 제거", "Remove attachment")}
                     >
                       <X className="h-3 w-3" />
                     </button>
@@ -216,19 +226,19 @@ export function OrgAnnouncementComposeDialog({
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
-              <Label>강조</Label>
+              <Label>{tr("강조", "Priority")}</Label>
               <Select value={postPriority} onValueChange={(v) => v && setPostPriority(v)}>
                 <SelectTrigger className="w-full min-w-0">
-                  <SelectValue placeholder="강조 선택">{priorityLabel}</SelectValue>
+                  <SelectValue placeholder={tr("강조 선택", "Select priority")}>{priorityLabel}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="normal">일반</SelectItem>
-                  <SelectItem value="high">중요 (배너 강조색)</SelectItem>
+                  <SelectItem value="normal">{tr("일반", "Normal")}</SelectItem>
+                  <SelectItem value="high">{tr("중요 (배너 강조색)", "Important (banner highlight)")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="grid gap-2">
-              <Label>전광판 노출 만료일</Label>
+              <Label>{tr("전광판 노출 만료일", "Banner expiry date")}</Label>
               <Popover>
                 <PopoverTrigger
                   render={
@@ -242,7 +252,11 @@ export function OrgAnnouncementComposeDialog({
                   }
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {postExpiresAt ? format(postExpiresAt, "yyyy년 M월 d일", { locale: ko }) : <span>날짜 선택</span>}
+                  {postExpiresAt
+                    ? isKo
+                      ? format(postExpiresAt, "yyyy년 M월 d일", { locale: ko })
+                      : format(postExpiresAt, "MMM d, yyyy", { locale: enUS })
+                    : <span>{tr("날짜 선택", "Pick date")}</span>}
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
@@ -251,22 +265,24 @@ export function OrgAnnouncementComposeDialog({
                     onSelect={(date) => date && setPostExpiresAt(date)}
                     initialFocus
                     disabled={(date) => date < startOfToday() || date > addDays(new Date(), 60)}
-                    locale={ko}
+                    locale={isKo ? ko : enUS}
                   />
                 </PopoverContent>
               </Popover>
             </div>
           </div>
           <p className="text-[11px] text-muted-foreground leading-snug">
-            선택한 <strong>{format(postExpiresAt, "M월 d일")}</strong> 이후 자동으로 전광판에서 사라지며 게시판에서 삭제됩니다. (최대 60일 후까지 선택 가능)
+            {tr("선택한 ", "After ")}
+            <strong>{isKo ? format(postExpiresAt, "M월 d일") : format(postExpiresAt, "MMM d", { locale: enUS })}</strong>
+            {tr(" 이후 자동으로 전광판에서 사라지며 게시판에서 삭제됩니다. (최대 60일 후까지 선택 가능)", ", it disappears from the banner and is removed from the board automatically. (up to 60 days ahead)")}
           </p>
         </div>
         <DialogFooter className="gap-2 sm:gap-0">
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            취소
+            {tr("취소", "Cancel")}
           </Button>
           <Button type="button" onClick={submitAnnouncement} disabled={posting || organizations.length === 0}>
-            {posting ? "등록 중…" : "등록"}
+            {posting ? tr("등록 중…", "Publishing...") : tr("등록", "Publish")}
           </Button>
         </DialogFooter>
       </DialogContent>

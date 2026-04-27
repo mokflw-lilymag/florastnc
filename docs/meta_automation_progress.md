@@ -6,11 +6,11 @@
 ## 🔑 확보된 키값 (보안 주의)
 현재까지 추출에 성공한 데이터입니다. (내일 작업 시 바로 사용 가능)
 
-- **앱 이름**: florasync
+- **앱 이름**: floxync
 - **App ID**: `1834771173855867`
 - **App Secret**: `e2eff05a281538cf6b36cc65521f87f4`
 - **User Access Token**: `EAAaEtvQP0nsBRUe9cbGqjCBprBnqCZCuQCTU8yA0oqkBa8HJKv3uZBnXhwnaZBRzhFOXNctmYEzKPkg0SndKjJkxmXo2CFZAefN5WP9TDsm98KRZBlBYIxIRZCiCJ3aIQVer491WfGpLtZAZBiu4SZBQS5PpM9duKRHsYnpEcZCowwdxCBWthqr91sVvvu62jXZBvwWNRAEEWmjJklapmg1iHjOiaZCk6hWLK6PpC8JaB6jVlyB2jmZCtDL72Vbf7tiMYaxEBJ7doM3vMPEgXY7oalKeu`
-- **Facebook Page ID**: `122107416542814480` (이름: Flora Sync)
+- **Facebook Page ID**: `122107416542814480` (이름: Floxync)
 
 ## 🚫 중단 사유 및 해결 방법
 - **사유**: 그래프 API 탐색기에서 짧은 시간 내에 반복적인 권한 요청 및 쿼리 실행으로 인해 페이스북 보안 시스템이 **"일시적으로 차단됨(동작 속도가 너무 빠름)"** 메시지를 띄우며 접근을 제한함.

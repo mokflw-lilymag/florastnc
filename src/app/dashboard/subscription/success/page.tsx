@@ -5,12 +5,17 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { CheckCircle2, Loader2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
 
 export default function PaymentSuccessPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const locale = usePreferredLocale();
+  const baseLocale = toBaseLocale(locale);
+  const tr = (koText: string, enText: string) => (baseLocale === "ko" ? koText : enText);
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
-  const [message, setMessage] = useState("결제를 확인하고 있습니다...");
+  const [message, setMessage] = useState(tr("결제를 확인하고 있습니다...", "Checking payment..."));
   const confirmedRef = useRef(false);
 
   useEffect(() => {
@@ -24,7 +29,7 @@ export default function PaymentSuccessPage() {
 
       if (!paymentKey || !orderId || !amount) {
         setStatus("error");
-        setMessage("결제 정보가 부족합니다.");
+        setMessage(tr("결제 정보가 부족합니다.", "Missing payment information."));
         return;
       }
 
@@ -45,22 +50,22 @@ export default function PaymentSuccessPage() {
 
         if (response.ok) {
           setStatus("success");
-          setMessage("구독 신청이 완료되었습니다! 1초 후 대시보드로 이동합니다.");
+          setMessage(tr("구독 신청이 완료되었습니다! 1초 후 대시보드로 이동합니다.", "Subscription completed! Redirecting to dashboard in 1 second."));
           setTimeout(() => {
             router.push("/dashboard");
           }, 1500);
         } else {
           setStatus("error");
-          setMessage(data.message || "결제 승인 중 오류가 발생했습니다.");
+          setMessage(data.message || tr("결제 승인 중 오류가 발생했습니다.", "An error occurred while confirming payment."));
         }
       } catch (err) {
         setStatus("error");
-        setMessage("서버와 통신 중 오류가 발생했습니다.");
+        setMessage(tr("서버와 통신 중 오류가 발생했습니다.", "A server communication error occurred."));
       }
     };
 
     confirmPayment();
-  }, [searchParams, router]);
+  }, [searchParams, router, baseLocale]);
 
   return (
     <div className="min-h-screen bg-slate-50/50 flex items-center justify-center p-6">
@@ -72,7 +77,7 @@ export default function PaymentSuccessPage() {
                 <Loader2 className="h-10 w-10 text-blue-500 animate-spin" />
               </div>
               <div className="space-y-2">
-                <h1 className="text-2xl font-semibold text-slate-900">결제 처리 중</h1>
+                <h1 className="text-2xl font-semibold text-slate-900">{tr("결제 처리 중", "Processing payment")}</h1>
                 <p className="text-slate-500">{message}</p>
               </div>
             </>
@@ -84,7 +89,7 @@ export default function PaymentSuccessPage() {
                 <CheckCircle2 className="h-10 w-10 text-emerald-500" />
               </div>
               <div className="space-y-2">
-                <h1 className="text-2xl font-semibold text-slate-900">결제 성공</h1>
+                <h1 className="text-2xl font-semibold text-slate-900">{tr("결제 성공", "Payment success")}</h1>
                 <p className="text-slate-500">{message}</p>
               </div>
               <Button 
@@ -92,7 +97,7 @@ export default function PaymentSuccessPage() {
                 className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white transition-colors"
                 variant="default"
               >
-                대시보드로 가기
+                {tr("대시보드로 가기", "Go to dashboard")}
               </Button>
             </>
           )}
@@ -103,7 +108,7 @@ export default function PaymentSuccessPage() {
                 <XCircle className="h-10 w-10 text-red-500" />
               </div>
               <div className="space-y-2">
-                <h1 className="text-2xl font-semibold text-slate-900">결제 실패</h1>
+                <h1 className="text-2xl font-semibold text-slate-900">{tr("결제 실패", "Payment failed")}</h1>
                 <p className="text-red-500 font-medium">{message}</p>
               </div>
               <div className="w-full space-y-3">
@@ -111,14 +116,14 @@ export default function PaymentSuccessPage() {
                   onClick={() => router.push("/dashboard/subscription")}
                   className="w-full h-12 bg-slate-900 hover:bg-slate-800 text-white"
                 >
-                  구독 페이지로 돌아가기
+                  {tr("구독 페이지로 돌아가기", "Back to subscription")}
                 </Button>
                 <Button 
                   onClick={() => window.location.reload()}
                   variant="outline"
                   className="w-full h-12 border-slate-200"
                 >
-                  다시 시도
+                  {tr("다시 시도", "Try again")}
                 </Button>
               </div>
             </>

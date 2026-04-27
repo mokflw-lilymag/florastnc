@@ -41,7 +41,7 @@ export async function POST(req: Request) {
       });
     }
 
-    const { mall_id, access_token } = integration;
+    const { mall_id, access_token, refresh_token, client_id, client_secret } = integration;
 
     if (!mall_id || !access_token) {
       return NextResponse.json({ 
@@ -72,7 +72,7 @@ export async function POST(req: Request) {
     });
 
     // 토큰 만료 처리: 401 Unauthorized
-    if (ordersResponse.status === 401 && refresh_token) {
+    if (ordersResponse.status === 401 && refresh_token && client_id && client_secret) {
       console.log('Cafe24 token expired. Auto-refreshing...');
       const tokenUrl = `https://${mall_id}.cafe24api.com/api/v2/oauth/token`;
       

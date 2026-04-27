@@ -15,6 +15,8 @@ import { Order } from "@/types/order";
 import { useSettings } from "@/hooks/use-settings";
 import { FontSelector } from "./font-selector";
 import { LabelGridSelector } from "./label-grid-selector";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
 
 interface MessagePrintDialogProps {
   isOpen: boolean;
@@ -43,6 +45,9 @@ const labelTypes = [
 export function MessagePrintDialog({ isOpen, onOpenChange, onSubmit, order }: MessagePrintDialogProps) {
   const { settings } = useSettings();
   const searchParams = useSearchParams();
+  const locale = usePreferredLocale();
+  const isKo = toBaseLocale(locale) === "ko";
+  const tr = (ko: string, en: string) => (isKo ? ko : en);
 
   const STORAGE_KEY_MSG_FONT = 'msg_print_msg_font';
   const STORAGE_KEY_MSG_SIZE = 'msg_print_msg_size';
@@ -118,19 +123,19 @@ export function MessagePrintDialog({ isOpen, onOpenChange, onSubmit, order }: Me
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-6xl max-h-[95vh] h-[90vh] overflow-hidden flex flex-col p-4 md:p-6">
         <DialogHeader>
-          <DialogTitle className="text-slate-900">메시지 인쇄 옵션</DialogTitle>
+          <DialogTitle className="text-slate-900">{tr("메시지 인쇄 옵션", "Message Print Options")}</DialogTitle>
           <DialogDescription className="text-slate-500">
-            내용을 입력하고 인쇄될 위치를 선택하세요.
+            {tr("내용을 입력하고 인쇄될 위치를 선택하세요.", "Enter content and choose print positions.")}
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 overflow-hidden min-h-0">
           <div className="lg:col-span-5 space-y-4 overflow-y-auto pr-2">
             <div className="space-y-2 border p-3 rounded-md">
-                <Label className="font-bold text-xs uppercase text-gray-500">1. 라벨지 규격 선택</Label>
+                <Label className="font-bold text-xs uppercase text-gray-500">{tr("1. 라벨지 규격 선택", "1. Select Label Type")}</Label>
                 <Select value={labelType} onValueChange={(val) => val && setLabelType(val)}>
                     <SelectTrigger className="bg-white">
-                        <SelectValue placeholder="라벨지 선택" />
+                        <SelectValue placeholder={tr("라벨지 선택", "Select label")} />
                     </SelectTrigger>
                     <SelectContent>
                         {labelTypes.map(lt => (
@@ -141,38 +146,38 @@ export function MessagePrintDialog({ isOpen, onOpenChange, onSubmit, order }: Me
             </div>
 
             <div className="space-y-4 border p-3 rounded-md bg-muted/20">
-              <Label className="font-bold text-xs uppercase text-gray-500">2. 내용 입력</Label>
+              <Label className="font-bold text-xs uppercase text-gray-500">{tr("2. 내용 입력", "2. Enter Content")}</Label>
               <div className="space-y-2">
-                <Label htmlFor="message-content" className="text-xs text-slate-700">메시지 본문</Label>
+                <Label htmlFor="message-content" className="text-xs text-slate-700">{tr("메시지 본문", "Message Text")}</Label>
                 <Textarea
                   id="message-content"
                   value={messageContent}
                   onChange={(e) => setMessageContent(e.target.value)}
-                  placeholder="메시지 입력"
+                  placeholder={tr("메시지 입력", "Enter message")}
                   className="min-h-[100px] bg-white"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="sender-name" className="text-xs text-slate-700">보내는 분</Label>
+                <Label htmlFor="sender-name" className="text-xs text-slate-700">{tr("보내는 분", "Sender")}</Label>
                 <Input
                   id="sender-name"
                   value={senderName}
                   onChange={(e) => setSenderName(e.target.value)}
-                  placeholder="이름 입력"
+                  placeholder={tr("이름 입력", "Enter name")}
                   className="bg-white"
                 />
               </div>
             </div>
 
             <div className="space-y-4 border p-3 rounded-md">
-              <Label className="font-bold text-xs uppercase text-gray-500">3. 스타일 설정</Label>
+              <Label className="font-bold text-xs uppercase text-gray-500">{tr("3. 스타일 설정", "3. Style Settings")}</Label>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="space-y-2">
-                    <Label className="text-xs text-slate-700">본문 폰트</Label>
+                    <Label className="text-xs text-slate-700">{tr("본문 폰트", "Body Font")}</Label>
                     <FontSelector value={messageFont} onValueChange={setMessageFont} />
                 </div>
                 <div className="space-y-2">
-                    <Label className="text-xs text-slate-700">본문 크기 (pt)</Label>
+                    <Label className="text-xs text-slate-700">{tr("본문 크기 (pt)", "Body Size (pt)")}</Label>
                     <Input
                         type="number"
                         value={messageFontSize}
@@ -181,11 +186,11 @@ export function MessagePrintDialog({ isOpen, onOpenChange, onSubmit, order }: Me
                     />
                 </div>
                 <div className="space-y-2">
-                    <Label className="text-xs text-slate-700">작성자 폰트</Label>
+                    <Label className="text-xs text-slate-700">{tr("작성자 폰트", "Sender Font")}</Label>
                     <FontSelector value={senderFont} onValueChange={setSenderFont} />
                 </div>
                 <div className="space-y-2">
-                    <Label className="text-xs text-slate-700">작성자 크기 (pt)</Label>
+                    <Label className="text-xs text-slate-700">{tr("작성자 크기 (pt)", "Sender Size (pt)")}</Label>
                     <Input
                         type="number"
                         value={senderFontSize}
@@ -222,10 +227,10 @@ export function MessagePrintDialog({ isOpen, onOpenChange, onSubmit, order }: Me
         </div>
         <DialogFooter className="pt-4 gap-2">
           <DialogClose render={<Button type="button" variant="secondary" />}>
-            취소
+            {tr("취소", "Cancel")}
           </DialogClose>
           <Button type="button" onClick={handleFormSubmit} disabled={!messageContent || selectedPositions.length === 0}>
-            <Printer className="mr-2 h-4 w-4" /> 인쇄 미리보기
+            <Printer className="mr-2 h-4 w-4" /> {tr("인쇄 미리보기", "Print Preview")}
           </Button>
         </DialogFooter>
       </DialogContent>

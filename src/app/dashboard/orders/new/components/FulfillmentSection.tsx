@@ -13,6 +13,8 @@ import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import Textarea from "@/components/ui/textarea";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
 
 // Type definitions should be imported or redefined if they are local
 type ReceiptType = "store_pickup" | "pickup_reservation" | "delivery_reservation";
@@ -96,6 +98,9 @@ export function FulfillmentSection({
     isExpress,
     setIsExpress
 }: FulfillmentSectionProps) {
+    const locale = usePreferredLocale();
+    const isKo = toBaseLocale(locale) === "ko";
+    const tr = (koText: string, enText: string) => (isKo ? koText : enText);
 
     const isDelivery = receiptType === 'delivery_reservation';
 
@@ -103,10 +108,10 @@ export function FulfillmentSection({
         <div className="space-y-6">
             <Card>
                 <CardHeader className="pb-3">
-                    <CardTitle className="text-lg font-semibold">수령 및 배송 정보</CardTitle>
+                    <CardTitle className="text-lg font-semibold">{tr("수령 및 배송 정보", "Pickup & Delivery Info")}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    {/* 1. 수령 방식 선택 */}
+                    {/* 1. Receipt type */}
                     <div className="grid grid-cols-3 gap-4">
                         <div
                             className={cn(
@@ -116,8 +121,8 @@ export function FulfillmentSection({
                             onClick={() => setReceiptType("store_pickup")}
                         >
                             <span className="text-lg">🏪</span>
-                            <div className="font-semibold text-sm">매장 픽업</div>
-                            <div className="text-xs text-muted-foreground text-center">지금 바로 방문</div>
+                            <div className="font-semibold text-sm">{tr("매장 픽업", "Store Pickup")}</div>
+                            <div className="text-xs text-muted-foreground text-center">{tr("지금 바로 방문", "Visit now")}</div>
                         </div>
                         <div
                             className={cn(
@@ -127,8 +132,8 @@ export function FulfillmentSection({
                             onClick={() => setReceiptType("pickup_reservation")}
                         >
                             <span className="text-lg">📅</span>
-                            <div className="font-semibold text-sm">픽업 예약</div>
-                            <div className="text-xs text-muted-foreground text-center">나중에 방문</div>
+                            <div className="font-semibold text-sm">{tr("픽업 예약", "Pickup Reservation")}</div>
+                            <div className="text-xs text-muted-foreground text-center">{tr("나중에 방문", "Visit later")}</div>
                         </div>
                         <div
                             className={cn(
@@ -138,22 +143,22 @@ export function FulfillmentSection({
                             onClick={() => setReceiptType("delivery_reservation")}
                         >
                             <span className="text-lg">🚚</span>
-                            <div className="font-semibold text-sm">배송 예약</div>
-                            <div className="text-xs text-muted-foreground text-center">원하는 곳으로 배송</div>
+                            <div className="font-semibold text-sm">{tr("배송 예약", "Delivery Reservation")}</div>
+                            <div className="text-xs text-muted-foreground text-center">{tr("원하는 곳으로 배송", "Deliver to destination")}</div>
                         </div>
                     </div>
 
                     {/* 2. 일시 선택 */}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label>날짜</Label>
+                            <Label>{tr("날짜", "Date")}</Label>
                             <Popover>
                                 <PopoverTrigger className={cn(
                                     "w-full h-10 flex items-center justify-start text-left font-normal border rounded-md px-3 bg-background hover:bg-muted transition-colors",
                                     !scheduleDate && "text-muted-foreground"
                                 )}>
                                     <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {scheduleDate ? format(scheduleDate, "yyyy년 MM월 dd일", { locale: ko }) : <span className="text-sm">날짜 선택</span>}
+                                    {scheduleDate ? format(scheduleDate, isKo ? "yyyy년 MM월 dd일" : "yyyy-MM-dd", { locale: ko }) : <span className="text-sm">{tr("날짜 선택", "Select date")}</span>}
                                 </PopoverTrigger>
                                 <PopoverContent className="w-auto p-0">
                                     <Calendar
@@ -166,10 +171,10 @@ export function FulfillmentSection({
                             </Popover>
                         </div>
                         <div className="space-y-2">
-                            <Label>시간</Label>
+                            <Label>{tr("시간", "Time")}</Label>
                             <Select value={scheduleTime} onValueChange={setScheduleTime}>
                                 <SelectTrigger>
-                                    <SelectValue placeholder="시간 선택" />
+                                    <SelectValue placeholder={tr("시간 선택", "Select time")} />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {timeOptions.map((time) => (
@@ -185,28 +190,28 @@ export function FulfillmentSection({
                     {/* 3. 대상 정보 (수령인/픽업자) */}
                     <div className="space-y-4 pt-2 border-t">
                         <div className="flex items-center justify-between">
-                            <Label className="text-base font-semibold">{isDelivery ? "받는 분" : "픽업 하시는 분"}</Label>
+                            <Label className="text-base font-semibold">{isDelivery ? tr("받는 분", "Recipient") : tr("픽업 하시는 분", "Pickup Person")}</Label>
                             <div className="flex items-center space-x-2">
                                 <Checkbox
                                     id="sameAsOrderer"
                                     checked={isSameAsOrderer}
                                     onCheckedChange={(checked) => setIsSameAsOrderer(checked as boolean)}
                                 />
-                                <Label htmlFor="sameAsOrderer" className="text-sm font-normal cursor-pointer text-muted-foreground">주문자와 동일</Label>
+                                <Label htmlFor="sameAsOrderer" className="text-sm font-normal cursor-pointer text-muted-foreground">{tr("주문자와 동일", "Same as orderer")}</Label>
                             </div>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label>이름</Label>
+                                <Label>{tr("이름", "Name")}</Label>
                                 <Input
                                     value={recipientName}
                                     onChange={(e: any) => setRecipientName(e.target.value)}
-                                    placeholder={isDelivery ? "받는분 성함" : "픽업자 성함"}
+                                    placeholder={isDelivery ? tr("받는분 성함", "Recipient name") : tr("픽업자 성함", "Pickup person name")}
                                     disabled={isSameAsOrderer}
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label>연락처</Label>
+                                <Label>{tr("연락처", "Contact")}</Label>
                                 <Input
                                     value={recipientContact}
                                     onChange={(e: any) => setRecipientContact(formatPhoneNumber(e.target.value))}
@@ -223,7 +228,7 @@ export function FulfillmentSection({
                         <div className="space-y-4 pt-2 border-t">
                             <div className="grid grid-cols-2 gap-6">
                                 <div className="space-y-3">
-                                    <Label className="text-sm font-medium">상품규격 (배송비 추가)</Label>
+                                    <Label className="text-sm font-medium">{tr("상품규격 (배송비 추가)", "Item size (adds delivery fee)")}</Label>
                                     <RadioGroup
                                         value={itemSize}
                                         onValueChange={(val) => setItemSize(val as 'small' | 'medium' | 'large')}
@@ -231,20 +236,20 @@ export function FulfillmentSection({
                                     >
                                         <div className="flex items-center space-x-2">
                                             <RadioGroupItem value="small" id="size-small" />
-                                            <Label htmlFor="size-small" className="cursor-pointer">소품(기본)</Label>
+                                            <Label htmlFor="size-small" className="cursor-pointer">{tr("소품(기본)", "Small (default)")}</Label>
                                         </div>
                                         <div className="flex items-center space-x-2">
                                             <RadioGroupItem value="medium" id="size-medium" />
-                                            <Label htmlFor="size-medium" className="cursor-pointer">중품(+3,000)</Label>
+                                            <Label htmlFor="size-medium" className="cursor-pointer">{tr("중품(+3,000)", "Medium (+3,000)")}</Label>
                                         </div>
                                         <div className="flex items-center space-x-2">
                                             <RadioGroupItem value="large" id="size-large" />
-                                            <Label htmlFor="size-large" className="cursor-pointer">대품(+5,000)</Label>
+                                            <Label htmlFor="size-large" className="cursor-pointer">{tr("대품(+5,000)", "Large (+5,000)")}</Label>
                                         </div>
                                     </RadioGroup>
                                 </div>
                                 <div className="space-y-3">
-                                    <Label className="text-sm font-medium">배송 특이사항</Label>
+                                    <Label className="text-sm font-medium">{tr("배송 특이사항", "Delivery Options")}</Label>
                                     <div className="flex items-center space-x-2 h-10">
                                         <Checkbox
                                             id="isExpress"
@@ -252,7 +257,7 @@ export function FulfillmentSection({
                                             onCheckedChange={(checked) => setIsExpress(checked as boolean)}
                                         />
                                         <Label htmlFor="isExpress" className="text-sm font-normal cursor-pointer text-orange-600 font-bold">
-                                            급행 배송 예약 (+10,000원)
+                                            {tr("급행 배송 예약 (+10,000원)", "Express delivery (+10,000)")}
                                         </Label>
                                     </div>
                                 </div>
@@ -263,24 +268,24 @@ export function FulfillmentSection({
                     {/* 5. 주소 (배송일 경우만) */}
                     {isDelivery && (
                         <div className="space-y-4 pt-2 border-t">
-                            <Label className="text-base font-semibold">배송지 정보</Label>
+                            <Label className="text-base font-semibold">{tr("배송지 정보", "Delivery Address")}</Label>
                             <div className="space-y-2">
                                 <div className="flex gap-2">
                                     <Input
                                         value={deliveryAddress}
                                         onChange={(e: any) => setDeliveryAddress(e.target.value)}
-                                        placeholder="주소 입력 또는 검색"
+                                        placeholder={tr("주소 입력 또는 검색", "Enter or search address")}
                                         className="flex-1"
                                     />
                                     <Button type="button" onClick={onAddressSearch} variant="secondary">
                                         <Search className="w-4 h-4 mr-2" />
-                                        주소 검색
+                                        {tr("주소 검색", "Search")}
                                     </Button>
                                 </div>
                                 <Input
                                     value={deliveryAddressDetail}
                                     onChange={(e: any) => setDeliveryAddressDetail(e.target.value)}
-                                    placeholder="상세 주소를 입력하세요 (예: 101동 101호)"
+                                    placeholder={tr("상세 주소를 입력하세요 (예: 101동 101호)", "Enter detail address (e.g. Apt 101-101)")}
                                 />
                             </div>
                         </div>
@@ -291,23 +296,23 @@ export function FulfillmentSection({
             {/* 메시지 및 요청사항 */}
             <Card>
                 <CardHeader className="pb-3">
-                    <CardTitle className="text-lg font-semibold">메시지 및 요청사항</CardTitle>
+                    <CardTitle className="text-lg font-semibold">{tr("메시지 및 요청사항", "Message & Requests")}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <RadioGroup value={messageType} onValueChange={(v) => setMessageType(v as MessageType)} className="flex gap-6">
                         <div className="flex items-center space-x-2">
                             <RadioGroupItem value="card" id="msg-card" />
-                            <Label htmlFor="msg-card">메시지 카드</Label>
+                            <Label htmlFor="msg-card">{tr("메시지 카드", "Message Card")}</Label>
                         </div>
                         <div className="flex items-center space-x-2">
                             <RadioGroupItem value="ribbon" id="msg-ribbon" />
-                            <Label htmlFor="msg-ribbon">리본</Label>
+                            <Label htmlFor="msg-ribbon">{tr("리본", "Ribbon")}</Label>
                         </div>
                     </RadioGroup>
 
                     {messageType === 'ribbon' && recentRibbonMessages && recentRibbonMessages.length > 0 && (
                         <div className="p-3 bg-muted/30 rounded-md border notranslate" translate="no">
-                            <Label className="text-xs text-muted-foreground mb-2 block">기존 메시지 불러오기</Label>
+                            <Label className="text-xs text-muted-foreground mb-2 block">{tr("기존 메시지 불러오기", "Load previous messages")}</Label>
                             <Select onValueChange={(val: string | null) => {
                                 if (!val) return;
                                 try {
@@ -319,7 +324,7 @@ export function FulfillmentSection({
                                 } catch (e: any) { }
                             }}>
                                 <SelectTrigger className="h-8 text-sm bg-white">
-                                    <SelectValue placeholder="이전 문구 선택..." />
+                                    <SelectValue placeholder={tr("이전 문구 선택...", "Select previous text...")} />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {recentRibbonMessages.map((msg, idx) => (
@@ -327,7 +332,7 @@ export function FulfillmentSection({
                                             <div className="flex flex-col items-start gap-1 text-left">
                                                 <div className="flex items-center gap-2">
                                                     <span className="text-xs font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded">
-                                                        {msg.sender || '보내는분 미입력'}
+                                                        {msg.sender || tr('보내는분 미입력', 'No sender')}
                                                     </span>
                                                 </div>
                                                 <span className="text-sm text-muted-foreground px-1">
@@ -342,12 +347,12 @@ export function FulfillmentSection({
                     )}
 
                     <div className="space-y-2">
-                        <Label>메시지 내용</Label>
+                        <Label>{tr("메시지 내용", "Message Content")}</Label>
                         {messageType === 'card' ? (
                             <Textarea
                                 value={messageContent}
                                 onChange={(e: any) => setMessageContent(e.target.value)}
-                                placeholder="카드에 들어갈 내용을 자유롭게 입력하세요."
+                                placeholder={tr("카드에 들어갈 내용을 자유롭게 입력하세요.", "Enter text for the message card.")}
                                 className="min-h-[100px]"
                             />
                         ) : (
@@ -383,7 +388,7 @@ export function FulfillmentSection({
                                         className="h-7 px-2 text-[11px] bg-orange-50 hover:bg-orange-100 border-orange-200 text-orange-700 font-medium"
                                         onClick={() => setMessageContent("삼가 故人의 冥福을 빕니다")}
                                     >
-                                        삼가 故人의 冥福을 빕니다
+                                        {tr("삼가 故人의 冥福을 빕니다", "Rest in peace")}
                                     </Button>
                                 </div>
                                 <Input
@@ -391,19 +396,19 @@ export function FulfillmentSection({
                                     onChange={(e: any) => setMessageContent(e.target.value)}
                                     translate="no"
                                     className="notranslate"
-                                    placeholder="메시지 / 보내는분 (예: 축결혼 / 홍길동) - 보내는분 미입력시 주문자명 사용"
+                                    placeholder={tr("메시지 / 보내는분 (예: 축결혼 / 홍길동) - 보내는분 미입력시 주문자명 사용", "Message / sender (e.g. Congrats / Alex) - sender defaults to orderer")}
                                 />
-                                <p className="text-xs text-muted-foreground">* 메시지와 보내는 분을 '/' 로 구분해서 입력하세요.</p>
+                                <p className="text-xs text-muted-foreground">{tr("* 메시지와 보내는 분을 '/' 로 구분해서 입력하세요.", "* Separate message and sender with '/'.")}</p>
                             </div>
                         )}
                     </div>
 
                     <div className="space-y-2">
-                        <Label>요청 사항 (주문서 참고용)</Label>
+                        <Label>{tr("요청 사항 (주문서 참고용)", "Special Request (for order sheet)")}</Label>
                         <Textarea
                             value={specialRequest}
                             onChange={(e: any) => setSpecialRequest(e.target.value)}
-                            placeholder="제작 시 참고할 사항이나 배송 기사님께 전달할 메시지를 입력하세요"
+                            placeholder={tr("제작 시 참고할 사항이나 배송 기사님께 전달할 메시지를 입력하세요", "Enter production notes or delivery message")}
                             className="h-20 resize-none"
                         />
                     </div>

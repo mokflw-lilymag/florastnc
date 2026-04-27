@@ -5,9 +5,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { differenceInCalendarDays, format } from "date-fns";
 import { ko } from "date-fns/locale";
-import { User, LogOut, Settings, Bell, BookOpen, Wifi, WifiOff } from "lucide-react";
+import { User, LogOut, Settings, Bell, BookOpen, Wifi, WifiOff, Globe } from "lucide-react";
 import { MobileSidebar } from "./mobile-sidebar";
-import { ManualDrawer } from "./manual-drawer";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -25,6 +24,9 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useIsCapacitorAndroid } from "@/hooks/use-capacitor-android";
 import { isCapacitorAndroid } from "@/lib/client-platform";
+import { AppLocale, LOCALE_COOKIE, resolveLocale } from "@/i18n/config";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { getDashboardCommonMessages } from "@/i18n/dashboard-common-messages";
 
 interface HeaderProps {
   userEmail: string;
@@ -75,6 +77,51 @@ export function Header({
   const supabase = createClient();
   const [isBridgeOnline, setIsBridgeOnline] = useState(false);
   const isAndroidApp = useIsCapacitorAndroid();
+  const preferredLocale = usePreferredLocale();
+  const isKo = resolveLocale(preferredLocale).startsWith("ko");
+  const tr = (koText: string, enText: string) => (isKo ? koText : enText);
+  const t = getDashboardCommonMessages(preferredLocale);
+  const [uiLocale, setUiLocale] = useState<AppLocale>("ko");
+  const localeOptions: Array<{ value: AppLocale; label: string }> = [
+    { value: "ko", label: "한국어" },
+    { value: "en-US", label: "English (US)" },
+    { value: "en-GB", label: "English (UK)" },
+    { value: "en-AU", label: "English (Australia)" },
+    { value: "en-SG", label: "English (Singapore)" },
+    { value: "en-CA", label: "English (Canada)" },
+    { value: "en-NZ", label: "English (New Zealand)" },
+    { value: "vi", label: "Tiếng Việt" },
+    { value: "zh", label: "中文" },
+    { value: "ja", label: "日本語" },
+    { value: "es-ES", label: "Español (España)" },
+    { value: "es-MX", label: "Español (México)" },
+    { value: "es-AR", label: "Español (Argentina)" },
+    { value: "es-CL", label: "Español (Chile)" },
+    { value: "pt-PT", label: "Português (Portugal)" },
+    { value: "pt-BR", label: "Português (Brasil)" },
+    { value: "pt-MZ", label: "Português (Moçambique)" },
+    { value: "fr-FR", label: "Français (France)" },
+    { value: "fr-CA", label: "Français (Canada)" },
+    { value: "de-DE", label: "Deutsch (Deutschland)" },
+    { value: "de-CH", label: "Deutsch (Schweiz)" },
+    { value: "ru-RU", label: "Русский (Россия)" },
+  ];
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const cookieValue = document.cookie
+      .split("; ")
+      .find((row) => row.startsWith(`${LOCALE_COOKIE}=`))
+      ?.split("=")[1];
+    setUiLocale(resolveLocale(cookieValue));
+  }, []);
+
+  const handleLocaleChange = (nextLocale: AppLocale) => {
+    setUiLocale(nextLocale);
+    document.cookie = `${LOCALE_COOKIE}=${nextLocale}; path=/; max-age=${60 * 60 * 24 * 365}`;
+    window.dispatchEvent(new Event("preferred-locale-changed"));
+    toast.success(t.header.localeChanged);
+  };
 
   useEffect(() => {
     if (typeof window !== "undefined" && isCapacitorAndroid()) return;
@@ -104,27 +151,27 @@ export function Header({
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    toast.success("안전하게 로그아웃 되었습니다.");
+    toast.success(t.header.logoutSuccess);
     router.push("/login");
   };
 
   const subscriptionLine = (() => {
     if (isSuperAdmin) return null;
-    if (sidebarHqOnly) return "본사·다매장 계정 (매장 구독 별도)";
+    if (sidebarHqOnly) return t.header.hqAccount;
     const label = planBadgeLabel(plan);
     if (!subscriptionEnd) {
-      return `${label} · 이용 기한 미등록`;
+      return `${label} · ${t.header.subscriptionMissing}`;
     }
     const end = new Date(subscriptionEnd);
     const dateStr = format(end, "yyyy.MM.dd", { locale: ko });
     if (isExpired) {
-      return `${label} · ${dateStr}까지(만료) · 연장 필요`;
+      return `${label} · ${dateStr}(${t.header.subscriptionExpired}) · ${t.header.subscriptionRenew}`;
     }
     const daysLeft = differenceInCalendarDays(end, new Date());
     if (daysLeft <= 0) {
-      return `${label} · 오늘 만료`;
+      return `${label} · ${t.header.subscriptionToday}`;
     }
-    return `${label} · ${dateStr}까지 · D-${daysLeft}`;
+    return isKo ? `${label} · ${dateStr}까지 · D-${daysLeft}` : `${label} · until ${dateStr} · D-${daysLeft}`;
   })();
 
   return (
@@ -165,7 +212,7 @@ export function Header({
             {subscriptionLine && (
               <Link
                 href="/dashboard/subscription"
-                title="구독 · 이용 기한 보기"
+                title={t.header.subscriptionTitle}
                 className={cn(
                   "inline-flex max-w-full items-center rounded-lg border px-2 py-1 text-[10px] font-semibold leading-tight transition-colors sm:shrink-0 md:text-[11px]",
                   isExpired || isSuspended
@@ -181,6 +228,22 @@ export function Header({
       </div>
 
       <div className="flex items-center gap-4">
+        <div className="hidden md:flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5">
+          <Globe className="h-3.5 w-3.5 text-slate-500" />
+          <select
+            aria-label={tr("표시 언어", "Display language")}
+            value={uiLocale}
+            onChange={(e) => handleLocaleChange(e.target.value as AppLocale)}
+            className="bg-transparent text-[11px] font-semibold text-slate-700 outline-none"
+          >
+            {localeOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
         {/* Bridge Status Indicator (v25.0) — Android 앱에서는 리본 브릿지 미사용 */}
         {!isAndroidApp && (
         <div 
@@ -199,7 +262,7 @@ export function Header({
           <span className="text-[10px] font-bold uppercase tracking-tight flex items-center gap-1.5">
             {isBridgeOnline ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
             <span className="flex items-baseline gap-1">
-              Ribbonist Bridge
+              Print Bridge
               <span className="text-[8px] opacity-60 font-mono tracking-tighter">v25.0</span>
             </span>
           </span>
@@ -210,8 +273,15 @@ export function Header({
         </div>
         )}
 
-        {/* Help Center Drawer */}
-        <ManualDrawer />
+        {/* Quick Manual Link */}
+        <Link
+          href="/docs/manual"
+          title={tr("매뉴얼", "Manual")}
+          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-indigo-200 bg-white text-lg hover:bg-indigo-50 transition-colors shadow-sm"
+          aria-label={tr("매뉴얼 열기", "Open manual")}
+        >
+          📘
+        </Link>
 
         {/* HQ Manual Button - Only for Super Admins */}
         {isSuperAdmin && (
@@ -220,7 +290,7 @@ export function Header({
             size="icon" 
             className="text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-all rounded-full"
             onClick={() => router.push("/dashboard/admin/manual")}
-            title="본사 직무 매뉴얼"
+            title={tr("본사 직무 매뉴얼", "HQ role manual")}
           >
             <BookOpen className="h-5 w-5" />
           </Button>
@@ -245,7 +315,7 @@ export function Header({
             <DropdownMenuGroup>
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-normal leading-none text-slate-900 dark:text-white">{isSuperAdmin ? '관리자' : '구독 파트너'}</p>
+                  <p className="text-sm font-normal leading-none text-slate-900 dark:text-white">{isSuperAdmin ? t.header.admin : t.header.partner}</p>
                   <p className="text-xs leading-none text-slate-500 dark:text-slate-400 truncate">
                     {userEmail}
                   </p>
@@ -255,19 +325,19 @@ export function Header({
             <DropdownMenuSeparator />
             <DropdownMenuItem className="cursor-pointer">
               <User className="mr-2 h-4 w-4 text-slate-400" />
-              <span>내 프로필</span>
+              <span>{t.header.profile}</span>
             </DropdownMenuItem>
             <DropdownMenuItem 
               className="cursor-pointer" 
               onClick={() => router.push("/dashboard/settings")}
             >
               <Settings className="mr-2 h-4 w-4 text-slate-400" />
-              <span>환경 설정</span>
+              <span>{t.header.settings}</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-600 dark:text-red-400 focus:bg-red-50 dark:focus:bg-red-900/20 focus:text-red-600 dark:focus:text-red-400">
               <LogOut className="mr-2 h-4 w-4" />
-              <span>로그아웃</span>
+              <span>{t.header.logout}</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

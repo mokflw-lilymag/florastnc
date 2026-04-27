@@ -1,6 +1,16 @@
 import { useState, useEffect } from 'react';
 import { supabase } from './lib/supabase';
 import { Save, FolderOpen, Trash2, X } from 'lucide-react';
+import { usePreferredLocale } from '@/hooks/use-preferred-locale';
+import { getMessages } from '@/i18n/getMessages';
+
+function fillRibbonTemplate(template: string, vars: Record<string, string | number>): string {
+  let s = template;
+  for (const [key, val] of Object.entries(vars)) {
+    s = s.split(`{{${key}}}`).join(String(val));
+  }
+  return s;
+}
 
 interface TemplateProps {
   isOpen: boolean;
@@ -10,6 +20,8 @@ interface TemplateProps {
 }
 
 export function TemplateManagerDialog({ isOpen, onClose, currentConfig, onLoad }: TemplateProps) {
+  const locale = usePreferredLocale();
+  const R = getMessages(locale).dashboard.ribbon;
   const [templates, setTemplates] = useState<any[]>([]);
   const [newTemplateName, setNewTemplateName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -37,14 +49,14 @@ export function TemplateManagerDialog({ isOpen, onClose, currentConfig, onLoad }
 
   const saveTemplate = async () => {
     if (!newTemplateName.trim()) {
-      alert("템플릿 이름을 입력해주세요.");
+      alert(R.tmplAlertName);
       return;
     }
 
     try {
       setIsLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { alert("로그인이 필요합니다."); return; }
+      if (!user) { alert(R.tmplLoginRequired); return; }
 
       const { error } = await supabase.from('templates').insert([
         {
@@ -57,23 +69,23 @@ export function TemplateManagerDialog({ isOpen, onClose, currentConfig, onLoad }
       if (error) throw error;
       
       setNewTemplateName('');
-      alert("성공적으로 저장되었습니다.");
+      alert(R.tmplSaveOk);
       fetchTemplates();
     } catch (err: any) {
       console.error(err);
-      alert("저장 실패: " + err.message);
+      alert(fillRibbonTemplate(R.tmplSaveFail, { msg: err.message ?? String(err) }));
     } finally {
       setIsLoading(false);
     }
   };
 
   const deleteTemplate = async (id: string, name: string) => {
-    if (!confirm(`'${name}' 템플릿을 삭제하시겠습니까?`)) return;
+    if (!confirm(fillRibbonTemplate(R.tmplDelConfirm, { name }))) return;
     
     setIsLoading(true);
     const { error } = await supabase.from('templates').delete().eq('id', id);
     if (error) {
-      alert("삭제 실패: " + error.message);
+      alert(fillRibbonTemplate(R.tmplDelFail, { msg: error.message }));
     } else {
       fetchTemplates();
     }
@@ -89,7 +101,7 @@ export function TemplateManagerDialog({ isOpen, onClose, currentConfig, onLoad }
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800 bg-slate-900/50">
           <h2 className="text-white font-semibold flex items-center gap-2">
-            <FolderOpen size={18} className="text-blue-400" /> 템플릿 보관함
+            <FolderOpen size={18} className="text-blue-400" /> {R.tmplMgrTitle}
           </h2>
           <button onClick={onClose} className="p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded">
             <X size={20} />
@@ -101,13 +113,13 @@ export function TemplateManagerDialog({ isOpen, onClose, currentConfig, onLoad }
           
           {/* New Template Form */}
           <div className="flex flex-col gap-2 bg-slate-800/50 p-4 rounded-xl border border-slate-700">
-            <label className="text-xs font-semibold text-slate-300">현재 디자인 저장하기</label>
+            <label className="text-xs font-semibold text-slate-300">{R.tmplMgrSaveLabel}</label>
             <div className="flex gap-2">
               <input 
                 type="text" 
                 value={newTemplateName}
                 onChange={e => setNewTemplateName(e.target.value)}
-                placeholder="템플릿 이름 입력 (예: 화환 기본 세팅)"
+                placeholder={R.tmplMgrNamePh}
                 className="flex-1 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
                 disabled={isLoading}
               />
@@ -116,20 +128,20 @@ export function TemplateManagerDialog({ isOpen, onClose, currentConfig, onLoad }
                 disabled={isLoading}
                 className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold text-sm transition-colors flex items-center gap-2 disabled:opacity-50"
               >
-                <Save size={16} /> 저장
+                <Save size={16} /> {R.saveAction}
               </button>
             </div>
           </div>
 
           {/* Template List */}
           <div className="flex flex-col flex-1 min-h-[200px] max-h-[400px]">
-            <label className="text-xs font-semibold text-slate-400 mb-3 block">저장된 템플릿 목록</label>
+            <label className="text-xs font-semibold text-slate-400 mb-3 block">{R.tmplMgrListLabel}</label>
             
             <div className="overflow-y-auto pr-1 flex-1 flex flex-col gap-2">
               {isLoading && templates.length === 0 ? (
-                <div className="text-center py-10 text-slate-500 text-sm">로딩 중...</div>
+                <div className="text-center py-10 text-slate-500 text-sm">{R.tmplMgrLoading}</div>
               ) : templates.length === 0 ? (
-                <div className="text-center py-10 text-slate-500 text-sm">저장된 템플릿이 없습니다.</div>
+                <div className="text-center py-10 text-slate-500 text-sm">{R.tmplMgrEmpty}</div>
               ) : (
                 templates.map(tpl => (
                   <div key={tpl.id} className="flex items-center justify-between p-3 rounded-xl border border-slate-700 bg-slate-800 hover:border-blue-500/50 transition-colors group">
@@ -144,12 +156,12 @@ export function TemplateManagerDialog({ isOpen, onClose, currentConfig, onLoad }
                          onClick={() => { onLoad(tpl.config); onClose(); }}
                          className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded text-xs font-semibold transition-colors"
                       >
-                         불러오기
+                         {R.tmplMgrLoad}
                       </button>
                       <button 
                          onClick={() => deleteTemplate(tpl.id, tpl.name)}
                          className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-400/10 rounded transition-colors"
-                         title="삭제"
+                         title={R.tmplMgrDelTitle}
                       >
                          <Trash2 size={16} />
                       </button>

@@ -28,6 +28,8 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { HqRevenueStackedChart } from "@/components/hq/hq-revenue-stacked-chart";
 import { cn } from "@/lib/utils";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
 
 type BranchRow = {
   id: string;
@@ -61,6 +63,9 @@ export default function HqDashboardPage() {
   const [chartRows, setChartRows] = useState<Record<string, string | number>[]>([]);
   const [branchChartKeys, setBranchChartKeys] = useState<{ id: string; name: string }[]>([]);
   const [chartSwitchLoading, setChartSwitchLoading] = useState(false);
+  const locale = usePreferredLocale();
+  const baseLocale = toBaseLocale(locale);
+  const tr = (koText: string, enText: string) => (baseLocale === "ko" ? koText : enText);
   const dailyChartCache = useRef<{
     chartRows: Record<string, string | number>[];
     branchChartKeys: { id: string; name: string }[];
@@ -163,22 +168,21 @@ export default function HqDashboardPage() {
   return (
     <div className="container max-w-6xl mx-auto p-6 space-y-8 animate-in fade-in duration-500">
       <PageHeader
-        title="본사·다매장 개요"
-        description="소속 지점 실적·수령 방식·매출 추이를 한눈에 봅니다. 공지·공동 상품은 사이드바 메뉴에서 관리합니다."
+        title={tr("본사·다매장 개요", "HQ & Multi-Store Overview")}
+        description={tr("소속 지점 실적·수령 방식·매출 추이를 한눈에 봅니다. 공지·공동 상품은 사이드바 메뉴에서 관리합니다.", "View branch performance, receipt mix, and sales trends at a glance. Manage announcements/shared products from sidebar.")}
       />
 
       {forbidden ? (
         <Card className="max-w-lg border-slate-200">
           <CardHeader>
-            <CardTitle>접근할 수 없습니다</CardTitle>
+            <CardTitle>{tr("접근할 수 없습니다", "Access denied")}</CardTitle>
             <CardDescription>
-              조직에 배정된 계정만 본사·다매장 개요를 이용할 수 있습니다. 플랫폼 관리자에게 멤버
-              배정을 요청하세요.
+              {tr("조직에 배정된 계정만 본사·다매장 개요를 이용할 수 있습니다. 플랫폼 관리자에게 멤버 배정을 요청하세요.", "Only organization-assigned accounts can view HQ overview. Ask platform admin for membership assignment.")}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Button variant="outline" onClick={() => router.push("/dashboard")}>
-              대시보드로
+              {tr("대시보드로", "Go to dashboard")}
             </Button>
           </CardContent>
         </Card>
@@ -186,7 +190,7 @@ export default function HqDashboardPage() {
         <>
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
             <span className="text-sm text-muted-foreground shrink-0">
-              상단 수치·지점 표는 <strong className="text-foreground font-semibold">최근 14일(일별)</strong> 기준입니다. 아래 차트만 기간을 바꿔 볼 수 있습니다.
+              {tr("상단 수치·지점 표는", "Top stats and branch table use")} <strong className="text-foreground font-semibold">{tr("최근 14일(일별)", "last 14 days (daily)")}</strong> {tr("기준입니다. 아래 차트만 기간을 바꿔 볼 수 있습니다.", "as baseline. Only chart period below can be changed.")}
             </span>
             {orgNames.length > 0 && (
               <div className="flex flex-wrap gap-2">
@@ -203,7 +207,7 @@ export default function HqDashboardPage() {
           {warning && (
             <Card className="border-amber-200 bg-amber-50/80 dark:bg-amber-950/30">
               <CardHeader className="py-3">
-                <CardTitle className="text-sm text-amber-900 dark:text-amber-100">안내</CardTitle>
+                <CardTitle className="text-sm text-amber-900 dark:text-amber-100">{tr("안내", "Notice")}</CardTitle>
                 <CardDescription className="text-amber-800 dark:text-amber-200">{warning}</CardDescription>
               </CardHeader>
             </Card>
@@ -212,7 +216,7 @@ export default function HqDashboardPage() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">지점 수</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">{tr("지점 수", "Branch Count")}</CardTitle>
                 <Building2 className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -221,35 +225,35 @@ export default function HqDashboardPage() {
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">합산 매출</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">{tr("합산 매출", "Total Sales")}</CardTitle>
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {branches.reduce((s, b) => s + b.revenue, 0).toLocaleString()}원
+                  {branches.reduce((s, b) => s + b.revenue, 0).toLocaleString()}{tr("원", "")}
                 </div>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">취소 건 / 비율</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">{tr("취소 건 / 비율", "Canceled / Ratio")}</CardTitle>
                 <ShoppingCart className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{ops.canceledCount}건</div>
+                <div className="text-2xl font-bold">{ops.canceledCount}{tr("건", "")}</div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  전체 대비 {(ops.cancelRate * 100).toFixed(1)}% (취소 포함 건수 기준)
+                  {tr("전체 대비", "Share")} {(ops.cancelRate * 100).toFixed(1)}% {tr("(취소 포함 건수 기준)", "(based on all orders incl. canceled)")}
                 </p>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">유효 주문</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">{tr("유효 주문", "Valid Orders")}</CardTitle>
                 <Package className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{ops.activeOrderCount}건</div>
-                <p className="text-xs text-muted-foreground mt-1">취소 제외</p>
+                <div className="text-2xl font-bold">{ops.activeOrderCount}{tr("건", "")}</div>
+                <p className="text-xs text-muted-foreground mt-1">{tr("취소 제외", "Canceled excluded")}</p>
               </CardContent>
             </Card>
           </div>
@@ -259,16 +263,16 @@ export default function HqDashboardPage() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
                   <Truck className="h-4 w-4 text-blue-600" />
-                  배송 예약
+                  {tr("배송 예약", "Delivery Reservation")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-blue-900">{receiptMix.delivery_reservation}건</div>
+                <div className="text-2xl font-bold text-blue-900">{receiptMix.delivery_reservation}{tr("건", "")}</div>
                 <p className="text-xs text-muted-foreground mt-1">
                   {mixTotal > 0
                     ? `${((receiptMix.delivery_reservation / mixTotal) * 100).toFixed(0)}%`
                     : "—"}{" "}
-                  · 취소 제외
+                  · {tr("취소 제외", "canceled excluded")}
                 </p>
               </CardContent>
             </Card>
@@ -276,11 +280,11 @@ export default function HqDashboardPage() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
                   <Package className="h-4 w-4 text-emerald-600" />
-                  픽업·예약
+                  {tr("픽업·예약", "Pickup Reservation")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-emerald-900">{receiptMix.pickup_reservation}건</div>
+                <div className="text-2xl font-bold text-emerald-900">{receiptMix.pickup_reservation}{tr("건", "")}</div>
                 <p className="text-xs text-muted-foreground mt-1">
                   {mixTotal > 0
                     ? `${((receiptMix.pickup_reservation / mixTotal) * 100).toFixed(0)}%`
@@ -292,16 +296,16 @@ export default function HqDashboardPage() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
                   <Store className="h-4 w-4 text-amber-700" />
-                  매장 수령
+                  {tr("매장 수령", "Store Pickup")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-amber-900">{receiptMix.store_pickup}건</div>
+                <div className="text-2xl font-bold text-amber-900">{receiptMix.store_pickup}{tr("건", "")}</div>
                 <p className="text-xs text-muted-foreground mt-1">
                   {mixTotal > 0
                     ? `${((receiptMix.store_pickup / mixTotal) * 100).toFixed(0)}%`
                     : "—"}
-                  {receiptMix.other > 0 ? ` · 기타 ${receiptMix.other}건` : ""}
+                  {receiptMix.other > 0 ? ` · ${tr("기타", "Other")} ${receiptMix.other}${tr("건", "")}` : ""}
                 </p>
               </CardContent>
             </Card>
@@ -312,10 +316,10 @@ export default function HqDashboardPage() {
               <div>
                 <CardTitle className="text-lg font-light flex items-center gap-2">
                   <TrendingUp className="w-5 h-5 text-indigo-500" />
-                  매출 지표 추이
+                  {tr("매출 지표 추이", "Sales Trend")}
                 </CardTitle>
                 <CardDescription className="text-xs font-medium">
-                  실시간 매출 데이터 흐름을 분석합니다 · 지점별 스택 · 취소 제외
+                  {tr("실시간 매출 데이터 흐름을 분석합니다 · 지점별 스택 · 취소 제외", "Analyze live sales flow · stacked by branch · canceled excluded")}
                 </CardDescription>
               </div>
               <div className="flex flex-wrap bg-slate-50 p-1 rounded-xl gap-1 w-full sm:w-auto">
@@ -333,7 +337,7 @@ export default function HqDashboardPage() {
                     )}
                     onClick={() => applyChartPeriod(p)}
                   >
-                    {p === "daily" ? "일별" : p === "weekly" ? "주간별" : p === "monthly" ? "월별" : "년별"}
+                    {p === "daily" ? tr("일별", "Daily") : p === "weekly" ? tr("주간별", "Weekly") : p === "monthly" ? tr("월별", "Monthly") : tr("년별", "Yearly")}
                   </Button>
                 ))}
               </div>
@@ -349,12 +353,12 @@ export default function HqDashboardPage() {
                   branchKeys={branchChartKeys}
                   xLabel={
                     chartPeriod === "daily"
-                      ? "일자"
+                      ? tr("일자", "Date")
                       : chartPeriod === "weekly"
-                        ? "주간"
+                        ? tr("주간", "Week")
                         : chartPeriod === "monthly"
-                          ? "월"
-                          : "연도"
+                          ? tr("월", "Month")
+                          : tr("연도", "Year")
                   }
                   chartHeight={350}
                 />
@@ -366,12 +370,11 @@ export default function HqDashboardPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <ShoppingCart className="h-5 w-5" />
-                지점별 비교
+                {tr("지점별 비교", "Branch Comparison")}
               </CardTitle>
               <CardDescription>
-                상단 KPI·일별 차트와 같은 기간(최근 14일) 집계입니다. 취소는 제외하고, 객단가는 유효 주문 기준입니다.{" "}
-                <strong className="text-foreground font-medium">지점명</strong>을 누르면 해당 지점 요약·최근 주문(읽기 전용)으로
-                이동합니다.
+                {tr("상단 KPI·일별 차트와 같은 기간(최근 14일) 집계입니다. 취소는 제외하고, 객단가는 유효 주문 기준입니다.", "Uses same period as top KPI/daily chart (last 14 days). Canceled excluded, AOV based on valid orders.")}{" "}
+                <strong className="text-foreground font-medium">{tr("지점명", "Branch Name")}</strong>{tr("을 누르면 해당 지점 요약·최근 주문(읽기 전용)으로 이동합니다.", " links to branch summary and recent orders (read-only).")}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -383,11 +386,11 @@ export default function HqDashboardPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>지점</TableHead>
-                      <TableHead>플랜</TableHead>
-                      <TableHead className="text-right">주문 수</TableHead>
-                      <TableHead className="text-right">매출</TableHead>
-                      <TableHead className="text-right">객단가</TableHead>
+                      <TableHead>{tr("지점", "Branch")}</TableHead>
+                      <TableHead>{tr("플랜", "Plan")}</TableHead>
+                      <TableHead className="text-right">{tr("주문 수", "Orders")}</TableHead>
+                      <TableHead className="text-right">{tr("매출", "Sales")}</TableHead>
+                      <TableHead className="text-right">{tr("객단가", "AOV")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -405,9 +408,9 @@ export default function HqDashboardPage() {
                           <Badge variant="outline">{b.plan ?? "—"}</Badge>
                         </TableCell>
                         <TableCell className="text-right">{b.orderCount}</TableCell>
-                        <TableCell className="text-right">{b.revenue.toLocaleString()}원</TableCell>
+                        <TableCell className="text-right">{b.revenue.toLocaleString()}{tr("원", "")}</TableCell>
                         <TableCell className="text-right">
-                          {b.avgOrderValue.toLocaleString()}원
+                          {b.avgOrderValue.toLocaleString()}{tr("원", "")}
                         </TableCell>
                       </TableRow>
                     ))}

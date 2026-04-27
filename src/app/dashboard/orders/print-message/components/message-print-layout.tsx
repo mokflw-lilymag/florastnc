@@ -7,6 +7,8 @@ import { useRouter } from 'next/navigation';
 import { Order } from "@/types/order";
 import { cn } from "@/lib/utils";
 import { FONT_CATALOG } from "@/lib/font-catalog";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
 
 interface MessagePrintLayoutProps {
   order: Order;
@@ -66,6 +68,9 @@ export function MessagePrintLayout({
   selectedPositions = [startPosition]
 }: MessagePrintLayoutProps) {
   const router = useRouter();
+  const locale = usePreferredLocale();
+  const isKo = toBaseLocale(locale) === "ko";
+  const tr = (ko: string, en: string) => (isKo ? ko : en);
   const config = labelConfigs[labelType] || labelConfigs['formtec-3108'];
   const labels = Array(config.cells).fill(null);
 
@@ -122,8 +127,8 @@ export function MessagePrintLayout({
 
       <div className="no-print p-4">
         <PageHeader
-          title="메시지 인쇄 미리보기"
-          description={`주문자: ${order.orderer?.name || '익명'} / 라벨지: ${labelType}`}
+          title={tr("메시지 인쇄 미리보기", "Message Print Preview")}
+          description={`${tr("주문자", "Orderer")}: ${order.orderer?.name || tr('익명', 'Anonymous')} / ${tr("라벨지", "Label")}: ${labelType}`}
         >
           <div className="flex gap-2">
             <Button
@@ -135,11 +140,11 @@ export function MessagePrintLayout({
               }}
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
-              옵션 수정
+              {tr("옵션 수정", "Edit Options")}
             </Button>
             <Button onClick={() => window.print()}>
               <Printer className="mr-2 h-4 w-4" />
-              인쇄하기
+              {tr("인쇄하기", "Print")}
             </Button>
           </div>
         </PageHeader>

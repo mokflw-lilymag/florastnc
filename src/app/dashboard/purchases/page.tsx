@@ -61,6 +61,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSettings, DEFAULT_MATERIAL_CATEGORIES } from "@/hooks/use-settings";
 import { toast } from 'sonner';
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
 
 // --- Types & Defaults ---
 const DATE_FORMAT = "yyyy-MM-dd";
@@ -130,7 +132,8 @@ const MemoizedBatchItemRow = memo(({
   setOpenSupplierRow,
   updateItemInBatch,
   removeItemFromBatch,
-  categories
+  categories,
+  tr
 }: any) => {
   const [localNotes, setLocalNotes] = useState(item.notes || "");
   const [matSearch, setMatSearch] = useState("");
@@ -169,12 +172,12 @@ const MemoizedBatchItemRow = memo(({
               <div className="flex flex-col gap-1.5 w-full bg-blue-50/50 p-2 rounded-lg border border-blue-100 shadow-sm animate-in zoom-in-95 duration-200">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-blue-700 font-bold truncate text-[11px] flex items-center gap-1">
-                    <PlusCircle className="size-3" /> 신규 등록: {item.name}
+                    <PlusCircle className="size-3" /> {tr("신규 등록", "New")}: {item.name}
                   </span>
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <div className="grid grid-cols-[50px_1fr] items-center gap-1.5">
-                    <Badge variant="outline" className="text-[10px] h-5 px-1.5 border-blue-200 text-blue-600 bg-white font-bold inline-flex justify-center">대분류</Badge>
+                    <Badge variant="outline" className="text-[10px] h-5 px-1.5 border-blue-200 text-blue-600 bg-white font-bold inline-flex justify-center">{tr("대분류", "Main")}</Badge>
                     <select
                       className="text-[11px] bg-white border border-blue-200 rounded-md px-2 h-7 focus:ring-2 focus:ring-blue-100 outline-none w-full font-bold text-blue-700 shadow-sm"
                       value={item.main_category || "기타"}
@@ -186,14 +189,14 @@ const MemoizedBatchItemRow = memo(({
 
                   {/* Always show Sub category selection to make it explicit */}
                   <div className="grid grid-cols-[50px_1fr] items-center gap-1.5">
-                    <Badge variant="outline" className="text-[10px] h-5 px-1.5 border-indigo-200 text-indigo-600 bg-white font-bold inline-flex justify-center">중분류</Badge>
+                    <Badge variant="outline" className="text-[10px] h-5 px-1.5 border-indigo-200 text-indigo-600 bg-white font-bold inline-flex justify-center">{tr("중분류", "Middle")}</Badge>
                     <select
                       className="text-[11px] bg-white border border-indigo-200 rounded-md px-2 h-7 focus:ring-2 focus:ring-indigo-100 outline-none w-full font-medium text-slate-700 shadow-sm disabled:bg-slate-50 disabled:text-slate-400"
                       value={item.mid_category || ""}
                       disabled={!categories.mid[item.main_category || "기타"] || categories.mid[item.main_category || "기타"].length === 0}
                       onChange={(e: React.ChangeEvent<HTMLSelectElement>) => updateItemInBatch(index, { mid_category: e.target.value })}
                     >
-                      <option value="">하위 분류 선택</option>
+                      <option value="">{tr("하위 분류 선택", "Select subcategory")}</option>
                       {categories.mid[item.main_category || "기타"]?.map((cat: string) => <option key={cat} value={cat}>{cat}</option>)}
                     </select>
                   </div>
@@ -202,7 +205,7 @@ const MemoizedBatchItemRow = memo(({
             ) : (
               <div className="flex flex-col items-start gap-0.5 overflow-hidden w-full group">
                 <span className="text-sm font-bold text-slate-700 group-hover:text-indigo-600 transition-colors">
-                  {currentMaterial?.name || item.name || <span className="text-slate-300">품목 선택 또는 입력</span>}
+                  {currentMaterial?.name || item.name || <span className="text-slate-300">{tr("품목 선택 또는 입력", "Select or type item")}</span>}
                 </span>
                 {currentMaterial && (
                   <div className="flex items-center gap-1">
@@ -224,7 +227,7 @@ const MemoizedBatchItemRow = memo(({
                 <Input
                   lang="ko"
                   autoFocus
-                  placeholder="품목 검색 또는 새 명칭 입력..."
+                  placeholder={tr("품목 검색 또는 새 명칭 입력...", "Search item or enter new name...")}
                   className="pl-9 h-9 text-sm bg-white"
                   value={matSearch}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMatSearch(e.target.value)}
@@ -260,7 +263,7 @@ const MemoizedBatchItemRow = memo(({
                       <span className="text-sm font-medium text-slate-700 truncate w-full">{m.name}</span>
                       <div className="flex items-center gap-1.5 mt-0.5">
                         <span className="text-[10px] text-slate-400">
-                          단가: {Math.round(Number(m.price)).toLocaleString()}원 | {m.main_category}
+                          {tr("단가", "Unit")}: {Math.round(Number(m.price)).toLocaleString()}{tr("원", "")} | {m.main_category}
                           {m.mid_category ? ` > ${m.mid_category}` : ''}
                         </span>
                       </div>
@@ -277,7 +280,7 @@ const MemoizedBatchItemRow = memo(({
                     setOpenMaterialRow(null);
                   }}
                 >
-                  <Plus className="mr-2 h-4 w-4" /> &quot;{matSearch}&quot; (자재 자동 등록)
+                  <Plus className="mr-2 h-4 w-4" /> &quot;{matSearch}&quot; ({tr("자재 자동 등록", "Auto-create material")})
                 </Button>
               )}
             </div>
@@ -292,8 +295,8 @@ const MemoizedBatchItemRow = memo(({
           >
             <span className="truncate">
               {item.supplier_id === "new" ?
-                <span className="text-indigo-600 font-bold">[신규] {item.supplier_name}</span> :
-                (currentSupplier?.name || <span className="text-slate-300">거래처 선택</span>)
+                <span className="text-indigo-600 font-bold">[{tr("신규", "New")}] {item.supplier_name}</span> :
+                (currentSupplier?.name || <span className="text-slate-300">{tr("거래처 선택", "Select supplier")}</span>)
               }
             </span>
             <ChevronsUpDown className="h-3.5 w-3.5 opacity-40 shrink-0" />
@@ -302,7 +305,7 @@ const MemoizedBatchItemRow = memo(({
             <div className="p-2 border-b">
               <Input
                 lang="ko"
-                placeholder="거래처 검색..."
+                placeholder={tr("거래처 검색...", "Search supplier...")}
                 className="h-9 text-sm"
                 value={supSearch}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSupSearch(e.target.value)}
@@ -316,7 +319,7 @@ const MemoizedBatchItemRow = memo(({
                   updateItemInBatch(index, { supplier_id: "none" });
                   setOpenSupplierRow(null);
                 }}
-              >지정 안함</Button>
+              >{tr("지정 안함", "Unassigned")}</Button>
               {filteredSuppliers.map((s: any) => (
                 <Button
                   key={s.id}
@@ -339,7 +342,7 @@ const MemoizedBatchItemRow = memo(({
                     setOpenSupplierRow(null);
                   }}
                 >
-                  <Plus className="mr-2 h-4 w-4" /> &quot;{supSearch}&quot; (거래처 자동 등록)
+                  <Plus className="mr-2 h-4 w-4" /> &quot;{supSearch}&quot; ({tr("거래처 자동 등록", "Auto-create supplier")})
                 </Button>
               )}
             </div>
@@ -374,7 +377,7 @@ const MemoizedBatchItemRow = memo(({
           <Input
             type="number"
             className="h-10 text-right font-bold bg-white border-slate-300 focus:ring-2 focus:ring-indigo-100 transition-all pr-3"
-            placeholder="단가 입력"
+            placeholder={tr("단가 입력", "Enter unit price")}
             value={item.quantity > 0 ? Math.round(item.total_price / item.quantity) : 0}
             onChange={e => {
               const unit = Number(e.target.value);
@@ -411,7 +414,7 @@ const MemoizedBatchItemRow = memo(({
           value={localNotes}
           onChange={e => setLocalNotes(e.target.value)}
           onBlur={() => updateItemInBatch(index, { notes: localNotes })}
-          placeholder="메모 입력"
+          placeholder={tr("메모 입력", "Enter memo")}
         />
       </TableCell>
 
@@ -431,7 +434,7 @@ const MemoizedBatchItemRow = memo(({
 
 MemoizedBatchItemRow.displayName = "MemoizedBatchItemRow";
 
-const PurchaseManualDialog = ({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) => (
+const PurchaseManualDialog = ({ open, onOpenChange, tr }: { open: boolean, onOpenChange: (open: boolean) => void, tr: (ko: string, en: string) => string }) => (
   <Dialog open={open} onOpenChange={onOpenChange}>
     <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto border-none shadow-2xl rounded-2xl p-0">
       <div className="bg-indigo-600 p-8 text-white relative">
@@ -443,10 +446,10 @@ const PurchaseManualDialog = ({ open, onOpenChange }: { open: boolean, onOpenCha
             <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
               <BookOpen className="w-6 h-6 text-white" />
             </div>
-            <DialogTitle className="text-2xl font-black tracking-tight text-white">매입 관리 사용 매뉴얼</DialogTitle>
+            <DialogTitle className="text-2xl font-black tracking-tight text-white">{tr("매입 관리 사용 매뉴얼", "Purchase Management Manual")}</DialogTitle>
           </div>
           <DialogDescription className="text-indigo-100/80 text-base">
-            구매 계획부터 필터링, 엑셀 출력, 재고 연동까지 한눈에 이해하기
+            {tr("구매 계획부터 필터링, 엑셀 출력, 재고 연동까지 한눈에 이해하기", "Understand planning, filtering, export, and inventory sync at a glance.")}
           </DialogDescription>
         </DialogHeader>
       </div>
@@ -456,10 +459,10 @@ const PurchaseManualDialog = ({ open, onOpenChange }: { open: boolean, onOpenCha
         <section className="space-y-4">
           <div className="flex items-center gap-2 group">
             <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-black text-sm group-hover:bg-indigo-600 group-hover:text-white transition-colors">1</div>
-            <h3 className="font-black text-slate-800 text-lg">새 매입(배치) 등록</h3>
+            <h3 className="font-black text-slate-800 text-lg">{tr("새 매입(배치) 등록", "Create New Purchase Batch")}</h3>
           </div>
           <div className="pl-10 space-y-2">
-            <p className="text-sm text-slate-600 leading-relaxed">• <b>[+ 새 매입 등록]</b> 버튼을 사용하여 여러 품목의 매입 계획을 '배치(Batch)' 단위로 한 번에 등록하여 효율적으로 관리하세요.</p>
+            <p className="text-sm text-slate-600 leading-relaxed">{tr("• [+ 새 매입 등록] 버튼을 사용하여 여러 품목의 매입 계획을 '배치(Batch)' 단위로 한 번에 등록하여 효율적으로 관리하세요.", "• Use [+ New Purchase] to register multiple items as one batch efficiently.")}</p>
           </div>
         </section>
 
@@ -467,20 +470,20 @@ const PurchaseManualDialog = ({ open, onOpenChange }: { open: boolean, onOpenCha
         <section className="space-y-4 bg-slate-50 p-6 rounded-2xl border border-slate-100">
           <div className="flex items-center gap-2 group">
             <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center font-black text-sm group-hover:bg-emerald-600 group-hover:text-white transition-colors">2</div>
-            <h3 className="font-black text-slate-800 text-lg">전체 내역 조회 및 엑셀 출력</h3>
+            <h3 className="font-black text-slate-800 text-lg">{tr("전체 내역 조회 및 엑셀 출력", "View Records & Export Excel")}</h3>
           </div>
           <div className="pl-10 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-2">
-                <span className="text-emerald-600 font-bold text-sm flex items-center gap-1"><Filter className="w-3.5 h-3.5" /> 스마트 필터</span>
-                <p className="text-xs text-slate-500 leading-relaxed"><b>날짜 범위, 특정 품목, 거래처</b>를 조합하여 원하는 내역만 정밀하게 추출할 수 있습니다.</p>
+                <span className="text-emerald-600 font-bold text-sm flex items-center gap-1"><Filter className="w-3.5 h-3.5" /> {tr("스마트 필터", "Smart Filters")}</span>
+                <p className="text-xs text-slate-500 leading-relaxed">{tr("날짜 범위, 특정 품목, 거래처를 조합하여 원하는 내역만 정밀하게 추출할 수 있습니다.", "Combine date range, item, and supplier filters for precise results.")}</p>
               </div>
               <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-2">
-                <span className="text-emerald-600 font-bold text-sm flex items-center gap-1"><FileDown className="w-3.5 h-3.5" /> 엑셀 다운로드</span>
-                <p className="text-xs text-slate-500 leading-relaxed">필터링된 상태 그대로 <b>[엑셀 다운로드]</b>하여 업무 보고용 리포트로 즉시 활용하세요.</p>
+                <span className="text-emerald-600 font-bold text-sm flex items-center gap-1"><FileDown className="w-3.5 h-3.5" /> {tr("엑셀 다운로드", "Excel Download")}</span>
+                <p className="text-xs text-slate-500 leading-relaxed">{tr("필터링된 상태 그대로 [엑셀 다운로드]하여 업무 보고용 리포트로 즉시 활용하세요.", "Download filtered results to Excel and use them for reporting instantly.")}</p>
               </div>
             </div>
-            <p className="text-xs text-slate-400 italic">• 내역 리스트 상단의 <b>[필터 초기화]</b> 버튼으로 언제든 검색 조건을 리셋할 수 있습니다.</p>
+            <p className="text-xs text-slate-400 italic">{tr("• 내역 리스트 상단의 [필터 초기화] 버튼으로 언제든 검색 조건을 리셋할 수 있습니다.", "• Use [Reset Filters] anytime to clear search conditions.")}</p>
           </div>
         </section>
 
@@ -488,17 +491,17 @@ const PurchaseManualDialog = ({ open, onOpenChange }: { open: boolean, onOpenCha
         <section className="space-y-4">
           <div className="flex items-center gap-2 group">
             <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-black text-sm group-hover:bg-indigo-600 group-hover:text-white transition-colors">3</div>
-            <h3 className="font-black text-slate-800 text-lg">상태 관리와 시스템 자동화</h3>
+            <h3 className="font-black text-slate-800 text-lg">{tr("상태 관리와 시스템 자동화", "Status Management & Automation")}</h3>
           </div>
           <div className="pl-10 space-y-4">
             <div className="flex items-start gap-3 bg-amber-50/50 p-4 rounded-xl border border-amber-100">
               <Zap className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
               <div className="space-y-1">
-                <span className="font-bold text-slate-800 text-sm">매입 [확정] 시 일어나는 변화</span>
+                <span className="font-bold text-slate-800 text-sm">{tr("매입 [확정] 시 일어나는 변화", "What happens when confirmed")}</span>
                 <p className="text-xs text-slate-500 leading-relaxed">
-                  1. 💰 <b>지출 자동 기록</b>: [지출 관리] 메뉴에 해당 지출이 자동 생성됩니다.<br />
-                  2. 📦 <b>재고 자동 반영</b>: 구매한 수량만큼 자재 재고와 단가가 즉시 업데이트됩니다.<br />
-                  3. 🤝 <b>거래처 연동</b>: 거래처 정보가 해당 자재의 기본 매입처로 자동 지정됩니다.
+                  {tr("1. 지출 자동 기록: [지출 관리] 메뉴에 해당 지출이 자동 생성됩니다.", "1. Auto expense record: creates expense entry automatically.")}<br />
+                  {tr("2. 재고 자동 반영: 구매 수량만큼 재고와 단가가 즉시 업데이트됩니다.", "2. Auto inventory sync: updates stock and unit price instantly.")}<br />
+                  {tr("3. 거래처 연동: 거래처가 해당 자재의 기본 매입처로 지정됩니다.", "3. Supplier linkage: sets supplier as default purchase source.")}
                 </p>
               </div>
             </div>
@@ -506,10 +509,10 @@ const PurchaseManualDialog = ({ open, onOpenChange }: { open: boolean, onOpenCha
             <div className="flex items-start gap-3 bg-indigo-50/50 p-4 rounded-xl border border-indigo-100">
               <PlusCircle className="w-5 h-5 text-indigo-500 shrink-0 mt-0.5" />
               <div className="space-y-1">
-                <span className="font-bold text-slate-800 text-sm">신규 자재/거래처 자동 등록</span>
+                <span className="font-bold text-slate-800 text-sm">{tr("신규 자재/거래처 자동 등록", "Auto-create materials/suppliers")}</span>
                 <p className="text-xs text-slate-500 leading-relaxed">
-                  매입 등록 시 새로운 이름을 입력하면 <b>시스템이 자동으로 신규 등록</b>을 진행합니다. <br />
-                  이미 존재하는 이름은 자동으로 중복 체크되어 기존 데이터와 연결되므로 중복 걱정 없이 안심하고 입력하세요.
+                  {tr("매입 등록 시 새로운 이름을 입력하면 시스템이 자동으로 신규 등록을 진행합니다.", "When you type a new name, the system auto-creates it.")}<br />
+                  {tr("기존 이름은 중복 체크 후 연결되므로 안심하고 입력하세요.", "Existing names are de-duplicated and linked automatically.")}
                 </p>
               </div>
             </div>
@@ -517,31 +520,31 @@ const PurchaseManualDialog = ({ open, onOpenChange }: { open: boolean, onOpenCha
             <div className="flex items-start gap-3 bg-emerald-50/50 p-4 rounded-xl border border-emerald-100">
               <LayoutGrid className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
               <div className="space-y-1">
-                <span className="font-bold text-slate-800 text-sm">2차 카테고리(중분류) 지원</span>
+                <span className="font-bold text-slate-800 text-sm">{tr("2차 카테고리(중분류) 지원", "Secondary category support")}</span>
                 <p className="text-xs text-slate-500 leading-relaxed">
-                  자재 등록 시 1차(대분류)뿐만 아니라 <b>2차 카테고리(중분류)</b>까지 선택할 수 있어 더욱 체계적인 자재 관리가 가능합니다.
+                  {tr("자재 등록 시 1차(대분류)뿐 아니라 2차 카테고리(중분류)까지 선택할 수 있습니다.", "You can set both main and mid categories for better organization.")}
                 </p>
               </div>
             </div>
 
-            <p className="text-sm text-slate-600 leading-relaxed">• <b>확정 취소</b>: 실수로 확정한 경우 [확정 취소]를 누르면 연동된 지출과 재고 데이터가 안전하게 <b>자동 원상복구</b>됩니다.</p>
+            <p className="text-sm text-slate-600 leading-relaxed">{tr("• 확정 취소: 실수로 확정한 경우 [확정 취소]를 누르면 연동된 지출과 재고 데이터가 자동 원상복구됩니다.", "• Undo confirm: linked expense and inventory are safely restored.")}</p>
           </div>
         </section>
 
         <section className="space-y-4 border-t pt-6">
           <div className="flex items-center gap-2">
             <Edit2 className="w-4 h-4 text-slate-400" />
-            <h3 className="font-bold text-slate-700">추가 수정 및 삭제</h3>
+            <h3 className="font-bold text-slate-700">{tr("추가 수정 및 삭제", "Further edits & delete")}</h3>
           </div>
           <div className="pl-6 text-sm text-slate-600 space-y-1">
-            <p>• 내역 우측의 <b>연필(수정)</b> 아이콘으로 이미 등록된 수량이나 단가를 조절할 수 있습니다.</p>
-            <p>• 불필요한 데이터는 <b>휴지통(삭제)</b> 아이콘을 사용하여 제거하세요.</p>
+            <p>{tr("• 내역 우측의 연필(수정) 아이콘으로 수량/단가를 조정할 수 있습니다.", "• Use the pencil icon to edit quantity or unit price.")}</p>
+            <p>{tr("• 불필요한 데이터는 휴지통(삭제) 아이콘으로 제거하세요.", "• Remove unnecessary records with the trash icon.")}</p>
           </div>
         </section>
 
         <div className="pt-2">
           <Button onClick={() => onOpenChange(false)} className="w-full bg-slate-900 hover:bg-slate-800 text-white h-12 rounded-xl font-bold shadow-lg shadow-slate-200 transition-all">
-            매뉴얼 닫기
+            {tr("매뉴얼 닫기", "Close Manual")}
           </Button>
         </div>
       </div>
@@ -561,6 +564,9 @@ export default function PurchasesPage() {
   }, [settingsCategories]);
 
   const [isManualOpen, setIsManualOpen] = useState(false);
+  const locale = usePreferredLocale();
+  const isKo = toBaseLocale(locale) === "ko";
+  const tr = (ko: string, en: string) => (isKo ? ko : en);
   const loading = purchasesLoading || suppliersLoading || materialsLoading || settingsLoading;
 
   const [activeTab, setActiveTab] = useState("batches");
@@ -614,23 +620,23 @@ export default function PurchasesPage() {
     );
 
     if (batchItems.length === 0) {
-      toast.error("다운로드할 데이터가 없습니다.");
+      toast.error(tr("다운로드할 데이터가 없습니다.", "No data to download."));
       return;
     }
 
     const exportData = batchItems.map((item, index) => ({
-      "순번": index + 1,
-      "품목명": item.name,
-      "매입처": supplierMap.get(item.supplier_id || "")?.name || "미지정",
-      "수량": item.quantity,
-      "단가": item.quantity > 0 ? Math.round(item.total_price / item.quantity) : 0,
-      "합계금액": item.total_price,
-      "메모": item.notes || ""
+      [tr("순번", "No")]: index + 1,
+      [tr("품목명", "Item")]: item.name,
+      [tr("매입처", "Supplier")]: supplierMap.get(item.supplier_id || "")?.name || tr("미지정", "Unassigned"),
+      [tr("수량", "Qty")]: item.quantity,
+      [tr("단가", "Unit Price")]: item.quantity > 0 ? Math.round(item.total_price / item.quantity) : 0,
+      [tr("합계금액", "Total")]: item.total_price,
+      [tr("메모", "Memo")]: item.notes || ""
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "매입목록");
+    XLSX.utils.book_append_sheet(workbook, worksheet, tr("매입목록", "PurchaseList"));
 
     const wscols = [
       { wch: 5 },  // 순번
@@ -644,19 +650,19 @@ export default function PurchasesPage() {
     worksheet['!cols'] = wscols;
 
     XLSX.writeFile(workbook, `시장_${batchName}_${format(new Date(), "MMdd")}.xlsx`);
-    toast.success("엑셀 파일이 다운로드되었습니다.");
+    toast.success(tr("엑셀 파일이 다운로드되었습니다.", "Excel file downloaded."));
   };
 
   const handleDeleteBatch = async (batchId: string, batchName: string) => {
-    if (!confirm(`배치 [${batchName}] 내의 모든 품목(${purchases.filter(p => p.batch_id === batchId || (!p.batch_id && "legacy-" + (p.scheduled_date || "날짜미지정") === batchId)).length}개)을 삭제하시겠습니까?`)) return;
+    if (!confirm(tr(`배치 [${batchName}] 내의 모든 품목(${purchases.filter(p => p.batch_id === batchId || (!p.batch_id && "legacy-" + (p.scheduled_date || "날짜미지정") === batchId)).length}개)을 삭제하시겠습니까?`, `Delete all items in batch [${batchName}]?`))) return;
 
     const itemsToDelete = purchases.filter(p =>
-      p.batch_id === batchId || (!p.batch_id && "legacy-" + (p.scheduled_date || "날짜미지정") === batchId)
+      p.batch_id === batchId || (!p.batch_id && "legacy-" + (p.scheduled_date || tr("날짜미지정", "no-date")) === batchId)
     );
 
     const deletePromises = itemsToDelete.map(p => deletePurchase(p.id));
     await Promise.all(deletePromises);
-    toast.success("배치가 삭제되었습니다.");
+    toast.success(tr("배치가 삭제되었습니다.", "Batch deleted."));
   };
 
   // --- Filtering & Batching ---
@@ -671,7 +677,7 @@ export default function PurchasesPage() {
 
       if (!matchesSearch) return;
 
-      const date = p.scheduled_date || "날짜미지정";
+      const date = p.scheduled_date || tr("날짜미지정", "no-date");
       const key = p.batch_id || `legacy-${date}`;
 
       if (!groups[key]) {
@@ -679,7 +685,7 @@ export default function PurchasesPage() {
           id: key,
           date,
           purchaseDate: p.purchase_date,
-          name: p.batch_name || `${date} 매입 내역`,
+          name: p.batch_name || `${date} ${tr("매입 내역", "purchases")}`,
           items: [],
           total: 0,
           status: 'completed'
@@ -731,30 +737,30 @@ export default function PurchasesPage() {
 
   const handleExportFilteredExcel = () => {
     if (filteredPurchases.length === 0) {
-      toast.error("다운로드할 데이터가 없습니다.");
+      toast.error(tr("다운로드할 데이터가 없습니다.", "No data to download."));
       return;
     }
 
     const exportData = filteredPurchases.map((item, index) => ({
-      "순번": index + 1,
-      "일자": item.scheduled_date || "-",
-      "확정일": item.purchase_date || "-",
-      "품목명": item.name || (item.material_id ? materialMap.get(item.material_id)?.name : "미지정"),
-      "매입처": item.supplier_id ? supplierMap.get(item.supplier_id)?.name : "미지정",
-      "수량": item.quantity,
-      "총액": item.total_price,
-      "결제방식": item.payment_method === 'card' ? '카드' : item.payment_method === 'transfer' ? '이체' : item.payment_method === 'cash' ? '현금' : item.payment_method === 'deferred' ? '외상' : item.payment_method || "-",
-      "상태": item.status === 'completed' ? '완료' : '예정',
-      "대분류": item.main_category || (item.material_id ? materialMap.get(item.material_id)?.main_category : ""),
-      "중분류": item.mid_category || (item.material_id ? materialMap.get(item.material_id)?.mid_category : ""),
-      "메모": item.notes || ""
+      [tr("순번", "No")]: index + 1,
+      [tr("일자", "Date")]: item.scheduled_date || "-",
+      [tr("확정일", "Confirmed At")]: item.purchase_date || "-",
+      [tr("품목명", "Item")]: item.name || (item.material_id ? materialMap.get(item.material_id)?.name : tr("미지정", "Unassigned")),
+      [tr("매입처", "Supplier")]: item.supplier_id ? supplierMap.get(item.supplier_id)?.name : tr("미지정", "Unassigned"),
+      [tr("수량", "Qty")]: item.quantity,
+      [tr("총액", "Total")]: item.total_price,
+      [tr("결제방식", "Payment")]: item.payment_method === 'card' ? tr('카드', 'Card') : item.payment_method === 'transfer' ? tr('이체', 'Transfer') : item.payment_method === 'cash' ? tr('현금', 'Cash') : item.payment_method === 'deferred' ? tr('외상', 'Deferred') : item.payment_method || "-",
+      [tr("상태", "Status")]: item.status === 'completed' ? tr('완료', 'Done') : tr('예정', 'Planned'),
+      [tr("대분류", "Main Category")]: item.main_category || (item.material_id ? materialMap.get(item.material_id)?.main_category : ""),
+      [tr("중분류", "Mid Category")]: item.mid_category || (item.material_id ? materialMap.get(item.material_id)?.mid_category : ""),
+      [tr("메모", "Memo")]: item.notes || ""
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "전체매입내역");
+    XLSX.utils.book_append_sheet(workbook, worksheet, tr("전체매입내역", "AllPurchases"));
     XLSX.writeFile(workbook, `매입내역_${format(new Date(), "yyyyMMdd")}.xlsx`);
-    toast.success("필터링된 내역이 엑셀로 저장되었습니다.");
+    toast.success(tr("필터링된 내역이 엑셀로 저장되었습니다.", "Filtered records saved to Excel."));
   };
 
   // --- Form Handlers ---
@@ -779,12 +785,12 @@ export default function PurchasesPage() {
       await updatePurchase(editingPurchase.id, finalData);
       setIsDialogOpen(false);
       setEditingPurchase(null);
-      toast.success(isConfirm ? "내역이 확정되었습니다." : "내역이 수정되었습니다.");
+      toast.success(isConfirm ? tr("내역이 확정되었습니다.", "Record confirmed.") : tr("내역이 수정되었습니다.", "Record updated."));
       return;
     }
 
     if (itemsToAdd.length === 0) {
-      toast.error("등록할 품목이 없습니다.");
+      toast.error(tr("등록할 품목이 없습니다.", "No items to register."));
       return;
     }
 
@@ -860,14 +866,14 @@ export default function PurchasesPage() {
       }
 
       await addPurchases(payloads);
-      toast.success(isConfirm ? "전체 내역이 확정되었습니다." : "내역이 저장/수정되었습니다.");
+      toast.success(isConfirm ? tr("전체 내역이 확정되었습니다.", "All records confirmed.") : tr("내역이 저장/수정되었습니다.", "Records saved/updated."));
       setIsDialogOpen(false);
       setItemsToAdd([]);
       setEditingBatchId(null);
       setFormData({ ...defaultFormData });
     } catch (err) {
       console.error("Batch submission error:", err);
-      toast.error("처리에 실패했습니다. 콘솔을 확인해 주세요.");
+      toast.error(tr("처리에 실패했습니다. 콘솔을 확인해 주세요.", "Process failed. Check console."));
     }
   };
 
@@ -913,12 +919,12 @@ export default function PurchasesPage() {
   };
 
   if (loading) {
-    return <div className="p-8 flex justify-center items-center font-bold text-slate-400">데이터를 불러오는 중...</div>;
+    return <div className="p-8 flex justify-center items-center font-bold text-slate-400">{tr("데이터를 불러오는 중...", "Loading data...")}</div>;
   }
 
   return (
     <div className="p-6 max-w-[1500px] mx-auto space-y-6">
-      <PurchaseManualDialog open={isManualOpen} onOpenChange={setIsManualOpen} />
+      <PurchaseManualDialog open={isManualOpen} onOpenChange={setIsManualOpen} tr={tr} />
 
       {/* 커스텀 헤더 영역 */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
@@ -928,17 +934,17 @@ export default function PurchasesPage() {
               <ShoppingCart className="size-6 text-indigo-600" />
             </div>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">매입 관리</h1>
+              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{tr("매입 관리", "Purchase Management")}</h1>
               <button
                 onClick={() => setIsManualOpen(true)}
                 className="inline-flex items-center justify-center p-2 rounded-xl bg-slate-100 hover:bg-indigo-100 hover:text-indigo-600 transition-all text-xl hover:scale-110 active:scale-95 shadow-sm border border-slate-200"
-                title="사용 메뉴얼 보기"
+                title={tr("사용 메뉴얼 보기", "Open manual")}
               >
-                💡 <span className="text-xs font-bold ml-1">도움말</span>
+                💡 <span className="text-xs font-bold ml-1">{tr("도움말", "Help")}</span>
               </button>
             </div>
           </div>
-          <p className="text-slate-500 text-sm mt-1 ml-1">계획 기반의 자재 매입과 지출/재고 자동 동기화 시스템</p>
+          <p className="text-slate-500 text-sm mt-1 ml-1">{tr("계획 기반의 자재 매입과 지출/재고 자동 동기화 시스템", "Plan-based purchasing with auto expense/inventory sync.")}</p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -949,10 +955,10 @@ export default function PurchasesPage() {
             onClick={() => {
               setSearchTerm("");
               setActiveTab("all");
-              toast.info("검색 필터가 초기화되었습니다.");
+              toast.info(tr("검색 필터가 초기화되었습니다.", "Search filters reset."));
             }}
           >
-            <RotateCcw className="w-4 h-4 text-slate-400" /> 초기화
+            <RotateCcw className="w-4 h-4 text-slate-400" /> {tr("초기화", "Reset")}
           </Button>
           <Button
             size="sm"
@@ -965,17 +971,17 @@ export default function PurchasesPage() {
               setIsDialogOpen(true);
             }}
           >
-            <PlusCircle className="w-4 h-4" /> 새 매입(배치) 등록
+            <PlusCircle className="w-4 h-4" /> {tr("새 매입(배치) 등록", "New Purchase Batch")}
           </Button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {[
-          { label: "예정 건수", val: `${stats.plannedCount}건`, sub: "미집행 내역", icon: CalendarIcon, color: "blue" },
-          { label: "예정 합계", val: `₩${stats.plannedAmount.toLocaleString()}`, sub: "지출 예정액", icon: TrendingUp, color: "indigo" },
-          { label: "누적 건수", val: `${stats.totalCount}건`, sub: "전체 기록", icon: LayoutGrid, color: "slate" },
-          { label: "누적 총액", val: `₩${stats.totalAmount.toLocaleString()}`, sub: "전체 지출액", icon: FileText, color: "emerald" }
+          {[
+          { label: tr("예정 건수", "Planned Count"), val: `${stats.plannedCount}${tr("건", "")}`, sub: tr("미집행 내역", "Pending"), icon: CalendarIcon, color: "blue" },
+          { label: tr("예정 합계", "Planned Total"), val: `₩${stats.plannedAmount.toLocaleString()}`, sub: tr("지출 예정액", "Planned expense"), icon: TrendingUp, color: "indigo" },
+          { label: tr("누적 건수", "Total Count"), val: `${stats.totalCount}${tr("건", "")}`, sub: tr("전체 기록", "All records"), icon: LayoutGrid, color: "slate" },
+          { label: tr("누적 총액", "Grand Total"), val: `₩${stats.totalAmount.toLocaleString()}`, sub: tr("전체 지출액", "Total expense"), icon: FileText, color: "emerald" }
         ].map((s, idx) => (
           <Card key={idx} className="border-slate-200/60 shadow-sm border-l-4" style={{ borderColor: s.color === 'blue' ? '#3b82f6' : s.color === 'indigo' ? '#6366f1' : s.color === 'emerald' ? '#10b981' : '#94a3b8' }}>
             <CardHeader className="pb-2 pt-4">
@@ -994,13 +1000,13 @@ export default function PurchasesPage() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <div className="flex items-center justify-between gap-4 bg-slate-100/50 p-1.5 rounded-xl border border-slate-200/60">
           <TabsList className="bg-transparent gap-1">
-            <TabsTrigger value="batches" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm px-4">배치(폴더) 보기</TabsTrigger>
-            <TabsTrigger value="all" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm px-4">전체 내역 (리스트)</TabsTrigger>
+            <TabsTrigger value="batches" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm px-4">{tr("배치(폴더) 보기", "Batches")}</TabsTrigger>
+            <TabsTrigger value="all" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm px-4">{tr("전체 내역 (리스트)", "All Records")}</TabsTrigger>
           </TabsList>
           <div className="relative w-72">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
             <Input
-              placeholder="품목, 거래처 검색..."
+              placeholder={tr("품목, 거래처 검색...", "Search item or supplier...")}
               className="pl-9 h-9 bg-white border-slate-200 text-sm focus-visible:ring-indigo-500"
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
@@ -1014,17 +1020,17 @@ export default function PurchasesPage() {
               <TableHeader className="bg-slate-50/50">
                 <TableRow className="hover:bg-transparent border-b border-slate-200">
                   <TableHead className="w-10"></TableHead>
-                  <TableHead>배치명</TableHead>
-                  <TableHead className="w-40 text-center">일자정보</TableHead>
-                  <TableHead className="w-32 text-right">총 매입액</TableHead>
-                  <TableHead className="w-24 text-center">진행</TableHead>
-                  <TableHead className="w-40 text-right">관리</TableHead>
+                  <TableHead>{tr("배치명", "Batch")}</TableHead>
+                  <TableHead className="w-40 text-center">{tr("일자정보", "Date")}</TableHead>
+                  <TableHead className="w-32 text-right">{tr("총 매입액", "Total")}</TableHead>
+                  <TableHead className="w-24 text-center">{tr("진행", "Status")}</TableHead>
+                  <TableHead className="w-40 text-right">{tr("관리", "Actions")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {batches.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-20 text-slate-400 font-medium">검색 결과가 없거나 매입 배치가 없습니다.</TableCell>
+                    <TableCell colSpan={6} className="text-center py-20 text-slate-400 font-medium">{tr("검색 결과가 없거나 매입 배치가 없습니다.", "No results or purchase batches.")}</TableCell>
                   </TableRow>
                 ) : batches.map((batch) => (
                   <Fragment key={batch.id}>
@@ -1045,7 +1051,7 @@ export default function PurchasesPage() {
                             <div className="flex items-center gap-2 mt-1">
                               <span className="flex items-center gap-1.5 text-[11px] font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
                                 <Check className="size-2.5" />
-                                매입: {batch.items[0]?.purchase_date ? format(new Date(batch.items[0].purchase_date), "yyyy-MM-dd HH:mm") : '-'}
+                                {tr("매입", "Purchased")}: {batch.items[0]?.purchase_date ? format(new Date(batch.items[0].purchase_date), "yyyy-MM-dd HH:mm") : '-'}
                               </span>
                               <Button
                                 variant="ghost"
@@ -1058,13 +1064,13 @@ export default function PurchasesPage() {
                                   }
                                 }}
                               >
-                                확정 취소
+                                {tr("확정 취소", "Undo Confirm")}
                               </Button>
                             </div>
                           )}
                           {batch.items[0]?.status === 'planned' && (
                             <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-400 mt-1">
-                              <Clock className="size-2.5" /> 계획: {batch.date}
+                              <Clock className="size-2.5" /> {tr("계획", "Planned")}: {batch.date}
                             </div>
                           )}
                         </div>
@@ -1072,21 +1078,21 @@ export default function PurchasesPage() {
                       <TableCell className="text-right font-black text-slate-900">₩{batch.total.toLocaleString()}</TableCell>
                       <TableCell className="text-center">
                         <Badge variant={batch.status === 'completed' ? "default" : "outline"} className={cn("text-[9px] px-1.5 h-4", batch.status === 'completed' ? "bg-emerald-500" : "text-amber-600 border-amber-200")}>
-                          {batch.status === 'completed' ? "완료" : "예정"}
+                          {batch.status === 'completed' ? tr("완료", "Done") : tr("예정", "Planned")}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-3">
                           <Badge variant="secondary" className="px-1.5 py-0 text-[10px] h-5 font-bold bg-white border border-slate-200 text-indigo-600">
-                            {batch.items.length}개 품목
+                            {batch.items.length}{tr("개 품목", " items")}
                           </Badge>
                           <div className="flex gap-1 transition-all">
                             {batch.status !== 'completed' && (
-                              <Button variant="ghost" size="icon" className="h-7 w-7 text-emerald-500 hover:bg-emerald-50 hover:scale-110 active:scale-95 transition-all" onClick={(e) => { e.stopPropagation(); openBatchEdit(batch.id, 'confirm'); }} title="최종 확정"><CheckCircle2 className="w-4 h-4" /></Button>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-emerald-500 hover:bg-emerald-50 hover:scale-110 active:scale-95 transition-all" onClick={(e) => { e.stopPropagation(); openBatchEdit(batch.id, 'confirm'); }} title={tr("최종 확정", "Final confirm")}><CheckCircle2 className="w-4 h-4" /></Button>
                             )}
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-indigo-500 hover:bg-indigo-50 hover:scale-110 active:scale-95 transition-all" onClick={(e) => { e.stopPropagation(); handleDownloadBatchExcel(batch.id, batch.name); }} title="엑셀 다운로드"><FileDown className="w-4 h-4" /></Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-indigo-500 hover:bg-slate-100 hover:scale-110 active:scale-95 transition-all" onClick={(e) => { e.stopPropagation(); openBatchEdit(batch.id, 'edit'); }} title="정보 수정"><Edit2 className="w-4 h-4" /></Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-red-400 hover:bg-red-50 hover:text-red-600 hover:scale-110 active:scale-95 transition-all" onClick={(e) => { e.stopPropagation(); handleDeleteBatch(batch.id, batch.name); }} title="배치 삭제"><Trash2 className="w-4 h-4" /></Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-indigo-500 hover:bg-indigo-50 hover:scale-110 active:scale-95 transition-all" onClick={(e) => { e.stopPropagation(); handleDownloadBatchExcel(batch.id, batch.name); }} title={tr("엑셀 다운로드", "Download Excel")}><FileDown className="w-4 h-4" /></Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-indigo-500 hover:bg-slate-100 hover:scale-110 active:scale-95 transition-all" onClick={(e) => { e.stopPropagation(); openBatchEdit(batch.id, 'edit'); }} title={tr("정보 수정", "Edit")}><Edit2 className="w-4 h-4" /></Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-red-400 hover:bg-red-50 hover:text-red-600 hover:scale-110 active:scale-95 transition-all" onClick={(e) => { e.stopPropagation(); handleDeleteBatch(batch.id, batch.name); }} title={tr("배치 삭제", "Delete batch")}><Trash2 className="w-4 h-4" /></Button>
                           </div>
                         </div>
                       </TableCell>
@@ -1100,7 +1106,7 @@ export default function PurchasesPage() {
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
                                 <div className="w-1 h-3 bg-indigo-500 rounded-full" />
-                                <span className="text-xs font-black text-slate-500 uppercase tracking-tighter">구매 상세 품목 구성</span>
+                                <span className="text-xs font-black text-slate-500 uppercase tracking-tighter">{tr("구매 상세 품목 구성", "Purchase item details")}</span>
                               </div>
                               <span className="text-[10px] text-slate-400 font-bold tracking-widest">{batch.items.length} ITEMS FOUND</span>
                             </div>
@@ -1108,11 +1114,11 @@ export default function PurchasesPage() {
                               <Table>
                                 <TableHeader className="bg-slate-50/80">
                                   <TableRow className="hover:bg-transparent border-b border-slate-100">
-                                    <TableHead className="h-8 text-[10px] font-black text-slate-400 py-0">품목명</TableHead>
-                                    <TableHead className="h-8 text-[10px] font-black text-slate-400 py-0">거래처</TableHead>
-                                    <TableHead className="h-8 text-right text-[10px] font-black text-slate-400 py-0">수량</TableHead>
-                                    <TableHead className="h-8 text-right text-[10px] font-black text-slate-400 py-0">총 합계</TableHead>
-                                    <TableHead className="h-8 text-center text-[10px] font-black text-slate-400 py-0">상태</TableHead>
+                                    <TableHead className="h-8 text-[10px] font-black text-slate-400 py-0">{tr("품목명", "Item")}</TableHead>
+                                    <TableHead className="h-8 text-[10px] font-black text-slate-400 py-0">{tr("거래처", "Supplier")}</TableHead>
+                                    <TableHead className="h-8 text-right text-[10px] font-black text-slate-400 py-0">{tr("수량", "Qty")}</TableHead>
+                                    <TableHead className="h-8 text-right text-[10px] font-black text-slate-400 py-0">{tr("총 합계", "Total")}</TableHead>
+                                    <TableHead className="h-8 text-center text-[10px] font-black text-slate-400 py-0">{tr("상태", "Status")}</TableHead>
                                   </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -1128,7 +1134,7 @@ export default function PurchasesPage() {
                                         </div>
                                       </TableCell>
                                       <TableCell className="py-2 text-xs text-slate-500 font-medium">
-                                        {supplierMap.get(item.supplier_id || "")?.name || "기타"}
+                                        {supplierMap.get(item.supplier_id || "")?.name || tr("기타", "Other")}
                                       </TableCell>
                                       <TableCell className="py-2 text-right text-xs font-mono font-black text-slate-400">
                                         {item.quantity.toLocaleString()}
@@ -1139,7 +1145,7 @@ export default function PurchasesPage() {
                                       <TableCell className="py-2 text-center">
                                         <div className={cn("inline-flex items-center gap-1 text-[9px] font-bold", item.status === 'completed' ? "text-emerald-500" : "text-amber-500")}>
                                           <Circle className="size-1.5 fill-current" />
-                                          {item.status === 'completed' ? "확정" : "예정"}
+                                          {item.status === 'completed' ? tr("확정", "Confirmed") : tr("예정", "Planned")}
                                         </div>
                                       </TableCell>
                                     </TableRow>
@@ -1172,10 +1178,10 @@ export default function PurchasesPage() {
               <Label className="text-[10px] font-black text-slate-400 uppercase">품목</Label>
               <Select value={filterMaterialId} onValueChange={(val) => setFilterMaterialId(val || "all")}>
                 <SelectTrigger className="h-9 text-xs w-44">
-                  <SelectValue placeholder="전체" />
+                  <SelectValue placeholder={tr("전체", "All")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">전체 품목</SelectItem>
+                  <SelectItem value="all">{tr("전체 품목", "All items")}</SelectItem>
                   {materials.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -1184,10 +1190,10 @@ export default function PurchasesPage() {
               <Label className="text-[10px] font-black text-slate-400 uppercase">거래처</Label>
               <Select value={filterSupplierId} onValueChange={(val) => setFilterSupplierId(val || "all")}>
                 <SelectTrigger className="h-9 text-xs w-44">
-                  <SelectValue placeholder="전체" />
+                  <SelectValue placeholder={tr("전체", "All")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">전체 거래처</SelectItem>
+                  <SelectItem value="all">{tr("전체 거래처", "All suppliers")}</SelectItem>
                   {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -1221,23 +1227,23 @@ export default function PurchasesPage() {
             <Table>
               <TableHeader className="bg-slate-50">
                 <TableRow className="border-b border-slate-100 hover:bg-transparent">
-                  <TableHead className="w-32 text-[11px] font-bold">일자 정보</TableHead>
-                  <TableHead className="text-[11px] font-bold">품목 정보</TableHead>
-                  <TableHead className="text-[11px] font-bold">거래처</TableHead>
-                  <TableHead className="w-20 text-right text-[11px] font-bold">수량</TableHead>
-                  <TableHead className="w-32 text-right text-[11px] font-bold">총액</TableHead>
-                  <TableHead className="w-20 text-center text-[11px] font-bold">상태</TableHead>
-                  <TableHead className="w-20 text-right text-[11px] font-bold pr-6">관리</TableHead>
+                  <TableHead className="w-32 text-[11px] font-bold">{tr("일자 정보", "Date")}</TableHead>
+                  <TableHead className="text-[11px] font-bold">{tr("품목 정보", "Item")}</TableHead>
+                  <TableHead className="text-[11px] font-bold">{tr("거래처", "Supplier")}</TableHead>
+                  <TableHead className="w-20 text-right text-[11px] font-bold">{tr("수량", "Qty")}</TableHead>
+                  <TableHead className="w-32 text-right text-[11px] font-bold">{tr("총액", "Total")}</TableHead>
+                  <TableHead className="w-20 text-center text-[11px] font-bold">{tr("상태", "Status")}</TableHead>
+                  <TableHead className="w-20 text-right text-[11px] font-bold pr-6">{tr("관리", "Actions")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredPurchases.length === 0 ? (
-                  <TableRow><TableCell colSpan={7} className="h-64 text-center text-slate-400">내역이 없습니다.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={7} className="h-64 text-center text-slate-400">{tr("내역이 없습니다.", "No records.")}</TableCell></TableRow>
                 ) : filteredPurchases.map(p => (
                   <TableRow key={p.id} className="group hover:bg-indigo-50/20 transition-colors border-b border-slate-50 last:border-0 h-16">
                     <TableCell className="text-[10px] text-slate-400 font-medium py-3">
                       <div className="flex flex-col gap-0.5">
-                        <span className="flex items-center gap-1 whitespace-nowrap"><Clock className="size-2.5 text-slate-300" /> 계획: {p.scheduled_date || "-"}</span>
+                        <span className="flex items-center gap-1 whitespace-nowrap"><Clock className="size-2.5 text-slate-300" /> {tr("계획", "Planned")}: {p.scheduled_date || "-"}</span>
                         {p.purchase_date && (
                           <span className="flex items-center gap-1 text-emerald-600 font-black whitespace-nowrap">
                             <Check className="size-2.5" /> 매입: {p.purchase_date}
@@ -1247,7 +1253,7 @@ export default function PurchasesPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col gap-0.5">
-                        <span className="text-sm font-bold text-slate-700">{p.name || materialMap.get(p.material_id || "")?.name || "미지정"}</span>
+                        <span className="text-sm font-bold text-slate-700">{p.name || materialMap.get(p.material_id || "")?.name || tr("미지정", "Unassigned")}</span>
                         <div className="flex items-center gap-2 mt-1">
                           <Button
                             variant="outline"
@@ -1367,14 +1373,14 @@ export default function PurchasesPage() {
               </div>
               <div className="flex flex-col gap-0.5">
                 <DialogTitle className="text-2xl font-black text-white tracking-tighter">
-                  {dialogMode === 'create' ? "신규 매입 배치 등록 (계획)" :
-                    dialogMode === 'edit' ? "매입 정보 상세 수정" :
-                      "최종 매입 정보 확정"}
+                  {dialogMode === 'create' ? tr("신규 매입 배치 등록 (계획)", "Create Purchase Batch (Plan)") :
+                    dialogMode === 'edit' ? tr("매입 정보 상세 수정", "Edit Purchase Details") :
+                      tr("최종 매입 정보 확정", "Final Confirmation")}
                 </DialogTitle>
                 <DialogDescription className="text-sm font-medium text-slate-400">
-                  {dialogMode === 'create' ? "오늘 매입할 품목들을 리스트로 구성하여 계획을 수립합니다." :
-                    dialogMode === 'edit' ? "기존 등록된 매입 정보의 수량이나 단가 등을 수정합니다." :
-                      "내용을 확인하고 확정하면 재고가 업데이트되고 지출이 기록됩니다."}
+                  {dialogMode === 'create' ? tr("오늘 매입할 품목들을 리스트로 구성하여 계획을 수립합니다.", "Build a batch plan for today's purchases.") :
+                    dialogMode === 'edit' ? tr("기존 등록된 매입 정보의 수량이나 단가 등을 수정합니다.", "Update quantity, price, and details of existing purchases.") :
+                      tr("내용을 확인하고 확정하면 재고가 업데이트되고 지출이 기록됩니다.", "Confirm to update stock and record expenses.")}
                 </DialogDescription>
               </div>
             </div>
@@ -1387,18 +1393,18 @@ export default function PurchasesPage() {
             {/* Global settings */}
             <div className="p-6 bg-white border-b border-slate-200 shadow-sm shrink-0 grid grid-cols-1 md:grid-cols-4 gap-6">
               <div className="space-y-1.5">
-                <Label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">배치/매입 명칭</Label>
+                <Label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">{tr("배치/매입 명칭", "Batch Name")}</Label>
                 <Input
                   lang="ko"
                   autoFocus
-                  placeholder="예: 3월 본사 자재 구매"
+                  placeholder={tr("예: 3월 본사 자재 구매", "e.g. March HQ materials")}
                   className="h-10 text-sm font-bold bg-slate-50 border-slate-200 focus:bg-white focus:ring-2 focus:ring-indigo-100"
                   value={formData.name}
                   onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">예정/완료 일자</Label>
+                <Label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">{tr("예정/완료 일자", "Planned/Completed Date")}</Label>
                 <div className="relative">
                   <CalendarIcon className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                   <Input
@@ -1410,41 +1416,41 @@ export default function PurchasesPage() {
                 </div>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">결제 방식 (공통)</Label>
+                <Label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">{tr("결제 방식 (공통)", "Payment Method (default)")}</Label>
                 <Select
                   value={formData.payment_method}
                   onValueChange={(v: string | null) => v && setFormData(prev => ({ ...prev, payment_method: v }))}
                 >
                   <SelectTrigger className="h-10 text-sm font-bold bg-slate-50 border-slate-200">
                     <SelectValue>
-                      {formData.payment_method === 'card' ? '신용카드' :
-                        formData.payment_method === 'transfer' ? '계좌이체' :
-                          formData.payment_method === 'cash' ? '현금' :
-                            formData.payment_method === 'deferred' ? '외상(미지급)' : '결제 방식'}
+                      {formData.payment_method === 'card' ? tr('신용카드', 'Credit Card') :
+                        formData.payment_method === 'transfer' ? tr('계좌이체', 'Transfer') :
+                          formData.payment_method === 'cash' ? tr('현금', 'Cash') :
+                            formData.payment_method === 'deferred' ? tr('외상(미지급)', 'Deferred') : tr('결제 방식', 'Payment')}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="card">신용카드</SelectItem>
-                    <SelectItem value="transfer">계좌이체</SelectItem>
-                    <SelectItem value="cash">현금</SelectItem>
-                    <SelectItem value="deferred">외상(미지급)</SelectItem>
+                    <SelectItem value="card">{tr("신용카드", "Credit Card")}</SelectItem>
+                    <SelectItem value="transfer">{tr("계좌이체", "Transfer")}</SelectItem>
+                    <SelectItem value="cash">{tr("현금", "Cash")}</SelectItem>
+                    <SelectItem value="deferred">{tr("외상(미지급)", "Deferred")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">진행 상태 (공통)</Label>
+                <Label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">{tr("진행 상태 (공통)", "Status (default)")}</Label>
                 <Select
                   value={formData.status}
                   onValueChange={(v: string | null) => v && setFormData(prev => ({ ...prev, status: v as "planned" | "completed" }))}
                 >
                   <SelectTrigger className="h-10 text-sm font-bold bg-slate-50 border-slate-200">
                     <SelectValue>
-                      {formData.status === 'planned' ? '지출 예정' : '지출 완료'}
+                      {formData.status === 'planned' ? tr('지출 예정', 'Planned') : tr('지출 완료', 'Completed')}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="planned">지출 예정</SelectItem>
-                    <SelectItem value="completed">지출 완료</SelectItem>
+                    <SelectItem value="planned">{tr("지출 예정", "Planned")}</SelectItem>
+                    <SelectItem value="completed">{tr("지출 완료", "Completed")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1457,12 +1463,12 @@ export default function PurchasesPage() {
                   <Table>
                     <TableHeader className="bg-slate-50 border-b">
                       <TableRow className="hover:bg-transparent">
-                        <TableHead className="text-[10px] font-black uppercase text-slate-400 py-3">품목 명칭 (자재 자동매칭)</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase text-slate-400 py-3 w-[220px]">구매처</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase text-slate-400 py-3 w-[100px] text-right">수량</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase text-slate-400 py-3 w-[120px] text-right">단가</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase text-slate-400 py-3 w-[140px] text-right">총 금액</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase text-slate-400 py-3">메모</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase text-slate-400 py-3">{tr("품목 명칭 (자재 자동매칭)", "Item (auto-match)")}</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase text-slate-400 py-3 w-[220px]">{tr("구매처", "Supplier")}</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase text-slate-400 py-3 w-[100px] text-right">{tr("수량", "Qty")}</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase text-slate-400 py-3 w-[120px] text-right">{tr("단가", "Unit")}</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase text-slate-400 py-3 w-[140px] text-right">{tr("총 금액", "Total")}</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase text-slate-400 py-3">{tr("메모", "Memo")}</TableHead>
                         <TableHead className="text-[10px] font-black uppercase text-slate-400 py-3 w-[60px] text-center"></TableHead>
                       </TableRow>
                     </TableHeader>
@@ -1482,6 +1488,7 @@ export default function PurchasesPage() {
                           updateItemInBatch={updateItemInBatch}
                           removeItemFromBatch={removeItemFromBatch}
                           categories={categories}
+                          tr={tr}
                         />
                       ))}
                     </TableBody>
@@ -1492,7 +1499,7 @@ export default function PurchasesPage() {
                       className="text-indigo-600 font-bold hover:bg-indigo-50 border border-indigo-100 rounded-lg px-8 transition-all active:scale-95"
                       onClick={() => setItemsToAdd(prev => [...prev, { ...defaultFormData, quantity: 1 }])}
                     >
-                      <Plus className="w-4 h-4 mr-2" /> 품목 추가하기
+                      <Plus className="w-4 h-4 mr-2" /> {tr("품목 추가하기", "Add Item")}
                     </Button>
                   </div>
                 </div>
@@ -1501,18 +1508,18 @@ export default function PurchasesPage() {
               {/* Single edit mode fallback */}
               {editingPurchase && (
                 <Card className="max-w-md mx-auto">
-                  <CardHeader><CardTitle>개별 품목 수정</CardTitle></CardHeader>
+                  <CardHeader><CardTitle>{tr("개별 품목 수정", "Edit Single Item")}</CardTitle></CardHeader>
                   <CardContent className="space-y-4">
                     <div className="space-y-1.5">
-                      <Label>수량</Label>
+                      <Label>{tr("수량", "Qty")}</Label>
                       <Input type="number" value={formData.quantity} onChange={e => setFormData(prev => ({ ...prev, quantity: Number(e.target.value) }))} />
                     </div>
                     <div className="space-y-1.5">
-                      <Label>합계 금액</Label>
+                      <Label>{tr("합계 금액", "Total Amount")}</Label>
                       <Input type="number" value={formData.total_price} onChange={e => setFormData(prev => ({ ...prev, total_price: Number(e.target.value) }))} />
                     </div>
                     <div className="space-y-1.5">
-                      <Label>참고 메모</Label>
+                      <Label>{tr("참고 메모", "Note")}</Label>
                       <Textarea value={formData.notes} onChange={e => setFormData(prev => ({ ...prev, notes: e.target.value }))} />
                     </div>
                   </CardContent>
@@ -1522,13 +1529,13 @@ export default function PurchasesPage() {
 
             <div className="p-6 bg-white border-t border-slate-200 shrink-0 flex items-center justify-between shadow-[0_-10px_20px_rgba(0,0,0,0.02)]">
               <div className="flex flex-col">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">배치 총 합계 (자동 계산)</span>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{tr("배치 총 합계 (자동 계산)", "Batch Total (auto)")}</span>
                 <span className="text-2xl font-black text-slate-800 tracking-tighter">
-                  ₩{itemsToAdd.reduce((sum, item) => sum + item.total_price, 0).toLocaleString()} <span className="text-lg font-normal text-slate-400 ml-1">원</span>
+                  ₩{itemsToAdd.reduce((sum, item) => sum + item.total_price, 0).toLocaleString()} <span className="text-lg font-normal text-slate-400 ml-1">{tr("원", "")}</span>
                 </span>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" className="h-12 px-6 font-bold border-slate-200" onClick={() => setIsDialogOpen(false)}>취소</Button>
+                <Button variant="outline" className="h-12 px-6 font-bold border-slate-200" onClick={() => setIsDialogOpen(false)}>{tr("취소", "Cancel")}</Button>
                 <Button
                   variant={dialogMode === 'confirm' ? "outline" : "default"}
                   className={cn(
@@ -1538,7 +1545,7 @@ export default function PurchasesPage() {
                   onClick={() => handleSaveOrConfirm(false)}
                 >
                   <Save className="w-4 h-4 mr-2" />
-                  {dialogMode === 'create' ? "매입 계획 저장" : "수정 사항 저장"}
+                  {dialogMode === 'create' ? tr("매입 계획 저장", "Save Plan") : tr("수정 사항 저장", "Save Changes")}
                 </Button>
 
                 {dialogMode === 'confirm' && (
@@ -1546,7 +1553,7 @@ export default function PurchasesPage() {
                     className="h-12 px-8 bg-emerald-600 hover:bg-black text-white font-black shadow-xl shadow-emerald-100 transition-all active:scale-95"
                     onClick={() => handleSaveOrConfirm(true)}
                   >
-                    <CheckCircle2 className="w-4 h-4 mr-2" /> 매입 정보 최종 확정
+                    <CheckCircle2 className="w-4 h-4 mr-2" /> {tr("매입 정보 최종 확정", "Confirm Purchase")}
                   </Button>
                 )}
               </div>

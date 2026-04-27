@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from './lib/supabase';
 import { Settings, Plus, Trash2, X } from 'lucide-react';
+import { usePreferredLocale } from '@/hooks/use-preferred-locale';
+import { getMessages } from '@/i18n/getMessages';
 
 interface PhraseManagerProps {
   isOpen: boolean;
@@ -9,6 +11,8 @@ interface PhraseManagerProps {
 }
 
 export function PhraseManagerDialog({ isOpen, onClose, onChanged }: PhraseManagerProps) {
+  const locale = usePreferredLocale();
+  const R = getMessages(locale).dashboard.ribbon;
   const [phrases, setPhrases] = useState<any[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -34,10 +38,10 @@ export function PhraseManagerDialog({ isOpen, onClose, onChanged }: PhraseManage
   };
 
   const handeAdd = async () => {
-    if (!newCat.trim() || !newText.trim()) return alert("카테고리와 상용구를 모두 입력하세요.");
+    if (!newCat.trim() || !newText.trim()) return alert(R.phraseAlertBoth);
     setIsLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { alert("로그인이 필요합니다."); setIsLoading(false); return; }
+    if (!user) { alert(R.phraseLoginRequired); setIsLoading(false); return; }
 
     const { error } = await supabase.from('custom_phrases').insert([{
       user_id: user.id,
@@ -56,7 +60,7 @@ export function PhraseManagerDialog({ isOpen, onClose, onChanged }: PhraseManage
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('정말 삭제하시겠습니까?')) return;
+    if (!confirm(R.phraseDeleteConfirm)) return;
     setIsLoading(true);
     const { error } = await supabase.from('custom_phrases').delete().eq('id', id);
     if (!error) {
@@ -74,7 +78,7 @@ export function PhraseManagerDialog({ isOpen, onClose, onChanged }: PhraseManage
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800 bg-slate-900/50">
           <h2 className="text-white font-semibold flex items-center gap-2">
-            <Settings size={18} className="text-blue-400" /> 커스텀 상용구 관리 (DB DB)
+            <Settings size={18} className="text-blue-400" /> {R.phraseMgrTitle}
           </h2>
           <button onClick={onClose} className="p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded">
             <X size={20} />
@@ -84,22 +88,22 @@ export function PhraseManagerDialog({ isOpen, onClose, onChanged }: PhraseManage
         <div className="flex-1 overflow-y-auto p-5 space-y-6">
           {/* Add New Phrase Form */}
           <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700 space-y-3">
-            <h3 className="text-xs font-semibold text-slate-300">새로운 상용구 추가</h3>
+            <h3 className="text-xs font-semibold text-slate-300">{R.phraseMgrNewSection}</h3>
             <div className="flex flex-col gap-3">
-              <input type="text" placeholder="새로운 카테고리명 작성 (또는 기존 카테고리 입력)" value={newCat} onChange={e => setNewCat(e.target.value)} translate="no" className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white notranslate" />
+              <input type="text" placeholder={R.phraseMgrPhCat} value={newCat} onChange={e => setNewCat(e.target.value)} translate="no" className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white notranslate" />
               <div className="flex gap-2">
-                <input type="text" placeholder="한자/문구 (필수)" value={newText} onChange={e => setNewText(e.target.value)} translate="no" className="w-1/2 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white notranslate" />
-                <input type="text" placeholder="설명 (선택)" value={newDesc} onChange={e => setNewDesc(e.target.value)} translate="no" className="w-1/2 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white notranslate" />
+                <input type="text" placeholder={R.phraseMgrPhText} value={newText} onChange={e => setNewText(e.target.value)} translate="no" className="w-1/2 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white notranslate" />
+                <input type="text" placeholder={R.phraseMgrPhDesc} value={newDesc} onChange={e => setNewDesc(e.target.value)} translate="no" className="w-1/2 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white notranslate" />
               </div>
               <button disabled={isLoading} onClick={handeAdd} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2 rounded-lg flex items-center justify-center gap-2 transition-colors">
-                <Plus size={16} /> 데이터베이스에 상용구 저장
+                <Plus size={16} /> {R.phraseMgrBtnSave}
               </button>
             </div>
           </div>
 
           {/* List Phrases Grouped by Category */}
           <div className="space-y-4">
-            <h3 className="text-xs font-semibold text-slate-300 border-b border-slate-700 pb-2">등록된 상용구 목록</h3>
+            <h3 className="text-xs font-semibold text-slate-300 border-b border-slate-700 pb-2">{R.phraseMgrListHeader}</h3>
             {categories.map(cat => (
               <div key={cat} className="space-y-2">
                 <h4 className="text-blue-400 text-sm font-semibold bg-slate-800/80 px-3 py-1.5 rounded">{cat}</h4>
@@ -119,7 +123,7 @@ export function PhraseManagerDialog({ isOpen, onClose, onChanged }: PhraseManage
               </div>
             ))}
             {categories.length === 0 && !isLoading && (
-              <div className="text-center py-10 text-slate-500 text-sm">등록된 커스텀 상용구가 없습니다.</div>
+              <div className="text-center py-10 text-slate-500 text-sm">{R.phraseMgrEmpty}</div>
             )}
           </div>
         </div>

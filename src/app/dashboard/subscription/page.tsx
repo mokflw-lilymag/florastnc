@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { loadTossPayments } from "@tosspayments/payment-sdk";
 import { 
   Zap, 
@@ -37,6 +37,8 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { isAfter } from "date-fns";
 import { toast } from "sonner";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
 
 const PLANS = [
   {
@@ -132,6 +134,61 @@ export default function SubscriptionPage() {
   const [usageData, setUsageData] = useState<any>(null);
   const [selectedPeriod, setSelectedPeriod] = useState<Period>("12m");
   const [isProcessing, setIsProcessing] = useState(false);
+  const locale = usePreferredLocale();
+  const baseLocale = toBaseLocale(locale);
+  const tr = (koText: string, enText: string) => (baseLocale === "ko" ? koText : enText);
+  const localizedPlans = useMemo(() => {
+    if (baseLocale === "ko") return PLANS;
+    return PLANS.map((plan) => ({
+      ...plan,
+      subName:
+        plan.id === "free"
+          ? "Focused on flower ribbon printing"
+          : plan.id === "erp_only"
+            ? "Efficient flower shop operations"
+            : "Complete digital transformation",
+      description:
+        plan.id === "free"
+          ? "Core features for stable ribbon printing and basic order tracking."
+          : plan.id === "erp_only"
+            ? "Smart operations suite for settlement and customer growth."
+            : "All-in-one printer, ERP, and marketing bundle for scaling teams.",
+      features:
+        plan.id === "free"
+          ? [
+              "Unlimited ribbon printing (all sizes)",
+              "Detailed print logs and history",
+              "Premium font and template library",
+              "Local printer bridge integration",
+              "Manual order record management",
+            ]
+          : plan.id === "erp_only"
+            ? [
+                "Customer CRM + point marketing",
+                "Live delivery dispatch and tracking",
+                "AI receipt OCR for expense automation",
+                "Purchase price trend and inventory",
+                "Auto tax setup and monthly P&L report",
+              ]
+            : [
+                "Unlimited PRINT + ERP core features",
+                "AI assistant and one-click marketing posts",
+                "SNS integration and performance analysis",
+                "External marketplace order sync",
+                "VIP membership storefront support",
+              ],
+      pricing: Object.fromEntries(
+        Object.entries(plan.pricing).map(([k, v]) => [
+          k,
+          {
+            ...v,
+            label: k === "1m" ? "1 month" : k === "3m" ? "3 months" : k === "6m" ? "6 months" : "12 months",
+            discount: v.discount.replace("할인", "off").replace("특가", "special"),
+          },
+        ])
+      ) as typeof plan.pricing,
+    }));
+  }, [baseLocale]);
 
   const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY || 'test_ck_D5akZmejPyb70ng83YXrb8zV7n9E';
 
@@ -162,12 +219,12 @@ export default function SubscriptionPage() {
 
   const handleSubscribe = async (planId: string, period: Period) => {
     if (!tenantId) {
-      toast.error("로그인이 필요합니다.");
+      toast.error(tr("로그인이 필요합니다.", "Login is required."));
       return;
     }
 
     setIsProcessing(true);
-    const plan = PLANS.find(p => p.id === planId);
+    const plan = localizedPlans.find(p => p.id === planId);
     if (!plan) return;
 
     const pricing = plan.pricing[period];
@@ -178,17 +235,17 @@ export default function SubscriptionPage() {
       const orderId = `${tenantId.substring(0, 8)}_${planId}_${period}_${Date.now()}`;
       const { data: { user } } = await supabase.auth.getUser();
 
-      await tossPayments.requestPayment("카드", {
+      await tossPayments.requestPayment(baseLocale === "ko" ? "카드" : "CARD", {
         amount,
         orderId,
-        orderName: `${plan.name} (${pricing.label}) 구독`,
+        orderName: `${plan.name} (${pricing.label}) ${tr("구독", "Subscription")}`,
         successUrl: window.location.origin + "/dashboard/subscription/success",
         failUrl: window.location.origin + "/dashboard/subscription/fail",
         customerEmail: user?.email || "",
-        customerName: tenantData?.name || "Floxync 가입자",
+        customerName: tenantData?.name || tr("Floxync 가입자", "Floxync Subscriber"),
       });
     } catch (error: any) {
-      toast.error("결제 프로세스 에러", { description: error.message });
+      toast.error(tr("결제 프로세스 에러", "Payment process error"), { description: error.message });
       setIsProcessing(false);
     }
   };
@@ -229,7 +286,7 @@ export default function SubscriptionPage() {
               </div>
               <div className="hidden sm:block">
                  <h2 className="text-sm font-black tracking-widest text-white uppercase">Growth Dashboard</h2>
-                 <p className="text-[10px] text-slate-400 font-bold">비즈니스의 레벨을 높이세요.</p>
+                 <p className="text-[10px] text-slate-400 font-bold">{tr("비즈니스의 레벨을 높이세요.", "Level up your business.")}</p>
               </div>
            </div>
            
@@ -243,7 +300,7 @@ export default function SubscriptionPage() {
               )}
               <div className="flex flex-col items-end">
                  <Badge className="bg-white/10 text-white hover:bg-white/20 border-white/10 px-3 py-1 text-[10px] font-black tracking-widest uppercase">
-                    {PLANS.find(p => p.id === currentPlan)?.name || "GUEST"}
+                    {localizedPlans.find(p => p.id === currentPlan)?.name || "GUEST"}
                  </Badge>
               </div>
            </div>
@@ -269,7 +326,7 @@ export default function SubscriptionPage() {
                transition={{ duration: 0.8, ease: "circOut" }}
                className="block"
              >
-                당신의 화원에
+                {tr("당신의 화원에", "Your flower shop,")}
              </motion.span>
              <motion.span 
                initial={{ y: 100 }}
@@ -277,7 +334,7 @@ export default function SubscriptionPage() {
                transition={{ duration: 0.8, delay: 0.1, ease: "circOut" }}
                className="block text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-blue-400 to-teal-400"
              >
-                날개를 다는 시간.
+                {tr("날개를 다는 시간.", "now ready to take flight.")}
              </motion.span>
           </h1>
           
@@ -287,8 +344,8 @@ export default function SubscriptionPage() {
              transition={{ delay: 0.5 }}
              className="text-slate-400 max-w-3xl mx-auto text-lg md:text-xl font-medium leading-relaxed"
           >
-             전 세계 상위 1% 릴리맥 파트너사가 선택한 Floxync와 함께하세요. <br />
-             복잡한 매장 운영은 저희가 맡고, 사장님은 아름다움에만 집중하세요.
+             {tr("전 세계 상위 1% 릴리맥 파트너사가 선택한 Floxync와 함께하세요.", "Join Floxync trusted by top-tier global flower partners.")} <br />
+             {tr("복잡한 매장 운영은 저희가 맡고, 사장님은 아름다움에만 집중하세요.", "We handle complex operations so you can focus on creation and sales.")}
           </motion.p>
           
           <div className="flex justify-center pt-8">
@@ -322,7 +379,7 @@ export default function SubscriptionPage() {
 
         {/* Pricing Cards with 3D Interaction */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch mb-40">
-           {PLANS.map((plan, i) => (
+           {localizedPlans.map((plan, i) => (
              <TiltCard 
                key={plan.id} 
                plan={plan} 
@@ -337,17 +394,17 @@ export default function SubscriptionPage() {
 
         {/* Brand Core Values */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-40">
-           <ValueCard icon={<Shield className="w-6 h-6" />} title="Enterprise Security" desc="군사급 암호화로 모든 데이터를 보호합니다." />
-           <ValueCard icon={<Scan className="w-6 h-6" />} title="AI OCR Logic" desc="AI가 영수증 한 장 한 장을 자동 분석합니다." />
-           <ValueCard icon={<Cloud className="w-6 h-6" />} title="Cloud Infinity" desc="기기 제한 없는 무제한 클라우드 동기화." />
-           <ValueCard icon={<Trophy className="w-6 h-6" />} title="VIP Concierge" desc="24시간 연중무휴 기술 지원팀이 상주합니다." />
+           <ValueCard icon={<Shield className="w-6 h-6" />} title="Enterprise Security" desc={tr("군사급 암호화로 모든 데이터를 보호합니다.", "Military-grade encryption protects all data.")} />
+           <ValueCard icon={<Scan className="w-6 h-6" />} title="AI OCR Logic" desc={tr("AI가 영수증 한 장 한 장을 자동 분석합니다.", "AI analyzes receipts automatically.")} />
+           <ValueCard icon={<Cloud className="w-6 h-6" />} title="Cloud Infinity" desc={tr("기기 제한 없는 무제한 클라우드 동기화.", "Unlimited cloud sync across devices.")} />
+           <ValueCard icon={<Trophy className="w-6 h-6" />} title="VIP Concierge" desc={tr("24시간 연중무휴 기술 지원팀이 상주합니다.", "24/7 technical support team.")} />
         </div>
 
         {/* Comparison Table */}
         <div className="mb-40">
            <div className="text-center space-y-4 mb-20">
               <h2 className="text-3xl md:text-5xl font-black tracking-tight">Full Compatibility Matrix</h2>
-              <p className="text-slate-400 font-bold uppercase tracking-[0.5em] text-[10px]">상세 기능별 상세 전력 분석</p>
+              <p className="text-slate-400 font-bold uppercase tracking-[0.5em] text-[10px]">{tr("상세 기능별 상세 전력 분석", "Detailed feature comparison")}</p>
            </div>
            
            <div className="bg-white/5 backdrop-blur-2xl rounded-[48px] border border-white/10 p-12 overflow-hidden shadow-3xl">
@@ -361,16 +418,16 @@ export default function SubscriptionPage() {
                     </tr>
                  </thead>
                     <tbody className="divide-y divide-white/5">
-                       <Row label="전문 리본 출력 엔진 (모든 규격)" v1 v2 v3 />
-                       <Row label="무제한 이력 데이터 관리" v1 v2 v3 />
-                       <Row label="고객 CRM 및 포인트 마케팅" v1={false} v2 v3 />
-                       <Row label="실시간 배송 배차 및 동선 추적" v1={false} v2 v3 />
-                       <Row label="AI 영수증 OCR 정산 엔진" v1={false} v2 v3 />
-                       <Row label="자동 세무 설정 및 손익 통계" v1={false} v2 v3 />
-                       <Row label="카카오 알림톡 자동화 시스템" v1={false} v2={false} v3 />
-                       <Row label="AI 인스타/블로그 배포 자동화" v1={false} v2={false} v3 />
-                       <Row label="외부 쇼핑몰 주문 자동 연동" v1={false} v2={false} v3 />
-                       <Row label="최우선 전담 기술 지원" v1="E-mail" v2="채팅" v3="24/7 전담" />
+                       <Row label={tr("전문 리본 출력 엔진 (모든 규격)", "Professional ribbon print engine (all sizes)")} v1 v2 v3 />
+                       <Row label={tr("무제한 이력 데이터 관리", "Unlimited history management")} v1 v2 v3 />
+                       <Row label={tr("고객 CRM 및 포인트 마케팅", "Customer CRM and point marketing")} v1={false} v2 v3 />
+                       <Row label={tr("실시간 배송 배차 및 동선 추적", "Live delivery dispatch and route tracking")} v1={false} v2 v3 />
+                       <Row label={tr("AI 영수증 OCR 정산 엔진", "AI receipt OCR settlement engine")} v1={false} v2 v3 />
+                       <Row label={tr("자동 세무 설정 및 손익 통계", "Auto tax setup and P&L analytics")} v1={false} v2 v3 />
+                       <Row label={tr("카카오 알림톡 자동화 시스템", "Kakao notification automation")} v1={false} v2={false} v3 />
+                       <Row label={tr("AI 인스타/블로그 배포 자동화", "AI Instagram/Blog publishing")} v1={false} v2={false} v3 />
+                       <Row label={tr("외부 쇼핑몰 주문 자동 연동", "External marketplace order sync")} v1={false} v2={false} v3 />
+                       <Row label={tr("최우선 전담 기술 지원", "Priority dedicated support")} v1="E-mail" v2={tr("채팅", "Chat")} v3={tr("24/7 전담", "24/7 Dedicated")} />
                     </tbody>
               </table>
            </div>
@@ -384,8 +441,8 @@ export default function SubscriptionPage() {
            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.1] mix-blend-overlay" />
            <div className="relative z-10 space-y-12">
               <h3 className="text-4xl md:text-7xl font-black tracking-tighter leading-none mb-6">
-                 당신의 비즈니스가<br />
-                 지금 막 도약을 준비합니다.
+                 {tr("당신의 비즈니스가", "Your business")}<br />
+                 {tr("지금 막 도약을 준비합니다.", "is ready for the next leap.")}
               </h3>
               <div className="flex items-center justify-center gap-4">
                  <div className="flex -space-x-3">
@@ -395,10 +452,10 @@ export default function SubscriptionPage() {
                       </div>
                     ))}
                  </div>
-                 <p className="text-indigo-200 font-bold text-sm">+2,400명의 사장님들이 구독 중</p>
+                 <p className="text-indigo-200 font-bold text-sm">{tr("+2,400명의 사장님들이 구독 중", "+2,400 owners already subscribed")}</p>
               </div>
               <Button className="h-20 px-16 rounded-full bg-white text-indigo-700 font-black text-2xl hover:scale-110 transition-transform shadow-2xl shadow-indigo-500/50">
-                 지금 결제하고 특전 받기
+                 {tr("지금 결제하고 특전 받기", "Pay now and get benefits")}
               </Button>
            </div>
         </motion.div>

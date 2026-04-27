@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { differenceInCalendarDays, format } from "date-fns";
-import { ko } from "date-fns/locale";
+import { enUS, ko } from "date-fns/locale";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,6 +14,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { resolveLocale } from "@/i18n/config";
 
 const STORAGE_KEY_PREFIX = "floxync_renewal_notice_dismissed";
 
@@ -46,6 +48,9 @@ export function AnnualRenewalReminder({
 }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const preferredLocale = usePreferredLocale();
+  const isKo = resolveLocale(preferredLocale).startsWith("ko");
+  const tr = (koText: string, enText: string) => (isKo ? koText : enText);
 
   useEffect(() => {
     if (isSuperAdmin || isExpired || !subscriptionEnd || plan === "free") return;
@@ -81,21 +86,24 @@ export function AnnualRenewalReminder({
   };
 
   const endLabel = subscriptionEnd
-    ? format(new Date(subscriptionEnd), "yyyy년 M월 d일", { locale: ko })
+    ? isKo
+      ? format(new Date(subscriptionEnd), "yyyy년 M월 d일", { locale: ko })
+      : format(new Date(subscriptionEnd), "MMM d, yyyy", { locale: enUS })
     : "";
 
   return (
     <AlertDialog open={open} onOpenChange={handleOpenChange}>
       <AlertDialogContent className="max-w-[min(100%-2rem,380px)] sm:max-w-md">
         <AlertDialogHeader>
-          <AlertDialogTitle>구독 만료 예정 안내</AlertDialogTitle>
+          <AlertDialogTitle>{tr("구독 만료 예정 안내", "Upcoming subscription expiry")}</AlertDialogTitle>
           <AlertDialogDescription className="text-left">
-            연간 이용 중이신 매장입니다. 서비스 이용 기한이 <strong>{endLabel}</strong>에 종료됩니다. 중단 없이
-            사용하시려면 미리 연장해 주세요.
+            {tr("연간 이용 중이신 매장입니다. 서비스 이용 기한이 ", "Your store is currently on an annual plan. Service access ends on ")}
+            <strong>{endLabel}</strong>
+            {tr("에 종료됩니다. 중단 없이 사용하시려면 미리 연장해 주세요.", ". Please renew in advance to avoid interruption.")}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>닫기</AlertDialogCancel>
+          <AlertDialogCancel>{tr("닫기", "Close")}</AlertDialogCancel>
           <AlertDialogAction
             onClick={() => {
               persistDismiss();
@@ -103,7 +111,7 @@ export function AnnualRenewalReminder({
               router.push("/dashboard/subscription");
             }}
           >
-            구독 · 플랜 확인
+            {tr("구독 · 플랜 확인", "View subscription")}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

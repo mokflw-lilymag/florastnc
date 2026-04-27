@@ -51,6 +51,8 @@ import {
 import { printDocument } from "@/lib/print-document";
 import { useIsCapacitorAndroid } from "@/hooks/use-capacitor-android";
 import { usePartnerTouchUi } from "@/hooks/use-partner-touch-ui";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
 
 export default function OrdersPage() {
   const isAndroidApp = useIsCapacitorAndroid();
@@ -61,32 +63,35 @@ export default function OrdersPage() {
   const isSuperAdmin = profile?.role === 'super_admin';
   const supabase = createClient();
   const { settings } = useSettings();
+  const locale = usePreferredLocale();
+  const isKo = toBaseLocale(locale) === "ko";
+  const tr = (ko: string, en: string) => (isKo ? ko : en);
 
   const statusLabels: Record<string, string> = {
-    all: "전체 상태",
-    processing: "준비중",
-    completed: "완료",
-    canceled: "취소"
+    all: tr("전체 상태", "All Status"),
+    processing: tr("준비중", "Processing"),
+    completed: tr("완료", "Completed"),
+    canceled: tr("취소", "Canceled")
   };
 
   const receiptTypeLabels: Record<string, string> = {
-    all: "전체 수령",
-    delivery_reservation: "배송",
-    pickup_reservation: "수령예약",
-    store_pickup: "매장수령"
+    all: tr("전체 수령", "All Receipt"),
+    delivery_reservation: tr("배송", "Delivery"),
+    pickup_reservation: tr("수령예약", "Pickup Reservation"),
+    store_pickup: tr("매장수령", "Store Pickup")
   };
 
   const periodLabels: Record<string, string> = {
-    "2months": "기존 2개월",
-    "3months": "최근 3개월",
-    "6months": "최근 6개월",
-    "1year": "최근 1년",
-    "all": "전체 데이터"
+    "2months": tr("기존 2개월", "Last 2 months"),
+    "3months": tr("최근 3개월", "Last 3 months"),
+    "6months": tr("최근 6개월", "Last 6 months"),
+    "1year": tr("최근 1년", "Last 1 year"),
+    "all": tr("전체 데이터", "All data")
   };
 
   const basisLabels: Record<string, string> = {
-    "order_date": "수령일 기준",
-    "created_at": "주문일 기준"
+    "order_date": tr("수령일 기준", "Receipt date"),
+    "created_at": tr("주문일 기준", "Order date")
   };
 
   const { 
@@ -160,7 +165,7 @@ export default function OrdersPage() {
     };
 
     try {
-      // 카페24 + 네이버 동시 호출
+      // Cafe24 + Naver parallel sync
       const [cafe24Res, naverRes] = await Promise.allSettled([
         fetch('/api/sync/cafe24', {
           method: 'POST',
@@ -177,29 +182,29 @@ export default function OrdersPage() {
       let totalSynced = 0;
       const messages: string[] = [];
 
-      // 카페24 결과 처리
+      // Cafe24 result
       if (cafe24Res.status === 'fulfilled' && cafe24Res.value.success && cafe24Res.value.synced_count > 0) {
         totalSynced += cafe24Res.value.synced_count;
-        messages.push(`카페24 ${cafe24Res.value.synced_count}건`);
+        messages.push(tr(`카페24 ${cafe24Res.value.synced_count}건`, `Cafe24 ${cafe24Res.value.synced_count}`));
       }
 
-      // 네이버 결과 처리
+      // Naver result
       if (naverRes.status === 'fulfilled' && naverRes.value.success && naverRes.value.synced_count > 0) {
         totalSynced += naverRes.value.synced_count;
-        messages.push(`네이버 ${naverRes.value.synced_count}건`);
+        messages.push(tr(`네이버 ${naverRes.value.synced_count}건`, `Naver ${naverRes.value.synced_count}`));
       }
 
       if (totalSynced > 0) {
-        toast.success(`🛒 새 주문 ${totalSynced}건 동기화!`, {
-          description: messages.join(', ') + ' - 주문 목록이 갱신됩니다.',
+        toast.success(tr(`🛒 새 주문 ${totalSynced}건 동기화!`, `🛒 Synced ${totalSynced} new orders!`), {
+          description: isKo ? messages.join(', ') + ' - 주문 목록이 갱신됩니다.' : `${messages.join(", ")} - order list updated.`,
           duration: 5000,
         });
         refreshOrders();
       } else if (!silent) {
-        toast.info('새로운 쇼핑몰 주문이 없습니다.');
+        toast.info(tr('새로운 쇼핑몰 주문이 없습니다.', 'No new mall orders.'));
       }
     } catch {
-      if (!silent) toast.error('동기화 중 오류가 발생했습니다.');
+      if (!silent) toast.error(tr('동기화 중 오류가 발생했습니다.', 'Sync error occurred.'));
     } finally {
       setIsCafe24Syncing(false);
     }
@@ -252,7 +257,7 @@ export default function OrdersPage() {
         .in('id', selectedOrderIds);
       
       if (error) throw error;
-      toast.success(`${selectedOrderIds.length}건의 주문 상태가 변경되었습니다.`);
+      toast.success(tr(`${selectedOrderIds.length}건의 주문 상태가 변경되었습니다.`, `${selectedOrderIds.length} orders updated.`));
       setSelectedOrderIds([]);
       // Refresh
       const period = searchParams.get('period') || '2months';
@@ -261,7 +266,7 @@ export default function OrdersPage() {
       else if (period === '6months') fetchOrdersByRange(subDays(new Date(), 180), new Date());
       else if (period === '1year') fetchOrdersByRange(subDays(new Date(), 365), new Date());
     } catch (e) {
-      toast.error("상태 변경에 실패했습니다.");
+      toast.error(tr("상태 변경에 실패했습니다.", "Failed to change status."));
     }
   };
 
@@ -271,10 +276,10 @@ export default function OrdersPage() {
       for (const id of selectedOrderIds) {
         await deleteOrder(id);
       }
-      toast.success(`${selectedOrderIds.length}건의 주문이 삭제되었습니다.`);
+      toast.success(tr(`${selectedOrderIds.length}건의 주문이 삭제되었습니다.`, `${selectedOrderIds.length} orders deleted.`));
       setSelectedOrderIds([]);
     } catch (e) {
-      toast.error("삭제에 실패했습니다.");
+      toast.error(tr("삭제에 실패했습니다.", "Failed to delete."));
     } finally {
       setIsBulkDeleteDialogOpen(false);
     }
@@ -388,27 +393,27 @@ export default function OrdersPage() {
   const handleOrderPrint = (orderId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     toast.promise(printDocument(`/dashboard/orders/print-preview/${orderId}`), {
-      loading: '주문서를 준비 중입니다...',
-      success: '인쇄 준비가 완료되었습니다.',
-      error: '인쇄 준비 중 오류가 발생했습니다.'
+      loading: tr('주문서를 준비 중입니다...', 'Preparing order print...'),
+      success: tr('인쇄 준비가 완료되었습니다.', 'Print is ready.'),
+      error: tr('인쇄 준비 중 오류가 발생했습니다.', 'Failed to prepare print.')
     });
   };
 
   const handleStatusUpdate = async (id: string, status: Order['status']) => {
     const success = await updateOrderStatus(id, status);
     if (success) {
-      toast.success(`주문 상태가 '${statusLabels[status]}'로 변경되었습니다.`);
+      toast.success(tr(`주문 상태가 '${statusLabels[status]}'로 변경되었습니다.`, `Order status changed to '${statusLabels[status]}'.`));
     } else {
-      toast.error("상태 변경에 실패했습니다.");
+      toast.error(tr("상태 변경에 실패했습니다.", "Failed to change status."));
     }
   };
 
   const handlePaymentUpdate = async (id: string, status: Order['payment']['status']) => {
     const success = await updatePaymentStatus(id, status);
     if (success) {
-      toast.success(`결제 상태가 '${status === 'paid' ? '완결' : '미결'}'로 변경되었습니다.`);
+      toast.success(tr(`결제 상태가 '${status === 'paid' ? '완결' : '미결'}'로 변경되었습니다.`, `Payment status changed to '${status === 'paid' ? 'Paid' : 'Pending'}'.`));
     } else {
-      toast.error("결제 상태 변경에 실패했습니다.");
+      toast.error(tr("결제 상태 변경에 실패했습니다.", "Failed to change payment status."));
     }
   };
 
@@ -416,9 +421,9 @@ export default function OrdersPage() {
     if (!orderToDelete) return;
     const success = await deleteOrder(orderToDelete);
     if (success) {
-      toast.success("주문이 삭제되었습니다.");
+      toast.success(tr("주문이 삭제되었습니다.", "Order deleted."));
     } else {
-      toast.error("삭제에 실패했습니다.");
+      toast.error(tr("삭제에 실패했습니다.", "Failed to delete."));
     }
     setIsDeleteDialogOpen(false);
     setOrderToDelete(null);
@@ -426,7 +431,7 @@ export default function OrdersPage() {
 
   const handleGoogleSheetExport = async () => {
     if (!exportStartDate || !exportEndDate) {
-      toast.error("수령일 범위를 선택해주세요.");
+      toast.error(tr("수령일 범위를 선택해주세요.", "Please select date range."));
       return;
     }
     
@@ -436,7 +441,7 @@ export default function OrdersPage() {
       const sheetId = settings?.googleSheetId;
       
       if (!sheetId) {
-        toast.error("설정에서 Google Spreadsheet ID를 먼저 등록해주세요.");
+        toast.error(tr("설정에서 Google Spreadsheet ID를 먼저 등록해주세요.", "Please set Google Spreadsheet ID in settings."));
         setIsExporting(false);
         return;
       }
@@ -449,13 +454,13 @@ export default function OrdersPage() {
         sheetId
       );
       if (result.success) {
-        toast.success("Google Sheets로 데이터가 성공적으로 전송되었습니다.");
+        toast.success(tr("Google Sheets로 데이터가 성공적으로 전송되었습니다.", "Data sent to Google Sheets successfully."));
       } else {
-        throw new Error(result.message || "알 수 없는 오류");
+        throw new Error(result.message || "Unknown error");
       }
     } catch (error: any) {
       console.error(error);
-      toast.error(`전송 실패: ${error.message || "알 수 없는 오류"}`);
+      toast.error(tr(`전송 실패: ${error.message || "알 수 없는 오류"}`, `Export failed: ${error.message || "Unknown error"}`));
     } finally {
       setIsExporting(false);
     }
@@ -468,11 +473,11 @@ export default function OrdersPage() {
   return (
     <div className={cn("space-y-8 bg-[#F8FAFC]", touchUi ? "p-4 pb-6 sm:p-6 sm:pb-8" : "p-8")}>
       <PageHeader 
-        title="주문 관리" 
+        title={tr("주문 관리", "Order Management")} 
         description={
           touchUi
-            ? "검색·필터로 찾고, 카드를 눌러 상세·인쇄·상태를 바꿀 수 있어요."
-            : "전체 주문 내역을 실시간으로 확인하고 관리할 수 있습니다."
+            ? tr("검색·필터로 찾고, 카드를 눌러 상세·인쇄·상태를 바꿀 수 있어요.", "Search and filter, then tap cards to open details, print, and update status.")
+            : tr("전체 주문 내역을 실시간으로 확인하고 관리할 수 있습니다.", "View and manage all orders in real-time.")
         }
         className={touchUi ? "max-lg:mb-4" : undefined}
       >
@@ -483,7 +488,7 @@ export default function OrdersPage() {
             className="flex-1 lg:flex-none h-11 lg:h-12 px-6 rounded-2xl border-2 border-slate-100 bg-white hover:bg-slate-50 font-bold transition-all shadow-sm gap-2 whitespace-nowrap"
           >
             <DollarSign className="h-4 w-4 text-emerald-500" />
-            <span>일일마감정산</span>
+            <span>{tr("일일마감정산", "Daily Settlement")}</span>
           </Button>
           <Button 
             variant="outline" 
@@ -491,7 +496,7 @@ export default function OrdersPage() {
             className="flex-1 lg:flex-none h-11 lg:h-12 px-6 rounded-2xl border-2 border-slate-100 bg-white hover:bg-slate-50 font-bold transition-all shadow-sm gap-2"
           >
             <Download className="h-4 w-4 text-slate-400" /> 
-            <span>엑셀</span>
+            <span>{tr("엑셀", "Excel")}</span>
           </Button>
           <Button 
             variant="outline" 
@@ -500,7 +505,7 @@ export default function OrdersPage() {
             className="flex-1 lg:flex-none h-11 lg:h-12 px-6 rounded-2xl border-2 border-emerald-100 bg-emerald-50/20 hover:bg-emerald-50 text-emerald-700 font-bold transition-all shadow-sm gap-2"
           >
             {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />} 
-            <span>구글 시트</span>
+            <span>{tr("구글 시트", "Google Sheets")}</span>
           </Button>
           {!isAndroidApp && (
           <Button 
@@ -510,7 +515,7 @@ export default function OrdersPage() {
             className="flex-1 lg:flex-none h-11 lg:h-12 px-6 rounded-2xl border-2 border-blue-100 bg-blue-50/20 hover:bg-blue-50 text-blue-700 font-bold transition-all shadow-sm gap-2"
           >
             {isCafe24Syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <CloudDownload className="h-4 w-4" />}
-            <span>쇼핑몰 동기화</span>
+            <span>{tr("쇼핑몰 동기화", "Mall Sync")}</span>
           </Button>
           )}
           {!isAndroidApp && (
@@ -519,7 +524,7 @@ export default function OrdersPage() {
             onClick={() => router.push('/dashboard/orders/new')}
           >
             <PlusCircle className="h-4 w-4" /> 
-            <span>새 주문 등록</span>
+            <span>{tr("새 주문 등록", "New Order")}</span>
           </Button>
           )}
         </div>
@@ -529,57 +534,84 @@ export default function OrdersPage() {
       <div className={cn("grid gap-6", touchUi ? "grid-cols-2 lg:grid-cols-4 gap-3" : "grid-cols-1 md:grid-cols-2 lg:grid-cols-4")}>
         <Card className="rounded-3xl border-none shadow-xl shadow-slate-200/50 bg-white overflow-hidden group hover:scale-[1.02] transition-all duration-300">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-bold text-slate-500 uppercase tracking-wider">오늘 주문</CardTitle>
+            <CardTitle className="text-sm font-bold text-slate-500 uppercase tracking-wider">{tr("오늘 주문", "Today's orders")}</CardTitle>
             <div className="h-10 w-10 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
               <ShoppingBag className="h-5 w-5" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-black text-slate-900">{stats.todayCount}건</div>
+            <div className="text-3xl font-black text-slate-900">
+              {tr(
+                `${stats.todayCount}건`,
+                `${stats.todayCount} ${stats.todayCount === 1 ? "order" : "orders"}`
+              )}
+            </div>
             <p className="text-xs text-slate-400 mt-2 font-medium flex items-center gap-1">
-              금일 누적 실시간 데이터
+              {tr("금일 누적 실시간 데이터", "Today's running total")}
             </p>
           </CardContent>
         </Card>
 
         <Card className="rounded-3xl border-none shadow-xl shadow-slate-200/50 bg-white overflow-hidden group hover:scale-[1.02] transition-all duration-300">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-bold text-slate-500 uppercase tracking-wider">제작 중</CardTitle>
+            <CardTitle className="text-sm font-bold text-slate-500 uppercase tracking-wider">{tr("제작 중", "In progress")}</CardTitle>
             <div className="h-10 w-10 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600 group-hover:bg-amber-600 group-hover:text-white transition-colors">
               <RefreshCw className="h-5 w-5" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-black text-slate-900">{stats.processingCount}건</div>
-            <p className="text-xs text-slate-400 mt-2 font-medium">관리자 확인 및 작업 대기</p>
+            <div className="text-3xl font-black text-slate-900">
+              {tr(
+                `${stats.processingCount}건`,
+                `${stats.processingCount} ${stats.processingCount === 1 ? "order" : "orders"}`
+              )}
+            </div>
+            <p className="text-xs text-slate-400 mt-2 font-medium">
+              {tr("관리자 확인 및 작업 대기", "Awaiting prep / confirmation")}
+            </p>
           </CardContent>
         </Card>
 
         <Card className="rounded-3xl border-none shadow-xl shadow-slate-200/50 bg-white overflow-hidden group hover:scale-[1.02] transition-all duration-300">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-bold text-slate-500 uppercase tracking-wider">배송/완료</CardTitle>
+            <CardTitle className="text-sm font-bold text-slate-500 uppercase tracking-wider">
+              {tr("배송/완료", "Done / delivered")}
+            </CardTitle>
             <div className="h-10 w-10 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
               <CheckCircle2 className="h-5 w-5" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-black text-slate-900">{stats.completedCount}건</div>
+            <div className="text-3xl font-black text-slate-900">
+              {tr(
+                `${stats.completedCount}건`,
+                `${stats.completedCount} ${stats.completedCount === 1 ? "order" : "orders"}`
+              )}
+            </div>
             <p className="text-xs text-slate-400 mt-2 font-medium font-bold text-emerald-500 flex items-center gap-1">
-              <TrendingUp className="h-3 w-3" /> 전체 주문의 {stats.totalCount > 0 ? Math.round((stats.completedCount / stats.totalCount) * 100) : 0}% 처리됨
+              <TrendingUp className="h-3 w-3" />{" "}
+              {tr(
+                `전체 주문의 ${stats.totalCount > 0 ? Math.round((stats.completedCount / stats.totalCount) * 100) : 0}% 처리됨`,
+                `${stats.totalCount > 0 ? Math.round((stats.completedCount / stats.totalCount) * 100) : 0}% of all orders completed`
+              )}
             </p>
           </CardContent>
         </Card>
 
         <Card className="rounded-3xl border-none shadow-xl shadow-slate-200/50 bg-slate-900 overflow-hidden group hover:scale-[1.02] transition-all duration-300">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-bold text-slate-400 uppercase tracking-wider">조회 매출</CardTitle>
+            <CardTitle className="text-sm font-bold text-slate-400 uppercase tracking-wider">
+              {tr("조회 매출", "Period sales")}
+            </CardTitle>
             <div className="h-10 w-10 bg-slate-800 rounded-2xl flex items-center justify-center text-emerald-400 group-hover:bg-emerald-400 group-hover:text-slate-900 transition-colors">
               <DollarSign className="h-5 w-5" />
             </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-black text-white">₩{(stats.totalAmount || 0).toLocaleString()}</div>
-            <p className="text-xs text-slate-500 mt-2 font-medium">선택된 기간의 총 매출액</p>
+            <p className="text-xs text-slate-500 mt-2 font-medium">
+              {tr("선택된 기간의 총 매출액", "Total sales for the selected period")}
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -591,7 +623,7 @@ export default function OrdersPage() {
               <Search className="h-5 w-5 text-slate-400 mr-3 shrink-0" />
               <input 
                 type="text" 
-                placeholder="주문번호, 주문자, 연락처, 배송지..."
+                placeholder={tr("주문번호, 주문자, 연락처, 배송지...", "Order no, customer, contact, address...")}
                 className="bg-transparent border-none outline-none w-full text-slate-900 placeholder:text-slate-400 text-base sm:text-sm min-h-11 font-medium"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -657,21 +689,21 @@ export default function OrdersPage() {
               {selectedOrderIds.length > 0 && (
                 <DropdownMenu>
                   <DropdownMenuTrigger className="inline-flex items-center justify-center rounded-2xl h-11 lg:h-12 bg-amber-500 hover:bg-amber-600 text-white font-bold shadow-lg shadow-amber-100 gap-2 animate-in slide-in-from-top-2 px-6 transition-all flex-shrink-0">
-                    <SettingsIcon className="h-4 w-4" /> 일괄 ({selectedOrderIds.length})
+                    <SettingsIcon className="h-4 w-4" /> {tr("일괄", "Bulk")} ({selectedOrderIds.length})
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="rounded-2xl border-none shadow-2xl min-w-[200px] p-2">
                     <DropdownMenuGroup>
-                      <DropdownMenuLabel className="font-bold text-xs text-slate-400 uppercase py-3 px-4">선택 작업</DropdownMenuLabel>
+                      <DropdownMenuLabel className="font-bold text-xs text-slate-400 uppercase py-3 px-4">{tr("선택 작업", "Selected Actions")}</DropdownMenuLabel>
                       <DropdownMenuItem onClick={() => handleBulkStatusChange('completed')} className="rounded-xl py-3 font-bold gap-2 focus:bg-emerald-50 focus:text-emerald-700">
-                        <CheckCircle2 className="h-4 w-4" /> 완료 처리
+                        <CheckCircle2 className="h-4 w-4" /> {tr("완료 처리", "Mark Completed")}
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleBulkStatusChange('processing')} className="rounded-xl py-3 font-bold gap-2 focus:bg-amber-50 focus:text-amber-700">
-                        <RefreshCw className="h-4 w-4" /> 준비중 변경
+                        <RefreshCw className="h-4 w-4" /> {tr("준비중 변경", "Mark Processing")}
                       </DropdownMenuItem>
                     </DropdownMenuGroup>
                     <DropdownMenuSeparator className="bg-slate-50" />
                     <DropdownMenuItem onClick={() => setIsBulkDeleteDialogOpen(true)} className="rounded-xl py-3 font-bold gap-2 text-rose-600 focus:bg-rose-50 focus:text-rose-700">
-                      <Trash2 className="h-4 w-4" /> 일괄 삭제
+                      <Trash2 className="h-4 w-4" /> {tr("일괄 삭제", "Bulk Delete")}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -703,11 +735,11 @@ export default function OrdersPage() {
                           />
                         </div>
                       </TableHead>
-                      <TableHead className="text-slate-500 font-bold uppercase tracking-wider text-[11px] py-5">주문 정보</TableHead>
-                      <TableHead className="text-slate-500 font-bold uppercase tracking-wider text-[11px] py-5">주문자/수령인</TableHead>
-                      <TableHead className="text-slate-500 font-bold uppercase tracking-wider text-[11px] py-5">수령/배송일</TableHead>
-                      <TableHead className="text-slate-500 font-bold uppercase tracking-wider text-[11px] py-5">금액/결제</TableHead>
-                      <TableHead className="text-slate-500 font-bold uppercase tracking-wider text-[11px] py-5">상태</TableHead>
+                      <TableHead className="text-slate-500 font-bold uppercase tracking-wider text-[11px] py-5">{tr("주문 정보", "Order Info")}</TableHead>
+                      <TableHead className="text-slate-500 font-bold uppercase tracking-wider text-[11px] py-5">{tr("주문자/수령인", "Sender / Recipient")}</TableHead>
+                      <TableHead className="text-slate-500 font-bold uppercase tracking-wider text-[11px] py-5">{tr("수령/배송일", "Pickup / Delivery Date")}</TableHead>
+                      <TableHead className="text-slate-500 font-bold uppercase tracking-wider text-[11px] py-5">{tr("금액/결제", "Amount / Payment")}</TableHead>
+                      <TableHead className="text-slate-500 font-bold uppercase tracking-wider text-[11px] py-5">{tr("상태", "Status")}</TableHead>
                       <TableHead className="w-16 pr-8 py-5 text-right"></TableHead>
                     </TableRow>
                   </TableHeader>
@@ -717,7 +749,7 @@ export default function OrdersPage() {
                         <TableCell colSpan={7} className="h-96 text-center">
                            <div className="flex flex-col items-center justify-center space-y-4 opacity-30">
                              <ShoppingCart className="h-20 w-20 text-slate-300" />
-                             <p className="text-xl font-medium text-slate-500">검색 결과가 없습니다.</p>
+                             <p className="text-xl font-medium text-slate-500">{tr("검색 결과가 없습니다.", "No search results.")}</p>
                            </div>
                         </TableCell>
                       </TableRow>
@@ -749,9 +781,9 @@ export default function OrdersPage() {
                                     <Monitor className="w-2.5 h-2.5" /> POS
                                   </Badge>
                                 )}
-                                <span className="text-[10px] font-bold text-slate-400">주문일: {format(parseISO(order.created_at || new Date().toISOString()), 'yyyy-MM-dd')}</span>
+                                <span className="text-[10px] font-bold text-slate-400">{tr("주문일", "Ordered")}: {format(parseISO(order.created_at || new Date().toISOString()), 'yyyy-MM-dd')}</span>
                               </div>
-                              <div className="font-bold text-slate-900 truncate max-w-[200px]">{order.items[0]?.name || "기타 상품"} {order.items.length > 1 ? `외 ${order.items.length - 1}건` : ""}</div>
+                              <div className="font-bold text-slate-900 truncate max-w-[200px]">{order.items[0]?.name || tr("기타 상품", "Other item")} {order.items.length > 1 ? (isKo ? `외 ${order.items.length - 1}건` : `+${order.items.length - 1}`) : ""}</div>
                             </div>
                           </TableCell>
                           <TableCell className="py-6 cursor-pointer" onClick={() => handleOrderClick(order)}>
@@ -760,7 +792,7 @@ export default function OrdersPage() {
                                  <span className="text-sm font-bold text-slate-900">{order.orderer.name}</span>
                                  <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-bold">Sender</span>
                                </div>
-                               <div className="text-xs text-slate-400 font-medium">{order.delivery_info?.recipientName || order.pickup_info?.pickerName || "-"} (수령)</div>
+                               <div className="text-xs text-slate-400 font-medium">{order.delivery_info?.recipientName || order.pickup_info?.pickerName || "-"} {tr("(수령)", "(Recipient)")}</div>
                              </div>
                           </TableCell>
                           <TableCell className="py-6 cursor-pointer" onClick={() => handleOrderClick(order)}>
@@ -800,48 +832,48 @@ export default function OrdersPage() {
                               </DropdownMenuTrigger>
                                <DropdownMenuContent align="end" className="rounded-3xl border-none shadow-2xl min-w-[200px] p-2">
                                 <DropdownMenuGroup>
-                                  <DropdownMenuLabel className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">주문 관리</DropdownMenuLabel>
+                                  <DropdownMenuLabel className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{tr("주문 관리", "Order Actions")}</DropdownMenuLabel>
                                   <DropdownMenuItem className="rounded-xl gap-2 font-bold py-3 px-4 focus:bg-slate-50" onClick={(e) => handleOrderClick(order)}>
-                                    <ClipboardList className="h-4 w-4" /> 상세 보기
+                                    <ClipboardList className="h-4 w-4" /> {tr("상세 보기", "View details")}
                                   </DropdownMenuItem>
                                   <DropdownMenuItem className="rounded-xl gap-2 font-bold py-3 px-4 focus:bg-slate-50" onClick={(e) => handleEditClick(order, e)}>
-                                    <PlusCircle className="h-4 w-4" /> 주문 수정
+                                    <PlusCircle className="h-4 w-4" /> {tr("주문 수정", "Edit order")}
                                   </DropdownMenuItem>
                                 </DropdownMenuGroup>
                                 
                                 <DropdownMenuSeparator className="mx-1 bg-gray-50" />
                                 <DropdownMenuGroup>
-                                  <DropdownMenuLabel className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">인쇄 및 출력</DropdownMenuLabel>
+                                  <DropdownMenuLabel className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{tr("인쇄 및 출력", "Print")}</DropdownMenuLabel>
                                   <DropdownMenuItem className="rounded-xl gap-2 font-bold py-3 px-4 focus:bg-slate-50" onClick={(e) => handleOrderPrint(order.id, e)}>
-                                    <FileText className="h-4 w-4" /> 주문서 인쇄
+                                    <FileText className="h-4 w-4" /> {tr("주문서 인쇄", "Print order form")}
                                   </DropdownMenuItem>
                                    <DropdownMenuItem className="rounded-xl gap-2 font-bold py-3 px-4 focus:bg-slate-50" onClick={(e) => handleCardPrint(order, e)}>
-                                     <Printer className="h-4 w-4" /> 카드 메시지 출력
+                                     <Printer className="h-4 w-4" /> {tr("카드 메시지 출력", "Print card message")}
                                    </DropdownMenuItem>
                                    {!isAndroidApp && (
                                    <DropdownMenuItem className="rounded-xl gap-2 font-bold py-3 px-4 focus:bg-slate-50" onClick={(e) => handleRibbonPrint(order, e)}>
-                                     <Printer className="h-4 w-4 text-indigo-500" /> 리본 출력 (프린터 전송)
+                                     <Printer className="h-4 w-4 text-indigo-500" /> {tr("리본 출력 (프린터 전송)", "Print ribbon (send to printer)")}
                                    </DropdownMenuItem>
                                    )}
                                 </DropdownMenuGroup>
 
                                 <DropdownMenuSeparator className="mx-1 bg-gray-50" />
                                 <DropdownMenuGroup>
-                                  <DropdownMenuLabel className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">상태 관리</DropdownMenuLabel>
+                                  <DropdownMenuLabel className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{tr("상태 관리", "Status")}</DropdownMenuLabel>
                                   <DropdownMenuSub>
                                     <DropdownMenuSubTrigger className="rounded-xl gap-2 font-bold py-3 px-4 focus:bg-slate-50">
-                                      <RefreshCw className="h-4 w-4" /> 상태 변경
+                                      <RefreshCw className="h-4 w-4" /> {tr("상태 변경", "Change status")}
                                     </DropdownMenuSubTrigger>
                                     <DropdownMenuPortal>
                                       <DropdownMenuSubContent className="rounded-2xl border-none shadow-xl min-w-[150px] p-1.5">
                                         <DropdownMenuItem onClick={() => handleStatusUpdate(order.id, 'processing')} className="rounded-xl py-2.5 px-3 font-bold gap-2">
-                                           준비중 {order.status === 'processing' && <Check className="h-3 w-3 ml-auto text-amber-500" />}
+                                           {tr("준비중", "Processing")} {order.status === 'processing' && <Check className="h-3 w-3 ml-auto text-amber-500" />}
                                         </DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => handleStatusUpdate(order.id, 'completed')} className="rounded-xl py-2.5 px-3 font-bold gap-2">
-                                           완료 {order.status === 'completed' && <Check className="h-3 w-3 ml-auto text-emerald-500" />}
+                                           {tr("완료", "Completed")} {order.status === 'completed' && <Check className="h-3 w-3 ml-auto text-emerald-500" />}
                                         </DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => handleStatusUpdate(order.id, 'canceled')} className="rounded-xl py-2.5 px-3 font-bold gap-2 text-rose-600">
-                                           취소 {order.status === 'canceled' && <Check className="h-3 w-3 ml-auto text-rose-500" />}
+                                           {tr("취소", "Canceled")} {order.status === 'canceled' && <Check className="h-3 w-3 ml-auto text-rose-500" />}
                                         </DropdownMenuItem>
                                       </DropdownMenuSubContent>
                                     </DropdownMenuPortal>
@@ -849,15 +881,15 @@ export default function OrdersPage() {
  
                                    <DropdownMenuSub>
                                      <DropdownMenuSubTrigger className="rounded-xl gap-2 font-bold py-3 px-4 focus:bg-slate-50">
-                                       <PaymentIcon className="h-4 w-4" /> 결제 상태
+                                       <PaymentIcon className="h-4 w-4" /> {tr("결제 상태", "Payment")}
                                      </DropdownMenuSubTrigger>
                                      <DropdownMenuPortal>
                                        <DropdownMenuSubContent className="rounded-2xl border-none shadow-xl min-w-[150px] p-1.5">
                                          <DropdownMenuItem onClick={() => handlePaymentUpdate(order.id, 'paid')} className="rounded-xl py-2.5 px-3 font-bold gap-2">
-                                            완결 {order.payment?.status === 'paid' && <Check className="h-3 w-3 ml-auto text-emerald-500" />}
+                                           {tr("완결", "Paid")} {order.payment?.status === 'paid' && <Check className="h-3 w-3 ml-auto text-emerald-500" />}
                                          </DropdownMenuItem>
                                          <DropdownMenuItem onClick={() => handlePaymentUpdate(order.id, 'pending')} className="rounded-xl py-2.5 px-3 font-bold gap-2">
-                                            미결 {order.payment?.status !== 'paid' && <Check className="h-3 w-3 ml-auto text-amber-500" />}
+                                           {tr("미결", "Pending")} {order.payment?.status !== 'paid' && <Check className="h-3 w-3 ml-auto text-amber-500" />}
                                          </DropdownMenuItem>
                                        </DropdownMenuSubContent>
                                      </DropdownMenuPortal>
@@ -867,13 +899,13 @@ export default function OrdersPage() {
                                  <DropdownMenuSeparator className="mx-1 bg-gray-50" />
                                  <DropdownMenuGroup>
                                    <DropdownMenuItem className="rounded-xl gap-2 font-bold py-3 px-4 focus:bg-slate-50" onClick={(e) => handleOutsourceClick(order, e)}>
-                                     <Share2 className="h-4 w-4" /> 외부 발주
+                                     <Share2 className="h-4 w-4" /> {tr("외부 발주", "Outsource")}
                                    </DropdownMenuItem>
                                  </DropdownMenuGroup>
                                  
                                  <DropdownMenuSeparator className="mx-1 bg-gray-50" />
                                  <DropdownMenuItem className="text-rose-600 rounded-xl gap-2 font-bold py-3 px-4 hover:bg-rose-50 focus:bg-rose-50 focus:text-rose-700" onClick={() => handleDeleteClick(order.id)}>
-                                   <Trash2 className="h-4 w-4" /> 주문 내역 삭제
+                                  <Trash2 className="h-4 w-4" /> {tr("주문 내역 삭제", "Delete order")}
                                  </DropdownMenuItem>
                                </DropdownMenuContent>
                             </DropdownMenu>
@@ -889,21 +921,21 @@ export default function OrdersPage() {
               <div className={cn("lg:hidden space-y-4 p-2 sm:p-4", isAndroidApp ? "pb-32" : "pb-24")}>
                 {filteredOrders.length > 0 && (
                   <div className="flex justify-between items-center px-2 mb-2">
-                    <span className="text-xs font-bold text-slate-400">Total {filteredOrders.length}건</span>
+                    <span className="text-xs font-bold text-slate-400">{isKo ? `Total ${filteredOrders.length}건` : `Total ${filteredOrders.length}`}</span>
                     <Button 
                       variant="ghost" 
                       size="sm" 
                       className="text-xs font-bold text-indigo-600 hover:bg-indigo-50 rounded-xl h-8"
                       onClick={handleToggleSelectAll}
                     >
-                      {selectedOrderIds.length === filteredOrders.length ? "선택 해제" : "전체 선택"}
+                      {selectedOrderIds.length === filteredOrders.length ? tr("선택 해제", "Clear selection") : tr("전체 선택", "Select all")}
                     </Button>
                   </div>
                 )}
                 {filteredOrders.length === 0 ? (
                   <div className="flex flex-col items-center justify-center space-y-4 opacity-30 py-20">
                     <ShoppingCart className="h-16 w-16 text-slate-300" />
-                    <p className="font-medium text-slate-500">검색 결과가 없습니다.</p>
+                    <p className="font-medium text-slate-500">{tr("검색 결과가 없습니다.", "No search results.")}</p>
                   </div>
                 ) : (
                   filteredOrders.map((order) => (
@@ -930,9 +962,9 @@ export default function OrdersPage() {
                             </div>
                             <div className="flex flex-col">
                               <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">{order.order_number}</span>
-                              <span className="text-[9px] font-bold text-slate-400">주문일: {format(parseISO(order.created_at || new Date().toISOString()), 'MM-dd')}</span>
+                              <span className="text-[9px] font-bold text-slate-400">{tr("주문일", "Ordered")}: {format(parseISO(order.created_at || new Date().toISOString()), 'MM-dd')}</span>
                             </div>
-                            <div className="font-bold text-slate-900">{order.items[0]?.name || "기타 상품"} {order.items.length > 1 ? `외 ${order.items.length - 1}건` : ""}</div>
+                            <div className="font-bold text-slate-900">{order.items[0]?.name || tr("기타 상품", "Other item")} {order.items.length > 1 ? (isKo ? `외 ${order.items.length - 1}건` : `+${order.items.length - 1}`) : ""}</div>
                           </div>
                           <Badge className={cn(
                             "rounded-full px-3 py-0.5 font-bold text-[10px] border-none shadow-none",
@@ -946,12 +978,12 @@ export default function OrdersPage() {
                         
                         <div className="grid grid-cols-2 gap-4 mb-4">
                           <div className="space-y-1">
-                            <div className="text-[10px] font-bold text-slate-400 uppercase">주문자/수령인</div>
+                            <div className="text-[10px] font-bold text-slate-400 uppercase">{tr("주문자/수령인", "Sender/Recipient")}</div>
                             <div className="text-xs font-bold text-slate-900">{order.orderer.name}</div>
-                            <div className="text-[10px] text-slate-500">{order.delivery_info?.recipientName || order.pickup_info?.pickerName || "-"}님</div>
+                            <div className="text-[10px] text-slate-500">{order.delivery_info?.recipientName || order.pickup_info?.pickerName || "-"}{isKo ? "님" : ""}</div>
                           </div>
                           <div className="space-y-1">
-                            <div className="text-[10px] font-bold text-slate-400 uppercase">금액</div>
+                            <div className="text-[10px] font-bold text-slate-400 uppercase">{tr("금액", "Amount")}</div>
                             <div className="text-xs font-black text-slate-900">₩{(order.summary?.total || 0).toLocaleString()}</div>
                             <div className="text-[10px] text-slate-500 uppercase">{order.payment?.method || "-"}</div>
                           </div>
@@ -960,7 +992,7 @@ export default function OrdersPage() {
                         <div className="flex justify-between items-center pt-3 border-t border-slate-50">
                           <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
                             <CalendarIcon className="h-3 w-3" />
-                            수령: {format(parseISO(order.order_date), 'MM/dd HH:mm')}
+                            {tr("수령", "Pickup")}: {format(parseISO(order.order_date), 'MM/dd HH:mm')}
                             <span className="mx-1">•</span>
                             <span className={cn(
                               order.receipt_type === 'delivery_reservation' ? "text-blue-500" : "text-amber-500"
@@ -976,51 +1008,51 @@ export default function OrdersPage() {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="rounded-2xl border-none shadow-2xl min-w-[200px] p-2">
                                 <DropdownMenuItem className="rounded-xl gap-2 font-bold py-2.5 px-3 focus:bg-slate-50" onClick={(e) => { e.stopPropagation(); handleOrderClick(order); }}>
-                                  <ClipboardList className="h-4 w-4" /> 상세 보기
+                                  <ClipboardList className="h-4 w-4" /> {tr("상세 보기", "View details")}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem className="rounded-xl gap-2 font-bold py-2.5 px-3 focus:bg-slate-50" onClick={(e) => { e.stopPropagation(); handleEditClick(order, e as any); }}>
-                                  <PlusCircle className="h-4 w-4" /> 주문 수정
+                                  <PlusCircle className="h-4 w-4" /> {tr("주문 수정", "Edit order")}
                                 </DropdownMenuItem>
                                 
                                 <DropdownMenuSeparator className="mx-1 bg-gray-50" />
                                 <DropdownMenuItem className="rounded-xl gap-2 font-bold py-2.5 px-3 focus:bg-slate-50" onClick={(e) => { e.stopPropagation(); handleOrderPrint(order.id, e as any); }}>
-                                  <FileText className="h-4 w-4" /> 주문서 인쇄
+                                  <FileText className="h-4 w-4" /> {tr("주문서 인쇄", "Print order form")}
                                 </DropdownMenuItem>
                                  <DropdownMenuItem className="rounded-xl gap-2 font-bold py-2.5 px-3 focus:bg-slate-50" onClick={(e) => { e.stopPropagation(); handleCardPrint(order, e as any); }}>
-                                   <Printer className="h-4 w-4" /> 카드 메시지 출력
+                                   <Printer className="h-4 w-4" /> {tr("카드 메시지 출력", "Print card message")}
                                  </DropdownMenuItem>
                                  {!isAndroidApp && (
                                  <DropdownMenuItem className="rounded-xl gap-2 font-bold py-2.5 px-3 focus:bg-slate-50" onClick={(e) => { e.stopPropagation(); handleRibbonPrint(order, e as any); }}>
-                                   <Printer className="h-4 w-4 text-indigo-500" /> 리본 출력 (프린터 전송)
+                                   <Printer className="h-4 w-4 text-indigo-500" /> {tr("리본 출력 (프린터 전송)", "Print ribbon (send to printer)")}
                                  </DropdownMenuItem>
                                  )}
  
                                 <DropdownMenuSeparator className="mx-1 bg-gray-50" />
                                 <DropdownMenuSub>
                                   <DropdownMenuSubTrigger className="rounded-xl gap-2 font-bold py-2.5 px-3 focus:bg-slate-50">
-                                    <RefreshCw className="h-4 w-4" /> 상태/결제 변경
+                                    <RefreshCw className="h-4 w-4" /> {tr("상태/결제 변경", "Status/Payment")}
                                   </DropdownMenuSubTrigger>
                                   <DropdownMenuPortal>
                                     <DropdownMenuSubContent className="rounded-2xl border-none shadow-xl min-w-[170px] p-1.5">
-                                      <DropdownMenuLabel className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">주문 상태</DropdownMenuLabel>
-                                      <DropdownMenuItem onClick={() => handleStatusUpdate(order.id, 'processing')} className="rounded-xl py-2 font-bold">준비중</DropdownMenuItem>
-                                      <DropdownMenuItem onClick={() => handleStatusUpdate(order.id, 'completed')} className="rounded-xl py-2 font-bold">완료 처리</DropdownMenuItem>
+                                      <DropdownMenuLabel className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{tr("주문 상태", "Order status")}</DropdownMenuLabel>
+                                      <DropdownMenuItem onClick={() => handleStatusUpdate(order.id, 'processing')} className="rounded-xl py-2 font-bold">{tr("준비중", "Processing")}</DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handleStatusUpdate(order.id, 'completed')} className="rounded-xl py-2 font-bold">{tr("완료 처리", "Mark completed")}</DropdownMenuItem>
                                       <DropdownMenuSeparator className="my-1" />
-                                      <DropdownMenuLabel className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">결제 상태</DropdownMenuLabel>
-                                      <DropdownMenuItem onClick={() => handlePaymentUpdate(order.id, 'paid')} className="rounded-xl py-2 font-bold">결제 완료</DropdownMenuItem>
-                                      <DropdownMenuItem onClick={() => handlePaymentUpdate(order.id, 'pending')} className="rounded-xl py-2 font-bold">미결 처리</DropdownMenuItem>
+                                      <DropdownMenuLabel className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{tr("결제 상태", "Payment status")}</DropdownMenuLabel>
+                                      <DropdownMenuItem onClick={() => handlePaymentUpdate(order.id, 'paid')} className="rounded-xl py-2 font-bold">{tr("결제 완료", "Mark paid")}</DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handlePaymentUpdate(order.id, 'pending')} className="rounded-xl py-2 font-bold">{tr("미결 처리", "Mark pending")}</DropdownMenuItem>
                                     </DropdownMenuSubContent>
                                   </DropdownMenuPortal>
                                 </DropdownMenuSub>
  
                                 <DropdownMenuSeparator className="mx-1 bg-gray-50" />
                                 <DropdownMenuItem className="rounded-xl gap-2 font-bold py-2.5 px-3 focus:bg-slate-50" onClick={(e) => { e.stopPropagation(); handleOutsourceClick(order, e as any); }}>
-                                  <Share2 className="h-4 w-4" /> 외부 발주
+                                  <Share2 className="h-4 w-4" /> {tr("외부 발주", "Outsource")}
                                 </DropdownMenuItem>
                                 
                                 <DropdownMenuSeparator className="mx-1 bg-gray-50" />
                                 <DropdownMenuItem className="text-rose-600 rounded-xl gap-2 font-bold py-2.5 px-3 hover:bg-rose-50 focus:bg-rose-50 focus:text-rose-700" onClick={(e) => { e.stopPropagation(); handleDeleteClick(order.id); }}>
-                                  <Trash2 className="h-4 w-4" /> 주문 삭제
+                                  <Trash2 className="h-4 w-4" /> {tr("주문 삭제", "Delete order")}
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -1041,7 +1073,7 @@ export default function OrdersPage() {
                   <div className="bg-slate-900 text-white rounded-3xl shadow-2xl p-4 flex items-center justify-between border border-slate-800">
                     <div className="flex flex-col px-2">
                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Selected</span>
-                       <span className="text-sm font-bold">{selectedOrderIds.length}건 선 택 중</span>
+                       <span className="text-sm font-bold">{isKo ? `${selectedOrderIds.length}건 선택 중` : `${selectedOrderIds.length} selected`}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Button 
@@ -1050,22 +1082,22 @@ export default function OrdersPage() {
                         className="h-10 rounded-xl hover:bg-slate-800 text-slate-400"
                         onClick={() => setSelectedOrderIds([])}
                       >
-                        취소
+                        {tr("취소", "Cancel")}
                       </Button>
                       <DropdownMenu>
                         <DropdownMenuTrigger className="h-10 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl px-4 font-bold text-xs flex items-center gap-2 shadow-lg shadow-indigo-500/20">
-                          상태 변경
+                          {tr("상태 변경", "Change status")}
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="rounded-2xl border-none shadow-2xl min-w-[160px] p-1.5 mb-2">
                           <DropdownMenuItem className="rounded-xl gap-2 font-bold py-2.5 px-3" onClick={() => handleBulkStatusChange('completed')}>
-                            <CheckCircle2 className="h-4 w-4 text-emerald-500" /> 완료로 변경
+                            <CheckCircle2 className="h-4 w-4 text-emerald-500" /> {tr("완료로 변경", "Set completed")}
                           </DropdownMenuItem>
                           <DropdownMenuItem className="rounded-xl gap-2 font-bold py-2.5 px-3" onClick={() => handleBulkStatusChange('processing')}>
-                            <Loader2 className="h-4 w-4 text-amber-500" /> 처리중으로 변경
+                            <Loader2 className="h-4 w-4 text-amber-500" /> {tr("처리중으로 변경", "Set processing")}
                           </DropdownMenuItem>
                           <DropdownMenuSeparator className="mx-1 bg-gray-50" />
                           <DropdownMenuItem className="text-rose-600 rounded-xl gap-2 font-bold py-2.5 px-3" onClick={() => setIsBulkDeleteDialogOpen(true)}>
-                            <Trash2 className="h-4 w-4" /> 일괄 삭제
+                            <Trash2 className="h-4 w-4" /> {tr("일괄 삭제", "Bulk delete")}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -1128,14 +1160,23 @@ export default function OrdersPage() {
             <div className="w-12 h-12 bg-rose-100 rounded-full flex items-center justify-center mb-4">
                <AlertCircle className="w-6 h-6 text-rose-600" />
             </div>
-            <AlertDialogTitle className="text-xl font-bold text-slate-900">주문을 영구 삭제하시겠습니까?</AlertDialogTitle>
+            <AlertDialogTitle className="text-xl font-bold text-slate-900">
+              {tr("주문을 영구 삭제하시겠습니까?", "Permanently delete this order?")}
+            </AlertDialogTitle>
             <AlertDialogDescription className="text-gray-500 font-medium pt-2">
-              이 작업은 되돌릴 수 없으며, 모든 매출 통계에서 해당 주문 데이터가 삭제됩니다.
+              {tr(
+                "이 작업은 되돌릴 수 없으며, 모든 매출 통계에서 해당 주문 데이터가 삭제됩니다.",
+                "This cannot be undone. The order will be removed from sales statistics."
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="pt-4">
-            <AlertDialogCancel className="rounded-xl font-bold h-11">아니오, 취소함</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-rose-600 hover:bg-rose-700 rounded-xl font-bold h-11 border-none text-white">네, 삭제하겠습니다</AlertDialogAction>
+            <AlertDialogCancel className="rounded-xl font-bold h-11">
+              {tr("아니오, 취소함", "Cancel")}
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-rose-600 hover:bg-rose-700 rounded-xl font-bold h-11 border-none text-white">
+              {tr("네, 삭제하겠습니다", "Delete")}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -1146,14 +1187,24 @@ export default function OrdersPage() {
             <div className="w-12 h-12 bg-rose-100 rounded-full flex items-center justify-center mb-4">
                <AlertCircle className="w-6 h-6 text-rose-600" />
             </div>
-            <AlertDialogTitle className="text-xl font-bold text-slate-900">선택된 {selectedOrderIds.length}건을 삭제하시겠습니까?</AlertDialogTitle>
+            <AlertDialogTitle className="text-xl font-bold text-slate-900">
+              {tr(
+                `선택된 ${selectedOrderIds.length}건을 삭제하시겠습니까?`,
+                `Delete ${selectedOrderIds.length} selected ${selectedOrderIds.length === 1 ? "order" : "orders"}?`
+              )}
+            </AlertDialogTitle>
             <AlertDialogDescription className="text-gray-500 font-medium pt-2">
-              이 작업은 되돌릴 수 없으며, 선택된 모든 주문이 영구적으로 삭제됩니다.
+              {tr(
+                "이 작업은 되돌릴 수 없으며, 선택된 모든 주문이 영구적으로 삭제됩니다.",
+                "This cannot be undone. All selected orders will be permanently removed."
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="pt-4">
-            <AlertDialogCancel className="rounded-xl font-bold h-11">취소</AlertDialogCancel>
-            <AlertDialogAction onClick={handleBulkDelete} className="bg-rose-600 hover:bg-rose-700 rounded-xl font-bold h-11 border-none text-white">네, 모두 삭제합니다</AlertDialogAction>
+            <AlertDialogCancel className="rounded-xl font-bold h-11">{tr("취소", "Cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBulkDelete} className="bg-rose-600 hover:bg-rose-700 rounded-xl font-bold h-11 border-none text-white">
+              {tr("네, 모두 삭제합니다", "Delete all")}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -1165,10 +1216,16 @@ export default function OrdersPage() {
             <div className="w-14 h-14 bg-indigo-50 rounded-3xl flex items-center justify-center mb-6">
                <Printer className="w-7 h-7 text-indigo-600" />
             </div>
-            <AlertDialogTitle className="text-2xl font-black text-slate-900 tracking-tight">출력 도구 선택</AlertDialogTitle>
+            <AlertDialogTitle className="text-2xl font-black text-slate-900 tracking-tight">
+              {tr("출력 도구 선택", "Choose print tool")}
+            </AlertDialogTitle>
             <AlertDialogDescription className="text-slate-500 font-bold pt-2 leading-relaxed">
-              메시지를 인쇄할 편집 환경을 선택하세요.<br/>
-              전용 시스템으로 자동 연결됩니다.
+              {tr(
+                "메시지를 인쇄할 편집 환경을 선택하세요.",
+                "Pick where you want to edit the message before printing."
+              )}
+              <br />
+              {tr("전용 시스템으로 자동 연결됩니다.", "You will be redirected to the right editor.")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="grid grid-cols-2 gap-5 py-8">
@@ -1180,7 +1237,7 @@ export default function OrdersPage() {
                 <FileText size={28} />
               </div>
               <div className="flex flex-col items-center">
-                <span className="font-black text-sm">기존형 카드</span>
+                <span className="font-black text-sm">{tr("기존형 카드", "Classic card")}</span>
                 <span className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-tighter">Design Studio</span>
               </div>
             </button>
@@ -1192,13 +1249,15 @@ export default function OrdersPage() {
                 <Target size={28} />
               </div>
               <div className="flex flex-col items-center">
-                <span className="font-black text-sm">폼텍 라벨</span>
+                <span className="font-black text-sm">{tr("폼텍 라벨", "Formtec label")}</span>
                 <span className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-tighter">Formtec Lable</span>
               </div>
             </button>
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel className="w-full rounded-2xl font-bold h-12 border-none bg-slate-100 hover:bg-slate-200 text-slate-500 transition-colors">아니오, 나중에 하겠습니다</AlertDialogCancel>
+            <AlertDialogCancel className="w-full rounded-2xl font-bold h-12 border-none bg-slate-100 hover:bg-slate-200 text-slate-500 transition-colors">
+              {tr("아니오, 나중에 하겠습니다", "Not now")}
+            </AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

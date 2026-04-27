@@ -3,6 +3,8 @@ import React, { useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useIsCapacitorAndroid } from '@/hooks/use-capacitor-android';
+import { usePreferredLocale } from '@/hooks/use-preferred-locale';
+import { resolveLocale } from '@/i18n/config';
 import { 
   Plus, 
   Printer, 
@@ -18,21 +20,23 @@ import { cn } from '@/lib/utils';
 export function GlobalQuickNav() {
   const pathname = usePathname();
   const isAndroidApp = useIsCapacitorAndroid();
+  const preferredLocale = usePreferredLocale();
+  const isKo = resolveLocale(preferredLocale).startsWith('ko');
 
   const navItems = useMemo(() => {
     const all = [
-      { icon: LayoutDashboard, label: '홈', href: '/dashboard' },
-      { icon: Plus, label: '새주문', href: '/dashboard/orders/new' },
-      { icon: ClipboardList, label: '주문현황', href: '/dashboard/orders' },
-      { icon: Printer, label: '리본', href: '/dashboard/printer' },
-      { icon: Truck, label: '배송/픽업', href: '/dashboard/delivery' },
-      { icon: ScrollText, label: '정산', href: '/dashboard/reports' },
-      { icon: CreditCard, label: '지출', href: '/dashboard/expenses' },
-      { icon: Boxes, label: '재고', href: '/dashboard/inventory' },
+      { icon: LayoutDashboard, label: isKo ? '홈' : 'Home', href: '/dashboard' },
+      { icon: Plus, label: isKo ? '새주문' : 'New Order', href: '/dashboard/orders/new' },
+      { icon: ClipboardList, label: isKo ? '주문현황' : 'Orders', href: '/dashboard/orders' },
+      { icon: Printer, label: isKo ? '리본' : 'Ribbon', href: '/dashboard/printer' },
+      { icon: Truck, label: isKo ? '배송/픽업' : 'Delivery / Pickup', href: '/dashboard/delivery' },
+      { icon: ScrollText, label: isKo ? '정산' : 'Reports', href: '/dashboard/reports' },
+      { icon: CreditCard, label: isKo ? '지출' : 'Expenses', href: '/dashboard/expenses' },
+      { icon: Boxes, label: isKo ? '재고' : 'Inventory', href: '/dashboard/inventory' },
     ];
     if (isAndroidApp) return all.filter((i) => i.href !== '/dashboard/printer');
     return all;
-  }, [isAndroidApp]);
+  }, [isAndroidApp, isKo]);
 
   return (
     <>

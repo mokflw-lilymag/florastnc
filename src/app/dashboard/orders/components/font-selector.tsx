@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/popover";
 import { getActiveFontItems, FontCatalogItem } from "@/lib/font-catalog";
 import { FontManagerDialog } from "./font-manager-dialog";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
 
 interface FontSelectorProps {
     value: string;
@@ -21,6 +23,9 @@ interface FontSelectorProps {
 }
 
 export function FontSelector({ value, onValueChange, className, label }: FontSelectorProps) {
+    const locale = usePreferredLocale();
+    const isKo = toBaseLocale(locale) === "ko";
+    const tr = (ko: string, en: string) => (isKo ? ko : en);
     const [open, setOpen] = useState(false);
     const [search, setSearch] = useState("");
     const [fontManagerOpen, setFontManagerOpen] = useState(false);
@@ -89,7 +94,7 @@ export function FontSelector({ value, onValueChange, className, label }: FontSel
                                 ref={searchRef}
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                placeholder="폰트 검색..."
+                                placeholder={tr("폰트 검색...", "Search fonts...")}
                                 className="flex h-10 w-full bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground"
                             />
                         </div>
@@ -99,7 +104,7 @@ export function FontSelector({ value, onValueChange, className, label }: FontSel
                         >
                             {filteredFonts.length === 0 ? (
                                 <div className="py-6 text-center text-sm text-muted-foreground">
-                                    폰트를 찾을 수 없습니다.
+                                    {tr("폰트를 찾을 수 없습니다.", "No fonts found.")}
                                 </div>
                             ) : (
                                 filteredFonts.map((font) => (
@@ -138,7 +143,7 @@ export function FontSelector({ value, onValueChange, className, label }: FontSel
                                 className="flex w-full items-center rounded-sm px-2 py-1.5 text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer"
                             >
                                 <Settings2 className="mr-2 h-3.5 w-3.5" />
-                                폰트 관리...
+                                {tr("폰트 관리...", "Manage fonts...")}
                             </button>
                         </div>
                     </PopoverContent>

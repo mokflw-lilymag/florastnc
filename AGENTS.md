@@ -47,6 +47,11 @@ If you are unsure about how a feature should work, ALWAYS check these reference 
 - **기술 스택**: 브라우저 DevTools, Supabase 대시보드, 수동 테스트 + 자동화 시나리오
 - **지침**: 개발자의 눈이 아닌 **답답하고 급한 꽃집 사장님 눈**으로 앱을 테스트합니다. 5단계 악랄한 테스트 프로토콜(기본 파괴 → 데이터 정합성 → 동시성 → UX 이탈 → 극한 엣지케이스)을 순서대로 실행하며 발견한 모든 이슈를 `docs/qa_test_report_[날짜].md`로 저장합니다.
 
+## 7. [미소 매뉴얼 마스터] "사장님, 웃으세요! 제가 다 알려드릴게요 😊"
+- **스킬 파일**: `skills/07_manual_expert_smile_agent.md`
+- **기술 스택**: HTML5, Tailwind CSS v4, Markdown, Mermaid.js
+- **지침**: 복잡한 기능을 사장님 눈높이에서 가장 친절하고 상세하게 설명합니다. 버튼 하나하나의 작동 원리를 '마스터 클래스'급 분량으로 작성하며, 항상 긍정적이고 응원하는 말투를 유지합니다. 테크 기업 수준의 프리미엄 매뉴얼 디자인을 지향합니다.
+
 ## 💡 치트 시트 (Cheat Sheet)
 - **성능 저하 발생**: `idb-keyval`, `Web Workers` 적용 ("Off-the-main-thread", "Caching strategy")
 - **복잡한 데이터 가공**: `lodash`, `date-fns` 적용 ("Functional programming", "Immutability")

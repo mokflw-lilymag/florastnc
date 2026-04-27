@@ -43,6 +43,8 @@ import { useSettings, DEFAULT_MATERIAL_CATEGORIES } from "@/hooks/use-settings";
 import { CategoryManagementDialog } from '@/components/inventory/category-management-dialog';
 import Link from 'next/link';
 import { toast } from 'sonner';
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
 
 export default function InventoryPage() {
   const {
@@ -59,6 +61,9 @@ export default function InventoryPage() {
   const { suppliers, loading: suppliersLoading } = useSuppliers();
   const { materialCategories, loading: settingsLoading } = useSettings();
   const loading = materialsLoading || settingsLoading || suppliersLoading;
+  const locale = usePreferredLocale();
+  const isKo = toBaseLocale(locale) === "ko";
+  const tr = (ko: string, en: string) => (isKo ? ko : en);
   
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -112,10 +117,10 @@ export default function InventoryPage() {
           successCount++;
         }
       }
-      toast.success(`${successCount}개의 자재가 등록되었습니다.`);
+      toast.success(tr(`${successCount}개의 자재가 등록되었습니다.`, `${successCount} materials imported.`));
     } catch (err) {
       console.error(err);
-      toast.error("데이터 가져오기에 실패했습니다.");
+      toast.error(tr("데이터 가져오기에 실패했습니다.", "Failed to import data."));
     } finally {
       setIsImporting(false);
       e.target.value = '';
@@ -124,7 +129,7 @@ export default function InventoryPage() {
 
   const handleLoadSamples = async () => {
     if (stats.totalTypes > 0) {
-      if (!window.confirm("현재 자재가 이미 존재합니다. 샘플 데이터를 추가로 불러오시겠습니까?")) return;
+      if (!window.confirm(tr("현재 자재가 이미 존재합니다. 샘플 데이터를 추가로 불러오시겠습니까?", "Materials already exist. Load sample data anyway?"))) return;
     }
     
     setIsImporting(true);
@@ -134,9 +139,9 @@ export default function InventoryPage() {
         await addMaterial(sample);
         count++;
       }
-      toast.success(`${count}개의 샘플 자재가 등록되었습니다.`);
+      toast.success(tr(`${count}개의 샘플 자재가 등록되었습니다.`, `${count} sample materials imported.`));
     } catch (err) {
-      toast.error("샘플 데이터 로딩 중 오류가 발생했습니다.");
+      toast.error(tr("샘플 데이터 로딩 중 오류가 발생했습니다.", "Sample data load failed."));
     } finally {
       setIsImporting(false);
     }
@@ -227,15 +232,15 @@ export default function InventoryPage() {
   return (
     <div className="p-6 max-w-[1600px] mx-auto space-y-6 animate-in fade-in duration-500">
       <PageHeader 
-        title="재고 관리" 
-        description="자재 및 상품의 실시간 재고를 관리하고 입출고 내역을 확인합니다."
+        title={tr("재고 관리", "Inventory Management")} 
+        description={tr("자재 및 상품의 실시간 재고를 관리하고 입출고 내역을 확인합니다.", "Manage material/product stock and inbound/outbound history.")}
         icon={Layers}
       >
         <div className="flex flex-wrap items-center justify-end gap-2">
           <Link href="/dashboard/suppliers">
             <Button variant="ghost" size="sm" className="hidden sm:flex text-slate-500 hover:text-slate-900 border border-transparent hover:border-slate-200">
               <Building2 className="h-4 w-4 mr-2" />
-              거래처 관리
+              {tr("거래처 관리", "Suppliers")}
             </Button>
           </Link>
 
@@ -246,7 +251,7 @@ export default function InventoryPage() {
             className="hidden sm:flex text-slate-500 hover:text-slate-900 border border-transparent hover:border-slate-200"
           >
             <Settings2 className="h-4 w-4 mr-2" />
-            카테고리 설정
+            {tr("카테고리 설정", "Categories")}
           </Button>
 
           <Button 
@@ -256,7 +261,7 @@ export default function InventoryPage() {
             className="border-slate-200 text-slate-900 font-medium"
           >
             <Download className="h-4 w-4 mr-2 text-green-600" />
-            데이터 다운로드
+            {tr("데이터 다운로드", "Download Data")}
           </Button>
 
           <Button 
@@ -266,7 +271,7 @@ export default function InventoryPage() {
             className="border-slate-200 text-slate-900 font-medium"
           >
             <Download className="h-4 w-4 mr-2 text-slate-500" />
-            양식 다운로드
+            {tr("양식 다운로드", "Download Template")}
           </Button>
 
           <div className="relative">
@@ -283,7 +288,7 @@ export default function InventoryPage() {
               className="bg-slate-800 hover:bg-slate-900 text-white shadow-sm transition-all"
             >
               <Upload className={`h-4 w-4 mr-2 ${isImporting ? 'animate-pulse' : ''}`} />
-              {isImporting ? '가져오는 중...' : '데이터 가져오기'}
+              {isImporting ? tr('가져오는 중...', 'Importing...') : tr('데이터 가져오기', 'Import Data')}
             </Button>
           </div>
 
@@ -295,13 +300,13 @@ export default function InventoryPage() {
               setIsAddDialogOpen(true);
             }}
           >
-            <Plus className="w-4 h-4 mr-2" /> 새 자재 등록
+            <Plus className="w-4 h-4 mr-2" /> {tr("새 자재 등록", "Add Material")}
           </Button>
         </div>
       </PageHeader>
 
       <p className="text-xs text-muted-foreground px-1">
-        상단 요약 카드는 매장 전체 자재 기준입니다. 아래 표는 이름순으로 한 번에 {DASHBOARD_LIST_PAGE_SIZE}건씩 페이지를 나눠 불러옵니다. 검색·분류 필터는 현재 페이지 안에서만 적용됩니다.
+        {tr("상단 요약 카드는 매장 전체 자재 기준입니다. 아래 표는 이름순으로 한 번에", "Top summary uses all materials. Table is paged by")} {DASHBOARD_LIST_PAGE_SIZE}{tr("건씩 페이지를 나눠 불러옵니다. 검색·분류 필터는 현재 페이지 안에서만 적용됩니다.", " rows sorted by name. Filters apply to current page only.")}
       </p>
 
       {/* Stats Cards */}
@@ -309,12 +314,12 @@ export default function InventoryPage() {
         <Card className="border-none shadow-md bg-gradient-to-br from-blue-50 to-white overflow-hidden group hover:shadow-lg transition-all border-l-4 border-l-blue-500">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-blue-600 flex items-center gap-2">
-              <Package className="w-4 h-4" /> 전체 품목
+              <Package className="w-4 h-4" /> {tr("전체 품목", "Total Types")}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-blue-500">
-              {stats.totalTypes} <span className="text-sm font-normal text-muted-foreground ml-1">종</span>
+              {stats.totalTypes} <span className="text-sm font-normal text-muted-foreground ml-1">{tr("종", "types")}</span>
             </div>
           </CardContent>
         </Card>
@@ -322,7 +327,7 @@ export default function InventoryPage() {
         <Card className="border-none shadow-md bg-gradient-to-br from-green-50 to-white overflow-hidden group hover:shadow-lg transition-all border-l-4 border-l-green-500">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-green-600 flex items-center gap-2">
-              <Activity className="w-4 h-4" /> 총 재고량
+              <Activity className="w-4 h-4" /> {tr("총 재고량", "Total Stock")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -335,12 +340,12 @@ export default function InventoryPage() {
         <Card className="border-none shadow-md bg-gradient-to-br from-orange-50 to-white overflow-hidden group hover:shadow-lg transition-all border-l-4 border-l-orange-500">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-orange-600 flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4" /> 재고 부족
+              <AlertTriangle className="w-4 h-4" /> {tr("재고 부족", "Low Stock")}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-orange-700 to-orange-500 text-orange-600 font-bold">
-              {stats.lowStock} <span className="text-sm font-normal text-muted-foreground ml-1">종</span>
+              {stats.lowStock} <span className="text-sm font-normal text-muted-foreground ml-1">{tr("종", "types")}</span>
             </div>
           </CardContent>
         </Card>
@@ -348,12 +353,12 @@ export default function InventoryPage() {
         <Card className="border-none shadow-md bg-gradient-to-br from-red-50 to-white overflow-hidden group hover:shadow-lg transition-all border-l-4 border-l-red-500">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-red-600 flex items-center gap-2">
-              <Info className="w-4 h-4" /> 품절 품목
+              <Info className="w-4 h-4" /> {tr("품절 품목", "Out of Stock")}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-red-700 to-red-500 text-red-600 font-bold">
-              {stats.outOfStock} <span className="text-sm font-normal text-muted-foreground ml-1">종</span>
+              {stats.outOfStock} <span className="text-sm font-normal text-muted-foreground ml-1">{tr("종", "types")}</span>
             </div>
           </CardContent>
         </Card>
@@ -363,8 +368,8 @@ export default function InventoryPage() {
       <Card className="border-none shadow-xl bg-white/80 backdrop-blur-md">
         <CardHeader className="flex flex-row items-center justify-between pb-4 space-y-0">
           <div>
-            <CardTitle className="text-xl font-bold text-gray-800">자재 현황</CardTitle>
-            <CardDescription>재고 관리 항목을 효율적으로 관리하세요</CardDescription>
+            <CardTitle className="text-xl font-bold text-gray-800">{tr("자재 현황", "Material Status")}</CardTitle>
+            <CardDescription>{tr("재고 관리 항목을 효율적으로 관리하세요", "Manage inventory items efficiently.")}</CardDescription>
           </div>
           <div className="flex flex-wrap items-center gap-2 w-full max-w-4xl">
             {/* Primary Category Filter */}
@@ -376,10 +381,10 @@ export default function InventoryPage() {
               }}
             >
               <SelectTrigger className="w-[150px] bg-slate-50 border-slate-200 text-xs h-9 rounded-xl">
-                <SelectValue placeholder="대분류" />
+                <SelectValue placeholder={tr("대분류", "Main")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">전체 (대분류)</SelectItem>
+                <SelectItem value="all">{tr("전체 (대분류)", "All (main)")}</SelectItem>
                 {CATEGORIES.main.map(cat => (
                   <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                 ))}
@@ -393,10 +398,10 @@ export default function InventoryPage() {
               disabled={selectedCategory === "all" || midCategoriesForSelected.length === 0}
             >
               <SelectTrigger className="w-[150px] bg-slate-50 border-slate-200 text-xs h-9 rounded-xl">
-                <SelectValue placeholder="중분류" />
+                <SelectValue placeholder={tr("중분류", "Middle")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">전체 (중분류)</SelectItem>
+                <SelectItem value="all">{tr("전체 (중분류)", "All (middle)")}</SelectItem>
                 {midCategoriesForSelected.map(cat => (
                   <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                 ))}
@@ -407,7 +412,7 @@ export default function InventoryPage() {
             <div className="relative flex-1 min-w-[200px] group">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
               <Input 
-                placeholder="자재명, 중분류, 거래처 검색..." 
+                placeholder={tr("자재명, 중분류, 거래처 검색...", "Search material, middle category, supplier...")} 
                 className="pl-9 bg-slate-50 border-slate-200 h-9 rounded-xl focus:bg-white transition-all ring-offset-background text-xs"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -425,9 +430,9 @@ export default function InventoryPage() {
               <Table>
                 <TableHeader className="bg-gray-50/50">
                   <TableRow className="hover:bg-transparent border-b">
-                    <TableHead className="font-bold text-center w-12 text-gray-600">번호</TableHead>
-                    <TableHead className="font-bold text-gray-600">자재ID</TableHead>
-                    <TableHead className="font-bold text-gray-600">자재명</TableHead>
+                    <TableHead className="font-bold text-center w-12 text-gray-600">{tr("번호", "No")}</TableHead>
+                    <TableHead className="font-bold text-gray-600">{tr("자재ID", "Material ID")}</TableHead>
+                    <TableHead className="font-bold text-gray-600">{tr("자재명", "Material")}</TableHead>
                     <TableHead className="font-bold text-gray-600">대분류</TableHead>
                     <TableHead className="font-bold text-gray-600">중분류</TableHead>
                     <TableHead className="font-bold text-gray-600 text-center">단위</TableHead>
@@ -437,7 +442,7 @@ export default function InventoryPage() {
                     <TableHead className="font-bold text-gray-600 text-center">재고</TableHead>
                     <TableHead className="font-bold text-gray-600">공급업체</TableHead>
                     <TableHead className="font-bold text-gray-600">메모</TableHead>
-                    <TableHead className="font-bold text-gray-600 text-right">관리</TableHead>
+                    <TableHead className="font-bold text-gray-600 text-right">{tr("관리", "Actions")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -449,15 +454,15 @@ export default function InventoryPage() {
                              <Layers className="w-16 h-16 text-slate-300" />
                            </div>
                            <div className="space-y-2">
-                             <h3 className="text-xl font-bold text-slate-800">등록된 자재가 없네요!</h3>
+                             <h3 className="text-xl font-bold text-slate-800">{tr("등록된 자재가 없네요!", "No materials yet!")}</h3>
                              <p className="max-w-md text-slate-500">
-                               처음 시작이 막막하시다면 클릭 한 번으로 기본 샘플 데이터(꽃, 꽃바구니 등)를 불러올 수 있습니다.
+                               {tr("처음 시작이 막막하시다면 클릭 한 번으로 기본 샘플 데이터(꽃, 꽃바구니 등)를 불러올 수 있습니다.", "You can load starter sample data with one click.")}
                              </p>
                            </div>
                            <div className="flex gap-3">
                               <Button onClick={handleLoadSamples} variant="outline" className="bg-white border-orange-200 text-orange-700 hover:bg-orange-50">
                                 <RefreshCw className="w-4 h-4 mr-2 text-orange-500" />
-                                샘플 데이터 불러오기
+                                {tr("샘플 데이터 불러오기", "Load Samples")}
                               </Button>
                               <Button onClick={() => {
                                 setEditingMaterial(null);
@@ -465,7 +470,7 @@ export default function InventoryPage() {
                                 setIsAddDialogOpen(true);
                               }} className="bg-primary hover:bg-primary/90 text-white font-bold">
                                 <Plus className="w-4 h-4 mr-2" />
-                                첫 자재 등록하기
+                                {tr("첫 자재 등록하기", "Add First Material")}
                               </Button>
                            </div>
                         </div>
@@ -480,7 +485,7 @@ export default function InventoryPage() {
                   ) : filteredMaterials.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={13} className="h-64 text-center text-muted-foreground font-medium">
-                         <p>검색 결과가 없습니다.</p>
+                        <p>{tr("검색 결과가 없습니다.", "No search results.")}</p>
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -545,7 +550,7 @@ export default function InventoryPage() {
                               size="icon" 
                               className="h-8 w-8 hover:text-red-600 hover:bg-red-50"
                               onClick={() => {
-                                if(window.confirm("정말 삭제하시겠습니까?")) deleteMaterial(material.id);
+                                if(window.confirm(tr("정말 삭제하시겠습니까?", "Are you sure you want to delete?"))) deleteMaterial(material.id);
                               }}
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -569,13 +574,13 @@ export default function InventoryPage() {
                 onClick={() => void setListPage(listPage - 1)}
               >
                 <ChevronLeft className="h-4 w-4 mr-1" />
-                이전
+                {tr("이전", "Prev")}
               </Button>
               <span>
                 {materialsTotalCount === 0
                   ? "0"
                   : `${listPage * DASHBOARD_LIST_PAGE_SIZE + 1}–${Math.min((listPage + 1) * DASHBOARD_LIST_PAGE_SIZE, materialsTotalCount)}`}{" "}
-                / 전체 {materialsTotalCount}건 · 페이지 {listPage + 1} /{" "}
+                / {tr("전체", "Total")} {materialsTotalCount}{tr("건", "")} · {tr("페이지", "Page")} {listPage + 1} /{" "}
                 {Math.max(1, Math.ceil(materialsTotalCount / DASHBOARD_LIST_PAGE_SIZE))}
               </span>
               <Button
@@ -587,7 +592,7 @@ export default function InventoryPage() {
                 }
                 onClick={() => void setListPage(listPage + 1)}
               >
-                다음
+                {tr("다음", "Next")}
                 <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
             </div>

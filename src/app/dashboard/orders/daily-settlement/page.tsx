@@ -23,6 +23,8 @@ import Link from 'next/link';
 import { Order } from "@/types/order";
 import { parseDate } from "@/lib/date-utils";
 import { toast } from "sonner";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
 
 export default function DailySettlementPage() {
     const { orders, fetchOrdersByRange, loading: ordersLoading } = useOrders();
@@ -30,6 +32,9 @@ export default function DailySettlementPage() {
     const { getSettlement, saveSettlement, findLastSettlementBefore, loading: settlementLoading } = useDailySettlements();
     const { settings } = useSettings();
     const { profile } = useAuth();
+    const locale = usePreferredLocale();
+    const isKo = toBaseLocale(locale) === "ko";
+    const tr = (ko: string, en: string) => (isKo ? ko : en);
 
     const [reportDate, setReportDate] = useState(format(new Date(), 'yyyy-MM-dd'));
     const [settlementRecord, setSettlementRecord] = useState<DailySettlementRecord | null>(null);
@@ -326,11 +331,11 @@ export default function DailySettlementPage() {
         });
 
         if (success) {
-            toast.success("정산 기록이 저장되었습니다.");
+            toast.success(tr("정산 기록이 저장되었습니다.", "Settlement saved."));
             const res = await getSettlement(reportDate);
             setSettlementRecord(res);
         } else {
-            toast.error("저장에 실패했습니다.");
+            toast.error(tr("저장에 실패했습니다.", "Failed to save."));
         }
     };
 
@@ -345,18 +350,18 @@ export default function DailySettlementPage() {
                 >
                     <Link href="/dashboard/orders" className="flex items-center gap-2">
                         <ChevronLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
-                        주문 목록으로 돌아가기
+                        {tr("주문 목록으로 돌아가기", "Back to Orders")}
                     </Link>
                 </Button>
             </div>
             <PageHeader
-                title="일일 마감 정산"
-                description={`${reportDate} 기준 지점 정산 및 금고 관리`}
+                title={tr("일일 마감 정산", "Daily Closing Settlement")}
+                description={tr(`${reportDate} 기준 지점 정산 및 금고 관리`, `Branch settlement & vault management for ${reportDate}`)}
             >
                 <div className="flex items-center gap-3">
                     <div className="hidden lg:flex flex-col items-end mr-2">
-                        <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest">오늘 정산 마감</span>
-                        <span className="text-[9px] text-slate-400 font-light">금고 잔액 확정 및 이월</span>
+                        <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest">{tr("오늘 정산 마감", "Close Today's Settlement")}</span>
+                        <span className="text-[9px] text-slate-400 font-light">{tr("금고 잔액 확정 및 이월", "Finalize and carry vault balance")}</span>
                     </div>
                     <div className="flex items-center gap-1 bg-white p-1 rounded-2xl border border-slate-100 shadow-sm">
                         <Button variant="ghost" size="icon" onClick={() => setReportDate(format(subDays(new Date(reportDate), 1), 'yyyy-MM-dd'))} className="h-8 w-8 rounded-xl hover:bg-slate-50">
@@ -383,7 +388,7 @@ export default function DailySettlementPage() {
                         ) : (
                             <CheckCircle2 className="mr-2 h-4 w-4 group-hover:scale-110 transition-transform" />
                         )}
-                        일일 정산 마감
+                        {tr("일일 정산 마감", "Close Day")}
                     </Button>
                 </div>
             </PageHeader>
@@ -394,12 +399,12 @@ export default function DailySettlementPage() {
                         <TrendingUp size={64} />
                     </div>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-xs font-medium opacity-80 uppercase tracking-widest">금일 총 매출액</CardTitle>
+                        <CardTitle className="text-xs font-medium opacity-80 uppercase tracking-widest">{tr("금일 총 매출액", "Today's Total Sales")}</CardTitle>
                         <DollarSign className="h-4 w-4 text-indigo-300" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-light">₩{(stats?.totalSales || 0).toLocaleString()}</div>
-                        <p className="text-[11px] text-indigo-200 mt-2 font-light">신규 ₩{ ((stats?.totalSales || 0) - (stats?.prevOrderPaymentTotal || 0)).toLocaleString() } + 이월 ₩{(stats?.prevOrderPaymentTotal || 0).toLocaleString()}</p>
+                        <p className="text-[11px] text-indigo-200 mt-2 font-light">{tr("신규", "New")} ₩{ ((stats?.totalSales || 0) - (stats?.prevOrderPaymentTotal || 0)).toLocaleString() } + {tr("이월", "Carry")} ₩{(stats?.prevOrderPaymentTotal || 0).toLocaleString()}</p>
                     </CardContent>
                 </Card>
 
@@ -408,34 +413,34 @@ export default function DailySettlementPage() {
                         <DollarSign size={64} />
                     </div>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-xs font-medium opacity-80 uppercase tracking-widest">수금 (현금 + 계좌)</CardTitle>
+                        <CardTitle className="text-xs font-medium opacity-80 uppercase tracking-widest">{tr("수금 (현금 + 계좌)", "Collected (Cash + Transfer)")}</CardTitle>
                         <ArrowRightLeft className="h-4 w-4 text-slate-400" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-light">₩{( (stats?.cashSales || 0) + (stats?.transferSales || 0) ).toLocaleString()}</div>
-                        <p className="text-[11px] text-slate-400 mt-2 font-light">카드 결제: ₩{(stats?.cardSales || 0).toLocaleString()}</p>
+                        <p className="text-[11px] text-slate-400 mt-2 font-light">{tr("카드 결제", "Card")}: ₩{(stats?.cardSales || 0).toLocaleString()}</p>
                     </CardContent>
                 </Card>
 
                 <Card className="border-none shadow-sm bg-white rounded-2xl overflow-hidden group">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-xs font-medium text-slate-400 uppercase tracking-widest">금고 예상 잔액</CardTitle>
+                        <CardTitle className="text-xs font-medium text-slate-400 uppercase tracking-widest">{tr("금고 예상 잔액", "Estimated Vault Balance")}</CardTitle>
                         <Target className="h-4 w-4 text-indigo-600" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-light text-indigo-600">₩{(vaultCash.currentBalance || 0).toLocaleString()}</div>
-                        <p className="text-[11px] text-slate-400 mt-2 font-light uppercase tracking-tighter">현재 포스기 보유 추정액</p>
+                        <p className="text-[11px] text-slate-400 mt-2 font-light uppercase tracking-tighter">{tr("현재 포스기 보유 추정액", "Estimated cash in POS")}</p>
                     </CardContent>
                 </Card>
 
                 <Card className="border-none shadow-sm bg-white rounded-2xl overflow-hidden group">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-xs font-medium text-slate-400 uppercase tracking-widest">금일 주문 접수</CardTitle>
+                        <CardTitle className="text-xs font-medium text-slate-400 uppercase tracking-widest">{tr("금일 주문 접수", "Today's Orders")}</CardTitle>
                         <ShoppingCart className="h-4 w-4 text-slate-400" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-light text-slate-900">{stats?.orderCount || 0}건</div>
-                        <p className="text-[11px] text-red-500 mt-2 font-medium uppercase tracking-tighter">미결제 {stats.pendingOrdersToday.length}건 / ₩{(stats.pendingAmountToday || 0).toLocaleString()}</p>
+                        <div className="text-2xl font-light text-slate-900">{stats?.orderCount || 0}{tr("건", "")}</div>
+                        <p className="text-[11px] text-red-500 mt-2 font-medium uppercase tracking-tighter">{tr("미결제", "Pending")} {stats.pendingOrdersToday.length}{tr("건", "")} / ₩{(stats.pendingAmountToday || 0).toLocaleString()}</p>
                     </CardContent>
                 </Card>
             </div>
@@ -444,13 +449,13 @@ export default function DailySettlementPage() {
                 <Card className="md:col-span-4 border-none shadow-sm bg-white rounded-3xl overflow-hidden">
                     <CardHeader className="bg-slate-50/50 border-b pb-4 px-6">
                         <CardTitle className="text-sm font-medium text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                            <Target className="h-4 w-4 text-indigo-600" /> 금고 현금 상세 흐름 (Cash Flow)
+                            <Target className="h-4 w-4 text-indigo-600" /> {tr("금고 현금 상세 흐름", "Vault Cash Flow")} (Cash Flow)
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="p-6">
                         <div className="space-y-3">
                             <div className="flex items-center justify-between py-2 border-b border-dashed border-slate-100">
-                                <Label className="text-slate-600 font-light text-xs">이월된 현금 잔액 (전일 마감 시점)</Label>
+                                <Label className="text-slate-600 font-light text-xs">{tr("이월된 현금 잔액 (전일 마감 시점)", "Carry-over cash balance (prev close)")}</Label>
                                 <div className="flex items-center gap-2">
                                     <Input 
                                         type="number" 
@@ -464,25 +469,25 @@ export default function DailySettlementPage() {
                                         onClick={handleSave}
                                         className="h-8 px-3 rounded-lg border-indigo-200 text-indigo-600 hover:bg-indigo-50 font-bold text-[10px]"
                                     >
-                                        수정저장
+                                        {tr("수정저장", "Save")}
                                     </Button>
                                     <span className="text-xs font-light text-slate-400">₩</span>
                                 </div>
                             </div>
                             <div className="flex items-center justify-between py-2 border-b border-dashed border-slate-100">
-                                <Label className="text-slate-600 font-light text-xs">금일 현금 매출 (직접 수금)</Label>
+                                <Label className="text-slate-600 font-light text-xs">{tr("금일 현금 매출 (직접 수금)", "Today's cash sales")}</Label>
                                 <span className="text-xs font-medium text-blue-600">+ ₩{(vaultCash.cashSales || 0).toLocaleString()}</span>
                             </div>
                             <div className="flex items-center justify-between py-2 border-b border-dashed border-slate-100">
-                                <Label className="text-slate-600 font-light text-xs">배송비 현금 지급액 (지출)</Label>
+                                <Label className="text-slate-600 font-light text-xs">{tr("배송비 현금 지급액 (지출)", "Cash delivery payout (expense)")}</Label>
                                 <span className="text-xs font-medium text-rose-600">- ₩{(vaultCash.deliveryCostCash || 0).toLocaleString()}</span>
                             </div>
                             <div className="flex items-center justify-between py-2 border-b border-dashed border-slate-100">
-                                <Label className="text-slate-600 font-light text-xs">기타 현금 지출 (자재/잡비)</Label>
+                                <Label className="text-slate-600 font-light text-xs">{tr("기타 현금 지출 (자재/잡비)", "Other cash expense (material/misc)")}</Label>
                                 <span className="text-xs font-medium text-rose-600">- ₩{(vaultCash.cashExpenses || 0).toLocaleString()}</span>
                             </div>
                             <div className="flex items-center justify-between py-2 border-b border-dashed border-slate-100">
-                                <Label className="text-slate-600 font-light text-xs">관리자 시재 입금/출금 (은행 등)</Label>
+                                <Label className="text-slate-600 font-light text-xs">{tr("관리자 시재 입금/출금 (은행 등)", "Admin vault in/out (bank etc.)")}</Label>
                                 <div className="flex items-center gap-2">
                                     <Input 
                                         type="number" 
@@ -494,7 +499,7 @@ export default function DailySettlementPage() {
                                 </div>
                             </div>
                             <div className="flex items-center justify-between py-5 bg-indigo-50/50 rounded-2xl px-5 mt-6 border border-indigo-100/50 shadow-inner">
-                                <Label className="text-indigo-900 font-bold text-sm uppercase tracking-wider">최종 마감 예정 잔액</Label>
+                                <Label className="text-indigo-900 font-bold text-sm uppercase tracking-wider">{tr("최종 마감 예정 잔액", "Final closing balance")}</Label>
                                 <span className="text-2xl font-light text-indigo-700 tracking-tight">₩{(vaultCash.currentBalance || 0).toLocaleString()}</span>
                             </div>
                         </div>
@@ -504,32 +509,32 @@ export default function DailySettlementPage() {
                 <Card className="md:col-span-3 border-none shadow-sm bg-white rounded-3xl overflow-hidden">
                     <CardHeader className="bg-slate-50/50 border-b pb-4 px-6">
                         <CardTitle className="text-sm font-medium text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                            <Package className="h-4 w-4 text-amber-500" /> 오늘 발생한 지출 요약
+                            <Package className="h-4 w-4 text-amber-500" /> {tr("오늘 발생한 지출 요약", "Today's Expense Summary")}
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="p-6">
                         <div className="space-y-4">
                             <div className="grid grid-cols-2 gap-3">
                                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 group hover:border-indigo-200 transition-colors">
-                                    <span className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mb-1 block">운송비 (현금)</span>
+                                    <span className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mb-1 block">{tr("운송비 (현금)", "Delivery (Cash)")}</span>
                                     <span className="text-lg font-light text-slate-900">₩{(vaultCash.deliveryCostCash || 0).toLocaleString()}</span>
                                 </div>
                                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 group hover:border-indigo-200 transition-colors">
-                                    <span className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mb-1 block">기타 지출 (현금)</span>
+                                    <span className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mb-1 block">{tr("기타 지출 (현금)", "Other (Cash)")}</span>
                                     <span className="text-lg font-light text-slate-900">₩{(vaultCash.cashExpenses || 0).toLocaleString()}</span>
                                 </div>
                             </div>
                             
                             <div className="p-5 bg-amber-50/50 rounded-2xl border border-amber-100">
-                                <span className="text-[11px] text-amber-700 font-bold uppercase tracking-widest mb-2 block">총 지출 (카드 포함)</span>
+                                <span className="text-[11px] text-amber-700 font-bold uppercase tracking-widest mb-2 block">{tr("총 지출 (카드 포함)", "Total Expense (incl. card)")}</span>
                                 <div className="flex justify-between items-baseline">
                                     <span className="text-2xl font-light text-amber-900">₩{expenses.reduce((sum, e) => sum + (e.amount || 0), 0).toLocaleString()}</span>
-                                    <span className="text-xs text-amber-600">{expenses.length}건 발생</span>
+                                    <span className="text-xs text-amber-600">{expenses.length}{tr("건 발생", " records")}</span>
                                 </div>
                             </div>
 
                             <Button variant="outline" className="w-full rounded-xl border-slate-200 text-slate-600 font-light hover:bg-slate-50 text-xs">
-                                <Link href="/dashboard/expenses">지출 관리 페이지로 이동 <ChevronRight className="ml-1 h-3 w-3" /></Link>
+                                <Link href="/dashboard/expenses">{tr("지출 관리 페이지로 이동", "Go to Expense Management")} <ChevronRight className="ml-1 h-3 w-3" /></Link>
                             </Button>
                         </div>
                     </CardContent>
@@ -541,20 +546,20 @@ export default function DailySettlementPage() {
                  <Card className="border-none shadow-sm bg-white rounded-3xl overflow-hidden">
                     <CardHeader className="bg-slate-50/50 border-b pb-4 px-6">
                         <CardTitle className="text-sm font-medium text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                            <FileText className="h-4 w-4 text-emerald-500" /> 금일 결제 처리된 주문 내역
+                            <FileText className="h-4 w-4 text-emerald-500" /> {tr("금일 결제 처리된 주문 내역", "Orders Paid Today")}
                         </CardTitle>
-                        <CardDescription className="font-light text-xs">해당 일자에 수금이 발생한 {stats.paidOrdersToday.length + stats.previousOrderPayments.length}건의 주문들입니다.</CardDescription>
+                        <CardDescription className="font-light text-xs">{tr("해당 일자에 수금이 발생한", "Orders with collections on this day:")} {stats.paidOrdersToday.length + stats.previousOrderPayments.length}{tr("건의 주문들입니다.", "")}</CardDescription>
                     </CardHeader>
                     <CardContent className="p-0">
                         <Table>
                             <TableHeader>
                                 <TableRow className="bg-slate-50/30 hover:bg-slate-50/30 border-b border-slate-50">
-                                    <TableHead className="font-medium text-[11px] text-slate-600 px-6">시간/번호</TableHead>
-                                    <TableHead className="font-medium text-[11px] text-slate-600">주문자</TableHead>
-                                    <TableHead className="font-medium text-[11px] text-slate-600">수단</TableHead>
-                                    <TableHead className="font-medium text-[11px] text-slate-600 text-right">총 주문금액</TableHead>
-                                    <TableHead className="font-medium text-[11px] text-emerald-600 text-right">금일 입금액</TableHead>
-                                    <TableHead className="font-medium text-[11px] text-slate-600 text-center">상태</TableHead>
+                                    <TableHead className="font-medium text-[11px] text-slate-600 px-6">{tr("시간/번호", "Time/No")}</TableHead>
+                                    <TableHead className="font-medium text-[11px] text-slate-600">{tr("주문자", "Orderer")}</TableHead>
+                                    <TableHead className="font-medium text-[11px] text-slate-600">{tr("수단", "Method")}</TableHead>
+                                    <TableHead className="font-medium text-[11px] text-slate-600 text-right">{tr("총 주문금액", "Order Total")}</TableHead>
+                                    <TableHead className="font-medium text-[11px] text-emerald-600 text-right">{tr("금일 입금액", "Paid Today")}</TableHead>
+                                    <TableHead className="font-medium text-[11px] text-slate-600 text-center">{tr("상태", "Status")}</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -578,13 +583,13 @@ export default function DailySettlementPage() {
                                             ₩{ (order.payment?.isSplitPayment && order.payment?.secondPaymentDate?.startsWith(reportDate)) ? (order.payment.secondPaymentAmount || 0).toLocaleString() : (order.summary?.total || 0).toLocaleString() }
                                         </TableCell>
                                         <TableCell className="text-center">
-                                            <Badge variant="secondary" className="text-[11px] font-light bg-emerald-50 text-emerald-700 border-none px-2">수금완료</Badge>
+                                            <Badge variant="secondary" className="text-[11px] font-light bg-emerald-50 text-emerald-700 border-none px-2">{tr("수금완료", "Collected")}</Badge>
                                         </TableCell>
                                     </TableRow>
                                 ))}
                                 {(stats.paidOrdersToday.length + stats.previousOrderPayments.length) === 0 && (
                                     <TableRow>
-                                        <TableCell colSpan={6} className="h-32 text-center text-slate-400 font-light text-xs">오늘 처리된 결제 데이터가 없습니다.</TableCell>
+                                        <TableCell colSpan={6} className="h-32 text-center text-slate-400 font-light text-xs">{tr("오늘 처리된 결제 데이터가 없습니다.", "No payment records processed today.")}</TableCell>
                                     </TableRow>
                                 )}
                             </TableBody>
@@ -595,18 +600,18 @@ export default function DailySettlementPage() {
                 <Card className="border-none shadow-sm bg-white rounded-3xl overflow-hidden mt-4">
                     <CardHeader className="bg-slate-50/50 border-b pb-4 px-6">
                         <CardTitle className="text-sm font-medium text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                            <XCircle className="h-4 w-4 text-rose-500" /> 금일 미결제 (미수금) 목록
+                            <XCircle className="h-4 w-4 text-rose-500" /> {tr("금일 미결제 (미수금) 목록", "Today's Pending Receivables")}
                         </CardTitle>
-                        <CardDescription className="font-light text-xs">오늘 주문 중 아직 결제가 되지 않은 내역입니다.</CardDescription>
+                        <CardDescription className="font-light text-xs">{tr("오늘 주문 중 아직 결제가 되지 않은 내역입니다.", "Orders from today that are not paid yet.")}</CardDescription>
                     </CardHeader>
                     <CardContent className="p-0">
                         <Table>
                             <TableHeader>
                                 <TableRow className="bg-slate-50/30 hover:bg-slate-50/30 border-b border-slate-50">
-                                    <TableHead className="font-medium text-xs text-slate-600 px-6">주문번호</TableHead>
-                                    <TableHead className="font-medium text-xs text-slate-600">주문자</TableHead>
-                                    <TableHead className="font-medium text-xs text-slate-600 text-right">미수 금액</TableHead>
-                                    <TableHead className="font-medium text-xs text-slate-600 text-center">예상 수단</TableHead>
+                                    <TableHead className="font-medium text-xs text-slate-600 px-6">{tr("주문번호", "Order No")}</TableHead>
+                                    <TableHead className="font-medium text-xs text-slate-600">{tr("주문자", "Orderer")}</TableHead>
+                                    <TableHead className="font-medium text-xs text-slate-600 text-right">{tr("미수 금액", "Pending Amount")}</TableHead>
+                                    <TableHead className="font-medium text-xs text-slate-600 text-center">{tr("예상 수단", "Expected Method")}</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -624,7 +629,7 @@ export default function DailySettlementPage() {
                                 ))}
                                 {stats.pendingOrdersToday.length === 0 && (
                                     <TableRow>
-                                        <TableCell colSpan={4} className="h-24 text-center text-slate-400 font-light text-xs">오늘 미수금이 발생한 주문이 없습니다.</TableCell>
+                                        <TableCell colSpan={4} className="h-24 text-center text-slate-400 font-light text-xs">{tr("오늘 미수금이 발생한 주문이 없습니다.", "No pending receivables today.")}</TableCell>
                                     </TableRow>
                                 )}
                             </TableBody>

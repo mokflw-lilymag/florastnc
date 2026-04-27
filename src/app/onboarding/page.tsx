@@ -9,17 +9,22 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Loader2, Building, Store } from 'lucide-react';
 import Image from 'next/image';
+import { usePreferredLocale } from '@/hooks/use-preferred-locale';
+import { toBaseLocale } from '@/i18n/config';
 
 export default function OnboardingPage() {
   const router = useRouter();
   const supabase = createClient();
+  const locale = usePreferredLocale();
+  const isKo = toBaseLocale(locale) === "ko";
+  const tr = (ko: string, en: string) => (isKo ? ko : en);
   const [shopName, setShopName] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!shopName.trim()) {
-      toast.error('매장명을 입력해주세요.');
+      toast.error(tr('매장명을 입력해주세요.', 'Please enter the shop name.'));
       return;
     }
 
@@ -32,8 +37,8 @@ export default function OnboardingPage() {
 
       if (error) throw error;
 
-      toast.success('환영합니다!', {
-        description: '매장 등록이 완료되었습니다. 대시보드로 이동합니다.',
+      toast.success(tr('환영합니다!', 'Welcome!'), {
+        description: tr('매장 등록이 완료되었습니다. 대시보드로 이동합니다.', 'Shop registration is complete. Redirecting to dashboard.'),
       });
       
       // Refresh the router to reload layout.tsx with new tenant info
@@ -43,8 +48,8 @@ export default function OnboardingPage() {
       
     } catch (error: any) {
       console.error('Onboarding Error:', error);
-      toast.error('매장 등록 실패', { 
-        description: error.message || '매장을 등록하는 중 문제가 발생했습니다. 관리자에게 문의해주세요.' 
+      toast.error(tr('매장 등록 실패', 'Shop registration failed'), { 
+        description: error.message || tr('매장을 등록하는 중 문제가 발생했습니다. 관리자에게 문의해주세요.', 'A problem occurred while creating the shop. Please contact admin.') 
       });
     } finally {
       setLoading(false);
@@ -73,23 +78,24 @@ export default function OnboardingPage() {
               />
             </div>
             <CardTitle className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-              환영합니다! 🎉
+              {tr("환영합니다! 🎉", "Welcome! 🎉")}
             </CardTitle>
             <CardDescription className="text-sm text-slate-500">
-              안전하고 원활한 서비스 이용을 위해<br/>
-              대표님의 <b>화원 상호명</b>을 입력해주세요.
+              {tr("안전하고 원활한 서비스 이용을 위해", "To use the service smoothly and securely,")}
+              <br/>
+              {tr("대표님의 ", "enter your ")}<b>{tr("화원 상호명", "flower shop name")}</b>{tr("을 입력해주세요.", ".")}
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-2">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="shop">화원 상호명 (매장명)</Label>
+                <Label htmlFor="shop">{tr("화원 상호명 (매장명)", "Flower shop name (store name)")}</Label>
                 <div className="relative">
                   <Store className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                   <Input
                     id="shop"
                     type="text"
-                    placeholder="예: 강남플라워"
+                    placeholder={tr("예: 강남플라워", "e.g. Gangnam Flower")}
                     required
                     maxLength={50}
                     value={shopName}
@@ -102,15 +108,15 @@ export default function OnboardingPage() {
               <div className="pt-2">
                 <Button type="submit" className="w-full h-12 text-md font-medium" disabled={loading}>
                   {loading ? (
-                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> 설정 중...</>
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {tr("설정 중...", "Setting up...")}</>
                   ) : (
-                    '플록싱크 시작하기'
+                    tr('플록싱크 시작하기', 'Start Floxync')
                   )}
                 </Button>
               </div>
               
               <p className="text-xs text-center text-slate-400">
-                입력하신 상호명은 나중에 <b>환경설정</b>에서 변경하실 수 있습니다.
+                {tr("입력하신 상호명은 나중에 ", "You can change this later in ")}<b>{tr("환경설정", "Settings")}</b>{tr("에서 변경하실 수 있습니다.", ".")}
               </p>
             </form>
           </CardContent>

@@ -13,6 +13,8 @@ import { ko } from 'date-fns/locale';
 import { createClient } from '@/utils/supabase/client';
 import { Order } from '@/types/order';
 import { useSettings } from '@/hooks/use-settings';
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
 
 interface PrintPreviewClientProps {
     orderId: string;
@@ -23,6 +25,9 @@ export function PrintPreviewClient({ orderId }: PrintPreviewClientProps) {
     const supabase = createClient();
     const { profile, isLoading: authLoading, tenantId } = useAuth();
     const { settings } = useSettings();
+    const locale = usePreferredLocale();
+    const isKo = toBaseLocale(locale) === "ko";
+    const tr = (ko: string, en: string) => (isKo ? ko : en);
     const [order, setOrder] = useState<Order | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -42,10 +47,10 @@ export function PrintPreviewClient({ orderId }: PrintPreviewClientProps) {
 
                 if (fetchError) throw fetchError;
                 if (data) setOrder(data as Order);
-                else setError('주문을 찾을 수 없습니다.');
+                else setError(tr('주문을 찾을 수 없습니다.', 'Order not found.'));
             } catch (error) {
                 console.error("Error fetching order:", error);
-                setError('주문 데이터를 불러오는 중 오류가 발생했습니다.');
+                setError(tr('주문 데이터를 불러오는 중 오류가 발생했습니다.', 'Error while loading order data.'));
             } finally {
                 setLoading(false);
             }
@@ -74,7 +79,7 @@ export function PrintPreviewClient({ orderId }: PrintPreviewClientProps) {
         return (
             <div className="flex h-screen w-full items-center justify-center bg-white">
                 <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
-                <p className="ml-2 text-slate-500 font-light">데이터를 불러오는 중입니다...</p>
+                <p className="ml-2 text-slate-500 font-light">{tr("데이터를 불러오는 중입니다...", "Loading data...")}</p>
             </div>
         );
     }
@@ -83,10 +88,10 @@ export function PrintPreviewClient({ orderId }: PrintPreviewClientProps) {
         return (
             <div className="flex h-screen w-full items-center justify-center bg-white">
                 <div className="text-center">
-                    <p className="text-red-500 mb-4 font-light">{error || '주문 정보가 없습니다.'}</p>
+                    <p className="text-red-500 mb-4 font-light">{error || tr('주문 정보가 없습니다.', 'No order information.')}</p>
                     <Button variant="outline" onClick={() => router.back()} className="font-light">
                         <ArrowLeft className="mr-2 h-4 w-4" />
-                        목록으로 돌아가기
+                        {tr("목록으로 돌아가기", "Back to list")}
                     </Button>
                 </div>
             </div>
@@ -115,14 +120,14 @@ export function PrintPreviewClient({ orderId }: PrintPreviewClientProps) {
     // Mapping SaaS order to PrintableOrder format
     const printData: OrderPrintData = {
         orderDate: format(orderDateObject, "yyyy-MM-dd HH:mm (E)", { locale: ko }),
-        ordererName: order.orderer?.name || "미지정",
+        ordererName: order.orderer?.name || tr("미지정", "N/A"),
         ordererCompany: order.orderer?.company || '',
         ordererContact: order.orderer?.contact || '-',
         items: itemsText,
         totalAmount: order.summary?.total || 0,
         deliveryFee: order.summary?.deliveryFee || 0,
         paymentMethod: order.payment?.method || 'cash',
-        paymentStatus: ['paid', 'completed'].includes(order.payment?.status) ? '완결' : '미결',
+        paymentStatus: ['paid', 'completed'].includes(order.payment?.status) ? tr('완결', 'Paid') : tr('미결', 'Pending'),
         deliveryDate: formattedDeliveryDate,
         recipientName: order.receipt_type === 'delivery_reservation' 
             ? order.delivery_info?.recipientName || "" 
@@ -132,12 +137,12 @@ export function PrintPreviewClient({ orderId }: PrintPreviewClientProps) {
             : order.pickup_info?.pickerContact || "",
         deliveryAddress: order.receipt_type === 'delivery_reservation' 
             ? order.delivery_info?.address || "" 
-            : "매장 수령 (픽업)",
+            : tr("매장 수령 (픽업)", "Store Pickup"),
         message: order.message?.content || "",
         messageType: order.message?.type === 'ribbon' ? 'ribbon' : 'card',
         isAnonymous: order.outsource_info?.hideCustomerInfo || false,
         shopInfo: {
-            name: order.outsource_info?.sender_branding?.name || settings?.siteName || profile?.tenants?.name || "플록싱크",
+            name: order.outsource_info?.sender_branding?.name || settings?.siteName || profile?.tenants?.name || "Floxync",
             address: order.outsource_info?.sender_branding?.address || settings?.address || profile?.tenants?.address || "",
             contact: order.outsource_info?.sender_branding?.contact || settings?.contactPhone || profile?.tenants?.contact_phone || "",
             account: profile?.tenants?.account || "",
@@ -183,17 +188,17 @@ export function PrintPreviewClient({ orderId }: PrintPreviewClientProps) {
             
             <div className="max-w-4xl mx-auto p-4 md:p-8 no-print">
                 <PageHeader
-                    title="주문서 인쇄 미리보기"
-                    description={`주문번호: ${order.order_number}`}
+                    title={tr("주문서 인쇄 미리보기", "Order Print Preview")}
+                    description={`${tr("주문번호", "Order No")}: ${order.order_number}`}
                 >
                     <div className="flex gap-2">
                         <Button variant="outline" size="sm" onClick={() => router.back()} className="font-light">
                             <ArrowLeft className="mr-2 h-4 w-4" />
-                            목록
+                            {tr("목록", "List")}
                         </Button>
                         <Button size="sm" onClick={() => window.print()} className="font-light">
                             <Printer className="mr-2 h-4 w-4" />
-                            인쇄하기 (Ctrl+P)
+                            {tr("Print (Ctrl+P)", "Print (Ctrl+P)")}
                         </Button>
                     </div>
                 </PageHeader>
@@ -202,7 +207,7 @@ export function PrintPreviewClient({ orderId }: PrintPreviewClientProps) {
             <div id="printable-area" className="flex items-center justify-center p-4">
                 <Card className="border-none shadow-none w-full max-w-4xl mx-auto">
                     <CardContent className="p-0">
-                        <PrintableOrder data={printData} />
+                        <PrintableOrder data={printData} locale={locale} />
                     </CardContent>
                 </Card>
             </div>

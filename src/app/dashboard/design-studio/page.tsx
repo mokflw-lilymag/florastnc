@@ -42,6 +42,8 @@ import { createClient } from '@/utils/supabase/client';
 import { usePartnerTouchUi } from '@/hooks/use-partner-touch-ui';
 import { useIsCapacitorAndroid } from '@/hooks/use-capacitor-android';
 import { cn } from '@/lib/utils';
+import { usePreferredLocale } from '@/hooks/use-preferred-locale';
+import { getMessages } from '@/i18n/getMessages';
 
 function DesignStudioContent() {
   const lastProcessedOrderId = React.useRef<string | null>(null);
@@ -84,6 +86,8 @@ function DesignStudioContent() {
   const { tenantId } = useAuth();
   const touchUi = usePartnerTouchUi();
   const isAndroidApp = useIsCapacitorAndroid();
+  const locale = usePreferredLocale();
+  const D = getMessages(locale).dashboard.designStudio;
   const [mobileStudioTab, setMobileStudioTab] = useState<'tools' | 'canvas'>('canvas');
 
   /** 화면 크기에 맞춰 종이가 꽉 차도록 줌(Zoom) 자동 조절 */
@@ -174,7 +178,7 @@ function DesignStudioContent() {
       setIsFormtecModalOpen(true);
       return;
     }
-    toast.loading('고해상도 다중 페이지 PDF를 생성하고 있습니다...', { id: 'print-loading' });
+    toast.loading(D.pdfGenMulti, { id: 'print-loading' });
     try {
       const state = useEditorStore.getState();
       const allPagesData = [
@@ -198,12 +202,12 @@ function DesignStudioContent() {
       toast.dismiss('print-loading');
       if (pdfBytes) {
         PrintCommander.triggerPrintPopup(pdfBytes);
-        toast.success('앞뒷면 PDF 생성이 완료되었습니다.');
+        toast.success(D.pdfGenFrontBackDone);
       }
     } catch (e) {
       console.error('PDF Generation Error:', e);
       toast.dismiss('print-loading');
-      toast.error('PDF 생성 중 오류가 발생했습니다.');
+      toast.error(D.pdfGenErr);
     }
   };
 
@@ -212,10 +216,10 @@ function DesignStudioContent() {
     const state = useEditorStore.getState();
     try {
       await state.saveDesign();
-      toast.success('디자인이 클라우드에 저장되었습니다.');
+      toast.success(D.designSavedCloud);
     } catch (e) {
       console.error(e);
-      toast.error('저장 중 오류가 발생했습니다.');
+      toast.error(D.saveErr);
     } finally {
       setIsGenerating(false);
     }
@@ -285,7 +289,7 @@ function DesignStudioContent() {
             const msgY = (heightMm / 2) - 10; // 세로 중앙에서 살짝 위로
             
             const msgId = addTextBlock({
-              text: processedMsg || '새로운 메시지',
+              text: processedMsg || D.newMessage,
               x: msgX, 
               y: msgY, 
               fontSize: 15, 
@@ -310,7 +314,7 @@ function DesignStudioContent() {
             // 모든 작업 완료 후 세션 및 스토어 기록
             sessionStorage.setItem(sessionKey, 'true');
             setCurrentOrderId(orderId);
-            toast.success(`${isCard ? '카드 내지 우측' : '폼텍 라벨 중앙'}에 메시지를 배치했습니다.`);
+            toast.success(isCard ? D.msgPlacedCard : D.msgPlacedLabel);
           }
         }
       } catch (e) {
@@ -346,9 +350,9 @@ function DesignStudioContent() {
                 <Wand2 size={touchUi ? 20 : 24} />
              </div>
              <div className="min-w-0">
-                <h1 className={cn("font-black text-gray-800 tracking-tight leading-none truncate", touchUi ? "text-sm" : "text-xl")}>PROFESSIONAL STUDIO</h1>
+                <h1 className={cn("font-black text-gray-800 tracking-tight leading-none truncate", touchUi ? "text-sm" : "text-xl")}>{D.studioTitle}</h1>
                 {!touchUi && (
-                  <p className="text-[9px] font-black text-indigo-500 uppercase tracking-[0.3em] mt-1">Design Architecture v4.2</p>
+                  <p className="text-[9px] font-black text-indigo-500 uppercase tracking-[0.3em] mt-1">{D.studioSubtitle}</p>
                 )}
              </div>
           </div>
@@ -365,7 +369,7 @@ function DesignStudioContent() {
                   activePage === 'outside' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'
                 )}
              >
-                {touchUi ? '앞·뒷면' : '앞면/뒷면 (Cover)'}
+                {touchUi ? D.coverShort : D.coverLong}
              </button>
              <button 
                 type="button"
@@ -376,7 +380,7 @@ function DesignStudioContent() {
                   activePage === 'inside' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'
                 )}
              >
-                {touchUi ? '내지' : '내지/안쪽 (Inside)'}
+                {touchUi ? D.insideShort : D.insideLong}
              </button>
           </div>
         </div>
@@ -384,7 +388,7 @@ function DesignStudioContent() {
         <div className={cn("flex items-center gap-2 shrink-0", touchUi && "w-full justify-end")}>
           <div className="hidden lg:flex items-center gap-3 mr-4">
              <div className="flex flex-col items-end">
-                <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Active Workspace</span>
+                <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">{D.activeWorkspace}</span>
                 <span className="text-xs font-black text-gray-600">{currentDimension.widthMm} x {currentDimension.heightMm} mm</span>
              </div>
              <Layout className="text-gray-200" size={24} />
@@ -400,7 +404,7 @@ function DesignStudioContent() {
             )}
           >
             {isGenerating ? <Loader2 className="animate-spin" /> : <Save size={16} />}
-            {touchUi ? '저장' : '디자인 저장'}
+            {touchUi ? D.save : D.saveDesign}
           </button>
 
           <button 
@@ -429,7 +433,7 @@ function DesignStudioContent() {
             )}
           >
             <PanelLeft className="h-4 w-4 shrink-0" aria-hidden />
-            도구 · 용지
+            {D.toolsPaper}
           </button>
           <button
             type="button"
@@ -442,7 +446,7 @@ function DesignStudioContent() {
             )}
           >
             <Eye className="h-4 w-4 shrink-0" aria-hidden />
-            미리보기 · 편집
+            {D.previewEdit}
           </button>
         </div>
       )}
@@ -485,7 +489,7 @@ function DesignStudioContent() {
             >
               <button type="button" onClick={() => setZoom(Math.max(1, zoom - 0.5))} className="p-2 hover:bg-gray-100 rounded-xl text-gray-400 transition-colors touch-manipulation"><ZoomOut size={18} /></button>
               <div className="w-16 sm:w-20 text-center flex flex-col items-center">
-                <span className="text-[9px] font-black text-indigo-300 uppercase leading-none mb-0.5">Scale</span>
+                <span className="text-[9px] font-black text-indigo-300 uppercase leading-none mb-0.5">{D.scale}</span>
                 <span className="text-xs font-black text-indigo-600 tabular-nums">{Math.round((zoom / 3.78) * 100)}%</span>
               </div>
               <button type="button" onClick={() => setZoom(Math.min(10, zoom + 0.5))} className="p-2 hover:bg-gray-100 rounded-xl text-gray-400 transition-colors touch-manipulation"><ZoomIn size={18} /></button>
@@ -497,7 +501,7 @@ function DesignStudioContent() {
                   onClick={fitZoomToScreen}
                   className="px-3 py-1.5 hover:bg-indigo-50 text-[11px] font-black text-indigo-600 rounded-xl transition-all touch-manipulation whitespace-nowrap"
                 >
-                  맞춤
+                  {D.fit}
                 </button>
               )}
             </div>
@@ -517,7 +521,7 @@ function DesignStudioContent() {
           onPrint={async () => {
              const state = useEditorStore.getState();
              setIsGenerating(true);
-             toast.loading('대량 라벨 PDF를 생성하고 있습니다...', { id: 'label-print' });
+             toast.loading(D.labelPdfGen, { id: 'label-print' });
              
              try {
                // 캔버스 데이터 + 추가 메시지 블록 조합
@@ -546,12 +550,12 @@ function DesignStudioContent() {
 
                if (pdfBytes) {
                  PrintCommander.triggerPrintPopup(pdfBytes);
-                 toast.success('라벨 PDF 생성이 완료되었습니다.', { id: 'label-print' });
+                 toast.success(D.labelPdfReady, { id: 'label-print' });
                }
                setIsFormtecModalOpen(false);
              } catch (e) {
                console.error(e);
-               toast.error('라벨 인쇄 중 오류가 발생했습니다.', { id: 'label-print' });
+               toast.error(D.labelPrintErr, { id: 'label-print' });
              } finally {
                setIsGenerating(false);
              }
@@ -563,7 +567,7 @@ function DesignStudioContent() {
       {isGenerating && (
         <div className="fixed inset-0 bg-white/60 backdrop-blur-xl z-[200] flex flex-col items-center justify-center animate-in fade-in duration-500">
           <div className="w-20 h-20 border-8 border-indigo-100 border-t-indigo-600 rounded-full animate-spin" />
-          <p className="mt-8 text-xl font-black text-indigo-900 tracking-tighter animate-pulse">Design System Syncing...</p>
+          <p className="mt-8 text-xl font-black text-indigo-900 tracking-tighter animate-pulse">{D.syncing}</p>
         </div>
       )}
 
@@ -576,8 +580,10 @@ function DesignStudioContent() {
 }
 
 export default function DesignStudio() {
+  const locale = usePreferredLocale();
+  const D = getMessages(locale).dashboard.designStudio;
   return (
-    <Suspense fallback={<div className="flex h-screen items-center justify-center">Loading Studio...</div>}>
+    <Suspense fallback={<div className="flex h-screen items-center justify-center">{D.loadingStudio}</div>}>
       <DesignStudioContent />
     </Suspense>
   );

@@ -34,80 +34,88 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
-
-const PRIMARY = [
-  { href: "/dashboard", label: "홈", icon: LayoutDashboard, match: (p: string) => p === "/dashboard" },
-  {
-    href: "/dashboard/orders",
-    label: "주문",
-    icon: ScrollText,
-    match: (p: string) => p.startsWith("/dashboard/orders"),
-  },
-  { href: "/dashboard/delivery", label: "배송", icon: Truck, match: (p: string) => p.startsWith("/dashboard/delivery") },
-  { href: "/dashboard/customers", label: "고객", icon: Users, match: (p: string) => p.startsWith("/dashboard/customers") },
-] as const;
+import { useDashboardTr } from "@/hooks/use-dashboard-tr";
 
 type MoreItem = { href: string; label: string; icon: typeof BarChart3 };
 
-function tenantMoreLinks(): MoreItem[] {
-  return [
-    { href: "/dashboard/org-board", label: "본사 게시판", icon: Megaphone },
-    { href: "/dashboard/orders/new", label: "새 주문", icon: Plus },
-    { href: "/dashboard/reports", label: "정산 · 보고서", icon: BarChart3 },
-    { href: "/dashboard/analytics", label: "매입·매출 통계", icon: BarChart3 },
-    { href: "/dashboard/expenses", label: "지출", icon: CreditCard },
-    { href: "/dashboard/tax", label: "세무", icon: FileText },
-    { href: "/dashboard/inventory", label: "재고", icon: Boxes },
-    { href: "/dashboard/products", label: "상품", icon: Boxes },
-    { href: "/dashboard/external-orders", label: "협력사 수발주", icon: Share2 },
-    { href: "/dashboard/marketing", label: "AI 홍보 마스터", icon: Sparkles },
-    { href: "/dashboard/design-studio", label: "카드 디자인", icon: Layout },
-    { href: "/dashboard/settings/pos", label: "POS 연동", icon: Monitor },
-    { href: "/dashboard/settings", label: "환경 설정", icon: Settings },
-    { href: "/dashboard/subscription", label: "구독 · 플랜", icon: Gem },
-  ];
-}
-
-function adminMoreLinks(): MoreItem[] {
-  return [
-    { href: "/dashboard/orders/new", label: "새 주문", icon: Plus },
-    { href: "/dashboard/admin/staff", label: "직원(Staff) 관리", icon: Users },
-    { href: "/dashboard/admin/checklist", label: "일일 체크리스트", icon: ShieldCheck },
-    { href: "/dashboard/tenants", label: "전국 화원사 관리", icon: Store },
-    { href: "/dashboard/billing-admin", label: "구독 · 결제 관제", icon: CreditCard },
-    { href: "/dashboard/announcements", label: "글로벌 공지", icon: FileText },
-    { href: "/dashboard/admin/faq", label: "FAQ · AI 지식", icon: FileText },
-    { href: "/dashboard/marketing/admin", label: "플랫폼 홍보 마스터", icon: Sparkles },
-    { href: "/dashboard/admin/design-templates", label: "디자인 템플릿 관리", icon: Layout },
-    { href: "/dashboard/system-settings", label: "전역 설정", icon: Settings },
-    { href: "/dashboard/settings", label: "화원사 환경 설정", icon: Settings },
-  ];
-}
-
 export function AndroidAppChrome() {
+  const { tr } = useDashboardTr();
   const isAndroidApp = useIsCapacitorAndroid();
   const pathname = usePathname() || "";
   const { profile, isLoading } = useAuth();
   const [moreOpen, setMoreOpen] = useState(false);
 
+  const primaryNav = [
+    { href: "/dashboard", label: tr("홈", "Home"), icon: LayoutDashboard, match: (p: string) => p === "/dashboard" },
+    {
+      href: "/dashboard/orders",
+      label: tr("주문", "Orders"),
+      icon: ScrollText,
+      match: (p: string) => p.startsWith("/dashboard/orders"),
+    },
+    {
+      href: "/dashboard/delivery",
+      label: tr("배송", "Delivery"),
+      icon: Truck,
+      match: (p: string) => p.startsWith("/dashboard/delivery"),
+    },
+    {
+      href: "/dashboard/customers",
+      label: tr("고객", "Customers"),
+      icon: Users,
+      match: (p: string) => p.startsWith("/dashboard/customers"),
+    },
+  ] as const;
+
+  const tenantMoreLinks: MoreItem[] = [
+    { href: "/dashboard/org-board", label: tr("본사 게시판", "HQ board"), icon: Megaphone },
+    { href: "/dashboard/orders/new", label: tr("새 주문", "New order"), icon: Plus },
+    { href: "/dashboard/reports", label: tr("정산 · 보고서", "Reports"), icon: BarChart3 },
+    { href: "/dashboard/analytics", label: tr("매입·매출 통계", "Sales & expenses"), icon: BarChart3 },
+    { href: "/dashboard/expenses", label: tr("지출", "Expenses"), icon: CreditCard },
+    { href: "/dashboard/tax", label: tr("세무", "Tax"), icon: FileText },
+    { href: "/dashboard/inventory", label: tr("재고", "Inventory"), icon: Boxes },
+    { href: "/dashboard/products", label: tr("상품", "Products"), icon: Boxes },
+    { href: "/dashboard/external-orders", label: tr("협력사 수발주", "Partner orders"), icon: Share2 },
+    { href: "/dashboard/marketing", label: tr("AI 홍보 마스터", "AI Marketing"), icon: Sparkles },
+    { href: "/dashboard/design-studio", label: tr("카드 디자인", "Card design"), icon: Layout },
+    { href: "/dashboard/settings/pos", label: tr("POS 연동", "POS"), icon: Monitor },
+    { href: "/dashboard/settings", label: tr("환경 설정", "Settings"), icon: Settings },
+    { href: "/dashboard/subscription", label: tr("구독 · 플랜", "Subscription"), icon: Gem },
+  ];
+
+  const adminMoreLinks: MoreItem[] = [
+    { href: "/dashboard/orders/new", label: tr("새 주문", "New order"), icon: Plus },
+    { href: "/dashboard/admin/staff", label: tr("직원(Staff) 관리", "Staff"), icon: Users },
+    { href: "/dashboard/admin/checklist", label: tr("일일 체크리스트", "Daily checklist"), icon: ShieldCheck },
+    { href: "/dashboard/tenants", label: tr("전국 화원사 관리", "Stores"), icon: Store },
+    { href: "/dashboard/billing-admin", label: tr("구독 · 결제 관제", "Billing"), icon: CreditCard },
+    { href: "/dashboard/announcements", label: tr("글로벌 공지", "Announcements"), icon: FileText },
+    { href: "/dashboard/admin/faq", label: tr("FAQ · AI 지식", "FAQ · AI"), icon: FileText },
+    { href: "/dashboard/marketing/admin", label: tr("플랫폼 홍보 마스터", "Platform marketing"), icon: Sparkles },
+    { href: "/dashboard/admin/design-templates", label: tr("디자인 템플릿 관리", "Design templates"), icon: Layout },
+    { href: "/dashboard/system-settings", label: tr("전역 설정", "Global settings"), icon: Settings },
+    { href: "/dashboard/settings", label: tr("화원사 환경 설정", "Store settings"), icon: Settings },
+  ];
+
   if (!isAndroidApp) return null;
 
   const isSuperAdmin = profile?.role === "super_admin";
-  const moreItems = isSuperAdmin ? adminMoreLinks() : tenantMoreLinks();
+  const moreItems = isSuperAdmin ? adminMoreLinks : tenantMoreLinks;
 
   const moreActive = moreItems.some(
     (item) => pathname === item.href || pathname.startsWith(`${item.href}/`)
   );
-  const primaryActive = PRIMARY.some((t) => t.match(pathname));
+  const primaryActive = primaryNav.some((item) => item.match(pathname));
 
   return (
     <>
       <nav
         className="fixed bottom-0 left-0 right-0 z-[100] border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl dark:border-slate-800 dark:bg-slate-900/95 shadow-[0_-4px_24px_rgba(0,0,0,0.06)]"
-        aria-label="앱 하단 메뉴"
+        aria-label={tr("앱 하단 메뉴", "Bottom app navigation")}
       >
         <div className="mx-auto flex max-w-2xl items-stretch justify-around px-1 pt-1">
-          {PRIMARY.map((item) => {
+          {primaryNav.map((item) => {
             const active = item.match(pathname);
             const Icon = item.icon;
             return (
@@ -143,7 +151,7 @@ export function AndroidAppChrome() {
               )}
               aria-hidden
             />
-            <span>더보기</span>
+            <span>{tr("더보기", "More")}</span>
           </button>
         </div>
       </nav>
@@ -151,7 +159,7 @@ export function AndroidAppChrome() {
       <Link
         href="/dashboard/orders/new"
         className="fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] right-4 z-[101] inline-flex h-14 w-14 items-center justify-center rounded-full bg-indigo-600 text-white shadow-lg shadow-indigo-500/30 hover:bg-indigo-500 active:scale-95"
-        aria-label="새 주문"
+        aria-label={tr("새 주문", "New order")}
       >
         <Plus className="h-7 w-7" />
       </Link>
@@ -159,14 +167,17 @@ export function AndroidAppChrome() {
       <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
         <SheetContent side="bottom" className="max-h-[85vh] rounded-t-3xl">
           <SheetHeader className="text-left">
-            <SheetTitle>전체 메뉴</SheetTitle>
+            <SheetTitle>{tr("전체 메뉴", "All menu items")}</SheetTitle>
             <SheetDescription className="sr-only">
-              리본 프린터는 Android 앱에서 지원하지 않습니다. PC에서 이용해 주세요.
+              {tr(
+                "리본 프린터는 Android 앱에서 지원하지 않습니다. PC에서 이용해 주세요.",
+                "Ribbon printer is not available in the Android app. Please use a desktop browser."
+              )}
             </SheetDescription>
           </SheetHeader>
           {!isLoading && isSuperAdmin ? (
             <p className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900 dark:bg-amber-950/50 dark:text-amber-100">
-              관리자 기능 중 일부는 PC 웹 사용을 권장합니다.
+              {tr("관리자 기능 중 일부는 PC 웹 사용을 권장합니다.", "Some admin features work best on desktop web.")}
             </p>
           ) : null}
           <ul className="mt-4 max-h-[60vh] space-y-0.5 overflow-y-auto pb-8">

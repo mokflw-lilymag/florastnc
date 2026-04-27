@@ -1,137 +1,188 @@
 import { X, BookOpen, Settings, PenTool } from 'lucide-react';
+import { usePreferredLocale } from '@/hooks/use-preferred-locale';
+import { getMessages } from '@/i18n/getMessages';
 
-export function ManualDialog({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
+export function ManualDialog({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  const locale = usePreferredLocale();
+  const R = getMessages(locale).dashboard.ribbon;
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[500] p-4">
       <div className="bg-slate-800 w-full max-w-4xl max-h-[90vh] rounded-2xl border border-slate-600 shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
-        
-        {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-slate-700 bg-slate-900/50">
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
             <BookOpen className="text-blue-400 w-6 h-6" />
-            Ribbonist 시작 가이드
+            {R.manualTitle}
           </h2>
-          <button 
-            onClick={onClose} 
+          <button
+            type="button"
+            onClick={onClose}
             className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
           >
             <X size={20} />
           </button>
         </div>
 
-        {/* Scrollable Content */}
         <div className="p-6 md:p-8 overflow-y-auto space-y-8 text-sm md:text-base text-slate-300">
-          
-          {/* Step 1 */}
           <section className="bg-slate-900/50 p-6 rounded-xl border-t-4 border-slate-700 hover:border-blue-500 transition-colors">
             <h3 className="text-xl font-bold text-blue-400 mb-3 flex items-center gap-2">
-              <span className="bg-blue-600 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm">1</span> 
-              가장 먼저 해야 할 일: 하드웨어 기본 설정
+              <span className="bg-blue-600 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm">1</span>
+              {R.manualS1Title}
             </h3>
             <div className="space-y-3 text-slate-300 ml-9">
-              <p>출력을 시작하기 전, 내가 쓸 <strong>'리본 용지'와 '프린터'</strong>를 프로그램에 딱 맞게 세팅하는 단계입니다.</p>
+              <p>
+                {R.manualS1IntroBefore}
+                <strong>{R.manualS1IntroStrong}</strong>
+                {R.manualS1IntroAfter}
+              </p>
               <ul className="list-disc list-outside ml-5 space-y-2 text-sm leading-relaxed text-slate-400 mt-2">
-                <li><strong className="text-slate-200">리본 폭/길이 선택:</strong> 화면 좌측상단 <strong>[프리셋]</strong>에서 자신이 보유한 리본(예: 3줄짜리 100mm 등)을 고릅니다.</li>
-                <li><strong className="text-amber-400">롤 리본 vs 컷 리본:</strong> 이게 정말 중요합니다! 돌돌 말려있는 <strong>'롤 리본'</strong>이라면 글씨가 잘리지 않게 ✂️커팅 여유분(예: 5cm)을 설정하세요. 한 장씩 미리 잘려있는 <strong>'컷 리본'</strong>이라면 커팅 여유분이 필요 없습니다.</li>
-                <li><strong className="text-slate-200">내 매장 프린터 연결:</strong> 출력 프린터 메뉴에서 현재 연결된 엡손 프린터를 선택하고, 인쇄 품질(고속/고급)을 고르세요.</li>
+                <li>
+                  <strong className="text-slate-200">{R.manualS1Li1Label}</strong> {R.manualS1Li1Mid1}
+                  <strong>[{R.manualS1Li1Preset}]</strong>
+                  {R.manualS1Li1Mid2}
+                </li>
+                <li>
+                  <strong className="text-amber-400">{R.manualS1Li2Label}</strong> {R.manualS1Li2Mid1}
+                  <strong>{R.manualS1Li2Roll}</strong>
+                  {R.manualS1Li2Mid2}
+                  <strong>{R.manualS1Li2Cut}</strong>
+                  {R.manualS1Li2Mid3}
+                </li>
+                <li>
+                  <strong className="text-slate-200">{R.manualS1Li3Label}</strong> {R.manualS1Li3Body}
+                </li>
               </ul>
             </div>
           </section>
 
-          {/* Step 2 */}
           <section className="bg-slate-900/50 p-6 rounded-xl border-t-4 border-slate-700 hover:border-emerald-500 transition-colors">
             <h3 className="text-xl font-bold text-emerald-400 mb-3 flex items-center gap-2">
-              <span className="bg-emerald-600 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm">2</span> 
-              리본에 글씨 적기 & 폰트 마법사
+              <span className="bg-emerald-600 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm">2</span>
+              {R.manualS2Title}
             </h3>
             <div className="space-y-3 text-slate-300 ml-9">
-              <p>본격적으로 화환에 들어갈 글씨를 입력하고 예쁘게 단장하는 단계입니다.</p>
+              <p>{R.manualS2Intro}</p>
               <ul className="list-disc list-outside ml-5 space-y-2 text-sm leading-relaxed text-slate-400 mt-2">
-                <li><strong className="text-slate-200">입력칸 분리:</strong> 위쪽 텍스트 창에는 <strong>'경조사(좌측 리본)'</strong>를, 아래쪽 텍스트 창에는 <strong>'보내는 이(우측 리본)'</strong>를 따로따로 적어주시면 됩니다.</li>
-                <li><strong className="text-blue-300">자주 쓰는 문구 원클릭:</strong> 매번 번거롭게 타이핑하지 마세요. 화면 하단 <strong>'상용구 뱅크'</strong>에서 祝發展(축발전) 등을 한 번만 클릭하면 텍스트 창에 쏙 들어갑니다!</li>
-                <li><strong className="text-slate-200 flex items-center gap-1 mt-1"><PenTool className="w-4 h-4 text-emerald-400"/> 폰트 마법사 (핵심!):</strong> 한글, 한자, 영문의 글씨체를 각각 다르게 설정해 가장 고급스러운 리본을 만들어보세요. (예: 한자는 붓글씨체, 한글은 굵은 명조체)</li>
-                <li>필요시 <Settings className="w-3 h-3 inline"/> (스패너 아이콘)을 눌러 디자인 회사의 전용 폰트나 내가 좋아하는 웹 폰트를 자유롭게 추가할 수 있습니다.</li>
+                <li>
+                  <strong className="text-slate-200">{R.manualS2Li1Label}</strong> {R.manualS2Li1Mid1}
+                  <strong>{R.manualS2Li1Left}</strong>
+                  {R.manualS2Li1Mid2}
+                  <strong>{R.manualS2Li1Right}</strong>
+                  {R.manualS2Li1Mid3}
+                </li>
+                <li>
+                  <strong className="text-blue-300">{R.manualS2Li2Label}</strong> {R.manualS2Li2Mid1}
+                  <strong>{R.manualS2Li2Bank}</strong>
+                  {R.manualS2Li2Mid2}
+                </li>
+                <li>
+                  <strong className="text-slate-200 flex items-center gap-1 mt-1">
+                    <PenTool className="w-4 h-4 text-emerald-400" /> {R.manualS2Li3Label}
+                  </strong>{' '}
+                  {R.manualS2Li3Body}
+                </li>
+                <li>
+                  {R.manualS2Li4BeforeIcon}
+                  <Settings className="w-3 h-3 inline" /> {R.manualS2Li4AfterIcon}
+                </li>
               </ul>
             </div>
           </section>
 
-          {/* Step 3 */}
           <section className="bg-slate-900/50 p-6 rounded-xl border-t-4 border-slate-700 hover:border-amber-500 transition-colors">
             <h3 className="text-xl font-bold text-amber-400 mb-4 flex items-center gap-2">
-              <span className="bg-amber-500 text-slate-900 rounded-full w-7 h-7 flex items-center justify-center text-sm">3</span> 
-              전문가 비밀 스킬: 디자인 마법 (7대 법칙)
+              <span className="bg-amber-500 text-slate-900 rounded-full w-7 h-7 flex items-center justify-center text-sm">3</span>
+              {R.manualS3Title}
             </h3>
             <div className="space-y-3 text-slate-300 ml-9">
-              <p>텍스트 입력창에 그냥 타이핑하기만 하면 알아서 디자인이 맞춰지는 마법의 특수 문법들입니다!</p>
-              
+              <p>{R.manualS3Intro}</p>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                 <div className="bg-slate-800 p-5 rounded-lg border border-slate-600 shadow-md">
                   <h4 className="text-white text-base font-bold mb-2 flex items-center gap-2">
-                    <span className="bg-slate-700 px-2 py-0.5 rounded text-amber-400 text-sm">[ ]</span> 1칸 압축하기
+                    <span className="bg-slate-700 px-2 py-0.5 rounded text-amber-400 text-sm">[ ]</span> {R.manualS3R1Title}
                   </h4>
-                  <p className="text-xs text-slate-400 leading-relaxed mb-2">글자 수가 많아 옆으로 삐져나갈 때 사용합니다.</p>
+                  <p className="text-xs text-slate-400 leading-relaxed mb-2">{R.manualS3R1Desc}</p>
                   <div className="bg-slate-900 p-2 rounded text-sm font-mono text-emerald-300 border border-slate-700/50">
-                    입력: <span className="text-white">祝 [홍길동]</span><br/>
-                    효과: 홍길동 세 글자가 한 칸 크기에 쏙!
+                    {R.manualS3R1InputLbl} <span className="text-white">{R.manualS3R1Sample}</span>
+                    <br />
+                    {R.manualS3R1Effect}
                   </div>
                 </div>
-                
+
                 <div className="bg-slate-800 p-5 rounded-lg border border-slate-600 shadow-md">
                   <h4 className="text-white text-base font-bold mb-2 flex items-center gap-2">
-                    <span className="bg-slate-700 px-2 py-0.5 rounded text-amber-400 text-sm">[ / ]</span> 2줄로 나누기
+                    <span className="bg-slate-700 px-2 py-0.5 rounded text-amber-400 text-sm">[ / ]</span> {R.manualS3R2Title}
                   </h4>
-                  <p className="text-xs text-slate-400 leading-relaxed mb-2">동호회, 직함 등 소속이 길 때 오른쪽/왼쪽 두 줄로 나눕니다.</p>
+                  <p className="text-xs text-slate-400 leading-relaxed mb-2">{R.manualS3R2Desc}</p>
                   <div className="bg-slate-900 p-2 rounded text-sm font-mono text-emerald-300 border border-slate-700/50">
-                    입력: <span className="text-white">[대한협회/회장] 홍길동</span><br/>
-                    효과: 대한협회와 회장이 위아래 두 줄로 겹쳐짐!
+                    {R.manualS3R2InputLbl} <span className="text-white">{R.manualS3R2Sample}</span>
+                    <br />
+                    {R.manualS3R2Effect}
                   </div>
                 </div>
 
                 <div className="bg-slate-800 p-5 rounded-lg border border-slate-600 shadow-md">
-                  <h4 className="text-white text-base font-bold mb-2">👆 영어/숫자 눕히기 (클릭)</h4>
-                  <p className="text-xs text-slate-400 leading-relaxed">프리뷰 화면(우측 캔버스)에 둥둥 떠있는 영어 단어나 숫자 "1,2,3" 을 마우스로 <strong>그냥 클릭</strong> 해보세요! 똑바로 서있던 글씨가 90도로 휙 누웠다가 다시 섭니다.</p>
+                  <h4 className="text-white text-base font-bold mb-2">{R.manualS3R3Title}</h4>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    {R.manualS3R3DescBefore}
+                    <strong>{R.manualS3R3ClickStrong}</strong>
+                    {R.manualS3R3DescAfter}
+                  </p>
                 </div>
 
                 <div className="bg-slate-800 p-5 rounded-lg border border-slate-600 shadow-md">
-                  <h4 className="text-white text-base font-bold mb-2">(주) 전각 문자 보정</h4>
-                  <p className="text-xs text-slate-400 leading-relaxed"><code>(주)홍길동상사</code> 라고 회사 특수문자를 적어보세요. 괄호가 보기에 안 예쁘다구요? 걱정 마세요. 화면에서는 시스템이 가장 예쁜 정방형 기호로 자동 보정해줍니다.</p>
+                  <h4 className="text-white text-base font-bold mb-2">{R.manualS3R4Title}</h4>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    {R.manualS3R4DescBefore}
+                    <code>{R.manualS3R4Code}</code>
+                    {R.manualS3R4DescAfter}
+                  </p>
                 </div>
               </div>
             </div>
           </section>
 
-          {/* Step 4 */}
           <section className="bg-slate-900/50 p-6 rounded-xl border-t-4 border-slate-700 hover:border-indigo-500 transition-colors">
             <h3 className="text-xl font-bold text-indigo-400 mb-3 flex items-center gap-2">
-              <span className="bg-indigo-600 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm">4</span> 
-              만든 템플릿 저장하기 및 출력
+              <span className="bg-indigo-600 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm">4</span>
+              {R.manualS4Title}
             </h3>
             <div className="space-y-3 text-slate-300 ml-9">
               <ul className="list-disc list-outside ml-5 space-y-3 text-sm leading-relaxed text-slate-400">
-                <li><strong className="text-white">템플릿 영구 보관 (TEMPLATES):</strong> 화면 정중앙 하단에 떠 있는 버튼들 중 <strong>[Templates]</strong> 버튼을 누르세요. 지금 기가 막히게 세팅해둔 폰트 굵기, 간격, 레이아웃을 '친구 결혼식 양식' 같은 이름으로 평생 저장해 두고 클릭 한 번에 불러올 수 있습니다.</li>
-                <li><strong className="text-blue-400">즉시 인쇄 (PRINT):</strong> 모든 준비가 끝났다면 제일 큰 파란색 <strong>[PRINT]</strong> 버튼을 누르세요. 현장 엡손 프린터에서 즉시 출력을 시작합니다!</li>
-                <li><strong className="text-red-400">❗ 알림:</strong> 현재 접속하신 <span className="underline">무료 체험 형태</span>에서는 보안상 PRINT(출력)와 TEMPLATES(저장) 버튼이 작동하지 않습니다. 1분 만에 회원가입을 마치시고 이 모든 기능을 즐겨보세요!</li>
+                <li>
+                  <strong className="text-white">{R.manualS4Li1Label}</strong> {R.manualS4Li1Body}
+                </li>
+                <li>
+                  <strong className="text-blue-400">{R.manualS4Li2Label}</strong> {R.manualS4Li2Body}
+                </li>
+                <li>
+                  <strong className="text-red-400">{R.manualS4Li3Label}</strong> {R.manualS4Li3BeforeU}
+                  <span className="underline">{R.manualS4Li3Underlined}</span>
+                  {R.manualS4Li3AfterU}
+                </li>
               </ul>
             </div>
           </section>
 
-          {/* Section 5 (Hotline) */}
           <section className="bg-slate-900/50 p-6 rounded-xl border border-slate-700">
             <h3 className="text-lg font-bold text-blue-400 mb-4 flex items-center gap-2">
-              <span role="img" aria-label="headset">🎧</span> 5. 고객센터 및 1:1 Q&A 안내
+              <span role="img" aria-label="headset">
+                🎧
+              </span>{' '}
+              {R.manualS5Title}
             </h3>
             <div className="space-y-4 text-slate-300">
-              <p>기기 사용 중 장애가 발생하거나, 구독 연장 등 각종 문의 사항이 있으시다면 언제든지 아래 핫라인으로 연락해 주시기 바랍니다.</p>
-              
+              <p>{R.manualS5Intro}</p>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-slate-800 p-4 rounded-lg flex items-center justify-between border border-blue-500/30">
                   <div className="flex items-center gap-3">
                     <div className="bg-blue-900/50 p-2 rounded-full text-2xl">📞</div>
                     <div>
-                      <h4 className="font-semibold text-white">전화 상담</h4>
-                      <p className="text-sm text-slate-400">평일 09:00 - 18:00 (주말 불가)</p>
+                      <h4 className="font-semibold text-white">{R.manualS5PhoneTitle}</h4>
+                      <p className="text-sm text-slate-400">{R.manualS5PhoneHours}</p>
                     </div>
                   </div>
                   <div className="text-blue-400 font-extrabold text-xl font-mono">1588-0000</div>
@@ -141,8 +192,8 @@ export function ManualDialog({ isOpen, onClose }: { isOpen: boolean, onClose: ()
                   <div className="flex items-center gap-3">
                     <div className="bg-amber-900/50 p-2 rounded-full text-2xl">💬</div>
                     <div>
-                      <h4 className="font-semibold text-white">카카오톡 1:1 문의</h4>
-                      <p className="text-sm text-slate-400">24시간 질문 접수 가능</p>
+                      <h4 className="font-semibold text-white">{R.manualS5KakaoTitle}</h4>
+                      <p className="text-sm text-slate-400">{R.manualS5KakaoHours}</p>
                     </div>
                   </div>
                   <div className="text-amber-400 font-bold">@ribbonprint</div>
@@ -151,27 +202,28 @@ export function ManualDialog({ isOpen, onClose }: { isOpen: boolean, onClose: ()
 
               <div className="text-sm mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-300 flex items-start gap-2">
                 <span className="shrink-0 mt-0.5">⚠️</span>
-                <p>일반 에러나 버그 신고는 카카오톡으로 화면 스크린샷과 함께 보내주시면 가장 빠르게 해결해 드릴 수 있습니다.</p>
+                <p>{R.manualS5BugNote}</p>
               </div>
             </div>
           </section>
 
-          {/* Step 6 (Troubleshooting) */}
           <section className="bg-red-500/5 p-6 rounded-xl border-t-4 border-red-500/30 hover:border-red-500 transition-colors shadow-lg">
             <h3 className="text-xl font-bold text-red-400 mb-4 flex items-center gap-2">
-              <span className="bg-red-600 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm">6</span> 
-              리본 브릿지 "클린 재설치" 가이드 (연결 장애 시)
+              <span className="bg-red-600 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm">6</span>
+              {R.manualS6Title}
             </h3>
             <div className="space-y-4 ml-9">
-              <p className="text-slate-200">브릿지 서버가 켜지지 않거나, 설치 시 "파일이 사용 중" 에러가 난다면 아래 3단계를 수행하세요.</p>
-              
+              <p className="text-slate-200">{R.manualS6Intro}</p>
+
               <div className="space-y-4 mt-4">
                 <div className="flex gap-3 text-left">
                   <div className="shrink-0 w-6 h-6 rounded bg-slate-700 flex items-center justify-center text-xs font-bold text-white mt-1">1</div>
                   <div>
-                    <h4 className="text-white font-bold mb-1">브라우저 상태 초기화 (사이트 설정 비우기)</h4>
+                    <h4 className="text-white font-bold mb-1">{R.manualS6T1Title}</h4>
                     <p className="text-sm text-slate-400 leading-relaxed">
-                      리본 프린터 화면 사이드바 최상단의 <span className="text-blue-400 font-bold">[브릿지 연결 문제 해결 (초기화)]</span> 버튼을 클릭하세요. 잘못된 연결 기록을 지우고 설치 안내 팝업을 다시 띄워줍니다.
+                      {R.manualS6T1BeforeBtn}
+                      <span className="text-blue-400 font-bold">{R.manualS6T1Btn}</span>
+                      {R.manualS6T1AfterBtn}
                     </p>
                   </div>
                 </div>
@@ -179,10 +231,13 @@ export function ManualDialog({ isOpen, onClose }: { isOpen: boolean, onClose: ()
                 <div className="flex gap-3 text-left">
                   <div className="shrink-0 w-6 h-6 rounded bg-slate-700 flex items-center justify-center text-xs font-bold text-white mt-1">2</div>
                   <div>
-                    <h4 className="text-white font-bold mb-1">실행 중인 숨은 프로세스 끄기 (가장 중요!)</h4>
+                    <h4 className="text-white font-bold mb-1">{R.manualS6T2Title}</h4>
                     <p className="text-sm text-slate-400 leading-relaxed">
-                      설치 중 에러가 난다면 배후에서 살아있는 프로세스를 먼저 꺼야 합니다. <br/>
-                      <span className="text-amber-400 font-bold">작업 관리자(Ctrl+Shift+Esc)</span>의 [세부 정보] 탭에서 아래 두 이름을 찾아 <span className="underline">[작업 끝내기]</span> 하세요.
+                      {R.manualS6T2P1} <br />
+                      <span className="text-amber-400 font-bold">{R.manualS6T2TaskMgr}</span>
+                      {R.manualS6T2P2}
+                      <span className="underline">{R.manualS6T2EndTask}</span>
+                      {R.manualS6T2P3}
                     </p>
                     <div className="mt-2 flex gap-2">
                       <code className="bg-slate-900 px-2 py-1 rounded text-red-300 border border-slate-700 text-xs font-mono">launch_service.exe</code>
@@ -194,9 +249,11 @@ export function ManualDialog({ isOpen, onClose }: { isOpen: boolean, onClose: ()
                 <div className="flex gap-3 text-left">
                   <div className="shrink-0 w-6 h-6 rounded bg-slate-700 flex items-center justify-center text-xs font-bold text-white mt-1">3</div>
                   <div>
-                    <h4 className="text-white font-bold mb-1">최신 설치 파일 실행</h4>
+                    <h4 className="text-white font-bold mb-1">{R.manualS6T3Title}</h4>
                     <p className="text-sm text-slate-400 leading-relaxed">
-                      안내 팝업에 나타난 버튼을 통해 <span className="text-emerald-400 font-bold">새로운 버전의 설치 파일</span>을 다시 다운로드하여 설치하세요. 설치가 완료되면 윈도우 시작 시 자동으로 실행됩니다.
+                      {R.manualS6T3Before}
+                      <span className="text-emerald-400 font-bold">{R.manualS6T3Em}</span>
+                      {R.manualS6T3After}
                     </p>
                   </div>
                 </div>

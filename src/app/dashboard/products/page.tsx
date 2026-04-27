@@ -20,6 +20,8 @@ import { Download, Upload, Settings2 } from "lucide-react";
 import Link from "next/link";
 import { SAMPLE_PRODUCTS } from "@/utils/sample-data";
 import { DASHBOARD_LIST_PAGE_SIZE } from "@/lib/dashboard-list-limit";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
 
 export default function ProductsPage() {
   const { profile, isSuperAdmin, isLoading: authLoading } = useAuth();
@@ -47,6 +49,9 @@ export default function ProductsPage() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isImporting, setIsImporting] = useState(false);
+  const locale = usePreferredLocale();
+  const isKo = toBaseLocale(locale) === "ko";
+  const tr = (ko: string, en: string) => (isKo ? ko : en);
 
   const filteredProducts = useMemo(() => {
     if (!searchTerm) return products;
@@ -93,10 +98,10 @@ export default function ProductsPage() {
           if (id) successCount++;
         }
       }
-      toast.success(`${successCount}개의 상품이 등록되었습니다.`);
+      toast.success(tr(`${successCount}개의 상품이 등록되었습니다.`, `${successCount} products imported.`));
     } catch (err) {
       console.error(err);
-      toast.error("엑셀 파일 파싱에 실패했습니다.");
+      toast.error(tr("엑셀 파일 파싱에 실패했습니다.", "Failed to parse Excel file."));
     } finally {
       setIsImporting(false);
       e.target.value = ''; // Reset input
@@ -107,21 +112,21 @@ export default function ProductsPage() {
     try {
       if (editingProduct) {
         const success = await updateProduct(editingProduct.id, data);
-        if (success) toast.success("상품이 수정되었습니다.");
+        if (success) toast.success(tr("상품이 수정되었습니다.", "Product updated."));
       } else {
         const id = await addProduct(data);
-        if (id) toast.success("새 상품이 등록되었습니다.");
+        if (id) toast.success(tr("새 상품이 등록되었습니다.", "Product created."));
       }
       setIsFormOpen(false);
     } catch (error) {
-      toast.error("저장 중 오류가 발생했습니다.");
+      toast.error(tr("저장 중 오류가 발생했습니다.", "Error while saving."));
     }
   };
 
   const handleDelete = async (id: string): Promise<boolean> => {
     const result = await deleteProduct(id);
     if (result.ok) {
-      toast.success("상품이 삭제되었습니다.");
+      toast.success(tr("상품이 삭제되었습니다.", "Product deleted."));
       return true;
     }
     toast.error(result.message);
@@ -130,7 +135,7 @@ export default function ProductsPage() {
 
   const handleLoadSamples = async () => {
     if (productStats.total > 0) {
-      if (!window.confirm("현재 상품이 이미 존재합니다. 샘플 데이터를 추가로 불러오시겠습니까?")) return;
+      if (!window.confirm(tr("현재 상품이 이미 존재합니다. 샘플 데이터를 추가로 불러오시겠습니까?", "Products already exist. Load sample data anyway?"))) return;
     }
     
     setIsImporting(true);
@@ -140,9 +145,9 @@ export default function ProductsPage() {
         await addProduct(sample);
         count++;
       }
-      toast.success(`${count}개의 샘플 상품이 등록되었습니다.`);
+      toast.success(tr(`${count}개의 샘플 상품이 등록되었습니다.`, `${count} sample products imported.`));
     } catch (err) {
-      toast.error("샘플 데이터 로딩 중 오류가 발생했습니다.");
+      toast.error(tr("샘플 데이터 로딩 중 오류가 발생했습니다.", "Sample data load failed."));
     } finally {
       setIsImporting(false);
     }
@@ -155,8 +160,8 @@ export default function ProductsPage() {
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       <PageHeader
-        title="상품 관리"
-        description="판매 상품의 목록과 재고를 실시간으로 관리하고 카테고리를 분류합니다."
+        title={tr("상품 관리", "Product Management")}
+        description={tr("판매 상품의 목록과 재고를 실시간으로 관리하고 카테고리를 분류합니다.", "Manage products, stock, and categories in real time.")}
         icon={Package}
       >
         <div className="flex flex-wrap items-center justify-end gap-2">
@@ -164,7 +169,7 @@ export default function ProductsPage() {
           <Link href="/dashboard/settings/categories">
             <Button variant="ghost" size="sm" className="hidden sm:flex text-slate-500 hover:text-slate-900 border border-transparent hover:border-slate-200">
               <Settings2 className="h-4 w-4 mr-2" />
-              카테고리 설정
+              {tr("카테고리 설정", "Category Settings")}
             </Button>
           </Link>
 
@@ -176,7 +181,7 @@ export default function ProductsPage() {
             className="border-slate-200 text-slate-900 font-medium"
           >
             <Download className="h-4 w-4 mr-2 text-green-600" />
-            데이터 다운로드
+            {tr("데이터 다운로드", "Download Data")}
           </Button>
 
           <Button 
@@ -186,7 +191,7 @@ export default function ProductsPage() {
             className="border-slate-200 text-slate-900 font-medium"
           >
             <Download className="h-4 w-4 mr-2 text-slate-500" />
-            양식 다운로드
+            {tr("양식 다운로드", "Download Template")}
           </Button>
 
           <div className="relative">
@@ -203,7 +208,7 @@ export default function ProductsPage() {
               className="bg-slate-800 hover:bg-slate-900 text-white shadow-sm transition-all"
             >
               <Upload className={`h-4 w-4 mr-2 ${isImporting ? 'animate-pulse' : ''}`} />
-              {isImporting ? '가져오는 중...' : '데이터 가져오기'}
+              {isImporting ? tr('가져오는 중...', 'Importing...') : tr('데이터 가져오기', 'Import Data')}
             </Button>
           </div>
 
@@ -215,7 +220,7 @@ export default function ProductsPage() {
             className="hidden sm:flex border-slate-200"
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-            새로고침
+            {tr("새로고침", "Refresh")}
           </Button>
           
           <Button 
@@ -224,20 +229,20 @@ export default function ProductsPage() {
             className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20"
           >
             <Plus className="h-4 w-4 mr-2" />
-            상품 추가
+            {tr("상품 추가", "Add Product")}
           </Button>
         </div>
       </PageHeader>
 
       <p className="text-xs text-muted-foreground px-1">
-        상단 요약 카드는 매장 전체 상품 기준입니다. 아래 표는 이름순으로 한 번에 {DASHBOARD_LIST_PAGE_SIZE}건씩 페이지를 나눠 불러옵니다. 검색은 현재 페이지 안에서만 적용됩니다.
+        {tr("상단 요약 카드는 매장 전체 상품 기준입니다. 아래 표는 이름순으로 한 번에", "Top summary uses all products. Table is paged by")} {DASHBOARD_LIST_PAGE_SIZE}{tr("건씩 페이지를 나눠 불러옵니다. 검색은 현재 페이지 안에서만 적용됩니다.", " rows sorted by name. Search applies on current page only.")}
       </p>
 
       {/* Stats Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="border-none shadow-sm bg-blue-50/50">
           <CardContent className="p-4 flex flex-col pt-4">
-            <span className="text-xs text-blue-600 font-semibold mb-1 uppercase tracking-wider">전체 상품</span>
+            <span className="text-xs text-blue-600 font-semibold mb-1 uppercase tracking-wider">{tr("전체 상품", "Total Products")}</span>
             <div className="flex items-baseline gap-2">
               <span className="text-2xl font-bold text-blue-900">{productStats.total}</span>
               <Package className="h-4 w-4 text-blue-300" />
@@ -246,7 +251,7 @@ export default function ProductsPage() {
         </Card>
         <Card className="border-none shadow-sm bg-emerald-50/50">
           <CardContent className="p-4 flex flex-col pt-4">
-            <span className="text-xs text-emerald-600 font-semibold mb-1 uppercase tracking-wider">판매 중</span>
+            <span className="text-xs text-emerald-600 font-semibold mb-1 uppercase tracking-wider">{tr("판매 중", "Active")}</span>
             <div className="flex items-baseline gap-2">
               <span className="text-2xl font-bold text-emerald-900">{productStats.active}</span>
               <Tag className="h-4 w-4 text-emerald-300" />
@@ -255,7 +260,7 @@ export default function ProductsPage() {
         </Card>
         <Card className="border-none shadow-sm bg-amber-50/50">
           <CardContent className="p-4 flex flex-col pt-4">
-            <span className="text-xs text-amber-600 font-semibold mb-1 uppercase tracking-wider">재고 부족</span>
+            <span className="text-xs text-amber-600 font-semibold mb-1 uppercase tracking-wider">{tr("재고 부족", "Low Stock")}</span>
             <div className="flex items-baseline gap-2">
               <span className="text-2xl font-bold text-amber-900">{productStats.lowStock}</span>
               <AlertCircle className="h-4 w-4 text-amber-300" />
@@ -264,7 +269,7 @@ export default function ProductsPage() {
         </Card>
         <Card className="border-none shadow-sm bg-red-50/50">
           <CardContent className="p-4 flex flex-col pt-4">
-            <span className="text-xs text-red-600 font-semibold mb-1 uppercase tracking-wider">품절</span>
+            <span className="text-xs text-red-600 font-semibold mb-1 uppercase tracking-wider">{tr("품절", "Out of Stock")}</span>
             <div className="flex items-baseline gap-2">
               <span className="text-2xl font-bold text-red-900">{productStats.outOfStock}</span>
               <AlertCircle className="h-4 w-4 text-red-300" />
@@ -278,7 +283,7 @@ export default function ProductsPage() {
         <div className="relative w-full sm:w-96">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <Input
-            placeholder="상품명 또는 코드로 검색..."
+            placeholder={tr("상품명 또는 코드로 검색...", "Search product name or code...")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10 border-slate-200 bg-white shadow-sm focus:ring-blue-500/20"
@@ -294,19 +299,19 @@ export default function ProductsPage() {
               <Package className="h-10 w-10 text-slate-300" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-slate-700">등록된 상품이 없습니다</h3>
+              <h3 className="text-lg font-bold text-slate-700">{tr("등록된 상품이 없습니다", "No products registered")}</h3>
               <p className="text-slate-500 max-w-xs mx-auto">
-                상품을 직접 추가하거나 엑셀로 업로드할 수 있습니다. 시스템이 처음이라면 샘플 데이터를 먼저 확인해보세요.
+                {tr("상품을 직접 추가하거나 엑셀로 업로드할 수 있습니다. 시스템이 처음이라면 샘플 데이터를 먼저 확인해보세요.", "Add products manually or import from Excel. You can start with sample data.")}
               </p>
             </div>
             <div className="flex gap-2 pt-2">
               <Button onClick={handleLoadSamples} variant="outline" className="bg-white border-blue-200 text-blue-700 hover:bg-blue-50">
                 <RefreshCw className="h-4 w-4 mr-2 text-blue-500" />
-                샘플 데이터 불러오기
+                {tr("샘플 데이터 불러오기", "Load Sample Data")}
               </Button>
               <Button onClick={handleCreateNew} className="bg-blue-600 hover:bg-blue-700 text-white font-bold">
                 <Plus className="h-4 w-4 mr-2" />
-                첫 상품 등록하기
+                {tr("첫 상품 등록하기", "Add First Product")}
               </Button>
             </div>
           </CardContent>
@@ -331,13 +336,13 @@ export default function ProductsPage() {
                 onClick={() => void setListPageAndFetch(listPage - 1)}
               >
                 <ChevronLeft className="h-4 w-4 mr-1" />
-                이전
+                {tr("이전", "Prev")}
               </Button>
               <span>
                 {productsTotalCount === 0
                   ? "0"
                   : `${listPage * DASHBOARD_LIST_PAGE_SIZE + 1}–${Math.min((listPage + 1) * DASHBOARD_LIST_PAGE_SIZE, productsTotalCount)}`}{" "}
-                / 전체 {productsTotalCount}건 · 페이지 {listPage + 1} / {Math.max(1, Math.ceil(productsTotalCount / DASHBOARD_LIST_PAGE_SIZE))}
+                / {tr("전체", "Total")} {productsTotalCount}{tr("건", "")} · {tr("페이지", "Page")} {listPage + 1} / {Math.max(1, Math.ceil(productsTotalCount / DASHBOARD_LIST_PAGE_SIZE))}
               </span>
               <Button
                 type="button"
@@ -348,7 +353,7 @@ export default function ProductsPage() {
                 }
                 onClick={() => void setListPageAndFetch(listPage + 1)}
               >
-                다음
+                {tr("다음", "Next")}
                 <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
             </div>

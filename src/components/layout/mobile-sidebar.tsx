@@ -5,6 +5,8 @@ import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/co
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Menu } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { getDashboardCommonMessages } from "@/i18n/dashboard-common-messages";
 
 interface MobileSidebarProps {
   isSuperAdmin: boolean;
@@ -33,6 +35,9 @@ export function MobileSidebar({
   showOrgBoardLink = false,
   showBranchMaterialRequestLink = false,
 }: MobileSidebarProps) {
+  const locale = usePreferredLocale();
+  const t = getDashboardCommonMessages(locale);
+
   return (
     <Sheet>
       <SheetTrigger className={cn(
@@ -40,11 +45,11 @@ export function MobileSidebar({
           "lg:hidden text-slate-500 hover:text-slate-900 border border-slate-200 shadow-sm rounded-xl"
         )}>
           <Menu className="h-5 w-5" />
-          <span className="sr-only">메뉴 열기</span>
+          <span className="sr-only">{t.sidebar.menuOpen}</span>
       </SheetTrigger>
       <SheetContent side="left" className="p-0 w-64 border-r-0">
          <SheetHeader className="sr-only">
-           <SheetTitle>메뉴</SheetTitle>
+           <SheetTitle>{t.sidebar.menu}</SheetTitle>
          </SheetHeader>
          <div className="h-full">
             {/* We can directly render the Sidebar component here, 

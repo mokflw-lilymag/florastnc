@@ -3,6 +3,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { ArrowLeft, Loader2, Plus, Trash2, Save, ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
+import { usePreferredLocale } from '@/hooks/use-preferred-locale';
+import { getMessages } from '@/i18n/getMessages';
 
 export type AdminGalleryTheme = {
   id: string;
@@ -19,6 +21,8 @@ interface DesignGalleryAdminPanelProps {
 }
 
 export function DesignGalleryAdminPanel({ onBack, onCatalogChanged }: DesignGalleryAdminPanelProps) {
+  const locale = usePreferredLocale();
+  const D = getMessages(locale).dashboard.designStudio;
   const [themes, setThemes] = useState<AdminGalleryTheme[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -32,7 +36,7 @@ export function DesignGalleryAdminPanel({ onBack, onCatalogChanged }: DesignGall
     try {
       const res = await fetch('/api/admin/design-gallery', { credentials: 'include' });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || '불러오기 실패');
+      if (!res.ok) throw new Error(json.error || D.galleryAdminLoadFail);
       const list = (json.themes ?? []) as AdminGalleryTheme[];
       setThemes(list);
       setSelectedId((prev) => {
@@ -40,7 +44,7 @@ export function DesignGalleryAdminPanel({ onBack, onCatalogChanged }: DesignGall
         return list[0]?.id ?? null;
       });
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : '목록을 불러오지 못했습니다.');
+      toast.error(e instanceof Error ? e.message : D.galleryAdminListFail);
     } finally {
       setLoading(false);
     }
@@ -62,12 +66,12 @@ export function DesignGalleryAdminPanel({ onBack, onCatalogChanged }: DesignGall
         body: JSON.stringify(patch),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || '저장 실패');
-      toast.success('테마가 저장되었습니다.');
+      if (!res.ok) throw new Error(json.error || D.galleryAdminSaveFail);
+      toast.success(D.galleryAdminThemeSaved);
       await load();
       onCatalogChanged?.();
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : '저장 오류');
+      toast.error(e instanceof Error ? e.message : D.galleryAdminSaveErr);
     } finally {
       setSaving(false);
     }
@@ -87,22 +91,22 @@ export function DesignGalleryAdminPanel({ onBack, onCatalogChanged }: DesignGall
         }),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || '추가 실패');
-      toast.success('테마가 추가되었습니다.');
+      if (!res.ok) throw new Error(json.error || D.galleryAdminAddFail);
+      toast.success(D.galleryAdminThemeAdded);
       setNewThemeSlug('');
       setNewThemeLabel('');
       await load();
       onCatalogChanged?.();
       if (json.theme?.id) setSelectedId(json.theme.id);
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : '추가 오류');
+      toast.error(e instanceof Error ? e.message : D.galleryAdminAddErr);
     } finally {
       setSaving(false);
     }
   };
 
   const deleteTheme = async (id: string) => {
-    if (!confirm('이 테마와 포함된 모든 디자인 이미지를 삭제할까요?')) return;
+    if (!confirm(D.galleryAdminDeleteThemeConfirm)) return;
     setSaving(true);
     try {
       const res = await fetch(`/api/admin/design-gallery/themes/${id}`, {
@@ -110,13 +114,13 @@ export function DesignGalleryAdminPanel({ onBack, onCatalogChanged }: DesignGall
         credentials: 'include',
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || '삭제 실패');
-      toast.success('테마가 삭제되었습니다.');
+      if (!res.ok) throw new Error(json.error || D.galleryAdminDeleteFail);
+      toast.success(D.galleryAdminThemeDeleted);
       setSelectedId(null);
       await load();
       onCatalogChanged?.();
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : '삭제 오류');
+      toast.error(e instanceof Error ? e.message : D.galleryAdminDeleteErr);
     } finally {
       setSaving(false);
     }
@@ -133,20 +137,20 @@ export function DesignGalleryAdminPanel({ onBack, onCatalogChanged }: DesignGall
         body: JSON.stringify({ theme_id: selected.id, image_url: newAssetUrl.trim() }),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || '추가 실패');
-      toast.success('디자인 이미지가 추가되었습니다.');
+      if (!res.ok) throw new Error(json.error || D.galleryAdminAddFail);
+      toast.success(D.galleryAdminDesignAdded);
       setNewAssetUrl('');
       await load();
       onCatalogChanged?.();
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : '추가 오류');
+      toast.error(e instanceof Error ? e.message : D.galleryAdminAddErr);
     } finally {
       setSaving(false);
     }
   };
 
   const deleteAsset = async (assetId: string) => {
-    if (!confirm('이 디자인을 목록에서 제거할까요?')) return;
+    if (!confirm(D.galleryAdminDeleteDesignConfirm)) return;
     setSaving(true);
     try {
       const res = await fetch(`/api/admin/design-gallery/assets/${assetId}`, {
@@ -154,12 +158,12 @@ export function DesignGalleryAdminPanel({ onBack, onCatalogChanged }: DesignGall
         credentials: 'include',
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || '삭제 실패');
-      toast.success('삭제되었습니다.');
+      if (!res.ok) throw new Error(json.error || D.galleryAdminDeleteFail);
+      toast.success(D.galleryAdminDeleted);
       await load();
       onCatalogChanged?.();
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : '삭제 오류');
+      toast.error(e instanceof Error ? e.message : D.galleryAdminDeleteErr);
     } finally {
       setSaving(false);
     }
@@ -174,16 +178,16 @@ export function DesignGalleryAdminPanel({ onBack, onCatalogChanged }: DesignGall
             onClick={onBack}
             className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100"
           >
-            <ArrowLeft size={18} /> 이전으로
+            <ArrowLeft size={18} /> {D.galleryAdminBack}
           </button>
         )}
-        <h4 className="text-sm font-black text-slate-800">템플릿 · 테마 관리</h4>
+        <h4 className="text-sm font-black text-slate-800">{D.galleryAdminTitle}</h4>
         {saving && <Loader2 className="ml-auto animate-spin text-emerald-600" size={20} />}
       </div>
 
       <div className="flex flex-1 min-h-0 overflow-hidden">
         <div className="w-72 shrink-0 border-r border-slate-200 bg-white overflow-y-auto p-4 space-y-3">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">테마</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">{D.galleryAdminThemes}</p>
           {loading ? (
             <div className="flex justify-center py-12">
               <Loader2 className="animate-spin text-emerald-600" />
@@ -212,16 +216,16 @@ export function DesignGalleryAdminPanel({ onBack, onCatalogChanged }: DesignGall
           )}
 
           <div className="pt-4 border-t border-slate-100 space-y-2">
-            <p className="text-[10px] font-black uppercase text-slate-400 px-1">새 테마</p>
+            <p className="text-[10px] font-black uppercase text-slate-400 px-1">{D.galleryAdminNewTheme}</p>
             <input
               className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs"
-              placeholder="slug (예: wedding)"
+              placeholder={D.galleryAdminSlugPlaceholder}
               value={newThemeSlug}
               onChange={(e) => setNewThemeSlug(e.target.value)}
             />
             <input
               className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs"
-              placeholder="표시 이름 (예: 💒 웨딩)"
+              placeholder={D.galleryAdminNamePlaceholder}
               value={newThemeLabel}
               onChange={(e) => setNewThemeLabel(e.target.value)}
             />
@@ -231,14 +235,14 @@ export function DesignGalleryAdminPanel({ onBack, onCatalogChanged }: DesignGall
               onClick={addTheme}
               className="w-full flex items-center justify-center gap-2 rounded-xl bg-slate-900 py-2.5 text-xs font-black text-white hover:bg-black disabled:opacity-40"
             >
-              <Plus size={16} /> 테마 추가
+              <Plus size={16} /> {D.galleryAdminAddTheme}
             </button>
           </div>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {!selected ? (
-            <p className="text-sm text-slate-400 font-bold">테마를 선택하거나 새로 추가하세요.</p>
+            <p className="text-sm text-slate-400 font-bold">{D.galleryAdminSelectHint}</p>
           ) : (
             <>
               <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-4 shadow-sm">
@@ -253,13 +257,13 @@ export function DesignGalleryAdminPanel({ onBack, onCatalogChanged }: DesignGall
                     disabled={saving}
                     className="flex items-center gap-1 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-black text-rose-700 hover:bg-rose-100"
                   >
-                    <Trash2 size={14} /> 테마 삭제
+                    <Trash2 size={14} /> {D.galleryAdminDeleteTheme}
                   </button>
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2">
                   <label className="block text-[10px] font-black uppercase text-slate-400">
-                    표시 이름
+                    {D.galleryAdminDisplayName}
                     <input
                       key={selected.id + '-label'}
                       defaultValue={selected.label}
@@ -268,7 +272,7 @@ export function DesignGalleryAdminPanel({ onBack, onCatalogChanged }: DesignGall
                     />
                   </label>
                   <label className="block text-[10px] font-black uppercase text-slate-400">
-                    Slug (고유 ID · 영문)
+                    {D.galleryAdminSlug}
                     <input
                       key={selected.id + '-slug'}
                       defaultValue={selected.slug}
@@ -277,7 +281,7 @@ export function DesignGalleryAdminPanel({ onBack, onCatalogChanged }: DesignGall
                     />
                   </label>
                   <label className="block text-[10px] font-black uppercase text-slate-400">
-                    정렬 순서
+                    {D.galleryAdminSortOrder}
                     <input
                       key={selected.id + '-sort'}
                       type="number"
@@ -293,7 +297,7 @@ export function DesignGalleryAdminPanel({ onBack, onCatalogChanged }: DesignGall
                       id={`theme-active-${selected.id}`}
                       className="h-4 w-4 rounded border-slate-300"
                     />
-                    파트너에게 표시
+                    {D.galleryAdminVisiblePartners}
                   </label>
                 </div>
 
@@ -314,19 +318,19 @@ export function DesignGalleryAdminPanel({ onBack, onCatalogChanged }: DesignGall
                   }}
                   className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-black text-white hover:bg-emerald-700"
                 >
-                  <Save size={16} /> 테마 저장
+                  <Save size={16} /> {D.galleryAdminSaveTheme}
                 </button>
               </div>
 
               <div>
                 <h6 className="text-sm font-black text-slate-800 mb-3 flex items-center gap-2">
                   <ImageIcon size={18} className="text-emerald-600" />
-                  디자인 이미지 URL
+                  {D.galleryAdminDesignImageUrl}
                 </h6>
                 <div className="flex gap-2 mb-4">
                   <input
                     className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-xs"
-                    placeholder="https://… 이미지 주소"
+                    placeholder={D.galleryAdminImagePlaceholder}
                     value={newAssetUrl}
                     onChange={(e) => setNewAssetUrl(e.target.value)}
                   />
@@ -336,7 +340,7 @@ export function DesignGalleryAdminPanel({ onBack, onCatalogChanged }: DesignGall
                     onClick={addAsset}
                     className="shrink-0 rounded-xl bg-slate-900 px-4 py-2 text-xs font-black text-white hover:bg-black disabled:opacity-40"
                   >
-                    추가
+                    {D.galleryAdminAdd}
                   </button>
                 </div>
 
@@ -347,14 +351,14 @@ export function DesignGalleryAdminPanel({ onBack, onCatalogChanged }: DesignGall
                       className="group relative rounded-2xl border border-slate-200 overflow-hidden bg-white shadow-sm"
                     >
                       <div className="aspect-[3/4] bg-slate-100">
-                        <img src={a.image_url} alt="" className="h-full w-full object-cover" loading="lazy" />
+                        <img src={a.image_url} alt={D.galleryAdminAssetAlt} className="h-full w-full object-cover" loading="lazy" />
                       </div>
                       <button
                         type="button"
                         onClick={() => deleteAsset(a.id)}
                         disabled={saving}
                         className="absolute top-2 right-2 rounded-lg bg-rose-600 p-2 text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 hover:bg-rose-700"
-                        aria-label="삭제"
+                        aria-label={D.galleryAdminDeleteAria}
                       >
                         <Trash2 size={14} />
                       </button>

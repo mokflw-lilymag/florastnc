@@ -5,6 +5,8 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { FONT_CATALOG } from "@/lib/font-catalog";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
 
 interface LabelGridSelectorProps {
     labelType: string;
@@ -67,6 +69,9 @@ export function LabelGridSelector({
     senderFont,
     senderFontSize
 }: LabelGridSelectorProps) {
+    const locale = usePreferredLocale();
+    const isKo = toBaseLocale(locale) === "ko";
+    const tr = (ko: string, en: string) => (isKo ? ko : en);
 
     const spec = LABEL_SPECS[labelType] || LABEL_SPECS['formtec-3108'];
     const SCALE = 0.6;
@@ -79,11 +84,11 @@ export function LabelGridSelector({
                 {FONT_CATALOG.map((font, i) => (
                     <link key={i} rel="stylesheet" href={font.url} />
                 ))}
-                <Label className="font-semibold">라벨 미리보기 (A4 용지)</Label>
+                <Label className="font-semibold">{tr("라벨 미리보기 (A4 용지)", "Label Preview (A4)")}</Label>
                 <div className="flex gap-1">
-                    <Button variant="outline" size="xs" onClick={onSelectFirst}>첫장만</Button>
-                    <Button variant="outline" size="xs" onClick={onSelectAll}>전체</Button>
-                    <Button variant="outline" size="xs" onClick={onClearAll}>해제</Button>
+                    <Button variant="outline" size="xs" onClick={onSelectFirst}>{tr("첫장만", "First")}</Button>
+                    <Button variant="outline" size="xs" onClick={onSelectAll}>{tr("전체", "All")}</Button>
+                    <Button variant="outline" size="xs" onClick={onClearAll}>{tr("해제", "Clear")}</Button>
                 </div>
             </div>
 
@@ -128,7 +133,7 @@ export function LabelGridSelector({
                                                 wordBreak: 'break-word',
                                             }}
                                         >
-                                            {messageContent || <span className="text-gray-300 italic text-[6px]">내용 없음</span>}
+                                            {messageContent || <span className="text-gray-300 italic text-[6px]">{tr("내용 없음", "No content")}</span>}
                                         </div>
                                         {senderName && (
                                             <div
@@ -156,7 +161,7 @@ export function LabelGridSelector({
                 </div>
             </div>
             <p className="text-[10px] text-muted-foreground text-center">
-                * 실제 A4 용지의 약 {Math.round(SCALE * 100)}% 축소 비율입니다.
+                * {tr("실제 A4 용지의 약", "This is about")} {Math.round(SCALE * 100)}% {tr("축소 비율입니다.", "of real A4 size.")}
             </p>
         </div>
     );

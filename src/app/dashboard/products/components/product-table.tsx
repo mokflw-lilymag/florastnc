@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -58,13 +60,21 @@ export function ProductTable({
   onDelete, 
   selectedProducts = [] 
 }: ProductTableProps) {
+  const locale = usePreferredLocale();
+  const baseLocale = toBaseLocale(locale);
+  const tr = (koText: string, enText: string) => (baseLocale === "ko" ? koText : enText);
+
   const pageRows = pageProducts ?? products;
-  const emptyListMessage =
-    pageRows.length > 0
-      ? "검색 결과가 없습니다."
-      : registeredTotal != null && registeredTotal > 0
-        ? "이 페이지에 표시할 상품이 없습니다. 이전 페이지로 이동해 보세요."
-        : "등록된 상품이 없습니다.";
+  const emptyListMessage = useMemo(() => {
+    if (pageRows.length > 0) return tr("검색 결과가 없습니다.", "No results match your search.");
+    if (registeredTotal != null && registeredTotal > 0) {
+      return tr(
+        "이 페이지에 표시할 상품이 없습니다. 이전 페이지로 이동해 보세요.",
+        "No products on this page. Try going to the previous page."
+      );
+    }
+    return tr("등록된 상품이 없습니다.", "No products yet.");
+  }, [pageRows.length, registeredTotal, baseLocale]);
 
   const [selectedRows, setSelectedRows] = useState<Record<string, boolean>>({});
   const [pendingDelete, setPendingDelete] = useState<Product | null>(null);
@@ -93,10 +103,10 @@ export function ProductTable({
   }, [selectedRows, products]);
 
   const getStatusInfo = (status: string, stock: number) => {
-    if (status === 'inactive') return { text: '비활성', variant: 'secondary' as const };
-    if (stock <= 0 || status === 'sold_out') return { text: '품절', variant: 'destructive' as const };
-    if (stock < 10) return { text: '재고 부족', variant: 'outline' as const };
-    return { text: '판매중', variant: 'default' as const };
+    if (status === "inactive") return { text: tr("비활성", "Inactive"), variant: "secondary" as const };
+    if (stock <= 0 || status === "sold_out") return { text: tr("품절", "Sold out"), variant: "destructive" as const };
+    if (stock < 10) return { text: tr("재고 부족", "Low stock"), variant: "outline" as const };
+    return { text: tr("판매중", "Active"), variant: "default" as const };
   };
 
   return (
@@ -109,16 +119,16 @@ export function ProductTable({
                 <Checkbox
                   checked={isAllSelected}
                   onCheckedChange={(checked) => handleSelectAll(!!checked)}
-                  aria-label="모두 선택"
+                  aria-label={tr("모두 선택", "Select all")}
                 />
               </TableHead>
-              <TableHead className="font-semibold text-slate-700">상품명</TableHead>
-              <TableHead className="font-semibold text-slate-700">카테고리</TableHead>
-              <TableHead className="font-semibold text-slate-700">가격</TableHead>
-              <TableHead className="font-semibold text-slate-700 text-right">재고</TableHead>
-              <TableHead className="font-semibold text-slate-700">상태</TableHead>
+              <TableHead className="font-semibold text-slate-700">{tr("상품명", "Product")}</TableHead>
+              <TableHead className="font-semibold text-slate-700">{tr("카테고리", "Category")}</TableHead>
+              <TableHead className="font-semibold text-slate-700">{tr("가격", "Price")}</TableHead>
+              <TableHead className="font-semibold text-slate-700 text-right">{tr("재고", "Stock")}</TableHead>
+              <TableHead className="font-semibold text-slate-700">{tr("상태", "Status")}</TableHead>
               <TableHead className="w-[80px]">
-                <span className="sr-only">작업</span>
+                <span className="sr-only">{tr("작업", "Actions")}</span>
               </TableHead>
             </TableRow>
           </TableHeader>
@@ -132,7 +142,7 @@ export function ProductTable({
                       <Checkbox
                         checked={!!selectedRows[product.id]}
                         onCheckedChange={() => handleSelectionChange(product.id)}
-                        aria-label={`${product.name} 선택`}
+                        aria-label={baseLocale === "ko" ? `${product.name} 선택` : `Select ${product.name}`}
                       />
                     </TableCell>
                     <TableCell>
@@ -189,11 +199,11 @@ export function ProductTable({
                         />
                         <DropdownMenuContent align="end" className="w-40">
                           <DropdownMenuGroup>
-                            <DropdownMenuLabel className="text-xs text-slate-500 px-2 py-1.5">관리</DropdownMenuLabel>
+                            <DropdownMenuLabel className="text-xs text-slate-500 px-2 py-1.5">{tr("관리", "Manage")}</DropdownMenuLabel>
                           </DropdownMenuGroup>
                           <DropdownMenuItem onClick={() => onEdit(product)}>
                             <Pencil className="mr-2 h-4 w-4" />
-                            수정
+                            {tr("수정", "Edit")}
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
@@ -201,7 +211,7 @@ export function ProductTable({
                             onClick={() => setPendingDelete(product)}
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
-                            삭제
+                            {tr("삭제", "Delete")}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -231,13 +241,16 @@ export function ProductTable({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-slate-900">상품 삭제</AlertDialogTitle>
+            <AlertDialogTitle className="text-slate-900">{tr("상품 삭제", "Delete product")}</AlertDialogTitle>
             <AlertDialogDescription className="text-slate-500">
-              정말로 &apos;{pendingDelete?.name}&apos; 상품을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+              {tr(
+                `정말로 '${pendingDelete?.name ?? ""}' 상품을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`,
+                `Delete "${pendingDelete?.name ?? ""}"? This cannot be undone.`
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>취소</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleting}>{tr("취소", "Cancel")}</AlertDialogCancel>
             <Button
               type="button"
               className="bg-red-600 hover:bg-red-700 text-white"
@@ -253,7 +266,7 @@ export function ProductTable({
                 }
               }}
             >
-              {deleting ? "삭제 중…" : "삭제"}
+              {deleting ? tr("삭제 중…", "Deleting…") : tr("삭제", "Delete")}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>

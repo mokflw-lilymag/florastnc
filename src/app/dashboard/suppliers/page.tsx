@@ -26,6 +26,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from 'sonner';
 import { downloadTemplate, parseExcel, exportDataToExcel } from "@/utils/excel";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
 
 export default function SuppliersPage() {
   const { suppliers, loading, addSupplier, updateSupplier, deleteSupplier } = useSuppliers();
@@ -33,6 +35,9 @@ export default function SuppliersPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
   const [isImporting, setIsImporting] = useState(false);
+  const locale = usePreferredLocale();
+  const isKo = toBaseLocale(locale) === "ko";
+  const tr = (ko: string, en: string) => (isKo ? ko : en);
 
   const [formData, setFormData] = useState<Partial<Supplier>>({
     name: "",
@@ -72,10 +77,10 @@ export default function SuppliersPage() {
           successCount++;
         }
       }
-      toast.success(`${successCount}개의 거래처가 등록되었습니다.`);
+      toast.success(tr(`${successCount}개의 거래처가 등록되었습니다.`, `${successCount} suppliers imported.`));
     } catch (err) {
       console.error(err);
-      toast.error("데이터 가져오기에 실패했습니다.");
+      toast.error(tr("데이터 가져오기에 실패했습니다.", "Failed to import data."));
     } finally {
       setIsImporting(false);
       e.target.value = '';
@@ -85,7 +90,7 @@ export default function SuppliersPage() {
 
   const handleSave = async () => {
     if (!formData.name) {
-      toast.error("업체명은 필수 항목입니다.");
+      toast.error(tr("업체명은 필수 항목입니다.", "Company name is required."));
       return;
     }
 
@@ -116,8 +121,8 @@ export default function SuppliersPage() {
   return (
     <div className="p-6 max-w-[1200px] mx-auto space-y-6 animate-in fade-in duration-500">
       <PageHeader
-        title="거래처 관리"
-        description="원부자재 및 상품 공급 업체를 관리하고 거래 상세 내역을 파악합니다."
+        title={tr("거래처 관리", "Supplier Management")}
+        description={tr("원부자재 및 상품 공급 업체를 관리하고 거래 상세 내역을 파악합니다.", "Manage vendors for materials/products and track details.")}
         icon={Building2}
       >
         <div className="flex flex-wrap items-center gap-2">
@@ -128,7 +133,7 @@ export default function SuppliersPage() {
             className="border-slate-200 text-slate-900 font-medium"
           >
             <Download className="h-4 w-4 mr-2 text-green-600" />
-            데이터 다운로드
+            {tr("데이터 다운로드", "Download Data")}
           </Button>
 
           <Button
@@ -138,7 +143,7 @@ export default function SuppliersPage() {
             className="border-slate-200 text-slate-900 font-medium"
           >
             <Download className="h-4 w-4 mr-2 text-slate-500" />
-            양식 다운로드
+            {tr("양식 다운로드", "Download Template")}
           </Button>
 
           <div className="relative">
@@ -155,7 +160,7 @@ export default function SuppliersPage() {
               className="bg-slate-800 hover:bg-slate-900 text-white shadow-sm transition-all"
             >
               <Upload className={`h-4 w-4 mr-2 ${isImporting ? 'animate-pulse' : ''}`} />
-              {isImporting ? '업로드 중...' : '엑셀 업로드'}
+              {isImporting ? tr('업로드 중...', 'Uploading...') : tr('엑셀 업로드', 'Upload Excel')}
             </Button>
           </div>
 
@@ -168,7 +173,7 @@ export default function SuppliersPage() {
               setIsAddDialogOpen(true);
             }}
           >
-            <Plus className="w-4 h-4 mr-2" /> 신규 거래처 등록
+            <Plus className="w-4 h-4 mr-2" /> {tr("신규 거래처 등록", "Add Supplier")}
           </Button>
         </div>
       </PageHeader>
@@ -176,14 +181,14 @@ export default function SuppliersPage() {
       <Card className="border-none shadow-xl bg-white/80 backdrop-blur-md">
         <CardHeader className="flex flex-row items-center justify-between pb-4 space-y-0">
           <div>
-            <CardTitle className="text-xl font-bold text-gray-800">등록된 거래처</CardTitle>
-            <CardDescription>공급업체별 정보를 실시간으로 관리하세요</CardDescription>
+            <CardTitle className="text-xl font-bold text-gray-800">{tr("등록된 거래처", "Suppliers")}</CardTitle>
+            <CardDescription>{tr("공급업체별 정보를 실시간으로 관리하세요", "Manage supplier information in real time.")}</CardDescription>
           </div>
           <div className="flex items-center gap-2 w-full max-w-sm">
             <div className="relative w-full group">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
               <Input
-                placeholder="업체명, 연락처 검색..."
+                placeholder={tr("업체명, 연락처 검색...", "Search company or contact...")}
                 className="pl-9 bg-gray-50 border-gray-200 focus:bg-white transition-all"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -218,7 +223,7 @@ export default function SuppliersPage() {
                           <div className="p-4 bg-slate-50 rounded-full">
                             <Phone className="w-10 h-10 text-slate-300" />
                           </div>
-                          <p>등록된 거래처가 없습니다.</p>
+                      <p>{tr("등록된 거래처가 없습니다.", "No suppliers found.")}</p>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -280,7 +285,7 @@ export default function SuppliersPage() {
                               size="icon"
                               className="h-8 w-8 hover:text-red-600 hover:bg-red-50"
                               onClick={() => {
-                                if (window.confirm("정말 삭제하시겠습니까?")) deleteSupplier(supplier.id);
+                                if (window.confirm(tr("정말 삭제하시겠습니까?", "Are you sure you want to delete?"))) deleteSupplier(supplier.id);
                               }}
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -301,7 +306,7 @@ export default function SuppliersPage() {
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-slate-900">
-              {editingSupplier ? "거래처 정보 수정" : "새 거래처 등록"}
+              {editingSupplier ? tr("거래처 정보 수정", "Edit Supplier") : tr("새 거래처 등록", "New Supplier")}
             </DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -388,8 +393,8 @@ export default function SuppliersPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>취소</Button>
-            <Button onClick={handleSave} className="bg-slate-800 text-white font-bold hover:bg-slate-900 border-none transition-all">저장하기</Button>
+            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>{tr("취소", "Cancel")}</Button>
+            <Button onClick={handleSave} className="bg-slate-800 text-white font-bold hover:bg-slate-900 border-none transition-all">{tr("저장하기", "Save")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

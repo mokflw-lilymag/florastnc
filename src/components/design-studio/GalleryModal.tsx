@@ -7,6 +7,8 @@ import { useEditorStore } from '@/stores/design-store';
 import { createClient } from '@/utils/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { toast } from 'sonner';
+import { usePreferredLocale } from '@/hooks/use-preferred-locale';
+import { getMessages } from '@/i18n/getMessages';
 
 interface GalleryModalProps {
   isOpen: boolean;
@@ -23,6 +25,8 @@ type RemoteTheme = {
 };
 
 export const GalleryModal: React.FC<GalleryModalProps> = ({ isOpen, onClose }) => {
+  const locale = usePreferredLocale();
+  const D = getMessages(locale).dashboard.designStudio;
   const { isSuperAdmin } = useAuth();
   const {
     listDesigns,
@@ -101,7 +105,10 @@ export const GalleryModal: React.FC<GalleryModalProps> = ({ isOpen, onClose }) =
 
   if (!isOpen) return null;
 
-  const legacyThemeTabs = GALLERY_CATEGORIES.filter((c) => c.id !== 'my_designs');
+  const legacyThemeTabs = GALLERY_CATEGORIES.filter((c) => c.id !== 'my_designs').map((c) => ({
+    id: c.id,
+    label: (D as Record<string, string>)[`galleryTheme_${c.id}`] ?? c.label,
+  }));
   const remoteThemeTabs = remoteThemes.map((t) => ({ id: t.slug, label: t.label }));
   const themeTabs = catalogSource === 'remote' ? remoteThemeTabs : legacyThemeTabs;
 
@@ -142,7 +149,7 @@ export const GalleryModal: React.FC<GalleryModalProps> = ({ isOpen, onClose }) =
     applyShopBranding('back');
 
     setIsLoading(false);
-    toast.success('배경이 적용되었습니다. 왼쪽 패널에서 텍스트 또는 이미지(PNG 등) 레이어를 추가하세요.');
+    toast.success(D.galleryApplied);
     onClose();
   };
 
@@ -159,7 +166,7 @@ export const GalleryModal: React.FC<GalleryModalProps> = ({ isOpen, onClose }) =
             </div>
             <div className="min-w-0">
               <h3 className="text-2xl font-black text-gray-800 tracking-tight truncate">
-                마이 디자인 & 프로 템플릿
+                {D.galleryTitle}
               </h3>
               <p className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.3em] mt-1">
                 Template Architecture v4.0
@@ -183,7 +190,7 @@ export const GalleryModal: React.FC<GalleryModalProps> = ({ isOpen, onClose }) =
               <div className="space-y-8">
                 <div className="space-y-3">
                   <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">
-                    Storage
+                    {D.galleryStorageSection}
                   </label>
                   <button
                     type="button"
@@ -195,13 +202,13 @@ export const GalleryModal: React.FC<GalleryModalProps> = ({ isOpen, onClose }) =
                     }`}
                   >
                     <History size={18} />
-                    <span>작업 보관함</span>
+                    <span>{D.galleryWorkspace}</span>
                   </button>
                 </div>
 
                 <div className="space-y-3">
                   <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest px-1 flex items-center gap-2">
-                    Design Themes
+                    {D.galleryThemesSection}
                     {catalogLoading && <Loader2 className="animate-spin w-3 h-3 text-emerald-500" />}
                   </label>
                   <div className="flex flex-col gap-1.5">
@@ -222,7 +229,7 @@ export const GalleryModal: React.FC<GalleryModalProps> = ({ isOpen, onClose }) =
                   </div>
                   {catalogSource === 'legacy' && (
                     <p className="text-[9px] font-bold text-amber-600/90 px-1 leading-snug">
-                      DB 카탈로그가 없어 기본 템플릿을 표시합니다. Supabase에 SQL을 적용하면 클라우드에서 관리할 수 있습니다.
+                      {D.galleryNoDb}
                     </p>
                   )}
                 </div>
@@ -234,7 +241,7 @@ export const GalleryModal: React.FC<GalleryModalProps> = ({ isOpen, onClose }) =
               {isLoading && (
                 <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-[100] flex flex-col items-center justify-center gap-4">
                   <Loader2 className="animate-spin text-emerald-600" size={40} />
-                  <p className="text-sm font-black text-emerald-800 tracking-tighter">데이터를 불러오고 있습니다...</p>
+                  <p className="text-sm font-black text-emerald-800 tracking-tighter">{D.galleryLoading}</p>
                 </div>
               )}
 
@@ -243,7 +250,7 @@ export const GalleryModal: React.FC<GalleryModalProps> = ({ isOpen, onClose }) =
                   {savedDesigns.length === 0 && !isLoading ? (
                     <div className="col-span-full py-32 flex flex-col items-center justify-center text-gray-300">
                       <Trash2 size={48} className="mb-4 opacity-10" />
-                      <p className="text-sm font-black">저장된 디자인이 없습니다.</p>
+                      <p className="text-sm font-black">{D.galleryEmpty}</p>
                     </div>
                   ) : (
                     savedDesigns.map((design) => (
@@ -268,13 +275,13 @@ export const GalleryModal: React.FC<GalleryModalProps> = ({ isOpen, onClose }) =
                           {design.background_url ? (
                             <img
                               src={design.background_url}
-                              alt="preview"
+                              alt={D.galleryImagePreviewAlt}
                               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                             />
                           ) : (
                             <div className="flex flex-col items-center gap-2 opacity-10">
                               <Layout size={40} />
-                              <span className="text-[10px] font-black">PREVIEW N/A</span>
+                              <span className="text-[10px] font-black">{D.galleryPreviewNA}</span>
                             </div>
                           )}
                           <div className="absolute inset-0 bg-emerald-600/10 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -297,7 +304,7 @@ export const GalleryModal: React.FC<GalleryModalProps> = ({ isOpen, onClose }) =
               ) : templateUrls.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-24 text-slate-400 gap-2">
                   <Search size={40} className="opacity-20" />
-                  <p className="text-sm font-black">이 테마에 등록된 디자인이 없습니다.</p>
+                  <p className="text-sm font-black">{D.galleryEmptyTheme}</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 animate-in zoom-in-95 duration-300">
@@ -318,7 +325,7 @@ export const GalleryModal: React.FC<GalleryModalProps> = ({ isOpen, onClose }) =
                       <div className="aspect-[3/4.2] bg-gray-50 flex items-center justify-center overflow-hidden relative">
                         <img
                           src={url}
-                          alt={`Template ${index}`}
+                          alt={`${D.galleryImagePreviewAlt} ${index + 1}`}
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
                           loading="lazy"
                         />
@@ -326,7 +333,7 @@ export const GalleryModal: React.FC<GalleryModalProps> = ({ isOpen, onClose }) =
 
                         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-[80%] opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition-all duration-500">
                           <span className="w-full py-3 bg-white text-emerald-600 rounded-2xl text-[11px] font-black shadow-2xl flex items-center justify-center gap-2">
-                            <Sparkles size={14} /> 템플릿 적용하기
+                            <Sparkles size={14} /> {D.galleryApply}
                           </span>
                         </div>
                       </div>

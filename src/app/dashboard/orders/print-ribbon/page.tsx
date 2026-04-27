@@ -8,6 +8,8 @@ import { useAuth } from '@/hooks/use-auth';
 import { useSearchParams } from 'next/navigation';
 import { Order } from '@/types/order';
 import { RibbonPrintLayout } from './components/ribbon-print-layout';
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
 
 const RedirectIfAndroidApp = dynamic(
   () =>
@@ -32,6 +34,9 @@ function PrintRibbonContent() {
     const [orderData, setOrderData] = useState<Order | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const locale = usePreferredLocale();
+    const isKo = toBaseLocale(locale) === "ko";
+    const tr = (ko: string, en: string) => (isKo ? ko : en);
 
     const orderId = searchParams.get('orderId') || '';
     const messageContent = searchParams.get('messageContent') || '';
@@ -40,13 +45,13 @@ function PrintRibbonContent() {
     useEffect(() => {
         const fetchOrder = async () => {
             if (!orderId) {
-                setError('주문 ID가 필요합니다.');
+                setError(tr('주문 ID가 필요합니다.', 'Order ID is required.'));
                 setIsLoading(false);
                 return;
             }
 
             if (!tenantId && !authLoading) {
-                setError('로그인이 필요합니다.');
+                setError(tr('로그인이 필요합니다.', 'Login is required.'));
                 setIsLoading(false);
                 return;
             }
@@ -64,10 +69,10 @@ function PrintRibbonContent() {
                     if (data) {
                         setOrderData(data as Order);
                     } else {
-                        setError('주문을 찾을 수 없습니다.');
+                        setError(tr('주문을 찾을 수 없습니다.', 'Order not found.'));
                     }
                 } catch (err) {
-                    setError('주문 데이터를 가져오는 중 오류가 발생했습니다.');
+                    setError(tr('주문 데이터를 가져오는 중 오류가 발생했습니다.', 'Error while fetching order data.'));
                     console.error('Error fetching order:', err);
                 } finally {
                     setIsLoading(false);
@@ -92,8 +97,8 @@ function PrintRibbonContent() {
         return (
             <div className="max-w-4xl mx-auto p-6">
                 <div className="text-center">
-                    <h2 className="text-2xl font-bold text-red-600 mb-4">오류 발생</h2>
-                    <p className="text-gray-600 font-light">{error || '주문 정보가 없습니다.'}</p>
+                    <h2 className="text-2xl font-bold text-red-600 mb-4">{tr("오류 발생", "Error")}</h2>
+                    <p className="text-gray-600 font-light">{error || tr('주문 정보가 없습니다.', 'No order information.')}</p>
                 </div>
             </div>
         );

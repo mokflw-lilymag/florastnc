@@ -13,6 +13,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
 
 interface CategoryData {
     name: string;
@@ -36,6 +38,9 @@ export function ProductSection({
     onOpenCustomProductDialog,
     onTabChange
 }: ProductSectionProps) {
+    const locale = usePreferredLocale();
+    const isKo = toBaseLocale(locale) === "ko";
+    const tr = (ko: string, en: string) => (isKo ? ko : en);
     const [activeTab, setActiveTab] = useState(initialCategory || (categories[0]?.name || ""));
     const [searchTerm, setSearchTerm] = useState("");
 
@@ -79,7 +84,7 @@ export function ProductSection({
 
     const ProductGrid = ({ products }: { products: Product[] }) => {
         if (products.length === 0) {
-            return <div className="text-center py-8 text-muted-foreground text-sm">등록된 상품이 없습니다.</div>;
+            return <div className="text-center py-8 text-muted-foreground text-sm">{tr("등록된 상품이 없습니다.", "No products found.")}</div>;
         }
         return (
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
@@ -95,10 +100,10 @@ export function ProductSection({
                             {product.name}
                         </span>
                         <span className="text-sm font-bold text-primary">
-                            {product.price.toLocaleString()}원
+                            {product.price.toLocaleString()}{tr("원", " KRW")}
                         </span>
-                        {product.stock <= 0 && <Badge variant="destructive" className="text-[10px] h-5 px-1 mt-1">품절</Badge>}
-                        {product.stock > 0 && <span className="text-[10px] text-muted-foreground">재고: {product.stock}</span>}
+                        {product.stock <= 0 && <Badge variant="destructive" className="text-[10px] h-5 px-1 mt-1">{tr("품절", "Sold out")}</Badge>}
+                        {product.stock > 0 && <span className="text-[10px] text-muted-foreground">{tr("재고", "Stock")}: {product.stock}</span>}
                     </Button>
                 ))}
             </div>
@@ -108,10 +113,10 @@ export function ProductSection({
     return (
         <Card>
             <CardHeader className="pb-3 flex flex-row items-center justify-between">
-                <CardTitle className="text-lg font-semibold">상품 선택</CardTitle>
+                <CardTitle className="text-lg font-semibold">{tr("상품 선택", "Select Products")}</CardTitle>
                 <Button variant="outline" size="sm" onClick={onOpenCustomProductDialog}>
                     <Plus className="w-4 h-4 mr-1" />
-                    직접 입력
+                    {tr("직접 입력", "Custom")}
                 </Button>
             </CardHeader>
             <CardContent>
@@ -138,7 +143,7 @@ export function ProductSection({
                         <TabsContent key={cat.name} value={cat.name} className="space-y-4">
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between">
-                                    <h4 className="text-sm font-medium text-muted-foreground">{cat.name} 판매 순위 상품</h4>
+                                    <h4 className="text-sm font-medium text-muted-foreground">{cat.name} {tr("판매 순위 상품", "Top products")}</h4>
                                 </div>
                                 <ProductGrid products={cat.products} />
                             </div>
@@ -147,12 +152,12 @@ export function ProductSection({
                 </Tabs>
 
                 <div className="mt-6 pt-4 border-t space-y-3">
-                    <Label>상품 전체 검색 및 선택</Label>
+                    <Label>{tr("상품 전체 검색 및 선택", "Search all products")}</Label>
                     <div className="flex gap-2">
                         <div className="relative flex-1">
                             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                             <Input
-                                placeholder="상품명 검색..."
+                                placeholder={tr("상품명 검색...", "Search product name...")}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="pl-9"
@@ -168,14 +173,14 @@ export function ProductSection({
                           />
                         }
                       >
-                        상품 전체 목록에서 선택...
+                        {tr("상품 전체 목록에서 선택...", "Select from full product list...")}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </PopoverTrigger>
                       <PopoverContent className="w-[300px] p-0">
                         <Command>
-                          <CommandInput placeholder="상품명 검색..." />
+                          <CommandInput placeholder={tr("상품명 검색...", "Search product name...")} />
                           <CommandList>
-                            <CommandEmpty>결과가 없습니다.</CommandEmpty>
+                            <CommandEmpty>{tr("결과가 없습니다.", "No results.")}</CommandEmpty>
                             <CommandGroup>
                               {allProducts.map((p) => (
                                 <CommandItem
@@ -194,7 +199,7 @@ export function ProductSection({
                                   />
                                   <div className="flex flex-col">
                                     <span>{p.name}</span>
-                                    <span className="text-xs text-muted-foreground">{p.price.toLocaleString()}원</span>
+                                    <span className="text-xs text-muted-foreground">{p.price.toLocaleString()}{tr("원", " KRW")}</span>
                                   </div>
                                 </CommandItem>
                               ))}
@@ -219,7 +224,7 @@ export function ProductSection({
                                 >
                                     <div className="flex flex-col">
                                         <span className="text-sm font-medium">{p.name}</span>
-                                        <span className="text-xs text-muted-foreground">{p.price.toLocaleString()}원</span>
+                                        <span className="text-xs text-muted-foreground">{p.price.toLocaleString()}{tr("원", " KRW")}</span>
                                     </div>
                                 </Button>
                             ))}

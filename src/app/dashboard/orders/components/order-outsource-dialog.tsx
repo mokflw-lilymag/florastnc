@@ -23,6 +23,8 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/hooks/use-auth";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
 
 interface OrderOutsourceDialogProps {
     isOpen: boolean;
@@ -39,6 +41,9 @@ export function OrderOutsourceDialog({
 }: OrderOutsourceDialogProps) {
     const supabase = createClient();
     const { tenantId } = useAuth();
+    const locale = usePreferredLocale();
+    const isKo = toBaseLocale(locale) === "ko";
+    const tr = (ko: string, en: string) => (isKo ? ko : en);
     const [partnerId, setPartnerId] = useState("");
     const [partnerPrice, setPartnerPrice] = useState<number>(0);
     const [notes, setNotes] = useState("");
@@ -148,7 +153,7 @@ export function OrderOutsourceDialog({
         e.preventDefault();
 
         if (!order || !partnerId || partnerPrice <= 0) {
-            toast.error("파트너와 가격을 정확히 입력해주세요.");
+            toast.error(tr("파트너와 가격을 정확히 입력해주세요.", "Please select partner and enter valid price."));
             return;
         }
 
@@ -170,7 +175,7 @@ export function OrderOutsourceDialog({
                 // Remove client/orderer details if chosen (Privacy)
                 sharedOrderData = {
                     ...sharedOrderData,
-                    orderer: { name: "네트워크 발주 건 (정보 비공개)", contact: "010-0000-0000" },
+                    orderer: { name: tr("네트워크 발주 건 (정보 비공개)", "Network Order (Private)"), contact: "010-0000-0000" },
                 };
             }
 
@@ -190,7 +195,7 @@ export function OrderOutsourceDialog({
                 if (walletError && walletError.code !== 'PGRST116') throw walletError;
                 
                 if (!walletData || walletData.balance < requiredAmount) {
-                    toast.error(`예치금이 부족합니다. (충전 필요 금액: ₩${(requiredAmount - (walletData?.balance || 0)).toLocaleString()})`);
+                    toast.error(tr(`예치금이 부족합니다. (충전 필요 금액: ₩${(requiredAmount - (walletData?.balance || 0)).toLocaleString()})`, `Insufficient wallet balance. Need: ₩${(requiredAmount - (walletData?.balance || 0)).toLocaleString()}`));
                     setIsSubmitting(false);
                     return;
                 }
@@ -270,7 +275,7 @@ export function OrderOutsourceDialog({
                 category: 'material',
                 sub_category: 'outsource',
                 description: isEditMode ? `외부발주(수성): ${itemsDescription} ${order.orderer?.name}` : `외부발주: ${itemsDescription} ${order.orderer?.name}`,
-                supplier: selectedPartner?.name || "미지정 파트너",
+                supplier: selectedPartner?.name || tr("미지정 파트너", "Unassigned Partner"),
                 related_order_id: order.id,
                 payment_method: paymentMethod
             };
@@ -284,12 +289,12 @@ export function OrderOutsourceDialog({
                 await addExpense(expenseData);
             }
 
-            toast.success(isEditMode ? "외부 발주 정보가 수정되었습니다." : "외부 발주가 등록되었습니다.");
+            toast.success(isEditMode ? tr("외부 발주 정보가 수정되었습니다.", "Outsource info updated.") : tr("외부 발주가 등록되었습니다.", "Outsource order created."));
             onSuccess?.();
             onOpenChange(false);
         } catch (error) {
             console.error("Outsource processing error:", error);
-            toast.error("외부 발주 처리 중 오류가 발생했습니다.");
+            toast.error(tr("외부 발주 처리 중 오류가 발생했습니다.", "Error while processing outsource."));
         } finally {
             setIsSubmitting(false);
         }
@@ -303,27 +308,27 @@ export function OrderOutsourceDialog({
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2 text-slate-900">
                         <Package className="h-5 w-5" />
-                        {isEditMode ? "외부 발주 수정" : "외부 발주 위탁 처리"}
+                        {isEditMode ? tr("외부 발주 수정", "Edit Outsource") : tr("외부 발주 위탁 처리", "Create Outsource")}
                     </DialogTitle>
                     <DialogDescription className="text-slate-500">
-                        타 업체에 주문을 위탁하고 지출을 자동으로 관리합니다.
+                        {tr("타 업체에 주문을 위탁하고 지출을 자동으로 관리합니다.", "Delegate order to partner and auto-manage expense.")}
                     </DialogDescription>
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="space-y-4 pt-4">
                     <div className="bg-slate-50 p-4 rounded-lg space-y-2 border">
                         <div className="flex justify-between text-sm">
-                            <span className="text-slate-500 font-light">주문 번호:</span>
+                            <span className="text-slate-500 font-light">{tr("주문 번호", "Order No")}:</span>
                             <span className="font-mono text-[10px]">{order.order_number}</span>
                         </div>
                         <div className="flex justify-between text-sm font-medium">
-                            <span className="text-slate-500 font-light">고객 결제 금액:</span>
+                            <span className="text-slate-500 font-light">{tr("고객 결제 금액", "Customer Total")}:</span>
                             <span className="font-semibold text-blue-600">₩{orderTotal.toLocaleString()}</span>
                         </div>
                     </div>
 
                     <div className="space-y-3">
-                        <Label className="font-light text-slate-700">위탁처 (파트너) 선택 *</Label>
+                        <Label className="font-light text-slate-700">{tr("위탁처 (파트너) 선택 *", "Select Partner *")}</Label>
                         
                         <div className="relative">
                             <Button
@@ -334,11 +339,11 @@ export function OrderOutsourceDialog({
                                 disabled={partnersLoading}
                             >
                                 {partnersLoading ? (
-                                    <div className="flex items-center"><Loader2 className="mr-2 h-3 w-3 animate-spin" />로딩 중...</div>
+                                    <div className="flex items-center"><Loader2 className="mr-2 h-3 w-3 animate-spin" />{tr("로딩 중...", "Loading...")}</div>
                                 ) : (
                                     partnerId
                                         ? partners.find((p) => p.id === partnerId)?.name
-                                        : "업체 검색 및 선택"
+                                        : tr("업체 검색 및 선택", "Search and select partner")
                                 )}
                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                             </Button>
@@ -349,7 +354,7 @@ export function OrderOutsourceDialog({
                                         <Search className="mr-2 h-4 w-4 shrink-0 opacity-50 text-slate-400" />
                                         <input
                                             className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-slate-400 font-light"
-                                            placeholder="파트너 이름 검색..."
+                                            placeholder={tr("파트너 이름 검색...", "Search partner name...")}
                                             value={searchTerm}
                                             onChange={(e) => setSearchTerm(e.target.value)}
                                             autoFocus
@@ -357,7 +362,7 @@ export function OrderOutsourceDialog({
                                     </div>
                                     <div className="max-h-[200px] overflow-y-auto p-1">
                                         {filteredPartners.length === 0 && (
-                                            <div className="py-6 text-center text-sm text-slate-400 font-light">검색 결과가 없습니다.</div>
+                                            <div className="py-6 text-center text-sm text-slate-400 font-light">{tr("검색 결과가 없습니다.", "No results found.")}</div>
                                         )}
                                         {filteredPartners.map((partner) => (
                                             <div
@@ -378,9 +383,9 @@ export function OrderOutsourceDialog({
                                                     <div className="flex items-center justify-between">
                                                         <span className="font-semibold">{partner.name}</span>
                                                         {partner.isNetwork ? (
-                                                            <Badge variant="outline" className="text-[9px] bg-blue-50/50 text-blue-600 border-blue-200">네트워크</Badge>
+                                                            <Badge variant="outline" className="text-[9px] bg-blue-50/50 text-blue-600 border-blue-200">{tr("네트워크", "Network")}</Badge>
                                                         ) : (
-                                                            <Badge variant="outline" className="text-[9px] bg-slate-50 text-slate-500 border-slate-200">로컬파트너</Badge>
+                                                            <Badge variant="outline" className="text-[9px] bg-slate-50 text-slate-500 border-slate-200">{tr("로컬파트너", "Local")}</Badge>
                                                         )}
                                                     </div>
                                                     <div className="flex items-center gap-2 mt-0.5">
@@ -403,14 +408,14 @@ export function OrderOutsourceDialog({
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="partnerPrice" className="font-light text-slate-700">발주 금액 *</Label>
+                        <Label htmlFor="partnerPrice" className="font-light text-slate-700">{tr("발주 금액 *", "Outsource Amount *")}</Label>
                         <div className="relative">
                             <span className="absolute left-3 top-1/2 -translate-y-1/2 font-light text-slate-400">₩</span>
                             <Input
                                 id="partnerPrice"
                                 type="number"
                                 className="pl-8 bg-white font-light"
-                                placeholder="지불할 금액"
+                                placeholder={tr("지불할 금액", "Amount to pay")}
                                 value={partnerPrice || ''}
                                 onChange={(e) => {
                                     setPartnerPrice(Number(e.target.value));
@@ -421,7 +426,7 @@ export function OrderOutsourceDialog({
                         {selectedPartner && (
                             <p className="text-[11px] text-slate-400 flex items-center gap-1 font-light">
                                 <Info className="h-3 w-3" />
-                                권장 발주가: ₩{Math.round(orderTotal * (1 - (selectedPartner.default_margin_percent || 20) / 100)).toLocaleString()}
+                                {tr("권장 발주가", "Recommended")}: ₩{Math.round(orderTotal * (1 - (selectedPartner.default_margin_percent || 20) / 100)).toLocaleString()}
                             </p>
                         )}
                     </div>
@@ -429,37 +434,37 @@ export function OrderOutsourceDialog({
                     <div className="bg-slate-50 border border-slate-200 p-4 rounded-lg space-y-3">
                         <div className="flex items-center gap-2 text-slate-700 font-medium text-sm">
                             <Calculator className="h-4 w-4" />
-                            금액 분배 리포트 (79 / 19 / 2)
+                            {tr("금액 분배 리포트 (79 / 19 / 2)", "Split Report (79 / 19 / 2)")}
                         </div>
                         <div className="grid grid-cols-3 gap-2">
                             <div className="bg-white p-2 rounded border border-slate-100">
-                                <p className="text-[10px] text-slate-500 mb-1 font-light">수주사 (79%)</p>
+                                <p className="text-[10px] text-slate-500 mb-1 font-light">{tr("수주사 (79%)", "Fulfiller (79%)")}</p>
                                 <p className="text-sm font-semibold text-slate-900">
                                     ₩{fulfillerAmount.toLocaleString()}
                                 </p>
                             </div>
                             <div className="bg-blue-50/50 p-2 rounded border border-blue-100">
-                                <p className="text-[10px] text-blue-600 mb-1 font-light">발주사 (19%)</p>
+                                <p className="text-[10px] text-blue-600 mb-1 font-light">{tr("발주사 (19%)", "Sender (19%)")}</p>
                                 <p className="text-sm font-semibold text-blue-700">
                                     ₩{senderProfit.toLocaleString()}
                                 </p>
                             </div>
                             <div className="bg-amber-50/50 p-2 rounded border border-amber-100">
-                                <p className="text-[10px] text-amber-600 mb-1 font-light">수수료 (2%)</p>
+                                <p className="text-[10px] text-amber-600 mb-1 font-light">{tr("수수료 (2%)", "Fee (2%)")}</p>
                                 <p className="text-sm font-semibold text-amber-700">
                                     ₩{platformFee.toLocaleString()}
                                 </p>
                             </div>
                         </div>
                         <p className="text-[10px] text-slate-400 font-light text-center">
-                            발주사 순수익률: {profitMargin.toFixed(1)}%
+                            {tr("발주사 순수익률", "Sender margin")}: {profitMargin.toFixed(1)}%
                         </p>
                     </div>
 
                     <div className="bg-slate-50 border border-slate-200 p-4 rounded-lg space-y-4">
                         <div className="flex items-center justify-between">
                             <Label htmlFor="hide-info" className="font-medium text-slate-700 cursor-pointer flex items-center gap-2">
-                                <ShieldCheck className="h-4 w-4 text-emerald-600" /> 고객(주문자) 정보 숨기기
+                                <ShieldCheck className="h-4 w-4 text-emerald-600" /> {tr("고객(주문자) 정보 숨기기", "Hide customer info")}
                             </Label>
                             <Switch 
                                 id="hide-info"
@@ -469,17 +474,17 @@ export function OrderOutsourceDialog({
                         </div>
                         <p className="text-[10px] text-slate-400 font-light leading-relaxed">
                             {hideCustomerInfo 
-                                ? "수주점에서 주문 내역은 볼 수 있지만, 발주 고객의 개인정보는 가려집니다." 
-                                : "수주점에서 주문자 정보를 포함한 전체 내용을 확인할 수 있습니다."}
+                                ? tr("수주점에서 주문 내역은 볼 수 있지만, 발주 고객의 개인정보는 가려집니다.", "Fulfiller can view order details, but customer PII is hidden.")
+                                : tr("수주점에서 주문자 정보를 포함한 전체 내용을 확인할 수 있습니다.", "Fulfiller can view full order details including customer info.")}
                         </p>
                         <div className="pt-2 border-t flex items-center gap-2 text-[10px] text-blue-600 font-medium">
                             <Info className="h-3 w-3" />
-                            브랜딩: 수주점에 내 꽃집 로고와 이름은 전송됩니다.
+                            {tr("브랜딩: 수주점에 내 꽃집 로고와 이름은 전송됩니다.", "Branding: your store logo/name will be shared.")}
                         </div>
                     </div>
 
                     <div className="space-y-3 p-4 bg-slate-50 border border-slate-200 rounded-lg">
-                        <Label className="font-medium text-slate-700">결제 수단 및 지출 관리 *</Label>
+                        <Label className="font-medium text-slate-700">{tr("결제 수단 및 지출 관리 *", "Payment & Expense Handling *")}</Label>
                         <div className="flex gap-2">
                             <Button
                                 type="button"
@@ -490,7 +495,7 @@ export function OrderOutsourceDialog({
                                 )}
                                 onClick={() => setPaymentMethod('transfer')}
                             >
-                                계좌 이체
+                                {tr("계좌 이체", "Bank Transfer")}
                             </Button>
                             <Button
                                 type="button"
@@ -501,19 +506,19 @@ export function OrderOutsourceDialog({
                                 )}
                                 onClick={() => setPaymentMethod('cash')}
                             >
-                                <DollarSign className="h-4 w-4 mr-2" /> 현금 지급
+                                <DollarSign className="h-4 w-4 mr-2" /> {tr("현금 지급", "Cash")}
                             </Button>
                         </div>
                         <p className="text-[10px] text-slate-400 font-light italic">
-                            * 현금 선택 시 오늘의 금고 시재 지출(배송/기타)에 자동으로 합산됩니다.
+                            {tr("* 현금 선택 시 오늘의 금고 시재 지출(배송/기타)에 자동으로 합산됩니다.", "* Cash is auto-added to today's cashbox expense totals.")}
                         </p>
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="notes" className="font-light text-slate-700">비고 (위탁처 전달 사항)</Label>
+                        <Label htmlFor="notes" className="font-light text-slate-700">{tr("비고 (위탁처 전달 사항)", "Notes (for partner)")}</Label>
                         <Textarea
                             id="notes"
-                            placeholder="특이사항 입력"
+                            placeholder={tr("특이사항 입력", "Enter notes")}
                             value={notes}
                             onChange={(e) => setNotes(e.target.value)}
                             rows={2}
@@ -529,7 +534,7 @@ export function OrderOutsourceDialog({
                             disabled={isSubmitting}
                             className="font-light"
                         >
-                            취소
+                            {tr("취소", "Cancel")}
                         </Button>
                         <Button
                             type="submit"
@@ -537,9 +542,9 @@ export function OrderOutsourceDialog({
                             className="font-light"
                         >
                             {isSubmitting ? (
-                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />처리 중...</>
+                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{tr("처리 중...", "Processing...")}</>
                             ) : (
-                                isEditMode ? "정보 수정" : "발주 위탁"
+                                isEditMode ? tr("정보 수정", "Update") : tr("발주 위탁", "Submit")
                             )}
                         </Button>
                     </DialogFooter>

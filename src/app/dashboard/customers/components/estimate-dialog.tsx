@@ -24,6 +24,8 @@ import { Customer } from "@/types/customer";
 import { createClient } from "@/utils/supabase/client";
 import { printDocument } from "@/lib/print-document";
 import { toast } from "sonner";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
 
 interface EstimateDialogProps {
   customer: Customer | null;
@@ -57,6 +59,9 @@ export function EstimateDialog({ customer, isOpen, onOpenChange }: EstimateDialo
     contact: "02-1234-5678",
     businessNumber: "123-45-67890"
   });
+  const locale = usePreferredLocale();
+  const isKo = toBaseLocale(locale) === "ko";
+  const tr = (ko: string, en: string) => (isKo ? ko : en);
 
   useEffect(() => {
     if (isOpen && customer) {
@@ -183,9 +188,9 @@ export function EstimateDialog({ customer, isOpen, onOpenChange }: EstimateDialo
     });
     
     toast.promise(printDocument(`/dashboard/customers/print?${params.toString()}`), {
-      loading: '견적서를 인쇄용으로 변환 중...',
-      success: '인쇄 준비가 완료되었습니다.',
-      error: '인쇄 준비 중 오류가 발생했습니다.'
+      loading: tr('견적서를 인쇄용으로 변환 중...', 'Preparing estimate for print...'),
+      success: tr('인쇄 준비가 완료되었습니다.', 'Print is ready.'),
+      error: tr('인쇄 준비 중 오류가 발생했습니다.', 'Print preparation failed.')
     });
     
     onOpenChange(false);
@@ -199,12 +204,12 @@ export function EstimateDialog({ customer, isOpen, onOpenChange }: EstimateDialo
         <DialogHeader className={`p-6 pb-4 border-b transition-colors duration-500 ${viewMode === 'preview' ? 'bg-slate-900 border-white/10' : 'bg-gradient-to-r from-amber-600 to-amber-500'}`}>
           <DialogTitle className="text-xl font-bold flex items-center gap-2 text-white">
             <FileText className={viewMode === 'preview' ? 'text-amber-400' : 'text-amber-100'} />
-            {viewMode === 'edit' ? '신규 견적서 작성' : '견적서 최종 확인 및 발행'}
+            {viewMode === 'edit' ? tr('신규 견적서 작성', 'Create Estimate') : tr('견적서 최종 확인 및 발행', 'Finalize Estimate')}
           </DialogTitle>
           <DialogDescription className={`${viewMode === 'preview' ? 'text-slate-400' : 'text-amber-50/70'} font-medium`}>
             {viewMode === 'edit' 
-              ? '주문 전 전송할 견적 내용을 자유롭게 입력하세요. 저장된 상호와 사업자 정보가 자동으로 연동됩니다.'
-              : '인쇄 전 문서의 최종 상태를 확인하세요. 수정이 필요하면 이전 단계로 돌아갈 수 있습니다.'}
+              ? tr('주문 전 전송할 견적 내용을 자유롭게 입력하세요. 저장된 상호와 사업자 정보가 자동으로 연동됩니다.', 'Enter estimate items before order. Business info is auto-filled.')
+              : tr('인쇄 전 문서의 최종 상태를 확인하세요. 수정이 필요하면 이전 단계로 돌아갈 수 있습니다.', 'Review final document before print. You can go back to edit.')}
           </DialogDescription>
         </DialogHeader>
 
@@ -294,13 +299,13 @@ export function EstimateDialog({ customer, isOpen, onOpenChange }: EstimateDialo
                          onClick={() => setUseVat(false)}
                          className={`px-4 py-1.5 rounded-full text-[11px] font-black transition-all ${!useVat ? 'bg-slate-900 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
                        >
-                         부가세 면세 (기본)
+                        {tr("부가세 면세 (기본)", "Tax exempt (default)")}
                        </button>
                        <button 
                          onClick={() => setUseVat(true)}
                          className={`px-4 py-1.5 rounded-full text-[11px] font-black transition-all ${useVat ? 'bg-amber-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
                        >
-                         과세 (부가세 10% 별도)
+                        {tr("과세 (부가세 10% 별도)", "Taxed (VAT 10%)")}
                        </button>
                     </div>
                     
@@ -400,14 +405,14 @@ export function EstimateDialog({ customer, isOpen, onOpenChange }: EstimateDialo
                 </ScrollArea>
 
                 <div className="p-4 bg-white border-t">
-                   <Button 
+                    <Button 
                      variant="outline" 
                      size="sm" 
                      onClick={addItem}
                      className="w-full border-dashed border-slate-300 hover:border-amber-500 hover:bg-amber-50 hover:text-amber-700 font-bold transition-all h-10 gap-2"
                    >
                      <Plus size={16} />
-                     항목 추가하기 (Enter)
+                     {tr("항목 추가하기 (Enter)", "Add item (Enter)")}
                    </Button>
                 </div>
               </div>
@@ -527,11 +532,11 @@ export function EstimateDialog({ customer, isOpen, onOpenChange }: EstimateDialo
 
         <DialogFooter className="p-6 pt-2 bg-slate-50/50 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex flex-col text-left w-full sm:w-auto">
-            <p className="text-[10px] font-bold text-amber-600">※ 발행 문서는 관리 목적으로 30일간 보관됩니다.</p>
-            <p className="text-[10px] text-slate-400">보관 기간이 지나면 자동 폐기되오니, 반드시 PDF로 다운로드 받으시기 바랍니다.</p>
+            <p className="text-[10px] font-bold text-amber-600">{tr("※ 발행 문서는 관리 목적으로 30일간 보관됩니다.", "Issued documents are retained for 30 days.")}</p>
+            <p className="text-[10px] text-slate-400">{tr("보관 기간이 지나면 자동 폐기되오니, 반드시 PDF로 다운로드 받으시기 바랍니다.", "After retention period, documents are deleted automatically. Download PDF if needed.")}</p>
           </div>
           <div className="flex gap-2 w-full sm:w-auto justify-end">
-            <Button variant="ghost" onClick={() => onOpenChange(false)} className="font-bold text-slate-500">취소</Button>
+            <Button variant="ghost" onClick={() => onOpenChange(false)} className="font-bold text-slate-500">{tr("취소", "Cancel")}</Button>
             
             {viewMode === 'edit' ? (
               <Button 
@@ -539,7 +544,7 @@ export function EstimateDialog({ customer, isOpen, onOpenChange }: EstimateDialo
                 disabled={items.filter(i => i.name.trim() !== "").length === 0}
                 onClick={() => setViewMode('preview')}
               >
-                미리보기 확인
+                {tr("미리보기 확인", "Preview")}
                 <ChevronRight size={16} className="ml-1 opacity-50" />
               </Button>
             ) : (
@@ -549,14 +554,14 @@ export function EstimateDialog({ customer, isOpen, onOpenChange }: EstimateDialo
                   className="px-6 font-bold gap-2 border-slate-300 hover:bg-slate-100 h-11"
                   onClick={() => setViewMode('edit')}
                 >
-                  수정하러 가기
+                  {tr("수정하러 가기", "Back to Edit")}
                 </Button>
                 <Button 
                   className="px-10 font-black shadow-lg shadow-blue-200 gap-2 bg-slate-900 hover:bg-slate-800 h-11"
                   onClick={handlePrint}
                 >
                   <Printer size={18} />
-                  최종 인쇄하기
+                  {tr("최종 인쇄하기", "Print Final")}
                 </Button>
               </>
             )}

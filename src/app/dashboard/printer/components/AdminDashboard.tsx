@@ -4,6 +4,16 @@ import {
   Shield, Users, CreditCard, BarChart3, Plus,
   ArrowLeft, Search, Calendar, Printer, RefreshCw, Key, Mail, Trash2, Type, FileText
 } from 'lucide-react';
+import { usePreferredLocale } from '@/hooks/use-preferred-locale';
+import { getMessages } from '@/i18n/getMessages';
+
+function fillRibbonTemplate(template: string, vars: Record<string, string | number>): string {
+  let s = template;
+  for (const [key, val] of Object.entries(vars)) {
+    s = s.split(`{{${key}}}`).join(String(val));
+  }
+  return s;
+}
 
 interface Profile {
   id: string;
@@ -52,6 +62,8 @@ interface AuditLog {
 }
 
 export default function AdminDashboard({ onBack }: { onBack: () => void }) {
+  const locale = usePreferredLocale();
+  const R = getMessages(locale).dashboard.ribbon;
   const [tab, setTab] = useState<'users' | 'stats' | 'fonts' | 'logs'>('users');
   const [users, setUsers] = useState<Profile[]>([]);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
@@ -120,7 +132,7 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
         setWebFonts(fontData.map((f: any) => ({
           id: f.id,
           user_id: f.user_id,
-          email: profileData.find((p: any) => p.id === f.user_id)?.email || '알 수 없음',
+          email: profileData.find((p: any) => p.id === f.user_id)?.email || R.adminUnknownEmail,
           font_family: f.font_family,
           web_url: f.web_url,
           created_at: f.created_at
@@ -136,8 +148,8 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
       if (logsData && profileData) {
         setAuditLogs(logsData.map((l: any) => ({
           ...l,
-          admin_email: profileData.find((p: any) => p.id === l.admin_id)?.email || '알 수 없음',
-          target_email: profileData.find((p: any) => p.id === l.target_user_id)?.email || '알 수 없음',
+          admin_email: profileData.find((p: any) => p.id === l.admin_id)?.email || R.adminUnknownEmail,
+          target_email: profileData.find((p: any) => p.id === l.target_user_id)?.email || R.adminUnknownEmail,
         })));
       }
 
@@ -157,26 +169,26 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
   };
 
   const handleResetPasswordEmail = async (email: string) => {
-    if (!confirm(`${email} 사용자에게 비밀번호 초기화 메일을 발송하시겠습니까?`)) return;
+    if (!confirm(fillRibbonTemplate(R.adminResetEmailConfirm, { email }))) return;
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email);
-      if (error) alert('메일 발송 실패: ' + error.message);
-      else alert('비밀번호 초기화 메일이 성공적으로 발송되었습니다.');
+      if (error) alert(fillRibbonTemplate(R.adminMailSendFail, { msg: error.message }));
+      else alert(R.adminMailSendOk);
     } catch (e: any) {
-      alert('오류 발생: ' + e.message);
+      alert(fillRibbonTemplate(R.adminError, { msg: e.message ?? String(e) }));
     }
   };
 
   const handleForceResetPassword = async (userId: string, email: string) => {
-    const newPassword = prompt(`[관리자 강제변경]\n\n${email} 사용자의 새로운 6자리 이상 비밀번호를 입력해주세요.`);
+    const newPassword = prompt(fillRibbonTemplate(R.adminForcePwPrompt, { email }));
     if (!newPassword || newPassword.trim() === '') return;
 
     if (newPassword.length < 6) {
-      alert('비밀번호는 최소 6자리 이상이어야 합니다.');
+      alert(R.adminPwMin6);
       return;
     }
 
-    if (!confirm(`정말 ${email}의 비밀번호를 '${newPassword}'로 강제 변경하시겠습니까?`)) return;
+    if (!confirm(fillRibbonTemplate(R.adminForcePwConfirm, { email }))) return;
 
     try {
       const { error } = await supabase.rpc('admin_reset_password', {
@@ -184,31 +196,32 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
         new_password: newPassword
       });
 
-      if (error) alert('강제 변경 실패: ' + error.message);
-      else alert('비밀번호 강제 변경이 성공적으로 완료되었습니다.');
+      if (error) alert(fillRibbonTemplate(R.adminForcePwFail, { msg: error.message }));
+      else alert(R.adminForcePwOk);
     } catch (e: any) {
-      alert('오류 발생: ' + e.message);
+      alert(fillRibbonTemplate(R.adminError, { msg: e.message ?? String(e) }));
     }
   };
 
   const handleDeleteUser = async (userId: string, email: string) => {
-    const promptText = prompt(`[경고: 데이터 영구 삭제]\n\n정말 ${email} 회원을 강제로 탈퇴시키겠습니까? 관련된 인쇄 기록 등 모든 데이터가 복구 불가능하게 영구 삭제됩니다.\n\n진행하시려면 '강제탈퇴'를 입력하세요.`);
-    if (promptText !== '강제탈퇴') return;
+    const word = R.adminDeleteConfirmWord;
+    const promptText = prompt(fillRibbonTemplate(R.adminDeletePrompt, { email, word }));
+    if (promptText !== word) return;
 
     try {
       const { error } = await supabase.rpc('admin_delete_user', { target_uid: userId });
       if (error) throw error;
-      alert('회원 강제 탈퇴가 성공적으로 완료되었습니다.');
+      alert(R.adminDeleteOk);
       loadData();
     } catch (err: any) {
-      alert('삭제 실패: ' + err.message);
+      alert(fillRibbonTemplate(R.adminDeleteFail, { msg: err.message ?? String(err) }));
     }
   };
 
   const handleExtend = async () => {
     if (!extendModal) return;
     if (!extendReason.trim()) {
-      alert("구독 연장 사유를 반드시 입력해야 합니다. (감사 로그용)");
+      alert(R.adminExtendReasonRequired);
       return;
     }
 
@@ -267,12 +280,17 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
         }]);
       }
 
-      alert(`${extendModal.email} 구독이 ${newExpiry.toLocaleDateString()}까지 연장되었습니다.`);
+      alert(
+        fillRibbonTemplate(R.adminExtendOk, {
+          email: extendModal.email,
+          date: newExpiry.toLocaleDateString(),
+        })
+      );
       setExtendModal(null);
       setExtendReason('');
       loadData();
     } catch (err: any) {
-      alert('연장 실패: ' + err.message);
+      alert(fillRibbonTemplate(R.adminExtendFail, { msg: err.message ?? String(err) }));
     }
   };
 
@@ -290,11 +308,11 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
 
   const planLabel = (plan: string) => {
     switch (plan) {
-      case 'monthly': return '월간';
-      case 'quarterly': return '3개월';
-      case 'half_yearly': return '6개월';
-      case 'yearly': return '연간';
-      case 'event': return '이벤트/무료';
+      case 'monthly': return R.adminPlanMonthly;
+      case 'quarterly': return R.adminPlanQuarterly;
+      case 'half_yearly': return R.adminPlanHalfYearly;
+      case 'yearly': return R.adminPlanYearly;
+      case 'event': return R.adminPlanEvent;
       default: return plan;
     }
   };
@@ -309,11 +327,11 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
           </button>
           <div className="flex items-center gap-2">
             <Shield size={22} className="text-amber-400/80" />
-            <h1 className="text-lg font-semibold">관리자 대시보드</h1>
+            <h1 className="text-lg font-semibold">{R.adminTitle}</h1>
           </div>
         </div>
         <button onClick={loadData} className="flex items-center gap-2 px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm transition">
-          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> 새로고침
+          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> {R.adminRefresh}
         </button>
       </header>
 
@@ -322,28 +340,28 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
         <div className="bg-slate-800 border border-slate-700 rounded-xl p-5">
           <div className="flex items-center gap-3 mb-3">
             <div className="bg-blue-500/20 p-2 rounded-lg"><Users size={20} className="text-blue-400" /></div>
-            <span className="text-slate-400 text-sm">전체 가입자</span>
+            <span className="text-slate-400 text-sm">{R.adminStatUsers}</span>
           </div>
-          <p className="text-3xl font-semibold">{users.length}<span className="text-base text-slate-500 ml-1">명</span></p>
+          <p className="text-3xl font-semibold">{users.length}<span className="text-base text-slate-500 ml-1">{R.adminUnitPeople}</span></p>
         </div>
         <div className="bg-slate-800 border border-slate-700 rounded-xl p-5">
           <div className="flex items-center gap-3 mb-3">
             <div className="bg-emerald-500/20 p-2 rounded-lg"><CreditCard size={20} className="text-emerald-400" /></div>
-            <span className="text-slate-400 text-sm">활성 구독자</span>
+            <span className="text-slate-400 text-sm">{R.adminStatSubscribers}</span>
           </div>
           <p className="text-3xl font-semibold text-emerald-400">
             {subscriptions.filter(s => isSubActive(s)).length}
-            <span className="text-base text-slate-500 ml-1">명</span>
+            <span className="text-base text-slate-500 ml-1">{R.adminUnitPeople}</span>
           </p>
         </div>
         <div className="bg-slate-800 border border-slate-700 rounded-xl p-5">
           <div className="flex items-center gap-3 mb-3">
             <div className="bg-purple-500/20 p-2 rounded-lg"><Printer size={20} className="text-purple-400" /></div>
-            <span className="text-slate-400 text-sm">총 인쇄 횟수</span>
+            <span className="text-slate-400 text-sm">{R.adminStatPrints}</span>
           </div>
           <p className="text-3xl font-semibold text-purple-400">
             {printStats.reduce((s, p) => s + p.print_count, 0)}
-            <span className="text-base text-slate-500 ml-1">회</span>
+            <span className="text-base text-slate-500 ml-1">{R.adminUnitTimes}</span>
           </p>
         </div>
       </div>
@@ -355,28 +373,28 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
           className={`px-4 py-3 text-sm font-semibold border-b-2 transition ${tab === 'users' ? 'border-blue-500 text-blue-400' : 'border-transparent text-slate-500 hover:text-white'
             }`}
         >
-          <Users size={14} className="inline mr-2" />사용자 관리
+          <Users size={14} className="inline mr-2" />{R.adminTabUsers}
         </button>
         <button
           onClick={() => setTab('stats')}
           className={`px-4 py-3 text-sm font-bold border-b-2 transition ${tab === 'stats' ? 'border-blue-500 text-blue-400' : 'border-transparent text-slate-500 hover:text-white'
             }`}
         >
-          <BarChart3 size={14} className="inline mr-2" />인쇄 통계
+          <BarChart3 size={14} className="inline mr-2" />{R.adminTabStats}
         </button>
         <button
           onClick={() => setTab('fonts')}
           className={`px-4 py-3 text-sm font-bold border-b-2 transition ${tab === 'fonts' ? 'border-blue-500 text-blue-400' : 'border-transparent text-slate-500 hover:text-white'
             }`}
         >
-          <Type size={14} className="inline mr-2" />웹 폰트 모니터링
+          <Type size={14} className="inline mr-2" />{R.adminTabFonts}
         </button>
         <button
           onClick={() => setTab('logs')}
           className={`px-4 py-3 text-sm font-bold border-b-2 transition ${tab === 'logs' ? 'border-amber-500 text-amber-400' : 'border-transparent text-slate-500 hover:text-white'
             }`}
         >
-          <FileText size={14} className="inline mr-2" />감사 로그
+          <FileText size={14} className="inline mr-2" />{R.adminTabLogs}
         </button>
       </div>
 
@@ -390,7 +408,7 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                 <input
                   type="text"
-                  placeholder="이메일 또는 이름으로 검색..."
+                  placeholder={R.adminSearchPlaceholder}
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   className="w-full pl-10 pr-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500"
@@ -401,14 +419,14 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
                 onChange={e => setFilter(e.target.value as any)}
                 className="px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500 min-w-[150px]"
               >
-                <option value="all">전체 사용자</option>
-                <option value="admin">관리자만(🛡️)</option>
-                <option value="monthly">월간 구독자</option>
-                <option value="quarterly">3개월 구독자</option>
-                <option value="half_yearly">6개월 구독자</option>
-                <option value="yearly">연간 구독자</option>
-                <option value="event">이벤트/무료 구독자</option>
-                <option value="expired">구독 만료자</option>
+                <option value="all">{R.adminFilterAll}</option>
+                <option value="admin">{R.adminFilterAdmin}</option>
+                <option value="monthly">{R.adminFilterMonthly}</option>
+                <option value="quarterly">{R.adminFilterQuarterly}</option>
+                <option value="half_yearly">{R.adminFilterHalfYearly}</option>
+                <option value="yearly">{R.adminFilterYearly}</option>
+                <option value="event">{R.adminFilterEvent}</option>
+                <option value="expired">{R.adminFilterExpired}</option>
               </select>
             </div>
 
@@ -417,12 +435,12 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-slate-700/50 text-slate-400 text-xs uppercase tracking-wider">
-                    <th className="text-left px-4 py-3">사용자</th>
-                    <th className="text-left px-4 py-3">가입일</th>
-                    <th className="text-left px-4 py-3">구독 상태</th>
-                    <th className="text-left px-4 py-3">만료일</th>
-                    <th className="text-left px-4 py-3">인쇄 수</th>
-                    <th className="text-center px-4 py-3">관리</th>
+                    <th className="text-left px-4 py-3">{R.adminColUser}</th>
+                    <th className="text-left px-4 py-3">{R.adminColJoined}</th>
+                    <th className="text-left px-4 py-3">{R.adminColSub}</th>
+                    <th className="text-left px-4 py-3">{R.adminColExpires}</th>
+                    <th className="text-left px-4 py-3">{R.adminColPrints}</th>
+                    <th className="text-center px-4 py-3">{R.adminColActions}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -444,7 +462,7 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
                         <td className="px-4 py-3">
                           {user.role === 'admin' ? (
                             <span className="px-2 py-1 bg-amber-500/20 text-amber-400 rounded-full text-xs font-semibold">
-                              🛡️ 관리자
+                              🛡️ {R.adminBadgeAdmin}
                             </span>
                           ) : active ? (
                             <span className={`px-2 py-1 rounded-full text-xs font-semibold ${sub?.plan === 'event' ? 'bg-purple-500/20 text-purple-400' : 'bg-emerald-500/20 text-emerald-400'
@@ -453,7 +471,7 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
                             </span>
                           ) : (
                             <span className="px-2 py-1 bg-red-500/15 text-red-400 rounded-full text-xs font-semibold">
-                              만료
+                              {R.adminStatusExpired}
                             </span>
                           )}
                         </td>
@@ -466,32 +484,32 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
                         <td className="px-4 py-3 text-center">
                           <div className="flex items-center justify-center gap-2">
                             <button
-                              title="구독 연장/부여"
+                              title={R.adminTitleExtend}
                               onClick={() => setExtendModal({ userId: user.id, email: user.email })}
                               className="px-2.5 py-1.5 bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 text-xs font-semibold rounded-lg transition flex flex-col items-center"
                             >
-                              <Plus size={14} /> 주기
+                              <Plus size={14} /> {R.adminBtnExtend}
                             </button>
                             <button
-                              title="비밀번호 초기화 메일 전송"
+                              title={R.adminTitleResetMail}
                               onClick={() => handleResetPasswordEmail(user.email)}
                               className="px-2.5 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-400 text-xs font-semibold rounded-lg transition flex flex-col items-center"
                             >
-                              <Mail size={14} /> 링크
+                              <Mail size={14} /> {R.adminBtnResetMail}
                             </button>
                             <button
-                              title="관리자 권한 강제 비밀번호 변경"
+                              title={R.adminTitleForcePw}
                               onClick={() => handleForceResetPassword(user.id, user.email)}
                               className="px-2.5 py-1.5 bg-red-600/20 hover:bg-red-600/40 text-red-400 text-xs font-semibold rounded-lg transition flex flex-col items-center"
                             >
-                              <Key size={14} /> 강제
+                              <Key size={14} /> {R.adminBtnForcePw}
                             </button>
                             <button
-                              title="회원 강제 삭제"
+                              title={R.adminTitleDeleteUser}
                               onClick={() => handleDeleteUser(user.id, user.email)}
                               className="px-2.5 py-1.5 bg-red-900/40 hover:bg-red-900/80 text-red-500 text-xs font-semibold rounded-lg transition flex flex-col items-center ml-2 border border-red-900/50"
                             >
-                              <Trash2 size={14} /> 탈퇴
+                              <Trash2 size={14} /> {R.adminBtnDeleteUser}
                             </button>
                           </div>
                         </td>
@@ -501,7 +519,7 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
                   {filteredUsers.length === 0 && (
                     <tr>
                       <td colSpan={6} className="text-center py-10 text-slate-500">
-                        {loading ? '로딩 중...' : '사용자가 없습니다.'}
+                        {loading ? R.adminLoading : R.adminNoUsers}
                       </td>
                     </tr>
                   )}
@@ -513,15 +531,15 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
 
         {tab === 'stats' && (
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-slate-400">사용자별 인쇄 횟수 (상위 순)</h3>
+            <h3 className="text-sm font-semibold text-slate-400">{R.adminStatsHeading}</h3>
             <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-slate-700/50 text-slate-400 text-xs uppercase">
-                    <th className="text-left px-4 py-3">#</th>
-                    <th className="text-left px-4 py-3">이메일</th>
-                    <th className="text-left px-4 py-3">인쇄 횟수</th>
-                    <th className="text-left px-4 py-3">비율</th>
+                    <th className="text-left px-4 py-3">{R.adminColRank}</th>
+                    <th className="text-left px-4 py-3">{R.adminColEmail}</th>
+                    <th className="text-left px-4 py-3">{R.adminColCount}</th>
+                    <th className="text-left px-4 py-3">{R.adminColShare}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -546,7 +564,7 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
                   })}
                   {printStats.length === 0 && (
                     <tr>
-                      <td colSpan={4} className="text-center py-10 text-slate-500">인쇄 기록이 없습니다.</td>
+                      <td colSpan={4} className="text-center py-10 text-slate-500">{R.adminNoPrints}</td>
                     </tr>
                   )}
                 </tbody>
@@ -558,18 +576,18 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
         {tab === 'fonts' && (
           <div className="space-y-4">
             <h3 className="text-sm font-semibold text-slate-400 flex items-center justify-between">
-              사용자가 등록한 외부 웹 폰트 (보안 모니터링)
-              <span className="text-xs font-normal text-amber-400 bg-amber-400/10 px-2 py-1 rounded">1인당 최대 5개 제한 적용됨</span>
+              {R.adminFontsHeading}
+              <span className="text-xs font-normal text-amber-400 bg-amber-400/10 px-2 py-1 rounded">{R.adminFontsCap}</span>
             </h3>
             <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-slate-700/50 text-slate-400 text-xs uppercase">
-                    <th className="text-left px-4 py-3">등록일</th>
-                    <th className="text-left px-4 py-3">사용자 계정</th>
-                    <th className="text-left px-4 py-3">폰트 이름(Family)</th>
-                    <th className="text-left px-4 py-3">CSS URL 주소</th>
-                    <th className="text-center px-4 py-3">상태 관리</th>
+                    <th className="text-left px-4 py-3">{R.adminColRegistered}</th>
+                    <th className="text-left px-4 py-3">{R.adminColAccount}</th>
+                    <th className="text-left px-4 py-3">{R.adminColFontFamily}</th>
+                    <th className="text-left px-4 py-3">{R.adminColCssUrl}</th>
+                    <th className="text-center px-4 py-3">{R.adminColStatus}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -584,20 +602,20 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
                       <td className="px-4 py-3 text-center">
                         <button
                           onClick={async () => {
-                            if (!confirm(`스팸/악성 폰트입니까? 강제 삭제하시겠습니까?`)) return;
+                            if (!confirm(R.adminWebFontDeleteConfirm)) return;
                             await supabase.from('custom_fonts').delete().eq('id', font.id);
                             loadData();
                           }}
                           className="px-3 py-1 bg-red-500/10 text-red-500 hover:bg-red-500/30 rounded text-xs transition"
                         >
-                          강제 삭제
+                          {R.adminWebFontDelete}
                         </button>
                       </td>
                     </tr>
                   ))}
                   {webFonts.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="text-center py-10 text-slate-500">등록된 외부 웹 폰트가 없습니다.</td>
+                      <td colSpan={5} className="text-center py-10 text-slate-500">{R.adminNoWebFonts}</td>
                     </tr>
                   )}
                 </tbody>
@@ -609,18 +627,18 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
         {tab === 'logs' && (
           <div className="space-y-4">
             <h3 className="text-sm font-semibold text-amber-400 flex items-center gap-2">
-              <Shield size={16} /> 최고 관리자용 감사 로그 (Audit Logs)
+              <Shield size={16} /> {R.adminLogsHeading}
             </h3>
-            <p className="text-xs text-slate-400 mb-2">모든 관리자의 민감한 권한 행사(구독 부여, 권한 변경 등)가 지워지지 않는 기록으로 영구 저장됩니다.</p>
+            <p className="text-xs text-slate-400 mb-2">{R.adminLogsSub}</p>
             <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-slate-700/50 text-slate-400 text-xs uppercase">
-                    <th className="text-left px-4 py-3 min-w-[140px]">발생 일시</th>
-                    <th className="text-left px-4 py-3">실행한 관리자</th>
-                    <th className="text-left px-4 py-3">대상 고객</th>
-                    <th className="text-left px-4 py-3">수행 액션</th>
-                    <th className="text-left px-4 py-3 min-w-[300px]">상세 내역 및 사유</th>
+                    <th className="text-left px-4 py-3 min-w-[140px]">{R.adminColTime}</th>
+                    <th className="text-left px-4 py-3">{R.adminColAdmin}</th>
+                    <th className="text-left px-4 py-3">{R.adminColTarget}</th>
+                    <th className="text-left px-4 py-3">{R.adminColAction}</th>
+                    <th className="text-left px-4 py-3 min-w-[300px]">{R.adminColDetail}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -631,7 +649,7 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
                       <td className="px-4 py-3 text-white">{log.target_email}</td>
                       <td className="px-4 py-3">
                         <span className="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs font-semibold">
-                          {log.action_type === 'extend_subscription' ? '구독권한 부여/연장' : log.action_type}
+                          {log.action_type === 'extend_subscription' ? R.adminActionExtend : log.action_type}
                         </span>
                       </td>
                       <td className="px-4 py-3">
@@ -639,14 +657,14 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
                           {JSON.stringify(log.details)}
                         </div>
                         <div className="text-sm font-semibold text-rose-300">
-                          사유: {log.reason}
+                          {R.adminReasonPrefix} {log.reason}
                         </div>
                       </td>
                     </tr>
                   ))}
                   {auditLogs.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="text-center py-10 text-slate-500">감사 로그 기록이 없습니다.</td>
+                      <td colSpan={5} className="text-center py-10 text-slate-500">{R.adminNoLogs}</td>
                     </tr>
                   )}
                 </tbody>
@@ -661,13 +679,13 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[200]">
           <div className="bg-slate-800 rounded-2xl border border-slate-700 shadow-2xl w-full max-w-md p-6">
             <h2 className="text-lg font-semibold text-white mb-1 flex items-center gap-2">
-              <Calendar size={18} className="text-blue-400" /> 구독 부여/연장
+              <Calendar size={18} className="text-blue-400" /> {R.adminModalExtendTitle}
             </h2>
             <p className="text-sm text-slate-400 mb-5">{extendModal.email}</p>
 
             <div className="space-y-4">
               <div>
-                <label className="text-xs text-slate-400 block mb-1">요금제</label>
+                <label className="text-xs text-slate-400 block mb-1">{R.adminModalPlan}</label>
                 <select
                   value={extendPlan}
                   onChange={e => {
@@ -680,17 +698,17 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
                   }}
                   className="w-full p-2.5 bg-slate-900 border border-slate-600 rounded-lg text-white text-sm"
                 >
-                  <option value="monthly">월간 (30일)</option>
-                  <option value="quarterly">3개월 (90일)</option>
-                  <option value="half_yearly">6개월 (180일)</option>
-                  <option value="yearly">연간 (365일)</option>
-                  <option value="event">이벤트/무료 쿠폰 (7일)</option>
+                  <option value="monthly">{R.adminOptMonthly}</option>
+                  <option value="quarterly">{R.adminOptQuarterly}</option>
+                  <option value="half_yearly">{R.adminOptHalfYearly}</option>
+                  <option value="yearly">{R.adminOptYearly}</option>
+                  <option value="event">{R.adminOptEvent}</option>
                 </select>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-slate-400 block mb-1">기간 (일)</label>
+                  <label className="text-xs text-slate-400 block mb-1">{R.adminModalDays}</label>
                   <input
                     type="number"
                     value={extendDays}
@@ -699,7 +717,7 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-slate-400 block mb-1">결제 금액 (원)</label>
+                  <label className="text-xs text-slate-400 block mb-1">{R.adminModalAmount}</label>
                   <input
                     type="number"
                     value={extendAmount}
@@ -710,10 +728,10 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
               </div>
 
               <div>
-                <label className="text-xs text-amber-400 font-semibold block mb-1">연장/부여 사유 (감사 로그용 - 필수)</label>
+                <label className="text-xs text-amber-400 font-semibold block mb-1">{R.adminModalReason}</label>
                 <input
                   type="text"
-                  placeholder="예: 클레임 보상으로 1주일 무료 연장"
+                  placeholder={R.adminModalReasonPh}
                   value={extendReason}
                   onChange={e => setExtendReason(e.target.value)}
                   className="w-full p-2.5 bg-amber-900/20 border border-amber-700/50 rounded-lg text-white text-sm focus:outline-none focus:border-amber-500"
@@ -725,13 +743,13 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
                   onClick={() => setExtendModal(null)}
                   className="flex-1 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-semibold text-sm transition"
                 >
-                  취소
+                  {R.cancel}
                 </button>
                 <button
                   onClick={handleExtend}
                   className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold text-sm transition"
                 >
-                  구독 부여
+                  {R.adminModalGrant}
                 </button>
               </div>
             </div>

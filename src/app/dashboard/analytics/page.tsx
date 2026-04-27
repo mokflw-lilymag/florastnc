@@ -16,6 +16,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useExpenses } from "@/hooks/use-expenses";
 import { useOrders } from "@/hooks/use-orders";
 import { useSuppliers } from "@/hooks/use-suppliers";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -32,20 +34,20 @@ const CATEGORY_COLORS: Record<string, string> = {
   etc: "#6b7280",
 };
 
-const CATEGORY_LABELS: Record<string, string> = {
-  materials: "자재/꽃 사입",
-  transportation: "운송비",
-  rent: "임대료",
-  utility: "공과금",
-  labor: "인건비",
-  marketing: "마케팅",
-  etc: "기타",
+const CATEGORY_LABEL_KEYS: Record<string, string> = {
+  materials: "materials_flowers",
+  transportation: "transportation",
+  rent: "rent",
+  utility: "utility",
+  labor: "labor",
+  marketing: "marketing",
+  etc: "etc",
 };
 
-const METHOD_LABELS: Record<string, string> = {
-  card: "카드",
-  cash: "현금",
-  transfer: "이체",
+const METHOD_LABEL_KEYS: Record<string, string> = {
+  card: "card",
+  cash: "cash",
+  transfer: "transfer",
 };
 
 const METHOD_COLORS = ["#6366f1", "#10b981", "#f59e0b"];
@@ -54,11 +56,28 @@ export default function AnalyticsPage() {
   const { expenses, loading: expensesLoading } = useExpenses();
   const { orders, fetchOrders, loading: ordersLoading } = useOrders(false);
   const { suppliers, loading: suppliersLoading } = useSuppliers();
+  const locale = usePreferredLocale();
+  const baseLocale = toBaseLocale(locale);
+  const tr = (koText: string, enText: string) => (baseLocale === "ko" ? koText : enText);
 
   const [viewMonth, setViewMonth] = useState(new Date());
   const [rangeMode, setRangeMode] = useState<string>("month");
 
   const loading = expensesLoading || ordersLoading || suppliersLoading;
+  const categoryLabelMap: Record<string, string> = {
+    materials_flowers: tr("자재/꽃 사입", "Materials/Flowers"),
+    transportation: tr("운송비", "Transportation"),
+    rent: tr("임대료", "Rent"),
+    utility: tr("공과금", "Utilities"),
+    labor: tr("인건비", "Labor"),
+    marketing: tr("마케팅", "Marketing"),
+    etc: tr("기타", "Other"),
+  };
+  const methodLabelMap: Record<string, string> = {
+    card: tr("카드", "Card"),
+    cash: tr("현금", "Cash"),
+    transfer: tr("이체", "Transfer"),
+  };
 
   // Fetch orders for a full year to support all range modes
   useEffect(() => {
@@ -110,13 +129,13 @@ export default function AnalyticsPage() {
     });
     return Array.from(map.entries())
       .map(([key, value]) => ({
-        name: CATEGORY_LABELS[key] || key,
+        name: categoryLabelMap[CATEGORY_LABEL_KEYS[key] || key] || key,
         value,
         key,
         color: CATEGORY_COLORS[key] || "#94a3b8",
       }))
       .sort((a, b) => b.value - a.value);
-  }, [rangeExpenses]);
+  }, [rangeExpenses, categoryLabelMap]);
 
   // Payment method breakdown
   const methodData = useMemo(() => {
@@ -126,10 +145,10 @@ export default function AnalyticsPage() {
       map.set(m, (map.get(m) || 0) + e.amount);
     });
     return Array.from(map.entries()).map(([key, value]) => ({
-      name: METHOD_LABELS[key] || key,
+      name: methodLabelMap[METHOD_LABEL_KEYS[key] || key] || key,
       value,
     }));
-  }, [rangeExpenses]);
+  }, [rangeExpenses, methodLabelMap]);
 
   // Supplier ranking
   const supplierRanking = useMemo(() => {
@@ -142,7 +161,7 @@ export default function AnalyticsPage() {
     return Array.from(map.entries())
       .map(([id, data]) => ({
         id,
-        name: suppliers.find(s => s.id === id)?.name || "알 수 없음",
+        name: suppliers.find(s => s.id === id)?.name || tr("알 수 없음", "Unknown"),
         ...data,
       }))
       .sort((a, b) => b.amount - a.amount)
@@ -154,7 +173,7 @@ export default function AnalyticsPage() {
     const months = eachMonthOfInterval({ start: dateRange.start, end: dateRange.end });
     return months.map(monthStart => {
       const monthEnd = endOfMonth(monthStart);
-      const label = format(monthStart, "M월", { locale: ko });
+      const label = baseLocale === "ko" ? format(monthStart, "M월", { locale: ko }) : format(monthStart, "MMM");
 
       const expenseTotal = expenses
         .filter(e => { const d = new Date(e.expense_date); return d >= monthStart && d <= monthEnd; })
@@ -164,9 +183,9 @@ export default function AnalyticsPage() {
         .filter(o => { const d = new Date(o.order_date); return d >= monthStart && d <= monthEnd && o.status !== 'canceled'; })
         .reduce((s, o) => s + (o.summary?.total || 0), 0);
 
-      return { name: label, 매출: salesTotal, 지출: expenseTotal, 매출이익: salesTotal - expenseTotal };
+      return { name: label, sales: salesTotal, expense: expenseTotal, profit: salesTotal - expenseTotal };
     });
-  }, [expenses, orders, dateRange]);
+  }, [expenses, orders, dateRange, baseLocale]);
 
   // Daily trend (for single month view)
   const dailyTrend = useMemo(() => {
@@ -185,7 +204,7 @@ export default function AnalyticsPage() {
         .filter(o => { const d = new Date(o.order_date); return d >= dayStart && d <= dayEnd && o.status !== 'canceled'; })
         .reduce((s, o) => s + (o.summary?.total || 0), 0);
 
-      return { name: label, 매출: salesTotal, 지출: expenseTotal };
+      return { name: label, sales: salesTotal, expense: expenseTotal };
     });
   }, [expenses, orders, dateRange, rangeMode]);
 
@@ -223,13 +242,13 @@ export default function AnalyticsPage() {
 
   return (
     <div className="p-6 max-w-[1600px] mx-auto space-y-6 animate-in fade-in duration-500">
-      <PageHeader title="매입/매출 통계" description="지출 분석과 매출 현황을 한눈에 파악합니다." icon={BarChart3}>
+      <PageHeader title={tr("매입/매출 통계", "Sales & Expense Analytics")} description={tr("지출 분석과 매출 현황을 한눈에 파악합니다.", "Track expense analysis and sales performance at a glance.")} icon={BarChart3}>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" className="h-9 w-9 rounded-xl" onClick={prevMonth}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <span className="text-sm font-medium text-slate-700 min-w-[100px] text-center">
-            {format(viewMonth, "yyyy년 M월", { locale: ko })}
+            {baseLocale === "ko" ? format(viewMonth, "yyyy년 M월", { locale: ko }) : format(viewMonth, "MMM yyyy")}
           </span>
           <Button variant="outline" size="icon" className="h-9 w-9 rounded-xl" onClick={nextMonth}>
             <ChevronRight className="h-4 w-4" />
@@ -239,10 +258,10 @@ export default function AnalyticsPage() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="month">1개월</SelectItem>
-              <SelectItem value="3months">3개월</SelectItem>
-              <SelectItem value="6months">6개월</SelectItem>
-              <SelectItem value="year">12개월</SelectItem>
+              <SelectItem value="month">{tr("1개월", "1 month")}</SelectItem>
+              <SelectItem value="3months">{tr("3개월", "3 months")}</SelectItem>
+              <SelectItem value="6months">{tr("6개월", "6 months")}</SelectItem>
+              <SelectItem value="year">{tr("12개월", "12 months")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -260,12 +279,12 @@ export default function AnalyticsPage() {
               <div className="absolute right-0 top-0 opacity-10 scale-150 rotate-12 p-3"><TrendingUp size={64} /></div>
               <CardHeader className="pb-2">
                 <CardTitle className="text-xs font-medium opacity-80 uppercase tracking-widest flex items-center gap-1.5">
-                  <TrendingUp className="h-3.5 w-3.5" /> 총 매출
+                  <TrendingUp className="h-3.5 w-3.5" /> {tr("총 매출", "Total Sales")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-light">₩{totalSales.toLocaleString()}</div>
-                <p className="text-[11px] text-indigo-200 mt-1 font-light">{rangeOrders.length}건 주문</p>
+                <p className="text-[11px] text-indigo-200 mt-1 font-light">{rangeOrders.length}{tr("건 주문", " orders")}</p>
               </CardContent>
             </Card>
 
@@ -273,12 +292,12 @@ export default function AnalyticsPage() {
               <div className="absolute right-0 top-0 opacity-10 scale-150 rotate-12 p-3"><TrendingDown size={64} /></div>
               <CardHeader className="pb-2">
                 <CardTitle className="text-xs font-medium opacity-80 uppercase tracking-widest flex items-center gap-1.5">
-                  <TrendingDown className="h-3.5 w-3.5" /> 총 지출
+                  <TrendingDown className="h-3.5 w-3.5" /> {tr("총 지출", "Total Expense")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-light">₩{totalExpense.toLocaleString()}</div>
-                <p className="text-[11px] text-rose-200 mt-1 font-light">{rangeExpenses.length}건 지출</p>
+                <p className="text-[11px] text-rose-200 mt-1 font-light">{rangeExpenses.length}{tr("건 지출", " expenses")}</p>
               </CardContent>
             </Card>
 
@@ -286,12 +305,12 @@ export default function AnalyticsPage() {
               <div className="absolute right-0 top-0 opacity-10 scale-150 rotate-12 p-3"><Wallet size={64} /></div>
               <CardHeader className="pb-2">
                 <CardTitle className="text-xs font-medium opacity-80 uppercase tracking-widest flex items-center gap-1.5">
-                  {profit >= 0 ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownRight className="h-3.5 w-3.5" />} 매출이익
+                  {profit >= 0 ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownRight className="h-3.5 w-3.5" />} {tr("매출이익", "Gross Profit")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-light">₩{profit.toLocaleString()}</div>
-                <p className="text-[11px] opacity-70 mt-1 font-light">매출이익률 {profitRate.toFixed(1)}%</p>
+                <p className="text-[11px] opacity-70 mt-1 font-light">{tr("매출이익률", "Profit Margin")} {profitRate.toFixed(1)}%</p>
               </CardContent>
             </Card>
 
@@ -299,12 +318,12 @@ export default function AnalyticsPage() {
               <div className="absolute right-0 top-0 opacity-10 scale-150 rotate-12 p-3"><CreditCard size={64} /></div>
               <CardHeader className="pb-2">
                 <CardTitle className="text-xs font-medium opacity-80 uppercase tracking-widest flex items-center gap-1.5">
-                  <CreditCard className="h-3.5 w-3.5" /> 건당 평균 지출
+                  <CreditCard className="h-3.5 w-3.5" /> {tr("건당 평균 지출", "Avg Expense / Record")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-light">₩{rangeExpenses.length > 0 ? Math.round(totalExpense / rangeExpenses.length).toLocaleString() : 0}</div>
-                <p className="text-[11px] text-slate-300 mt-1 font-light">건당 평균 매출: ₩{rangeOrders.length > 0 ? Math.round(totalSales / rangeOrders.length).toLocaleString() : 0}</p>
+                <p className="text-[11px] text-slate-300 mt-1 font-light">{tr("건당 평균 매출", "Avg Sales / Order")}: ₩{rangeOrders.length > 0 ? Math.round(totalSales / rangeOrders.length).toLocaleString() : 0}</p>
               </CardContent>
             </Card>
           </div>
@@ -316,7 +335,7 @@ export default function AnalyticsPage() {
               <CardHeader>
                 <CardTitle className="text-sm font-medium text-slate-800 flex items-center gap-2">
                   <BarChart3 className="h-4 w-4 text-indigo-500" />
-                  {rangeMode === "month" ? "일별" : "월별"} 매출 vs 지출 추이
+                  {rangeMode === "month" ? tr("일별", "Daily") : tr("월별", "Monthly")} {tr("매출 vs 지출 추이", "Sales vs Expense Trend")}
                 </CardTitle>
                 <CardDescription className="text-xs font-light">
                   {format(dateRange.start, "yyyy.MM.dd")} ~ {format(dateRange.end, "yyyy.MM.dd")}
@@ -331,8 +350,8 @@ export default function AnalyticsPage() {
                       <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} tickFormatter={(v) => `${(v / 10000).toFixed(0)}만`} />
                       <Tooltip content={<CustomTooltip />} />
                       <Legend wrapperStyle={{ fontSize: 11 }} />
-                      <Area type="monotone" dataKey="매출" stroke="#6366f1" fill="#6366f1" fillOpacity={0.15} strokeWidth={2} />
-                      <Area type="monotone" dataKey="지출" stroke="#ef4444" fill="#ef4444" fillOpacity={0.1} strokeWidth={2} />
+                      <Area type="monotone" dataKey="sales" name={tr("매출", "Sales")} stroke="#6366f1" fill="#6366f1" fillOpacity={0.15} strokeWidth={2} />
+                      <Area type="monotone" dataKey="expense" name={tr("지출", "Expense")} stroke="#ef4444" fill="#ef4444" fillOpacity={0.1} strokeWidth={2} />
                     </AreaChart>
                   ) : (
                     <BarChart data={trendData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
@@ -341,9 +360,9 @@ export default function AnalyticsPage() {
                       <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} tickFormatter={(v) => `${(v / 10000).toFixed(0)}만`} />
                       <Tooltip content={<CustomTooltip />} />
                       <Legend wrapperStyle={{ fontSize: 11 }} />
-                      <Bar dataKey="매출" fill="#6366f1" radius={[6, 6, 0, 0]} />
-                      <Bar dataKey="지출" fill="#ef4444" radius={[6, 6, 0, 0]} />
-                      <Line type="monotone" dataKey="매출이익" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} />
+                      <Bar dataKey="sales" name={tr("매출", "Sales")} fill="#6366f1" radius={[6, 6, 0, 0]} />
+                      <Bar dataKey="expense" name={tr("지출", "Expense")} fill="#ef4444" radius={[6, 6, 0, 0]} />
+                      <Line type="monotone" dataKey="profit" name={tr("매출이익", "Profit")} stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} />
                     </BarChart>
                   )}
                 </ResponsiveContainer>
@@ -354,7 +373,7 @@ export default function AnalyticsPage() {
             <Card className="lg:col-span-2 border-none shadow-md bg-white rounded-2xl overflow-hidden">
               <CardHeader>
                 <CardTitle className="text-sm font-medium text-slate-800 flex items-center gap-2">
-                  <PieChartIcon className="h-4 w-4 text-violet-500" /> 분류별 지출 비중
+                  <PieChartIcon className="h-4 w-4 text-violet-500" /> {tr("분류별 지출 비중", "Expense Ratio by Category")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -405,13 +424,13 @@ export default function AnalyticsPage() {
             <Card className="lg:col-span-4 border-none shadow-md bg-white rounded-2xl overflow-hidden">
               <CardHeader>
                 <CardTitle className="text-sm font-medium text-slate-800 flex items-center gap-2">
-                  <Trophy className="h-4 w-4 text-amber-500" /> 거래처별 매입 순위 TOP 10
+                  <Trophy className="h-4 w-4 text-amber-500" /> {tr("거래처별 매입 순위 TOP 10", "Top 10 Suppliers by Purchase")}
                 </CardTitle>
               </CardHeader>
               <CardContent className="h-[360px]">
                 {supplierRanking.length === 0 ? (
                   <div className="h-full flex items-center justify-center text-sm text-slate-400 font-light">
-                    거래처 매입 데이터가 없습니다.
+                    {tr("거래처 매입 데이터가 없습니다.", "No supplier purchase data available.")}
                   </div>
                 ) : (
                   <ResponsiveContainer width="100%" height="100%" minWidth={0}>
@@ -427,7 +446,7 @@ export default function AnalyticsPage() {
                             <div className="bg-white/95 backdrop-blur-md shadow-xl rounded-xl p-3 border border-slate-100">
                               <p className="text-xs font-bold text-slate-700">{d.name}</p>
                               <p className="text-xs text-blue-600">₩{d.amount.toLocaleString()}</p>
-                              <p className="text-xs text-slate-400">{d.count}건 거래</p>
+                              <p className="text-xs text-slate-400">{d.count}{tr("건 거래", " transactions")}</p>
                             </div>
                           );
                         }}
@@ -443,7 +462,7 @@ export default function AnalyticsPage() {
             <Card className="lg:col-span-3 border-none shadow-md bg-white rounded-2xl overflow-hidden">
               <CardHeader>
                 <CardTitle className="text-sm font-medium text-slate-800 flex items-center gap-2">
-                  <Wallet className="h-4 w-4 text-emerald-500" /> 결제수단별 지출
+                  <Wallet className="h-4 w-4 text-emerald-500" /> {tr("결제수단별 지출", "Expense by Payment Method")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -492,7 +511,7 @@ export default function AnalyticsPage() {
           {supplierRanking.length > 0 && (
             <div>
               <h3 className="text-sm font-medium text-slate-700 mb-3 flex items-center gap-2">
-                <Building2 className="h-4 w-4 text-blue-500" /> 주요 거래처 상세 현황
+                <Building2 className="h-4 w-4 text-blue-500" /> {tr("주요 거래처 상세 현황", "Key Supplier Details")}
               </h3>
               <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
                 {supplierRanking.slice(0, 10).map((s, i) => {
@@ -517,7 +536,7 @@ export default function AnalyticsPage() {
                           ₩{s.amount.toLocaleString()}
                         </div>
                         <div className="flex items-center justify-between text-[11px] text-slate-400">
-                          <span>{s.count}건 거래</span>
+                          <span>{s.count}{tr("건 거래", " transactions")}</span>
                           <span className="font-medium text-blue-500">{pct}%</span>
                         </div>
                         {/* Progress bar */}

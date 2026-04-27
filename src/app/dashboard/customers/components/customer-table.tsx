@@ -41,6 +41,8 @@ import {
   AlertDialogTrigger 
 } from "@/components/ui/alert-dialog";
 import { Customer } from "@/types/customer";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
 
 interface CustomerTableProps {
   customers: Customer[];
@@ -50,6 +52,9 @@ interface CustomerTableProps {
 }
 
 export function CustomerTable({ customers, onEdit, onDelete, onRowClick }: CustomerTableProps) {
+  const locale = usePreferredLocale();
+  const isKo = toBaseLocale(locale) === "ko";
+  const tr = (ko: string, en: string) => (isKo ? ko : en);
   const getGradeBadge = (grade: string | null) => {
     switch (grade) {
       case 'VVIP':
@@ -59,7 +64,7 @@ export function CustomerTable({ customers, onEdit, onDelete, onRowClick }: Custo
       case 'GOLD':
         return <Badge className="bg-yellow-50 text-yellow-700 hover:bg-yellow-50 border-none">GOLD</Badge>;
       default:
-        return <Badge variant="secondary" className="bg-slate-100 text-slate-600 hover:bg-slate-100 border-none">일반</Badge>;
+        return <Badge variant="secondary" className="bg-slate-100 text-slate-600 hover:bg-slate-100 border-none">{tr("일반", "General")}</Badge>;
     }
   };
 
@@ -69,12 +74,12 @@ export function CustomerTable({ customers, onEdit, onDelete, onRowClick }: Custo
         <Table>
           <TableHeader className="bg-slate-50/50">
             <TableRow>
-              <TableHead className="font-semibold text-slate-700">고객 정보</TableHead>
-              <TableHead className="font-semibold text-slate-700">유형</TableHead>
-              <TableHead className="font-semibold text-slate-700">연락처</TableHead>
-              <TableHead className="font-semibold text-slate-700">등급</TableHead>
-              <TableHead className="font-semibold text-slate-700 text-right">보유 포인트</TableHead>
-              <TableHead className="font-semibold text-slate-700 text-right">누적 구매</TableHead>
+              <TableHead className="font-semibold text-slate-700">{tr("고객 정보", "Customer")}</TableHead>
+              <TableHead className="font-semibold text-slate-700">{tr("유형", "Type")}</TableHead>
+              <TableHead className="font-semibold text-slate-700">{tr("연락처", "Contact")}</TableHead>
+              <TableHead className="font-semibold text-slate-700">{tr("등급", "Grade")}</TableHead>
+              <TableHead className="font-semibold text-slate-700 text-right">{tr("보유 포인트", "Points")}</TableHead>
+              <TableHead className="font-semibold text-slate-700 text-right">{tr("누적 구매", "Total Spent")}</TableHead>
               <TableHead className="w-[80px]">
                 <span className="sr-only">작업</span>
               </TableHead>
@@ -103,7 +108,7 @@ export function CustomerTable({ customers, onEdit, onDelete, onRowClick }: Custo
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline" className="font-normal text-slate-500 border-slate-200">
-                      {customer.type === 'company' ? '기업' : '개인'}
+                      {customer.type === 'company' ? tr('기업', 'Company') : tr('개인', 'Individual')}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -126,7 +131,7 @@ export function CustomerTable({ customers, onEdit, onDelete, onRowClick }: Custo
                         ₩{(customer.total_spent || 0).toLocaleString()}
                       </span>
                       <span className="text-[10px] text-slate-400">
-                         {customer.order_count || 0}회 주문
+                         {customer.order_count || 0}{tr("회 주문", " orders")}
                       </span>
                     </div>
                   </TableCell>
@@ -140,35 +145,35 @@ export function CustomerTable({ customers, onEdit, onDelete, onRowClick }: Custo
                         } />
                         <DropdownMenuContent align="end" className="w-40">
                           <DropdownMenuGroup>
-                            <DropdownMenuLabel className="text-xs text-slate-500 px-2 py-1.5">관리</DropdownMenuLabel>
+                            <DropdownMenuLabel className="text-xs text-slate-500 px-2 py-1.5">{tr("관리", "Manage")}</DropdownMenuLabel>
                           </DropdownMenuGroup>
                           <DropdownMenuItem onClick={() => onEdit(customer)}>
                             <Pencil className="mr-2 h-4 w-4" />
-                            수정
+                            {tr("수정", "Edit")}
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <AlertDialogTrigger nativeButton={false} render={
                             <DropdownMenuItem className="text-red-600 focus:text-red-600">
                               <Trash2 className="mr-2 h-4 w-4" />
-                              삭제
+                              {tr("삭제", "Delete")}
                             </DropdownMenuItem>
                           } />
                         </DropdownMenuContent>
                       </DropdownMenu>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle className="text-slate-900">고객 삭제</AlertDialogTitle>
+                          <AlertDialogTitle className="text-slate-900">{tr("고객 삭제", "Delete Customer")}</AlertDialogTitle>
                           <AlertDialogDescription className="text-slate-500">
-                            정말로 '{customer.name}' 고객 정보를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+                            {tr(`정말로 '${customer.name}' 고객 정보를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`, `Delete '${customer.name}'? This action cannot be undone.`)}
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                          <AlertDialogCancel>취소</AlertDialogCancel>
+                          <AlertDialogCancel>{tr("취소", "Cancel")}</AlertDialogCancel>
                           <AlertDialogAction 
                             className="bg-red-600 hover:bg-red-700"
                             onClick={() => onDelete(customer.id)}
                           >
-                            삭제
+                            {tr("삭제", "Delete")}
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
@@ -181,7 +186,7 @@ export function CustomerTable({ customers, onEdit, onDelete, onRowClick }: Custo
                 <TableCell colSpan={7} className="h-40 text-center">
                   <div className="flex flex-col items-center justify-center text-slate-400 gap-2">
                     <User className="h-8 w-8 opacity-20" />
-                    <p>등록된 고객이 없습니다.</p>
+                    <p>{tr("등록된 고객이 없습니다.", "No customers found.")}</p>
                   </div>
                 </TableCell>
               </TableRow>

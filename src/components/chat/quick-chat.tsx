@@ -17,6 +17,8 @@ import { cn } from "@/lib/utils";
 import { format, parseISO, isAfter, addDays, differenceInMinutes } from "date-fns";
 import { toast } from "sonner";
 import { FLOXYNC_FLOATING_UI_EVENT, type FloxyncFloatingUiDetail } from "@/lib/floating-ui-bridge";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
 
 const inquirySoundUrl = "https://assets.mixkit.co/active_storage/sfx/212/212-preview.mp3";
 const messageSoundUrl = "https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3";
@@ -34,6 +36,9 @@ export function QuickChat() {
     const supabase = createClient();
     const pathname = usePathname();
     const { tenantId, user, profile } = useAuth();
+    const locale = usePreferredLocale();
+    const isKo = toBaseLocale(locale) === "ko";
+    const tr = (ko: string, en: string) => (isKo ? ko : en);
     /** 새 주문 모바일: 하단 고정 요약·주문하기 바 위로 FAB 올려 겹침 완화 */
     const orderNewMobileBoost =
         typeof pathname === "string" && pathname.includes("/dashboard/orders/new");
@@ -56,6 +61,24 @@ export function QuickChat() {
     const [faqSuggestions, setFaqSuggestions] = useState<any[]>([]); // 실시간 제안
     /** 카메라 권한 등: Android 오버레이 감지 완화를 위해 플로팅 UI 일시 숨김 */
     const [overlaysSuppressed, setOverlaysSuppressed] = useState(false);
+    const localizeFaqCategory = useCallback((category: string) => {
+        if (isKo) return category;
+        const map: Record<string, string> = {
+            "계정/로그인": "Account / Login",
+            "주문/결제": "Orders / Payments",
+            "리본프린터": "Ribbon Printer",
+            "카드디자인": "Card Design",
+            "정산/세무": "Settlement / Tax",
+            "배송/픽업": "Delivery / Pickup",
+            "재고/상품": "Inventory / Products",
+            "고객관리": "Customer Management",
+            "권한/직원": "Permissions / Staff",
+            "설정/연동": "Settings / Integrations",
+            "오류/장애": "Errors / Issues",
+            "기타": "General",
+        };
+        return map[category] ?? category;
+    }, [isKo]);
 
     useEffect(() => {
         const onFloatingUi = (e: Event) => {
@@ -202,16 +225,16 @@ export function QuickChat() {
                     room_id: selectedRoom.id,
                     sender_tenant_id: ADMIN_TENANT_ID,
                     is_ai: true,
-                    ai_sender_name: 'Flora AI 비서',
-                    content: "사장님, 오랫동안 응답이 없으셔서 상담을 종료하겠습니다. 나중에 더 궁금한 점이 생기시면 언제든 다시 찾아주세요! 감사합니다. 💐"
+                    ai_sender_name: tr('Flora AI 비서', 'Flora AI Assistant'),
+                    content: tr("사장님, 오랫동안 응답이 없으셔서 상담을 종료하겠습니다. 나중에 더 궁금한 점이 생기시면 언제든 다시 찾아주세요! 감사합니다. 💐", "We are closing this chat due to inactivity. If you need help later, please reach out anytime. Thank you. 💐")
                 });
             }
             
-            toast.success(reason === 'timeout' ? "무응답으로 인해 상담이 종료되었습니다." : "상담이 정중히 종료되었습니다.");
+            toast.success(reason === 'timeout' ? tr("무응답으로 인해 상담이 종료되었습니다.", "Chat closed due to inactivity.") : tr("상담이 정중히 종료되었습니다.", "Chat closed."));
             setSelectedRoom(null);
             fetchRooms();
         } catch (err) {
-            toast.error("상담 종료 실패");
+            toast.error(tr("상담 종료 실패", "Failed to close chat"));
         }
     };
 
@@ -281,10 +304,10 @@ export function QuickChat() {
 
                     if (isNewFromOther) {
                         if (selectedRoomRef.current?.id !== msgRoomId) {
-                            toast("새 문의가 도착했습니다", {
+                            toast(tr("새 문의가 도착했습니다", "New inquiry arrived"), {
                                 description: payload.new.content?.substring(0, 30),
                                 action: {
-                                    label: "열기",
+                                    label: tr("열기", "Open"),
                                     onClick: () => {
                                         supabase.from('chat_rooms')
                                           .select('*, participants:chat_participants(tenant:tenants(name, logo_url))')
@@ -393,13 +416,13 @@ export function QuickChat() {
                 room_id: roomId,
                 sender_tenant_id: ADMIN_TENANT_ID,
                 is_ai: true,
-                ai_sender_name: 'Flora AI 비서',
+                ai_sender_name: tr('Flora AI 비서', 'Flora AI Assistant'),
                 content: aiContent
             });
 
             if (insertError) {
                 console.error('[AI] Message insert error:', insertError);
-                toast.error('AI 답변 저장 실패: ' + insertError.message);
+                toast.error(tr('AI 답변 저장 실패: ', 'Failed to save AI reply: ') + insertError.message);
                 return;
             }
 
@@ -411,7 +434,7 @@ export function QuickChat() {
                 }).eq('id', roomId);
                 
                 if (data.needsHuman) {
-                    toast.info("상담원 연결이 필요하여 관리자에게 알림을 보냈습니다.");
+                    toast.info(tr("상담원 연결이 필요하여 관리자에게 알림을 보냈습니다.", "Notified admin for human counselor connection."));
                 }
             }
 
@@ -419,7 +442,7 @@ export function QuickChat() {
             fetchMessages(roomId);
         } catch (err: any) {
             console.error("AI Response Error:", err);
-            toast.error('AI 응답 오류: ' + (err?.message || '알 수 없는 에러'));
+            toast.error(tr('AI 응답 오류: ', 'AI response error: ') + (err?.message || tr('알 수 없는 에러', 'Unknown error')));
         } finally {
             setIsAILoading(false);
         }
@@ -509,8 +532,8 @@ export function QuickChat() {
                         room_id: selectedRoom.id,
                         sender_tenant_id: ADMIN_TENANT_ID,
                         is_ai: true,
-                        ai_sender_name: 'Flora AI 비서',
-                        content: `**${faqMatch.question}**\n\n${faqMatch.answer}\n\n---\n*더 궁금한 점이 있으시면 더 자세히 묻어보세요!*`
+                        ai_sender_name: tr('Flora AI 비서', 'Flora AI Assistant'),
+                        content: `**${faqMatch.question}**\n\n${faqMatch.answer}\n\n---\n*${tr("더 궁금한 점이 있으시면 더 자세히 묻어보세요!", "If you need more detail, feel free to ask a follow-up question!") }*`
                     });
                     if (!faqInsertError) {
                         fetchMessages(selectedRoom.id);
@@ -532,7 +555,7 @@ export function QuickChat() {
                 setMessages(prev => prev.map(m => m.id === tempId ? savedMsg : m));
             }
         } catch (err) {
-            toast.error("전송 실패");
+            toast.error(tr("전송 실패", "Send failed"));
         }
     };
 
@@ -580,7 +603,7 @@ export function QuickChat() {
             const { data: { publicUrl } } = supabase.storage.from('chat_attachments').getPublicUrl(filePath);
             await handleSendMessage(publicUrl);
         } catch (err) {
-            toast.error("업로드 실패");
+            toast.error(tr("업로드 실패", "Upload failed"));
         } finally { setLoading(false); }
     };
 
@@ -595,8 +618,8 @@ export function QuickChat() {
                 .eq('status', 'active');
             
             if (count && count >= 10) {
-                toast.warning("현재 상담량이 많아 대기가 필요합니다.", {
-                    description: "잠시 후 다시 시도해 주시거나 잠시 기다려 주세요."
+                toast.warning(tr("현재 상담량이 많아 대기가 필요합니다.", "High support volume. Please wait."), {
+                    description: tr("잠시 후 다시 시도해 주시거나 잠시 기다려 주세요.", "Please try again shortly or wait a moment.")
                 });
                 // return; // 사용자 요청에 따라 "대기 메시지 남겨주기"로 처리 가능
             }
@@ -621,7 +644,7 @@ export function QuickChat() {
                 .from('chat_rooms')
                 .insert({ 
                     type: 'support', 
-                    metadata: { title: '관리자 상담' }, 
+                    metadata: { title: tr('관리자 상담', 'Admin support') },
                     status: 'active',
                     active_counselor: 'ai',
                     last_activity_at: new Date().toISOString()
@@ -640,8 +663,8 @@ export function QuickChat() {
                 room_id: newRoom.id,
                 sender_tenant_id: ADMIN_TENANT_ID,
                 is_ai: true,
-                ai_sender_name: 'Flora AI 비서',
-                content: "안녕하세요 사장님! 플록싱크 헬프데스크에 오신 것을 정중히 환영합니다. 꽃집을 운영하시면서 생기는 궁금증이나 불편한 점을 제가 친절하게 해결해 드릴게요. 무엇부터 도와드릴까요? 🌸"
+                ai_sender_name: tr('Flora AI 비서', 'Flora AI Assistant'),
+                content: tr("안녕하세요 사장님! 플록싱크 헬프데스크에 오신 것을 정중히 환영합니다. 꽃집을 운영하시면서 생기는 궁금증이나 불편한 점을 제가 친절하게 해결해 드릴게요. 무엇부터 도와드릴까요? 🌸", "Welcome to Floxync Helpdesk! I can assist with questions or issues from your flower shop operations. What can I help with first? 🌸")
             });
             if (welcomeError) console.error('[AI] Welcome message error:', welcomeError);
 
@@ -654,7 +677,7 @@ export function QuickChat() {
         const other = room.participants?.find((p: any) => p.tenant_id !== tenantId);
         const isSelected = selectedRoom?.id === room.id;
         const hasUnread = unreadRooms.has(room.id);
-        const lastMsg = room.lastMessage?.content || "대화 내역이 있습니다.";
+        const lastMsg = room.lastMessage?.content || tr("대화 내역이 있습니다.", "There is conversation history.");
 
         return (
             <div 
@@ -673,7 +696,7 @@ export function QuickChat() {
                 <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-center mb-0.5">
                         <span className={cn("text-xs truncate", isSelected || hasUnread ? "font-bold text-slate-900" : "font-medium text-slate-600")}>
-                            {other?.tenant?.name || '상담 대기'}
+                            {other?.tenant?.name || tr('상담 대기', 'Waiting for support')}
                         </span>
                     </div>
                     <p className="text-[10px] text-slate-400 truncate leading-relaxed">{lastMsg}</p>
@@ -686,7 +709,7 @@ export function QuickChat() {
     const getPeerName = () => {
         if (!selectedRoom) return "";
         const other = selectedRoom.participants?.find((p: any) => p.tenant_id !== tenantId);
-        return other?.tenant?.name || "상담 고객";
+        return other?.tenant?.name || tr("상담 고객", "Support customer");
     }
 
     if (!tenantId && !isSuperAdmin) {
@@ -739,16 +762,16 @@ export function QuickChat() {
                                     {isSuperAdmin ? (
                                         <>
                                             <Shield className="w-5 h-5 text-indigo-400" />
-                                            <span>실시간 상담 관제 센터</span>
+                                            <span>{tr("실시간 상담 관제 센터", "Real-time support control center")}</span>
                                         </>
                                     ) : (
-                                        selectedRoom ? '관리자 1:1 상담' : '메시지 센터'
+                                        selectedRoom ? tr('관리자 1:1 상담', 'Admin 1:1 support') : tr('메시지 센터', 'Message center')
                                     )}
                                 </h3>
                                 <div className="flex items-center gap-2">
                                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                                     <span className="text-[10px] font-bold text-emerald-500 uppercase">
-                                        {selectedRoom?.active_counselor === 'human' ? '상담원 직접 개입 중' : 'AI 비서 정중히 응대 중'}
+                                        {selectedRoom?.active_counselor === 'human' ? tr('상담원 직접 개입 중', 'Human counselor is active') : tr('AI 비서 정중히 응대 중', 'AI assistant is responding')}
                                     </span>
                                 </div>
                             </div>
@@ -773,11 +796,11 @@ export function QuickChat() {
                                                 .eq('id', selectedRoom.id);
                                             if (!error) {
                                                 setSelectedRoom({...selectedRoom, active_counselor: nextMode});
-                                                toast.success(nextMode === 'ai' ? "AI 비서에게 상담을 다시 맡겼습니다." : "상담사가 직접 개입합니다.");
+                                                toast.success(nextMode === 'ai' ? tr("AI 비서에게 상담을 다시 맡겼습니다.", "Switched back to AI assistant.") : tr("상담사가 직접 개입합니다.", "Human counselor now takes over."));
                                             }
                                         }}
                                     >
-                                        {selectedRoom.active_counselor === 'ai' ? '상담사 개입' : 'AI에게 다시 맡기기'}
+                                        {selectedRoom.active_counselor === 'ai' ? tr('상담사 개입', 'Switch to human') : tr('AI에게 다시 맡기기', 'Switch to AI')}
                                     </Button>
                                 )}
                                 <Button 
@@ -785,12 +808,12 @@ export function QuickChat() {
                                     size="sm" 
                                     className="bg-rose-500/10 hover:bg-rose-500 border-rose-500/20 text-rose-400 hover:text-white rounded-xl text-xs font-black shadow-sm h-8"
                                     onClick={() => {
-                                        if (confirm("상담을 정말 종료하시겠습니까?")) {
+                                        if (confirm(tr("상담을 정말 종료하시겠습니까?", "Are you sure you want to close this chat?"))) {
                                             handleEndChat();
                                         }
                                     }}
                                 >
-                                    <Clock size={14} className="mr-2" /> 상담 종료
+                                    <Clock size={14} className="mr-2" /> {tr("상담 종료", "Close chat")}
                                 </Button>
                             </div>
                         )}
@@ -806,7 +829,7 @@ export function QuickChat() {
                                         <div className="flex items-center gap-2 text-slate-400">
                                             {showClosed ? <History size={12} /> : <Inbox size={12} />}
                                             <h5 className="text-[10px] font-black uppercase tracking-widest">
-                                                {showClosed ? '상담 기록' : '상담 목록'}
+                                                {showClosed ? tr('상담 기록', 'History') : tr('상담 목록', 'Chat list')}
                                             </h5>
                                         </div>
                                         <Button 
@@ -823,7 +846,7 @@ export function QuickChat() {
                                                 setSelectedRoom(null);
                                             }}
                                         >
-                                            {showClosed ? '← 목록 보기' : '기록 보기'}
+                                            {showClosed ? tr('← 목록 보기', '← Show list') : tr('기록 보기', 'Show history')}
                                         </Button>
                                     </div>
                                     <div className="flex-1 overflow-y-auto pb-4 scrollbar-hide">
@@ -832,7 +855,7 @@ export function QuickChat() {
                                             <div className="flex flex-col items-center justify-center pt-20 px-4 text-center">
                                                 <Archive className="w-8 h-8 text-slate-200 mb-2" />
                                                 <p className="text-[11px] text-slate-400 italic">
-                                                    {showClosed ? '아직 종료된 상담이 없습니다.' : '진행 중인 상담이 없습니다.'}
+                                                    {showClosed ? tr('아직 종료된 상담이 없습니다.', 'No closed chats yet.') : tr('진행 중인 상담이 없습니다.', 'No active chats.')}
                                                 </p>
                                             </div>
                                         )}
@@ -845,7 +868,7 @@ export function QuickChat() {
                                         <div className="flex-1 flex flex-col min-h-0">
                                             <div className="px-6 py-3 border-b border-slate-100 bg-slate-50/30 flex items-center justify-between">
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-xs font-bold text-slate-400 uppercase tracking-tight">상담대상:</span>
+                                                    <span className="text-xs font-bold text-slate-400 uppercase tracking-tight">{tr("상담대상:", "Target:")}</span>
                                                     <span className="text-sm font-black text-slate-900">{getPeerName()}</span>
                                                 </div>
                                             </div>
@@ -865,12 +888,12 @@ export function QuickChat() {
                                                                     : "bg-white text-slate-800 rounded-tl-none border border-slate-100"
                                                                 )}>
                                                                     {msg.image_url && (
-                                                                        <img src={msg.image_url} className="rounded-xl mb-2 max-h-40 w-full object-cover cursor-pointer" onClick={() => window.open(msg.image_url, '_blank')} />
+                                                                        <img src={msg.image_url} alt={tr("첨부 이미지", "Attached image")} className="rounded-xl mb-2 max-h-40 w-full object-cover cursor-pointer" onClick={() => window.open(msg.image_url, '_blank')} />
                                                                     )}
                                                                     <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
                                                                 </div>
                                                                 <span className="text-[9px] text-slate-300 font-bold mt-1 px-1">
-                                                                    {isAI ? (msg.ai_sender_name || 'Flora AI') : !isMe && `${msg.sender_tenant?.name || ''}`} • {format(messageDate, 'HH:mm')}
+                                                                    {isAI ? (msg.ai_sender_name || tr('Flora AI', 'Flora AI')) : !isMe && `${msg.sender_tenant?.name || ''}`} • {format(messageDate, 'HH:mm')}
                                                                 </span>
                                                             </div>
                                                         );
@@ -878,7 +901,7 @@ export function QuickChat() {
                                                     {isAILoading && (
                                                         <div className="flex items-center gap-2 text-indigo-500 animate-pulse text-[10px] font-bold uppercase tracking-widest pl-2">
                                                             <RefreshCw size={12} className="animate-spin" />
-                                                            AI 비서가 정중히 답변을 작성 중입니다...
+                                                            {tr("AI 비서가 정중히 답변을 작성 중입니다...", "AI assistant is preparing a reply...")}
                                                         </div>
                                                     )}
                                                     <div ref={scrollRef} />
@@ -899,12 +922,12 @@ export function QuickChat() {
                                                 <MessageCircle className="w-8 h-8 opacity-20" />
                                             </div>
                                             <h4 className="text-sm font-bold text-slate-600 mb-1">
-                                                {showClosed ? '상담 기록을 확인하세요' : '사장님들을 정중히 모십니다'}
+                                                {showClosed ? tr('상담 기록을 확인하세요', 'Check your consultation records') : tr('사장님들을 정중히 모십니다', 'Welcome to support')}
                                             </h4>
                                             <p className="text-xs max-w-[200px] leading-relaxed">
                                                 {showClosed 
-                                                  ? '왼쪽 상담 기록에서 화원사를 선택하여 대화 내용을 열람하실 수 있습니다.'
-                                                  : '왼쪽 목록에서 화원사를 선택하여 실시간 기술 지원을 시작하세요.'}
+                                                  ? tr('왼쪽 상담 기록에서 화원사를 선택하여 대화 내용을 열람하실 수 있습니다.', 'Select a florist from the left records to view the conversation.')
+                                                  : tr('왼쪽 목록에서 화원사를 선택하여 실시간 기술 지원을 시작하세요.', 'Select a florist on the left to start real-time support.')}
                                             </p>
                                         </div>
                                     )}
@@ -921,21 +944,21 @@ export function QuickChat() {
                                                     <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400">
                                                         <Clock size={16} />
                                                     </div>
-                                                    <h5 className="text-[11px] font-black text-slate-900 uppercase tracking-widest">본사 상담 업무 시간</h5>
+                                                    <h5 className="text-[11px] font-black text-slate-900 uppercase tracking-widest">{tr("본사 상담 업무 시간", "HQ consultation hours")}</h5>
                                                 </div>
                                                 <div className="grid grid-cols-2 gap-2 text-[10px] font-semibold text-slate-400">
                                                     <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
-                                                        <p className="text-slate-900 font-black mb-0.5 uppercase tracking-tighter italic mr-1">Weekdays</p>
+                                                        <p className="text-slate-900 font-black mb-0.5 uppercase tracking-tighter italic mr-1">{tr("평일", "Weekdays")}</p>
                                                         <p>09:00 - 18:00</p>
                                                     </div>
                                                     <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
-                                                        <p className="text-slate-900 font-black mb-0.5 uppercase tracking-tighter italic mr-1">Weekend/Holiday</p>
-                                                        <p>Closed</p>
+                                                        <p className="text-slate-900 font-black mb-0.5 uppercase tracking-tighter italic mr-1">{tr("주말/공휴일", "Weekend/Holiday")}</p>
+                                                        <p>{tr("휴무", "Closed")}</p>
                                                     </div>
                                                 </div>
                                                 <div className="pt-2 flex items-start gap-2 text-[9px] font-bold text-slate-400 leading-normal border-t border-slate-50">
                                                     <Info size={12} className="shrink-0 text-amber-500 mt-0.5" />
-                                                    <p>상담 기록 및 전송 이미지는 개인정보 보안 및 서버 용량 최적화를 위해 <span className="text-amber-600 font-black">7일 경과 후 자동 파기</span>됩니다. 중요한 정보는 미리 확인해 주세요.</p>
+                                                    <p>{tr("상담 기록 및 전송 이미지는 개인정보 보안 및 서버 용량 최적화를 위해 ", "Consultation records and uploaded images are ")}<span className="text-amber-600 font-black">{tr("7일 경과 후 자동 파기", "automatically deleted after 7 days")}</span>{tr("됩니다. 중요한 정보는 미리 확인해 주세요.", " for privacy and storage optimization. Please save important information in advance.")}</p>
                                                 </div>
                                             </div>
 
@@ -945,7 +968,7 @@ export function QuickChat() {
                                                     <div className="flex items-start gap-2">
                                                         <span className="text-lg">🤖</span>
                                                         <div>
-                                                            <p className="text-[11px] font-black text-indigo-600 mb-1 uppercase tracking-widest">AI 빠른 답변</p>
+                                                            <p className="text-[11px] font-black text-indigo-600 mb-1 uppercase tracking-widest">{tr("AI 빠른 답변", "AI quick answer")}</p>
                                                             <p className="text-xs font-bold text-slate-700 mb-2">{faqAnswer.q}</p>
                                                             <p className="text-[12px] text-slate-600 leading-relaxed whitespace-pre-wrap">{faqAnswer.a}</p>
                                                         </div>
@@ -953,11 +976,11 @@ export function QuickChat() {
                                                     <div className="flex gap-2 pt-2 border-t border-indigo-100">
                                                         <Button size="sm" variant="outline" className="flex-1 text-[10px] font-black h-8 rounded-xl"
                                                             onClick={() => { setFaqAnswer(null); setSelectedCategory(null); }}>
-                                                            ← 다른 질문
+                                                            {tr("← 다른 질문", "← Other questions")}
                                                         </Button>
                                                         <Button size="sm" className="flex-1 text-[10px] font-black h-8 rounded-xl bg-indigo-600 hover:bg-indigo-700"
                                                             onClick={() => { setFaqAnswer(null); startSupportChat(); }}>
-                                                            AI에게 더 묻기
+                                                            {tr("AI에게 더 묻기", "Ask AI more")}
                                                         </Button>
                                                     </div>
                                                 </div>
@@ -967,13 +990,13 @@ export function QuickChat() {
                                                     <div className="flex items-center justify-between">
                                                         <button className="flex items-center gap-1 text-[10px] font-black text-slate-400 hover:text-indigo-600 transition-colors"
                                                             onClick={() => setSelectedCategory(null)}>
-                                                            ← 카테고리로 돌아가기
+                                                            {tr("← 카테고리로 돌아가기", "← Back to categories")}
                                                         </button>
-                                                        <span className="text-[9px] text-slate-400">{faqData.filter(f => f.category === selectedCategory).length}개 항목</span>
+                                                        <span className="text-[9px] text-slate-400">{faqData.filter(f => f.category === selectedCategory).length}{tr("개 항목", " items")}</span>
                                                     </div>
                                                     <div className="flex items-center gap-2 pb-1">
                                                         <span className="text-base">{faqData.find((f:any) => f.category === selectedCategory)?.category_icon}</span>
-                                                        <p className="text-[12px] font-black text-slate-800">{selectedCategory}</p>
+                                                        <p className="text-[12px] font-black text-slate-800">{selectedCategory ? localizeFaqCategory(selectedCategory) : selectedCategory}</p>
                                                     </div>
                                                     <div className="space-y-1.5">
                                                         {faqData.filter((f:any) => f.category === selectedCategory).map((faq: any) => (
@@ -985,14 +1008,14 @@ export function QuickChat() {
                                                             </button>
                                                         ))}
                                                     </div>
-                                                    <p className="text-[9px] text-slate-400 text-center pt-1">원하는 답변이 없으면 아래 AI 상담을 이용하세요</p>
+                                                    <p className="text-[9px] text-slate-400 text-center pt-1">{tr("원하는 답변이 없으면 아래 AI 상담을 이용하세요", "If you cannot find the answer, use AI support below.")}</p>
                                                 </div>
                                             ) : (
                                                 // [1단계] 카테고리 그리드만 표시
                                                 <div className="space-y-3">
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-base">⚡</span>
-                                                        <p className="text-[11px] font-black text-slate-700">무엇을 도와드릴까요?</p>
+                                                        <p className="text-[11px] font-black text-slate-700">{tr("무엇을 도와드릴까요?", "How can we help you?")}</p>
                                                     </div>
                                                     <div className="grid grid-cols-2 gap-2">
                                                         {faqData.reduce((acc: any[], f: any) => {
@@ -1003,8 +1026,8 @@ export function QuickChat() {
                                                                 className="p-3.5 rounded-2xl bg-white border border-slate-100 hover:border-indigo-300 hover:bg-indigo-50 hover:shadow-md transition-all text-left shadow-sm group"
                                                                 onClick={() => setSelectedCategory(faq.category)}>
                                                                 <span className="text-xl block mb-1.5">{faq.category_icon}</span>
-                                                                <span className="text-[11px] font-black text-slate-700 group-hover:text-indigo-700 block">{faq.category}</span>
-                                                                <span className="text-[9px] text-slate-400">{faqData.filter((d:any) => d.category === faq.category).length}개 질문</span>
+                                                                <span className="text-[11px] font-black text-slate-700 group-hover:text-indigo-700 block">{localizeFaqCategory(faq.category)}</span>
+                                                                <span className="text-[9px] text-slate-400">{faqData.filter((d:any) => d.category === faq.category).length}{tr("개 질문", " questions")}</span>
                                                             </button>
                                                         ))}
                                                     </div>
@@ -1016,12 +1039,12 @@ export function QuickChat() {
                                                     {loading ? <RefreshCw className="animate-spin" size={20} /> : <MessageCircle size={20} />}
                                                 </div>
                                                 <div className="flex flex-col items-start">
-                                                    <span className="font-black text-sm">찾는 답변이 없다면? AI 상담</span>
-                                                    <span className="text-[9px] font-medium text-white/50 uppercase tracking-widest">AI + 상담원 하이브리드 지원</span>
+                                                    <span className="font-black text-sm">{tr("찾는 답변이 없다면? AI 상담", "Need more help? AI support")}</span>
+                                                    <span className="text-[9px] font-medium text-white/50 uppercase tracking-widest">{tr("AI + 상담원 하이브리드 지원", "AI + agent hybrid support")}</span>
                                                 </div>
                                             </Button>
                                             <div className="flex items-center gap-4 px-1">
-                                                <h5 className="text-[10px] font-black text-slate-300 uppercase tracking-widest shrink-0">Recent Conversations</h5>
+                                                <h5 className="text-[10px] font-black text-slate-300 uppercase tracking-widest shrink-0">{tr("최근 상담 기록", "Recent Conversations")}</h5>
                                                 <div className="h-px w-full bg-slate-100" />
                                             </div>
                                             {rooms.map((room) => <RoomItem key={room.id} room={room} />)}
@@ -1047,7 +1070,7 @@ export function QuickChat() {
                                                             )}>
                                                                 {isImage ? (
                                                                     <div className="relative group cursor-zoom-in">
-                                                                        <img src={msg.content} alt="Chat image" className="rounded-2xl max-w-full h-auto border border-slate-100" />
+                                                                        <img src={msg.content} alt={tr("채팅 이미지", "Chat image")} className="rounded-2xl max-w-full h-auto border border-slate-100" />
                                                                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100">
                                                                             <Search className="text-white" size={20} />
                                                                         </div>
@@ -1059,7 +1082,7 @@ export function QuickChat() {
                                                                 )}
                                                             </div>
                                                             <span className="text-[9px] text-slate-300 font-bold mt-1 px-2 uppercase tracking-tighter">
-                                                                {isAI ? (msg.ai_sender_name || 'Flora AI') : 'Me'} • {format(messageDate, 'HH:mm')}
+                                                                    {isAI ? (msg.ai_sender_name || tr('Flora AI', 'Flora AI')) : tr('나', 'Me')} • {format(messageDate, 'HH:mm')}
                                                             </span>
                                                         </div>
                                                     );
@@ -1067,7 +1090,7 @@ export function QuickChat() {
                                                 {isAILoading && (
                                                     <div className="flex items-center gap-2 text-indigo-500 animate-pulse text-[9px] font-bold uppercase tracking-widest pl-2">
                                                         <RefreshCw size={10} className="animate-spin" />
-                                                        AI 비서가 답변을 작성 중입니다...
+                                                        {tr("AI 비서가 답변을 작성 중입니다...", "AI assistant is writing a reply...")}
                                                     </div>
                                                 )}
                                                 <div ref={scrollRef} />
@@ -1077,7 +1100,7 @@ export function QuickChat() {
                                             {/* 실시간 FAQ 제안 첨 */}
                                             {faqSuggestions.length > 0 && !isAILoading && (
                                                 <div className="flex flex-wrap gap-1.5 mb-2">
-                                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest w-full">💡 이런 내용을 묻는 건가요?</span>
+                                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest w-full">{tr("💡 이런 내용을 묻는 건가요?", "💡 Are you asking about this?")}</span>
                                                     {faqSuggestions.slice(0, 3).map((faq: any) => (
                                                         <button
                                                             key={faq.id}
@@ -1090,7 +1113,7 @@ export function QuickChat() {
                                                                     room_id: selectedRoom.id,
                                                                     sender_tenant_id: ADMIN_TENANT_ID,
                                                                     is_ai: true,
-                                                                    ai_sender_name: 'Flora AI 비서',
+                                                                    ai_sender_name: tr('Flora AI 비서', 'Flora AI Assistant'),
                                                                     content: `**${faq.question}**\n\n${faq.answer}`
                                                                 });
                                                                 fetchMessages(selectedRoom.id);
@@ -1135,6 +1158,9 @@ export function QuickChat() {
 }
 
 function ChatInput({ value, onChange, onSend, onFile, loading }: { value: string, onChange: (v: string) => void, onSend: () => void, onFile: (e: any) => void, loading: boolean }) {
+    const locale = usePreferredLocale();
+    const isKo = toBaseLocale(locale) === "ko";
+    const tr = (ko: string, en: string) => (isKo ? ko : en);
     return (
         <div className="p-4 bg-white border-t border-slate-100 shrink-0 z-[50]">
             <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-2xl border border-slate-200">
@@ -1155,7 +1181,7 @@ function ChatInput({ value, onChange, onSend, onFile, loading }: { value: string
                             onSend();
                         }
                     }} 
-                    placeholder="메시지를 입력하세요..." 
+                    placeholder={tr("메시지를 입력하세요...", "Type a message...")} 
                     disabled={loading} 
                 />
                 <Button variant="default" size="sm" className="shrink-0 h-10 bg-indigo-600 hover:bg-indigo-700 rounded-xl px-4" onClick={onSend} disabled={loading || !value.trim()}>

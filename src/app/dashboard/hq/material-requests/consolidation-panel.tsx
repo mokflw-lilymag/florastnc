@@ -39,6 +39,9 @@ import {
 import { toast } from "sonner";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
+import { getMessages } from "@/i18n/getMessages";
 
 type Props = {
   requests: HqRequestInput[];
@@ -52,11 +55,13 @@ function openPrintableConsolidation(opts: {
   hqNote: string;
   rows: ConsolidatedMaterialRow[];
   filterSummary: string;
+  baseLocale: "ko" | "en";
 }) {
-  const { title, batchRef, generatedAt, hqNote, rows, filterSummary } = opts;
+  const { title, batchRef, generatedAt, hqNote, rows, filterSummary, baseLocale } = opts;
+  const tr = (koText: string, enText: string) => (baseLocale === "ko" ? koText : enText);
   const w = window.open("", "_blank", "noopener,noreferrer");
   if (!w) {
-    toast.error("팝업이 차단되었습니다. 브라우저에서 팝업을 허용해 주세요.");
+    toast.error(tr("팝업이 차단되었습니다. 브라우저에서 팝업을 허용해 주세요.", "Popup was blocked. Please allow popups in your browser."));
     return;
   }
 
@@ -109,22 +114,22 @@ function openPrintableConsolidation(opts: {
 </style></head><body>
   <h1>${escapeHtml(title)}</h1>
   <div class="meta">
-    <div><strong>문서번호</strong> ${escapeHtml(batchRef)}</div>
-    <div><strong>작성일시</strong> ${escapeHtml(generatedAt)}</div>
-    <div><strong>취합 조건</strong> ${escapeHtml(filterSummary)}</div>
+    <div><strong>${escapeHtml(tr("문서번호", "Ref No."))}</strong> ${escapeHtml(batchRef)}</div>
+    <div><strong>${escapeHtml(tr("작성일시", "Generated At"))}</strong> ${escapeHtml(generatedAt)}</div>
+    <div><strong>${escapeHtml(tr("취합 조건", "Filter"))}</strong> ${escapeHtml(filterSummary)}</div>
   </div>
-  ${hqNote.trim() ? `<div class="note"><strong>본사 메모</strong><br/>${escapeHtml(hqNote.trim()).replace(/\n/g, "<br/>")}</div>` : ""}
+  ${hqNote.trim() ? `<div class="note"><strong>${escapeHtml(tr("본사 메모", "HQ Note"))}</strong><br/>${escapeHtml(hqNote.trim()).replace(/\n/g, "<br/>")}</div>` : ""}
   <table class="main">
     <thead><tr>
       <th style="width:48px;">No</th>
-      <th>품목</th>
-      <th style="width:22%;">분류</th>
-      <th style="width:100px;">취합수량</th>
-      <th style="width:18%;">비고</th>
+      <th>${escapeHtml(tr("품목", "Item"))}</th>
+      <th style="width:22%;">${escapeHtml(tr("분류", "Category"))}</th>
+      <th style="width:100px;">${escapeHtml(tr("취합수량", "Quantity"))}</th>
+      <th style="width:18%;">${escapeHtml(tr("비고", "Note"))}</th>
     </tr></thead>
     ${rowsHtml}
   </table>
-  <p style="margin-top:20px;font-size:12px;color:#666;">지점별 수량은 각 품목 아래 표에 표시됩니다. 발주·입고 후 지점 배분에 활용하세요.</p>
+  <p style="margin-top:20px;font-size:12px;color:#666;">${escapeHtml(tr("지점별 수량은 각 품목 아래 표에 표시됩니다. 발주·입고 후 지점 배분에 활용하세요.", "Per-branch quantities are shown below each item. Use for distribution after ordering/receiving."))}</p>
   <script>window.onload=function(){window.print();};</script>
 </body></html>`;
 
@@ -150,6 +155,10 @@ export function MaterialRequestsConsolidationPanel({ requests, onReload }: Props
   const [hqNote, setHqNote] = useState("");
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
   const [patching, setPatching] = useState(false);
+  const locale = usePreferredLocale();
+  const baseLocale: "ko" | "en" = toBaseLocale(locale) === "ko" ? "ko" : "en";
+  const tr = (koText: string, enText: string) => (baseLocale === "ko" ? koText : enText);
+  const ribbonMsgs = getMessages(locale).dashboard.ribbon;
 
   const statuses = useMemo(() => {
     const s = new Set<string>();
@@ -196,9 +205,9 @@ export function MaterialRequestsConsolidationPanel({ requests, onReload }: Props
   );
 
   const filterSummary = [
-    `상태: ${[...statuses].join(", ") || "—"}`,
-    dateFrom ? `시작 ${dateFrom}` : null,
-    dateTo ? `종료 ${dateTo}` : null,
+    `${ribbonMsgs.matReqFilterStatus} ${[...statuses].join(", ") || "—"}`,
+    dateFrom ? `${ribbonMsgs.matReqFilterFrom} ${dateFrom}` : null,
+    dateTo ? `${ribbonMsgs.matReqFilterTo} ${dateTo}` : null,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -224,49 +233,50 @@ export function MaterialRequestsConsolidationPanel({ requests, onReload }: Props
 
   const copyTsv = async () => {
     if (consolidated.length === 0) {
-      toast.message("취합할 품목이 없습니다. 상태·기간 필터를 확인하세요.");
+      toast.message(tr("취합할 품목이 없습니다. 상태·기간 필터를 확인하세요.", "No items to consolidate. Check status/date filters."));
       return;
     }
     try {
       await navigator.clipboard.writeText(consolidationToTsv(consolidated));
-      toast.success("표 형식이 클립보드에 복사되었습니다. Excel에 붙여넣기 하세요.");
+      toast.success(tr("표 형식이 클립보드에 복사되었습니다. Excel에 붙여넣기 하세요.", "Copied table to clipboard. Paste into Excel."));
     } catch {
-      toast.error("복사에 실패했습니다.");
+      toast.error(tr("복사에 실패했습니다.", "Copy failed."));
     }
   };
 
   const downloadCsv = () => {
     if (consolidated.length === 0) {
-      toast.message("취합할 품목이 없습니다.");
+      toast.message(tr("취합할 품목이 없습니다.", "No items to consolidate."));
       return;
     }
     const blob = new Blob([consolidationToCsv(consolidated)], { type: "text/csv;charset=utf-8" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = `${batchRef}-취합발주.csv`;
+    a.download = `${batchRef}-${tr("취합발주", "consolidated-order")}.csv`;
     a.click();
     URL.revokeObjectURL(a.href);
-    toast.success("CSV 파일을 내려받았습니다.");
+    toast.success(tr("CSV 파일을 내려받았습니다.", "Downloaded CSV file."));
   };
 
   const printDoc = () => {
     if (consolidated.length === 0) {
-      toast.message("인쇄할 품목이 없습니다.");
+      toast.message(tr("인쇄할 품목이 없습니다.", "No items to print."));
       return;
     }
     openPrintableConsolidation({
-      title: "지점 자재 요청 — 취합 발주안",
+      title: tr("지점 자재 요청 — 취합 발주안", "Branch Material Requests — Consolidated Draft"),
       batchRef,
-      generatedAt: format(new Date(), "yyyy년 M월 d일 HH:mm", { locale: ko }),
+      generatedAt: baseLocale === "ko" ? format(new Date(), "yyyy년 M월 d일 HH:mm", { locale: ko }) : format(new Date(), "yyyy-MM-dd HH:mm"),
       hqNote,
       rows: consolidated,
       filterSummary,
+      baseLocale,
     });
   };
 
   const patchStatus = async (requestIds: string[], status: string, successMsg: string) => {
     if (requestIds.length === 0) {
-      toast.message("변경할 요청이 없습니다.");
+      toast.message(tr("변경할 요청이 없습니다.", "No requests to update."));
       return;
     }
     setPatching(true);
@@ -279,7 +289,7 @@ export function MaterialRequestsConsolidationPanel({ requests, onReload }: Props
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(typeof j.error === "string" ? j.error : "상태 변경에 실패했습니다.");
+        toast.error(typeof j.error === "string" ? j.error : tr("상태 변경에 실패했습니다.", "Failed to change status."));
         return;
       }
       toast.success(successMsg);
@@ -297,15 +307,14 @@ export function MaterialRequestsConsolidationPanel({ requests, onReload }: Props
             <div>
               <CardTitle className="text-lg flex items-center gap-2">
                 <FileSpreadsheet className="h-5 w-5 text-violet-600 dark:text-violet-400" />
-                취합 발주안
+                {tr("취합 발주안", "Consolidated Draft")}
               </CardTitle>
               <CardDescription className="mt-1 max-w-2xl">
-                지점별 요청 줄을 품목·단위 기준으로 합산합니다. 자재코드(material_id)가 같으면 한 줄로 묶이고, 수기 품목은
-                품명·분류·단위가 같을 때만 합칩니다. 아래 표를 그대로 발주서·내부 결재에 붙이거나 Excel로 넘기면 됩니다.
+                {tr("지점별 요청 줄을 품목·단위 기준으로 합산합니다. 자재코드(material_id)가 같으면 한 줄로 묶이고, 수기 품목은 품명·분류·단위가 같을 때만 합칩니다. 아래 표를 그대로 발주서·내부 결재에 붙이거나 Excel로 넘기면 됩니다.", "Consolidates branch request lines by item/unit. Same material_id merges into one row; manual items merge only when name/category/unit match. Use table for ordering or Excel.")}
               </CardDescription>
             </div>
             <div className="rounded-lg border bg-background/80 px-3 py-2 text-xs font-mono text-muted-foreground shrink-0">
-              <div className="text-[10px] uppercase tracking-wide text-muted-foreground/80">문서 참조번호</div>
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground/80">{tr("문서 참조번호", "Document Ref.")}</div>
               <div className="text-foreground font-semibold">{batchRef}</div>
             </div>
           </div>
@@ -313,36 +322,36 @@ export function MaterialRequestsConsolidationPanel({ requests, onReload }: Props
         <CardContent className="space-y-5">
           <div className="flex flex-wrap gap-4 items-end">
             <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">포함 상태</Label>
+              <Label className="text-xs text-muted-foreground">{tr("포함 상태", "Included Status")}</Label>
               <div className="flex flex-wrap gap-3">
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
                   <Checkbox checked={statusPending} onCheckedChange={(v) => setStatusPending(v === true)} />
-                  대기(pending)
+                  {tr("대기(pending)", "Pending")}
                 </label>
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
                   <Checkbox checked={statusReviewing} onCheckedChange={(v) => setStatusReviewing(v === true)} />
-                  검토중
+                  {tr("검토중", "Reviewing")}
                 </label>
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
                   <Checkbox checked={statusFulfilled} onCheckedChange={(v) => setStatusFulfilled(v === true)} />
-                  처리완료
+                  {tr("처리완료", "Fulfilled")}
                 </label>
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
                   <Checkbox checked={statusCancelled} onCheckedChange={(v) => setStatusCancelled(v === true)} />
-                  취소
+                  {tr("취소", "Cancelled")}
                 </label>
               </div>
             </div>
             <div className="flex flex-wrap gap-3">
               <div className="space-y-1">
                 <Label htmlFor="mr-df" className="text-xs text-muted-foreground">
-                  요청일 시작
+                  {tr("요청일 시작", "Request Date From")}
                 </Label>
                 <Input id="mr-df" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="h-9 w-[150px]" />
               </div>
               <div className="space-y-1">
                 <Label htmlFor="mr-dt" className="text-xs text-muted-foreground">
-                  요청일 끝
+                  {tr("요청일 끝", "Request Date To")}
                 </Label>
                 <Input id="mr-dt" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="h-9 w-[150px]" />
               </div>
@@ -351,32 +360,32 @@ export function MaterialRequestsConsolidationPanel({ requests, onReload }: Props
 
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-xl border bg-card px-4 py-3">
-              <div className="text-xs text-muted-foreground">취합 품목 수</div>
+              <div className="text-xs text-muted-foreground">{tr("취합 품목 수", "Consolidated Items")}</div>
               <div className="text-2xl font-semibold tabular-nums">{stats.skuCount}</div>
             </div>
             <div className="rounded-xl border bg-card px-4 py-3">
-              <div className="text-xs text-muted-foreground">포함 지점 수</div>
+              <div className="text-xs text-muted-foreground">{tr("포함 지점 수", "Included Branches")}</div>
               <div className="text-2xl font-semibold tabular-nums">{stats.branchCount}</div>
             </div>
             <div className="rounded-xl border bg-card px-4 py-3">
-              <div className="text-xs text-muted-foreground">원본 요청 건</div>
+              <div className="text-xs text-muted-foreground">{tr("원본 요청 건", "Original Requests")}</div>
               <div className="text-2xl font-semibold tabular-nums">{stats.requestCount}</div>
             </div>
             <div className="rounded-xl border bg-card px-4 py-3">
-              <div className="text-xs text-muted-foreground">원본 품목 줄</div>
+              <div className="text-xs text-muted-foreground">{tr("원본 품목 줄", "Original Item Lines")}</div>
               <div className="text-2xl font-semibold tabular-nums">{stats.lineCount}</div>
             </div>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="hq-memo" className="text-xs text-muted-foreground">
-              본사 메모 (인쇄·내부 공유용, 시스템에 저장되지 않습니다)
+              {ribbonMsgs.hqMemoFieldLabel}
             </Label>
             <Textarea
               id="hq-memo"
               value={hqNote}
               onChange={(e) => setHqNote(e.target.value)}
-              placeholder="예: 이번 주 발주 마감 4/25, ○○도매 우선 배송 요청"
+              placeholder={tr("예: 이번 주 발주 마감 4/25, ○○도매 우선 배송 요청", "e.g. Order deadline this week 4/25, prioritize OO wholesale delivery")}
               rows={2}
               className="resize-none text-sm"
             />
@@ -385,15 +394,15 @@ export function MaterialRequestsConsolidationPanel({ requests, onReload }: Props
           <div className="flex flex-wrap gap-2">
             <Button type="button" variant="default" size="sm" className="gap-1.5" onClick={printDoc} disabled={consolidated.length === 0}>
               <Printer className="h-4 w-4" />
-              인쇄 / PDF 저장
+              {tr("인쇄 / PDF 저장", "Print / Save PDF")}
             </Button>
             <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={copyTsv}>
               <ClipboardCopy className="h-4 w-4" />
-              Excel용 복사
+              {tr("Excel용 복사", "Copy for Excel")}
             </Button>
             <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={downloadCsv}>
               <Download className="h-4 w-4" />
-              CSV 내려받기
+              {tr("CSV 내려받기", "Download CSV")}
             </Button>
             <Button
               type="button"
@@ -405,12 +414,12 @@ export function MaterialRequestsConsolidationPanel({ requests, onReload }: Props
                 patchStatus(
                   pendingInScope,
                   "reviewing",
-                  `대기 ${pendingInScope.length}건을 검토중으로 표시했습니다.`
+                  `${tr("대기", "Pending")} ${pendingInScope.length}${tr("건을 검토중으로 표시했습니다.", " set to reviewing.")}`
                 )
               }
             >
               {patching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Truck className="h-4 w-4" />}
-              취합 범위 중 대기 → 검토중
+              {tr("취합 범위 중 대기 → 검토중", "In scope: Pending → Reviewing")}
             </Button>
             <Button
               type="button"
@@ -422,29 +431,28 @@ export function MaterialRequestsConsolidationPanel({ requests, onReload }: Props
                 patchStatus(
                   reviewingInScope,
                   "fulfilled",
-                  `검토중 ${reviewingInScope.length}건을 처리완료로 표시했습니다.`
+                  `${tr("검토중", "Reviewing")} ${reviewingInScope.length}${tr("건을 처리완료로 표시했습니다.", " set to fulfilled.")}`
                 )
               }
             >
-              취합 범위 중 검토중 → 처리완료
+              {tr("취합 범위 중 검토중 → 처리완료", "In scope: Reviewing → Fulfilled")}
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            발주 전에는 「대기 → 검토중」으로 바꿔 두면 지점 화면에서도 진행 상태를 구분하기 쉽습니다. 입고·배분이 끝나면 「처리완료」로
-            마무리하세요.
+            {tr("발주 전에는 「대기 → 검토중」으로 바꿔 두면 지점 화면에서도 진행 상태를 구분하기 쉽습니다. 입고·배분이 끝나면 「처리완료」로 마무리하세요.", "Before ordering, switch Pending to Reviewing for clearer branch status. After receiving/distributing, finish as Fulfilled.")}
           </p>
         </CardContent>
       </Card>
 
       {consolidated.length === 0 ? (
         <p className="text-sm text-muted-foreground py-6 text-center border rounded-lg bg-muted/20">
-          조건에 맞는 요청이 없습니다. 상태 필터에 &quot;대기&quot; 또는 &quot;검토중&quot;을 켜 보세요.
+          {tr("조건에 맞는 요청이 없습니다. 상태 필터에 \"대기\" 또는 \"검토중\"을 켜 보세요.", "No requests match conditions. Enable Pending or Reviewing filters.")}
         </p>
       ) : (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">취합 품목 표</CardTitle>
-            <CardDescription>행을 펼치면 지점·요청별 수량을 확인할 수 있습니다.</CardDescription>
+            <CardTitle className="text-base">{tr("취합 품목 표", "Consolidated Item Table")}</CardTitle>
+            <CardDescription>{tr("행을 펼치면 지점·요청별 수량을 확인할 수 있습니다.", "Expand rows to see per-branch/per-request quantities.")}</CardDescription>
           </CardHeader>
           <CardContent className="overflow-x-auto">
             <Table>
@@ -452,11 +460,11 @@ export function MaterialRequestsConsolidationPanel({ requests, onReload }: Props
                 <TableRow>
                   <TableHead className="w-10" />
                   <TableHead className="w-10">No</TableHead>
-                  <TableHead>품목</TableHead>
-                  <TableHead>분류</TableHead>
-                  <TableHead className="text-right">취합</TableHead>
-                  <TableHead>지점</TableHead>
-                  <TableHead className="hidden md:table-cell">비고</TableHead>
+                  <TableHead>{tr("품목", "Item")}</TableHead>
+                  <TableHead>{tr("분류", "Category")}</TableHead>
+                  <TableHead className="text-right">{tr("취합", "Total")}</TableHead>
+                  <TableHead>{tr("지점", "Branches")}</TableHead>
+                  <TableHead className="hidden md:table-cell">{tr("비고", "Note")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -485,7 +493,7 @@ export function MaterialRequestsConsolidationPanel({ requests, onReload }: Props
                         <TableCell>
                           <div className="font-medium">{row.name}</div>
                           {row.material_id ? (
-                            <div className="text-[11px] text-muted-foreground font-mono mt-0.5">자재 ID · {row.material_id.slice(0, 8)}…</div>
+                            <div className="text-[11px] text-muted-foreground font-mono mt-0.5">{tr("자재 ID", "Material ID")} · {row.material_id.slice(0, 8)}…</div>
                           ) : null}
                         </TableCell>
                         <TableCell className="text-sm">
@@ -498,7 +506,7 @@ export function MaterialRequestsConsolidationPanel({ requests, onReload }: Props
                         </TableCell>
                         <TableCell>
                           <Badge variant="secondary" className="font-normal">
-                            {row.branchCount}곳
+                            {row.branchCount}{tr("곳", " branches")}
                           </Badge>
                         </TableCell>
                         <TableCell className="hidden md:table-cell text-xs text-muted-foreground max-w-[200px] truncate">
@@ -509,7 +517,7 @@ export function MaterialRequestsConsolidationPanel({ requests, onReload }: Props
                         <TableRow className="bg-muted/25 hover:bg-muted/25">
                           <TableCell colSpan={7} className="p-0 border-b">
                             <div className="px-4 py-3 text-sm space-y-2">
-                              <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">지점별 수량</div>
+                              <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{tr("지점별 수량", "Quantity by Branch")}</div>
                               <ul className="grid gap-1 sm:grid-cols-2 lg:grid-cols-3">
                                 {[...byBranch.entries()]
                                   .sort((a, b) => a[0].localeCompare(b[0], "ko"))
@@ -526,7 +534,7 @@ export function MaterialRequestsConsolidationPanel({ requests, onReload }: Props
                                   ))}
                               </ul>
                               <div className="text-xs text-muted-foreground pt-1 border-t">
-                                요청 줄 상세 ·{" "}
+                                {tr("요청 줄 상세", "Request line details")} ·{" "}
                                 {row.breakdown.map((b, i) => (
                                   <span key={b.line_id}>
                                     {i > 0 ? " · " : null}

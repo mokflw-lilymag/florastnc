@@ -7,9 +7,14 @@ import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
 import { AccessDenied } from "@/components/access-denied";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
 
 export default function AnnouncementsPage() {
   const { profile, isLoading } = useAuth();
+  const locale = usePreferredLocale();
+  const baseLocale = toBaseLocale(locale);
+  const tr = (koText: string, enText: string) => (baseLocale === "ko" ? koText : enText);
   const isSuperAdmin = profile?.role === 'super_admin';
 
   if (isLoading) return null;
@@ -21,12 +26,12 @@ export default function AnnouncementsPage() {
   return (
     <div className="container mx-auto py-6 space-y-6">
       <PageHeader 
-        title="글로벌 공지사항 관리" 
-        description="모든 테넌트와 사용자에게 공유할 보도자료 및 공지사항을 작성합니다." 
+        title={tr("글로벌 공지사항 관리", "Global Announcements")} 
+        description={tr("모든 테넌트와 사용자에게 공유할 보도자료 및 공지사항을 작성합니다.", "Create announcements and releases shared with all tenants and users.")} 
         icon={ScrollText}
       >
         <Button className="bg-slate-900 dark:bg-slate-100 dark:text-slate-900">
-          <Plus className="h-4 w-4 mr-2" /> 새 공지 작성
+          <Plus className="h-4 w-4 mr-2" /> {tr("새 공지 작성", "New Announcement")}
         </Button>
       </PageHeader>
 
@@ -35,7 +40,7 @@ export default function AnnouncementsPage() {
           <CardHeader className="p-4 pb-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Badge variant="default" className="bg-orange-500">중요</Badge>
+                <Badge variant="default" className="bg-orange-500">{tr("중요", "Important")}</Badge>
                 <span className="text-xs text-slate-500">2024.03.20</span>
               </div>
               <div className="flex gap-1">
@@ -43,11 +48,11 @@ export default function AnnouncementsPage() {
                 <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500"><Trash2 className="h-4 w-4" /></Button>
               </div>
             </div>
-            <CardTitle className="text-lg mt-2">시스템 점검 안내 (3월 25일)</CardTitle>
+            <CardTitle className="text-lg mt-2">{tr("시스템 점검 안내 (3월 25일)", "System Maintenance Notice (Mar 25)")}</CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-0">
             <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2">
-              서비스 안정성을 위한 정기 점검이 예정되어 있습니다. 점검 시간에는 서비스 이용이 제한될 수 있습니다.
+              {tr("서비스 안정성을 위한 정기 점검이 예정되어 있습니다. 점검 시간에는 서비스 이용이 제한될 수 있습니다.", "Scheduled maintenance is planned for service stability. Access may be limited during the maintenance window.")}
             </p>
           </CardContent>
         </Card>
@@ -56,7 +61,7 @@ export default function AnnouncementsPage() {
           <CardHeader className="p-4 pb-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Badge variant="outline">일반</Badge>
+                <Badge variant="outline">{tr("일반", "General")}</Badge>
                 <span className="text-xs text-slate-500">2024.03.18</span>
               </div>
               <div className="flex gap-1">
@@ -64,11 +69,11 @@ export default function AnnouncementsPage() {
                 <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500"><Trash2 className="h-4 w-4" /></Button>
               </div>
             </div>
-            <CardTitle className="text-lg mt-2">리본 프린터 신규 폰트 추가 안내</CardTitle>
+            <CardTitle className="text-lg mt-2">{tr("리본 프린터 신규 폰트 추가 안내", "New Ribbon Printer Fonts Added")}</CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-0">
              <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2">
-              사용자 여러분의 요청에 따라 감성적인 흘림체 등 5종의 신규 폰트가 추가되었습니다.
+              {tr("사용자 여러분의 요청에 따라 감성적인 흘림체 등 5종의 신규 폰트가 추가되었습니다.", "Based on user requests, 5 new fonts including cursive styles were added.")}
             </p>
           </CardContent>
         </Card>
@@ -77,8 +82,8 @@ export default function AnnouncementsPage() {
       <div className="flex flex-col items-center justify-center p-20 bg-slate-50/50 dark:bg-slate-900/20 rounded-xl border-2 border-dashed gap-4">
          <Megaphone className="h-10 w-10 text-slate-300" />
          <div className="text-center">
-            <h3 className="font-semibold text-slate-600">더 많은 소식을 전해 보세요</h3>
-            <p className="text-sm text-slate-400">등록된 공지사항이 대시보드 메인에 노출됩니다.</p>
+            <h3 className="font-semibold text-slate-600">{tr("더 많은 소식을 전해 보세요", "Share more updates")}</h3>
+            <p className="text-sm text-slate-400">{tr("등록된 공지사항이 대시보드 메인에 노출됩니다.", "Published announcements appear on the main dashboard.")}</p>
          </div>
       </div>
     </div>

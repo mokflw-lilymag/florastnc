@@ -6,14 +6,20 @@ import {
   ResponsiveContainer
 } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
 
 interface SalesChartProps {
-  chartData: Array<{ name: string; 매출: number }>;
+  chartData: Array<{ name: string; sales: number }>;
   /** 차트 영역 높이(px). 대시보드 다중 타일에서는 280~300 권장 */
   height?: number;
 }
 
 export default function SalesChart({ chartData, height = 350 }: SalesChartProps) {
+  const locale = usePreferredLocale();
+  const baseLocale = toBaseLocale(locale);
+  const tr = (koText: string, enText: string) => (baseLocale === "ko" ? koText : enText);
+  const seriesName = tr("매출", "Sales");
   const [isMounted, setIsMounted] = useState(false);
   const reactId = useId();
   const wrapperId = `sales-chart-${reactId.replace(/:/g, "")}`;
@@ -62,7 +68,7 @@ export default function SalesChart({ chartData, height = 350 }: SalesChartProps)
         className="w-full flex flex-col items-center justify-center border-2 border-dashed border-slate-100 rounded-3xl bg-slate-50/50"
         style={{ height, minHeight: height }}
       >
-        <p className="text-sm text-slate-400 font-medium">표시할 데이터가 없습니다.</p>
+        <p className="text-sm text-slate-400 font-medium">{tr("표시할 데이터가 없습니다.", "No data to display.")}</p>
       </div>
     );
   }
@@ -92,7 +98,11 @@ export default function SalesChart({ chartData, height = 350 }: SalesChartProps)
               axisLine={false} 
               tickLine={false} 
               tick={{ fontSize: 10, fill: '#94a3b8' }}
-              tickFormatter={(v) => `₩${(v / 10000).toFixed(0)}만`}
+              tickFormatter={(v) =>
+                baseLocale === "ko"
+                  ? `₩${(v / 10000).toFixed(0)}만`
+                  : `₩${(v / 1_000_000).toFixed(1)}M`
+              }
             />
             <Tooltip 
               cursor={{ fill: '#f8fafc' }}
@@ -116,7 +126,7 @@ export default function SalesChart({ chartData, height = 350 }: SalesChartProps)
                 return null;
               }}
             />
-            <Bar dataKey="매출" fill="#4f46e5" radius={[6, 6, 0, 0]} barSize={24} />
+            <Bar dataKey="sales" name={seriesName} fill="#4f46e5" radius={[6, 6, 0, 0]} barSize={24} />
           </BarChart>
         </ResponsiveContainer>
       )}

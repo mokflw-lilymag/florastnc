@@ -35,6 +35,8 @@ import { createClient } from "@/utils/supabase/client";
 import { toast } from "sonner";
 import { printDocument } from "@/lib/print-document";
 import { Badge } from "@/components/ui/badge";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
 
 interface StatementDialogProps {
   customer: Customer | null;
@@ -66,6 +68,9 @@ export function StatementDialog({ customer, isOpen, onOpenChange, type }: Statem
     contact: "02-1234-5678",
     businessNumber: "123-45-67890"
   });
+  const locale = usePreferredLocale();
+  const isKo = toBaseLocale(locale) === "ko";
+  const tr = (ko: string, en: string) => (isKo ? ko : en);
 
   useEffect(() => {
     if (isOpen && customer) {
@@ -199,9 +204,9 @@ export function StatementDialog({ customer, isOpen, onOpenChange, type }: Statem
     });
     
     toast.promise(printDocument(`/dashboard/customers/print?${params.toString()}`), {
-      loading: '서류를 인쇄용으로 변환 중...',
-      success: '서류 출력이 준비되었습니다.',
-      error: '인쇄 준비 중 오류가 발생했습니다.'
+      loading: tr('서류를 인쇄용으로 변환 중...', 'Preparing document for print...'),
+      success: tr('서류 출력이 준비되었습니다.', 'Document is ready to print.'),
+      error: tr('인쇄 준비 중 오류가 발생했습니다.', 'Failed to prepare print.')
     });
     
     onOpenChange(false);
@@ -212,7 +217,7 @@ export function StatementDialog({ customer, isOpen, onOpenChange, type }: Statem
 
   if (!customer) return null;
 
-  const typeTitle = type === 'statement' ? '거래명세서' : type === 'estimate' ? '견적서' : '간이영수증';
+  const typeTitle = type === 'statement' ? tr('거래명세서', 'Statement') : type === 'estimate' ? tr('견적서', 'Estimate') : tr('간이영수증', 'Receipt');
   const typeIcon = type === 'statement' ? <FileText /> : type === 'receipt' ? <ReceiptIcon /> : <FileText />;
   const themeColor = type === 'statement' ? 'bg-blue-600' : 'bg-emerald-600';
 
@@ -327,7 +332,7 @@ export function StatementDialog({ customer, isOpen, onOpenChange, type }: Statem
                       className="h-6 text-[10px] font-black text-blue-600 p-0 px-2"
                       onClick={() => setSelectedOrderIds(selectedOrderIds.length === orders.length ? [] : orders.map(o => o.id))}
                     >
-                      {selectedOrderIds.length === orders.length ? '전체 해제' : '전체 선택'}
+                      {selectedOrderIds.length === orders.length ? tr('전체 해제', 'Clear all') : tr('전체 선택', 'Select all')}
                     </Button>
                   </div>
                 </div>
@@ -336,7 +341,7 @@ export function StatementDialog({ customer, isOpen, onOpenChange, type }: Statem
                   {loading ? (
                     <div className="h-40 flex flex-col items-center justify-center text-slate-400 gap-2">
                       <Loader2 className="animate-spin h-6 w-6" />
-                      <span className="text-xs font-bold">내역을 불러오는 중입니다...</span>
+                      <span className="text-xs font-bold">{tr("내역을 불러오는 중입니다...", "Loading records...")}</span>
                     </div>
                   ) : orders.length > 0 ? (
                     <div className="divide-y divide-slate-100">
@@ -365,8 +370,8 @@ export function StatementDialog({ customer, isOpen, onOpenChange, type }: Statem
                   ) : (
                     <div className="h-64 flex flex-col items-center justify-center text-slate-400 gap-2">
                        <FileText className="h-12 w-12 opacity-5" />
-                       <span className="text-sm font-bold tracking-tight">지정된 기간에 거래 내역이 없습니다.</span>
-                       <span className="text-[10px] font-medium opacity-60">조회 기간을 다시 설정해 보세요.</span>
+                       <span className="text-sm font-bold tracking-tight">{tr("지정된 기간에 거래 내역이 없습니다.", "No records in selected period.")}</span>
+                       <span className="text-[10px] font-medium opacity-60">{tr("조회 기간을 다시 설정해 보세요.", "Adjust date range and try again.")}</span>
                     </div>
                   )}
                 </ScrollArea>

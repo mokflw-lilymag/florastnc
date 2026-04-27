@@ -1,6 +1,8 @@
 "use client";
 import { useState, useEffect } from 'react';
 import { Download, Monitor, CheckCircle2, AlertCircle, Play, X, RotateCw } from 'lucide-react';
+import { usePreferredLocale } from '@/hooks/use-preferred-locale';
+import { getMessages } from '@/i18n/getMessages';
 
 interface BridgeOnboardingDialogProps {
   isOpen: boolean;
@@ -9,6 +11,8 @@ interface BridgeOnboardingDialogProps {
 }
 
 export function BridgeOnboardingDialog({ isOpen, onClose, onCheckStatus }: BridgeOnboardingDialogProps) {
+  const locale = usePreferredLocale();
+  const R = getMessages(locale).dashboard.ribbon;
   const [step, setStep] = useState(1);
   const [isVerifying, setIsVerifying] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,10 +27,10 @@ export function BridgeOnboardingDialog({ isOpen, onClose, onCheckStatus }: Bridg
       if (isConnected) {
         setStep(3); // Success
       } else {
-        setError("브릿지가 여전히 감지되지 않습니다. 프로그램을 실행 중인지 확인해 주세요.");
+        setError(R.bridgeOnboardStillNotDetected);
       }
     } catch (err) {
-      setError("연결 확인 중 오류가 발생했습니다.");
+      setError(R.bridgeOnboardVerifyError);
     } finally {
       setIsVerifying(false);
     }
@@ -43,8 +47,8 @@ export function BridgeOnboardingDialog({ isOpen, onClose, onCheckStatus }: Bridg
               <Monitor className="w-5 h-5 text-blue-400" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-white leading-none">프린터 브릿지 설정</h2>
-              <p className="text-xs text-slate-500 mt-1">로컬 프린터를 연결하기 위해 필요한 작업입니다.</p>
+              <h2 className="text-xl font-bold text-white leading-none">{R.bridgeOnboardTitle}</h2>
+              <p className="text-xs text-slate-500 mt-1">{R.bridgeOnboardSubtitle}</p>
             </div>
           </div>
           <button onClick={onClose} className="p-1 hover:bg-slate-700 rounded transition text-slate-400">
@@ -60,10 +64,10 @@ export function BridgeOnboardingDialog({ isOpen, onClose, onCheckStatus }: Bridg
                 <div className="inline-flex p-4 bg-blue-600/10 rounded-full mb-2">
                   <Download className="w-8 h-8 text-blue-400 animate-bounce" />
                 </div>
-                <h3 className="text-lg font-semibold text-white">1단계: 브릿지 프로그램 다운로드</h3>
+                <h3 className="text-lg font-semibold text-white">{R.bridgeOnboardStep1Title}</h3>
                 <p className="text-slate-400 text-sm leading-relaxed">
-                  리본 프린터와 웹 앱을 연결해주는 필수 프로그램입니다.<br/>
-                  아래 버튼을 눌러 설치 파일을 다운로드 받으세요.
+                  {R.bridgeOnboardStep1Body1}<br/>
+                  {R.bridgeOnboardStep1Body2}
                 </p>
               </div>
               <a 
@@ -73,13 +77,13 @@ export function BridgeOnboardingDialog({ isOpen, onClose, onCheckStatus }: Bridg
                 className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex items-center justify-center gap-3 transition-all hover:scale-[1.02] shadow-lg shadow-blue-900/20"
               >
                 <Download size={20} />
-                설치 파일 다운로드 (v25.0 .exe)
+                {R.bridgeOnboardDownloadBtn}
               </a>
               <button 
                 onClick={() => setStep(2)}
                 className="w-full text-xs text-slate-500 hover:text-slate-300 transition"
               >
-                이미 설치하셨나요? 다음 단계로 이동
+                {R.bridgeOnboardAlreadyInstalled}
               </button>
             </div>
           )}
@@ -90,10 +94,10 @@ export function BridgeOnboardingDialog({ isOpen, onClose, onCheckStatus }: Bridg
                 <div className="inline-flex p-4 bg-amber-600/10 rounded-full mb-2">
                   <Play className="w-8 h-8 text-amber-400" />
                 </div>
-                <h3 className="text-lg font-semibold text-white">2단계: 프로그램 실행 및 연결 확인</h3>
+                <h3 className="text-lg font-semibold text-white">{R.bridgeOnboardStep2Title}</h3>
                 <p className="text-slate-400 text-sm leading-relaxed">
-                  다운로드 받은 <b>RibbonBridge_Setup_v25_0.exe</b>를 실행한 후,<br/>
-                  아래 '활성화 확인' 버튼을 눌러주세요.
+                  {R.bridgeOnboardStep2Body1} <b>RibbonBridge_Setup_v25_0.exe</b> {R.bridgeOnboardStep2Body2}<br/>
+                  {R.bridgeOnboardStep2Body3}
                 </p>
               </div>
 
@@ -114,14 +118,14 @@ export function BridgeOnboardingDialog({ isOpen, onClose, onCheckStatus }: Bridg
                 ) : (
                   <CheckCircle2 size={20} />
                 )}
-                {isVerifying ? "연결 확인 중..." : "활성화 확인 및 완료"}
+                {isVerifying ? R.bridgeOnboardVerifying : R.bridgeOnboardVerifyAndFinish}
               </button>
               
               <button 
                 onClick={() => setStep(1)}
                 className="w-full text-xs text-slate-500 hover:text-slate-300 transition"
               >
-                다시 다운로드 받으러 가기
+                {R.bridgeOnboardBackToDownload}
               </button>
             </div>
           )}
@@ -132,17 +136,17 @@ export function BridgeOnboardingDialog({ isOpen, onClose, onCheckStatus }: Bridg
                 <CheckCircle2 className="w-12 h-12 text-emerald-400 bounce-in" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-xl font-bold text-white">브릿지 연결 성공!</h3>
+                <h3 className="text-xl font-bold text-white">{R.bridgeOnboardSuccessTitle}</h3>
                 <p className="text-slate-400 text-sm">
-                  이제 리본 프린터를 사용하여 자유롭게 출력할 수 있습니다.<br/>
-                  모든 준비가 끝났습니다.
+                  {R.bridgeOnboardSuccessBody1}<br/>
+                  {R.bridgeOnboardSuccessBody2}
                 </p>
               </div>
               <button 
                 onClick={onClose}
                 className="w-full py-4 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold transition-all shadow-lg"
               >
-                작업 시작하기
+                {R.bridgeOnboardStartWork}
               </button>
             </div>
           )}
@@ -152,20 +156,20 @@ export function BridgeOnboardingDialog({ isOpen, onClose, onCheckStatus }: Bridg
             <div className="mt-8 p-5 bg-blue-900/20 rounded-xl border border-blue-500/30 space-y-4">
               <h4 className="text-sm font-bold text-blue-300 flex items-center gap-2">
                 <AlertCircle className="w-4 h-4" />
-                설치가 진행되지 않나요? (해결 방법)
+                {R.bridgeOnboardTroubleTitle}
               </h4>
               <div className="space-y-3">
                 <div className="text-[12px] text-slate-300 leading-relaxed">
-                  <p className="font-bold text-white mb-1">1. "Windows의 PC 보호(SmartScreen)" 창이 뜰 때</p>
-                  <p className="pl-4 opacity-80">창 왼쪽의 <span className="text-blue-400 underline font-bold cursor-default">추가 정보</span> 버튼을 누른 후, 우측 하단에 나타나는 <span className="text-white font-bold bg-blue-600/50 px-1.5 rounded">실행</span> 버튼을 클릭해 주세요.</p>
+                  <p className="font-bold text-white mb-1">{R.bridgeOnboardTrouble1Title}</p>
+                  <p className="pl-4 opacity-80">{R.bridgeOnboardTrouble1BodyA} <span className="text-blue-400 underline font-bold cursor-default">{R.bridgeOnboardTroubleMoreInfo}</span> {R.bridgeOnboardTrouble1BodyB} <span className="text-white font-bold bg-blue-600/50 px-1.5 rounded">{R.bridgeOnboardTroubleRun}</span> {R.bridgeOnboardTrouble1BodyC}</p>
                 </div>
                 <div className="text-[12px] text-slate-300 leading-relaxed border-t border-blue-500/20 pt-3">
-                  <p className="font-bold text-white mb-1">2. 브라우저에서 다운로드를 차단할 때</p>
-                  <p className="pl-4 opacity-80">다운로드 항목 옆의 점 세개(...) 또는 화살표를 눌러 <span className="text-white font-bold">계속</span> 또는 <span className="text-white font-bold">유지</span>를 선택해 주세요.</p>
+                  <p className="font-bold text-white mb-1">{R.bridgeOnboardTrouble2Title}</p>
+                  <p className="pl-4 opacity-80">{R.bridgeOnboardTrouble2BodyA} <span className="text-white font-bold">{R.bridgeOnboardTroubleContinue}</span> {R.bridgeOnboardTroubleOr} <span className="text-white font-bold">{R.bridgeOnboardTroubleKeep}</span>{R.bridgeOnboardTrouble2BodyB}</p>
                 </div>
                 <div className="text-[12px] text-slate-300 leading-relaxed border-t border-blue-500/20 pt-3">
-                  <p className="font-bold text-white mb-1">3. 실행 후 프로그램이 보이지 않을 때</p>
-                  <p className="pl-4 opacity-80">우측 하단 아이콘 트레이(시계 옆)에 <span className="text-blue-400 font-bold">Ribbon Bridge</span> 아이콘이 떠 있는지 확인해 주세요.</p>
+                  <p className="font-bold text-white mb-1">{R.bridgeOnboardTrouble3Title}</p>
+                  <p className="pl-4 opacity-80">{R.bridgeOnboardTrouble3BodyA} <span className="text-blue-400 font-bold">Ribbon Bridge</span> {R.bridgeOnboardTrouble3BodyB}</p>
                 </div>
               </div>
             </div>
@@ -175,7 +179,7 @@ export function BridgeOnboardingDialog({ isOpen, onClose, onCheckStatus }: Bridg
         {/* Footer */}
         <div className="bg-slate-900/30 p-4 border-t border-slate-700/50 flex justify-center">
           <p className="text-[10px] text-slate-600 uppercase tracking-widest font-mono">
-            Supported OS: Windows 10/11 x64
+            {R.bridgeOnboardSupportedOs}
           </p>
         </div>
 

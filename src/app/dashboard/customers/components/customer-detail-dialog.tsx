@@ -41,6 +41,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Customer } from "@/types/customer";
 import { createClient } from "@/utils/supabase/client";
 import { OrderDetailDialog } from "@/app/dashboard/orders/components/order-detail-dialog";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
 
 interface CustomerDetailDialogProps {
   customer: Customer | null;
@@ -68,6 +70,9 @@ export function CustomerDetailDialog({
   const [pointsLoading, setPointsLoading] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [isOrderDetailOpen, setIsOrderDetailOpen] = useState(false);
+  const locale = usePreferredLocale();
+  const isKo = toBaseLocale(locale) === "ko";
+  const tr = (ko: string, en: string) => (isKo ? ko : en);
 
   useEffect(() => {
     if (isOpen && customer) {
@@ -148,16 +153,16 @@ export function CustomerDetailDialog({
                     <div className="flex items-center gap-2">
                        <DialogTitle className="text-2xl font-black text-slate-900">{customer.name}</DialogTitle>
                         <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-100 uppercase tracking-tighter font-black text-[10px]">
-                           {customer.grade || '일반 고객'}
+                           {customer.grade || tr('일반 고객', 'General')}
                         </Badge>
                         {customer.source === 'pos' && (
                           <Badge className="bg-indigo-600 text-white border-none h-5 px-1.5 text-[9px] font-bold gap-1 flex items-center shadow-sm">
-                            📟 POS 연동
+                            {tr("📟 POS 연동", "📟 POS Linked")}
                           </Badge>
                         )}
                      </div>
                     <DialogDescription className="text-slate-500 font-medium">
-                       {customer.company_name ? `${customer.company_name} · ${customer.department || '부서 미정'}` : '개인 회원'}
+                       {customer.company_name ? `${customer.company_name} · ${customer.department || tr('부서 미정', 'No department')}` : tr('개인 회원', 'Individual')}
                     </DialogDescription>
                  </div>
               </div>
@@ -169,7 +174,7 @@ export function CustomerDetailDialog({
                      className="h-9 hover:bg-emerald-50 border-slate-200 gap-2 font-bold text-emerald-600"
                   >
                      <ReceiptIcon className="h-4 w-4" />
-                     간이영수증
+                     {tr("간이영수증", "Receipt")}
                   </Button>
                   <Button 
                      variant="outline" 
@@ -178,7 +183,7 @@ export function CustomerDetailDialog({
                      className="h-9 hover:bg-blue-50 border-slate-200 gap-2 font-bold text-blue-600"
                   >
                      <FileText className="h-4 w-4" />
-                     거래명세서
+                     {tr("거래명세서", "Statement")}
                   </Button>
                   <Button 
                      variant="outline" 
@@ -187,7 +192,7 @@ export function CustomerDetailDialog({
                      className="h-9 hover:bg-amber-50 border-slate-200 gap-2 font-bold text-amber-600"
                   >
                      <FileText className="h-4 w-4" />
-                     견적서
+                     {tr("견적서", "Estimate")}
                   </Button>
                </div>
             </div>
@@ -199,44 +204,44 @@ export function CustomerDetailDialog({
                <Card className="border-none shadow-sm bg-blue-600 text-white overflow-hidden">
                   <div className="p-4 relative">
                      <TrendingUp className="absolute right-4 top-4 h-12 w-12 opacity-10" />
-                     <p className="text-blue-100 text-xs font-bold uppercase tracking-wider">총 구매액</p>
+                     <p className="text-blue-100 text-xs font-bold uppercase tracking-wider">{tr("총 구매액", "Total Spend")}</p>
                      <h3 className="text-2xl font-black mt-1">₩{stats.total.toLocaleString()}</h3>
-                     <p className="text-blue-200 text-[10px] mt-1 font-medium italic">{stats.count} 번의 꾸준한 구매</p>
+                     <p className="text-blue-200 text-[10px] mt-1 font-medium italic">{stats.count}{tr(" 번의 꾸준한 구매", " orders")}</p>
                   </div>
                </Card>
                <Card className="border-none shadow-sm bg-white overflow-hidden">
                   <div className="p-4 border-l-4 border-l-indigo-500">
-                     <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">마지막 구매일</p>
+                     <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">{tr("마지막 구매일", "Last Order")}</p>
                      <h3 className="text-lg font-bold text-slate-900 mt-1">
-                        {stats.lastDate ? format(new Date(stats.lastDate), 'yyyy년 MM월 dd일') : '첫 구매 대기중'}
+                        {stats.lastDate ? (isKo ? format(new Date(stats.lastDate), 'yyyy년 MM월 dd일') : format(new Date(stats.lastDate), 'yyyy-MM-dd')) : tr('첫 구매 대기중', 'Waiting for first order')}
                      </h3>
-                     <p className="text-slate-500 text-[10px] mt-1 font-medium">{stats.lastDate ? '꽃과 함께한지 얼마 되지 않았네요 :)' : '새로운 인연을 환영합니다'}</p>
+                     <p className="text-slate-500 text-[10px] mt-1 font-medium">{stats.lastDate ? tr('꽃과 함께한지 얼마 되지 않았네요 :)', 'Recent flower moments :)') : tr('새로운 인연을 환영합니다', 'Welcome!')}</p>
                   </div>
                </Card>
                <Card className="border-none shadow-sm bg-white overflow-hidden">
                   <div className="p-4 border-l-4 border-l-amber-500">
-                     <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">보유 포인트</p>
+                     <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">{tr("보유 포인트", "Points")}</p>
                      <div className="flex items-center gap-2 mt-1">
                         <h3 className="text-xl font-bold text-slate-900">{(customer.points || 0).toLocaleString()} P</h3>
                         <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-200 border-none px-1.5 h-5 text-[10px]">REWARD</Badge>
                      </div>
-                     <p className="text-slate-500 text-[10px] mt-1 font-medium">다음 구매에 사용 가능한 혜택</p>
+                     <p className="text-slate-500 text-[10px] mt-1 font-medium">{tr("다음 구매에 사용 가능한 혜택", "Available for next purchase")}</p>
                   </div>
                </Card>
             </div>
 
             <Tabs defaultValue="history" className="w-full">
                <TabsList className="grid w-full grid-cols-3 bg-white/50 backdrop-blur-sm border border-slate-200 rounded-xl p-1">
-                  <TabsTrigger value="history" className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">주문 이력 ({orders.length})</TabsTrigger>
-                  <TabsTrigger value="points" className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm text-amber-600">포인트 내역</TabsTrigger>
-                  <TabsTrigger value="info" className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">상세 정보</TabsTrigger>
+                  <TabsTrigger value="history" className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">{tr("주문 이력", "Orders")} ({orders.length})</TabsTrigger>
+                  <TabsTrigger value="points" className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm text-amber-600">{tr("포인트 내역", "Points")}</TabsTrigger>
+                  <TabsTrigger value="info" className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">{tr("상세 정보", "Details")}</TabsTrigger>
                </TabsList>
                
                <TabsContent value="points" className="mt-4 animate-in fade-in duration-300">
                   <Card className="border-slate-200 shadow-sm bg-white overflow-hidden">
                      <CardHeader className="pb-3 border-b border-slate-50">
                         <CardTitle className="text-base font-black flex items-center gap-2 text-slate-800">
-                           <TrendingUp className="h-4 w-4 text-amber-500" /> 포인트 적립/차감 히스토리
+                           <TrendingUp className="h-4 w-4 text-amber-500" /> {tr("포인트 적립/차감 히스토리", "Point Transactions")}
                         </CardTitle>
                      </CardHeader>
                      <CardContent className="p-0">
@@ -259,10 +264,10 @@ export function CustomerDetailDialog({
                                              {tx.amount > 0 ? `+` : ``}{tx.amount.toLocaleString()}
                                           </div>
                                           <div className="space-y-0.5">
-                                             <p className="text-sm font-bold text-slate-800">{tx.description || '포인트 변동'}</p>
+                                             <p className="text-sm font-bold text-slate-800">{tx.description || tr('포인트 변동', 'Point change')}</p>
                                              <div className="flex items-center gap-2 text-[10px] text-slate-400 font-medium">
                                                 <Badge variant="outline" className="text-[8px] h-4 px-1 leading-none border-slate-200 uppercase tracking-tighter">
-                                                   {tx.source === 'pos' ? '📟 POS' : tx.source === 'order' ? '🛒 주문' : '⚙️ 시스템'}
+                                                   {tx.source === 'pos' ? '📟 POS' : tx.source === 'order' ? tr('🛒 주문', '🛒 Order') : tr('⚙️ 시스템', '⚙️ System')}
                                                 </Badge>
                                                 <span>{format(new Date(tx.created_at), 'yyyy-MM-dd HH:mm')}</span>
                                              </div>
@@ -273,7 +278,7 @@ export function CustomerDetailDialog({
                                              "text-[10px] px-1.5 py-0",
                                              tx.type === 'earn' ? 'bg-emerald-500' : tx.type === 'use' ? 'bg-rose-500' : 'bg-slate-500'
                                           )}>
-                                             {tx.type === 'earn' ? '적립' : tx.type === 'use' ? '사용' : tx.type === 'cancel' ? '취소' : '기타'}
+                                             {tx.type === 'earn' ? tr('적립', 'Earn') : tx.type === 'use' ? tr('사용', 'Use') : tx.type === 'cancel' ? tr('취소', 'Cancel') : tr('기타', 'Other')}
                                           </Badge>
                                        </div>
                                     </div>
@@ -282,7 +287,7 @@ export function CustomerDetailDialog({
                            ) : (
                               <div className="h-64 flex flex-col items-center justify-center text-slate-400 gap-2">
                                  <Trophy className="h-12 w-12 opacity-10" />
-                                 <p className="font-bold text-sm">포인트 거래 내역이 아직 없습니다.</p>
+                                 <p className="font-bold text-sm">{tr("포인트 거래 내역이 아직 없습니다.", "No point transactions yet.")}</p>
                               </div>
                            )}
                         </ScrollArea>
@@ -294,9 +299,9 @@ export function CustomerDetailDialog({
                   <Card className="border-slate-200 shadow-sm bg-white">
                      <CardHeader className="pb-3 flex flex-row items-center justify-between border-b border-slate-50">
                         <CardTitle className="text-base font-black flex items-center gap-2 text-slate-800">
-                           <History className="h-4 w-4 text-blue-500" /> 주문 히스토리
+                           <History className="h-4 w-4 text-blue-500" /> {tr("주문 히스토리", "Order History")}
                         </CardTitle>
-                        <span className="text-xs text-slate-400 font-medium">최신 주문순으로 정렬됨</span>
+                        <span className="text-xs text-slate-400 font-medium">{tr("최신 주문순으로 정렬됨", "Sorted by latest")}</span>
                      </CardHeader>
                      <CardContent className="p-0">
                         <ScrollArea className="h-[400px]">
@@ -311,13 +316,13 @@ export function CustomerDetailDialog({
                                        <div className="flex justify-between items-start mb-2">
                                           <div>
                                              <div className="flex items-center gap-2 mb-1">
-                                                <span className="text-sm font-black text-slate-900">{format(new Date(order.order_date), 'yyyy년 MM월 dd일 (EEE)', { locale: ko })}</span>
+                                                <span className="text-sm font-black text-slate-900">{isKo ? format(new Date(order.order_date), 'yyyy년 MM월 dd일 (EEE)', { locale: ko }) : format(new Date(order.order_date), 'yyyy-MM-dd (EEE)')}</span>
                                                 <Badge className={
                                                    order.status === 'completed' 
                                                    ? 'bg-emerald-50 text-emerald-600 border-emerald-100' 
                                                    : 'bg-blue-50 text-blue-600 border-blue-100'
                                                 }>
-                                                   {order.status === 'completed' ? '배송완료' : '진행중'}
+                                                   {order.status === 'completed' ? tr('배송완료', 'Completed') : tr('진행중', 'In progress')}
                                                 </Badge>
                                              </div>
                                              <div className="flex flex-wrap gap-1 items-center">
@@ -337,7 +342,7 @@ export function CustomerDetailDialog({
                                           <div className="flex items-center gap-4 text-[11px] text-slate-500 font-medium">
                                              <div className="flex items-center gap-1">
                                                 <Package className="h-3 w-3" />
-                                                {order.receipt_type === 'delivery_reservation' ? '배송예약' : '매장픽업'}
+                                                {order.receipt_type === 'delivery_reservation' ? tr('배송예약', 'Delivery') : tr('매장픽업', 'Pickup')}
                                              </div>
                                              {order.memo && (
                                                 <div className="flex items-center gap-1 max-w-[300px] truncate italic text-slate-400">
@@ -346,7 +351,7 @@ export function CustomerDetailDialog({
                                              )}
                                           </div>
                                           <Button variant="ghost" size="sm" className="h-7 text-[10px] gap-1 opacity-40 group-hover:opacity-100 transition-all text-blue-600 font-black">
-                                             주문상세 <ChevronRight className="h-3 w-3" />
+                                             {tr("주문상세", "Order Detail")} <ChevronRight className="h-3 w-3" />
                                           </Button>
                                        </div>
                                     </div>
@@ -355,13 +360,13 @@ export function CustomerDetailDialog({
                            ) : (
                               <div className="h-64 flex flex-col items-center justify-center text-slate-400 gap-2">
                                  <History className="h-12 w-12 opacity-10" />
-                                 <p className="font-bold text-lg">아직 주문 이력이 없네요!</p>
+                                 <p className="font-bold text-lg">{tr("아직 주문 이력이 없네요!", "No order history yet!")}</p>
                                  <Button 
                                     className="mt-2 bg-blue-600 hover:bg-blue-700 text-white font-bold gap-2"
                                     onClick={() => window.location.href = `/dashboard/orders/new?customerId=${customer.id}`}
                                  >
                                     <Package className="h-4 w-4" />
-                                    새 견적/주문 만들기
+                                    {tr("새 견적/주문 만들기", "Create Estimate/Order")}
                                  </Button>
                               </div>
                            )}
@@ -375,23 +380,23 @@ export function CustomerDetailDialog({
                      <Card className="border-slate-200 shadow-sm bg-white">
                         <CardHeader className="pb-2 border-b border-slate-50">
                            <CardTitle className="text-sm font-black text-slate-700 flex items-center gap-2">
-                              <Phone className="h-4 w-4 text-blue-500" /> 연락처 및 기본정보
+                              <Phone className="h-4 w-4 text-blue-500" /> {tr("연락처 및 기본정보", "Contact & Basic Info")}
                            </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4 pt-4">
                            <div className="space-y-1">
-                              <Label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">휴대전화</Label>
-                              <p className="text-slate-900 font-bold">{customer.contact || '등록된 번호 없음'}</p>
+                              <Label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">{tr("휴대전화", "Phone")}</Label>
+                              <p className="text-slate-900 font-bold">{customer.contact || tr('등록된 번호 없음', 'No phone')}</p>
                            </div>
                            <div className="space-y-1">
-                              <Label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">이메일</Label>
-                              <p className="text-slate-900 font-bold">{customer.email || '등록된 이메일 없음'}</p>
+                              <Label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">{tr("이메일", "Email")}</Label>
+                              <p className="text-slate-900 font-bold">{customer.email || tr('등록된 이메일 없음', 'No email')}</p>
                            </div>
                            <div className="space-y-1">
-                              <Label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">주소</Label>
+                              <Label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">{tr("주소", "Address")}</Label>
                               <div className="flex items-start gap-1 p-3 bg-slate-50 rounded-lg text-slate-700 text-sm font-medium border border-slate-100">
                                  <MapPin className="h-4 w-4 text-slate-400 shrink-0 mt-0.5" />
-                                 {customer.address || '기본 주소지가 없습니다.'}
+                                 {customer.address || tr('기본 주소지가 없습니다.', 'No address')}
                               </div>
                            </div>
                         </CardContent>
@@ -400,16 +405,16 @@ export function CustomerDetailDialog({
                      <Card className="border-slate-200 shadow-sm bg-white">
                         <CardHeader className="pb-2 border-b border-slate-50">
                            <CardTitle className="text-sm font-black text-slate-700 flex items-center gap-2">
-                              <FileText className="h-4 w-4 text-amber-500" /> 주문 시 메모 & 특징
+                              <FileText className="h-4 w-4 text-amber-500" /> {tr("주문 시 메모 & 특징", "Memo & Preferences")}
                            </CardTitle>
                         </CardHeader>
                         <CardContent className="pt-4">
                            <div className="p-4 bg-amber-50 text-amber-900 rounded-xl min-h-[120px] text-sm leading-relaxed border border-amber-100 font-medium">
-                              {customer.memo || '고객에 대한 특이사항이 없습니다.'}
+                              {customer.memo || tr('고객에 대한 특이사항이 없습니다.', 'No special notes.')}
                            </div>
                            <div className="mt-4 flex flex-wrap gap-2">
-                              <Badge variant="secondary" className="bg-slate-100 text-slate-600 border-none font-bold"># {customer.type === 'company' ? '기업회원' : '개인회원'}</Badge>
-                              <Badge variant="secondary" className="bg-slate-100 text-slate-600 border-none font-bold"># {customer.grade || '골드등급'}</Badge>
+                              <Badge variant="secondary" className="bg-slate-100 text-slate-600 border-none font-bold"># {customer.type === 'company' ? tr('기업회원', 'Company') : tr('개인회원', 'Individual')}</Badge>
+                              <Badge variant="secondary" className="bg-slate-100 text-slate-600 border-none font-bold"># {customer.grade || tr('골드등급', 'Gold')}</Badge>
                            </div>
                         </CardContent>
                      </Card>
@@ -419,7 +424,7 @@ export function CustomerDetailDialog({
          </div>
 
          <DialogFooter className="p-6 pt-2 bg-white border-t border-slate-100">
-            <Button variant="ghost" onClick={() => onOpenChange(false)} className="px-8 font-bold border border-slate-200 text-slate-600">닫기</Button>
+            <Button variant="ghost" onClick={() => onOpenChange(false)} className="px-8 font-bold border border-slate-200 text-slate-600">{tr("닫기", "Close")}</Button>
             <Button 
                onClick={() => {
                   if (customer && onEdit) {
@@ -429,7 +434,7 @@ export function CustomerDetailDialog({
                }}
                className="bg-blue-600 hover:bg-blue-700 text-white px-8 font-black shadow-lg shadow-blue-200 gap-2"
             >
-               정보 수정하기
+               {tr("정보 수정하기", "Edit Customer")}
             </Button>
          </DialogFooter>
       </DialogContent>

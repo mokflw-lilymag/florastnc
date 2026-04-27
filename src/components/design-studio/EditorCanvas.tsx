@@ -13,8 +13,12 @@ import { DraggableText } from './DraggableText';
 import { DraggableImage } from './DraggableImage';
 import { Trash2, Sparkles, Maximize2, Minimize2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { usePreferredLocale } from '@/hooks/use-preferred-locale';
+import { getMessages } from '@/i18n/getMessages';
 
 export const EditorCanvas: React.FC = () => {
+  const locale = usePreferredLocale();
+  const D = getMessages(locale).dashboard.designStudio;
   const { 
     currentDimension, 
     textBlocks, 
@@ -162,7 +166,7 @@ export const EditorCanvas: React.FC = () => {
         <button
           onClick={toggleFullscreen}
           className="absolute top-4 right-4 z-[90] p-2.5 bg-white/80 backdrop-blur-sm rounded-xl shadow-sm text-slate-500 hover:text-indigo-600 hover:scale-110 transition-all border border-slate-200"
-          title={isFullscreen ? "원래 화면으로 축소" : "전체 모니터 꽉 차게 보기"}
+          title={isFullscreen ? D.editorFullscreenExit : D.editorFullscreenEnter}
         >
           {isFullscreen ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
         </button>
@@ -228,7 +232,7 @@ export const EditorCanvas: React.FC = () => {
                     backgroundPosition: 'center',
                     position: 'relative'
                   }}>
-                     <div className="absolute top-2 left-2 text-[8px] font-black text-gray-200 uppercase tracking-widest z-[10]">Inside Page</div>
+                     <div className="absolute top-2 left-2 text-[8px] font-black text-gray-200 uppercase tracking-widest z-[10]">{D.editorInsidePageBadge}</div>
                   </div>
                 )
               ) : (
@@ -338,8 +342,8 @@ export const EditorCanvas: React.FC = () => {
                   </div>
                 </div>
                 <div className="mt-4 flex flex-col items-center gap-1">
-                  <p className="text-sm font-black text-indigo-900 tracking-tighter animate-bounce">AI 아티스트가 그리는 중...</p>
-                  <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest opacity-60">Masterpiece in progress</p>
+                  <p className="text-sm font-black text-indigo-900 tracking-tighter animate-bounce">{D.editorAiDrawing}</p>
+                  <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest opacity-60">{D.editorMasterpieceProgress}</p>
                 </div>
               </div>
             )}
@@ -367,7 +371,7 @@ export const EditorCanvas: React.FC = () => {
             className="w-full px-4 py-3 flex items-center gap-3 text-red-600 hover:bg-red-50 transition-colors text-xs font-bold"
           >
             <Trash2 size={14} />
-            삭제하기
+            {D.editorDelete}
           </button>
         </div>
       )}
@@ -385,13 +389,13 @@ export const EditorCanvas: React.FC = () => {
           <div className="flex-1 flex items-center justify-center p-2">
             <span className="text-[10px] font-bold text-gray-400 flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-gray-300"></span>
-              {activePage === 'outside' ? '뒷면 (BACK)' : isLandscape ? '내지 왼쪽' : '내지 위쪽'}
+              {activePage === 'outside' ? D.editorBack : isLandscape ? D.editorInsideLeft : D.editorInsideTop}
             </span>
           </div>
           <div className="flex-1 flex items-center justify-center p-2 border-l border-gray-100" style={{ borderLeft: isLandscape ? '1px solid #f3f4f6' : 'none', borderTop: !isLandscape ? '1px solid #f3f4f6' : 'none' }}>
             <span className="text-[10px] font-bold text-gray-400 flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-gray-300"></span>
-              {activePage === 'outside' ? '앞면 (FRONT)' : isLandscape ? '내지 오른쪽' : '내지 아래쪽'}
+              {activePage === 'outside' ? D.editorFront : isLandscape ? D.editorInsideRight : D.editorInsideBottom}
             </span>
           </div>
         </div>

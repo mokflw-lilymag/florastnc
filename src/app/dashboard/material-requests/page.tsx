@@ -31,6 +31,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
 
 type DraftLine = {
   key: string;
@@ -76,6 +78,9 @@ export default function BranchMaterialRequestsPage() {
     }>
   >([]);
   const [historyLoading, setHistoryLoading] = useState(true);
+  const locale = usePreferredLocale();
+  const baseLocale = toBaseLocale(locale);
+  const tr = (koText: string, enText: string) => (baseLocale === "ko" ? koText : enText);
 
   const materialOptions = useMemo(
     () => [...materials].sort((a, b) => a.name.localeCompare(b.name, "ko")),
@@ -188,7 +193,7 @@ export default function BranchMaterialRequestsPage() {
     for (let i = 0; i < payload.length; i++) {
       const p = payload[i]!;
       if (!p.name || !p.main_category || !p.mid_category) {
-        toast.error(`${i + 1}번째 줄: 품목명·대분류·중분류(2차)를 입력하세요.`);
+        toast.error(`${i + 1}${tr("번째 줄: 품목명·대분류·중분류(2차)를 입력하세요.", ": Fill item name, main category, and mid category.")}`);
         return;
       }
       const sim = findBlockingSimilarMaterialNames(
@@ -197,7 +202,7 @@ export default function BranchMaterialRequestsPage() {
         payload.filter((_, j) => j !== i).map((x) => x.name)
       );
       if (sim.length) {
-        toast.error(`「${p.name}」유사 품목: ${sim.slice(0, 3).join(", ")} — 수정 후 다시 시도하세요.`);
+        toast.error(`「${p.name}」 ${tr("유사 품목", "Similar items")}: ${sim.slice(0, 3).join(", ")} — ${tr("수정 후 다시 시도하세요.", "Please revise and try again.")}`);
         return;
       }
     }
@@ -212,10 +217,10 @@ export default function BranchMaterialRequestsPage() {
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(typeof j?.error === "string" ? j.error : "요청 전송에 실패했습니다.");
+        toast.error(typeof j?.error === "string" ? j.error : tr("요청 전송에 실패했습니다.", "Failed to send request."));
         return;
       }
-      toast.success(`본사로 자재 요청을 보냈습니다 (${j.lineCount ?? payload.length}품목).`);
+      toast.success(`${tr("본사로 자재 요청을 보냈습니다", "Material request sent to HQ")} (${j.lineCount ?? payload.length}${tr("품목", " items")}).`);
       setBranchNote("");
       setLines([newLine()]);
       await loadHistory();
@@ -240,15 +245,15 @@ export default function BranchMaterialRequestsPage() {
     return (
       <div className="container max-w-2xl mx-auto p-6">
         <PageHeader
-          title="본사 자재 요청"
-          description="조직에 연결된 매장에서만 본사로 자재 발주를 요청할 수 있습니다."
+          title={tr("본사 자재 요청", "HQ Material Request")}
+          description={tr("조직에 연결된 매장에서만 본사로 자재 발주를 요청할 수 있습니다.", "Only organization-linked stores can request materials to HQ.")}
           icon={ClipboardList}
         />
         <Card className="mt-6 border-amber-200 bg-amber-50/50 dark:bg-amber-950/20">
           <CardHeader>
-            <CardTitle className="text-base">이 매장은 본사 조직과 연결되어 있지 않습니다</CardTitle>
+            <CardTitle className="text-base">{tr("이 매장은 본사 조직과 연결되어 있지 않습니다", "This store is not linked to HQ organization")}</CardTitle>
             <CardDescription>
-              플랫폼 관리자에게 매장의 조직(본사) 연결을 요청한 뒤 다시 이용해 주세요.
+              {tr("플랫폼 관리자에게 매장의 조직(본사) 연결을 요청한 뒤 다시 이용해 주세요.", "Ask platform admin to link this store to an HQ organization and try again.")}
             </CardDescription>
           </CardHeader>
         </Card>
@@ -259,26 +264,26 @@ export default function BranchMaterialRequestsPage() {
   return (
     <div className="container max-w-5xl mx-auto p-4 md:p-6 space-y-8">
       <PageHeader
-        title="본사 자재 요청"
-        description="자재관리에 등록된 품목을 고르거나, 없으면 품목명·분류를 직접 입력해 본사로 요청합니다. 유사한 품명은 중복으로 막습니다."
+        title={tr("본사 자재 요청", "HQ Material Request")}
+        description={tr("자재관리에 등록된 품목을 고르거나, 없으면 품목명·분류를 직접 입력해 본사로 요청합니다. 유사한 품명은 중복으로 막습니다.", "Select existing materials or enter item/category manually to request HQ. Similar names are blocked to prevent duplicates.")}
         icon={ClipboardList}
       />
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">새 요청 작성</CardTitle>
+          <CardTitle className="text-base">{tr("새 요청 작성", "Create New Request")}</CardTitle>
           <CardDescription>
-            대분류·<strong className="text-foreground">중분류(2차)</strong>는 필수입니다. 자재에서 선택하면 분류가 채워집니다.
+            {tr("대분류·", "Main category and ")}<strong className="text-foreground">{tr("중분류(2차)", "mid category")}</strong>{tr("는 필수입니다. 자재에서 선택하면 분류가 채워집니다.", " are required. Selecting a material auto-fills categories.")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="bm-note">요청 메모 (선택)</Label>
+            <Label htmlFor="bm-note">{tr("요청 메모 (선택)", "Request Note (optional)")}</Label>
             <Textarea
               id="bm-note"
               value={branchNote}
               onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setBranchNote(e.target.value)}
-              placeholder="납기·수량 관련 특이사항 등"
+              placeholder={tr("납기·수량 관련 특이사항 등", "Delivery/quantity notes etc.")}
               rows={2}
               className="resize-none"
             />
@@ -294,7 +299,7 @@ export default function BranchMaterialRequestsPage() {
                   className="rounded-xl border border-slate-200/80 bg-slate-50/40 dark:bg-slate-900/20 dark:border-slate-800 p-4 space-y-3"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-semibold text-muted-foreground">품목 {idx + 1}</span>
+                    <span className="text-xs font-semibold text-muted-foreground">{tr("품목", "Item")} {idx + 1}</span>
                     {lines.length > 1 ? (
                       <Button
                         type="button"
@@ -310,7 +315,7 @@ export default function BranchMaterialRequestsPage() {
 
                   <div className="grid gap-3 md:grid-cols-2">
                     <div className="space-y-1.5 md:col-span-2">
-                      <Label className="text-xs">자재에서 선택 (선택)</Label>
+                      <Label className="text-xs">{tr("자재에서 선택 (선택)", "Select from Materials (optional)")}</Label>
                       <Select
                         value={line.material_id ?? "__manual__"}
                         onValueChange={(v) => {
@@ -319,10 +324,10 @@ export default function BranchMaterialRequestsPage() {
                         }}
                       >
                         <SelectTrigger className="h-9">
-                          <SelectValue placeholder="직접 입력만 할 경우 여기는 비워 두세요" />
+                          <SelectValue placeholder={tr("직접 입력만 할 경우 여기는 비워 두세요", "Leave empty for manual input")} />
                         </SelectTrigger>
                         <SelectContent className="max-h-[280px]">
-                          <SelectItem value="__manual__">— 직접 입력 —</SelectItem>
+                          <SelectItem value="__manual__">{tr("— 직접 입력 —", "— Manual Input —")}</SelectItem>
                           {materialOptions.map((m) => (
                             <SelectItem key={m.id} value={m.id}>
                               {m.name}
@@ -334,21 +339,21 @@ export default function BranchMaterialRequestsPage() {
                     </div>
 
                     <div className="space-y-1.5 md:col-span-2">
-                      <Label className="text-xs">품목명 · 필수</Label>
+                      <Label className="text-xs">{tr("품목명 · 필수", "Item Name · Required")}</Label>
                       <Input
                         value={line.name}
                         onChange={(e) => updateLine(line.key, { name: e.target.value, material_id: null })}
-                        placeholder="예: 장미 50cm (한 단)"
+                        placeholder={tr("예: 장미 50cm (한 단)", "e.g. Rose 50cm (1 bundle)")}
                       />
                       {hint ? (
                         <p className="text-xs text-destructive font-medium">
-                          유사 품목이 있습니다. 중복을 피해 이름을 구체적으로 바꿔 주세요: {hint}
+                          {tr("유사 품목이 있습니다. 중복을 피해 이름을 구체적으로 바꿔 주세요:", "Similar items exist. Please make the name more specific:")} {hint}
                         </p>
                       ) : null}
                     </div>
 
                     <div className="space-y-1.5">
-                      <Label className="text-xs">대분류 (1차) · 필수</Label>
+                      <Label className="text-xs">{tr("대분류 (1차) · 필수", "Main Category · Required")}</Label>
                       <Select
                         value={line.main_category || "__none__"}
                         onValueChange={(v) => {
@@ -361,11 +366,11 @@ export default function BranchMaterialRequestsPage() {
                         }}
                       >
                         <SelectTrigger className="h-9">
-                          <SelectValue placeholder="선택" />
+                          <SelectValue placeholder={tr("선택", "Select")} />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="__none__" disabled>
-                            선택
+                            {tr("선택", "Select")}
                           </SelectItem>
                           {CATEGORIES.main.map((m) => (
                             <SelectItem key={m} value={m}>
@@ -377,12 +382,12 @@ export default function BranchMaterialRequestsPage() {
                     </div>
 
                     <div className="space-y-1.5">
-                      <Label className="text-xs">중분류 (2차) · 필수</Label>
+                      <Label className="text-xs">{tr("중분류 (2차) · 필수", "Mid Category · Required")}</Label>
                       <Input
                         className="h-9"
                         list={`mid-dl-${line.key}`}
                         disabled={!line.main_category}
-                        placeholder={line.main_category ? "입력 또는 아래 제안 선택" : "먼저 대분류 선택"}
+                        placeholder={line.main_category ? tr("입력 또는 아래 제안 선택", "Type or pick suggestion") : tr("먼저 대분류 선택", "Select main category first")}
                         value={line.mid_category}
                         onChange={(e) =>
                           updateLine(line.key, { mid_category: e.target.value, material_id: null })
@@ -396,7 +401,7 @@ export default function BranchMaterialRequestsPage() {
                     </div>
 
                     <div className="space-y-1.5">
-                      <Label className="text-xs">수량</Label>
+                      <Label className="text-xs">{tr("수량", "Qty")}</Label>
                       <Input
                         type="number"
                         min={0.01}
@@ -406,19 +411,19 @@ export default function BranchMaterialRequestsPage() {
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-xs">단위</Label>
+                      <Label className="text-xs">{tr("단위", "Unit")}</Label>
                       <Input
                         value={line.unit}
                         onChange={(e) => updateLine(line.key, { unit: e.target.value })}
-                        placeholder="ea, 단, 박스"
+                        placeholder={tr("ea, 단, 박스", "ea, bundle, box")}
                       />
                     </div>
                     <div className="space-y-1.5 md:col-span-2">
-                      <Label className="text-xs">규격·비고 (선택)</Label>
+                      <Label className="text-xs">{tr("규격·비고 (선택)", "Spec/Note (optional)")}</Label>
                       <Input
                         value={line.spec}
                         onChange={(e) => updateLine(line.key, { spec: e.target.value })}
-                        placeholder="색상·길이 등"
+                        placeholder={tr("색상·길이 등", "Color/length etc.")}
                       />
                     </div>
                   </div>
@@ -430,7 +435,7 @@ export default function BranchMaterialRequestsPage() {
           <div className="flex flex-wrap gap-2">
             <Button type="button" variant="outline" size="sm" onClick={() => setLines((p) => [...p, newLine()])}>
               <Plus className="h-4 w-4 mr-1" />
-              품목 추가
+              {tr("품목 추가", "Add Item")}
             </Button>
             <Button
               type="button"
@@ -440,19 +445,19 @@ export default function BranchMaterialRequestsPage() {
               onClick={() => void submit()}
             >
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-              본사로 요청 보내기
+              {tr("본사로 요청 보내기", "Send Request to HQ")}
             </Button>
           </div>
           {lines.some((L) => similarityHint(L)) ? (
-            <p className="text-xs text-destructive">유사 품명이 있는 줄을 수정한 뒤 전송할 수 있습니다.</p>
+            <p className="text-xs text-destructive">{tr("유사 품명이 있는 줄을 수정한 뒤 전송할 수 있습니다.", "You can send after fixing lines with similar names.")}</p>
           ) : null}
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">이 매장 요청 내역</CardTitle>
-          <CardDescription>최근 30건까지 표시합니다.</CardDescription>
+          <CardTitle className="text-base">{tr("이 매장 요청 내역", "Request History for This Store")}</CardTitle>
+          <CardDescription>{tr("최근 30건까지 표시합니다.", "Shows up to 30 recent entries.")}</CardDescription>
         </CardHeader>
         <CardContent>
           {historyLoading ? (
@@ -460,7 +465,7 @@ export default function BranchMaterialRequestsPage() {
               <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
             </div>
           ) : history.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4">아직 요청이 없습니다.</p>
+            <p className="text-sm text-muted-foreground py-4">{tr("아직 요청이 없습니다.", "No requests yet.")}</p>
           ) : (
             <div className="space-y-6">
               {history.map((h) => (
@@ -477,10 +482,10 @@ export default function BranchMaterialRequestsPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>품목</TableHead>
-                        <TableHead>대분류</TableHead>
-                        <TableHead>중분류</TableHead>
-                        <TableHead className="text-right">수량</TableHead>
+                        <TableHead>{tr("품목", "Item")}</TableHead>
+                        <TableHead>{tr("대분류", "Main Category")}</TableHead>
+                        <TableHead>{tr("중분류", "Mid Category")}</TableHead>
+                        <TableHead className="text-right">{tr("수량", "Qty")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>

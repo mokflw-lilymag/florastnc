@@ -14,6 +14,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import { toast } from "sonner";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
 
 type Ann = {
   id: string;
@@ -30,6 +32,9 @@ type Ann = {
 
 export default function OrgBoardPage() {
   const { user, profile, isLoading: authLoading, isSuperAdmin } = useAuth();
+  const locale = usePreferredLocale();
+  const baseLocale = toBaseLocale(locale);
+  const tr = (koText: string, enText: string) => (baseLocale === "ko" ? koText : enText);
   const [list, setList] = useState<Ann[]>([]);
   const [loading, setLoading] = useState(true);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
@@ -91,11 +96,11 @@ export default function OrgBoardPage() {
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(typeof json?.error === "string" ? json.error : "확인 기록에 실패했습니다.");
+        toast.error(typeof json?.error === "string" ? json.error : tr("확인 기록에 실패했습니다.", "Failed to record acknowledgment."));
         return;
       }
       await load();
-      toast.success("본사에 확인 기록되었습니다.");
+      toast.success(tr("본사에 확인 기록되었습니다.", "Acknowledgment sent to HQ."));
     } finally {
       setConfirmingId(null);
     }
@@ -112,14 +117,17 @@ export default function OrgBoardPage() {
   return (
     <div className="container max-w-4xl mx-auto p-4 md:p-6 space-y-6">
       <PageHeader
-        title="본사 게시판"
-        description="본사 게시·이미지·링크를 지점에 전달합니다. 게시물은 등록일 기준 약 30일 후 자동으로 사라집니다. 조직에 연결된 사용자는 댓글을 남길 수 있습니다. 게시물 삭제는 플랫폼 관리자 또는 해당 조직 본사 관리자(org_admin)만 할 수 있습니다."
+        title={tr("본사 게시판", "HQ bulletin")}
+        description={tr(
+          "본사 게시·이미지·링크를 지점에 전달합니다. 게시물은 등록일 기준 약 30일 후 자동으로 사라집니다. 조직에 연결된 사용자는 댓글을 남길 수 있습니다. 게시물 삭제는 플랫폼 관리자 또는 해당 조직 본사 관리자(org_admin)만 할 수 있습니다.",
+          "HQ posts, images, and links for branches. Posts auto-expire about 30 days after posting. Connected org members may comment. Only platform admins or that org’s HQ admin (org_admin) can delete posts."
+        )}
         icon={Megaphone}
       >
         {composeCtx.canManage && composeCtx.organizations.length > 0 ? (
           <Button type="button" className="gap-2 font-semibold" onClick={() => setComposeOpen(true)}>
             <PenLine className="h-4 w-4" aria-hidden />
-            새 게시물
+            {tr("새 게시물", "New post")}
           </Button>
         ) : null}
       </PageHeader>
@@ -138,11 +146,17 @@ export default function OrgBoardPage() {
       ) : list.length === 0 ? (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">표시할 게시물이 없습니다</CardTitle>
+            <CardTitle className="text-base">{tr("표시할 게시물이 없습니다", "No posts to show")}</CardTitle>
             <CardDescription>
               {isSuperAdmin
-                ? "플랫폼 관리자 계정은 조직 멤버십이 없으면 여기가 비어 있을 수 있습니다. 조직에 멤버로 배정되었는지 확인하거나, 위에서 새 게시물을 등록해 보세요."
-                : "조직에 연결된 매장이거나 본사 멤버일 때만 본사 게시가 보입니다. 아직 글이 없거나 모두 만료되었을 수 있습니다."}
+                ? tr(
+                    "플랫폼 관리자 계정은 조직 멤버십이 없으면 여기가 비어 있을 수 있습니다. 조직에 멤버로 배정되었는지 확인하거나, 위에서 새 게시물을 등록해 보세요.",
+                    "Super-admin accounts without org membership may see an empty list. Confirm you’re assigned to an org, or create a post above."
+                  )
+                : tr(
+                    "조직에 연결된 매장이거나 본사 멤버일 때만 본사 게시가 보입니다. 아직 글이 없거나 모두 만료되었을 수 있습니다.",
+                    "HQ posts appear for linked branches or HQ members only. There may be no posts yet, or they may have expired."
+                  )}
             </CardDescription>
           </CardHeader>
         </Card>
@@ -164,16 +178,21 @@ export default function OrgBoardPage() {
                 <CardHeader className="pb-2">
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge variant={a.priority === "high" ? "destructive" : "secondary"}>
-                      {a.priority === "high" ? "중요" : "일반"}
+                      {a.priority === "high" ? tr("중요", "Important") : tr("일반", "Normal")}
                     </Badge>
                     <span className="text-xs text-muted-foreground">
                       {a.organization_name ?? ""}
                       {a.organization_name ? " · " : ""}
-                      {format(new Date(a.created_at), "yyyy.M.d HH:mm", { locale: ko })}
+                      {baseLocale === "ko"
+                        ? format(new Date(a.created_at), "yyyy.M.d HH:mm", { locale: ko })
+                        : format(new Date(a.created_at), "yyyy-MM-dd HH:mm")}
                     </span>
                     {a.expires_at ? (
                       <span className="text-[10px] text-muted-foreground tabular-nums">
-                        만료 {format(new Date(a.expires_at), "M/d HH:mm", { locale: ko })}
+                        {tr("만료", "Expires")}{" "}
+                        {baseLocale === "ko"
+                          ? format(new Date(a.expires_at), "M/d HH:mm", { locale: ko })
+                          : format(new Date(a.expires_at), "M/d HH:mm")}
                       </span>
                     ) : null}
                   </div>
@@ -209,8 +228,10 @@ export default function OrgBoardPage() {
                       {a.confirmedAt ? (
                         <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100/80 dark:bg-emerald-950/50 px-3 py-1 text-xs font-semibold text-emerald-800 dark:text-emerald-200">
                           <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
-                          본사에 확인 기록됨 ·{" "}
-                          {format(new Date(a.confirmedAt), "M/d HH:mm", { locale: ko })}
+                          {tr("본사에 확인 기록됨", "Acknowledged")} ·{" "}
+                          {baseLocale === "ko"
+                            ? format(new Date(a.confirmedAt), "M/d HH:mm", { locale: ko })
+                            : format(new Date(a.confirmedAt), "M/d HH:mm")}
                         </span>
                       ) : (
                         <Button
@@ -222,10 +243,10 @@ export default function OrgBoardPage() {
                           {confirmingId === a.id ? (
                             <>
                               <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
-                              처리 중…
+                              {tr("처리 중…", "Working…")}
                             </>
                           ) : (
-                            "내용 확인(본사에 전달)"
+                            tr("내용 확인(본사에 전달)", "Mark as read (notify HQ)")
                           )}
                         </Button>
                       )}

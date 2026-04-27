@@ -21,6 +21,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
 
 type CategoryStat = {
   category: string;
@@ -52,11 +54,11 @@ type RecentLine = {
   payment_method: string;
 };
 
-function categorySummaryShort(rows: CategoryRow[], maxParts = 3): string {
+function categorySummaryShort(rows: CategoryRow[], amountSuffix: string, maxParts = 3): string {
   if (rows.length === 0) return "—";
   return rows
     .slice(0, maxParts)
-    .map((r) => `${r.category} ${r.amount.toLocaleString()}원`)
+    .map((r) => `${r.category} ${r.amount.toLocaleString()}${amountSuffix}`)
     .join(" · ");
 }
 
@@ -75,6 +77,20 @@ export default function HqBranchExpensesPage() {
   const [warning, setWarning] = useState<string | null>(null);
   const [fromInput, setFromInput] = useState("");
   const [toInput, setToInput] = useState("");
+  const locale = usePreferredLocale();
+  const baseLocale = toBaseLocale(locale);
+  const tr = (koText: string, enText: string) => (baseLocale === "ko" ? koText : enText);
+  const amountSuffix = tr("원", "");
+  const formatPaymentMethod = (value: string) => {
+    const map: Record<string, string> = {
+      card: tr("카드", "Card"),
+      cash: tr("현금", "Cash"),
+      bank_transfer: tr("계좌이체", "Bank Transfer"),
+      transfer: tr("계좌이체", "Bank Transfer"),
+      other: tr("기타", "Other"),
+    };
+    return map[value] ?? value;
+  };
 
   const load = useCallback(async (from: string, to: string) => {
     setLoading(true);
@@ -167,20 +183,20 @@ export default function HqBranchExpensesPage() {
     return (
       <div className="container max-w-6xl mx-auto p-6 space-y-6">
         <PageHeader
-          title="지점별 지출"
-          description="소속 조직 매장들의 지출 합계와 최근 내역을 한 화면에서 봅니다."
+          title={tr("지점별 지출", "Branch Expenses")}
+          description={tr("소속 조직 매장들의 지출 합계와 최근 내역을 한 화면에서 봅니다.", "View total and recent expenses across organization branches.")}
           icon={Receipt}
         />
         <Card className="max-w-lg border-slate-200">
           <CardHeader>
-            <CardTitle>접근할 수 없습니다</CardTitle>
+            <CardTitle>{tr("접근할 수 없습니다", "Access denied")}</CardTitle>
             <CardDescription>
-              조직에 배정된 계정만 지점별 지출을 볼 수 있습니다.
+              {tr("조직에 배정된 계정만 지점별 지출을 볼 수 있습니다.", "Only organization-assigned accounts can view branch expenses.")}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Button variant="outline" onClick={() => router.push("/dashboard/hq")}>
-              본사 개요로
+              {tr("본사 개요로", "Back to HQ")}
             </Button>
           </CardContent>
         </Card>
@@ -193,28 +209,28 @@ export default function HqBranchExpensesPage() {
   return (
     <div className="container max-w-6xl mx-auto p-6 space-y-8 animate-in fade-in duration-500">
       <PageHeader
-        title="지점별 지출"
-        description="조직 전체·지점별·카테고리별 지출과 건수를 한 번에 봅니다. 건별 입력·수정은 각 매장 계정의 지출 메뉴에서 합니다."
+        title={tr("지점별 지출", "Branch Expenses")}
+        description={tr("조직 전체·지점별·카테고리별 지출과 건수를 한 번에 봅니다. 건별 입력·수정은 각 매장 계정의 지출 메뉴에서 합니다.", "View totals by organization/branch/category. Per-line edits are done in each branch expense menu.")}
         icon={Receipt}
       />
 
       <Card className="border-slate-200/80 shadow-sm">
         <CardHeader className="pb-4">
-          <CardTitle className="text-base">조회 기간</CardTitle>
+          <CardTitle className="text-base">{tr("조회 기간", "Date Range")}</CardTitle>
           <CardDescription>
             {range.from && range.to ? (
               <>
-                현재 표: <strong className="text-foreground">{range.from}</strong> ~{" "}
+                {tr("현재 표", "Current range")}: <strong className="text-foreground">{range.from}</strong> ~{" "}
                 <strong className="text-foreground">{range.to}</strong>
               </>
             ) : (
-              "시작일·종료일을 선택한 뒤 조회합니다."
+              tr("시작일·종료일을 선택한 뒤 조회합니다.", "Select start/end dates and search.")
             )}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end">
           <div className="space-y-2">
-            <Label htmlFor="hq-exp-from">시작일</Label>
+            <Label htmlFor="hq-exp-from">{tr("시작일", "From")}</Label>
             <Input
               id="hq-exp-from"
               type="date"
@@ -224,7 +240,7 @@ export default function HqBranchExpensesPage() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="hq-exp-to">종료일</Label>
+            <Label htmlFor="hq-exp-to">{tr("종료일", "To")}</Label>
             <Input
               id="hq-exp-to"
               type="date"
@@ -235,7 +251,7 @@ export default function HqBranchExpensesPage() {
           </div>
           <Button type="button" className="gap-2" onClick={applyRange} disabled={loading}>
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            조회
+            {tr("조회", "Search")}
           </Button>
         </CardContent>
       </Card>
@@ -259,18 +275,18 @@ export default function HqBranchExpensesPage() {
       <div className="grid gap-4 sm:grid-cols-2">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground font-medium">합계 지출</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground font-medium">{tr("합계 지출", "Total Expense")}</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold tabular-nums">{grandTotal.toLocaleString()}원</p>
+            <p className="text-2xl font-bold tabular-nums">{grandTotal.toLocaleString()}{tr("원", "")}</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground font-medium">지출 건수</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground font-medium">{tr("지출 건수", "Expense Count")}</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold tabular-nums">{grandCount.toLocaleString()}건</p>
+            <p className="text-2xl font-bold tabular-nums">{grandCount.toLocaleString()}{tr("건", "")}</p>
           </CardContent>
         </Card>
       </div>
@@ -279,10 +295,10 @@ export default function HqBranchExpensesPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <PieChart className="h-5 w-5 text-indigo-600" />
-            카테고리별 지출 (전체 조직)
+            {tr("카테고리별 지출 (전체 조직)", "Expense by Category (Organization-wide)")}
           </CardTitle>
           <CardDescription>
-            선택한 기간 동안 모든 지점을 합친 분류별 금액·건수·전체 대비 비율입니다.
+            {tr("선택한 기간 동안 모든 지점을 합친 분류별 금액·건수·전체 대비 비율입니다.", "Category amount/count/share across all branches in selected range.")}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -291,16 +307,16 @@ export default function HqBranchExpensesPage() {
               <Loader2 className="h-7 w-7 animate-spin text-slate-400" />
             </div>
           ) : categoryStats.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4">표시할 카테고리가 없습니다.</p>
+            <p className="text-sm text-muted-foreground py-4">{tr("표시할 카테고리가 없습니다.", "No category data to display.")}</p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>카테고리</TableHead>
-                  <TableHead className="text-right">건수</TableHead>
-                  <TableHead className="text-right">금액</TableHead>
-                  <TableHead className="text-right w-[72px]">비율</TableHead>
-                  <TableHead className="min-w-[140px]">구성비</TableHead>
+                  <TableHead>{tr("카테고리", "Category")}</TableHead>
+                  <TableHead className="text-right">{tr("건수", "Count")}</TableHead>
+                  <TableHead className="text-right">{tr("금액", "Amount")}</TableHead>
+                  <TableHead className="text-right w-[72px]">{tr("비율", "Ratio")}</TableHead>
+                  <TableHead className="min-w-[140px]">{tr("구성비", "Composition")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -334,9 +350,9 @@ export default function HqBranchExpensesPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Receipt className="h-5 w-5" />
-            지점별 합계
+            {tr("지점별 합계", "Branch Totals")}
           </CardTitle>
-          <CardDescription>금액 내림차순입니다. 지점명을 누르면 해당 지점 요약으로 이동합니다.</CardDescription>
+          <CardDescription>{tr("금액 내림차순입니다. 지점명을 누르면 해당 지점 요약으로 이동합니다.", "Sorted by amount desc. Click branch name to open its summary.")}</CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -347,10 +363,10 @@ export default function HqBranchExpensesPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>지점</TableHead>
-                  <TableHead className="text-right">건수</TableHead>
-                  <TableHead className="text-right">합계</TableHead>
-                  <TableHead className="min-w-[200px]">카테고리 요약</TableHead>
+                  <TableHead>{tr("지점", "Branch")}</TableHead>
+                  <TableHead className="text-right">{tr("건수", "Count")}</TableHead>
+                  <TableHead className="text-right">{tr("합계", "Total")}</TableHead>
+                  <TableHead className="min-w-[200px]">{tr("카테고리 요약", "Category Summary")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -371,10 +387,10 @@ export default function HqBranchExpensesPage() {
                     </TableCell>
                     <TableCell className="text-right tabular-nums">{b.expenseCount}</TableCell>
                     <TableCell className="text-right font-semibold tabular-nums">
-                      {b.totalAmount.toLocaleString()}원
+                      {b.totalAmount.toLocaleString()}{tr("원", "")}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground max-w-[360px]">
-                      {categorySummaryShort(b.categoryRows)}
+                      {categorySummaryShort(b.categoryRows, amountSuffix)}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -386,9 +402,9 @@ export default function HqBranchExpensesPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>지점 · 카테고리별 상세</CardTitle>
+          <CardTitle>{tr("지점 · 카테고리별 상세", "Branch · Category Details")}</CardTitle>
           <CardDescription>
-            각 지점에서 분류별로 얼마를 썼는지 건수·금액·지점 내 비중·전체 대비 비중으로 나눕니다.
+            {tr("각 지점에서 분류별로 얼마를 썼는지 건수·금액·지점 내 비중·전체 대비 비중으로 나눕니다.", "Shows count/amount/share-in-branch/share-in-total by category for each branch.")}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -397,18 +413,18 @@ export default function HqBranchExpensesPage() {
               <Loader2 className="h-7 w-7 animate-spin text-slate-400" />
             </div>
           ) : branchCategoryDetailRows.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4">해당 기간에 지출이 없습니다.</p>
+            <p className="text-sm text-muted-foreground py-4">{tr("해당 기간에 지출이 없습니다.", "No expenses in this period.")}</p>
           ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>지점</TableHead>
-                    <TableHead>카테고리</TableHead>
-                    <TableHead className="text-right">건수</TableHead>
-                    <TableHead className="text-right">금액</TableHead>
-                    <TableHead className="text-right">지점 내</TableHead>
-                    <TableHead className="text-right">전체 대비</TableHead>
+                    <TableHead>{tr("지점", "Branch")}</TableHead>
+                    <TableHead>{tr("카테고리", "Category")}</TableHead>
+                    <TableHead className="text-right">{tr("건수", "Count")}</TableHead>
+                    <TableHead className="text-right">{tr("금액", "Amount")}</TableHead>
+                    <TableHead className="text-right">{tr("지점 내", "Within Branch")}</TableHead>
+                    <TableHead className="text-right">{tr("전체 대비", "vs Total")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -425,7 +441,7 @@ export default function HqBranchExpensesPage() {
                       <TableCell>{row.category}</TableCell>
                       <TableCell className="text-right tabular-nums">{row.count.toLocaleString()}건</TableCell>
                       <TableCell className="text-right font-medium tabular-nums">
-                        {row.amount.toLocaleString()}원
+                        {row.amount.toLocaleString()}{tr("원", "")}
                       </TableCell>
                       <TableCell className="text-right tabular-nums text-muted-foreground">
                         {row.pctBranch}%
@@ -444,8 +460,8 @@ export default function HqBranchExpensesPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>최근 지출 내역</CardTitle>
-          <CardDescription>선택한 기간 안에서 최신순 최대 100건입니다.</CardDescription>
+          <CardTitle>{tr("최근 지출 내역", "Recent Expenses")}</CardTitle>
+          <CardDescription>{tr("선택한 기간 안에서 최신순 최대 100건입니다.", "Up to 100 latest entries in selected range.")}</CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -453,24 +469,26 @@ export default function HqBranchExpensesPage() {
               <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
             </div>
           ) : recentLines.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4">해당 기간에 등록된 지출이 없습니다.</p>
+            <p className="text-sm text-muted-foreground py-4">{tr("해당 기간에 등록된 지출이 없습니다.", "No expenses recorded in this period.")}</p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>일자</TableHead>
-                  <TableHead>지점</TableHead>
-                  <TableHead>분류</TableHead>
-                  <TableHead>적요</TableHead>
-                  <TableHead>결제</TableHead>
-                  <TableHead className="text-right">금액</TableHead>
+                  <TableHead>{tr("일자", "Date")}</TableHead>
+                  <TableHead>{tr("지점", "Branch")}</TableHead>
+                  <TableHead>{tr("분류", "Category")}</TableHead>
+                  <TableHead>{tr("적요", "Description")}</TableHead>
+                  <TableHead>{tr("결제", "Payment")}</TableHead>
+                  <TableHead className="text-right">{tr("금액", "Amount")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {recentLines.map((r) => (
                   <TableRow key={r.id}>
                     <TableCell className="text-sm tabular-nums whitespace-nowrap">
-                      {format(new Date(r.expense_date), "M/d HH:mm", { locale: ko })}
+                      {baseLocale === "ko"
+                        ? format(new Date(r.expense_date), "M/d HH:mm", { locale: ko })
+                        : format(new Date(r.expense_date), "MM/dd HH:mm")}
                     </TableCell>
                     <TableCell className="text-sm">
                       <Link
@@ -484,9 +502,9 @@ export default function HqBranchExpensesPage() {
                     <TableCell className="text-sm max-w-[200px] truncate" title={r.description}>
                       {r.description}
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{r.payment_method}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{formatPaymentMethod(r.payment_method)}</TableCell>
                     <TableCell className="text-right text-sm font-medium tabular-nums">
-                      {r.amount.toLocaleString()}원
+                      {r.amount.toLocaleString()}{tr("원", "")}
                     </TableCell>
                   </TableRow>
                 ))}

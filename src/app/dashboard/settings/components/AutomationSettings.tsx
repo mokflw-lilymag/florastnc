@@ -28,6 +28,8 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { SystemSettings } from "@/hooks/use-settings";
 import { PosIntegrationCard } from "./PosIntegrationCard";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
 
 interface AutomationSettingsProps {
   settings: SystemSettings;
@@ -44,6 +46,9 @@ export function AutomationSettings({
   posIntegration,
   isPosLoading
 }: AutomationSettingsProps) {
+  const locale = usePreferredLocale();
+  const isKo = toBaseLocale(locale) === "ko";
+  const tr = (ko: string, en: string) => (isKo ? ko : en);
   // 헬퍼 함수: 연동 상태 확인용
   const getStatus = (service: string) => {
     switch (service) {
@@ -66,7 +71,7 @@ export function AutomationSettings({
       orderNotificationSound: checked
     });
     if (success) {
-      toast.success(checked ? "주문 알림음이 활성화되었습니다. 🔔" : "주문 알림음이 비활성화되었습니다.");
+      toast.success(checked ? tr("주문 알림음이 활성화되었습니다. 🔔", "Order notification sound enabled. 🔔") : tr("주문 알림음이 비활성화되었습니다.", "Order notification sound disabled."));
     }
   };
 
@@ -89,7 +94,7 @@ export function AutomationSettings({
       const now = audioCtx.currentTime;
       playTone(880, now, 0.4);
       playTone(660, now + 0.15, 0.5);
-      toast.info("알림음 테스트 중... 🔊");
+      toast.info(tr("알림음 테스트 중... 🔊", "Playing test sound... 🔊"));
     } catch (err) {
       console.error(err);
     }
@@ -107,12 +112,12 @@ export function AutomationSettings({
               </div>
               <div>
                 <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                  새 주문 실시간 알림음
+                  {tr("새 주문 실시간 알림음", "Real-time New Order Sound")}
                   {settings.orderNotificationSound && (
                     <Badge className="bg-emerald-500 hover:bg-emerald-500 animate-pulse">LIVE</Badge>
                   )}
                 </h3>
-                <p className="text-sm text-slate-500">쇼핑몰이나 POS에서 주문이 들어오면 우렁찬 소리로 즉시 알려드립니다.</p>
+                <p className="text-sm text-slate-500">{tr("쇼핑몰이나 POS에서 주문이 들어오면 우렁찬 소리로 즉시 알려드립니다.", "Get an immediate loud alert when orders arrive from mall or POS.")}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -122,7 +127,7 @@ export function AutomationSettings({
                 className="h-9 rounded-xl border-indigo-200 text-indigo-600 hover:bg-indigo-50"
                 onClick={playTestSound}
               >
-                테스트 소리 듣기
+                {tr("테스트 소리 듣기", "Play test sound")}
               </Button>
               <div className="flex items-center gap-4 bg-white p-3 rounded-2xl border border-indigo-100 shadow-sm min-w-[120px] justify-between">
                 <div className="flex items-center gap-2">
@@ -139,7 +144,7 @@ export function AutomationSettings({
           <div className="px-6 pb-4">
              <div className="text-[11px] text-indigo-400 bg-indigo-50/50 p-2 rounded-lg border border-indigo-100/50 flex items-center gap-2">
                <Info className="h-3 w-3" />
-               브라우저 정책상 페이지 접속 후 최소 한 번은 화면을 클릭해야 소리가 재생됩니다.
+               {tr("브라우저 정책상 페이지 접속 후 최소 한 번은 화면을 클릭해야 소리가 재생됩니다.", "Due to browser policy, click once on the page before sound can play.")}
              </div>
           </div>
         </CardContent>
@@ -161,18 +166,18 @@ export function AutomationSettings({
                  getStatus('storage') ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" : "bg-slate-300"
                )} />
                <CardTitle className="flex items-center gap-2 text-blue-700">
-                 <Cloud className="h-5 w-5 text-blue-600" /> 사진 저장소 및 자동화
+                 <Cloud className="h-5 w-5 text-blue-600" /> {tr("사진 저장소 및 자동화", "Photo Storage & Automation")}
                </CardTitle>
             </div>
-            <CardDescription>앨범 사진 저장 방식을 선택하고 연동합니다.</CardDescription>
+            <CardDescription>{tr("앨범 사진 저장 방식을 선택하고 연동합니다.", "Choose and connect your photo storage method.")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-4">
                <div className="flex items-center justify-between">
                  <Label className="text-sm font-bold flex items-center gap-2">
-                   <FileImage className="h-5 w-5 text-emerald-600" /> 사진 저장소 설정 (Google Drive 권장)
+                   <FileImage className="h-5 w-5 text-emerald-600" /> {tr("사진 저장소 설정 (Google Drive 권장)", "Photo Storage (Google Drive recommended)")}
                  </Label>
-                 <Badge variant="outline" className="text-emerald-600 bg-emerald-50 border-emerald-200">연동 권장</Badge>
+                 <Badge variant="outline" className="text-emerald-600 bg-emerald-50 border-emerald-200">{tr("연동 권장", "Recommended")}</Badge>
                </div>
                
                <div className="grid grid-cols-2 gap-3">
@@ -182,7 +187,7 @@ export function AutomationSettings({
                     onClick={() => saveSettings({...settings, photoStorageType: 'google_drive'})}
                   >
                     <FileImage className="h-5 w-5 text-emerald-600" />
-                    <span className="text-xs">구글 드라이브</span>
+                    <span className="text-xs">{tr("구글 드라이브", "Google Drive")}</span>
                   </Button>
                   <Button 
                     variant={settings.photoStorageType === 'cloudinary' ? 'default' : 'outline'}
@@ -190,7 +195,7 @@ export function AutomationSettings({
                     onClick={() => saveSettings({...settings, photoStorageType: 'cloudinary'})}
                   >
                     <ExternalLink className="h-5 w-5 text-indigo-600" />
-                    <span className="text-xs">외부 클라우드</span>
+                    <span className="text-xs">{tr("외부 클라우드", "External Cloud")}</span>
                   </Button>
                </div>
             </div>
@@ -200,12 +205,12 @@ export function AutomationSettings({
                 <div className="space-y-2">
                   <Label className="text-[10px] font-bold text-slate-500 uppercase px-1">Google Drive Folder ID</Label>
                   <Input 
-                    placeholder="구글 드라이브 폴더 ID를 입력하세요." 
+                    placeholder={tr("구글 드라이브 폴더 ID를 입력하세요.", "Enter Google Drive folder ID")}
                     value={settings.googleDriveFolderId}
                     onChange={e => saveSettings({...settings, googleDriveFolderId: e.target.value})}
                     className="h-9 mt-1 bg-white"
                   />
-                  <p className="text-[10px] text-slate-400 px-1">폴더 공유 시 '링크가 있는 모든 사용자'로 설정 후 주소창의 폴더 ID를 입력하세요.</p>
+                  <p className="text-[10px] text-slate-400 px-1">{tr("폴더 공유 시 '링크가 있는 모든 사용자'로 설정 후 주소창의 폴더 ID를 입력하세요.", "Set folder sharing to 'Anyone with the link' and paste folder ID from URL.")}</p>
                 </div>
               </div>
             )}
@@ -216,9 +221,9 @@ export function AutomationSettings({
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
                    <Label className="text-sm font-bold flex items-center gap-2">
-                     <LayoutGrid className="h-4 w-4 text-violet-600" /> 공개 샘플 앨범 (쇼핑몰 형태)
+                     <LayoutGrid className="h-4 w-4 text-violet-600" /> {tr("공개 샘플 앨범 (쇼핑몰 형태)", "Public Sample Gallery")}
                    </Label>
-                   <p className="text-xs text-slate-500">업로드한 사진을 외부 고객이나 다른 꽃집에 공유합니다.</p>
+                   <p className="text-xs text-slate-500">{tr("업로드한 사진을 외부 고객이나 다른 꽃집에 공유합니다.", "Share uploaded photos with customers or partner stores.")}</p>
                 </div>
                 <Switch 
                   checked={settings.isGalleryPublic}
@@ -235,7 +240,7 @@ export function AutomationSettings({
                      <Button size="sm" variant="ghost" className="h-7 text-[10px]" onClick={() => {
                        const url = `${window.location.origin}/gallery/${tenantId}`;
                        navigator.clipboard.writeText(url);
-                       toast.success("갤러리 주소가 복사되었습니다!");
+                       toast.success(tr("갤러리 주소가 복사되었습니다!", "Gallery link copied!"));
                      }}>복사</Button>
                    </div>
                    <div className="space-y-2">
@@ -269,10 +274,10 @@ export function AutomationSettings({
                  getStatus('kakao') ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" : "bg-slate-300"
                )} />
                <CardTitle className="flex items-center gap-2 text-amber-700">
-                 <MessageCircle className="h-5 w-5 text-amber-600" /> 카카오 알림톡 자동 전송
+                <MessageCircle className="h-5 w-5 text-amber-600" /> {tr("카카오 알림톡 자동 전송", "Kakao AlertTalk Auto Send")}
                </CardTitle>
             </div>
-            <CardDescription>배송 사진 및 주문 알림을 카카오톡으로 자동 발송합니다.</CardDescription>
+            <CardDescription>{tr("배송 사진 및 주문 알림을 카카오톡으로 자동 발송합니다.", "Automatically send delivery photos and order alerts via KakaoTalk.")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
              <div className="flex items-center justify-between p-4 bg-white rounded-xl border border-amber-100">
@@ -280,7 +285,7 @@ export function AutomationSettings({
                 <div className="p-2 bg-amber-100 rounded-lg text-amber-600">
                   <MessageCircle className="h-4 w-4" />
                 </div>
-                <Label className="font-bold cursor-pointer" htmlFor="kakao-use">카카오톡 서비스 활성화</Label>
+                <Label className="font-bold cursor-pointer" htmlFor="kakao-use">{tr("카카오톡 서비스 활성화", "Enable KakaoTalk Service")}</Label>
               </div>
               <Switch 
                 id="kakao-use" 
@@ -295,12 +300,10 @@ export function AutomationSettings({
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="bg-white p-4 rounded-xl border border-amber-100 space-y-2 shadow-sm">
                       <p className="text-[11px] font-bold text-slate-700 flex items-center gap-2">
-                        <Info className="h-3.5 w-3.5 text-amber-600" /> Solapi 연동 안내
+                        <Info className="h-3.5 w-3.5 text-amber-600" /> {tr("Solapi 연동 안내", "Solapi Integration Guide")}
                       </p>
                       <p className="text-[10px] text-slate-500 leading-relaxed">
-                        1. <b>solapi.com</b> 가입 및 카카오 채널 연동<br/>
-                        2. API Key (Key:Secret) 생성 및 입력<br/>
-                        3. 알림톡 템플릿 코드 등록 필수
+                        {tr("1. solapi.com 가입 및 카카오 채널 연동 2. API Key(Key:Secret) 생성 및 입력 3. 알림톡 템플릿 코드 등록 필수", "1. Register at solapi.com and connect Kakao channel 2. Create API key (Key:Secret) 3. Register alert template code")}
                       </p>
                     </div>
                     <div className="flex items-center justify-center bg-white/50 rounded-xl border border-dashed border-amber-200 p-2">
@@ -316,14 +319,14 @@ export function AutomationSettings({
                       type="password"
                       value={settings.kakaoApiKey}
                       onChange={e => saveSettings({...settings, kakaoApiKey: e.target.value})}
-                      placeholder="Key:Secret 형식으로 입력"
+                      placeholder={tr("Key:Secret 형식으로 입력", "Enter in Key:Secret format")}
                       className="h-9 bg-white"
                     />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-[10px] font-bold text-slate-500 uppercase px-1">발신 채널 ID (@아이디)</Label>
                     <Input 
-                      placeholder="@플록싱크"
+                      placeholder={tr("@플록싱크", "@yourChannel")}
                       value={settings.kakaoSenderId}
                       onChange={e => saveSettings({...settings, kakaoSenderId: e.target.value})}
                       className="h-9 bg-white"
@@ -333,7 +336,7 @@ export function AutomationSettings({
                 <div className="space-y-2">
                   <Label className="text-[10px] font-bold text-slate-500 uppercase px-1">알림톡 템플릿 코드</Label>
                   <Input 
-                    placeholder="비즈톡에서 발급받은 템플릿 코드"
+                    placeholder={tr("비즈톡에서 발급받은 템플릿 코드", "Template code from BizTalk")}
                     value={settings.kakaoDefaultMessage}
                     onChange={e => saveSettings({...settings, kakaoDefaultMessage: e.target.value})}
                     className="h-9 bg-white"
@@ -350,9 +353,9 @@ export function AutomationSettings({
         <Card className="border-0 shadow-sm ring-1 ring-emerald-200 bg-emerald-50/10">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-emerald-700">
-              <FileSpreadsheet className="h-5 w-5 text-emerald-600" /> 데이터 자동 내보내기 (Google Sheets)
+              <FileSpreadsheet className="h-5 w-5 text-emerald-600" /> {tr("데이터 자동 내보내기 (Google Sheets)", "Auto Export Data (Google Sheets)")}
             </CardTitle>
-            <CardDescription>주문 및 지출 내역을 실시간으로 구글 시트에 기록합니다.</CardDescription>
+            <CardDescription>{tr("주문 및 지출 내역을 실시간으로 구글 시트에 기록합니다.", "Write orders and expenses to Google Sheets in real-time.")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
              <div className="flex items-center justify-between p-4 bg-white rounded-xl border border-emerald-100">
@@ -360,7 +363,7 @@ export function AutomationSettings({
                 <div className="p-2 bg-emerald-100 rounded-lg text-emerald-600">
                   <FileSpreadsheet className="h-4 w-4" />
                 </div>
-                <Label className="font-bold cursor-pointer" htmlFor="gs-use">구글 시트 연동 활성화</Label>
+                <Label className="font-bold cursor-pointer" htmlFor="gs-use">{tr("구글 시트 연동 활성화", "Enable Google Sheets Integration")}</Label>
               </div>
               <Switch 
                 id="gs-use" 
@@ -374,10 +377,10 @@ export function AutomationSettings({
                 <div className="grid grid-cols-1 gap-3">
                   <div className="space-y-2 p-3 bg-white rounded-lg border border-emerald-100">
                     <Label className="text-[10px] font-bold text-emerald-700 uppercase flex items-center gap-1.5">
-                      <FileSpreadsheet className="h-3 w-3" /> 주문 내역 Spreadsheet ID
+                      <FileSpreadsheet className="h-3 w-3" /> {tr("주문 내역 Spreadsheet ID", "Orders Spreadsheet ID")}
                     </Label>
                     <Input
-                      placeholder="구글 시트 주소창의 고유 ID"
+                      placeholder={tr("구글 시트 주소창의 고유 ID", "Unique ID from Google Sheets URL")}
                       value={settings.googleSheetOrdersId}
                       onChange={e => saveSettings({...settings, googleSheetOrdersId: e.target.value})}
                       className="h-8 text-xs bg-white"
@@ -385,10 +388,10 @@ export function AutomationSettings({
                   </div>
                   <div className="space-y-2 p-3 bg-white rounded-lg border border-emerald-100">
                     <Label className="text-[10px] font-bold text-emerald-700 uppercase flex items-center gap-1.5">
-                      <Coins className="h-3 w-3" /> 지출 관리 Spreadsheet ID
+                      <Coins className="h-3 w-3" /> {tr("지출 관리 Spreadsheet ID", "Expenses Spreadsheet ID")}
                     </Label>
                     <Input
-                      placeholder="지출 내역 구글 시트 ID"
+                      placeholder={tr("지출 내역 구글 시트 ID", "Expenses Google Sheet ID")}
                       value={settings.googleSheetExpensesId}
                       onChange={e => saveSettings({...settings, googleSheetExpensesId: e.target.value})}
                       className="h-8 text-xs bg-white"
@@ -404,16 +407,16 @@ export function AutomationSettings({
         <Card className="border-0 shadow-sm ring-1 ring-slate-200">
           <CardHeader>
             <CardTitle className="text-sm font-bold flex items-center gap-2">
-              <LayoutGrid className="h-4 w-4 text-slate-500" /> 통합 연동 상태 대시보드
+              <LayoutGrid className="h-4 w-4 text-slate-500" /> {tr("통합 연동 상태 대시보드", "Integration Status Dashboard")}
             </CardTitle>
-            <CardDescription className="text-[11px]">현재 활성화된 서비스들의 상태를 확인합니다.</CardDescription>
+            <CardDescription className="text-[11px]">{tr("현재 활성화된 서비스들의 상태를 확인합니다.", "Check status of active integrations.")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {[
-              { id: 'pos', name: 'POS 연동 (이지체크/토스)', icon: RefreshCw, color: 'text-blue-600' },
-              { id: 'kakao', name: '알림톡 발송 (Solapi)', icon: MessageCircle, color: 'text-amber-600' },
-              { id: 'storage', name: '클라우드 저장소 (Google)', icon: Cloud, color: 'text-emerald-600' },
-              { id: 'sheets', name: '데이터 백업 (Sheets)', icon: FileSpreadsheet, color: 'text-green-600' }
+              { id: 'pos', name: tr('POS 연동 (이지체크/토스)', 'POS Integration (EasyCheck/Toss)'), icon: RefreshCw, color: 'text-blue-600' },
+              { id: 'kakao', name: tr('알림톡 발송 (Solapi)', 'AlertTalk Send (Solapi)'), icon: MessageCircle, color: 'text-amber-600' },
+              { id: 'storage', name: tr('클라우드 저장소 (Google)', 'Cloud Storage (Google)'), icon: Cloud, color: 'text-emerald-600' },
+              { id: 'sheets', name: tr('데이터 백업 (Sheets)', 'Data Backup (Sheets)'), icon: FileSpreadsheet, color: 'text-green-600' }
             ].map((service, idx) => {
               const isActive = getStatus(service.id);
               return (
@@ -431,9 +434,9 @@ export function AutomationSettings({
                     <span className="text-xs font-bold text-slate-700">{service.name}</span>
                   </div>
                   {isActive ? (
-                    <Badge className="bg-emerald-500 hover:bg-emerald-600 cursor-default shadow-[0_0_10px_rgba(16,185,129,0.2)]">정상 작동 중</Badge>
+                    <Badge className="bg-emerald-500 hover:bg-emerald-600 cursor-default shadow-[0_0_10px_rgba(16,185,129,0.2)]">{tr("정상 작동 중", "Operational")}</Badge>
                   ) : (
-                    <Badge variant="outline" className="text-slate-400 border-slate-200">비활성</Badge>
+                    <Badge variant="outline" className="text-slate-400 border-slate-200">{tr("비활성", "Inactive")}</Badge>
                   )}
                 </div>
               );

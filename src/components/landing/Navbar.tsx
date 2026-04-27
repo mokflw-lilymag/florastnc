@@ -3,25 +3,79 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, Leaf, Smartphone, Terminal } from 'lucide-react';
+import { Menu, X, Leaf, Smartphone, Terminal, Globe, ChevronDown } from 'lucide-react';
+import { AppLocale, LOCALE_COOKIE, resolveLocale, SUPPORTED_LOCALES } from '@/i18n/config';
+import { toast } from 'sonner';
 
-export function Navbar() {
+export function Navbar({ locale }: { locale?: AppLocale }) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [uiLocale, setUiLocale] = useState<AppLocale>(locale || 'ko');
 
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
     };
     window.addEventListener('scroll', handleScroll);
+
+    // Sync from cookie if provided locale is missing or as fallback
+    if (!locale && typeof document !== 'undefined') {
+      const cookieValue = document.cookie
+        .split('; ')
+        .find((row) => row.startsWith(`${LOCALE_COOKIE}=`))
+        ?.split('=')[1];
+      if (cookieValue) setUiLocale(resolveLocale(cookieValue));
+    }
+
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [locale]);
+
+  const handleLocaleChange = (nextLocale: AppLocale) => {
+    setUiLocale(nextLocale);
+    document.cookie = `${LOCALE_COOKIE}=${nextLocale}; path=/; max-age=${60 * 60 * 24 * 365}`;
+    window.dispatchEvent(new Event('preferred-locale-changed'));
+    
+    // Redirect to the new locale path
+    const currentPath = window.location.pathname;
+    const pathParts = currentPath.split('/');
+    if (pathParts.length > 1 && SUPPORTED_LOCALES.includes(pathParts[1] as any)) {
+      pathParts[1] = nextLocale;
+      window.location.href = pathParts.join('/');
+    } else {
+      window.location.href = `/${nextLocale}`;
+    }
+  };
 
   const navLinks = [
     { name: '솔루션', href: '#solutions' },
     { name: '테크놀로지', href: '#technology' },
     { name: '네트워크', href: '#network' },
     { name: '문서', href: '#documentation' },
+  ];
+
+  const localeOptions: Array<{ value: AppLocale; label: string }> = [
+    { value: 'ko', label: '한국어' },
+    { value: 'en-US', label: 'English (US)' },
+    { value: 'en-GB', label: 'English (UK)' },
+    { value: 'en-AU', label: 'English (Australia)' },
+    { value: 'en-SG', label: 'English (Singapore)' },
+    { value: 'en-CA', label: 'English (Canada)' },
+    { value: 'en-NZ', label: 'English (New Zealand)' },
+    { value: 'vi', label: 'Tiếng Việt' },
+    { value: 'zh', label: '中文' },
+    { value: 'ja', label: '日本語' },
+    { value: 'es-ES', label: 'Español (España)' },
+    { value: 'es-MX', label: 'Español (México)' },
+    { value: 'es-AR', label: 'Español (Argentina)' },
+    { value: 'es-CL', label: 'Español (Chile)' },
+    { value: 'pt-PT', label: 'Português (Portugal)' },
+    { value: 'pt-BR', label: 'Português (Brasil)' },
+    { value: 'pt-MZ', label: 'Português (Moçambique)' },
+    { value: 'fr-FR', label: 'Français (France)' },
+    { value: 'fr-CA', label: 'Français (Canada)' },
+    { value: 'de-DE', label: 'Deutsch (Deutschland)' },
+    { value: 'de-CH', label: 'Deutsch (Schweiz)' },
+    { value: 'ru-RU', label: 'Русский (Россия)' },
   ];
 
   return (
@@ -35,19 +89,7 @@ export function Navbar() {
       <div className="container mx-auto px-6 md:px-12 flex items-center justify-between">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-3 group relative">
-          <motion.div 
-            whileHover={{ rotate: 15 }}
-            className="relative bg-gradient-to-br from-emerald-500 to-teal-600 p-2.5 rounded-2xl text-[#0A0F0D] shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all overflow-hidden"
-          >
-            <Leaf size={24} className="relative z-10" />
-            <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-          </motion.div>
-          <div className="flex flex-col -gap-1">
-            <span className="font-title text-2xl tracking-tighter text-white leading-tight">
-              FLOXYNC <span className="text-[10px] text-emerald-500 font-bold tracking-widest bg-emerald-500/10 px-1.5 py-0.5 rounded ml-1 border border-emerald-500/20">PRO</span>
-            </span>
-            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.3em] font-sans">Tech x Floral ERP</span>
-          </div>
+          <img src="/images/floxync-logo-official-white.png" alt="Floxync Logo" className="h-20 md:h-28 w-auto object-contain" />
         </Link>
 
         {/* Desktop Nav */}
@@ -66,6 +108,22 @@ export function Navbar() {
 
         {/* Desktop Actions */}
         <div className="hidden md:flex items-center gap-6">
+          {/* Language Switcher */}
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition-colors cursor-pointer group">
+            <Globe size={14} className="text-slate-400 group-hover:text-emerald-400 transition-colors" />
+            <select
+              value={uiLocale}
+              onChange={(e) => handleLocaleChange(e.target.value as AppLocale)}
+              className="bg-transparent text-[10px] font-black text-slate-400 hover:text-white outline-none cursor-pointer uppercase tracking-tighter"
+            >
+              {localeOptions.map((opt) => (
+                <option key={opt.value} value={opt.value} className="bg-[#0A0F0D] text-white">
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <Link 
             href="/login" 
             className="text-xs font-black text-slate-400 hover:text-white transition-colors uppercase tracking-[0.2em]"
@@ -102,6 +160,24 @@ export function Navbar() {
             className="absolute top-full left-0 right-0 bg-[#0A0F0D] border-b border-white/5 shadow-2xl overflow-hidden lg:hidden"
           >
             <div className="container mx-auto px-6 py-12 flex flex-col gap-6">
+              {/* Mobile Language Switcher */}
+              <div className="flex items-center justify-between px-2 py-4 border-b border-white/5">
+                <span className="text-sm font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                  <Globe size={16} /> Language
+                </span>
+                <select
+                  value={uiLocale}
+                  onChange={(e) => handleLocaleChange(e.target.value as AppLocale)}
+                  className="bg-transparent text-lg font-black text-white outline-none"
+                >
+                  {localeOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value} className="bg-[#0A0F0D] text-white">
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               {navLinks.map((link) => (
                 <Link 
                   key={link.name} 

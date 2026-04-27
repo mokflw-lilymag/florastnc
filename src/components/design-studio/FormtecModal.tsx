@@ -5,6 +5,16 @@ import { X, Check, Printer, Grid as GridIcon, Trash2, Loader2, AlignCenter, Refr
 import { useEditorStore } from '@/stores/design-store';
 import { LABEL_CONFIGS, PAPER_PRESETS } from '@/lib/constants/templates';
 import { cn } from '@/lib/utils';
+import { usePreferredLocale } from '@/hooks/use-preferred-locale';
+import { getMessages } from '@/i18n/getMessages';
+
+function fillT(template: string, vars: Record<string, string | number>): string {
+  let s = template;
+  for (const [key, val] of Object.entries(vars)) {
+    s = s.split(`{{${key}}}`).join(String(val));
+  }
+  return s;
+}
 
 interface FormtecModalProps {
   isOpen: boolean;
@@ -17,6 +27,8 @@ interface FormtecModalProps {
  * 캔버스의 디자인 요소를 라벨 칸 안에 정교하게 미리보기하는 컴포넌트
  */
 const CanvasDesignMiniPreview: React.FC<{ scale: number; widthMm: number; heightMm: number }> = ({ scale, widthMm, heightMm }) => {
+  const locale = usePreferredLocale();
+  const D = getMessages(locale).dashboard.designStudio;
   const { textBlocks, imageBlocks, backgroundUrl, frontBackgroundUrl, foldType } = useEditorStore();
   const displayBg = foldType === 'half' ? (frontBackgroundUrl || backgroundUrl) : backgroundUrl;
 
@@ -38,7 +50,7 @@ const CanvasDesignMiniPreview: React.FC<{ scale: number; widthMm: number; height
         }}
       >
         {displayBg && (
-          <img src={displayBg} alt="bg" className="absolute inset-0 w-full h-full object-cover" />
+          <img src={displayBg} alt={D.altFormtecCellBg} className="absolute inset-0 w-full h-full object-cover" />
         )}
 
         {imageBlocks.map(img => (
@@ -54,7 +66,7 @@ const CanvasDesignMiniPreview: React.FC<{ scale: number; widthMm: number; height
             }}
           >
             {img.url ? (
-              <img src={img.url} className="w-full h-full object-contain" alt="mini-img" />
+              <img src={img.url} className="w-full h-full object-contain" alt={D.altFormtecLayerImage} />
             ) : null}
           </div>
         ))}
@@ -96,6 +108,8 @@ const CanvasDesignMiniPreview: React.FC<{ scale: number; widthMm: number; height
 export const FormtecModal: React.FC<FormtecModalProps> = ({
   isOpen, onClose, onPrint, isGenerating
 }) => {
+  const locale = usePreferredLocale();
+  const D = getMessages(locale).dashboard.designStudio;
   const {
     selectedPresetId,
     formtecSelectedCells,
@@ -159,10 +173,10 @@ export const FormtecModal: React.FC<FormtecModalProps> = ({
               <Printer size={28} />
             </div>
             <div>
-              <h3 className="text-2xl font-black text-gray-900 tracking-tight">라벨 인쇄 위치 설정</h3>
+              <h3 className="text-2xl font-black text-gray-900 tracking-tight">{D.formtecTitle}</h3>
               <div className="flex items-center gap-2 mt-1">
                 <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[9px] font-black rounded uppercase tracking-widest">{selectedPresetId}</span>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none pt-0.5">Physical Grid Management</p>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none pt-0.5">{D.formtecPhysicalGridBadge}</p>
               </div>
             </div>
           </div>
@@ -171,7 +185,7 @@ export const FormtecModal: React.FC<FormtecModalProps> = ({
               onClick={() => alignDesignCenter({ widthMm: config.widthMm, heightMm: config.heightMm })} 
               className="px-6 py-3 bg-indigo-600 text-white rounded-2xl text-xs font-black flex items-center gap-2 hover:bg-indigo-700 transition-all shadow-lg active:scale-95 group"
             >
-              <AlignCenter size={16} /> 중앙 정렬 재시도
+              <AlignCenter size={16} /> {D.formtecRetryCenter}
             </button>
             <button onClick={onClose} className="w-12 h-12 rounded-full bg-white hover:bg-gray-50 flex items-center justify-center transition-all shadow-sm border border-gray-100 text-gray-400 hover:text-gray-900">
               <X size={24} />
@@ -233,19 +247,19 @@ export const FormtecModal: React.FC<FormtecModalProps> = ({
           {/* Right Area: Sidebar */}
           <div className="w-full lg:w-[380px] p-10 flex flex-col gap-10 overflow-y-auto bg-white custom-scrollbar">
             <div className="space-y-5">
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">빠른 위치 선택</label>
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">{D.formtecQuickPick}</label>
               <div className="grid grid-cols-2 gap-3">
-                <button onClick={selectAll} className="flex items-center justify-center gap-2 py-4 bg-gray-900 text-white rounded-[1.25rem] text-xs font-black shadow-lg">전체 인쇄</button>
-                <button onClick={selectFirst} className="flex items-center justify-center gap-2 py-4 bg-blue-50 text-blue-700 border border-blue-100 rounded-[1.25rem] text-xs font-black">1번 칸만</button>
+                <button onClick={selectAll} className="flex items-center justify-center gap-2 py-4 bg-gray-900 text-white rounded-[1.25rem] text-xs font-black shadow-lg">{D.formtecPrintAll}</button>
+                <button onClick={selectFirst} className="flex items-center justify-center gap-2 py-4 bg-blue-50 text-blue-700 border border-blue-100 rounded-[1.25rem] text-xs font-black">{D.formtecFirstOnly}</button>
               </div>
             </div>
 
             <div className="space-y-5">
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">추가 인쇄 문구</label>
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">{D.formtecExtraMsg}</label>
               <textarea 
                 value={formtecAdditionalMessage} 
                 onChange={(e) => setFormtecAdditionalMessage(e.target.value)} 
-                placeholder="예) 보낸이/받는이 이름" 
+                placeholder={D.formtecExtraPlaceholder} 
                 className="w-full bg-gray-50/50 text-gray-900 text-sm font-bold min-h-[140px] p-6 rounded-[2rem] border border-gray-100 outline-none focus:ring-4 focus:ring-blue-50 focus:border-blue-200 resize-none" 
               />
             </div>
@@ -261,7 +275,7 @@ export const FormtecModal: React.FC<FormtecModalProps> = ({
                 className="w-full py-6 bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-[2rem] font-black text-base shadow-xl active:scale-95 transition-all flex items-center justify-center gap-4 disabled:bg-gray-100"
               >
                 {isGenerating ? <Loader2 size={24} className="animate-spin" /> : <Printer size={24} />}
-                {formtecSelectedCells.length}개 라벨 인쇄
+                {fillT(D.formtecPrintN, { n: formtecSelectedCells.length })}
                </button>
             </div>
           </div>

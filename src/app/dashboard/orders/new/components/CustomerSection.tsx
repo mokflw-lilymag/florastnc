@@ -5,6 +5,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Search } from "lucide-react";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
 
 export interface Branch {
     id: string;
@@ -65,14 +67,18 @@ export function CustomerSection({
     setRegisterCustomer,
     formatPhoneNumber
 }: CustomerSectionProps) {
+    const locale = usePreferredLocale();
+    const isKo = toBaseLocale(locale) === "ko";
+    const tr = (ko: string, en: string) => (isKo ? ko : en);
+
     return (
         <Card>
             <CardHeader className="pb-3">
                 <CardTitle className="text-lg font-semibold flex items-center justify-between">
-                    <span>주문자 정보</span>
+                    <span>{tr("주문자 정보", "Orderer Info")}</span>
                     {isAdmin && availableBranches.length > 1 && (
                         <div className="flex items-center gap-2">
-                            <Label className="text-sm font-normal whitespace-nowrap">지점:</Label>
+                            <Label className="text-sm font-normal whitespace-nowrap">{tr("지점", "Branch")}:</Label>
                             <select
                                 className="text-sm border rounded px-2 py-1"
                                 value={selectedBranch?.name || ''}
@@ -81,7 +87,7 @@ export function CustomerSection({
                                     if (branch) onBranchChange(branch);
                                 }}
                             >
-                                <option value="" disabled>지점 선택</option>
+                                <option value="" disabled>{tr("지점 선택", "Select branch")}</option>
                                 {availableBranches.map(b => (
                                     <option key={b.id} value={b.name}>{b.name}</option>
                                 ))}
@@ -93,11 +99,11 @@ export function CustomerSection({
             <CardContent className="space-y-4">
                 {/* Customer Search */}
                 <div className="customer-search-container relative">
-                    <Label className="text-sm font-medium mb-1.5 block">고객 검색</Label>
+                    <Label className="text-sm font-medium mb-1.5 block">{tr("고객 검색", "Customer Search")}</Label>
                     <div className="relative">
                         <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
-                            placeholder="이름, 전화번호 또는 회사명으로 검색..."
+                            placeholder={tr("이름, 전화번호 또는 회사명으로 검색...", "Search by name, phone, or company...")}
                             value={customerSearchQuery}
                             onChange={(e) => setCustomerSearchQuery(e.target.value)}
                             onFocus={() => setIsCustomerSearchOpen(true)}
@@ -107,7 +113,7 @@ export function CustomerSection({
                     {isCustomerSearchOpen && customerSearchQuery.trim().length > 0 && (
                         <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-y-auto">
                             {customerSearchLoading ? (
-                                <div className="p-4 text-center text-sm text-gray-500">검색 중...</div>
+                                <div className="p-4 text-center text-sm text-gray-500">{tr("검색 중...", "Searching...")}</div>
                             ) : customerSearchResults.length > 0 ? (
                                 customerSearchResults.map((customer) => (
                                     <div
@@ -124,8 +130,8 @@ export function CustomerSection({
                                 ))
                             ) : (
                                 <div className="p-4 text-center text-sm text-gray-500">
-                                    검색 결과가 없습니다. <br />
-                                    <span className="text-xs text-muted-foreground">아래 입력창에 직접 입력하여 진행하세요.</span>
+                                    {tr("검색 결과가 없습니다.", "No results found.")} <br />
+                                    <span className="text-xs text-muted-foreground">{tr("아래 입력창에 직접 입력하여 진행하세요.", "You can enter details manually below.")}</span>
                                 </div>
                             )}
                         </div>
@@ -134,26 +140,26 @@ export function CustomerSection({
 
                 <div className="space-y-4">
                     <div className="space-y-2">
-                        <Label htmlFor="ordererCompany">회사명</Label>
+                        <Label htmlFor="ordererCompany">{tr("회사명", "Company")}</Label>
                         <Input
                             id="ordererCompany"
                             value={ordererCompany}
                             onChange={(e) => setOrdererCompany(e.target.value)}
-                            placeholder="회사명을 입력하세요"
+                            placeholder={tr("회사명을 입력하세요", "Enter company name")}
                         />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label htmlFor="ordererName">주문자명</Label>
+                            <Label htmlFor="ordererName">{tr("주문자명", "Orderer Name")}</Label>
                             <Input
                                 id="ordererName"
                                 value={ordererName}
                                 onChange={(e) => setOrdererName(e.target.value)}
-                                placeholder="홍길동"
+                                placeholder={tr("홍길동", "John Doe")}
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="ordererContact">연락처</Label>
+                            <Label htmlFor="ordererContact">{tr("연락처", "Contact")}</Label>
                             <Input
                                 id="ordererContact"
                                 value={ordererContact}
@@ -172,7 +178,7 @@ export function CustomerSection({
                             checked={isAnonymous}
                             onCheckedChange={(checked) => setIsAnonymous(checked as boolean)}
                         />
-                        <Label htmlFor="anonymous" className="leading-none cursor-pointer">익명 주문</Label>
+                        <Label htmlFor="anonymous" className="leading-none cursor-pointer">{tr("익명 주문", "Anonymous Order")}</Label>
                     </div>
 
                     <div className="flex items-center space-x-2">
@@ -182,7 +188,7 @@ export function CustomerSection({
                             onCheckedChange={(checked) => setRegisterCustomer(checked as boolean)}
                             disabled={isAnonymous || !!customerSearchResults.find(c => c.contact === ordererContact && c.name === ordererName)}
                         />
-                        <Label htmlFor="registerCustomer" className="leading-none cursor-pointer">고객 자동 등록</Label>
+                        <Label htmlFor="registerCustomer" className="leading-none cursor-pointer">{tr("고객 자동 등록", "Auto-register customer")}</Label>
                     </div>
                 </div>
             </CardContent>

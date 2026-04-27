@@ -24,6 +24,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { MaterialRequestsConsolidationPanel } from "./consolidation-panel";
 import type { HqRequestInput } from "@/lib/hq-material-request-consolidation";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
 
 type Line = {
   id: string;
@@ -48,6 +50,18 @@ export default function HqMaterialRequestsPage() {
   const [requests, setRequests] = useState<Req[]>([]);
   const [fulfillOpen, setFulfillOpen] = useState(false);
   const [fulfillTarget, setFulfillTarget] = useState<Req | null>(null);
+  const locale = usePreferredLocale();
+  const baseLocale = toBaseLocale(locale);
+  const tr = (koText: string, enText: string) => (baseLocale === "ko" ? koText : enText);
+  const formatStatus = (status: string) => {
+    const map: Record<string, string> = {
+      pending: tr("대기", "Pending"),
+      reviewing: tr("검토중", "Reviewing"),
+      fulfilled: tr("처리완료", "Fulfilled"),
+      cancelled: tr("취소", "Cancelled"),
+    };
+    return map[status] ?? status;
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -108,18 +122,18 @@ export default function HqMaterialRequestsPage() {
     return (
       <div className="container max-w-6xl mx-auto p-6 space-y-6">
         <PageHeader
-          title="지점 자재 요청"
-          description="조직에 배정된 계정만 전체 요청 목록을 볼 수 있습니다."
+          title={tr("지점 자재 요청", "Branch Material Requests")}
+          description={tr("조직에 배정된 계정만 전체 요청 목록을 볼 수 있습니다.", "Only organization-assigned accounts can view full request list.")}
           icon={ClipboardList}
         />
         <Card className="max-w-lg">
           <CardHeader>
-            <CardTitle>접근할 수 없습니다</CardTitle>
-            <CardDescription>본사·다매장 권한이 필요합니다.</CardDescription>
+            <CardTitle>{tr("접근할 수 없습니다", "Access denied")}</CardTitle>
+            <CardDescription>{tr("본사·다매장 권한이 필요합니다.", "HQ/multi-store permission required.")}</CardDescription>
           </CardHeader>
           <CardContent>
             <Button variant="outline" onClick={() => router.push("/dashboard/hq")}>
-              본사 개요로
+              {tr("본사 개요로", "Go to HQ overview")}
             </Button>
           </CardContent>
         </Card>
@@ -130,8 +144,8 @@ export default function HqMaterialRequestsPage() {
   return (
     <div className="container max-w-6xl mx-auto p-6 space-y-8">
       <PageHeader
-        title="지점 자재 요청"
-        description="취합 발주안·내보내기·상태 변경 후, 지점별 원본에서 입고·지출 확정 시 해당 지점 재고와 지출에 반영됩니다. (supabase/branch_material_request_fulfillment.sql 적용 필요)"
+        title={tr("지점 자재 요청", "Branch Material Requests")}
+        description={tr("취합 발주안·내보내기·상태 변경 후, 지점별 원본에서 입고·지출 확정 시 해당 지점 재고와 지출에 반영됩니다. (supabase/branch_material_request_fulfillment.sql 적용 필요)", "After consolidation/export/status changes, confirming fulfillment applies stock/expense to each branch. (Requires supabase/branch_material_request_fulfillment.sql)")}
         icon={ClipboardList}
       />
 
@@ -146,17 +160,17 @@ export default function HqMaterialRequestsPage() {
           <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
         </div>
       ) : requests.length === 0 ? (
-        <p className="text-sm text-muted-foreground">요청이 없습니다.</p>
+        <p className="text-sm text-muted-foreground">{tr("요청이 없습니다.", "No requests.")}</p>
       ) : (
         <Tabs defaultValue="consolidate" className="gap-6">
           <TabsList variant="line" className="w-full sm:w-auto">
             <TabsTrigger value="consolidate" className="gap-1.5">
               <LayoutGrid className="h-4 w-4" />
-              취합 발주안
+              {tr("취합 발주안", "Consolidated Draft")}
             </TabsTrigger>
             <TabsTrigger value="by-branch" className="gap-1.5">
               <ListTree className="h-4 w-4" />
-              지점별 원본
+              {tr("지점별 원본", "Per-branch Source")}
             </TabsTrigger>
           </TabsList>
 
@@ -173,9 +187,11 @@ export default function HqMaterialRequestsPage() {
                       <CardTitle className="text-base">
                         {r.tenant_name ?? r.tenant_id.slice(0, 8)}
                       </CardTitle>
-                      <Badge variant="outline">{r.status}</Badge>
+                      <Badge variant="outline">{formatStatus(r.status)}</Badge>
                       <span className="text-xs text-muted-foreground tabular-nums">
-                        {format(new Date(r.created_at), "yyyy.M.d HH:mm", { locale: ko })}
+                        {baseLocale === "ko"
+                          ? format(new Date(r.created_at), "yyyy.M.d HH:mm", { locale: ko })
+                          : format(new Date(r.created_at), "yyyy-MM-dd HH:mm")}
                       </span>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
@@ -189,7 +205,7 @@ export default function HqMaterialRequestsPage() {
                             setFulfillOpen(true);
                           }}
                         >
-                          입고·지출 확정
+                          {tr("입고·지출 확정", "Confirm Stock & Expense")}
                         </Button>
                       ) : null}
                       {!isSuperAdmin ? (
@@ -197,7 +213,7 @@ export default function HqMaterialRequestsPage() {
                           href={`/dashboard/hq/branches/${r.tenant_id}`}
                           className="text-xs text-primary underline underline-offset-4"
                         >
-                          지점 요약
+                          {tr("지점 요약", "Branch Summary")}
                         </Link>
                       ) : null}
                     </div>
@@ -210,11 +226,11 @@ export default function HqMaterialRequestsPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>품목</TableHead>
-                        <TableHead>대분류</TableHead>
-                        <TableHead>중분류</TableHead>
-                        <TableHead className="text-right">수량</TableHead>
-                        <TableHead>비고</TableHead>
+                        <TableHead>{tr("품목", "Item")}</TableHead>
+                        <TableHead>{tr("대분류", "Main Category")}</TableHead>
+                        <TableHead>{tr("중분류", "Mid Category")}</TableHead>
+                        <TableHead className="text-right">{tr("수량", "Qty")}</TableHead>
+                        <TableHead>{tr("비고", "Note")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>

@@ -4,6 +4,8 @@ import React, { useRef, useState } from 'react';
 import { useEditorStore } from '@/stores/design-store';
 import { Image as ImageIcon, X } from 'lucide-react';
 import { useDraggable } from '@dnd-kit/core';
+import { usePreferredLocale } from '@/hooks/use-preferred-locale';
+import { getMessages } from '@/i18n/getMessages';
 
 interface DraggableImageProps {
   id: string;
@@ -32,6 +34,8 @@ export const DraggableImage: React.FC<DraggableImageProps> = ({
   rotation,
   onContextMenu
 }) => {
+  const locale = usePreferredLocale();
+  const D = getMessages(locale).dashboard.designStudio;
   const { 
     setSelectedBlockId, 
     toggleBlockSelection,
@@ -79,16 +83,16 @@ export const DraggableImage: React.FC<DraggableImageProps> = ({
       {url ? (
         <img 
           src={url} 
-          alt="User logo" 
+          alt={D.altCanvasImageLayer} 
           style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
           draggable={false}
         />
       ) : (
         <div className={`w-full h-full flex flex-col items-center justify-center p-2 rounded-md ${isSelected ? 'bg-blue-50' : 'bg-gray-100'} border-2 border-dashed ${isSelected ? 'border-blue-300' : 'border-gray-300'}`}>
           <ImageIcon className={`${isSelected ? 'text-blue-400' : 'text-gray-400'} mb-1`} size={16} />
-          <span className="text-[10px] text-gray-500 font-medium whitespace-nowrap">로고 자리</span>
+          <span className="text-[10px] text-gray-500 font-medium whitespace-nowrap">{D.logoPlaceholder}</span>
           {!isPrintable && (
-            <span className="text-[8px] text-red-400 font-bold mt-1 uppercase">화면 표시용</span>
+            <span className="text-[8px] text-red-400 font-bold mt-1 uppercase">{D.logoScreenOnly}</span>
           )}
         </div>
       )}

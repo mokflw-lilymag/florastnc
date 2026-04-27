@@ -2,12 +2,14 @@ import { createClient } from "@/utils/supabase/server";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 
 import { QuickChat } from "@/components/chat/quick-chat";
 import { DashboardMain } from "@/components/layout/dashboard-main";
 import { AnnualRenewalReminder } from "@/components/layout/annual-renewal-reminder";
 import { AndroidAppChrome } from "@/components/layout/android-app-chrome";
 import { effectiveIsSuperAdmin } from "@/lib/auth-api-guards";
+import { LOCALE_COOKIE, resolveLocale } from "@/i18n/config";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -112,7 +114,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const effectivePlan =
     tenantData?.plan || (isSuperAdmin ? "pro" : isOrgOnly ? "pro" : "free");
   const logoUrl = tenantData?.logo_url ?? undefined;
-  const storeName = (hqMenuOnly ? "본사·다매장" : tenantData?.name) ?? undefined;
+  const localeCookie = (await cookies()).get(LOCALE_COOKIE)?.value;
+  const isKo = resolveLocale(localeCookie).startsWith("ko");
+  const storeName = (hqMenuOnly ? (isKo ? "본사·다매장" : "HQ · Multi-store") : tenantData?.name) ?? undefined;
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">

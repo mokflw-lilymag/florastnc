@@ -23,6 +23,8 @@ import {
   ResponsiveContainer, Legend, Cell
 } from "recharts";
 import { useSettings } from "@/hooks/use-settings";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
 
 // 면세사업자 지출 분류 → 사업장 현황신고 비용 항목 매핑
 const EXPENSE_TO_TAX_CATEGORY: Record<string, string> = {
@@ -58,6 +60,9 @@ export default function TaxPage() {
   const { settings, loading: settingsLoading } = useSettings();
 
   const [viewYear, setViewYear] = useState(new Date().getFullYear());
+  const locale = usePreferredLocale();
+  const isKo = toBaseLocale(locale) === "ko";
+  const tr = (ko: string, en: string) => (isKo ? ko : en);
   const loading = expensesLoading || ordersLoading || suppliersLoading || settingsLoading;
 
   useEffect(() => {
@@ -142,7 +147,7 @@ export default function TaxPage() {
     return Array.from(map.entries())
       .map(([id, data]) => ({
         id,
-        name: suppliers.find(s => s.id === id)?.name || "알 수 없음",
+        name: suppliers.find(s => s.id === id)?.name || tr("알 수 없음", "Unknown"),
         ...data,
       }))
       .sort((a, b) => b.amount - a.amount);
@@ -156,37 +161,37 @@ export default function TaxPage() {
 
   const taxSchedule = [
     {
-      title: isExempt ? "사업장 현황신고" : "부가가치세 신고",
-      description: isExempt ? "전년도 수입금액 및 매입내역 신고" : "과세기간 부가가치세 신고 및 납부",
+      title: isExempt ? tr("사업장 현황신고", "Business Status Report") : tr("부가가치세 신고", "VAT Filing"),
+      description: isExempt ? tr("전년도 수입금액 및 매입내역 신고", "Report previous year's revenue and purchases") : tr("과세기간 부가가치세 신고 및 납부", "File and pay VAT for taxable period"),
       deadline: isExempt ? new Date(currentYear, 1, 10) : new Date(currentYear, now.getMonth() < 6 ? 6 : 0, 25),
       icon: ClipboardCheck,
       color: "blue",
-      detail: isExempt ? "매년 2/10까지 | 국세청 홈택스" : "1/25, 7/25 까지 | 국세청 홈택스",
+      detail: isExempt ? tr("매년 2/10까지 | 국세청 홈택스", "By 2/10 every year | Hometax") : tr("1/25, 7/25 까지 | 국세청 홈택스", "By 1/25, 7/25 | Hometax"),
       link: "https://www.hometax.go.kr"
     },
     {
-      title: "종합소득세 신고",
-      description: "전년도 사업소득에 대한 소득세 신고",
+      title: tr("종합소득세 신고", "Income Tax Filing"),
+      description: tr("전년도 사업소득에 대한 소득세 신고", "File income tax for previous year business income"),
       deadline: new Date(currentYear, 4, 31), // 5월 31일
       icon: Calculator,
       color: "violet",
-      detail: "매년 5/31까지 | 세무사 또는 홈택스",
+      detail: tr("매년 5/31까지 | 세무사 또는 홈택스", "By 5/31 every year | Tax accountant or Hometax"),
       link: "https://www.hometax.go.kr"
     },
     {
-      title: "원천세 신고 (직원 있는 경우)",
-      description: "매월 급여에 대한 원천징수세 신고",
+      title: tr("원천세 신고 (직원 있는 경우)", "Withholding Tax (if employees)"),
+      description: tr("매월 급여에 대한 원천징수세 신고", "Monthly withholding tax filing for payroll"),
       deadline: new Date(currentYear, now.getMonth() + 1, 10),
       icon: Receipt,
       color: "amber",
-      detail: "매월 10일까지 | 직원이 있는 경우만",
+      detail: tr("매월 10일까지 | 직원이 있는 경우만", "By 10th every month | Only if employees"),
       link: "https://www.hometax.go.kr"
     },
   ];
 
   const getDeadlineStatus = (deadline: Date) => {
     const diff = differenceInDays(deadline, now);
-    if (diff < 0) return { label: "완료/경과", color: "bg-slate-100 text-slate-500", urgent: false };
+    if (diff < 0) return { label: tr("완료/경과", "Done/Passed"), color: "bg-slate-100 text-slate-500", urgent: false };
     if (diff <= 14) return { label: `D-${diff}`, color: "bg-red-100 text-red-700", urgent: true };
     if (diff <= 30) return { label: `D-${diff}`, color: "bg-amber-100 text-amber-700", urgent: false };
     return { label: `D-${diff}`, color: "bg-emerald-100 text-emerald-700", urgent: false };
@@ -251,20 +256,20 @@ export default function TaxPage() {
 
   return (
     <div className="p-6 max-w-[1600px] mx-auto space-y-6 animate-in fade-in duration-500">
-      <PageHeader title="세무 관리" description={isExempt ? "면세사업자 사업장 현황신고 및 세무 관리" : "부가가치세 신고 및 세무 관리"} icon={FileText}>
+      <PageHeader title={tr("세무 관리", "Tax Management")} description={isExempt ? tr("면세사업자 사업장 현황신고 및 세무 관리", "Business status report and tax management for tax-exempt business") : tr("부가가치세 신고 및 세무 관리", "VAT filing and tax management")} icon={FileText}>
         <div className="flex items-center gap-3">
           <Button variant="outline" size="icon" className="h-9 w-9 rounded-xl" onClick={() => setViewYear(y => y - 1)}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <span className="text-sm font-medium text-slate-700 min-w-[60px] text-center">
-            {viewYear}년
+            {isKo ? `${viewYear}년` : `${viewYear}`}
           </span>
           <Button variant="outline" size="icon" className="h-9 w-9 rounded-xl" onClick={() => setViewYear(y => y + 1)}>
             <ChevronRight className="h-4 w-4" />
           </Button>
 
           <Button variant="default" className="ml-2 gap-2 rounded-xl text-xs" onClick={downloadTaxReport}>
-            <Download className="h-3.5 w-3.5" /> 현황신고 자료 다운로드
+            <Download className="h-3.5 w-3.5" /> {tr("현황신고 자료 다운로드", "Download Filing Data")}
           </Button>
         </div>
       </PageHeader>
@@ -273,9 +278,9 @@ export default function TaxPage() {
       <div className="flex items-center gap-3 px-4 py-3 bg-blue-50 border border-blue-100 rounded-2xl">
         <Info className="h-5 w-5 text-blue-500 flex-shrink-0" />
         <div>
-          <span className="text-sm font-medium text-blue-700">면세사업자</span>
+          <span className="text-sm font-medium text-blue-700">{tr("면세사업자", "Tax-exempt business")}</span>
           <span className="text-xs text-blue-500 ml-2">
-            화훼류(농산물)는 부가가치세 면세 대상입니다. 부가세 신고 대신 <strong>사업장 현황신고</strong>(매년 2월)와 <strong>종합소득세 신고</strong>(매년 5월)를 하시면 됩니다.
+            {tr("화훼류(농산물)는 부가가치세 면세 대상입니다. 부가세 신고 대신 ", "Flowers (agricultural goods) are VAT-exempt. Instead of VAT filing, submit ")}<strong>{tr("사업장 현황신고", "business status report")}</strong>{tr("(매년 2월)와 ", " (every February) and ")}<strong>{tr("종합소득세 신고", "income tax filing")}</strong>{tr("(매년 5월)를 하시면 됩니다.", " (every May).")}
           </span>
           <a
             href="https://www.hometax.go.kr"
@@ -283,7 +288,7 @@ export default function TaxPage() {
             rel="noopener noreferrer"
             className="ml-3 text-xs font-bold text-blue-600 hover:text-blue-800 underline inline-flex items-center gap-0.5"
           >
-            홈택스 바로가기 <ArrowUpRight className="h-3 w-3" />
+            {tr("홈택스 바로가기", "Go to Hometax")} <ArrowUpRight className="h-3 w-3" />
           </a>
         </div>
       </div>
@@ -297,7 +302,7 @@ export default function TaxPage() {
           {/* ======== 세무 일정 알림 ======== */}
           <div>
             <h2 className="text-sm font-medium text-slate-700 mb-3 flex items-center gap-2">
-              <Clock className="h-4 w-4 text-slate-500" /> 세무 일정
+              <Clock className="h-4 w-4 text-slate-500" /> {tr("세무 일정", "Tax Schedule")}
             </h2>
             <div className="grid gap-3 md:grid-cols-3">
               {taxSchedule.map((item, i) => {
@@ -322,7 +327,7 @@ export default function TaxPage() {
                       </div>
                       <p className="text-[10px] text-slate-400 mt-2 flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
-                        {item.detail} | 기한: {format(item.deadline, "M/d")}
+                        {item.detail} | {tr("기한", "Due")}: {format(item.deadline, "M/d")}
                       </p>
                       <div className="mt-3 pt-3 border-t border-slate-50 flex justify-end">
                         <a
@@ -332,7 +337,7 @@ export default function TaxPage() {
                           className={`text-[10px] font-bold py-1.5 px-3 rounded-lg flex items-center gap-1.5 transition-all
                             bg-${item.color}-50 text-${item.color}-600 hover:bg-${item.color}-100`}
                         >
-                          홈택스 신고하기 <ArrowUpRight className="h-3 w-3" />
+                          {tr("홈택스 신고하기", "File on Hometax")} <ArrowUpRight className="h-3 w-3" />
                         </a>
                       </div>
                     </CardContent>
@@ -345,7 +350,7 @@ export default function TaxPage() {
           {/* ======== 사업장 현황신고 핵심 수치 ======== */}
           <div>
             <h2 className="text-sm font-medium text-slate-700 mb-3 flex items-center gap-2">
-              <ClipboardCheck className="h-4 w-4 text-blue-500" /> {viewYear}년 {isExempt ? "사업장 현황신고" : "부가가치세 신고"} 기초자료
+              <ClipboardCheck className="h-4 w-4 text-blue-500" /> {isKo ? `${viewYear}년` : viewYear} {isExempt ? tr("사업장 현황신고", "Business Status Report") : tr("부가가치세 신고", "VAT Filing")} {tr("기초자료", "Base Data")}
             </h2>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               {/* 수입금액 */}
@@ -353,12 +358,12 @@ export default function TaxPage() {
                 <div className="absolute right-0 top-0 opacity-10 scale-150 rotate-12 p-3"><TrendingUp size={64} /></div>
                 <CardHeader className="pb-1">
                   <CardTitle className="text-[10px] font-medium opacity-80 uppercase tracking-widest">
-                    ① 수입금액 (총매출)
+                    {tr("① 수입금액 (총매출)", "1) Revenue (Gross Sales)")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-light tracking-tight">₩{totalRevenue.toLocaleString()}</div>
-                  <p className="text-[11px] text-indigo-200 mt-1 font-light">{yearOrders.length}건 매출</p>
+                  <p className="text-[11px] text-indigo-200 mt-1 font-light">{yearOrders.length}{tr("건 매출", " sales")}</p>
                 </CardContent>
               </Card>
 
@@ -367,13 +372,13 @@ export default function TaxPage() {
                 <div className="absolute right-0 top-0 opacity-10 scale-150 rotate-12 p-3"><Building2 size={64} /></div>
                 <CardHeader className="pb-1">
                   <CardTitle className="text-[10px] font-medium opacity-80 uppercase tracking-widest">
-                    ② 매입비용 (꽃/자재)
+                    {tr("② 매입비용 (꽃/자재)", "2) Purchase Cost (Flowers/Materials)")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-light tracking-tight">₩{totalPurchase.toLocaleString()}</div>
                   <p className="text-[11px] text-blue-200 mt-1 font-light">
-                    매출대비 {totalRevenue > 0 ? ((totalPurchase / totalRevenue) * 100).toFixed(1) : 0}%
+                    {tr("매출대비", "vs Revenue")} {totalRevenue > 0 ? ((totalPurchase / totalRevenue) * 100).toFixed(1) : 0}%
                   </p>
                 </CardContent>
               </Card>
@@ -383,12 +388,12 @@ export default function TaxPage() {
                 <div className="absolute right-0 top-0 opacity-10 scale-150 rotate-12 p-3"><TrendingDown size={64} /></div>
                 <CardHeader className="pb-1">
                   <CardTitle className="text-[10px] font-medium opacity-80 uppercase tracking-widest">
-                    ③ 필요경비 합계
+                    {tr("③ 필요경비 합계", "3) Total Expenses")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-light tracking-tight">₩{totalExpenseAmount.toLocaleString()}</div>
-                  <p className="text-[11px] text-rose-200 mt-1 font-light">{yearExpenses.length}건 지출</p>
+                  <p className="text-[11px] text-rose-200 mt-1 font-light">{yearExpenses.length}{tr("건 지출", " expenses")}</p>
                 </CardContent>
               </Card>
 
@@ -397,13 +402,13 @@ export default function TaxPage() {
                 <div className="absolute right-0 top-0 opacity-10 scale-150 rotate-12 p-3"><Wallet size={64} /></div>
                 <CardHeader className="pb-1">
                   <CardTitle className="text-[10px] font-medium opacity-80 uppercase tracking-widest">
-                    ④ 소득금액 (수입-경비)
+                    {tr("④ 소득금액 (수입-경비)", "4) Income (Revenue-Expense)")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-light tracking-tight">₩{income.toLocaleString()}</div>
                   <p className="text-[11px] opacity-70 mt-1 font-light">
-                    소득률 {totalRevenue > 0 ? ((income / totalRevenue) * 100).toFixed(1) : 0}%
+                    {tr("소득률", "Income ratio")} {totalRevenue > 0 ? ((income / totalRevenue) * 100).toFixed(1) : 0}%
                   </p>
                 </CardContent>
               </Card>
@@ -416,10 +421,10 @@ export default function TaxPage() {
             <Card className="lg:col-span-4 border-none shadow-md bg-white rounded-2xl overflow-hidden">
               <CardHeader>
                 <CardTitle className="text-sm font-medium text-slate-800 flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4 text-indigo-500" /> 월별 수입/경비 현황
+                  <BarChart3 className="h-4 w-4 text-indigo-500" /> {tr("월별 수입/경비 현황", "Monthly Revenue/Expense")}
                 </CardTitle>
                 <CardDescription className="text-xs font-light">
-                  {viewYear}년 1월 ~ 12월
+                  {isKo ? `${viewYear}년 1월 ~ 12월` : `Jan-Dec ${viewYear}`}
                 </CardDescription>
               </CardHeader>
               <CardContent className="h-[320px] w-full mt-4">
@@ -443,16 +448,16 @@ export default function TaxPage() {
             <Card className="lg:col-span-3 border-none shadow-md bg-white rounded-2xl overflow-hidden">
               <CardHeader>
                 <CardTitle className="text-sm font-medium text-slate-800 flex items-center gap-2">
-                  <Receipt className="h-4 w-4 text-rose-500" /> 필요경비 항목별 내역
+                  <Receipt className="h-4 w-4 text-rose-500" /> {tr("필요경비 항목별 내역", "Expense Breakdown")}
                 </CardTitle>
                 <CardDescription className="text-xs font-light">
-                  {isExempt ? "사업장 현황신고 비용 분류 기준" : "부가가치세/소득세 비용 분류 기준"}
+                  {isExempt ? tr("사업장 현황신고 비용 분류 기준", "Expense categories for business status report") : tr("부가가치세/소득세 비용 분류 기준", "Expense categories for VAT/Income tax")}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
                   {taxCategoryBreakdown.length === 0 ? (
-                    <p className="text-sm text-slate-400 text-center py-8 font-light">등록된 지출이 없습니다.</p>
+                    <p className="text-sm text-slate-400 text-center py-8 font-light">{tr("등록된 지출이 없습니다.", "No expenses found.")}</p>
                   ) : (
                     <>
                       {taxCategoryBreakdown.map((cat, i) => {
@@ -476,7 +481,7 @@ export default function TaxPage() {
                         );
                       })}
                       <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-700">필요경비 합계</span>
+                        <span className="text-xs font-bold text-slate-700">{tr("필요경비 합계", "Total Expenses")}</span>
                         <span className="text-sm font-black text-rose-600">₩{totalExpenseAmount.toLocaleString()}</span>
                       </div>
                     </>
@@ -490,25 +495,25 @@ export default function TaxPage() {
           <Card className="border-none shadow-md bg-white rounded-2xl overflow-hidden">
             <CardHeader>
               <CardTitle className="text-sm font-medium text-slate-800 flex items-center gap-2">
-                <Building2 className="h-4 w-4 text-blue-500" /> 거래처별 매입 내역
+                <Building2 className="h-4 w-4 text-blue-500" /> {tr("거래처별 매입 내역", "Purchases by Supplier")}
               </CardTitle>
               <CardDescription className="text-xs font-light">
-                사업장 현황신고 시 매입처별 명세 작성에 활용
+                {tr("사업장 현황신고 시 매입처별 명세 작성에 활용", "Use this for supplier purchase statements in filing")}
               </CardDescription>
             </CardHeader>
             <CardContent>
               {supplierPurchases.length === 0 ? (
-                <p className="text-sm text-slate-400 text-center py-8 font-light">거래처 연결 매입이 없습니다.</p>
+                <p className="text-sm text-slate-400 text-center py-8 font-light">{tr("거래처 연결 매입이 없습니다.", "No supplier-linked purchases.")}</p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-slate-100">
-                        <th className="py-2.5 px-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">순위</th>
-                        <th className="py-2.5 px-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">거래처명</th>
-                        <th className="py-2.5 px-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">매입금액</th>
-                        <th className="py-2.5 px-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">거래건수</th>
-                        <th className="py-2.5 px-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">비중</th>
+                        <th className="py-2.5 px-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">{tr("순위", "Rank")}</th>
+                        <th className="py-2.5 px-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">{tr("거래처명", "Supplier")}</th>
+                        <th className="py-2.5 px-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">{tr("매입금액", "Purchase")}</th>
+                        <th className="py-2.5 px-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">{tr("거래건수", "Transactions")}</th>
+                        <th className="py-2.5 px-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">{tr("비중", "Share")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -534,7 +539,7 @@ export default function TaxPage() {
                     </tbody>
                     <tfoot>
                       <tr className="bg-slate-50">
-                        <td colSpan={2} className="py-3 px-3 font-bold text-slate-700 text-xs">합계</td>
+                        <td colSpan={2} className="py-3 px-3 font-bold text-slate-700 text-xs">{tr("합계", "Total")}</td>
                         <td className="py-3 px-3 text-right font-black text-slate-800">
                           ₩{supplierPurchases.reduce((s, p) => s + p.amount, 0).toLocaleString()}
                         </td>
@@ -554,10 +559,10 @@ export default function TaxPage() {
           <Card className="border-none shadow-md bg-white rounded-2xl overflow-hidden">
             <CardHeader>
               <CardTitle className="text-sm font-medium text-slate-800 flex items-center gap-2">
-                <FileText className="h-4 w-4 text-violet-500" /> {viewYear}년 사업장 현황신고 요약
+                <FileText className="h-4 w-4 text-violet-500" /> {isKo ? `${viewYear}년 사업장 현황신고 요약` : `${viewYear} Business Status Summary`}
               </CardTitle>
               <CardDescription className="text-xs font-light">
-                홈택스 신고 시 참고용 요약표입니다. 정확한 신고는 세무사와 상담하세요.
+                {tr("홈택스 신고 시 참고용 요약표입니다. 정확한 신고는 세무사와 상담하세요.", "Reference summary for Hometax filing. Consult a tax professional for final filing.")}
               </CardDescription>
             </CardHeader>
             <CardContent>

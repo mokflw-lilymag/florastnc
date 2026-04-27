@@ -25,6 +25,8 @@ import { useSettings } from "@/hooks/use-settings";
 import { Order, OrderItem } from "@/types/order";
 import { parseDate } from "@/lib/date-utils";
 import { createClient } from "@/utils/supabase/client";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
 
 interface OrderEditDialogProps {
   isOpen: boolean;
@@ -37,6 +39,9 @@ export function OrderEditDialog({ isOpen, onOpenChange, order }: OrderEditDialog
   const { settings } = useSettings();
   const { updateExpenseByOrderId, addExpense, deleteExpenseByOrderId, updateExpense, deleteExpense } = useExpenses();
   const supabase = createClient();
+  const locale = usePreferredLocale();
+  const isKo = toBaseLocale(locale) === "ko";
+  const tr = (ko: string, en: string) => (isKo ? ko : en);
   const [isLoading, setIsLoading] = useState(false);
   
   const [formData, setFormData] = useState({
@@ -197,9 +202,9 @@ export function OrderEditDialog({ isOpen, onOpenChange, order }: OrderEditDialog
       if (formData.receipt_type === 'delivery_reservation' && formData.actual_delivery_cost > 0) {
         const expenseData = {
           category: "transportation",
-          sub_category: "배송비", // OrderService와 동일한 키값 사용
+          sub_category: "배송비", // Keep DB key fixed for compatibility
           amount: formData.actual_delivery_cost,
-          description: `[배송비] ${order.order_number} (${formData.driverAffiliation || '자체배송'})`,
+          description: `[배송비] ${order.order_number} (${formData.driverAffiliation || tr('자체배송', 'Self delivery')})`,
           expense_date: formData.order_date ? new Date(formData.order_date).toISOString() : new Date().toISOString(),
           payment_method: formData.actual_delivery_payment_method || "card",
         };
@@ -224,11 +229,11 @@ export function OrderEditDialog({ isOpen, onOpenChange, order }: OrderEditDialog
         await deleteExpenseByOrderId(order.id, "배송비");
       }
 
-      toast.success("주문이 수정되었습니다.");
+      toast.success(tr("주문이 수정되었습니다.", "Order updated."));
       onOpenChange(false);
     } catch (e) {
       console.error(e);
-      toast.error("주문 수정에 실패했습니다.");
+      toast.error(tr("주문 수정에 실패했습니다.", "Failed to update order."));
     } finally {
       setIsLoading(false);
     }
@@ -242,73 +247,73 @@ export function OrderEditDialog({ isOpen, onOpenChange, order }: OrderEditDialog
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-slate-900">
             <Package className="h-5 w-5" />
-            주문 수정 ({order.order_number})
+            {tr("주문 수정", "Edit Order")} ({order.order_number})
           </DialogTitle>
-          <DialogDescription className="text-slate-500">주문 정보를 수정합니다.</DialogDescription>
+          <DialogDescription className="text-slate-500">{tr("주문 정보를 수정합니다.", "Edit order information.")}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
           <Card>
-            <CardHeader><CardTitle className="text-base flex items-center gap-2"><User className="h-4 w-4" /> 주문자 정보</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base flex items-center gap-2"><User className="h-4 w-4" /> {tr("주문자 정보", "Orderer Info")}</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-slate-700">주문자명</Label>
+                <Label className="text-slate-700">{tr("주문자명", "Orderer Name")}</Label>
                 <Input value={formData.orderer.name} onChange={(e) => handleInputChange('orderer', 'name', e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-700">연락처</Label>
+                <Label className="text-slate-700">{tr("연락처", "Contact")}</Label>
                 <Input value={formData.orderer.contact} onChange={(e) => handleInputChange('orderer', 'contact', e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-700">회사명</Label>
+                <Label className="text-slate-700">{tr("회사명", "Company")}</Label>
                 <Input value={formData.orderer.company} onChange={(e) => handleInputChange('orderer', 'company', e.target.value)} />
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader><CardTitle className="text-base flex items-center gap-2"><Truck className="h-4 w-4" /> 수령 정보</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base flex items-center gap-2"><Truck className="h-4 w-4" /> {tr("수령 정보", "Receipt Info")}</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label className="text-slate-700">수령 방법</Label>
+                <Label className="text-slate-700">{tr("수령 방법", "Receipt Type")}</Label>
                 <Select value={formData.receipt_type} onValueChange={(val) => val && handleInputChange('receipt_type', '', val)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="store_pickup">매장픽업</SelectItem>
-                    <SelectItem value="pickup_reservation">픽업예약</SelectItem>
-                    <SelectItem value="delivery_reservation">배송예약</SelectItem>
+                    <SelectItem value="store_pickup">{tr("매장픽업", "Store Pickup")}</SelectItem>
+                    <SelectItem value="pickup_reservation">{tr("픽업예약", "Pickup Reservation")}</SelectItem>
+                    <SelectItem value="delivery_reservation">{tr("배송예약", "Delivery Reservation")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-slate-700">수령자명</Label>
+                  <Label className="text-slate-700">{tr("수령자명", "Recipient Name")}</Label>
                   <Input value={formData.recipient.name} onChange={(e) => handleInputChange('recipient', 'name', e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-slate-700">수령자 연락처</Label>
+                  <Label className="text-slate-700">{tr("수령자 연락처", "Recipient Contact")}</Label>
                   <Input value={formData.recipient.contact} onChange={(e) => handleInputChange('recipient', 'contact', e.target.value)} />
                 </div>
               </div>
               {formData.receipt_type === 'delivery_reservation' && (
                 <>
                   <div className="space-y-2">
-                    <Label className="text-slate-700">배송 주소</Label>
+                    <Label className="text-slate-700">{tr("배송 주소", "Delivery Address")}</Label>
                     <Textarea value={formData.address} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleInputChange('address', '', e.target.value)} />
                   </div>
                     <div className="space-y-2">
-                      <Label className="text-slate-700">고객 결제 배송비</Label>
+                      <Label className="text-slate-700">{tr("고객 결제 배송비", "Customer Paid Delivery Fee")}</Label>
                       <div className="h-10 flex items-center px-3 bg-slate-50 border border-slate-200 rounded-md text-slate-600 font-medium">
                         ₩{(formData.customer_paid_delivery_fee || 0).toLocaleString()}
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-slate-700">배송업체</Label>
+                      <Label className="text-slate-700">{tr("배송업체", "Carrier")}</Label>
                       <Select 
                         value={formData.driverAffiliation || ""} 
                         onValueChange={(val) => handleInputChange('driverAffiliation', '', val)}
                       >
-                        <SelectTrigger><SelectValue placeholder="배송업체 선택" /></SelectTrigger>
+                        <SelectTrigger><SelectValue placeholder={tr("배송업체 선택", "Select carrier")} /></SelectTrigger>
                         <SelectContent>
                           {(settings?.deliveryCarriers || []).map((carrier) => (
                             <SelectItem key={carrier} value={carrier}>{carrier}</SelectItem>
@@ -319,10 +324,10 @@ export function OrderEditDialog({ isOpen, onOpenChange, order }: OrderEditDialog
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label className="text-slate-700 font-bold text-indigo-600 flex items-center gap-1">
-                        실제 배송비 지출
+                        {tr("실제 배송비 지출", "Actual Delivery Cost")}
                         {formData.customer_paid_delivery_fee > 0 && formData.actual_delivery_cost > 0 && (
                           <Badge variant="outline" className={`ml-2 text-[10px] ${formData.customer_paid_delivery_fee - formData.actual_delivery_cost >= 0 ? 'text-emerald-600 border-emerald-200 bg-emerald-50' : 'text-rose-600 border-rose-200 bg-rose-50'}`}>
-                            손익: ₩{(formData.customer_paid_delivery_fee - formData.actual_delivery_cost).toLocaleString()}
+                            {tr("손익", "Margin")}: ₩{(formData.customer_paid_delivery_fee - formData.actual_delivery_cost).toLocaleString()}
                           </Badge>
                         )}
                       </Label>
@@ -342,7 +347,7 @@ export function OrderEditDialog({ isOpen, onOpenChange, order }: OrderEditDialog
                           size="sm"
                           onClick={() => handleInputChange('actual_delivery_payment_method', '', 'card')}
                         >
-                          카드
+                          {tr("카드", "Card")}
                         </Button>
                         <Button
                           type="button"
@@ -350,7 +355,7 @@ export function OrderEditDialog({ isOpen, onOpenChange, order }: OrderEditDialog
                           size="sm"
                           onClick={() => handleInputChange('actual_delivery_payment_method', '', 'cash')}
                         >
-                          현금
+                          {tr("현금", "Cash")}
                         </Button>
                       </div>
                     </div>
@@ -363,46 +368,46 @@ export function OrderEditDialog({ isOpen, onOpenChange, order }: OrderEditDialog
           </Card>
 
           <Card>
-            <CardHeader><CardTitle className="text-base flex items-center gap-2"><Package className="h-4 w-4" /> 상품 정보</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base flex items-center gap-2"><Package className="h-4 w-4" /> {tr("상품 정보", "Items")}</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               {formData.items.map((item, index) => (
                 <div key={item.id} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end border p-4 rounded-lg">
                   <div className="md:col-span-2 space-y-2">
-                    <Label className="text-slate-700">상품명</Label>
+                    <Label className="text-slate-700">{tr("상품명", "Item Name")}</Label>
                     <Input value={item.name} onChange={(e) => handleItemChange(index, 'name', e.target.value)} />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-slate-700">수량</Label>
+                    <Label className="text-slate-700">{tr("수량", "Qty")}</Label>
                     <Input type="number" value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', parseInt(e.target.value) || 1)} />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-slate-700">단가</Label>
+                    <Label className="text-slate-700">{tr("단가", "Unit Price")}</Label>
                     <Input type="number" value={item.price} onChange={(e) => handleItemChange(index, 'price', parseInt(e.target.value) || 0)} />
                   </div>
                   <Button variant="ghost" size="sm" onClick={() => removeItem(index)} className="text-red-500"><Minus className="h-4 w-4" /></Button>
                 </div>
               ))}
-              <Button variant="outline" onClick={addItem} className="w-full"><Plus className="h-4 w-4 mr-2" /> 상품 추가</Button>
+              <Button variant="outline" onClick={addItem} className="w-full"><Plus className="h-4 w-4 mr-2" /> {tr("상품 추가", "Add Item")}</Button>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader><CardTitle className="text-base flex items-center gap-2"><MessageSquare className="h-4 w-4" /> 메시지 및 리본</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base flex items-center gap-2"><MessageSquare className="h-4 w-4" /> {tr("메시지 및 리본", "Message & Ribbon")}</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label className="text-slate-700">메시지 타입</Label>
+                <Label className="text-slate-700">{tr("메시지 타입", "Message Type")}</Label>
                 <Select value={formData.message.type} onValueChange={(val) => handleInputChange('message', 'type', val)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">없음</SelectItem>
-                    <SelectItem value="card">메시지 카드</SelectItem>
-                    <SelectItem value="ribbon">리본</SelectItem>
+                    <SelectItem value="none">{tr("없음", "None")}</SelectItem>
+                    <SelectItem value="card">{tr("메시지 카드", "Message Card")}</SelectItem>
+                    <SelectItem value="ribbon">{tr("리본", "Ribbon")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-700">보내는 분 (리본용)</Label>
-                <Input value={formData.message.sender} onChange={(e) => handleInputChange('message', 'sender', e.target.value)} placeholder="선택 사항" />
+                <Label className="text-slate-700">{tr("보내는 분 (리본용)", "Sender (for ribbon)")}</Label>
+                <Input value={formData.message.sender} onChange={(e) => handleInputChange('message', 'sender', e.target.value)} placeholder={tr("선택 사항", "Optional")} />
               </div>
               {formData.message.type === 'ribbon' && (
                 <div className="flex flex-wrap gap-1.5 mb-2 notranslate" translate="no">
@@ -435,16 +440,16 @@ export function OrderEditDialog({ isOpen, onOpenChange, order }: OrderEditDialog
                     className="h-7 px-2 text-[11px] bg-orange-50 hover:bg-orange-100 border-orange-200 text-orange-700 font-medium"
                     onClick={() => handleInputChange('message', 'content', "삼가 故人의 冥福을 빕니다")}
                   >
-                    삼가 故인...
+                    {tr("삼가 故인...", "Condolence...")}
                   </Button>
                 </div>
               )}
               <div className="space-y-2">
-                <Label className="text-slate-700">메시지 내용</Label>
+                <Label className="text-slate-700">{tr("메시지 내용", "Message Content")}</Label>
                 <Textarea 
                   value={formData.message.content || ""} 
                   onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleInputChange('message', 'content', e.target.value)} 
-                  placeholder={formData.message.type === 'ribbon' ? "경조사어 / 보내는분 (예: 축결혼 / 홍길동)" : "카드에 들어갈 내용을 입력하세요."} 
+                  placeholder={formData.message.type === 'ribbon' ? tr("경조사어 / 보내는분 (예: 축결혼 / 홍길동)", "Occasion text / sender (e.g. Congrats / Alex)") : tr("카드에 들어갈 내용을 입력하세요.", "Enter card message.")} 
                   translate="no"
                   className="min-h-[100px] notranslate"
                 />
@@ -453,27 +458,27 @@ export function OrderEditDialog({ isOpen, onOpenChange, order }: OrderEditDialog
           </Card>
 
           <Card>
-            <CardHeader><CardTitle className="text-base flex items-center gap-2"><Clock className="h-4 w-4" /> 상태 및 결제</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base flex items-center gap-2"><Clock className="h-4 w-4" /> {tr("상태 및 결제", "Status & Payment")}</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-slate-700">주문 상태</Label>
+                <Label className="text-slate-700">{tr("주문 상태", "Order Status")}</Label>
                 <Select value={formData.status} onValueChange={(val) => val && handleInputChange('status', '', val)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="processing">처리중</SelectItem>
-                    <SelectItem value="completed">완료</SelectItem>
-                    <SelectItem value="canceled">취소</SelectItem>
+                    <SelectItem value="processing">{tr("처리중", "Processing")}</SelectItem>
+                    <SelectItem value="completed">{tr("완료", "Completed")}</SelectItem>
+                    <SelectItem value="canceled">{tr("취소", "Canceled")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-700">결제 방법</Label>
+                <Label className="text-slate-700">{tr("결제 방법", "Payment Method")}</Label>
                 <Select value={formData.payment.method} onValueChange={(val) => val && handleInputChange('payment', 'method', val)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="card">카드</SelectItem>
-                    <SelectItem value="cash">현금</SelectItem>
-                    <SelectItem value="transfer">계좌이체</SelectItem>
+                    <SelectItem value="card">{tr("카드", "Card")}</SelectItem>
+                    <SelectItem value="cash">{tr("현금", "Cash")}</SelectItem>
+                    <SelectItem value="transfer">{tr("계좌이체", "Bank Transfer")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -482,8 +487,8 @@ export function OrderEditDialog({ isOpen, onOpenChange, order }: OrderEditDialog
         </div>
 
         <DialogFooter>
-          <DialogClose render={<Button variant="outline" />}>취소</DialogClose>
-          <Button onClick={handleSave} disabled={isLoading}>{isLoading ? "저장 중..." : "저장"}</Button>
+          <DialogClose render={<Button variant="outline" />}>{tr("취소", "Cancel")}</DialogClose>
+          <Button onClick={handleSave} disabled={isLoading}>{isLoading ? tr("저장 중...", "Saving...") : tr("저장", "Save")}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

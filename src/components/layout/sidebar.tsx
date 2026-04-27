@@ -21,6 +21,8 @@ import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useIsCapacitorAndroid } from "@/hooks/use-capacitor-android";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { getDashboardCommonMessages } from "@/i18n/dashboard-common-messages";
 
 interface SidebarProps {
   isSuperAdmin: boolean;
@@ -100,10 +102,12 @@ export function Sidebar({
   const router = useRouter();
   const supabase = createClient();
   const isAndroidApp = useIsCapacitorAndroid();
+  const locale = usePreferredLocale();
+  const t = getDashboardCommonMessages(locale);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    toast.success("로그아웃 되었습니다.");
+    toast.success(t.header.logoutSuccess);
     router.push("/login");
   };
 
@@ -112,125 +116,125 @@ export function Sidebar({
   const adminGroups: NavGroup[] = [
     {
       id: "admin-overview",
-      label: "통합 현황",
-      hint: "한눈에 보는 운영",
-      links: [{ name: "시스템 대시보드", href: "/dashboard", icon: LayoutDashboard }],
+      label: t.sidebar.groups.adminOverview,
+      hint: t.sidebar.hints.adminOverview,
+      links: [{ name: t.sidebar.links.systemDashboard, href: "/dashboard", icon: LayoutDashboard }],
     },
     {
       id: "admin-ops",
-      label: "본사 · 가맹 운영",
+      label: t.sidebar.groups.adminOps,
       links: [
-        { name: "직원(Staff) 관리", href: "/dashboard/admin/staff", icon: Users },
-        { name: "일일 체크리스트", href: "/dashboard/admin/checklist", icon: ShieldCheck },
-        { name: "전국 화원사 관리", href: "/dashboard/tenants", icon: Store },
-        { name: "초기 기초자료 시드", href: "/dashboard/admin/tenant-master-seed", icon: Database },
-        { name: "조직(본사) 관리", href: "/dashboard/admin/organizations", icon: Building2 },
-        { name: "구독 · 결제 관제", href: "/dashboard/billing-admin", icon: CreditCard },
-        { name: "글로벌 공지", href: "/dashboard/announcements", icon: ScrollText },
+        { name: t.sidebar.links.staff, href: "/dashboard/admin/staff", icon: Users },
+        { name: t.sidebar.links.checklist, href: "/dashboard/admin/checklist", icon: ShieldCheck },
+        { name: t.sidebar.links.tenants, href: "/dashboard/tenants", icon: Store },
+        { name: t.sidebar.links.seed, href: "/dashboard/admin/tenant-master-seed", icon: Database },
+        { name: t.sidebar.links.organizations, href: "/dashboard/admin/organizations", icon: Building2 },
+        { name: t.sidebar.links.billing, href: "/dashboard/billing-admin", icon: CreditCard },
+        { name: t.sidebar.links.announcements, href: "/dashboard/announcements", icon: ScrollText },
       ],
     },
     {
       id: "admin-content",
-      label: "콘텐츠 · 마케팅",
+      label: t.sidebar.groups.adminContent,
       links: [
-        { name: "FAQ · AI 지식", href: "/dashboard/admin/faq", icon: FileText },
-        { name: "플랫폼 홍보 마스터", href: "/dashboard/marketing/admin", icon: Sparkles },
-        { name: "디자인 템플릿 관리", href: "/dashboard/admin/design-templates", icon: Layout },
+        { name: t.sidebar.links.faq, href: "/dashboard/admin/faq", icon: FileText },
+        { name: t.sidebar.links.promoMaster, href: "/dashboard/marketing/admin", icon: Sparkles },
+        { name: t.sidebar.links.templates, href: "/dashboard/admin/design-templates", icon: Layout },
       ],
     },
     {
       id: "admin-system",
-      label: "시스템",
+      label: t.sidebar.groups.adminSystem,
       links: [
-        { name: "전역 설정", href: "/dashboard/system-settings", icon: Settings },
-        { name: "화원사 환경 설정", href: "/dashboard/settings", icon: Settings },
+        { name: t.sidebar.links.globalSettings, href: "/dashboard/system-settings", icon: Settings },
+        { name: t.sidebar.links.storeSettings, href: "/dashboard/settings", icon: Settings },
       ],
     },
   ];
 
   const hqGroup: NavGroup = {
     id: "hq",
-    label: "본사·다매장",
-    hint: "지점 비교 · 실적",
+    label: t.sidebar.groups.hq,
+    hint: t.sidebar.hints.hq,
     links: [
-      { name: "본사 개요", href: "/dashboard/hq", icon: Building2 },
-      { name: "공동상품관리", href: "/dashboard/hq/shared-products", icon: Package },
-      { name: "지점별 지출", href: "/dashboard/hq/branch-expenses", icon: Receipt },
-      { name: "자재 요청·취합", href: "/dashboard/hq/material-requests", icon: ClipboardList },
-      { name: "본사 게시판", href: "/dashboard/org-board", icon: Megaphone },
+      { name: t.sidebar.links.hqOverview, href: "/dashboard/hq", icon: Building2 },
+      { name: t.sidebar.links.sharedProducts, href: "/dashboard/hq/shared-products", icon: Package },
+      { name: t.sidebar.links.branchExpenses, href: "/dashboard/hq/branch-expenses", icon: Receipt },
+      { name: t.sidebar.links.hqMaterials, href: "/dashboard/hq/material-requests", icon: ClipboardList },
+      { name: t.sidebar.links.hqBoard, href: "/dashboard/org-board", icon: Megaphone },
     ],
   };
 
   const tenantGroups: NavGroup[] = [
     {
       id: "tenant-home",
-      label: "시작",
-      hint: "오늘 업무 허브",
+      label: t.sidebar.groups.tenantHome,
+      hint: t.sidebar.hints.tenantHome,
       links: [
-        { name: "업무 홈", href: "/dashboard", icon: LayoutDashboard },
+        { name: t.sidebar.links.home, href: "/dashboard", icon: LayoutDashboard },
         ...(showOrgBoardLink
-          ? [{ name: "본사 게시판", href: "/dashboard/org-board", icon: Megaphone }]
+          ? [{ name: t.sidebar.links.hqBoard, href: "/dashboard/org-board", icon: Megaphone }]
           : []),
       ],
     },
     {
       id: "tenant-ops",
-      label: "매장 운영",
-      hint: "주문 · 고객 · 재고",
+      label: t.sidebar.groups.tenantOps,
+      hint: t.sidebar.hints.tenantOps,
       links: [
-        { name: "새 주문", href: "/dashboard/orders/new", icon: PlusCircle, tier: ["pro", "erp_only"] },
+        { name: t.sidebar.links.newOrder, href: "/dashboard/orders/new", icon: PlusCircle, tier: ["pro", "erp_only"] },
         {
-          name: "주문 목록",
+          name: t.sidebar.links.orders,
           href: "/dashboard/orders",
           icon: ScrollText,
           tier: ["pro", "erp_only"],
           activeExcludePrefix: "/dashboard/orders/new",
         },
-        { name: "배송 · 픽업", href: "/dashboard/delivery", icon: Truck, tier: ["pro", "erp_only"] },
-        { name: "고객 CRM", href: "/dashboard/customers", icon: Users, tier: ["pro", "erp_only"] },
-        { name: "협력사 수발주", href: "/dashboard/external-orders", icon: Share2, tier: ["pro", "erp_only"] },
-        { name: "상품", href: "/dashboard/products", icon: Boxes, tier: ["pro", "erp_only"] },
-        { name: "재고", href: "/dashboard/inventory", icon: Boxes, tier: ["pro", "erp_only"] },
+        { name: t.sidebar.links.delivery, href: "/dashboard/delivery", icon: Truck, tier: ["pro", "erp_only"] },
+        { name: t.sidebar.links.crm, href: "/dashboard/customers", icon: Users, tier: ["pro", "erp_only"] },
+        { name: t.sidebar.links.externalOrders, href: "/dashboard/external-orders", icon: Share2, tier: ["pro", "erp_only"] },
+        { name: t.sidebar.links.products, href: "/dashboard/products", icon: Boxes, tier: ["pro", "erp_only"] },
+        { name: t.sidebar.links.inventory, href: "/dashboard/inventory", icon: Boxes, tier: ["pro", "erp_only"] },
         ...(showBranchMaterialRequestLink && !sidebarHqOnly
           ? ([
               {
-                name: "본사 자재 요청",
+                name: t.sidebar.links.branchMaterials,
                 href: "/dashboard/material-requests",
                 icon: ClipboardList,
                 tier: ["pro", "erp_only"],
               },
             ] as NavLinkItem[])
           : []),
-        { name: "거래처", href: "/dashboard/suppliers", icon: Store, tier: ["pro", "erp_only"] },
-        { name: "매입", href: "/dashboard/purchases", icon: ShoppingCart, tier: ["pro", "erp_only"] },
-        { name: "정산 · 보고서", href: "/dashboard/reports", icon: BarChart3, tier: ["pro", "erp_only"] },
-        { name: "매입·매출 통계", href: "/dashboard/analytics", icon: BarChart3, tier: ["pro", "erp_only"] },
-        { name: "지출", href: "/dashboard/expenses", icon: CreditCard, tier: ["pro", "erp_only"] },
-        { name: "세무", href: "/dashboard/tax", icon: FileText, tier: ["pro", "erp_only"] },
+        { name: t.sidebar.links.suppliers, href: "/dashboard/suppliers", icon: Store, tier: ["pro", "erp_only"] },
+        { name: t.sidebar.links.purchases, href: "/dashboard/purchases", icon: ShoppingCart, tier: ["pro", "erp_only"] },
+        { name: t.sidebar.links.reports, href: "/dashboard/reports", icon: BarChart3, tier: ["pro", "erp_only"] },
+        { name: t.sidebar.links.analytics, href: "/dashboard/analytics", icon: BarChart3, tier: ["pro", "erp_only"] },
+        { name: t.sidebar.links.expenses, href: "/dashboard/expenses", icon: CreditCard, tier: ["pro", "erp_only"] },
+        { name: t.sidebar.links.tax, href: "/dashboard/tax", icon: FileText, tier: ["pro", "erp_only"] },
       ],
     },
     {
       id: "tenant-make",
-      label: "제작 · 출력",
-      hint: "리본 · 카드",
+      label: t.sidebar.groups.tenantMake,
+      hint: t.sidebar.hints.tenantMake,
       links: [
-        { name: "리본 프린터", href: "/dashboard/printer", icon: Printer, tier: ["pro", "ribbon_only"] },
-        { name: "카드 디자인", href: "/dashboard/design-studio", icon: Layout, tier: ["pro", "ribbon_only"] },
+        { name: t.sidebar.links.printer, href: "/dashboard/printer", icon: Printer, tier: ["pro", "ribbon_only"] },
+        { name: t.sidebar.links.designStudio, href: "/dashboard/design-studio", icon: Layout, tier: ["pro", "ribbon_only"] },
       ],
     },
     {
       id: "tenant-growth",
-      label: "마케팅",
-      links: [{ name: "AI 홍보 마스터", href: "/dashboard/marketing", icon: Sparkles, tier: ["pro", "erp_only"] }],
+      label: t.sidebar.groups.tenantGrowth,
+      links: [{ name: t.sidebar.links.marketing, href: "/dashboard/marketing", icon: Sparkles, tier: ["pro", "erp_only"] }],
     },
     {
       id: "tenant-store",
-      label: "매장 설정 · 구독",
-      hint: "연동 · 플랜",
+      label: t.sidebar.groups.tenantStore,
+      hint: t.sidebar.hints.tenantStore,
       links: [
-        { name: "POS 연동", href: "/dashboard/settings/pos", icon: Monitor, tier: ["pro", "erp_only"] },
-        { name: "환경 설정", href: "/dashboard/settings", icon: Settings, activeExcludePrefix: "/dashboard/settings/pos" },
-        { name: "구독 · 플랜", href: "/dashboard/subscription", icon: Gem },
+        { name: t.sidebar.links.pos, href: "/dashboard/settings/pos", icon: Monitor, tier: ["pro", "erp_only"] },
+        { name: t.sidebar.links.settings, href: "/dashboard/settings", icon: Settings, activeExcludePrefix: "/dashboard/settings/pos" },
+        { name: t.sidebar.links.subscription, href: "/dashboard/subscription", icon: Gem },
       ],
     },
   ];
@@ -259,7 +263,7 @@ export function Sidebar({
         {logoUrl ? (
           <Image
             src={logoUrl}
-            alt="Store Logo"
+            alt={t.sidebar.altStoreLogo}
             width={180}
             height={40}
             priority={true}
@@ -269,13 +273,22 @@ export function Sidebar({
         ) : (
           <div className="flex items-center justify-center py-1">
             <Image
-              src="/floxync-logo.png"
-              alt="Floxync Logo"
+              src="/images/floxync-logo-dark.png"
+              alt={t.sidebar.altBrandLogo}
               width={160}
               height={36}
               priority={true}
               style={{ width: 'auto', height: 'auto', maxHeight: '36px' }}
-              className="h-9 w-auto object-contain mx-auto mix-blend-multiply dark:mix-blend-normal dark:invert"
+              className="h-9 w-auto object-contain mx-auto dark:hidden"
+            />
+            <Image
+              src="/images/floxync-logo-white.png"
+              alt={t.sidebar.altBrandLogo}
+              width={160}
+              height={36}
+              priority={true}
+              style={{ width: 'auto', height: 'auto', maxHeight: '36px' }}
+              className="h-9 w-auto object-contain mx-auto hidden dark:block"
             />
           </div>
         )}
@@ -290,7 +303,7 @@ export function Sidebar({
                    ? "bg-sky-50 text-sky-800 border-sky-100"
                    : "bg-emerald-50 text-emerald-600 border-emerald-100"
            )}>
-             {isSuperAdmin ? "ADMIN MODE" : sidebarHqOnly ? "HQ" : isOrgOnly ? "지점업무" : "PARTNER"}
+             {isSuperAdmin ? t.sidebar.badgeAdmin : sidebarHqOnly ? t.sidebar.badgeHq : isOrgOnly ? t.sidebar.hqWorkMode : t.sidebar.badgePartner}
            </span>
         </div>
       </div>
@@ -343,7 +356,7 @@ export function Sidebar({
             className="mr-3 flex-shrink-0 h-5 w-5 transition-transform duration-200 group-hover:scale-110 text-red-400 group-hover:text-red-600" 
             aria-hidden="true" 
           />
-          로그아웃
+          {t.sidebar.logout}
         </button>
       </nav>
 
@@ -354,10 +367,10 @@ export function Sidebar({
             <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[24px] p-6 text-white shadow-xl shadow-blue-100 dark:shadow-none hover:scale-[1.02] transition-all duration-300 group relative overflow-hidden">
                <Zap className="absolute -right-2 -bottom-2 h-14 w-14 opacity-20 group-hover:rotate-12 transition-transform" />
                <div className="relative z-10">
-                  <p className="text-xs font-light uppercase tracking-[0.2em] opacity-80 mb-3">Membership Upgrade</p>
-                  <p className="text-xl font-normal leading-tight tracking-tight">PRO 통합 플랜<br />최대 혜택 받기</p>
+                  <p className="text-xs font-light uppercase tracking-[0.2em] opacity-80 mb-3">{t.sidebar.membershipUpgrade}</p>
+                  <p className="text-xl font-normal leading-tight tracking-tight">PRO Plan<br />{t.sidebar.getBenefits}</p>
                   <div className="mt-5 inline-flex items-center text-xs font-light bg-white/20 px-4 py-2 rounded-2xl backdrop-blur-sm group-hover:bg-white/30 transition-colors">
-                     플랜 확인하기 <ArrowRight className="ml-2 h-4 w-4" />
+                     {t.sidebar.checkPlan} <ArrowRight className="ml-2 h-4 w-4" />
                   </div>
                </div>
             </div>
@@ -369,7 +382,7 @@ export function Sidebar({
       <div className="p-4 border-t border-slate-100 dark:border-slate-800">
         <p className="text-[10px] text-center text-slate-400 font-normal uppercase tracking-widest mb-1">Floxync v25.0</p>
         <p className="text-[10px] text-center text-slate-400/80">
-          고객지원: <a href="mailto:admin@floxync.com" className="hover:text-slate-600 transition-colors font-medium">admin@floxync.com</a>
+          {t.sidebar.support}: <a href="mailto:admin@floxync.com" className="hover:text-slate-600 transition-colors font-medium">admin@floxync.com</a>
         </p>
       </div>
     </aside>

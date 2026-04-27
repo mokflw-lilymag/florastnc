@@ -19,6 +19,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
 
 function buildExtensions() {
   return [
@@ -52,15 +54,35 @@ export function OrgAnnouncementRichEditor({
   resetKey,
   onHtmlChange,
 }: OrgAnnouncementRichEditorProps) {
+  const locale = usePreferredLocale();
+  const isKo = toBaseLocale(locale) === "ko";
+  const tr = (ko: string, en: string) => (isKo ? ko : en);
   const editor = useEditor(
     {
-      extensions: buildExtensions(),
+      extensions: [
+        StarterKit.configure({
+          heading: { levels: [2, 3] },
+          underline: {},
+          link: {
+            openOnClick: false,
+            autolink: true,
+            HTMLAttributes: {
+              class: "text-primary underline font-medium",
+              rel: "noopener noreferrer",
+              target: "_blank",
+            },
+          },
+        }),
+        Placeholder.configure({
+          placeholder: tr("본문을 입력하세요. 굵게·제목·목록·인용·링크를 사용할 수 있습니다.", "Write content. You can use bold, headings, lists, quotes, and links."),
+        }),
+      ],
       content: "<p></p>",
       editable: !disabled,
       immediatelyRender: false,
       onUpdate: ({ editor: ed }) => onHtmlChange(ed.getHTML()),
     },
-    [resetKey]
+    [resetKey, isKo]
   );
 
   useEffect(() => {
@@ -77,7 +99,7 @@ export function OrgAnnouncementRichEditor({
 
   const setLink = () => {
     const prev = editor.getAttributes("link").href as string | undefined;
-    const url = window.prompt("링크 URL (https://…)", prev ?? "https://");
+    const url = window.prompt(tr("링크 URL (https://…)", "Link URL (https://...)"), prev ?? "https://");
     if (url === null) return;
     if (url === "") {
       editor.chain().focus().extendMarkRange("link").unsetLink().run();
@@ -115,72 +137,72 @@ export function OrgAnnouncementRichEditor({
       <div
         className="flex flex-wrap items-center gap-0.5 border-b border-border bg-muted/30 px-1 py-1"
         role="toolbar"
-        aria-label="서식"
+        aria-label={tr("서식", "Formatting toolbar")}
       >
         <ToolBtn
-          label="굵게"
+          label={tr("굵게", "Bold")}
           active={editor.isActive("bold")}
           onClick={() => editor.chain().focus().toggleBold().run()}
         >
           <Bold className="h-4 w-4" />
         </ToolBtn>
         <ToolBtn
-          label="기울임"
+          label={tr("기울임", "Italic")}
           active={editor.isActive("italic")}
           onClick={() => editor.chain().focus().toggleItalic().run()}
         >
           <Italic className="h-4 w-4" />
         </ToolBtn>
         <ToolBtn
-          label="밑줄"
+          label={tr("밑줄", "Underline")}
           active={editor.isActive("underline")}
           onClick={() => editor.chain().focus().toggleUnderline().run()}
         >
           <UnderlineIcon className="h-4 w-4" />
         </ToolBtn>
         <ToolBtn
-          label="소제목 1"
+          label={tr("소제목 1", "Heading 1")}
           active={editor.isActive("heading", { level: 2 })}
           onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
         >
           <Heading2 className="h-4 w-4" />
         </ToolBtn>
         <ToolBtn
-          label="소제목 2"
+          label={tr("소제목 2", "Heading 2")}
           active={editor.isActive("heading", { level: 3 })}
           onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
         >
           <Heading3 className="h-4 w-4" />
         </ToolBtn>
         <ToolBtn
-          label="글머리 목록"
+          label={tr("글머리 목록", "Bulleted list")}
           active={editor.isActive("bulletList")}
           onClick={() => editor.chain().focus().toggleBulletList().run()}
         >
           <List className="h-4 w-4" />
         </ToolBtn>
         <ToolBtn
-          label="번호 목록"
+          label={tr("번호 목록", "Numbered list")}
           active={editor.isActive("orderedList")}
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
         >
           <ListOrdered className="h-4 w-4" />
         </ToolBtn>
         <ToolBtn
-          label="인용"
+          label={tr("인용", "Quote")}
           active={editor.isActive("blockquote")}
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
         >
           <Quote className="h-4 w-4" />
         </ToolBtn>
-        <ToolBtn label="링크" active={editor.isActive("link")} onClick={setLink}>
+        <ToolBtn label={tr("링크", "Link")} active={editor.isActive("link")} onClick={setLink}>
           <Link2 className="h-4 w-4" />
         </ToolBtn>
         <span className="w-px h-5 bg-border mx-0.5 shrink-0" aria-hidden />
-        <ToolBtn label="실행 취소" onClick={() => editor.chain().focus().undo().run()}>
+        <ToolBtn label={tr("실행 취소", "Undo")} onClick={() => editor.chain().focus().undo().run()}>
           <Undo className="h-4 w-4" />
         </ToolBtn>
-        <ToolBtn label="다시 실행" onClick={() => editor.chain().focus().redo().run()}>
+        <ToolBtn label={tr("다시 실행", "Redo")} onClick={() => editor.chain().focus().redo().run()}>
           <Redo className="h-4 w-4" />
         </ToolBtn>
       </div>

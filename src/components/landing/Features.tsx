@@ -1,14 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { createClient } from '@/utils/supabase/client';
 import { Terminal, Sparkles } from 'lucide-react';
 import { LANDING_FEATURES } from '@/data/landing-features';
 import { FeatureCardIcon, featureAccentIconClass } from '@/components/landing/feature-visual';
+import { AppLocale, localizePath } from '@/i18n/config';
+import { getMessages } from '@/i18n/getMessages';
 
-export function Features() {
+export function Features({ locale = 'ko' }: { locale?: AppLocale }) {
+  const t = getMessages(locale).landing.features;
   return (
     <section id="technology" className="py-24 md:py-32 bg-[#0A0F0D] relative overflow-hidden">
       {/* Dynamic Background Elements */}
@@ -26,7 +27,7 @@ export function Features() {
             className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-white/5 text-emerald-400 font-bold text-xs mb-8 border border-white/10 uppercase tracking-widest"
           >
             <Sparkles size={14} />
-            Next-Gen Core Protocol
+            {t.badge}
           </motion.div>
           <motion.h2 
             initial={{ opacity: 0, y: 20 }}
@@ -35,7 +36,7 @@ export function Features() {
             transition={{ delay: 0.2 }}
             className="text-4xl md:text-6xl font-black text-white tracking-tighter mb-6 leading-tight"
           >
-            차세대 <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">코어 프로토콜</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">{t.title}</span>
           </motion.h2>
           <motion.p 
             initial={{ opacity: 0, y: 20 }}
@@ -44,14 +45,14 @@ export function Features() {
             transition={{ delay: 0.3 }}
             className="text-lg md:text-2xl text-slate-400 font-light"
           >
-            우리의 전문 모듈이 모든 복잡한 과정을 처리합니다. <br className="hidden md:block" />
-            당신은 오직 화훼의 예술성과 창작에만 집중하세요.
+            {t.subtitle1} <br className="hidden md:block" />
+            {t.subtitle2}
           </motion.p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {LANDING_FEATURES.map((feature, idx) => (
-            <Link key={feature.slug} href={`/features/${feature.slug}`} className="block h-full group/card">
+            <Link key={feature.slug} href={localizePath(locale, `/features/${feature.slug}`)} className="block h-full group/card">
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 whileInView={{ opacity: 1, scale: 1 }}
@@ -72,9 +73,14 @@ export function Features() {
                   <h3 className="text-2xl font-black text-white mb-4 group-hover:text-emerald-400 transition-colors tracking-tight">
                     {feature.title}
                   </h3>
+                  {feature.comingSoon ? (
+                    <span className="inline-flex items-center mb-4 px-3 py-1 rounded-full bg-indigo-500/15 text-indigo-300 text-[11px] font-black uppercase tracking-wider border border-indigo-400/30">
+                      {t.comingSoon}
+                    </span>
+                  ) : null}
                   <p className="text-slate-500 leading-relaxed font-medium flex-1">{feature.description}</p>
                   <p className="mt-8 text-sm font-black text-emerald-500/90 uppercase tracking-widest opacity-0 group-hover/card:opacity-100 transition-opacity">
-                    자세히 보기 →
+                    {t.viewDetail} →
                   </p>
                 </div>
 
@@ -94,7 +100,7 @@ export function Features() {
                 viewport={{ once: true }}
                 className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-emerald-500/10 text-emerald-400 font-bold text-xs mb-8 border border-emerald-500/20 uppercase tracking-widest"
               >
-                Integrated Intelligence
+                {t.integratedBadge}
               </motion.div>
               <motion.h2 
                 initial={{ opacity: 0, x: -20 }}
@@ -103,7 +109,7 @@ export function Features() {
                 transition={{ delay: 0.1 }}
                 className="text-4xl md:text-5xl font-black text-white tracking-tighter mb-6 leading-tight"
               >
-                통합 <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-400">커머스 인공지능 망</span>
+                {t.integratedTitleLeft} <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-400">{t.integratedTitleHighlight}</span>
               </motion.h2>
               <motion.p 
                 initial={{ opacity: 0, x: -20 }}
@@ -112,7 +118,7 @@ export function Features() {
                 transition={{ delay: 0.2 }}
                 className="text-lg text-slate-400 font-light mb-8 leading-relaxed"
               >
-                Floxync는 국내 최고의 커머스 플랫폼들과 완벽하게 연동됩니다. 네이버 커머스 API와 카페24 개발자 API를 통한 실시간 양방향 데이터 동기화로 주문, 재고, 상품 관리를 자동화하여 최상의 비즈니스 결정을 내리도록 돕습니다.
+                {t.integratedDescription}
               </motion.p>
               
               <motion.ul 
@@ -123,9 +129,9 @@ export function Features() {
                 className="space-y-4"
               >
                 {[
-                  "네이버 커머스 API 연동 (스마트스토어 주문/배송 실시간 처리)",
-                  "카페24(Cafe24) 개발자 API를 통한 자사몰 상품/재고 동기화",
-                  "시즌별 피크 수요를 예측하는 통합 데이터 모델링"
+                  t.integratedItem1,
+                  t.integratedItem2,
+                  t.integratedItem3
                 ].map((item, i) => (
                   <li key={i} className="flex items-center gap-3 text-slate-300">
                     <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 flex-shrink-0">

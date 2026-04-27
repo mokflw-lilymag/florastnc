@@ -22,10 +22,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
 
 export default function ReceivedOrdersPage() {
     const supabase = createClient();
     const { tenantId } = useAuth();
+    const locale = usePreferredLocale();
+    const baseLocale = toBaseLocale(locale);
+    const tr = (koText: string, enText: string) => (baseLocale === "ko" ? koText : enText);
     const [loading, setLoading] = useState(true);
     const [orders, setOrders] = useState<any[]>([]);
     const [search, setSearch] = useState("");
@@ -69,7 +74,7 @@ export default function ReceivedOrdersPage() {
             setOrders(data || []);
         } catch (err) {
             console.error(err);
-            toast.error("수주 내역을 불러오는데 실패했습니다.");
+            toast.error(tr("수주 내역을 불러오는데 실패했습니다.", "Failed to load received orders."));
         } finally {
             setLoading(false);
         }
@@ -92,20 +97,24 @@ export default function ReceivedOrdersPage() {
                 }
             }
 
-            toast.success(`상태가 ${newStatus === 'processing' ? '제작중' : '완료'}로 변경되었습니다.`);
+            toast.success(
+                newStatus === "processing"
+                    ? tr("상태가 제작중으로 변경되었습니다.", "Status updated to In progress.")
+                    : tr("상태가 완료로 변경되었습니다.", "Status updated to Completed.")
+            );
             fetchReceivedOrders();
         } catch (err) {
             console.error(err);
-            toast.error("상태 변경 실패");
+            toast.error(tr("상태 변경 실패", "Failed to update status"));
         }
     };
 
     const getStatusBadge = (status: string) => {
         switch (status) {
-            case 'pending': return <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-200 rounded-full px-4 h-6 font-bold text-[10px] animate-pulse">수주 대기</Badge>;
-            case 'processing': return <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 rounded-full px-4 h-6 font-bold text-[10px]">제작/배송중</Badge>;
-            case 'completed': return <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-200 rounded-full px-4 h-6 font-bold text-[10px]">배송 완료</Badge>;
-            case 'canceled': return <Badge variant="outline" className="bg-rose-50 text-rose-600 border-rose-200 rounded-full px-4 h-6 font-bold text-[10px]">취소됨</Badge>;
+            case 'pending': return <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-200 rounded-full px-4 h-6 font-bold text-[10px] animate-pulse">{tr("수주 대기", "Pending")}</Badge>;
+            case 'processing': return <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 rounded-full px-4 h-6 font-bold text-[10px]">{tr("제작/배송중", "In progress")}</Badge>;
+            case 'completed': return <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-200 rounded-full px-4 h-6 font-bold text-[10px]">{tr("배송 완료", "Delivered")}</Badge>;
+            case 'canceled': return <Badge variant="outline" className="bg-rose-50 text-rose-600 border-rose-200 rounded-full px-4 h-6 font-bold text-[10px]">{tr("취소됨", "Canceled")}</Badge>;
             default: return <Badge variant="outline" className="rounded-full px-4 h-6 font-bold text-[10px]">{status}</Badge>;
         }
     };
@@ -130,8 +139,8 @@ export default function ReceivedOrdersPage() {
                     <CardContent className="p-8 relative">
                          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-16 translate-x-16 blur-2xl group-hover:scale-150 transition-all duration-700" />
                          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-200 mb-2">New Requests</div>
-                         <div className="text-4xl font-black">{pendingCount} <span className="text-base font-light">건</span></div>
-                         <p className="text-xs text-indigo-100/60 mt-2">현재 새로운 주문 수주 대기 중</p>
+                         <div className="text-4xl font-black">{pendingCount} <span className="text-base font-light">{tr("건", "")}</span></div>
+                         <p className="text-xs text-indigo-100/60 mt-2">{tr("현재 새로운 주문 수주 대기 중", "New orders awaiting acceptance")}</p>
                     </CardContent>
                 </Card>
                 <Card className="border-0 shadow-2xl bg-white rounded-[2.5rem] overflow-hidden group">
@@ -140,15 +149,15 @@ export default function ReceivedOrdersPage() {
                          <div className="text-4xl font-black text-slate-900">₩{todayRevenue.toLocaleString()}</div>
                          <div className="flex items-center gap-2 mt-2">
                              <Badge className="bg-emerald-100 text-emerald-600 border-0 h-5 text-[9px]">Settled</Badge>
-                             <span className="text-xs text-slate-400 font-light italic">오늘 완료된 실 정산금</span>
+                             <span className="text-xs text-slate-400 font-light italic">{tr("오늘 완료된 실 정산금", "Today’s settled fulfillment pay")}</span>
                          </div>
                     </CardContent>
                 </Card>
                 <Card className="border-0 shadow-2xl bg-slate-900 text-white rounded-[2.5rem] overflow-hidden group">
                     <CardContent className="p-8">
                          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Total Received</div>
-                         <div className="text-4xl font-black text-indigo-400">{orders.length} <span className="text-base font-light text-white">건</span></div>
-                         <p className="text-xs text-slate-500 mt-2 font-light">네트워크를 통해 접수된 누적 주문</p>
+                         <div className="text-4xl font-black text-indigo-400">{orders.length} <span className="text-base font-light text-white">{tr("건", "")}</span></div>
+                         <p className="text-xs text-slate-500 mt-2 font-light">{tr("네트워크를 통해 접수된 누적 주문", "Total network orders received")}</p>
                     </CardContent>
                 </Card>
             </div>
@@ -158,16 +167,16 @@ export default function ReceivedOrdersPage() {
     return (
         <div className="min-h-screen bg-[#F8FAFC] p-4 md:p-8 space-y-10 pb-32">
             <PageHeader 
-                title="📥 네트워크 수주 관리" 
-                description="전국 협력사로부터 위탁받은 주문을 제작 및 관리합니다." 
+                title={tr("📥 네트워크 수주 관리", "📥 Network received orders")} 
+                description={tr("전국 협력사로부터 위탁받은 주문을 제작 및 관리합니다.", "Fulfill and track orders delegated from partner shops.")} 
                 icon={Package}
             >
                 <div className="flex gap-3">
                     <Button variant="outline" className="h-12 px-6 rounded-2xl bg-white border-slate-100 shadow-sm font-bold" onClick={fetchReceivedOrders}>
-                        <RefreshCw className={cn("w-4 h-4 mr-3", loading && "animate-spin")} /> 새로고침
+                        <RefreshCw className={cn("w-4 h-4 mr-3", loading && "animate-spin")} /> {tr("새로고침", "Refresh")}
                     </Button>
                     <Button className="h-12 px-8 rounded-2xl bg-slate-900 hover:bg-indigo-600 text-white shadow-xl font-bold flex items-center gap-3">
-                        <MessageSquare className="w-4 h-4" /> 통합 실시간 채팅
+                        <MessageSquare className="w-4 h-4" /> {tr("통합 실시간 채팅", "Live chat")}
                     </Button>
                 </div>
             </PageHeader>
@@ -188,14 +197,14 @@ export default function ReceivedOrdersPage() {
                                 )}
                                 onClick={() => setFilterStatus(s)}
                             >
-                                {s === 'all' ? '전체' : s === 'pending' ? '수주대기' : s === 'processing' ? '제작중' : s === 'completed' ? '배송완료' : '취소됨'}
+                                {s === 'all' ? tr("전체", "All") : s === 'pending' ? tr("수주대기", "Pending") : s === 'processing' ? tr("제작중", "In progress") : s === 'completed' ? tr("배송완료", "Delivered") : tr("취소됨", "Canceled")}
                             </Button>
                         ))}
                     </div>
                     <div className="relative w-full md:w-64">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                         <Input 
-                            placeholder="주문자 또는 발주사 검색..." 
+                            placeholder={tr("주문자 또는 발주사 검색...", "Search orderer or sender...")} 
                             className="h-11 pl-11 rounded-full border-0 bg-slate-50/50 text-xs focus:ring-2 focus:ring-indigo-500 shadow-inner"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
@@ -207,12 +216,12 @@ export default function ReceivedOrdersPage() {
                     <Table>
                         <TableHeader className="bg-slate-50/50 text-[10px] uppercase font-black tracking-widest text-slate-400">
                             <TableRow className="hover:bg-transparent border-none">
-                                <TableHead className="px-8 py-6">접수일시</TableHead>
-                                <TableHead className="px-8 py-6">발주사(Sender)</TableHead>
-                                <TableHead className="px-8 py-6">상품 및 고객</TableHead>
-                                <TableHead className="px-8 py-6 text-right">수주정산금</TableHead>
-                                <TableHead className="px-8 py-6 text-center">상태</TableHead>
-                                <TableHead className="px-8 py-6 text-right pr-12">관리</TableHead>
+                                <TableHead className="px-8 py-6">{tr("접수일시", "Received")}</TableHead>
+                                <TableHead className="px-8 py-6">{tr("발주사(Sender)", "Sender")}</TableHead>
+                                <TableHead className="px-8 py-6">{tr("상품 및 고객", "Items & customer")}</TableHead>
+                                <TableHead className="px-8 py-6 text-right">{tr("수주정산금", "Fulfillment pay")}</TableHead>
+                                <TableHead className="px-8 py-6 text-center">{tr("상태", "Status")}</TableHead>
+                                <TableHead className="px-8 py-6 text-right pr-12">{tr("관리", "Actions")}</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -221,7 +230,7 @@ export default function ReceivedOrdersPage() {
                                     <TableCell colSpan={6} className="h-64 text-center">
                                         <div className="flex flex-col items-center gap-4 text-slate-300">
                                             <RefreshCw className="w-10 h-10 animate-spin opacity-20" />
-                                            <p className="text-sm font-bold">수주 목록을 불러오는 중...</p>
+                                            <p className="text-sm font-bold">{tr("수주 목록을 불러오는 중...", "Loading orders...")}</p>
                                         </div>
                                     </TableCell>
                                 </TableRow>
@@ -230,7 +239,7 @@ export default function ReceivedOrdersPage() {
                                     <TableCell colSpan={6} className="h-64 text-center">
                                         <div className="flex flex-col items-center gap-4 text-slate-200">
                                             <Package className="w-16 h-16 opacity-10" />
-                                            <p className="text-sm font-bold">표시할 수주 내역이 없습니다.</p>
+                                            <p className="text-sm font-bold">{tr("표시할 수주 내역이 없습니다.", "No orders to show.")}</p>
                                         </div>
                                     </TableCell>
                                 </TableRow>
@@ -264,6 +273,9 @@ export default function ReceivedOrdersPage() {
 function ReceivedOrderRow({ order, onViewDetail, onUpdateStatus, getStatusBadge }: any) {
     const orderData = order.order_data || {};
     const items = orderData.items || [];
+    const locale = usePreferredLocale();
+    const baseLocale = toBaseLocale(locale);
+    const tr = (koText: string, enText: string) => (baseLocale === "ko" ? koText : enText);
     
     return (
         <TableRow className="group hover:bg-slate-50/50 transition-all duration-300 cursor-pointer h-24" onClick={onViewDetail}>
@@ -280,24 +292,24 @@ function ReceivedOrderRow({ order, onViewDetail, onUpdateStatus, getStatusBadge 
                     </div>
                     <div>
                         <div className="text-sm font-black text-slate-800">{order.sender?.name}</div>
-                        <div className="text-[10px] text-slate-400 font-light underline decoration-slate-100">{order.sender?.contact_phone || '연락처 없음'}</div>
+                        <div className="text-[10px] text-slate-400 font-light underline decoration-slate-100">{order.sender?.contact_phone || tr("연락처 없음", "No phone")}</div>
                     </div>
                 </div>
             </TableCell>
             <TableCell className="px-8 py-6">
                 <div className="space-y-1">
                     <div className="text-xs font-black text-slate-800 line-clamp-1">
-                        {items[0]?.name || '상품 정보 없음'} {items.length > 1 && `외 ${items.length - 1}건`}
+                        {items[0]?.name || tr("상품 정보 없음", "No item info")} {items.length > 1 && `${tr("외", "+")} ${items.length - 1}${tr("건", "")}`}
                     </div>
                     <div className="flex items-center gap-2 text-[10px] text-slate-400">
-                        <Badge className="bg-slate-100 text-slate-500 border-0 h-4 text-[8px] font-black uppercase">{orderData.receipt_type === 'delivery_reservation' ? '전국배송' : '매장픽업'}</Badge>
-                        <span className="font-light truncate max-w-[150px]">{order.hide_customer_info ? "주문자 비공개" : orderData.orderer?.name}</span>
+                        <Badge className="bg-slate-100 text-slate-500 border-0 h-4 text-[8px] font-black uppercase">{orderData.receipt_type === 'delivery_reservation' ? tr("전국배송", "Delivery") : tr("매장픽업", "Pickup")}</Badge>
+                        <span className="font-light truncate max-w-[150px]">{order.hide_customer_info ? tr("주문자 비공개", "Orderer hidden") : orderData.orderer?.name}</span>
                     </div>
                 </div>
             </TableCell>
             <TableCell className="px-8 py-6 text-right">
                 <div className="text-sm font-black text-indigo-600">₩{(order.fulfillment_amount || 0).toLocaleString()}</div>
-                <div className="text-[10px] text-slate-400 font-light italic mt-0.5">정산 대기</div>
+                <div className="text-[10px] text-slate-400 font-light italic mt-0.5">{tr("정산 대기", "Pending settlement")}</div>
             </TableCell>
             <TableCell className="px-8 py-6 text-center">
                 {getStatusBadge(order.status)}
@@ -306,12 +318,12 @@ function ReceivedOrderRow({ order, onViewDetail, onUpdateStatus, getStatusBadge 
                 <div className="flex items-center justify-end gap-2">
                     {order.status === 'pending' && (
                         <Button className="bg-indigo-600 hover:bg-slate-900 text-white rounded-xl h-9 px-5 text-[10px] font-black" onClick={() => onUpdateStatus(order.id, 'processing')}>
-                            주문 접수
+                            {tr("주문 접수", "Accept")}
                         </Button>
                     )}
                     {order.status === 'processing' && (
                         <Button className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-9 px-5 text-[10px] font-black" onClick={() => onUpdateStatus(order.id, 'completed')}>
-                            배송 완료 처리
+                            {tr("배송 완료 처리", "Mark delivered")}
                         </Button>
                     )}
                     <Button variant="ghost" className="rounded-xl h-9 w-9 p-0 text-slate-300 hover:bg-slate-100 hover:text-slate-600" onClick={onViewDetail}>
@@ -324,6 +336,9 @@ function ReceivedOrderRow({ order, onViewDetail, onUpdateStatus, getStatusBadge 
 }
 
 function OrderReceivedDetailDialog({ isOpen, onOpenChange, order, onUpdateStatus, getStatusBadge }: any) {
+    const locale = usePreferredLocale();
+    const baseLocale = toBaseLocale(locale);
+    const tr = (koText: string, enText: string) => (baseLocale === "ko" ? koText : enText);
     if (!order) return null;
     const orderData = order.order_data || {};
     const items = orderData.items || [];
@@ -339,17 +354,17 @@ function OrderReceivedDetailDialog({ isOpen, onOpenChange, order, onUpdateStatus
                                 <Package className="w-6 h-6" />
                             </div>
                             <div>
-                                <h3 className="text-2xl font-black">수주 주문 상세</h3>
+                                <h3 className="text-2xl font-black">{tr("수주 주문 상세", "Received order detail")}</h3>
                                 <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Network Order Details</p>
                             </div>
                         </div>
                         <div className="flex flex-wrap items-center gap-4 mt-8">
                              <div className="bg-white/5 border border-white/10 px-6 py-3 rounded-2xl">
-                                <span className="text-[10px] text-slate-400 block mb-1">발주사(Sender)</span>
+                                <span className="text-[10px] text-slate-400 block mb-1">{tr("발주사(Sender)", "Sender")}</span>
                                 <span className="text-sm font-black">{order.sender?.name}</span>
                              </div>
                              <div className="bg-white/5 border border-white/10 px-6 py-3 rounded-2xl ml-auto">
-                                <span className="text-[10px] text-slate-400 block mb-1">나의 수주 정산금</span>
+                                <span className="text-[10px] text-slate-400 block mb-1">{tr("나의 수주 정산금", "My fulfillment pay")}</span>
                                 <span className="text-xl font-black text-indigo-400">₩{(order.fulfillment_amount || 0).toLocaleString()}</span>
                              </div>
                         </div>
@@ -370,12 +385,12 @@ function OrderReceivedDetailDialog({ isOpen, onOpenChange, order, onUpdateStatus
                          </div>
                          <div className="flex gap-2">
                              {order.status === 'pending' && (
-                                <Button className="bg-indigo-600 hover:bg-slate-900 text-white rounded-2xl font-bold h-12 px-8" onClick={() => onUpdateStatus(order.id, 'processing')}>주문 접수 및 시작</Button>
+                                <Button className="bg-indigo-600 hover:bg-slate-900 text-white rounded-2xl font-bold h-12 px-8" onClick={() => onUpdateStatus(order.id, 'processing')}>{tr("주문 접수 및 시작", "Accept & start")}</Button>
                              )}
                              {order.status === 'processing' && (
-                                <Button className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-bold h-12 px-8" onClick={() => onUpdateStatus(order.id, 'completed')}>최종 배송 완료</Button>
+                                <Button className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-bold h-12 px-8" onClick={() => onUpdateStatus(order.id, 'completed')}>{tr("최종 배송 완료", "Mark delivery complete")}</Button>
                              )}
-                             {order.status === 'completed' && <div className="text-emerald-500 font-bold flex items-center gap-2"><CheckCircle2 className="w-5 h-5" /> 배송이 완료되었습니다.</div>}
+                             {order.status === 'completed' && <div className="text-emerald-500 font-bold flex items-center gap-2"><CheckCircle2 className="w-5 h-5" /> {tr("배송이 완료되었습니다.", "Delivery completed.")}</div>}
                          </div>
                     </div>
 
@@ -383,13 +398,13 @@ function OrderReceivedDetailDialog({ isOpen, onOpenChange, order, onUpdateStatus
                         {/* Order Items */}
                         <div className="space-y-4">
                             <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1">
-                                <Separator className="w-8" /> 제작 요청 품목
+                                <Separator className="w-8" /> {tr("제작 요청 품목", "Items to fulfill")}
                             </h4>
                             <div className="space-y-2">
                                 {items.map((item: any, idx: number) => (
                                     <div key={idx} className="bg-white p-5 rounded-3xl border border-slate-100 flex items-center justify-between">
                                         <div className="font-bold text-slate-800 text-sm">{item.name}</div>
-                                        <div className="text-xs text-indigo-600 font-black">{item.quantity}개</div>
+                                        <div className="text-xs text-indigo-600 font-black">{item.quantity}{tr("개", "")}</div>
                                     </div>
                                 ))}
                             </div>
@@ -398,23 +413,23 @@ function OrderReceivedDetailDialog({ isOpen, onOpenChange, order, onUpdateStatus
                         {/* Delivery Info */}
                         <div className="space-y-4">
                             <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1">
-                                <Separator className="w-8" /> 배송 정보
+                                <Separator className="w-8" /> {tr("배송 정보", "Delivery")}
                             </h4>
                             <div className="bg-slate-900 p-6 rounded-3xl text-white space-y-4 shadow-xl">
                                 <div>
-                                    <div className="text-[10px] text-white/40 font-bold mb-1">수령인(받는 분)</div>
-                                    <div className="text-sm font-black">{orderData.delivery_info?.recipientName || '미지정'}</div>
+                                    <div className="text-[10px] text-white/40 font-bold mb-1">{tr("수령인(받는 분)", "Recipient")}</div>
+                                    <div className="text-sm font-black">{orderData.delivery_info?.recipientName || tr("미지정", "Not set")}</div>
                                     <div className="text-xs text-white/60 font-medium mt-0.5">{orderData.delivery_info?.recipientContact || ''}</div>
                                 </div>
                                 <Separator className="bg-white/10" />
                                 <div>
-                                    <div className="text-[10px] text-white/40 font-bold mb-1">배송지 주소</div>
-                                    <div className="text-xs font-medium leading-relaxed">{orderData.delivery_info?.address || '주소 정보 없음'}</div>
+                                    <div className="text-[10px] text-white/40 font-bold mb-1">{tr("배송지 주소", "Address")}</div>
+                                    <div className="text-xs font-medium leading-relaxed">{orderData.delivery_info?.address || tr("주소 정보 없음", "No address")}</div>
                                 </div>
                                 <Separator className="bg-white/10" />
                                 <div className="flex justify-between items-end">
                                     <div>
-                                        <div className="text-[10px] text-white/40 font-bold mb-1">배송 희망일시</div>
+                                        <div className="text-[10px] text-white/40 font-bold mb-1">{tr("배송 희망일시", "Requested date/time")}</div>
                                         <div className="text-sm font-black text-amber-400">{orderData.delivery_info?.date} {orderData.delivery_info?.time}</div>
                                     </div>
                                     <Badge className="bg-indigo-500/20 text-indigo-300 border-indigo-500/30 text-[9px] font-black">{orderData.delivery_info?.itemSize || 'S'} SIZE</Badge>
@@ -430,7 +445,7 @@ function OrderReceivedDetailDialog({ isOpen, onOpenChange, order, onUpdateStatus
                                 {orderData.sender_branding?.logo_url ? <img src={orderData.sender_branding.logo_url} alt="Logo" /> : "Brand"}
                              </div>
                              <div>
-                                <div className="text-[10px] font-black text-slate-400 uppercase">발주사 커스텀 브랜딩</div>
+                                <div className="text-[10px] font-black text-slate-400 uppercase">{tr("발주사 커스텀 브랜딩", "Sender branding")}</div>
                                 <div className="text-sm font-black text-slate-800">{orderData.sender_branding?.name || order.sender?.name}</div>
                              </div>
                              <div className="ml-auto flex items-center gap-2">
@@ -440,16 +455,16 @@ function OrderReceivedDetailDialog({ isOpen, onOpenChange, order, onUpdateStatus
                         </div>
 
                         <div className="space-y-3">
-                            <div className="text-[10px] font-black text-slate-400 uppercase">메시지 내용 ({orderData.message?.type || 'card'})</div>
+                            <div className="text-[10px] font-black text-slate-400 uppercase">{tr("메시지 내용", "Message")} ({orderData.message?.type || 'card'})</div>
                             <div className="p-6 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 min-h-[100px] text-sm text-slate-700 font-medium whitespace-pre-wrap leading-relaxed">
-                                {orderData.message?.content || '리본/카드 문구가 없습니다.'}
+                                {orderData.message?.content || tr("리본/카드 문구가 없습니다.", "No ribbon/card text.")}
                             </div>
                         </div>
 
                         <div className="space-y-3">
-                            <div className="text-[10px] font-black text-slate-400 uppercase">발주사 전달 사칭 (메모)</div>
+                            <div className="text-[10px] font-black text-slate-400 uppercase">{tr("발주사 전달 사항 (메모)", "Sender notes")}</div>
                             <div className="p-4 bg-amber-50 rounded-2xl text-xs text-amber-700 font-medium">
-                                {order.notes || "특이사항 없음"}
+                                {order.notes || tr("특이사항 없음", "None")}
                             </div>
                         </div>
                     </div>
@@ -457,24 +472,24 @@ function OrderReceivedDetailDialog({ isOpen, onOpenChange, order, onUpdateStatus
                     {/* Delivery Evidence Section */}
                     <div className="space-y-4">
                         <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1">
-                            <Separator className="w-8" /> 배송 증빙 (제작/완료 사진)
+                            <Separator className="w-8" /> {tr("배송 증빙 (제작/완료 사진)", "Proof photos (work & delivery)")}
                         </h4>
                         <div className="grid grid-cols-2 gap-4">
                              <div className="aspect-[4/3] rounded-3xl border-2 border-dashed border-slate-200 bg-white flex flex-col items-center justify-center gap-2 text-slate-300 hover:border-indigo-400 hover:text-indigo-400 transition-all cursor-pointer">
                                 <Camera className="w-10 h-10 opacity-20" />
-                                <span className="text-[10px] font-black">제작 사진 업로드</span>
+                                <span className="text-[10px] font-black">{tr("제작 사진 업로드", "Upload work photo")}</span>
                              </div>
                              <div className="aspect-[4/3] rounded-3xl border-2 border-dashed border-slate-200 bg-white flex flex-col items-center justify-center gap-2 text-slate-300 hover:border-indigo-400 hover:text-indigo-400 transition-all cursor-pointer">
                                 <Camera className="w-10 h-10 opacity-20" />
-                                <span className="text-[10px] font-black">배송 완료 사진 업로드</span>
+                                <span className="text-[10px] font-black">{tr("배송 완료 사진 업로드", "Upload delivery photo")}</span>
                              </div>
                         </div>
                     </div>
                 </div>
 
                 <DialogFooter className="p-8 bg-white border-t border-slate-50 flex gap-4">
-                    <Button variant="ghost" className="flex-1 rounded-2xl h-14 font-bold text-slate-400" onClick={() => onOpenChange(false)}>창 닫기</Button>
-                    <Button className="flex-[2] rounded-2xl bg-slate-900 text-white h-14 font-black shadow-2xl hover:bg-indigo-600 transition-all">이 주문 문의(채팅)하기</Button>
+                    <Button variant="ghost" className="flex-1 rounded-2xl h-14 font-bold text-slate-400" onClick={() => onOpenChange(false)}>{tr("창 닫기", "Close")}</Button>
+                    <Button className="flex-[2] rounded-2xl bg-slate-900 text-white h-14 font-black shadow-2xl hover:bg-indigo-600 transition-all">{tr("이 주문 문의(채팅)하기", "Chat about this order")}</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="ko" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Floxync Official Documentation (Master Edition)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+    .sidebar-link { transition: all 0.2s; }
+    .sidebar-link:hover { background-color: #f3f4f6; color: #059669; padding-left: 1.5rem; }
+    .sidebar-link.active { background-color: #ecfdf5; color: #059669; font-weight: 600; border-left: 4px solid #059669; }
+    .img-placeholder { 
+      background: linear-gradient(45deg, #f3f4f6 25%, #e5e7eb 25%, #e5e7eb 50%, #f3f4f6 50%, #f3f4f6 75%, #e5e7eb 75%, #e5e7eb 100%);
+      background-size: 20px 20px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      color: #6b7280; font-weight: 500; border: 2px dashed #d1d5db; border-radius: 0.5rem;
+    }
+    .anchor-offset { scroll-margin-top: 100px; }
+  </style>
+</head>
+<body class="bg-white text-gray-800 antialiased">
+
+  <!-- Navbar -->
+  <nav class="fixed top-0 z-50 w-full bg-white border-b border-gray-200 shadow-sm h-16 flex items-center">
+    <div class="px-4 lg:px-6 w-full flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center text-white font-bold">F</div>
+        <span class="text-xl font-bold tracking-tight text-emerald-800">Floxync <span class="font-light text-emerald-600">Docs</span></span>
+      </div>
+      <div class="hidden md:flex items-center gap-4 text-sm font-medium text-gray-500">
+        <span>v2.5.0 (Pro)</span>
+        <a href="#" class="text-emerald-600 hover:text-emerald-700">고객센터 지원</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Sidebar -->
+  <aside id="logo-sidebar" class="fixed top-0 left-0 z-40 w-72 h-screen pt-16 transition-transform -translate-x-full bg-white border-r border-gray-200 sm:translate-x-0 overflow-y-auto" aria-label="Sidebar">
+     <div class="h-full px-4 py-6">
+        <div class="mb-4 text-xs font-bold text-gray-400 uppercase tracking-wider">시작하기</div>
+        <ul class="space-y-1 mb-8">
+           <li><a href="#intro" class="flex items-center p-2 text-sm text-gray-700 rounded-lg sidebar-link anchor-offset">플록싱크 개요</a></li>
+           <li><a href="#dashboard" class="flex items-center p-2 text-sm text-gray-700 rounded-lg sidebar-link anchor-offset">대시보드 (Dashboard)</a></li>
+        </ul>
+
+        <div class="mb-4 text-xs font-bold text-emerald-600 uppercase tracking-wider">1. 환경 설정 (기초 공사)</div>
+        <ul class="space-y-1 mb-8 border-l border-emerald-100 ml-2">
+           <li><a href="#settings-store" class="flex items-center p-2 text-sm text-gray-700 rounded-lg sidebar-link anchor-offset">1-1. 상점 정보 설정</a></li>
+           <li><a href="#settings-policy" class="flex items-center p-2 text-sm text-gray-700 rounded-lg sidebar-link anchor-offset">1-2. 주문 정책 및 포인트</a></li>
+           <li><a href="#settings-delivery" class="flex items-center p-2 text-sm text-gray-700 rounded-lg sidebar-link anchor-offset">1-3. 배송비 설정</a></li>
+           <li><a href="#settings-categories" class="flex items-center p-2 text-sm text-gray-700 rounded-lg sidebar-link anchor-offset">1-4. 분류(카테고리) 관리</a></li>
+           <li><a href="#settings-printer" class="flex items-center p-2 text-sm text-gray-700 rounded-lg sidebar-link anchor-offset">1-5. 프린터 및 브릿지</a></li>
+           <li><a href="#settings-automation" class="flex items-center p-2 text-sm text-gray-700 rounded-lg sidebar-link anchor-offset">1-6. 연동 및 자동화</a></li>
+           <li><a href="#settings-partner" class="flex items-center p-2 text-sm text-gray-700 rounded-lg sidebar-link anchor-offset">1-7. 협력사 네트워크</a></li>
+           <li><a href="#settings-security" class="flex items-center p-2 text-sm text-gray-700 rounded-lg sidebar-link anchor-offset">1-8. 멤버십 및 보안</a></li>
+           <li><a href="#settings-backup" class="flex items-center p-2 text-sm text-gray-700 rounded-lg sidebar-link anchor-offset">1-9. 데이터 백업 및 초기화</a></li>
+        </ul>
+
+        <div class="mb-4 text-xs font-bold text-emerald-600 uppercase tracking-wider">2. 주문 관리 및 AI 기능</div>
+        <ul class="space-y-1 mb-8 border-l border-emerald-100 ml-2">
+           <li><a href="#orders-ai" class="flex items-center p-2 text-sm text-gray-700 rounded-lg sidebar-link anchor-offset">2-1. AI 원클릭 주문 입력</a></li>
+           <li><a href="#orders-manual" class="flex items-center p-2 text-sm text-gray-700 rounded-lg sidebar-link anchor-offset">2-2. 수동 주문 입력 요령</a></li>
+           <li><a href="#orders-detail" class="flex items-center p-2 text-sm text-gray-700 rounded-lg sidebar-link anchor-offset">2-3. 주문 상세 모달 (상태/알림톡)</a></li>
+        </ul>
+
+        <div class="mb-4 text-xs font-bold text-emerald-600 uppercase tracking-wider">3. CRM 및 캘린더</div>
+        <ul class="space-y-1 mb-8 border-l border-emerald-100 ml-2">
+           <li><a href="#crm" class="flex items-center p-2 text-sm text-gray-700 rounded-lg sidebar-link anchor-offset">3-1. 고객(단골) 관리</a></li>
+           <li><a href="#calendar" class="flex items-center p-2 text-sm text-gray-700 rounded-lg sidebar-link anchor-offset">3-2. 캘린더 배송 스케줄링</a></li>
+        </ul>
+
+        <div class="mb-4 text-xs font-bold text-blue-600 uppercase tracking-wider">4. 향후 비전</div>
+        <ul class="space-y-1 mb-8 border-l border-blue-100 ml-2">
+           <li><a href="#pos-future" class="flex items-center p-2 text-sm text-gray-700 rounded-lg sidebar-link anchor-offset">4-1. 오프라인 POS 실시간 연동</a></li>
+        </ul>
+
+        <div class="mb-4 text-xs font-bold text-slate-700 uppercase tracking-wider">5. 환경설정 이후 (실제 메뉴)</div>
+        <ul class="space-y-1 mb-8 border-l border-slate-200 ml-2 text-[12px]">
+           <li><a href="#nav-map" class="flex items-center p-2 text-gray-700 rounded-lg sidebar-link anchor-offset">5-0. 왼쪽 메뉴 지도</a></li>
+           <li><a href="#nav-home" class="flex items-center p-2 text-gray-700 rounded-lg sidebar-link anchor-offset">업무 홈</a></li>
+           <li><a href="#nav-new-order" class="flex items-center p-2 text-gray-700 rounded-lg sidebar-link anchor-offset">새 주문</a></li>
+           <li><a href="#nav-orders" class="flex items-center p-2 text-gray-700 rounded-lg sidebar-link anchor-offset">주문 목록</a></li>
+           <li><a href="#nav-daily-settlement" class="flex items-center p-2 text-gray-700 rounded-lg sidebar-link anchor-offset">일일 마감 정산</a></li>
+           <li><a href="#nav-delivery" class="flex items-center p-2 text-gray-700 rounded-lg sidebar-link anchor-offset">배송 · 픽업</a></li>
+           <li><a href="#nav-customers" class="flex items-center p-2 text-gray-700 rounded-lg sidebar-link anchor-offset">고객 CRM</a></li>
+           <li><a href="#nav-external-orders" class="flex items-center gap-2 p-2 text-gray-700 rounded-lg sidebar-link anchor-offset"><span>협력사 수발주</span><span class="text-[9px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded bg-slate-200 text-slate-700 border border-slate-300">준비 중</span></a></li>
+           <li><a href="#nav-products" class="flex items-center p-2 text-gray-700 rounded-lg sidebar-link anchor-offset">상품</a></li>
+           <li><a href="#nav-inventory" class="flex items-center p-2 text-gray-700 rounded-lg sidebar-link anchor-offset">재고</a></li>
+           <li><a href="#nav-suppliers" class="flex items-center p-2 text-gray-700 rounded-lg sidebar-link anchor-offset">거래처</a></li>
+           <li><a href="#nav-purchases" class="flex items-center p-2 text-gray-700 rounded-lg sidebar-link anchor-offset">매입</a></li>
+           <li><a href="#nav-reports" class="flex items-center p-2 text-gray-700 rounded-lg sidebar-link anchor-offset">정산 · 보고서</a></li>
+           <li><a href="#nav-analytics" class="flex items-center p-2 text-gray-700 rounded-lg sidebar-link anchor-offset">매입·매출 통계</a></li>
+           <li><a href="#nav-expenses" class="flex items-center gap-2 p-2 text-gray-700 rounded-lg sidebar-link anchor-offset"><span>지출</span><span class="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200">AI 영수증</span></a></li>
+           <li><a href="#nav-tax" class="flex items-center p-2 text-gray-700 rounded-lg sidebar-link anchor-offset">세무</a></li>
+           <li><a href="#nav-printer" class="flex items-center p-2 text-gray-700 rounded-lg sidebar-link anchor-offset">리본 프린터 (상세)</a></li>
+           <li><a href="#nav-design" class="flex items-center p-2 text-gray-700 rounded-lg sidebar-link anchor-offset">카드 디자인 (상세)</a></li>
+           <li><a href="#nav-marketing" class="flex items-center gap-2 p-2 text-gray-700 rounded-lg sidebar-link anchor-offset"><span>AI 홍보 마스터</span><span class="text-[9px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">개발 중</span></a></li>
+           <li><a href="#nav-pos-settings" class="flex items-center p-2 text-gray-700 rounded-lg sidebar-link anchor-offset">POS 연동</a></li>
+           <li><a href="#nav-subscription" class="flex items-center p-2 text-gray-700 rounded-lg sidebar-link anchor-offset">구독 · 플랜</a></li>
+        </ul>
+        
+        <div class="mt-8 p-4 bg-emerald-50 rounded-xl border border-emerald-200 shadow-sm">
+          <h4 class="text-sm font-bold text-emerald-900 mb-2">💡 초기 세팅이 막막하신가요?</h4>
+          <p class="text-xs text-emerald-700 mb-3 leading-relaxed">카테고리, 템플릿, 연동 등 초기 '기초 공사'를 전문가(수퍼관리자)가 유료로 완벽하게 대행해 드립니다.</p>
+          <button class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2.5 rounded-lg shadow-sm transition-colors">유료 세팅 대행 신청하기</button>
+        </div>
+     </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="p-4 sm:ml-72 pt-24">
+    <div class="max-w-4xl mx-auto space-y-24 pb-32">
+      <!-- 0. Intro & Dashboard -->
+      <section id="intro" class="anchor-offset mb-24">
+        <div class="bg-gradient-to-r from-emerald-600 to-teal-600 rounded-3xl p-10 text-white shadow-xl mb-12">
+          <h1 class="text-4xl font-black mb-4">Floxync 공식 마스터 매뉴얼 🌸</h1>
+          <p class="text-lg opacity-90 leading-relaxed mb-6">
+            사장님, 반갑습니다! 저는 사장님의 업무 파트너 <strong>미소</strong>입니다.<br/>
+            이 매뉴얼은 단순히 기능을 나열하는 것이 아니라, <strong>화면의 버튼 하나하나가 무슨 일을 하는지</strong> 현미경으로 보듯 자세히 알려드리기 위해 만들어졌습니다. 
+            옆에서 제가 직접 가르쳐드리는 것처럼 천천히 따라와 보세요! 😊
+          </p>
+          <div class="flex gap-3">
+            <span class="bg-white/20 px-3 py-1 rounded-full text-xs">비전문가 환영</span>
+            <span class="bg-white/20 px-3 py-1 rounded-full text-xs">상세 버튼 가이드</span>
+            <span class="bg-white/20 px-3 py-1 rounded-full text-xs">미소와 함께하기</span>
+          </div>
+        </div>
+
+        <div id="dashboard" class="anchor-offset">
+          <h3 class="text-2xl font-bold mb-6 flex items-center gap-2"><span class="w-2 h-8 bg-emerald-500 rounded-full"></span> 0. 대시보드: 우리 매장 한눈에 보기</h3>
+          <div class="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
+            <div class="w-full h-64 img-placeholder bg-gray-50 mb-6 rounded-xl border-dashed border-gray-300">
+              <span class="text-gray-400 font-medium">[ 메인 대시보드 화면 캡처 ]</span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="p-4 bg-emerald-50 rounded-xl border border-emerald-100">
+                <p class="font-bold text-emerald-900 mb-2">📊 오늘의 현황판</p>
+                <p class="text-xs text-emerald-700 leading-relaxed">로그인하자마자 보이는 숫자들은 오늘 들어온 주문 수, 제작해야 할 꽃의 수, 그리고 오늘 번 돈입니다. 사장님의 하루 목표를 여기서 확인하세요!</p>
+              </div>
+              <div class="p-4 bg-indigo-50 rounded-xl border border-indigo-100">
+                <p class="font-bold text-indigo-900 mb-2">⚠️ 긴급 알림</p>
+                <p class="text-xs text-indigo-700 leading-relaxed">"1시간 뒤 배송 예정" 같은 중요한 일정을 시스템이 미리 빨간색으로 깜빡이며 알려줍니다. 놓치는 주문 없이 완벽하게 관리할 수 있어요.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Settings -->
+      <section id="settings" class="border-t border-emerald-100 pt-16">
+        <div class="flex items-center gap-3 mb-8">
+          <div class="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center font-bold text-xl">1</div>
+          <h2 class="text-3xl font-bold text-emerald-900">환경 설정 (기초 공사)</h2>
+        </div>
+        <p class="mb-10 text-gray-700 text-lg">
+          매장 운영의 핵심 규칙을 정하는 곳입니다. 한 번만 제대로 설정해두면 AI가 사장님의 비즈니스 스타일에 맞춰 똑똑하게 일하기 시작합니다. 
+        </p>
+
+        <!-- 1-1 -->
+        <div id="settings-store" class="anchor-offset mb-16">
+          <h3 class="text-xl font-bold mb-6 flex items-center gap-2 text-emerald-700">
+            <span class="w-1.5 h-6 bg-emerald-500 rounded-full"></span> 1-1. 상점 정보 설정 (우리 매장 디지털 명함)
+          </h3>
+          <div class="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
+            <div class="flex items-start gap-4 p-4 bg-emerald-50 rounded-2xl border border-emerald-100 mb-8">
+              <span class="text-2xl">😊</span>
+              <p class="text-sm text-emerald-900 leading-relaxed">
+                "자 사장님! 이제 우리 매장의 얼굴을 시스템에 등록할 시간이에요. 여기서 입력하는 정보가 고객님들께 신뢰를 주는 첫걸음이 된답니다. 배경이 없는 투명 PNG 로고를 꼭 준비해 주세요!"
+              </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
+              <div class="space-y-6">
+                <div class="flex gap-4 items-start">
+                  <div class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center shrink-0 font-bold text-gray-500 text-xs">1</div>
+                  <div>
+                    <p class="font-bold text-gray-800 mb-1">상호 및 사업자 정보</p>
+                    <p class="text-[11px] text-gray-500 leading-relaxed">영수증과 세금계산서에 출력될 공식 정보를 입력합니다.</p>
+                  </div>
+                </div>
+                <div class="flex gap-4 items-start">
+                  <div class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center shrink-0 font-bold text-gray-500 text-xs">2</div>
+                  <div>
+                    <p class="font-bold text-gray-800 mb-1">매장 위치 (주소)</p>
+                    <p class="text-[11px] text-gray-500 leading-relaxed">배송비 자동 계산의 기준점이 되는 정확한 위치를 설정하세요.</p>
+                  </div>
+                </div>
+              </div>
+              <div class="space-y-4">
+                <div class="w-full h-44 img-placeholder bg-gray-50 rounded-xl border-dashed border-gray-300">
+                  <span class="text-gray-400 text-xs">[ 상점 정보 입력 화면 캡처 ]</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 1-2 -->
+        <div id="settings-policy" class="anchor-offset mb-16">
+          <h3 class="text-xl font-bold mb-6 flex items-center gap-2 text-violet-700">
+            <span class="w-1.5 h-6 bg-violet-500 rounded-full"></span> 1-2. 주문 할인 및 포인트 설정
+          </h3>
+          <div class="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
+            <div class="flex items-start gap-4 p-4 bg-violet-50 rounded-2xl border border-violet-100 mb-8">
+              <span class="text-2xl">💰</span>
+              <p class="text-sm text-violet-900 leading-relaxed">
+                "포인트는 단골을 만드는 마법의 지팡이예요! 적절한 적립률과 할인 버튼을 설정해서 고객님들의 재방문을 유도해 보세요."
+              </p>
+            </div>
+            <div class="w-full h-56 img-placeholder bg-gray-50 mb-8 rounded-xl border-dashed border-gray-300">[ 주문/할인/포인트 설정 화면 캡처 ]</div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="p-5 bg-white border border-violet-100 rounded-2xl">
+                    <p class="font-bold text-gray-800 mb-2">포인트 제도</p>
+                    <p class="text-xs text-gray-500 leading-relaxed">구매 시 자동 적립률과 사용할 수 있는 최소 포인트를 정합니다.</p>
+                </div>
+                <div class="p-5 bg-white border border-blue-100 rounded-2xl">
+                    <p class="font-bold text-gray-800 mb-2">매출 집계 기준</p>
+                    <p class="text-xs text-gray-500 leading-relaxed">장부를 '주문일' 기준으로 쓸지 '결제완료일' 기준으로 쓸지 결정합니다.</p>
+                </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 1-3 -->
+        <div id="settings-delivery" class="anchor-offset mb-16">
+          <h3 class="text-xl font-bold mb-6 flex items-center gap-2 text-blue-700">
+            <span class="w-1.5 h-6 bg-blue-500 rounded-full"></span> 1-3. 배송비 설정
+          </h3>
+          <div class="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm text-center">
+            <div class="w-full h-56 img-placeholder bg-gray-50 mb-6 rounded-xl border-dashed border-gray-300">[ 배송비 설정 화면 캡처 ]</div>
+            <p class="text-sm text-gray-500 italic">거리에 따른 배송비, 지역별 할증 등을 설정하는 공간입니다. (작성 예정)</p>
+          </div>
+        </div>
+
+        <!-- 1-4 -->
+        <div id="settings-categories" class="anchor-offset mb-16">
+          <h3 class="text-xl font-bold mb-6 flex items-center gap-2 text-orange-700">
+            <span class="w-1.5 h-6 bg-orange-500 rounded-full"></span> 1-4. 분류(카테고리) 관리
+          </h3>
+          <div class="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
+            <div class="flex items-start gap-4 p-4 bg-orange-50 rounded-2xl border border-orange-100 mb-8">
+              <span class="text-2xl">📋</span>
+              <p class="text-sm text-orange-900 leading-relaxed">
+                "분류가 깔끔해야 주문서가 한눈에 들어와요! 상품, 자재, 지출 카테고리를 우리 매장 스타일에 맞춰 정리해 보세요."
+              </p>
+            </div>
+            
+            <div class="w-full h-64 img-placeholder bg-gray-50 mb-8 rounded-xl border-dashed border-gray-300">[ 분류 관리 전체 화면 캡처 ]</div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <div class="p-5 bg-orange-50/30 border border-orange-100 rounded-2xl">
+                <p class="font-bold text-gray-800 mb-2">🎁 상품 분류</p>
+                <p class="text-[11px] text-gray-500">주문서 작성 시 탭으로 생성되어 상품을 빨리 찾게 도와줍니다.</p>
+              </div>
+              <div class="p-5 bg-emerald-50/30 border border-emerald-100 rounded-2xl">
+                <p class="font-bold text-gray-800 mb-2">🌿 자재 분류</p>
+                <p class="text-[11px] text-gray-500">생화, 화기, 리본 등 재고 관리와 사입의 기초가 됩니다.</p>
+              </div>
+              <div class="p-5 bg-blue-50/30 border border-blue-100 rounded-2xl">
+                <p class="font-bold text-gray-800 mb-2">💸 지출 분류</p>
+                <p class="text-[11px] text-gray-500">임대료, 공과금 등 매장 운영비를 정교하게 집계합니다.</p>
+              </div>
+            </div>
+
+            <div class="p-5 bg-amber-50 rounded-xl border border-amber-100">
+              <p class="text-xs text-amber-900 font-bold mb-2">💡 사수의 팁: "기본값도 충분해요!"</p>
+              <p class="text-xs text-amber-800 leading-relaxed">플록싱크가 미리 준비한 표준 카테고리를 그대로 쓰셔도 무방합니다. 매장만의 특별한 상품군이 있을 때만 수정해서 사용하세요.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 1-5 -->
+        <div id="settings-printer" class="anchor-offset mb-16">
+          <h3 class="text-xl font-bold mb-6 flex items-center gap-2 text-slate-700">
+            <span class="w-1.5 h-6 bg-slate-500 rounded-full"></span> 1-5. 프린터 및 브릿지 연동
+          </h3>
+          <div class="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
+            <div class="flex items-start gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100 mb-8">
+              <span class="text-2xl">🖨️</span>
+              <p class="text-sm text-slate-900 leading-relaxed">
+                "클라우드 웹앱인 플록싱크가 사장님 매장의 프린터를 직접 조종하기 위해서는 '프린트 브릿지'라는 든든한 일꾼이 필요해요! 여기서 연결 상태를 확인하실 수 있습니다."
+              </p>
+            </div>
+            <div class="w-full h-56 img-placeholder bg-gray-50 mb-6 rounded-xl border-dashed border-gray-300">[ 프린터 설정 화면 캡처 ]</div>
+            <div class="p-4 bg-blue-50 rounded-xl border border-blue-100 text-xs text-blue-800 leading-relaxed">
+              <strong>왜 브릿지가 필요한가요?</strong><br/>
+              인터넷 브라우저는 보안상 사장님의 컴퓨터에 연결된 하드웨어(프린터)를 직접 제어할 수 없습니다. 
+              그래서 중간에서 명령을 전달해 주는 '브릿지' 프로그램을 매장 PC에 설치해 두어야만 리본과 카드를 척척 뽑아낼 수 있답니다!
+            </div>
+          </div>
+        </div>
+
+        <div id="settings-automation" class="anchor-offset mb-16">
+          <h3 class="text-xl font-bold mb-6 flex items-center gap-2 text-emerald-700">
+            <span class="w-1.5 h-6 bg-emerald-500 rounded-full"></span> 1-6. 연동 및 자동화 (쇼핑몰 연결)
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Naver Smart Store -->
+            <div id="integration-naver" class="p-6 bg-white border border-emerald-100 rounded-2xl shadow hover:shadow-lg transition-shadow">
+              <h4 class="text-lg font-semibold text-emerald-800 mb-3 flex items-center">
+                <svg class="w-5 h-5 mr-2 text-emerald-600" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a8 8 0 108 8 8 8 0 00-8-8z"/></svg>네이버 스마트스토어 연동
+              </h4>
+              <p class="text-sm text-gray-700 mb-2">① 네이버 개발자 센터에 로그인 → <a href="https://developers.naver.com" class="text-emerald-600 underline" target="_blank">개발자 센터</a> 접속<br>② ‘Application’ > ‘새 애플리케이션 생성’ → ‘스마트스토어 API’ 사용 신청<br>③ 발급받은 <code class="bg-gray-100 px-1 rounded">Client ID</code>와 <code class="bg-gray-100 px-1 rounded">Client Secret</code>을 복사</p>
+              <p class="text-sm text-gray-700 mb-2">④ 플록싱크 환경설정 > ‘연동 및 자동화’ > ‘네이버 연동’ 입력란에 붙여넣고 저장합니다.</p>
+              <p class="text-xs text-gray-500">※ 토큰은 30일마다 자동 갱신됩니다. 갱신 알림은 ‘알림’ 탭에서 확인하세요.<span class="ml-1 inline-block" title="보안에 민감한 정보는 화면에 직접 노출되지 않으며, 입력 시 비밀번호 형태로 표시됩니다.">🛈</span></p>
+            </div>
+            <!-- Cafe24 -->
+            <div id="integration-cafe24" class="p-6 bg-white border border-emerald-100 rounded-2xl shadow hover:shadow-lg transition-shadow">
+              <h4 class="text-lg font-semibold text-emerald-800 mb-3 flex items-center">
+                <svg class="w-5 h-5 mr-2 text-emerald-600" fill="currentColor" viewBox="0 0 20 20"><path d="M4 3a1 1 0 00-1 1v12a1 1 0 001 1h12a1 1 0 001-1V4a1 1 0 00-1-1H4z"/></svg>Cafe24 연동
+              </h4>
+              <p class="text-sm text-gray-700 mb-2"><strong>요약</strong> <a href="https://developer.cafe24.com/" class="text-emerald-600 underline" target="_blank" rel="noopener noreferrer">카페24 개발자센터</a>에서 앱을 만들고 <code class="bg-gray-100 px-1 rounded">mall.read_order</code>(주문 읽기) 권한을 켠 뒤, <code class="bg-gray-100 px-1 rounded">Client ID</code>·<code class="bg-gray-100 px-1 rounded">Client Secret</code>을 복사합니다.</p>
+              <p class="text-sm text-gray-700 mb-2"><strong>플록싱크</strong> 환경 설정 → <strong>연동 및 자동화</strong> → 카드 <strong>쇼핑몰 주문 자동 수집 (API 연동)</strong>에서 <strong>쇼핑몰 아이디(Mall ID)</strong>와 키를 넣고 <strong>인증 테스트 및 저장</strong> → <strong>카페24 로그인 연동</strong>(또는 <strong>재인증</strong>)으로 OAuth를 마칩니다.</p>
+              <p class="text-sm text-gray-700 mb-2"><strong>주문 반영</strong> <strong>주문 관리</strong> 화면 상단 <strong>쇼핑몰 동기화</strong>(웹)로 카페24 주문을 가져옵니다.</p>
+              <p class="text-xs text-gray-500">※ 액세스 토큰·리프레시 토큰 주기는 카페24 정책을 따르며, 오랫동안 앱에 접속하지 않으면 <strong>재인증</strong>이 필요할 수 있습니다. 단계별·FAQ·보안은 저장소 <code class="bg-gray-100 px-1 rounded text-[11px]">docs/cafe24-integration-guide.md</code>를 보세요.<span class="ml-1 inline-block" title="Client Secret은 카톡·캡처로 공유하지 마세요.">🛈</span></p>
+            </div>
+            <!-- Google Drive 사진앨범 -->
+            <div id="integration-gdrive" class="p-6 bg-white border border-emerald-100 rounded-2xl shadow hover:shadow-lg transition-shadow">
+              <h4 class="text-lg font-semibold text-emerald-800 mb-3 flex items-center">
+                <svg class="w-5 h-5 mr-2 text-emerald-600" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4h12v12H4V4z"/></svg>구글 드라이브 연동
+              </h4>
+              <p class="text-sm text-gray-700 mb-2">① 구글 계정에 로그인 후 <a href="https://console.developers.google.com/" class="text-emerald-600 underline" target="_blank">Google Cloud Console</a> 로 이동<br>② 새 프로젝트 생성 → ‘OAuth 동의 화면’ 설정 → ‘앱 이름’, ‘지원 이메일’ 입력<br>③ ‘자격 증명’ > ‘OAuth 2.0 클라이언트 ID’ 생성 → ‘리디렉션 URI’에 <code class="bg-gray-100 px-1 rounded">https://app.floxync.com/auth/google/callback</code> 입력</p>
+              <p class="text-sm text-gray-700 mb-2">④ 클라이언트 ID와 클라이언트 비밀키를 복사 후 플록싱크 > ‘연동 및 자동화’ > ‘구글 드라이브 연동’에 입력합니다.</p>
+              <p class="text-xs text-gray-500">※ 최초 연동 시 구글 권한 요청 팝업이 나타납니다. ‘파일 보기·관리’ 권한을 허용해 주세요.<span class="ml-1 inline-block" title="사진은 자동으로 지정 폴더에 업로드됩니다.">🛈</span></p>
+            </div>
+            <!-- Kakao AlimTalk -->
+            <div id="integration-kakao-alimtalk" class="p-6 bg-white border border-emerald-100 rounded-2xl shadow hover:shadow-lg transition-shadow">
+              <h4 class="text-lg font-semibold text-emerald-800 mb-3 flex items-center">
+                <svg class="w-5 h-5 mr-2 text-emerald-600" fill="currentColor" viewBox="0 0 20 20"><path d="M2 5a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H6l-4 4V5z"/></svg>카카오 알림톡 연동
+              </h4>
+              <p class="text-sm text-gray-700 mb-2">① 카카오 디벨로퍼스에 로그인 → ‘내 애플리케이션’ → ‘새 애플리케이션 만들기’<br>② ‘설정’ > ‘플랫폼’ > ‘웹’에 플록싱크 도메인 추가<br>③ ‘알림톡’ 메뉴에서 ‘채널 추가’ 후 비즈니스 채널을 생성하고, ‘채널 ID’와 ‘채널 시크릿’ 복사</p>
+              <p class="text-sm text-gray-700 mb-2">④ 플록싱크 환경설정 > ‘연동 및 자동화’ > ‘카카오 알림톡 연동’에 채널 ID/시크릿 입력 후 저장.</p>
+              <p class="text-xs text-gray-500">※ 알림톡 템플릿은 ‘템플릿 관리’에서 미리 등록해 두어야 합니다.<span class="ml-1 inline-block" title="템플릿 승인까지 1~2일 소요될 수 있습니다.">🛈</span></p>
+            </div>
+            <!-- Google Sheets 자동 내보내기 -->
+            <div id="integration-gsheets" class="p-6 bg-white border border-emerald-100 rounded-2xl shadow hover:shadow-lg transition-shadow">
+              <h4 class="text-lg font-semibold text-emerald-800 mb-3 flex items-center">
+                <svg class="w-5 h-5 mr-2 text-emerald-600" fill="currentColor" viewBox="0 0 20 20"><path d="M4 3h12v14H4V3z"/></svg>구글 시트 자동 연동</h4>
+              <p class="text-sm text-gray-700 mb-2">① 구글 드라이브 연동과 동일한 OAuth 인증을 사용합니다.<br>② 플록싱크 > ‘연동 및 자동화’ > ‘구글 시트 연동’에서 연동할 시트 URL을 입력합니다.<br>③ ‘자동 동기화 설정’ 켜기 → 주문이 발생하면 실시간으로 시트에 행이 추가됩니다.</p>
+              <p class="text-xs text-gray-500">※ 시트는 ‘Floxync Orders’라는 이름으로 자동 생성됩니다. 필요 시 직접 시트를 편집해도 됩니다.<span class="ml-1 inline-block" title="시트 권한은 ‘편집 가능’으로 설정하세요.">🛈</span></p>
+            </div>
+            <!-- Kakao T 자동 배달 -->
+            <div id="integration-kakaot" class="p-6 bg-white border border-emerald-100 rounded-2xl shadow hover:shadow-lg transition-shadow">
+              <h4 class="text-lg font-semibold text-emerald-800 mb-3 flex items-center">
+                <svg class="w-5 h-5 mr-2 text-emerald-600" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a8 8 0 108 8 8 8 0 00-8-8z"/></svg>카카오 T 자동 배달 (예정)
+              </h4>
+              <p class="text-sm text-gray-700 mb-2">현재 개발 중이며, 추후 API 연동이 완료되면 아래와 같이 설정할 수 있습니다.</p>
+              <p class="text-sm text-gray-500 italic">🚧 <strong>개발 예정</strong> – 최신 업데이트를 위해 곧 공지될 예정입니다.</p>
+            </div>
+          </div>
+        </div>
+        <div id="settings-partner" class="anchor-offset mb-16 opacity-60">
+          <h3 class="text-xl font-bold mb-6 flex items-center gap-2 text-gray-500">
+            <span class="w-1.5 h-6 bg-gray-300 rounded-full"></span> 1-7. 협력사 네트워크
+          </h3>
+        </div>
+        <div id="settings-security" class="anchor-offset mb-16 opacity-60">
+          <h3 class="text-xl font-bold mb-6 flex items-center gap-2 text-gray-500">
+            <span class="w-1.5 h-6 bg-gray-300 rounded-full"></span> 1-8. 멤버십 및 보안
+          </h3>
+        </div>
+        <div id="settings-backup" class="anchor-offset mb-16 opacity-60">
+          <h3 class="text-xl font-bold mb-6 flex items-center gap-2 text-gray-500">
+            <span class="w-1.5 h-6 bg-gray-300 rounded-full"></span> 1-9. 데이터 백업 및 초기화
+          </h3>
+        </div>
+
+      </section>
+
+      <!-- 2. Order Management & AI Workflow -->
+      <section id="orders" class="anchor-offset border-t border-emerald-100 pt-16">
+          <h2 class="text-3xl font-black text-gray-900 mb-8 flex items-center gap-3">
+            <span class="w-12 h-12 bg-emerald-600 text-white rounded-2xl flex items-center justify-center shadow-lg">2</span>
+            주문 관리: 똑똑한 AI 비서와 함께하기
+          </h2>
+          
+          <p class="text-lg text-gray-600 mb-12 leading-relaxed">
+            사장님, 이제 수첩에 주문을 적으실 필요 없어요.<br/>
+            플록싱크의 <strong>AI 비서</strong>가 카톡이나 문자로 온 주문을 읽어 대신 적어 주고, 배송 일정까지 한곳에서 다룰 수 있게 도와드릴게요.
+          </p>
+
+          <!-- 2-1: AI Entry -->
+          <div id="orders-ai" class="anchor-offset mb-20">
+            <div class="bg-indigo-900 text-white rounded-3xl p-10 shadow-2xl relative overflow-hidden">
+              <div class="absolute -top-10 -right-10 w-40 h-40 bg-indigo-500 rounded-full blur-3xl opacity-30"></div>
+              <h3 class="text-2xl font-bold mb-6 flex items-center gap-3">🤖 AI 원클릭 입력 (마법의 복사-붙여넣기)</h3>
+              <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                <div>
+                  <p class="text-indigo-100 mb-8 leading-relaxed">
+                    카톡이나 문자로 받은 복잡한 주문 메시지, 일일이 치지 마세요! <br/>
+                    그냥 쓱 긁어서 <strong>AI 주문</strong> 영역에 붙여넣기만 하세요.
+                  </p>
+                  <div class="space-y-4">
+                    <div class="bg-white/10 p-4 rounded-xl border border-white/20">
+                      <p class="font-bold text-indigo-300 text-xs mb-1">1단계: 메시지 복사</p>
+                      <p class="text-[11px]">고객님이 보낸 주문 내용을 전체 복사합니다.</p>
+                    </div>
+                    <div class="bg-white/10 p-4 rounded-xl border border-white/20">
+                      <p class="font-bold text-indigo-300 text-xs mb-1">2단계: 플록싱크에 붙여넣기</p>
+                      <p class="text-[11px]">새 주문 화면 상단의 AI 주문 도우미에서 메시지를 넣고 분석을 실행합니다.</p>
+                    </div>
+                    <div class="bg-white/10 p-4 rounded-xl border border-white/20">
+                      <p class="font-bold text-indigo-300 text-xs mb-1">3단계: 확인 후 저장</p>
+                      <p class="text-[11px]">AI가 채운 이름·주소·일정 등을 확인한 뒤 하단에서 주문을 저장합니다.</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="w-full h-80 img-placeholder bg-white/5 border border-white/10 rounded-2xl flex flex-col items-center justify-center text-indigo-300">
+                  <div class="w-12 h-12 border-4 border-indigo-400 border-t-transparent rounded-full animate-spin mb-4"></div>
+                  <span class="text-sm font-medium">AI 비서가 분석 중...</span>
+                </div>
+              </div>
+              <!-- Miso's Little Tip -->
+              <div class="mt-8 bg-white/10 backdrop-blur-sm p-6 rounded-2xl border border-white/20">
+                <h4 class="font-bold text-indigo-300 mb-3 text-sm italic">"미소의 작은 팁! 사장님, 이거 아셨나요?"</h4>
+                <p class="text-[11px] text-indigo-100 leading-relaxed">
+                  만약 고객님이 "어제랑 똑같이 해주세요"라고 했다면? AI 주문 창에 그 멘트를 그대로 치셔도 됩니다! <br/>
+                  과거 주문 이력을 추적하여 가장 최근 정보를 척척 제안해 드릴게요. (업데이트 예정)
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2-2: Manual Entry -->
+          <div id="orders-manual" class="anchor-offset mb-20">
+            <h3 class="text-2xl font-bold text-gray-900 mb-8 flex items-center gap-3">
+              <span class="w-1.5 h-8 bg-emerald-500 rounded-full"></span> 2-2. 수동 주문 입력 (전화/방문 주문)
+            </h3>
+            <div class="bg-white border border-gray-200 rounded-3xl p-8 shadow-sm">
+              <p class="text-sm text-gray-600 mb-8 leading-relaxed">
+                사장님, 전화·방문 주문은 왼쪽 메뉴 <strong>새 주문</strong> 또는 주문 목록의 <strong>새 주문 등록</strong>으로 접수합니다.<br/>
+                한 건 한 건 입력이 번거로워 보여도, 한 번 쌓이면 고객 CRM·배송 관리의 기준이 됩니다.
+              </p>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="p-5 bg-gray-50 rounded-2xl border border-gray-100 text-center">
+                  <div class="text-xl mb-2">👤</div>
+                  <h5 class="font-bold text-xs mb-1">고객명/연락처</h5>
+                  <p class="text-[10px] text-gray-500 leading-relaxed">기존 고객이라면 이름만 쳐도 연락처가 뜹니다.</p>
+                </div>
+                <div class="p-5 bg-gray-50 rounded-2xl border border-gray-100 text-center">
+                  <div class="text-xl mb-2">🚛</div>
+                  <h5 class="font-bold text-xs mb-1">배송지 검색</h5>
+                  <p class="text-[10px] text-gray-500 leading-relaxed">주소를 입력하면 배송 거리를 계산해 드려요.</p>
+                </div>
+                <div class="p-5 bg-gray-50 rounded-2xl border border-gray-100 text-center">
+                  <div class="text-xl mb-2">📝</div>
+                  <h5 class="font-bold text-xs mb-1">리본 문구</h5>
+                  <p class="text-[10px] text-gray-500 leading-relaxed">리본에 뽑을 글자를 오타 없이 적어주세요.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2-3: Order Details -->
+          <div id="orders-detail" class="anchor-offset mb-20">
+            <h3 class="text-2xl font-bold text-gray-900 mb-8 flex items-center gap-3">
+              <span class="w-1.5 h-8 bg-emerald-500 rounded-full"></span> 2-3. 주문 상세 창 (우리 매장 관제탑)
+            </h3>
+            <div class="bg-white border border-gray-200 rounded-3xl p-8 shadow-sm">
+              <div class="w-full h-96 img-placeholder bg-gray-50 mb-10 border border-dashed border-gray-300 rounded-2xl">[ 주문 상세 창 버튼별 번호표 캡처 ]</div>
+              
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                <div class="space-y-8">
+                  <div>
+                    <h5 class="font-bold text-emerald-800 mb-3 flex items-center gap-2">주문 상태·필터 (앱 기준)</h5>
+                    <div class="flex flex-wrap gap-2 mb-3">
+                      <span class="px-3 py-1 bg-gray-100 text-gray-600 rounded text-[10px] font-bold">전체 상태</span>
+                      <span class="px-3 py-1 bg-amber-100 text-amber-800 rounded text-[10px] font-bold">준비중</span>
+                      <span class="px-3 py-1 bg-emerald-100 text-emerald-700 rounded text-[10px] font-bold">완료</span>
+                      <span class="px-3 py-1 bg-red-100 text-red-700 rounded text-[10px] font-bold">취소</span>
+                    </div>
+                    <p class="text-xs text-gray-500 leading-relaxed">
+                      주문 목록 상단에서 상태·수령 방식(배송·수령예약·매장수령)·기간으로 걸러 찾습니다. 행을 열면 상세 모달에서 결제·카드 출력·리본 출력·외주 등을 이어서 할 수 있고, 행 오른쪽 메뉴에서는 주문서 인쇄·카드 메시지 출력·주문 수정 등을 바로 열 수 있습니다.
+                    </p>
+                  </div>
+                  <div>
+                    <h5 class="font-bold text-emerald-800 mb-3 flex items-center gap-2">💰 결제 및 금액 수정</h5>
+                    <p class="text-xs text-gray-500 leading-relaxed">
+                      주문 금액이 바뀌었나요? 당황하지 말고 금액 칸을 눌러 수정하세요. <br/>
+                      배송비나 할인 금액도 따로 적을 수 있어 정산할 때 정말 편합니다.
+                    </p>
+                  </div>
+                </div>
+                <div class="space-y-8">
+                  <div class="bg-amber-50 p-6 rounded-2xl border border-amber-100">
+                    <h5 class="font-bold text-amber-900 mb-4 flex items-center gap-2">📸 완성 사진 & 알림톡</h5>
+                    <p class="text-xs text-amber-800 leading-relaxed mb-4">
+                      제작이 끝나면 상세 화면에서 완성 사진을 올리고, 연동된 경우 알림톡 등 고객 알림 기능을 사용합니다. (연동은 환경 설정의 카카오 알림톡 등을 먼저 완료하세요.)
+                    </p>
+                    <div class="w-full h-32 img-placeholder bg-white border border-amber-200 rounded-xl">[ 사진 업로드 및 발송 버튼 ]</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+      <!-- 3. CRM & Calendar -->
+      <section id="crm" class="anchor-offset mb-20">
+        <h2 class="text-3xl font-black text-gray-900 mb-8 flex items-center gap-3">
+          <span class="w-12 h-12 bg-rose-500 text-white rounded-2xl flex items-center justify-center shadow-lg">3</span>
+          단골 관리 & 달력: 꼼꼼한 사장님의 필수품
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+          <div class="bg-white border border-gray-200 rounded-3xl p-8 shadow-sm">
+            <h4 class="text-xl font-bold mb-4 flex items-center gap-2 text-rose-600">💖 우리 매장 단골 명부 (CRM)</h4>
+            <div class="w-full h-48 img-placeholder bg-rose-50 mb-6 rounded-2xl border border-rose-100">[ 고객 관리 리스트 캡처 ]</div>
+            <p class="text-xs text-gray-600 leading-relaxed">
+              한 번이라도 주문한 고객은 시스템이 자동으로 기억합니다. <br/>
+              "저번이랑 똑같은 빨간 장미로 해주세요" 하시는 고객님께 당황하지 마세요. 이름만 검색하면 과거 주문 기록이 쫙 나옵니다!
+            </p>
+          </div>
+          <div id="calendar" class="anchor-offset bg-white border border-gray-200 rounded-3xl p-8 shadow-sm">
+            <h4 class="text-xl font-bold mb-4 flex items-center gap-2 text-blue-600">📅 주문이 한눈에 보이는 달력</h4>
+            <div class="w-full h-48 img-placeholder bg-blue-50 mb-6 rounded-2xl border border-blue-100">[ 캘린더 화면 캡처 ]</div>
+            <p class="text-xs text-gray-600 leading-relaxed">
+              어버이날, 졸업식... 바쁜 날짜를 미리 확인하세요. <br/>
+              달력에 콕콕 박힌 주문들을 보며 이번 주에 꽃을 얼마나 더 사야 할지 계획을 세울 수 있습니다.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. Future POS -->
+      <section id="pos-future" class="anchor-offset mb-24">
+        <h2 class="text-3xl font-black text-gray-900 mb-8 flex items-center gap-3">
+          <span class="w-12 h-12 bg-amber-500 text-white rounded-2xl flex items-center justify-center shadow-lg">4</span>
+          미래 비전: 꽃집의 모든 것을 하나로
+        </h2>
+        <div class="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-3xl p-10 flex flex-col md:flex-row gap-10 items-center shadow-sm">
+          <div class="w-full md:w-1/3 h-56 img-placeholder bg-white border border-amber-100 rounded-2xl text-amber-300">
+            [ 스마트 POS 기기 다이어그램 ]
+          </div>
+          <div class="w-full md:w-2/3">
+            <h4 class="text-2xl font-bold text-amber-900 mb-4">"조금만 기다려주세요, 곧 완벽한 POS가 옵니다!"</h4>
+            <p class="text-gray-700 leading-relaxed text-sm">
+              지금 사장님이 등록하시는 상품 정보와 고객 데이터는 버려지는 게 아닙니다. <br/>
+              곧 출시될 <strong>플록싱크 전용 POS 기기</strong>와 실시간으로 연결될 거예요.<br/>
+              매장에서 카드로 결제하는 손님과 온라인 주문 손님이 하나의 명부로 합쳐지는 날, 사장님의 업무는 지금보다 10배 더 편해질 것입니다! ✨
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5. Post-settings: real sidebar menus -->
+      <section id="post-settings-nav" class="border-t border-slate-300 pt-20 mb-24 anchor-offset">
+        <h2 class="text-3xl font-black text-slate-900 mb-4 flex items-center gap-3">
+          <span class="w-12 h-12 bg-slate-800 text-white rounded-2xl flex items-center justify-center shadow-lg text-lg">5</span>
+          환경설정 이후: 왼쪽 메뉴 한 줄 한 줄
+        </h2>
+        <p class="text-slate-600 text-sm leading-relaxed mb-10 max-w-3xl">
+          아래 순서는 실제 앱의 왼쪽 사이드바(<strong>시작</strong> → <strong>매장 운영</strong> → <strong>제작 · 출력</strong> → <strong>마케팅</strong> → <strong>매장 설정 · 구독</strong>)와 맞춰 두었습니다.
+          <strong>PRO</strong>·<strong>ERP</strong> 통합 플랜을 기준으로 설명하며, <strong>리본 전용</strong> 등 다른 플랜에서는 일부 메뉴가 보이지 않을 수 있습니다.
+        </p>
+
+        <div id="nav-map" class="anchor-offset mb-16 p-6 bg-slate-50 rounded-2xl border border-slate-200">
+          <h3 class="text-lg font-bold text-slate-900 mb-3">5-0. 메뉴 지도 (한눈에)</h3>
+          <ul class="text-xs text-slate-700 space-y-2 leading-relaxed list-disc pl-5">
+            <li><strong>시작</strong>: <code class="bg-white px-1 rounded border">/dashboard</code> 업무 홈 — 오늘 주문·매출·일정 요약과 매출 차트.</li>
+            <li><strong>매장 운영</strong>: 주문 접수·목록, 배송/픽업 일정, 고객 CRM, <a href="#nav-external-orders" class="text-slate-600 underline font-semibold">협력사 수발주</a> <span class="text-slate-500 font-semibold">(준비 중)</span>, 상품·재고, 거래처·매입, 정산·통계, 지출(<a href="#nav-expenses" class="text-emerald-700 underline font-semibold">AI 영수증 입력</a> 권장), 세무.</li>
+            <li><strong>제작 · 출력</strong>: 리본 프린터, 카드 디자인 스튜디오.</li>
+            <li><strong>마케팅</strong>: <a href="#nav-marketing" class="text-indigo-700 underline font-medium">AI 홍보 마스터</a> <span class="text-amber-800 font-semibold">(개발 중)</span> — 방향은 SNS 연동·브랜드 DNA·자동 모드이나, 일부 연동·자동 게시는 아직 완성 단계가 아닙니다.</li>
+            <li><strong>매장 설정 · 구독</strong>: POS 연동, 환경 설정(이미 1장에서 다룸), 구독·플랜.</li>
+            <li>화면 하단의 <strong>빠른 이동 바</strong>(모바일 등)에서는 홈·새 주문·주문현황·리본·배송/픽업·정산·지출·재고로 바로 갈 수 있습니다.</li>
+          </ul>
+        </div>
+
+        <!-- 업무 홈 -->
+        <article id="nav-home" class="anchor-offset mb-16 border border-gray-200 rounded-2xl p-8 bg-white shadow-sm">
+          <h3 class="text-xl font-bold text-emerald-800 mb-1">업무 홈</h3>
+          <p class="text-xs font-mono text-slate-500 mb-4">경로: <code>/dashboard</code></p>
+          <p class="text-sm text-slate-700 mb-4"><strong>개요</strong> 로그인 후 첫 화면입니다. 오늘 주문 건수·오늘 매출·오늘/내일 픽업·배송 건수를 카드로 보여 주고, 아래에는 <strong>매출 지표 추이</strong> 차트(일/주/월/년)가 있습니다.</p>
+          <p class="text-sm text-slate-700 mb-4"><strong>이용 순서</strong> 상단 인사말 옆 배지로 동기화 상태를 확인합니다. 일정 카드의 <strong>상세 일정 확인</strong>을 누르면 <code>/dashboard/delivery</code> 배송·픽업 화면으로 이동합니다. 차트 기간 탭을 바꿔 최근 매출 흐름을 봅니다.</p>
+          <div class="p-4 bg-amber-50 rounded-xl border border-amber-100 text-xs text-amber-900"><strong>막힘 해소</strong> 매출 숫자가 기대와 다르면 환경 설정의 <strong>매출 집계 기준</strong>(주문일 vs 결제완료일)을 먼저 확인하세요.</div>
+        </article>
+
+        <!-- 새 주문 -->
+        <article id="nav-new-order" class="anchor-offset mb-16 border border-gray-200 rounded-2xl p-8 bg-white shadow-sm">
+          <h3 class="text-xl font-bold text-emerald-800 mb-1">새 주문</h3>
+          <p class="text-xs font-mono text-slate-500 mb-4">경로: <code>/dashboard/orders/new</code> (PRO·ERP 플랜)</p>
+          <p class="text-sm text-slate-700 mb-4"><strong>개요</strong> 제목은 보통 <strong>새 주문 등록</strong>이며, 기존 주문을 열면 <strong>주문 수정</strong>, 협력사 발주 흐름이면 <strong>협력사 발주 (상호명)</strong>으로 바뀝니다.</p>
+          <p class="text-sm text-slate-700 mb-4"><strong>화면 구성</strong> 왼쪽(넓은 화면 기준)에는 <strong>고객</strong>·<strong>상품</strong>·<strong>수령/배송</strong> 섹션이 세로로 이어지고, 오른쪽에는 주문 요약·금액·저장이 모입니다. 상단 오른쪽에 <strong>AI 주문</strong> 도우미(컴포넌트)가 붙어 있어 문자·카톡 내용을 붙여 넣고 필드를 채울 수 있습니다.</p>
+          <p class="text-sm text-slate-700 mb-4"><strong>순서</strong> ① 고객 검색 또는 신규 입력 → ② 상품·수량·맞춤 상품 → ③ 수령 방식(매장수령·수령예약·배송예약)과 일시·주소 → ④ 리본/카드 문구 등 메모 → ⑤ 요약에서 결제 수단·할인 확인 → ⑥ 저장. 모바일에서는 요약 패널이 접히므로 하단 버튼으로 다시 열 수 있습니다.</p>
+          <div class="p-4 bg-amber-50 rounded-xl border border-amber-100 text-xs text-amber-900"><strong>막힘 해소</strong> 배송비가 이상하면 환경 설정의 배송비 규칙과 본 화면의 주소 입력이 일치하는지 확인하세요.</div>
+        </article>
+
+        <!-- 주문 목록 -->
+        <article id="nav-orders" class="anchor-offset mb-16 border border-gray-200 rounded-2xl p-8 bg-white shadow-sm">
+          <h3 class="text-xl font-bold text-emerald-800 mb-1">주문 목록</h3>
+          <p class="text-xs font-mono text-slate-500 mb-4">경로: <code>/dashboard/orders</code></p>
+          <p class="text-sm text-slate-700 mb-4"><strong>개요</strong> 페이지 제목은 <strong>주문 관리</strong>입니다. 설명은 터치 UI일 때와 PC일 때 문구가 조금 다릅니다(검색·필터·카드 탭 등).</p>
+          <p class="text-sm text-slate-700 mb-4"><strong>상단 버튼</strong> <a href="#nav-daily-settlement" class="text-indigo-700 underline font-medium">일일 마감 정산</a>(<code>/dashboard/orders/daily-settlement</code>), <strong>엑셀</strong>, <strong>구글 시트</strong>, 웹에서 <strong>쇼핑몰 동기화</strong>(Cafe24 등), <strong>새 주문 등록</strong>이 한 줄에 있습니다.</p>
+          <p class="text-sm text-slate-700 mb-4"><strong>필터</strong> 통계 카드 아래에서 <strong>상태</strong>(전체·준비중·완료·취소), <strong>수령 유형</strong>(배송·수령예약·매장수령), <strong>기간</strong>(2개월~전체), <strong>집계 기준</strong>(수령일 vs 주문일)을 고릅니다.</p>
+
+          <h4 class="text-base font-bold text-slate-900 mt-8 mb-3">행 메뉴: 인쇄 및 출력</h4>
+          <p class="text-sm text-slate-700 mb-3">각 주문 행의 점 세 개(또는 동일 역할) 메뉴에서 다음을 실행합니다. 상세 모달을 연 뒤 하단의 <strong>카드 출력</strong>·<strong>리본 출력</strong>은 같은 동작으로 이어집니다.</p>
+          <ul class="text-sm text-slate-700 space-y-2 list-disc pl-5 mb-4">
+            <li><strong>주문서 인쇄</strong> — 주문 미리보기 인쇄 화면(<code>/dashboard/orders/print-preview/주문ID</code>)으로 연결됩니다. 진행 중 토스트로 준비 상태를 알려 줍니다.</li>
+            <li><strong>카드 메시지 출력</strong> — 먼저 <strong>출력 도구 선택</strong> 모달이 뜹니다. <strong>기존형 카드</strong>는 <code>/dashboard/design-studio?orderId=…&amp;target=card</code>, <strong>폼텍 라벨</strong>은 <code>target=formtec</code>로 디자인 스튜디오에 들어가 카드·라벨 편집·출력 흐름을 이어 갑니다.</li>
+            <li><strong>리본 출력</strong> — 주문의 메시지·보내는 분·주문자명을 바탕으로 좌·우 문구를 나눈 뒤 <code>/dashboard/printer?left=…&amp;right=…</code> 리본 프린터 화면으로 이동합니다. <strong>안드로이드 앱</strong>으로 접속한 경우에는 이 메뉴가 숨겨질 수 있으니 웹에서 이용해 주세요.</li>
+          </ul>
+          <p class="text-xs text-slate-500 mb-4 leading-relaxed">폼텍 라벨지 칸·폰트·시작 칸 등을 세밀히 고르는 <strong>메시지 인쇄 미리보기</strong> 전용 화면(<code>/dashboard/orders/print-message</code>)도 앱에 포함되어 있습니다. 목록의 카드 메시지 출력은 기본적으로 디자인 스튜디오 쪽으로 연결됩니다.</p>
+
+          <h4 class="text-base font-bold text-slate-900 mt-6 mb-3">주문 수정</h4>
+          <p class="text-sm text-slate-700 mb-3">행 메뉴의 <strong>주문 수정</strong>을 누르면 <strong>주문 수정</strong> 다이얼로그가 열립니다. 주문자·연락처·수령 방식·일정·수령인·주소·상품 줄·메시지(카드/리본)·결제 상태·메모·실제 배송비·배송비 결제 수단 등을 한 화면에서 고치고 저장할 수 있습니다. 복잡한 전체 재작성은 <a href="#nav-new-order" class="text-indigo-700 underline">새 주문</a> 화면에서 URL에 기존 주문 ID를 붙여 여는 방식과 병행해 쓰는 매장도 있습니다.</p>
+
+          <div class="p-4 bg-amber-50 rounded-xl border border-amber-100 text-xs text-amber-900 mt-6"><strong>막힘 해소</strong> 안드로이드 앱 모드에서는 쇼핑몰 동기화·새 주문 등록 버튼이 숨겨질 수 있습니다. 웹 브라우저에서 접속해 보세요.</div>
+        </article>
+
+        <!-- 일일 마감 정산 -->
+        <article id="nav-daily-settlement" class="anchor-offset mb-16 border border-indigo-100 rounded-2xl p-8 bg-gradient-to-b from-white to-indigo-50/40 shadow-sm">
+          <h3 class="text-xl font-bold text-indigo-900 mb-1">일일 마감 정산</h3>
+          <p class="text-xs font-mono text-slate-500 mb-4">경로: <code>/dashboard/orders/daily-settlement</code> · 주문 목록 상단에서도 진입</p>
+          <p class="text-sm text-slate-700 mb-4"><strong>목적</strong> 선택한 <strong>정산일(reportDate)</strong>을 기준으로 그날 들어온 매출·수금·미결제·금고(현금) 흐름을 한 번에 보고, 금고 잔액을 확정해 <strong>일일 정산 마감</strong> 버튼으로 저장합니다. 상단 <strong>주문 목록으로 돌아가기</strong>로 언제든 목록으로 나올 수 있습니다.</p>
+
+          <h4 class="text-base font-bold text-slate-900 mt-6 mb-3">날짜와 데이터 범위</h4>
+          <p class="text-sm text-slate-700 mb-3">좌우 화살표와 날짜 입력(<code>type="date"</code>)으로 정산일을 바꿉니다. 날짜를 바꾸면 그날까지 포함해 최근 주문·당일 지출 등을 다시 불러옵니다. 분할 결제나 예전 주문의 당일 입금은 <strong>이월 입금</strong> 쪽 집계에 반영됩니다.</p>
+
+          <h4 class="text-base font-bold text-slate-900 mt-6 mb-3">상단 요약 카드 네 장</h4>
+          <ul class="text-sm text-slate-700 space-y-2 list-disc pl-5 mb-4">
+            <li><strong>금일 총 매출액</strong> — 당일 실제 수금으로 잡힌 합계에 더해, 환경 설정의 <strong>매출 집계 기준</strong>이 <strong>주문일</strong>이면 같은 날짜의 주문 건 총액으로 카드에 보이는 방식이 달라질 수 있습니다(결제일 기준과 구분).</li>
+            <li><strong>수금 (현금 + 계좌)</strong> — 현금·계좌이체로 집계된 수금 합계이며, 카드 결제액은 부가 설명으로 같이 표시됩니다.</li>
+            <li><strong>금고 예상 잔액</strong> — 아래 금고 흐름 카드의 수식으로 계산된 <strong>최종 마감 예정 잔액</strong>과 연동됩니다.</li>
+            <li><strong>금일 주문 접수</strong> — 해당일 <strong>주문일</strong> 기준 접수 건수와, 그중 미결제 건수·미수 금액 요약입니다.</li>
+          </ul>
+
+          <h4 class="text-base font-bold text-slate-900 mt-6 mb-3">금고 현금 상세 흐름</h4>
+          <p class="text-sm text-slate-700 mb-3">이월 잔액은 전일 저장된 정산 기록이 있으면 자동 이어 붙이고, 없으면 직접 숫자를 넣을 수 있습니다. <strong>수정저장</strong>으로 이월 금액만 먼저 고정해 둘 수 있습니다.</p>
+          <ul class="text-sm text-slate-700 space-y-2 list-disc pl-5 mb-4">
+            <li><strong>이월된 현금 잔액</strong> — 전일 마감 시점 금고에서 이어진 값(또는 수동 입력).</li>
+            <li><strong>금일 현금 매출</strong> — 당일 집계된 현금 매출(직접 수금).</li>
+            <li><strong>배송비 현금 지급액</strong> — 주문에 기록된 현금 배송비와, 지출 중 배송·운송으로 잡힌 현금을 비교해 더 큰 쪽을 반영해 빠짐을 줄입니다.</li>
+            <li><strong>기타 현금 지출</strong> — 당일 지출 중 현금(배송비 중복 제외) 합계.</li>
+            <li><strong>관리자 시재 입금/출금</strong> — 은행 맡기기 등 금고에서 빠지거나 들어온 조정액을 직접 입력합니다.</li>
+            <li><strong>최종 마감 예정 잔액</strong> = 이월 + 금일 현금 매출 − 시재 입금/출금 − 배송비 현금 − 기타 현금 지출.</li>
+          </ul>
+          <p class="text-sm text-slate-700 mb-4"><strong>일일 정산 마감</strong>을 누르면 위 금고 관련 숫자와 날짜가 <strong>일일 정산</strong> 저장 API로 넘어가며, 성공 시 토스트로 저장되었음을 알립니다. 저장 필드 개념은 <code>previous_vault_balance</code>, <code>cash_sales_today</code>, <code>delivery_cost_cash_today</code>, <code>cash_expense_today</code>, <code>vault_deposit</code> 등으로 이해하시면 됩니다.</p>
+
+          <h4 class="text-base font-bold text-slate-900 mt-6 mb-3">표와 목록</h4>
+          <ul class="text-sm text-slate-700 space-y-2 list-disc pl-5 mb-4">
+            <li><strong>금일 결제 처리된 주문 내역</strong> — 해당일에 수금이 잡힌 주문(당일 접수 건 + 예전 주문의 당일 입금)을 시간·번호·주문자·수단·총액·금일 입금액으로 표시합니다. 분할 결제의 두 번째 결제가 오늘이면 금일 입금액 칸에 두 번째 금액이 나옵니다.</li>
+            <li><strong>금일 미결제(미수금) 목록</strong> — 그날 주문일인 주문 중 아직 결제가 끝나지 않은 건을 모아 미수 점검에 씁니다.</li>
+            <li><strong>오늘 발생한 지출 요약</strong> — 운송비(현금)·기타 지출(현금)·카드 포함 총 지출과 건수, <code>/dashboard/expenses</code>로 가는 링크가 있습니다.</li>
+          </ul>
+
+          <div class="p-4 bg-amber-50 rounded-xl border border-amber-100 text-xs text-amber-900"><strong>막힘 해소</strong> 총매출 카드 숫자가 통계 화면과 다르면 환경 설정의 <strong>매출 집계 기준</strong>(주문일 vs 결제완료일)을 먼저 맞춰 보세요. 금고 잔액은 <strong>현금·계좌 수금</strong>과 <strong>현금 지출</strong> 중심이므로 카드 매출만으로는 금고가 맞지 않을 수 있습니다.</div>
+        </article>
+
+        <!-- 배송 픽업 -->
+        <article id="nav-delivery" class="anchor-offset mb-16 border border-gray-200 rounded-2xl p-8 bg-white shadow-sm">
+          <h3 class="text-xl font-bold text-emerald-800 mb-1">배송 · 픽업</h3>
+          <p class="text-xs font-mono text-slate-500 mb-4">경로: <code>/dashboard/delivery</code></p>
+          <p class="text-sm text-slate-700 mb-4"><strong>개요</strong> 제목 <strong>배송 및 픽업 관리</strong>. 오늘·내일·전체·날짜 지정으로 <strong>예약된 배송·픽업 일정</strong>을 잡고, 테이블에서 담당 업체·실제 배송비 등을 다룹니다.</p>
+          <p class="text-sm text-slate-700 mb-4"><strong>상단</strong> <strong>배송비 정산 내역</strong>(<code>/dashboard/delivery/profit</code>), <strong>배송업체 관리</strong> 다이얼로그(목록 추가·삭제 후 설정 저장)가 있습니다.</p>
+          <p class="text-sm text-slate-700 mb-4"><strong>순서</strong> 날짜 모드를 고른 뒤 목록에서 행 단위로 상태를 맞추고, 필요 시 메시지 인쇄 다이얼로그를 엽니다. 인라인으로 실제 비용·택배사명을 수정할 수 있는 구간이 있습니다.</p>
+        </article>
+
+        <!-- CRM -->
+        <article id="nav-customers" class="anchor-offset mb-20 border border-rose-100 rounded-3xl p-8 md:p-10 bg-gradient-to-b from-white via-white to-rose-50/40 shadow-md">
+          <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
+            <div>
+              <h3 class="text-2xl font-black text-rose-900 tracking-tight mb-1">고객 CRM</h3>
+              <p class="text-xs font-mono text-slate-500">경로: <code>/dashboard/customers</code></p>
+            </div>
+            <p class="text-xs text-rose-700/80 font-medium max-w-md md:text-right leading-relaxed">단골을 이름으로만 기억하지 말고, <strong>구매 이력·포인트·서류</strong>까지 한 화면에서 이어 가세요.</p>
+          </div>
+
+          <p class="text-sm text-slate-700 mb-6 leading-relaxed"><strong>개요</strong> 화면 제목은 <strong>고객 관리</strong>입니다. 검색창으로 이름·연락처·회사명을 찾고, 표에서 <strong>행을 클릭</strong>하면 넓은 <strong>고객 상세</strong> 다이얼로그가 열립니다. 여기서 주문을 다시 열어보거나, 법인 거래처에 보낼 <strong>거래명세서</strong>·개인에게 드릴 <strong>간이영수증</strong>·상담용 <strong>견적서</strong>까지 바로 발행할 수 있습니다.</p>
+
+          <div class="grid md:grid-cols-2 gap-5 mb-8">
+            <div class="rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm">
+              <h4 class="text-sm font-black text-slate-900 uppercase tracking-wider mb-3 flex items-center gap-2"><span class="w-1.5 h-5 bg-rose-500 rounded-full"></span> 목록 · 상단 도구</h4>
+              <ul class="text-sm text-slate-700 space-y-2 list-disc pl-4 leading-relaxed">
+                <li><strong>새로고침</strong> — 최신 고객·주문 연동을 다시 불러옵니다.</li>
+                <li><strong>디지털 서류함</strong> — 온라인으로 발행한 견적서·거래명세서·영수증 발행 이력을 모아 둡니다(안내 문구상 <strong>최대 30일</strong> 보관 후 폐기되므로, 필요하면 브라우저 인쇄 대화상자에서 PDF로 저장하세요).</li>
+                <li><strong>엑셀보내기</strong>, <strong>신규 고객 등록</strong> — 명단 백업과 신규 카드 등록.</li>
+              </ul>
+            </div>
+            <div class="rounded-2xl border border-rose-200/60 bg-rose-50/50 p-5">
+              <h4 class="text-sm font-black text-rose-900 uppercase tracking-wider mb-3">상세 창 한눈에</h4>
+              <p class="text-sm text-slate-700 leading-relaxed mb-3">상단에는 등급·POS 연동 배지와 함께 <strong>총 구매액</strong>·<strong>마지막 구매일</strong>·<strong>보유 포인트</strong> 요약 카드가 붙습니다.</p>
+              <p class="text-xs text-slate-600 leading-relaxed">아래 탭은 <strong>주문 이력</strong>(최신순, 행 클릭 시 주문 상세 모달) · <strong>포인트 내역</strong>(적립·사용·취소, 주문/POS 출처 배지) · <strong>상세 정보</strong>(연락처·메모 등)로 나뉩니다.</p>
+            </div>
+          </div>
+
+          <div class="rounded-2xl border-2 border-slate-900/10 overflow-hidden mb-6">
+            <div class="bg-slate-900 text-white px-5 py-3 text-sm font-black tracking-tight">고객 클릭 후 — 거래명세서 · 간이영수증 · 견적서</div>
+            <div class="p-6 md:p-8 bg-white space-y-6">
+              <p class="text-sm text-slate-700 leading-relaxed">상세 창 오른쪽 상단에 세 가지 서류 버튼이 나란히 있습니다. <strong class="text-emerald-700">간이영수증</strong>과 <strong class="text-blue-700">거래명세서</strong>는 같은 <strong>2단계 마법사</strong>를 쓰고, 문서 종류만 다릅니다. <strong class="text-amber-700">견적서</strong>는 별도 견적 다이얼로그로 이어집니다.</p>
+
+              <div class="flex flex-wrap gap-3 text-xs font-bold">
+                <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">간이영수증 — 수령·증빙용 영수 느낌</span>
+                <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 text-blue-800 border border-blue-200">거래명세서 — 기간·품목 나열형 명세</span>
+              </div>
+
+              <h4 class="text-base font-black text-slate-900 mt-2 mb-2">1단계 · 발행 항목 선택</h4>
+              <ol class="text-sm text-slate-700 space-y-2 list-decimal pl-5 leading-relaxed mb-4">
+                <li><strong>귀하(수신)</strong> 블록에서 회사명·담당자명을 고객에게 맞게 다듬습니다. 연락처·이메일은 이후 인쇄 페이지 헤더에도 반영됩니다.</li>
+                <li><strong>공급자(발행)</strong> 블록은 <strong>환경 설정</strong>의 사업자 정보(상호, 등록번호, 대표, 주소, 연락처)와 테넌트명을 불러와 채웁니다. 비어 있으면 기본 placeholder가 보이므로, 실제 발행 전에 설정을 먼저 맞추는 것이 좋습니다.</li>
+                <li><strong>조회 시작일·종료일</strong>로 주문을 가져올 기간을 정합니다. 처음 열면 보통 <strong>이번 달 1일 ~ 오늘</strong>에 가깝게 잡혀 있습니다.</li>
+                <li>아래 목록은 해당 기간 안에서 <strong>주문자 연락처가 이 고객 카드의 연락처와 동일한</strong> 주문만 조회합니다. 목록이 비면 기간을 넓히거나, 주문서에 적힌 번호에 하이픈 유무가 다른지 확인해 보세요.</li>
+                <li>각 주문 옆 체크박스로 <strong>문서에 넣을 주문만</strong> 고릅니다. <strong>전체 선택 / 전체 해제</strong>로 한 번에 토글할 수 있습니다.</li>
+                <li><strong>내용 미리보기</strong>를 누르면 2단계로 넘어갑니다(선택된 주문이 없으면 비활성).</li>
+              </ol>
+
+              <h4 class="text-base font-black text-slate-900 mb-2">2단계 · 최종 확인 및 인쇄</h4>
+              <ul class="text-sm text-slate-700 space-y-2 list-disc pl-5 leading-relaxed mb-4">
+                <li>미리보기에는 문서 제목(거래명세서 또는 간이영수증), <strong>발행일자</strong>, 수신·공급자 정보, 품목 표가 채워집니다. 안내 문구는 명세서는 <strong>명세</strong> 톤, 간이영수증은 <strong>증명</strong> 톤으로 조금 다르게 나옵니다. 주문 한 건이 여러 줄이면 품목별로 풀어서 보이고, <strong>배송비·할인</strong>도 행으로 합산됩니다.</li>
+                <li>하단 안내: 발행 기록은 관리 목적으로 <strong>30일간 보관</strong>된다는 문구가 있습니다. 장기 보관이 필요하면 <strong>PDF 저장</strong>(브라우저 인쇄 → PDF)을 권장합니다.</li>
+                <li><strong>최종 인쇄하기</strong>를 누르면 발행 이력이 저장되고, 인쇄용 페이지 <code>/dashboard/customers/print</code>로 연결됩니다. 토스트로 변환·준비 상태를 알려 주며, 일반 브라우저에서는 잠시 후 <strong>인쇄 대화상자</strong>가 뜨는 흐름입니다.</li>
+                <li>인쇄 페이지의 큰 제목은 문서 유형에 따라 <strong>거 래 명 세 서</strong> 또는 <strong>간 이 영 수 증</strong>으로 구분되어 출력됩니다.</li>
+              </ul>
+
+              <div class="p-4 rounded-xl bg-amber-50 border border-amber-100 text-xs text-amber-950 leading-relaxed">
+                <strong>막힘 해소</strong> 서류에 매장 정보가 이상하면 <a href="#settings" class="text-amber-900 underline font-semibold">환경 설정</a>의 사업자·연락처 필드를 먼저 채우세요. 기간 내 주문이 안 보이면 CRM 연락처와 주문서 <strong>주문자 연락처</strong> 표기(010-1234-5678 vs 01012345678)를 맞춰 보세요.
+              </div>
+            </div>
+          </div>
+
+          <p class="text-xs text-slate-500 leading-relaxed border-t border-slate-200 pt-5"><strong>견적서</strong> 버튼은 같은 상세 창에서 열리며, 품목을 직접 구성하는 견적 전용 흐름입니다. 발행 후에도 <strong>디지털 서류함</strong>에서 유형별로 되짚을 수 있습니다.</p>
+        </article>
+
+        <!-- 협력사 수발주 -->
+        <article id="nav-external-orders" class="anchor-offset mb-16 border border-slate-300 rounded-2xl p-8 bg-gradient-to-b from-slate-50 to-white shadow-sm">
+          <div class="flex flex-wrap items-center gap-3 mb-4">
+            <h3 class="text-xl font-black text-slate-900 tracking-tight">협력사 수발주</h3>
+            <span class="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-slate-200 text-slate-800 border border-slate-300">준비 중</span>
+          </div>
+          <p class="text-xs font-mono text-slate-500 mb-4">경로: <code>/dashboard/external-orders</code></p>
+
+          <div class="p-4 md:p-5 rounded-xl border border-slate-200 bg-white mb-6">
+            <p class="text-sm text-slate-800 font-bold mb-2">이 메뉴는 아직 <strong>준비 중</strong>입니다.</p>
+            <p class="text-sm text-slate-600 leading-relaxed">메뉴와 화면은 열릴 수 있으나, 전국 협력 화원 네트워크·발주 연동 등은 <strong>추후 안정화·오픈 일정</strong>에 맞춰 다듬어질 예정입니다. 아래 설명은 <strong>목표로 하는 기능 방향</strong>입니다.</p>
+          </div>
+
+          <p class="text-sm text-slate-700 mb-4"><strong>예정 방향(개요)</strong> 전국 협력 화원 네트워크에 참여할 때 쓰는 화면으로 설계합니다. 내 매장의 포트폴리오(구글 드라이브 폴더 ID), 연락처, 품질 소개 문구를 등록하고 약관에 동의하면 수주를 받을 준비가 되는 흐름을 목표로 합니다.</p>
+          <p class="text-sm text-slate-700 mb-4"><strong>예정 방향(순서)</strong> 상단에서 지역·카테고리 필터로 발주 가능 매장을 찾고, 카드에서 상세·발주 흐름으로 들어갑니다. 설정 다이얼로그에서 카테고리별 폴더 ID를 나누어 넣으면 발주사 화면에서 해당 앨범이 열리도록 하는 방향입니다.</p>
+          <p class="text-xs text-slate-500 leading-relaxed">오픈 전에는 화면 문구·버튼 동작이 바뀔 수 있으니, 업데이트 공지를 함께 확인해 주세요.</p>
+        </article>
+
+        <!-- 상품 -->
+        <article id="nav-products" class="anchor-offset mb-16 border border-gray-200 rounded-2xl p-8 bg-white shadow-sm">
+          <h3 class="text-xl font-bold text-blue-800 mb-1">상품</h3>
+          <p class="text-xs font-mono text-slate-500 mb-4">경로: <code>/dashboard/products</code></p>
+          <p class="text-sm text-slate-700 mb-4"><strong>개요</strong> 제목 <strong>상품 관리</strong>. 판매 상품 목록·가격·재고를 다루고, 주문서에서 골라 쓸 상품의 기준점이 됩니다.</p>
+          <p class="text-sm text-slate-700 mb-4"><strong>상단</strong> <strong>카테고리 설정</strong>(<code>/dashboard/settings/categories</code>로 이동), 데이터 다운로드·양식 다운로드·엑셀 가져오기·새로고침·<strong>상품 추가</strong>. 안내 문구대로 검색은 <strong>현재 페이지 안</strong>에서만 적용됩니다.</p>
+        </article>
+
+        <!-- 재고 -->
+        <article id="nav-inventory" class="anchor-offset mb-16 border border-gray-200 rounded-2xl p-8 bg-white shadow-sm">
+          <h3 class="text-xl font-bold text-teal-800 mb-1">재고</h3>
+          <p class="text-xs font-mono text-slate-500 mb-4">경로: <code>/dashboard/inventory</code></p>
+          <p class="text-sm text-slate-700 mb-4"><strong>개요</strong> 제목 <strong>재고 관리</strong> — 자재·상품의 수량과 입출고를 봅니다.</p>
+          <p class="text-sm text-slate-700 mb-4"><strong>상단</strong> <strong>거래처 관리</strong> 링크, <strong>카테고리 설정</strong>, 엑셀보내기/가져오기, 새로고침 등이 상품 화면과 비슷한 패턴입니다.</p>
+        </article>
+
+        <!-- 거래처 -->
+        <article id="nav-suppliers" class="anchor-offset mb-16 border border-gray-200 rounded-2xl p-8 bg-white shadow-sm">
+          <h3 class="text-xl font-bold text-slate-800 mb-1">거래처</h3>
+          <p class="text-xs font-mono text-slate-500 mb-4">경로: <code>/dashboard/suppliers</code></p>
+          <p class="text-sm text-slate-700 mb-4"><strong>개요</strong> 제목 <strong>거래처 관리</strong>. 매입처·화원 등 거래 상대 정보를 등록해 매입·재고와 연결합니다.</p>
+        </article>
+
+        <!-- 매입 -->
+        <article id="nav-purchases" class="anchor-offset mb-16 border border-gray-200 rounded-2xl p-8 bg-white shadow-sm">
+          <h3 class="text-xl font-bold text-emerald-800 mb-1">매입</h3>
+          <p class="text-xs font-mono text-slate-500 mb-4">경로: <code>/dashboard/purchases</code></p>
+          <p class="text-sm text-slate-700 mb-4"><strong>개요</strong> 제목 <strong>매입 관리</strong>. 자재를 <strong>배치(Batch)</strong> 단위로 계획했다가 확정하면 지출·재고와 연동됩니다.</p>
+          <p class="text-sm text-slate-700 mb-4"><strong>순서</strong> <strong>새 매입(배치) 등록</strong>으로 품목을 담고, 현장에서 확정하면 <strong>매입확정</strong> 처리합니다. 상단의 <strong>사용 매뉴얼 보기</strong> 다이얼로그에 앱 내장 설명이 있습니다.</p>
+        </article>
+
+        <!-- 정산 보고서 -->
+        <article id="nav-reports" class="anchor-offset mb-16 border border-gray-200 rounded-2xl p-8 bg-white shadow-sm">
+          <h3 class="text-xl font-bold text-violet-800 mb-1">정산 · 보고서</h3>
+          <p class="text-xs font-mono text-slate-500 mb-4">경로: <code>/dashboard/reports</code></p>
+          <p class="text-sm text-slate-700 mb-4"><strong>개요</strong> 제목 <strong>보고서 및 통계</strong>. 기간별 매출·지출·이익을 탭(<strong>일일 정산·주간·월간·연간</strong>)으로 전환해 봅니다.</p>
+          <p class="text-sm text-slate-700 mb-4"><strong>상단</strong> <strong>인쇄</strong>, <strong>엑셀 다운로드</strong>로 보낼 수 있습니다.</p>
+        </article>
+
+        <!-- analytics -->
+        <article id="nav-analytics" class="anchor-offset mb-16 border border-gray-200 rounded-2xl p-8 bg-white shadow-sm">
+          <h3 class="text-xl font-bold text-violet-800 mb-1">매입·매출 통계</h3>
+          <p class="text-xs font-mono text-slate-500 mb-4">경로: <code>/dashboard/analytics</code></p>
+          <p class="text-sm text-slate-700 mb-4"><strong>개요</strong> 제목 <strong>매입/매출 통계</strong>. 지출 분석과 매출 흐름을 한 화면에서 비교할 때 사용합니다.</p>
+        </article>
+
+        <!-- 지출 -->
+        <article id="nav-expenses" class="anchor-offset mb-20 border border-emerald-200/90 rounded-3xl p-8 md:p-10 bg-gradient-to-b from-white via-emerald-50/30 to-orange-50/40 shadow-md">
+          <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
+            <div>
+              <h3 class="text-2xl font-black text-slate-900 tracking-tight mb-1">지출</h3>
+              <p class="text-xs font-mono text-slate-500">경로: <code>/dashboard/expenses</code></p>
+            </div>
+            <p class="text-sm text-slate-700 md:max-w-md md:text-right leading-relaxed">제목 <strong>지출 관리</strong>. 운영 지출과 거래처별 매입을 한곳에서 쌓고, 통계·정산과 이어집니다.</p>
+          </div>
+
+          <div class="rounded-2xl border-2 border-emerald-400/60 bg-gradient-to-br from-emerald-600 to-teal-700 text-white p-6 md:p-8 shadow-lg mb-8">
+            <div class="flex flex-wrap items-center gap-3 mb-3">
+              <span class="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-100">추천 워크플로</span>
+              <span class="px-2.5 py-1 rounded-lg bg-white/20 text-white text-xs font-black border border-white/30">AI 영수증 입력</span>
+            </div>
+            <h4 class="text-xl md:text-2xl font-black tracking-tight mb-3">영수증만 찍으면, 숫자·거래처·품목을 AI가 채워 드립니다</h4>
+            <p class="text-sm text-emerald-50 leading-relaxed mb-4">화면 상단의 <strong class="text-white">AI 영수증 입력</strong>은 바쁜 사장님을 위한 <strong>지출 입력 단축키</strong>입니다. <strong>카메라로 촬영</strong>하거나 <strong>앨범·파일</strong>에서 영수증 이미지를 고르면, OCR(AI)이 날짜·금액·거래처·품목 줄을 읽어 지출 폼을 채웁니다. 여러 장을 한 번에 넣으면 병렬 분석 후 <strong>금액을 합산</strong>하는 흐름도 지원합니다.</p>
+            <ul class="text-xs sm:text-sm text-emerald-50/95 space-y-2 list-disc pl-5 leading-relaxed">
+              <li>미리보기에서 AI가 읽은 값과 <strong>원본 영수증</strong>을 나란히 대조할 수 있습니다.</li>
+              <li>사진이 거꾸로·옆으로 보일 때는 촬영 전에 화면 안내에 맞춰 <strong>방향을 맞추면</strong> 미리보기와 결과가 일치하기 쉽습니다.</li>
+              <li>인식이 어긋나면 토스트 안내를 보고, <strong>지출 내역 등록</strong>으로 수동 보정하거나 다시 촬영해 보세요.</li>
+            </ul>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-5 mb-6">
+            <div class="rounded-2xl border border-slate-200 bg-white/95 p-5 shadow-sm">
+              <h4 class="text-sm font-black text-orange-800 uppercase tracking-wider mb-2">상단 버튼</h4>
+              <ul class="text-sm text-slate-700 space-y-2 list-disc pl-4 leading-relaxed">
+                <li><strong class="text-emerald-800">AI 영수증 입력</strong> — 위 박스와 같이 촬영·앨범 중심의 빠른 등록.</li>
+                <li><strong>지출 내역 등록</strong> — 직접 필드를 채우는 일반 등록(영수증 없이도 가능).</li>
+              </ul>
+            </div>
+            <div class="rounded-2xl border border-amber-100 bg-amber-50/80 p-5">
+              <h4 class="text-sm font-black text-amber-900 uppercase tracking-wider mb-2">막힘 해소</h4>
+              <p class="text-xs text-amber-950 leading-relaxed">이미지는 <strong>JPG·PNG</strong> 등 안내된 형식을 권장합니다. 비슷한 거래가 이미 있으면 <strong>중복·정정 영수증</strong> 안내가 뜰 수 있으니, 기존 건을 수정할지 새로 넣을지 화면 메시지를 따라가면 됩니다.</p>
+            </div>
+          </div>
+
+          <p class="text-xs text-slate-500 leading-relaxed border-t border-slate-200 pt-4">목록·필터·편집·증빙 첨부 등 나머지 지출 관리 기능은 화면을 따라가며 쓰시면 되고, <strong>가장 먼저 익힐 만한 버튼이 AI 영수증 입력</strong>이라고 생각하시면 됩니다.</p>
+        </article>
+
+        <!-- 세무 -->
+        <article id="nav-tax" class="anchor-offset mb-16 border border-gray-200 rounded-2xl p-8 bg-white shadow-sm">
+          <h3 class="text-xl font-bold text-slate-800 mb-1">세무</h3>
+          <p class="text-xs font-mono text-slate-500 mb-4">경로: <code>/dashboard/tax</code></p>
+          <p class="text-sm text-slate-700 mb-4"><strong>개요</strong> 제목 <strong>세무 관리</strong>. 면세·과세 사업자 여부에 따라 설명 문구가 달라지며, 부가세 신고 흐름을 지원합니다.</p>
+        </article>
+
+        <!-- 리본 프린터 (상세) -->
+        <article id="nav-printer" class="anchor-offset mb-20 border-2 border-slate-800/10 rounded-3xl p-8 md:p-10 bg-gradient-to-b from-white to-slate-50 shadow-lg">
+          <h3 class="text-2xl font-black text-slate-900 mb-1">리본 프린터 — 상세 매뉴얼</h3>
+          <p class="text-xs font-mono text-slate-500 mb-6">경로: <code>/dashboard/printer</code> · 플랜: <strong>PRO</strong> 또는 <strong>리본 전용(ribbon_only)</strong></p>
+
+          <div class="p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-950 mb-8">
+            <strong>캡처 이미지</strong>: 아래 회색 상자는 <code>docs/manual-screenshots/</code> 폴더에 PNG를 넣으면 자동으로 보입니다. 파일 이름·촬영 방법은 같은 폴더의 <code>README.md</code>를 보세요.
+          </div>
+
+          <figure class="my-6">
+            <img src="manual-screenshots/ribbon-01-overview.png" alt="리본 프린터 전체 화면" class="w-full max-w-4xl rounded-xl border border-slate-200 shadow-md bg-white" loading="lazy" />
+            <figcaption class="text-xs text-slate-500 mt-2">예시 파일명: <code>ribbon-01-overview.png</code> — 좌측 설정 패널 + 중앙 리본 캔버스 + 하단 둥근 툴바가 한 프레임에 들어가게 찍어 주세요.</figcaption>
+          </figure>
+
+          <h4 class="text-lg font-bold text-slate-800 mt-10 mb-3">1. 들어가기 전에</h4>
+          <ul class="text-sm text-slate-700 space-y-2 list-disc pl-5 leading-relaxed">
+            <li>이 화면은 <strong>브라우저 전용</strong> 캔버스입니다. <strong>Capacitor 안드로이드 앱</strong>으로 들어오면 이 경로 대신 리본 전용 앱 흐름으로 보내질 수 있습니다.</li>
+            <li>실제 USB·네트워크 프린터로 내려내려면 PC에 <strong>RibbonBridge(프린트 브릿지)</strong>가 떠 있어야 하며, 브릿지는 보통 <code>http://127.0.0.1:8002</code> 로 통신합니다.</li>
+            <li>다른 화면에서 문구를 넘겨받을 때: 주소에 쿼리를 붙일 수 있습니다. 예) <code>?message=경조사어</code> 또는 <code>?left=…&amp;right=…</code> (코드상 <code>left</code>, <code>right</code>, <code>message</code>, <code>sender</code> 지원).</li>
+          </ul>
+
+          <h4 class="text-lg font-bold text-slate-800 mt-10 mb-3">2. 화면 구성 (왼쪽 · 가운데 · 아래)</h4>
+          <div class="grid md:grid-cols-3 gap-4 text-sm text-slate-700">
+            <div class="p-4 bg-white rounded-xl border border-slate-200">
+              <p class="font-bold text-slate-900 mb-2">왼쪽 사이드 패널</p>
+              <p>프린터·리본 규격·여백·인쇄 대상·좌우 글상자·문구/기호·로고·매뉴얼 버튼까지 세로로 스크롤됩니다. 좁은 화면에서는 패널이 접히고, 가운데 왼쪽 가장자리의 <strong>Chevron</strong> 버튼으로 다시 엽니다.</p>
+            </div>
+            <div class="p-4 bg-white rounded-xl border border-slate-200">
+              <p class="font-bold text-slate-900 mb-2">가운데 캔버스</p>
+              <p><strong>좌측 리본(경조사)</strong>과 <strong>우측 리본(보내는이)</strong> 두 줄이 나란히 보입니다. 글자를 클릭하면 글자 단위 회전 등 편집 모드로 들어갑니다. <strong>ACTIVE</strong> 표시가 있는 쪽이 키보드 입력을 받습니다.</p>
+            </div>
+            <div class="p-4 bg-white rounded-xl border border-slate-200">
+              <p class="font-bold text-slate-900 mb-2">하단 둥근 툴바 (고정)</p>
+              <p><strong>Templates</strong> · <strong>Preview / Design</strong> 전환 · 배율(줌) ± · 큰 <strong>PRINT</strong> 버튼이 있습니다. 인쇄 중에는 <strong>SENDING…</strong> 과 스피너가 표시됩니다.</p>
+            </div>
+          </div>
+
+          <figure class="my-6">
+            <img src="manual-screenshots/ribbon-02-sidebar-printer.png" alt="출력 프린터 및 리본 프리셋 영역" class="w-full max-w-3xl rounded-xl border border-slate-200 shadow" loading="lazy" />
+            <figcaption class="text-xs text-slate-500 mt-2"><code>ribbon-02-sidebar-printer.png</code> — 「출력 프린터」드롭다운과 갱신 버튼, 그 아래 「리본 프리셋」까지 포함.</figcaption>
+          </figure>
+
+          <h4 class="text-lg font-bold text-slate-800 mt-10 mb-3">3. 출력 프린터와 브릿지</h4>
+          <ol class="text-sm text-slate-700 space-y-2 list-decimal pl-5 leading-relaxed">
+            <li><strong>출력 프린터</strong> 라벨 아래 녹색/빨간 점이 브릿지 연결 상태를 보여 줍니다. 오른쪽에 <strong>Bridge Engine v…</strong> 버전이 표시됩니다.</li>
+            <li>드롭다운: 브릿지가 프린터 목록을 주면 기기명이 뜹니다. 목록이 비면 <strong>「매장 기본 프린터로 원격 전송」</strong> 같은 예비 옵션이 보일 수 있습니다.</li>
+            <li>같은 줄 오른쪽 <strong>새로고침(↻)</strong> 아이콘을 누르면 <code>127.0.0.1:8002/api/printers</code> 를 다시 읽습니다. 반응이 없으면 브릿지 미실행 또는 방화벽입니다.</li>
+            <li>패널 하단의 <strong>「브릿지 연결 문제 해결 및 초기화」</strong> 를 누르면 안내 모달이 열립니다(작업표시줄 R 아이콘, 8002 포트, 설정 초기화 등).</li>
+          </ol>
+
+          <h4 class="text-lg font-bold text-slate-800 mt-10 mb-3">4. 리본 프리셋 · 폭 · 길이 · 여백</h4>
+          <ul class="text-sm text-slate-700 space-y-2 list-disc pl-5 leading-relaxed">
+            <li><strong>리본 프리셋</strong>을 바꾸면 폭·길이·레이스·상하단 여백이 한꺼번에 맞춰집니다. Xprinter 계열을 고르면 라벨에 <strong>≤105mm</strong> 안내가 붙고, 선택 가능한 프리셋 목록이 좁아질 수 있습니다.</li>
+            <li><strong>폭(Width mm) · 길이(Length mm)</strong>는 숫자로 미세 조정합니다.</li>
+            <li><strong>상단여백</strong>: 헤드 시작부터 글자까지(mm). <strong>하단여백</strong>: 글자 끝에서 다음 용지까지(mm). <strong>양쪽레이스</strong>: 리본 양끝 여백(mm).</li>
+            <li><strong>수평(좌우) 보정</strong> 슬라이더로 ±2mm 단위로 미세 이동합니다. 실제 기기마다 틀어짐을 여기서 상쇄합니다.</li>
+          </ul>
+
+          <h4 class="text-lg font-bold text-slate-800 mt-10 mb-3">5. 인쇄 대상 · 용지 모드 · 품질</h4>
+          <ul class="text-sm text-slate-700 space-y-2 list-disc pl-5 leading-relaxed">
+            <li><strong>인쇄 대상</strong>: <strong>양쪽 모두</strong> / <strong>경조사어</strong>(왼쪽만) / <strong>보내는이</strong>(오른쪽만).</li>
+            <li><strong>컷 리본</strong>이 기본입니다. <strong>롤 리본</strong>을 고르면 현재는 개발 중 알림이 뜨고 다시 컷으로 돌아갑니다.</li>
+            <li><strong>고속 인쇄</strong> vs <strong>고급(저속)</strong> 중 선택합니다. 컷 리본일 때는 커팅 길이 셀렉트 대신 <strong>커팅 NO</strong> 박스가 보입니다.</li>
+          </ul>
+
+          <h4 class="text-lg font-bold text-slate-800 mt-10 mb-3">6. 좌·우 리본 글꼴과 편집</h4>
+          <ul class="text-sm text-slate-700 space-y-2 list-disc pl-5 leading-relaxed">
+            <li>각 열 제목: <strong>좌측 리본 (경조사)</strong>, <strong>우측 리본 (보내는이)</strong>. 입력창을 누르면 해당 열이 활성됩니다.</li>
+            <li><strong>폰트 마법사</strong>: 한글/한자/영문/기호 탭으로 나뉘어 있고, 드롭다운에서 글꼴을 고릅니다. <strong>B</strong> 버튼으로 굵게, <strong>가로% · 세로%</strong>로 글자 비율을 맞춥니다.</li>
+            <li>캔버스에서 글자를 클릭하면 <strong>90도 회전</strong> 토글이 적용되는 글자 단위 편집이 됩니다(구현상 회전 상태는 좌/우 각각 유지).</li>
+            <li><strong>자주 쓰는 문구</strong>: 카테고리 셀렉트 + 그리드 버튼. 누르면 <strong>현재 활성 쪽</strong> 텍스트가 통째로 바뀝니다. 옆 톱니는 <strong>문구 관리</strong> 다이얼로그입니다.</li>
+            <li><strong>특수 기호</strong> 그리드에서 기호를 누르면 커서 위치에 삽입됩니다.</li>
+          </ul>
+
+          <figure class="my-6">
+            <img src="manual-screenshots/ribbon-03-floating-toolbar.png" alt="하단 Templates Preview PRINT 바" class="w-full max-w-3xl rounded-xl border border-slate-200 shadow" loading="lazy" />
+            <figcaption class="text-xs text-slate-500 mt-2"><code>ribbon-03-floating-toolbar.png</code> — 하얀 알약형 바에 Templates / Preview / 줌% / PRINT.</figcaption>
+          </figure>
+
+          <h4 class="text-lg font-bold text-slate-800 mt-10 mb-3">7. 로고 · 템플릿 · 미리보기 · 인쇄</h4>
+          <ol class="text-sm text-slate-700 space-y-2 list-decimal pl-5 leading-relaxed">
+            <li><strong>내 점포 로고</strong>: 점선 박스를 눌러 이미지를 올리고, 오른쪽 토글로 <strong>인쇄 시 로고 합성 여부</strong>를 켭니다.</li>
+            <li>하단 바의 <strong>Templates</strong>: 저장된 리본 구성을 불러옵니다.</li>
+            <li><strong>Preview</strong>를 누르면 인쇄 미리보기 레이아웃으로 바뀌고, 버튼 라벨이 <strong>Design</strong>으로 바뀌어 다시 편집 모드로 돌아갑니다.</li>
+            <li>배율 숫자(%)는 캔버스 확대·축소이며, 실제 인쇄 해상도와는 별개입니다.</li>
+            <li><strong>PRINT</strong>: 구독/권한 체크를 거친 뒤 브릿지로 데이터를 보냅니다. 브릿지가 없으면 설치 안내 모달이 뜹니다.</li>
+            <li>사이드바 맨 아래 <strong>Ribbonist 초보자 매뉴얼</strong> 버튼을 누르면 앱 내장 도움말 다이얼로그가 열립니다.</li>
+          </ol>
+
+          <div class="p-4 bg-rose-50 border border-rose-200 rounded-xl text-sm text-rose-900 mt-8">
+            <strong>막힘 해소</strong>
+            <ul class="mt-2 space-y-1 list-disc pl-5 text-xs">
+              <li>PRINT가 안 되면: 브릿지 실행 여부 → 8002 포트 → 백신 예외 → 브라우저가 <code>127.0.0.1</code> 차단 아닌지 순서로 확인.</li>
+              <li>폭이 이상하면: Xprinter 모드인지 확인하고 프리셋 폭이 105mm를 넘지 않는지 봅니다.</li>
+              <li>글자가 잘릴 때: 상단·하단 여백과 양쪽 레이스를 줄이거나, 프리셋에서 더 긴 길이를 선택합니다.</li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- 카드 디자인 스튜디오 (상세) -->
+        <article id="nav-design" class="anchor-offset mb-20 border-2 border-indigo-100 rounded-3xl p-8 md:p-10 bg-gradient-to-b from-white to-indigo-50/40 shadow-lg">
+          <h3 class="text-2xl font-black text-slate-900 mb-1">카드 디자인 스튜디오 — 상세 매뉴얼</h3>
+          <p class="text-xs font-mono text-slate-500 mb-6">경로: <code>/dashboard/design-studio</code> · 쿼리: <code>?orderId=…</code> , <code>?target=formtec</code> 또는 카드 기본</p>
+
+          <figure class="my-6">
+            <img src="manual-screenshots/design-01-header-canvas.png" alt="스튜디오 헤더와 캔버스" class="w-full max-w-4xl rounded-xl border border-slate-200 shadow-md bg-white" loading="lazy" />
+            <figcaption class="text-xs text-slate-500 mt-2"><code>design-01-header-canvas.png</code> — 상단 <strong>PROFESSIONAL STUDIO</strong> 바 + 앞면/내지 탭 + 저장·프린터 아이콘 + 왼쪽 도구 일부.</figcaption>
+          </figure>
+
+          <h4 class="text-lg font-bold text-slate-800 mt-10 mb-3">1. 이 화면으로 들어오는 방법</h4>
+          <ul class="text-sm text-slate-700 space-y-2 list-disc pl-5 leading-relaxed">
+            <li>사이드바 <strong>카드 디자인</strong> 메뉴로 직접 진입합니다.</li>
+            <li>주문 흐름에서 링크로 들어오면 <code>?orderId=UUID</code> 가 붙습니다. 이때 한 번만 주문 데이터를 읽어 <strong>리본/메시지 문구</strong>를 텍스트 블록으로 올리고, 받는이·보내는이 토글을 켭니다. 같은 탭에서 새로고침해도 중복 배치되지 않도록 세션 키로 잠금합니다.</li>
+            <li><code>?target=formtec</code> 이면 <strong>3114(8칸)</strong> 폼텍 프리셋으로 맞추고 칸 선택 모드로 시작합니다. 그렇지 않으면 기본 카드 규격 <strong>A5 210×148mm</strong> 로 시작하며 <strong>내지</strong> 면을 먼저 엽니다.</li>
+          </ul>
+
+          <h4 class="text-lg font-bold text-slate-800 mt-10 mb-3">2. 상단 헤더 (항상 고정)</h4>
+          <ul class="text-sm text-slate-700 space-y-2 list-disc pl-5 leading-relaxed">
+            <li>제목: <strong>PROFESSIONAL STUDIO</strong> (터치 UI에선 부가 문구가 줄어듭니다).</li>
+            <li>탭: <strong>앞면/뒷면 (Cover)</strong> 과 <strong>내지/안쪽 (Inside)</strong> — 접이 카드일 때 앞뒤와 안쪽 면을 오갑니다.</li>
+            <li><strong>디자인 저장</strong> 버튼: 클라우드에 저장하며 성공 시 토스트 <strong>「디자인이 클라우드에 저장되었습니다.」</strong></li>
+            <li><strong>프린터 아이콘</strong>: 폼텍 프리셋이면 먼저 <strong>폼텍 셀 선택</strong> 모달이 열립니다. 일반 용지면 고해상도 PDF를 만들고 브라우저 인쇄 창을 띄웁니다. 진행 중 <strong>「고해상도 다중 페이지 PDF를 생성하고 있습니다…」</strong> 로딩 토스트가 뜹니다.</li>
+            <li>우측 상단(데스크톱): 현재 용지 <strong>가로×세로 mm</strong> 표시가 나옵니다.</li>
+          </ul>
+
+          <h4 class="text-lg font-bold text-slate-800 mt-10 mb-3">3. 왼쪽 사이드바 (도구 류)</h4>
+          <p class="text-sm text-slate-700 mb-4">위에서 아래로 주요 블록입니다.</p>
+          <ol class="text-sm text-slate-700 space-y-2 list-decimal pl-5 leading-relaxed">
+            <li><strong>텍스트 레이어 추가</strong> — 캔버스에 새 텍스트 박스(기본 문구 「새 텍스트」)를 올립니다. 접이(반페이지) 표지에서는 기본 위치가 뒷표지 쪽 중앙에 가깝게 잡힙니다.</li>
+            <li><strong>PNG·이미지 레이어 추가</strong> — 파일 선택기로 이미지를 올립니다.</li>
+            <li><strong>매직 스튜디오 (배경 제거 &amp; 편집)</strong> — 별도 사진 편집 모달을 엽니다.</li>
+            <li><strong>디자인 템플릿 보관함</strong> — 저장해 둔 배경/템플릿을 불러옵니다. 설명대로 배경만 가져온 뒤 텍스트는 위 버튼으로 다시 얹는 방식이 안전합니다.</li>
+            <li><strong>용지 규격 및 방향</strong> (접기): 프리셋 셀렉트는 <strong>카드 규격</strong>과 <strong>폼텍 라벨</strong> 그룹으로 나뉩니다. A5, A4, 엽서, 폼텍 3130·3102·3639·3114·3112 등. 그 아래 <strong>가로형/세로형</strong>, <strong>단면/접이</strong>, 접이 시 <strong>접지 가이드라인 표시</strong> 토글.</li>
+            <li><strong>추천 메시지 찾기</strong> / <strong>명언 라이브러리</strong> — 감동·축하 등 테마별 문구 모달.</li>
+            <li><strong>내지</strong> + 접이 모드일 때만: <strong>수발신자 자동 배치</strong> — To. 수령인 / From. 발신인 토글과 입력칸.</li>
+            <li><strong>선택 요소 속성 편집</strong> — 캔버스에서 텍스트나 이미지를 클릭한 뒤, 여기서 글 내용·글자 크기·색·회전·줄간격·자간·폰트 패밀리·외곽선·정렬·레이어 순서 등을 바꿉니다. 이미지면 파일 교체와 <strong>마법의 주문 사진 편집기</strong> 버튼이 보입니다.</li>
+            <li><strong>상점 브랜딩 자동 배치</strong> — 로고·상호·전화·웹사이트를 한 번에 깔끔히 올립니다(환경설정·테넌트 정보 기반).</li>
+          </ol>
+
+          <figure class="my-6">
+            <img src="manual-screenshots/design-02-sidebar-paper.png" alt="용지 규격 및 방향 패널" class="w-full max-w-md rounded-xl border border-slate-200 shadow" loading="lazy" />
+            <figcaption class="text-xs text-slate-500 mt-2"><code>design-02-sidebar-paper.png</code> — 용지 프리셋 드롭다운이 펼쳐진 상태 권장.</figcaption>
+          </figure>
+
+          <h4 class="text-lg font-bold text-slate-800 mt-10 mb-3">4. 가운데 캔버스와 줌</h4>
+          <ul class="text-sm text-slate-700 space-y-2 list-disc pl-5 leading-relaxed">
+            <li>창 크기에 맞춰 <strong>줌이 자동</strong>으로 잡히며, 리사이즈 시에도 다시 계산됩니다(사이드바 340px·터치 UI 여부 반영).</li>
+            <li>블록을 드래그해 위치를 옮기고, 모서리 핸들로 크기를 조절합니다.</li>
+          </ul>
+
+          <h4 class="text-lg font-bold text-slate-800 mt-10 mb-3">5. 터치·모바일 (파트너 터치 UI)</h4>
+          <ul class="text-sm text-slate-700 space-y-2 list-disc pl-5 leading-relaxed">
+            <li>상단 아래에 <strong>도구 · 용지</strong> / <strong>미리보기 · 편집</strong> 탭이 생겨 사이드바와 캔버스를 번갈아 봅니다.</li>
+          </ul>
+
+          <figure class="my-6">
+            <img src="manual-screenshots/design-03-pdf-print.png" alt="PDF 인쇄 흐름 또는 폼텍 모달" class="w-full max-w-3xl rounded-xl border border-slate-200 shadow" loading="lazy" />
+            <figcaption class="text-xs text-slate-500 mt-2"><code>design-03-pdf-print.png</code> — PDF 미리보기 창이 떴을 때 또는 폼텍 칸 선택 모달.</figcaption>
+          </figure>
+
+          <h4 class="text-lg font-bold text-slate-800 mt-10 mb-3">6. 인쇄·PDF 동작 요약</h4>
+          <ul class="text-sm text-slate-700 space-y-2 list-disc pl-5 leading-relaxed">
+            <li>일반 카드: 앞면 데이터 + 뒷면 데이터를 한 번에 렌더해 다중 페이지 PDF로 만든 뒤 인쇄 대화상자를 엽니다.</li>
+            <li>폼텍: 먼저 셀을 고르고 인쇄합니다. 라벨 칸 배치는 코드의 <strong>LABEL_CONFIGS</strong> 규격을 따릅니다.</li>
+            <li>사이드바 어딘가에서 PDF 인쇄를 요청하면 <code>request-print</code> 윈도 이벤트로도 같은 핸들러가 호출됩니다.</li>
+          </ul>
+
+          <div class="p-4 bg-indigo-50 border border-indigo-200 rounded-xl text-sm text-indigo-950 mt-8">
+            <strong>막힘 해소</strong>
+            <ul class="mt-2 space-y-1 list-disc pl-5 text-xs">
+              <li>저장이 실패하면 네트워크와 로그인 세션을 확인하고, 토스트 메시지를 캡처해 지원에 보내 주세요.</li>
+              <li>PDF가 비어 있으면: 앞면/내지 탭을 모두 확인해 블록이 흰색 글자로 바깥에 나가 있지 않은지 봅니다.</li>
+              <li>주문 연동 문구가 안 들어오면: URL에 <code>orderId</code> 가 맞는지, 이미 같은 브라우저 탭에서 한 번 불러왔는지(세션 잠금) 확인합니다.</li>
+            </ul>
+          </div>
+        </article>
+        <!-- 마케팅 -->
+        <article id="nav-marketing" class="anchor-offset mb-20 border border-violet-200/80 rounded-3xl p-8 md:p-10 bg-gradient-to-br from-white via-violet-50/40 to-indigo-50/60 shadow-md overflow-hidden relative">
+          <div class="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-violet-200/30 to-transparent rounded-full blur-3xl pointer-events-none -translate-y-1/2 translate-x-1/3" aria-hidden="true"></div>
+          <div class="relative">
+            <div class="mb-8 p-4 md:p-5 rounded-2xl border-2 border-amber-300/80 bg-amber-50 shadow-sm">
+              <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
+                <span class="inline-flex items-center gap-2 text-sm font-black text-amber-950">
+                  <span class="px-2.5 py-1 rounded-lg bg-amber-500 text-white text-[10px] uppercase tracking-widest">Beta</span>
+                  AI 홍보 마스터는 현재 <strong>개발 중</strong>입니다
+                </span>
+              </div>
+              <p class="text-sm text-amber-950/90 leading-relaxed mb-2">화면과 매뉴얼에 적힌 기능은 <strong>목표 설계·진행 중인 구현</strong>을 함께 보여 줍니다. SNS 자동 업로드·매일 스케줄·영상 파이프라인 등은 채널별 API·백엔드 작업이 더 필요하며, 동작이 어긋날 수 있습니다.</p>
+              <p class="text-xs text-amber-900/80 leading-relaxed"><strong>추후 개발</strong>을 이어 갈 때 사장님·운영에서의 사용 시나리오와 “꼭 필요한 채널 순서”를 알려 주시면 우선순위를 잡는 데 큰 도움이 됩니다. (문서·제품 모두 점진적으로 맞춰 갈 예정입니다.)</p>
+            </div>
+
+            <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 mb-8">
+              <div>
+                <p class="text-[10px] font-black uppercase tracking-[0.2em] text-violet-600 mb-2">Marketing · 자동화</p>
+                <div class="flex flex-wrap items-center gap-3 mb-2">
+                  <h3 class="text-3xl font-black text-slate-900 tracking-tight">AI 홍보 마스터</h3>
+                  <span class="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-slate-200 text-slate-700 border border-slate-300">개발 중</span>
+                </div>
+                <p class="text-xs font-mono text-slate-500">경로: <code>/dashboard/marketing</code></p>
+              </div>
+              <blockquote class="lg:max-w-md text-sm text-slate-700 leading-relaxed border-l-4 border-violet-500 pl-4 py-1 bg-white/60 rounded-r-xl">
+                꽃 손질·배송·주문에 쓰다 보면 <strong>인스타·숏폼·블로그</strong>는 늘 내일로 밀립니다. 이 메뉴는 사장님 매장을 위한 <strong>24시간 자율 마케팅 비서</strong>를 표방하며, 한 번 로그인해 두고 <strong>SNS 연결·브랜드 DNA·자동 모드</strong>만 맞춰 두면, 캡션·긴 글·틱톡·쇼츠용 대본 등 <strong>콘텐츠 초안</strong>과 (연동된 채널로의) <strong>게시</strong>까지 AI가 대신 짚어 줍니다. 영상 자체의 제작·편집은 채널·API 범위 안에서 단계적으로 넓혀 가는 구조로 이해하시면 됩니다.
+              </blockquote>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-4 mb-10">
+              <div class="rounded-2xl bg-slate-900 text-white p-5 shadow-lg">
+                <p class="text-[10px] font-bold text-violet-300 uppercase tracking-widest mb-2">역할</p>
+                <p class="text-lg font-black leading-snug">꽃만 만지는 사장님의<br /><span class="text-violet-300">마케팅 매니저</span></p>
+              </div>
+              <div class="rounded-2xl border border-white/80 bg-white/90 p-5 shadow-sm">
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">약속</p>
+                <p class="text-sm font-bold text-slate-800 leading-relaxed">전략 → 카피 → 검수 에이전트가 협업하는 <strong>스튜디오형 UI</strong>와, DNA 탭의 <strong>자율 주행(Auto-Pilot)</strong> 스위치로 “매일 자동 생성·업로드” 방향을 화면에 명시합니다.</p>
+              </div>
+              <div class="rounded-2xl border border-amber-200 bg-amber-50/90 p-5">
+                <p class="text-[10px] font-bold text-amber-800 uppercase tracking-widest mb-2">사전 준비</p>
+                <p class="text-xs text-amber-950 leading-relaxed">각 채널 <strong>연결(자동 연결 또는 수동 토큰 입력)</strong>이 되어 있어야 “대신 올리기”가 가능합니다. 인스타그램은 안내에 따라 <strong>비즈니스 계정</strong> 전환이 자동 업로드에 유리하다고 적혀 있습니다.</p>
+              </div>
+            </div>
+
+            <h4 class="text-lg font-black text-slate-900 mb-3 flex items-center gap-2"><span class="w-2 h-8 bg-gradient-to-b from-violet-600 to-indigo-600 rounded-full"></span> 화면 구성 — 세 개의 탭</h4>
+            <div class="space-y-4 mb-10">
+              <div class="rounded-2xl border border-slate-200 bg-white/95 p-5 md:p-6 shadow-sm">
+                <p class="text-sm font-black text-indigo-700 mb-2">① 통합 관제</p>
+                <p class="text-sm text-slate-700 leading-relaxed mb-3">상단 카피대로 <strong>24시간 자율 마케팅 비서</strong>가 “작동 중”인 느낌을 주는 대시보드입니다. 왼쪽에는 <strong>전략 기획</strong>·<strong>콘텐트 작가</strong>·<strong>품질 검수</strong> 세 에이전트 카드가 있고, 클릭하면 오른쪽에 미션·파이프라인·브랜드 가이드라인이 펼쳐집니다.</p>
+                <ul class="text-xs text-slate-600 space-y-1.5 list-disc pl-5 leading-relaxed">
+                  <li><strong>AI 홍보 작전 시작하기</strong> — 버튼 한 번으로 오케스트레이션이 돌아가며, 진행 바와 단계 배지(기획·원고·검수)가 보입니다. 완료 후 <strong>플랫폼별 초안</strong>(제목·본문)이 카드로 뜨고, 준비가 되면 <strong>이대로 포스팅하기</strong>로 게시 API를 호출합니다.</li>
+                  <li>과거 기록 영역(카드)으로 발행 히스토리를 모아 볼 수 있는 자리가 있습니다.</li>
+                </ul>
+              </div>
+              <div class="rounded-2xl border border-slate-200 bg-white/95 p-5 md:p-6 shadow-sm">
+                <p class="text-sm font-black text-indigo-700 mb-2">② SNS 연동 관리</p>
+                <p class="text-sm text-slate-700 leading-relaxed mb-3">Instagram, Facebook, Threads, YouTube Shorts, TikTok, Google Blogger, Naver Blog 등 <strong>채널별 연결 상태</strong>를 한눈에 보고, <strong>자동 연결</strong> 또는 <strong>수동 입력</strong>으로 자격 증명을 등록합니다. TikTok·YouTube 등은 OAuth로 브라우저 이동 후 돌아오는 흐름이 붙어 있습니다.</p>
+                <p class="text-xs text-slate-500 leading-relaxed">오른쪽 어두운 카드에는 “관리자 앱 등록 → 사용자 일회 로그인 → AI가 토큰을 들고 파이프라인으로 전송” 같은 <strong>완전 자동화 원리</strong> 설명이 있습니다. 사장님 입장에서는 <strong>연결만 해 두면 된다</strong>는 메시지로 이해하시면 됩니다.</p>
+              </div>
+              <div class="rounded-2xl border border-slate-200 bg-white/95 p-5 md:p-6 shadow-sm">
+                <p class="text-sm font-black text-indigo-700 mb-2">③ 브랜드 DNA 설정</p>
+                <p class="text-sm text-slate-700 leading-relaxed mb-3"><strong>페르소나</strong>(우아함·따뜻함·트렌디·전문가 등)을 고르고, <strong>홍보 주제</strong> 문장을 여러 개 등록해 두면 AI가 글감을 고를 때 참고합니다. <strong>대상 SNS</strong>는 스위치로 instagram / youtube / naver / tiktok / threads 중 어디에 올릴지 고릅니다.</p>
+                <p class="text-sm text-slate-700 leading-relaxed"><strong>자율 주행 마케팅(Auto-Pilot)</strong> — “24시간 자동 모드” 스위치를 켜면, 안내 문구대로 <strong>매일 트렌디한 주제</strong>를 골라 설정된 페르소나·주제에 맞춰 <strong>콘텐츠를 자동 생성하고 각 SNS에 업로드</strong>한다고 표시됩니다. 끄면 저장만으로는 자동 실행되지 않는다고도 적혀 있습니다. 맨 아래 <strong>DNA 설정 및 자동화 저장</strong>으로 <code>shop_settings</code>에 반영합니다.</p>
+              </div>
+            </div>
+
+            <div class="rounded-2xl border-2 border-violet-300/40 bg-gradient-to-r from-violet-600 to-indigo-700 text-white p-6 md:p-8 shadow-lg">
+              <h4 class="text-base font-black mb-3 tracking-tight">사장님이 하실 일 — 세 줄 요약</h4>
+              <ol class="text-sm space-y-2.5 list-decimal pl-5 leading-relaxed font-medium text-violet-50">
+                <li><strong class="text-white">로그인</strong>해 두고, 마케팅 메뉴에 들어옵니다.</li>
+                <li><strong class="text-white">SNS 연동</strong>과 <strong>브랜드 DNA</strong>(페르소나·주제·대상 채널)를 저장합니다.</li>
+                <li>바쁠 땐 <strong class="text-white">Auto-Pilot ON</strong>으로 맡기고, 여유 있을 땐 <strong class="text-white">AI 홍보 작전 시작하기</strong>로 초안을 보고 수정·포스팅합니다.</li>
+              </ol>
+            </div>
+
+            <div class="mt-8 p-4 rounded-xl bg-slate-100/80 border border-slate-200 text-xs text-slate-600 leading-relaxed">
+              <strong class="text-slate-800">현실적인 안내</strong> 자동 업로드는 채널 API·토큰·매장 정책에 따라 달라질 수 있습니다. 글이 안 올라가면 SNS 탭의 연결 상태와 화면 토스트 메시지를 먼저 확인하고, 필요 시 수동 포스팅으로 초안만이라도 활용해 보세요. 본 메뉴는 <strong>완제품이 아니므로</strong> 업데이트 노트를 수시로 확인해 주세요.
+            </div>
+          </div>
+        </article>
+
+        <!-- POS -->
+        <article id="nav-pos-settings" class="anchor-offset mb-16 border border-gray-200 rounded-2xl p-8 bg-white shadow-sm">
+          <h3 class="text-xl font-bold text-slate-800 mb-1">POS 연동</h3>
+          <p class="text-xs font-mono text-slate-500 mb-4">경로: <code>/dashboard/settings/pos</code></p>
+          <p class="text-sm text-slate-700 mb-4"><strong>개요</strong> 외부 POS와의 연동 타입·키·로그를 설정합니다. 탭(일반·로그 등)을 오가며 연결을 점검합니다.</p>
+        </article>
+
+        <!-- 구독 -->
+        <article id="nav-subscription" class="anchor-offset mb-16 border border-gray-200 rounded-2xl p-8 bg-white shadow-sm">
+          <h3 class="text-xl font-bold text-indigo-800 mb-1">구독 · 플랜</h3>
+          <p class="text-xs font-mono text-slate-500 mb-4">경로: <code>/dashboard/subscription</code></p>
+          <p class="text-sm text-slate-700 mb-4"><strong>개요</strong> PRINT CORE·ERP SMART·PRO 통합 등 플랜 카드를 비교하고, 토스 결제로 기간을 선택해 결제합니다.</p>
+          <p class="text-sm text-slate-700 mb-4"><strong>막힘 해소</strong> 플랜이 낮으면 사이드바에 PRO 전용 메뉴가 보이지 않거나 눌렀을 때 업그레이드 안내가 뜹니다.</p>
+        </article>
+      </section>
+
+    </div>
+  </main>
+
+  <script>
+    // Smooth scroll and active state for sidebar links
+    const sections = document.querySelectorAll('section, article[id^="nav-"], div[id^="settings-"], div[id^="orders-"], div[id^="integration-"], #calendar');
+    const navLinks = document.querySelectorAll('.sidebar-link');
+
+    window.addEventListener('scroll', () => {
+      let current = '';
+      sections.forEach(section => {
+        const sectionTop = section.offsetTop;
+        const sectionHeight = section.clientHeight;
+        if (pageYOffset >= (sectionTop - 150)) {
+          current = section.getAttribute('id');
+        }
+      });
+
+      navLinks.forEach(link => {
+        link.classList.remove('active');
+        const href = link.getAttribute('href') || '';
+        if (current && href === '#' + current) {
+          link.classList.add('active');
+        }
+      });
+    });
+
+    document.querySelectorAll('.sidebar-link').forEach(anchor => {
+      anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth' });
+        }
+      });
+    });
+  </script>
+</body>
+</html>

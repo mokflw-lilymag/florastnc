@@ -8,6 +8,8 @@ import {
   QUOTE_SUGGESTIONS
 } from '@/lib/constants/ContentSuggestions';
 import { useEditorStore } from '@/stores/design-store';
+import { usePreferredLocale } from '@/hooks/use-preferred-locale';
+import { getMessages } from '@/i18n/getMessages';
 
 interface SuggestionModalProps {
   isOpen: boolean;
@@ -16,6 +18,8 @@ interface SuggestionModalProps {
 }
 
 export const SuggestionModal: React.FC<SuggestionModalProps> = ({ isOpen, onClose, type }) => {
+  const locale = usePreferredLocale();
+  const D = getMessages(locale).dashboard.designStudio;
   const {
     addTextBlock,
     removeTextBlock,
@@ -127,9 +131,9 @@ export const SuggestionModal: React.FC<SuggestionModalProps> = ({ isOpen, onClos
             </div>
             <div>
               <h3 className="text-xl font-black text-gray-800 tracking-tight">
-                {type === 'quote' ? '명언 라이브러리' : '추천 메시지 찾기'}
+                {type === 'quote' ? D.suggestionQuote : D.suggestionMessage}
               </h3>
-              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.2em] mt-1">PRO-CONTENT LIBRARY</p>
+              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.2em] mt-1">{D.suggestionLibraryBadge}</p>
             </div>
           </div>
           <button onClick={onClose} className="w-10 h-10 rounded-full bg-white hover:bg-gray-100 flex items-center justify-center transition-colors shadow-sm border border-gray-100">
@@ -140,9 +144,9 @@ export const SuggestionModal: React.FC<SuggestionModalProps> = ({ isOpen, onClos
         <div className="flex flex-1 overflow-hidden">
           {/* Sidebar */}
           <aside className="w-64 bg-gray-50/50 border-r border-gray-100 p-6 shrink-0 overflow-y-auto custom-scrollbar">
-            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-6 px-1">THEME CATEGORY</label>
+            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-6 px-1">{D.suggestionThemeCategory}</label>
             <div className="space-y-1.5">
-              {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
+              {Object.keys(CATEGORY_LABELS).map((key) => (
                 <button
                   key={key}
                   onClick={() => setSelectedCategory(key)}
@@ -151,7 +155,7 @@ export const SuggestionModal: React.FC<SuggestionModalProps> = ({ isOpen, onClos
                     : 'text-gray-500 hover:bg-white hover:text-gray-800 border border-transparent hover:border-gray-200'
                     }`}
                 >
-                  <span>{label}</span>
+                  <span>{(D as Record<string, string>)[`suggestionCat_${key}`] ?? CATEGORY_LABELS[key]}</span>
                   {selectedCategory === key && <ArrowRight size={14} className="animate-pulse" />}
                 </button>
               ))}
@@ -163,20 +167,20 @@ export const SuggestionModal: React.FC<SuggestionModalProps> = ({ isOpen, onClos
             {/* Lang Toggle */}
             <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-white/50 px-8">
               <div className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-tighter">
-                <Languages size={14} /> LANGUAGE SELECT
+                <Languages size={14} /> {D.suggestionLangSelect}
               </div>
               <div className="flex p-1 bg-gray-100 rounded-xl">
                 <button
                   onClick={() => setSelectedLang('ko')}
                   className={`px-6 py-1.5 text-xs font-black rounded-lg transition-all ${selectedLang === 'ko' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
                 >
-                  한국어
+                  {D.suggestionKo}
                 </button>
                 <button
                   onClick={() => setSelectedLang('en')}
                   className={`px-6 py-1.5 text-xs font-black rounded-lg transition-all ${selectedLang === 'en' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
                 >
-                  English
+                  {D.suggestionEn}
                 </button>
               </div>
             </div>
@@ -211,7 +215,7 @@ export const SuggestionModal: React.FC<SuggestionModalProps> = ({ isOpen, onClos
               {suggestions.length === 0 && (
                 <div className="col-span-full py-24 flex flex-col items-center justify-center text-gray-300 animate-pulse">
                   <MessageSquareText size={48} className="mb-4 opacity-10" />
-                  <p className="text-sm font-black">내용을 준비 중입니다.</p>
+                  <p className="text-sm font-black">{D.suggestionEmpty}</p>
                 </div>
               )}
             </div>

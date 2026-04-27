@@ -1,0 +1,245 @@
+{
+  "KR": {
+    "countryCode": "KR",
+    "localeRecommendation": "ko",
+    "recommendedStack": {
+      "chat": "KakaoTalk",
+      "delivery": "Kakao T + 자체배송",
+      "payment": "카드/계좌이체",
+      "tax": "VAT 10% 또는 면세"
+    },
+    "settings": {
+      "currency": "KRW",
+      "isTaxExempt": false,
+      "defaultTaxRate": 10,
+      "useKakaoTalk": true,
+      "autoDeliveryBooking": true,
+      "deliveryCarriers": ["Kakao T", "자체배송"]
+    }
+  },
+  "VN": {
+    "countryCode": "VN",
+    "localeRecommendation": "vi",
+    "recommendedStack": {
+      "chat": "Zalo",
+      "delivery": "Grab",
+      "payment": "QR/계좌이체",
+      "tax": "VAT 신고형"
+    },
+    "settings": {
+      "currency": "VND",
+      "isTaxExempt": false,
+      "defaultTaxRate": 10,
+      "autoDeliveryBooking": true,
+      "deliveryCarriers": ["Grab", "자체배송"]
+    }
+  },
+  "CN": {
+    "countryCode": "CN",
+    "localeRecommendation": "zh",
+    "recommendedStack": {
+      "chat": "WeChat",
+      "delivery": "지역 배송사 + 자체배송",
+      "payment": "WeChat Pay / Alipay",
+      "tax": "전자증빙(Fapiao) 체계"
+    },
+    "settings": {
+      "currency": "CNY",
+      "isTaxExempt": false,
+      "defaultTaxRate": 13,
+      "deliveryCarriers": ["지역 배송사", "자체배송"]
+    }
+  },
+  "JP": {
+    "countryCode": "JP",
+    "localeRecommendation": "ja",
+    "recommendedStack": {
+      "chat": "LINE",
+      "delivery": "Yamato/Sagawa + 자체배송",
+      "payment": "카드/계좌이체",
+      "tax": "소비세 표기 준수"
+    },
+    "settings": {
+      "currency": "JPY",
+      "isTaxExempt": false,
+      "defaultTaxRate": 10,
+      "deliveryCarriers": ["Yamato/Sagawa", "자체배송"]
+    }
+  },
+  "ES": {
+    "countryCode": "ES",
+    "localeRecommendation": "es-ES",
+    "recommendedStack": {
+      "chat": "WhatsApp",
+      "delivery": "Glovo/Uber Direct + 자체배송",
+      "payment": "카드/이체",
+      "tax": "IVA 신고 체계"
+    },
+    "settings": {
+      "currency": "EUR",
+      "isTaxExempt": false,
+      "defaultTaxRate": 21,
+      "deliveryCarriers": ["Glovo/Uber Direct", "자체배송"]
+    }
+  },
+  "US": {
+    "countryCode": "US",
+    "localeRecommendation": "en-US",
+    "recommendedStack": {
+      "chat": "SMS/Instagram/WhatsApp",
+      "delivery": "Uber/Doordash + 자체배송",
+      "payment": "Card/Stripe",
+      "tax": "주별 Sales tax"
+    },
+    "settings": {
+      "currency": "USD",
+      "isTaxExempt": false,
+      "defaultTaxRate": 8,
+      "deliveryCarriers": ["Uber/Doordash", "자체배송"]
+    }
+  },
+  "GB": {
+    "countryCode": "GB",
+    "localeRecommendation": "en-GB",
+    "recommendedStack": {
+      "chat": "WhatsApp",
+      "delivery": "로컬 퀵 + 자체배송",
+      "payment": "Card/OpenBanking",
+      "tax": "VAT 체계"
+    },
+    "settings": {
+      "currency": "GBP",
+      "isTaxExempt": false,
+      "defaultTaxRate": 20,
+      "deliveryCarriers": ["로컬 퀵", "자체배송"]
+    }
+  },
+  "FR": {
+    "countryCode": "FR",
+    "localeRecommendation": "fr-FR",
+    "recommendedStack": {
+      "chat": "WhatsApp/Instagram",
+      "delivery": "Stuart/Chronopost + 자체배송",
+      "payment": "카드/계좌이체",
+      "tax": "TVA 체계"
+    },
+    "settings": {
+      "currency": "EUR",
+      "isTaxExempt": false,
+      "defaultTaxRate": 20,
+      "deliveryCarriers": ["Stuart/Chronopost", "자체배송"]
+    }
+  },
+  "DE": {
+    "countryCode": "DE",
+    "localeRecommendation": "de-DE",
+    "recommendedStack": {
+      "chat": "WhatsApp",
+      "delivery": "DHL + 자체배송",
+      "payment": "Card/SEPA",
+      "tax": "USt 체계"
+    },
+    "settings": {
+      "currency": "EUR",
+      "isTaxExempt": false,
+      "defaultTaxRate": 19,
+      "deliveryCarriers": ["DHL", "자체배송"]
+    }
+  },
+  "CA": {
+    "countryCode": "CA",
+    "localeRecommendation": "en-CA",
+    "recommendedStack": {
+      "chat": "SMS/WhatsApp",
+      "delivery": "Uber local delivery",
+      "payment": "Card/Interac",
+      "tax": "GST/HST/PST"
+    },
+    "settings": {
+      "currency": "CAD",
+      "isTaxExempt": false,
+      "defaultTaxRate": 13,
+      "deliveryCarriers": ["Uber Local", "자체배송"]
+    }
+  },
+  "AU": {
+    "countryCode": "AU",
+    "localeRecommendation": "en-AU",
+    "recommendedStack": {
+      "chat": "SMS/Instagram",
+      "delivery": "DoorDash/Uber + 자체배송",
+      "payment": "Card/PayID",
+      "tax": "GST 10%"
+    },
+    "settings": {
+      "currency": "AUD",
+      "isTaxExempt": false,
+      "defaultTaxRate": 10,
+      "deliveryCarriers": ["DoorDash/Uber", "자체배송"]
+    }
+  },
+  "SG": {
+    "countryCode": "SG",
+    "localeRecommendation": "en-SG",
+    "recommendedStack": {
+      "chat": "WhatsApp",
+      "delivery": "Grab",
+      "payment": "PayNow/Card",
+      "tax": "GST 체계"
+    },
+    "settings": {
+      "currency": "SGD",
+      "isTaxExempt": false,
+      "defaultTaxRate": 9,
+      "deliveryCarriers": ["Grab", "자체배송"]
+    }
+  },
+  "BR": {
+    "countryCode": "BR",
+    "localeRecommendation": "pt-BR",
+    "recommendedStack": {
+      "chat": "WhatsApp",
+      "delivery": "iFood/Loggi + 자체배송",
+      "payment": "PIX + 카드",
+      "tax": "NFe 복잡세"
+    },
+    "settings": {
+      "currency": "BRL",
+      "isTaxExempt": false,
+      "defaultTaxRate": 12,
+      "deliveryCarriers": ["iFood/Loggi", "자체배송"]
+    }
+  },
+  "MX": {
+    "countryCode": "MX",
+    "localeRecommendation": "es-MX",
+    "recommendedStack": {
+      "chat": "WhatsApp",
+      "delivery": "Rappi/Uber",
+      "payment": "SPEI + 카드",
+      "tax": "CFDI 전자세금계산"
+    },
+    "settings": {
+      "currency": "MXN",
+      "isTaxExempt": false,
+      "defaultTaxRate": 16,
+      "deliveryCarriers": ["Rappi/Uber", "자체배송"]
+    }
+  },
+  "RU": {
+    "countryCode": "RU",
+    "localeRecommendation": "ru-RU",
+    "recommendedStack": {
+      "chat": "Telegram/WhatsApp",
+      "delivery": "Yandex Go + 자체배송",
+      "payment": "로컬 카드/계좌",
+      "tax": "VAT 영수증 체계"
+    },
+    "settings": {
+      "currency": "RUB",
+      "isTaxExempt": false,
+      "defaultTaxRate": 20,
+      "deliveryCarriers": ["Yandex Go", "자체배송"]
+    }
+  }
+}

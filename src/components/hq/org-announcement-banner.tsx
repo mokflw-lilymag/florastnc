@@ -10,6 +10,8 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { LinkifiedText } from "@/components/ui/linkified-text";
 import { htmlToPlainText } from "@/lib/html-plain-text";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
 
 type Ann = {
   id: string;
@@ -31,6 +33,9 @@ export function OrgAnnouncementBanner() {
   const [list, setList] = useState<Ann[]>([]);
   const [dismissTick, setDismissTick] = useState(0);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const locale = usePreferredLocale();
+  const isKo = toBaseLocale(locale) === "ko";
+  const tr = (ko: string, en: string) => (isKo ? ko : en);
 
   useEffect(() => {
     if (isLoading || isSuperAdmin) return;
@@ -70,7 +75,7 @@ export function OrgAnnouncementBanner() {
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(typeof json?.error === "string" ? json.error : "확인 기록에 실패했습니다.");
+        toast.error(typeof json?.error === "string" ? json.error : tr("확인 기록에 실패했습니다.", "Failed to save read confirmation."));
         return;
       }
       await refetchAnnouncements();
@@ -130,7 +135,7 @@ export function OrgAnnouncementBanner() {
             <Megaphone className="h-4 w-4 shrink-0 mt-0.5 opacity-80" aria-hidden />
             <div className="min-w-0 space-y-1">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                본사 공지
+                {tr("본사 공지", "HQ announcement")}
                 {a.organization_name ? ` · ${a.organization_name}` : ""}
               </p>
               <p className="text-sm font-bold leading-snug">{a.title}</p>
@@ -157,7 +162,7 @@ export function OrgAnnouncementBanner() {
                 {a.confirmedAt ? (
                   <span className="inline-flex items-center gap-1 rounded-full bg-white/60 px-2 py-0.5 text-[10px] font-semibold text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200">
                     <CheckCircle2 className="h-3 w-3" aria-hidden />
-                    본사에 확인 기록됨
+                    {tr("본사에 확인 기록됨", "Confirmed to HQ")}
                   </span>
                 ) : (
                   <Button
@@ -171,10 +176,10 @@ export function OrgAnnouncementBanner() {
                     {confirmingId === a.id ? (
                       <>
                         <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                        처리 중…
+                        {tr("처리 중…", "Processing...")}
                       </>
                     ) : (
-                      "내용 확인(본사에 전달)"
+                      tr("내용 확인(본사에 전달)", "Confirm content (notify HQ)")
                     )}
                   </Button>
                 )}
@@ -182,7 +187,7 @@ export function OrgAnnouncementBanner() {
                   href="/dashboard/org-board"
                   className="text-[10px] font-semibold underline underline-offset-2 opacity-90 hover:opacity-100"
                 >
-                  본사 게시판
+                  {tr("본사 게시판", "HQ board")}
                 </Link>
               </div>
             </div>
@@ -193,7 +198,7 @@ export function OrgAnnouncementBanner() {
             size="icon"
             className="absolute right-1 top-1 h-8 w-8 text-current opacity-60 hover:opacity-100"
             onClick={() => dismiss(a.id)}
-            aria-label="닫기"
+            aria-label={tr("닫기", "Close")}
           >
             <X className="h-4 w-4" />
           </Button>
