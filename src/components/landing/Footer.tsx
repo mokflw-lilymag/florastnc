@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { Cpu, Github, Monitor, Terminal } from 'lucide-react';
 import { AppLocale } from '@/i18n/config';
 
 export function Footer({ locale }: { locale?: AppLocale }) {
