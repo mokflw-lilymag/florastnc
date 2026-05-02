@@ -1,4 +1,5 @@
 "use client";
+import { getMessages } from "@/i18n/getMessages";
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -47,10 +48,8 @@ export default function OrderDetailPage() {
   const { orders, loading, updateOrder, deleteOrder } = useOrders();
   const [order, setOrder] = useState<Order | null>(null);
   const locale = usePreferredLocale();
-  const isKo = toBaseLocale(locale) === "ko";
-  const tr = (ko: string, en: string) => (isKo ? ko : en);
-
-  useEffect(() => {
+  const tf = getMessages(locale).tenantFlows;
+  const isKo = toBaseLocale(locale) === "ko";  useEffect(() => {
     if (!loading && orders.length > 0) {
       const found = orders.find(o => o.id === id);
       if (found) {
@@ -63,7 +62,7 @@ export default function OrderDetailPage() {
     return (
       <div className="p-6 space-y-6 max-w-5xl mx-auto flex flex-col items-center justify-center min-h-[60vh]">
         <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4" />
-        <p className="text-slate-500 font-medium">{tr("주문 정보를 불러오는 중...", "Loading order details...")}</p>
+        <p className="text-slate-500 font-medium">{tf.f00618}</p>
       </div>
     );
   }
@@ -72,13 +71,13 @@ export default function OrderDetailPage() {
     return (
       <div className="p-6 space-y-6 max-w-5xl mx-auto">
         <Button variant="ghost" onClick={() => router.back()} className="mb-4">
-          <ArrowLeft className="w-4 h-4 mr-2" /> {tr("뒤로 가기", "Back")}
+          <ArrowLeft className="w-4 h-4 mr-2" /> {tf.f00162}
         </Button>
         <Card className="border-dashed py-20">
           <CardContent className="flex flex-col items-center justify-center text-center">
             <AlertCircle className="w-12 h-12 text-slate-300 mb-4" />
-            <h2 className="text-xl font-bold text-slate-900">{tr("주문을 찾을 수 없습니다", "Order not found")}</h2>
-            <p className="text-slate-500 mt-2">{tr("요청하신 주문이 존재하지 않거나 접근 권한이 없습니다.", "The order does not exist or you do not have access.")}</p>
+            <h2 className="text-xl font-bold text-slate-900">{tf.f00634}</h2>
+            <p className="text-slate-500 mt-2">{tf.f00484}</p>
           </CardContent>
         </Card>
       </div>
@@ -88,15 +87,15 @@ export default function OrderDetailPage() {
   const handleStatusUpdate = async (status: string) => {
     const success = await updateOrder(order.id, { status: status as any });
     if (success) {
-      toast.success(tr('주문 상태가 업데이트되었습니다.', 'Order status updated.'));
+      toast.success(tf.f00599);
     }
   };
 
   const statusLabels: Record<string, string> = {
-    pending: tr("주문 대기", "Pending"),
-    processing: tr("처리 중", "Processing"),
-    completed: tr("완료", "Completed"),
-    canceled: tr("취소", "Canceled")
+    pending: tf.f00590,
+    processing: tf.f00676,
+    completed: tf.f00471,
+    canceled: tf.f00702
   };
 
   return (
@@ -108,11 +107,11 @@ export default function OrderDetailPage() {
           onClick={() => router.back()} 
           className="rounded-full shadow-sm bg-white hover:bg-slate-50 border-slate-200 text-slate-600 font-bold px-4"
         >
-          <ArrowLeft className="w-4 h-4 mr-2" /> {tr("목록으로", "Back to list")}
+          <ArrowLeft className="w-4 h-4 mr-2" /> {tf.f00215}
         </Button>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" className="rounded-full gap-2 font-bold bg-white text-slate-700 h-9" onClick={() => window.print()}>
-            <Printer className="w-4 h-4" /> {tr("프린트", "Print")}
+            <Printer className="w-4 h-4" /> {tf.f00751}
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger>
@@ -122,18 +121,18 @@ export default function OrderDetailPage() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="rounded-2xl p-1.5 shadow-xl border-slate-100 min-w-[160px]">
               <DropdownMenuItem onClick={() => router.push(`/dashboard/orders/${order.id}`)} className="rounded-lg gap-2 font-medium">
-                <ExternalLink className="w-4 h-4 text-blue-500" /> {tr("상세 보기", "View Details")}
+                <ExternalLink className="w-4 h-4 text-blue-500" /> {tf.f00314}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => router.push(`/dashboard/orders?edit=${order.id}`)} className="rounded-xl gap-2 font-bold py-2.5">
-                <FileEdit className="w-4 h-4 text-indigo-500" /> {tr("주문 수정", "Edit Order")}
+                <FileEdit className="w-4 h-4 text-indigo-500" /> {tf.f00602}
               </DropdownMenuItem>
               <DropdownMenuItem className="rounded-xl gap-2 font-bold py-2.5 text-rose-600" onClick={async () => {
-                if (confirm(tr('정말로 이 주문을 삭제하시겠습니까?', 'Are you sure you want to delete this order?'))) {
+                if (confirm(tf.f00565)) {
                   await deleteOrder(order.id);
                   router.push('/dashboard/orders');
                 }
               }}>
-                <Trash2 className="w-4 h-4" /> {tr("주문 삭제", "Delete Order")}
+                <Trash2 className="w-4 h-4" /> {tf.f00595}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -158,11 +157,11 @@ export default function OrderDetailPage() {
                   <span className="text-[11px] font-black text-slate-300 uppercase tracking-widest leading-none">#{order.order_number}</span>
                 </div>
                 <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-                  {order.items[0]?.name || tr("커스텀 주문", "Custom Order")} {order.items.length > 1 ? (isKo ? `외 ${order.items.length - 1}건` : `+ ${order.items.length - 1} more`) : ""}
+                  {order.items[0]?.name || tf.f00715} {order.items.length > 1 ? (isKo ? `외 ${order.items.length - 1}건` : `+ ${order.items.length - 1} more`) : ""}
                 </h1>
               </div>
               <div className="md:text-right">
-                <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">{tr("총 결제 금액", "Total Paid")}</div>
+                <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">{tf.f00683}</div>
                 <div className="text-2xl font-black text-indigo-600">₩{(order.summary?.total || 0).toLocaleString()}</div>
               </div>
             </div>
@@ -171,14 +170,14 @@ export default function OrderDetailPage() {
               <div className="bg-slate-50/50 rounded-2xl p-5 border border-slate-100 flex flex-wrap gap-6 items-center">
                  <div className="space-y-1">
                    <div className="text-[10px] font-bold text-slate-400 flex items-center gap-1.5">
-                     <Calendar className="w-3 h-3" /> {tr("주문 일시", "Order Date")}
+                     <Calendar className="w-3 h-3" /> {tf.f00607}
                    </div>
                    <div className="text-sm font-bold text-slate-700">{format(parseISO(order.order_date), isKo ? 'yyyy년 MM월 dd일 HH:mm' : 'yyyy-MM-dd HH:mm')}</div>
                  </div>
                  <div className="space-y-1">
                    <div className="text-[10px] font-bold text-slate-400 flex items-center gap-1.5">
                      {order.receipt_type === 'pickup_reservation' ? <Store className="w-3 h-3" /> : <Truck className="w-3 h-3" />}
-                     {order.receipt_type === 'pickup_reservation' ? tr('픽업 예정', 'Pickup') : tr('배송 예정', 'Delivery')}
+                     {order.receipt_type === 'pickup_reservation' ? tf.f00754 : tf.f00246}
                    </div>
                    <div className="text-sm font-bold text-slate-700">
                      {order.receipt_type === 'pickup_reservation' 
@@ -189,16 +188,16 @@ export default function OrderDetailPage() {
                  </div>
                  <div className="space-y-1">
                    <div className="text-[10px] font-bold text-slate-400 flex items-center gap-1.5">
-                     <CreditCard className="w-3 h-3" /> {tr("결제 수단", "Payment Method")}
+                     <CreditCard className="w-3 h-3" /> {tf.f00049}
                    </div>
-                   <div className="text-sm font-bold text-slate-700 uppercase">{order.payment.method || tr('미지정', 'N/A')} ({order.payment.status === 'paid' ? tr('결제완료', 'Paid') : tr('결제전', 'Unpaid')})</div>
+                   <div className="text-sm font-bold text-slate-700 uppercase">{order.payment.method || tf.f00224} ({order.payment.status === 'paid' ? tf.f00053 : tf.f00054})</div>
                  </div>
               </div>
 
               <div className="mt-8">
                 <h3 className="text-sm font-black text-slate-800 mb-4 flex items-center gap-2">
                   <div className="w-1.5 h-4 bg-indigo-600 rounded-full" />
-                  {tr("주문 상품 상세", "Order Items")}
+                  {tf.f00601}
                 </h3>
                 <div className="space-y-3">
                   {order.items.map((item, idx) => (
@@ -209,7 +208,7 @@ export default function OrderDetailPage() {
                         </div>
                         <div>
                           <div className="font-bold text-slate-900">{item.name}</div>
-                          <div className="text-[11px] text-slate-500">{tr("수량", "Qty")}: {item.quantity} | {tr("단가", "Unit")}: ₩{item.price.toLocaleString()}</div>
+                          <div className="text-[11px] text-slate-500">{tf.f00377}: {item.quantity} | {tf.f00148}: ₩{item.price.toLocaleString()}</div>
                         </div>
                       </div>
                       <div className="text-sm font-black text-slate-900">₩{(item.price * item.quantity).toLocaleString()}</div>
@@ -219,22 +218,22 @@ export default function OrderDetailPage() {
 
                 <div className="mt-4 p-4 rounded-2xl bg-indigo-50/30 border border-indigo-50 flex flex-col gap-2">
                    <div className="flex justify-between text-xs font-medium text-slate-600">
-                      <span>{tr("상품 소계", "Subtotal")}</span>
+                      <span>{tf.f00330}</span>
                       <span>₩{(order.summary?.subtotal || 0).toLocaleString()}</span>
                    </div>
                    <div className="flex justify-between text-xs font-medium text-slate-600">
-                      <span>{tr("배송비", "Delivery Fee")}</span>
+                      <span>{tf.f00259}</span>
                       <span>+ ₩{(order.summary?.deliveryFee || 0).toLocaleString()}</span>
                    </div>
                    {(order.summary?.discountAmount || 0) > 0 && (
                      <div className="flex justify-between text-xs font-medium text-rose-500">
-                        <span>{tr("할인 금액", "Discount")}</span>
+                        <span>{tf.f00760}</span>
                         <span>- ₩{(order.summary?.discountAmount || 0).toLocaleString()}</span>
                      </div>
                    )}
                    <Separator className="my-1 bg-indigo-100" />
                    <div className="flex justify-between text-sm font-black text-indigo-700">
-                      <span>{tr("최종 결제 금액", "Final Total")}</span>
+                      <span>{tf.f00692}</span>
                       <span>₩{(order.summary?.total || 0).toLocaleString()}</span>
                    </div>
                 </div>
@@ -246,11 +245,11 @@ export default function OrderDetailPage() {
                     <div className="space-y-3">
                       <h3 className="text-sm font-black text-slate-800 flex items-center gap-2">
                         <div className="w-1.5 h-4 bg-rose-500 rounded-full" />
-                        {tr("메시지 카드/리본 내용", "Card/Ribbon Message")}
+                        {tf.f00208}
                       </h3>
                       <div className="p-5 rounded-3xl bg-rose-50/30 border border-rose-100 italic text-slate-700 text-sm leading-relaxed">
                         "{order.message.content}"
-                        <div className="mt-3 text-[11px] font-bold text-rose-400 not-italic uppercase tracking-wider">— {order.message.sender || tr('보내는 분', 'Sender')}</div>
+                        <div className="mt-3 text-[11px] font-bold text-rose-400 not-italic uppercase tracking-wider">— {order.message.sender || tf.f00281}</div>
                       </div>
                     </div>
                   )}
@@ -258,7 +257,7 @@ export default function OrderDetailPage() {
                     <div className="space-y-3">
                       <h3 className="text-sm font-black text-slate-800 flex items-center gap-2">
                         <div className="w-1.5 h-4 bg-slate-400 rounded-full" />
-                        {tr("관리자 메모", "Admin Memo")}
+                        {tf.f00088}
                       </h3>
                       <div className="p-5 rounded-3xl bg-slate-50 border border-slate-100 text-slate-600 text-sm">
                         {order.memo}
@@ -275,13 +274,13 @@ export default function OrderDetailPage() {
           <Card className="rounded-3xl border-none shadow-sm overflow-hidden bg-white">
             <CardHeader className="bg-slate-50/50 border-b p-5">
                <CardTitle className="text-sm font-black text-slate-800 flex items-center gap-2">
-                 <User className="w-4 h-4 text-indigo-500" /> {tr("주문 정보", "Order Info")}
+                 <User className="w-4 h-4 text-indigo-500" /> {tf.f00615}
                </CardTitle>
             </CardHeader>
             <CardContent className="p-5 space-y-6">
                <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">{tr("주문자", "Orderer")}</Label>
+                    <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">{tf.f00640}</Label>
                     <div className="flex items-center justify-between">
                       <div className="font-bold text-slate-900">{order.orderer.name}</div>
                       <div className="flex gap-1">
@@ -296,12 +295,12 @@ export default function OrderDetailPage() {
                   <Separator className="bg-slate-50" />
 
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">{tr("수령인 / 받는 분", "Recipient")}</Label>
+                    <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">{tf.f00385}</Label>
                     <div className="flex items-center justify-between">
                       <div className="font-bold text-slate-900">
                         {order.receipt_type === 'pickup_reservation' 
                           ? order.pickup_info?.pickerName || order.orderer.name
-                          : order.delivery_info?.recipientName || tr('수령인 정보 없음', 'No recipient info')
+                          : order.delivery_info?.recipientName || tf.f00386
                         }
                       </div>
                     </div>
@@ -325,25 +324,25 @@ export default function OrderDetailPage() {
           <Card className="rounded-3xl border-none shadow-sm overflow-hidden bg-indigo-900 text-white">
             <CardHeader className="pb-3 p-5">
                <CardTitle className="text-sm font-bold flex items-center gap-2">
-                 <Receipt className="w-4 h-4 text-indigo-300" /> {tr("지출 연동 정보", "Expense Link Info")}
+                 <Receipt className="w-4 h-4 text-indigo-300" /> {tf.f00667}
                </CardTitle>
             </CardHeader>
             <CardContent className="p-5 pt-0 space-y-4">
               <div className="space-y-3">
                  <div className="bg-white/10 rounded-2xl p-4 border border-white/5">
-                   <div className="text-[10px] font-bold text-indigo-200 uppercase tracking-widest mb-1">{tr("실지불 배송비 (지출용)", "Actual delivery cost (expense)")}</div>
+                   <div className="text-[10px] font-bold text-indigo-200 uppercase tracking-widest mb-1">{tf.f00423}</div>
                    <div className="text-xl font-black">₩{(order.actual_delivery_cost || 0).toLocaleString()}</div>
-                   <div className="text-[10px] text-indigo-300 mt-1 italic">{tr("* 이 금액이 지출 관리로 자동 연동됩니다.", "* This amount is auto-synced to expenses.")}</div>
+                   <div className="text-[10px] text-indigo-300 mt-1 italic">{tf.f00004}</div>
                  </div>
                  
                  <div className="space-y-1.5 px-1">
                    <div className="flex justify-between text-xs">
-                     <span className="text-indigo-200">{tr("배송 수취액 (매출)", "Delivery income (sales)")}</span>
+                     <span className="text-indigo-200">{tf.f00244}</span>
                      <span className="font-bold font-mono">₩{(order.summary?.deliveryFee || 0).toLocaleString()}</span>
                    </div>
                    <div className="flex justify-between text-xs">
-                     <span className="text-indigo-200">{tr("배송 결제 수단", "Delivery payment method")}</span>
-                     <span className="font-bold uppercase">{order.actual_delivery_payment_method || tr('현금', 'cash')}</span>
+                     <span className="text-indigo-200">{tf.f00242}</span>
+                     <span className="font-bold uppercase">{order.actual_delivery_payment_method || tf.f00769}</span>
                    </div>
                  </div>
               </div>
@@ -353,7 +352,7 @@ export default function OrderDetailPage() {
                 className="w-full bg-indigo-800 border-indigo-700 text-white hover:bg-indigo-700 font-bold rounded-2xl"
                 onClick={() => router.push(`/dashboard/orders?edit=${order.id}`)}
               >
-                {tr("상세 배송비 수정하기", "Edit delivery cost details")}
+                {tf.f00313}
               </Button>
             </CardContent>
           </Card>

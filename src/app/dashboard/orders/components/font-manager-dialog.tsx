@@ -1,4 +1,5 @@
 "use client";
+import { getMessages } from "@/i18n/getMessages";
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -25,9 +26,8 @@ interface FontManagerDialogProps {
 
 export function FontManagerDialog({ isOpen, onOpenChange, onFontsChanged }: FontManagerDialogProps) {
     const locale = usePreferredLocale();
-    const isKo = toBaseLocale(locale) === "ko";
-    const tr = (ko: string, en: string) => (isKo ? ko : en);
-    const [activeFonts, setActiveFontsState] = useState<string[]>([]);
+    const tf = getMessages(locale).tenantFlows;
+    const isKo = toBaseLocale(locale) === "ko";    const [activeFonts, setActiveFontsState] = useState<string[]>([]);
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
     const [search, setSearch] = useState("");
 
@@ -74,10 +74,10 @@ export function FontManagerDialog({ isOpen, onOpenChange, onFontsChanged }: Font
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <Wand2 className="h-5 w-5 text-primary" />
-                        {tr("폰트 마법사", "Font Wizard")}
+                        {tf.f00739}
                     </DialogTitle>
                     <DialogDescription>
-                        {tr("원하는 폰트를 선택하면 메시지 인쇄 시 사용할 수 있습니다.", "Select fonts to use in message printing.")}
+                        {tf.f00491}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -91,7 +91,7 @@ export function FontManagerDialog({ isOpen, onOpenChange, onFontsChanged }: Font
                         <Input
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            placeholder={tr("폰트 이름으로 검색...", "Search font name...")}
+                            placeholder={tf.f00740}
                             className="pl-9"
                         />
                     </div>
@@ -103,7 +103,7 @@ export function FontManagerDialog({ isOpen, onOpenChange, onFontsChanged }: Font
                             size="sm"
                             onClick={() => setSelectedCategory('all')}
                         >
-                            {tr("전체", "All")} ({FONT_CATALOG.length})
+                            {tf.f00553} ({FONT_CATALOG.length})
                         </Button>
                         {FONT_CATEGORIES.map(cat => (
                             <Button
@@ -173,13 +173,13 @@ export function FontManagerDialog({ isOpen, onOpenChange, onFontsChanged }: Font
                 <DialogFooter className="pt-3 border-t">
                     <div className="flex-1 flex items-center gap-2 text-sm text-muted-foreground">
                         <Star className="h-4 w-4" />
-                        <span>{tr("활성 폰트", "Active fonts")} <strong className="text-foreground">{activeFonts.length}</strong>{tr("개", "")}</span>
+                        <span>{tf.f00777} <strong className="text-foreground">{activeFonts.length}</strong>{tf.f00025}</span>
                     </div>
                     <DialogClose render={<Button type="button" variant="secondary" />}>
-                        {tr("취소", "Cancel")}
+                        {tf.f00702}
                     </DialogClose>
                     <Button type="button" onClick={handleSave}>
-                        {tr("저장", "Save")}
+                        {tf.f00539}
                     </Button>
                 </DialogFooter>
             </DialogContent>

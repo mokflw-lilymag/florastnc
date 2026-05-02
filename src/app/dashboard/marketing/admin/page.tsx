@@ -1,3 +1,4 @@
+import { getMessages } from "@/i18n/getMessages";
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -30,6 +31,7 @@ export default function MarketingAdmin() {
   const [config, setConfig] = useState<any>({});
   const supabase = createClient();
   const locale = usePreferredLocale();
+  const tf = getMessages(locale).tenantFlows;
   const baseLocale = toBaseLocale(locale);
   const tr = (koText: string, enText: string) => (baseLocale === 'ko' ? koText : enText);
 
@@ -40,7 +42,7 @@ export default function MarketingAdmin() {
   const fetchConfig = async () => {
     const { data, error } = await supabase.from('platform_config').select('*');
     if (error) {
-      toast.error(`${tr('설정 불러오기 실패', 'Failed to load settings')}: ${error.message}`);
+      toast.error(`${tf.f01414}: ${error.message}`);
       return;
     }
     if (data) {
@@ -67,14 +69,11 @@ export default function MarketingAdmin() {
         msg.includes('policy');
       toast.error(
         rlsBlocked
-          ? tr(
-              '저장 권한이 없습니다. Supabase SQL Editor에서 supabase/platform_config_schema.sql을 실행했는지, super_admin 계정으로 로그인했는지 확인하세요.',
-              'No permission to save. Run supabase/platform_config_schema.sql in Supabase SQL Editor and sign in as super_admin.'
-            )
-          : `${tr('설정 저장 실패', 'Save failed')}: ${error.message}`
+          ? tf.f01768
+          : `${tf.f01417}: ${error.message}`
       );
     } else {
-      toast.success(tr('설정이 저장되었습니다.', 'Settings saved.'));
+      toast.success(tf.f01424);
       fetchConfig();
     }
     setLoading(false);
@@ -88,18 +87,18 @@ export default function MarketingAdmin() {
             <div className="bg-slate-900 text-white p-2 rounded-lg">
               <ShieldCheck className="w-6 h-6" />
             </div>
-            <h1 className="text-4xl font-black tracking-tight">{tr('플랫폼 홍보 마스터 센터', 'Platform marketing control')}</h1>
+            <h1 className="text-4xl font-black tracking-tight">{tf.f02152}</h1>
           </div>
-          <p className="text-muted-foreground">{tr('전체 화원사들의 AI 홍보 엔진을 구동하기 위한 글로벌 API 및 시스템 설정을 관리합니다.', 'Global API and system settings for the tenant marketing engine.')}</p>
+          <p className="text-muted-foreground">{tf.f01808}</p>
         </div>
       </div>
 
       <Tabs defaultValue="sns" className="w-full">
         <TabsList className="grid w-full max-w-2xl grid-cols-4 mb-8 h-12 bg-slate-50 dark:bg-slate-900 ring-1 ring-slate-100 dark:ring-slate-800">
-          <TabsTrigger value="sns" className="gap-2 font-bold"><Globe className="w-4 h-4" /> {tr('SNS 연동', 'SNS')}</TabsTrigger>
-          <TabsTrigger value="ai" className="gap-2 font-bold"><Brain className="w-4 h-4" /> {tr('AI 엔진', 'AI')}</TabsTrigger>
-          <TabsTrigger value="workflow" className="gap-2 font-bold"><Webhook className="w-4 h-4" /> {tr('워크플로우', 'Workflow')}</TabsTrigger>
-          <TabsTrigger value="global" className="gap-2 font-bold"><Zap className="w-4 h-4" /> {tr('공통 제약', 'Limits')}</TabsTrigger>
+          <TabsTrigger value="sns" className="gap-2 font-bold"><Globe className="w-4 h-4" /> {tf.f02291}</TabsTrigger>
+          <TabsTrigger value="ai" className="gap-2 font-bold"><Brain className="w-4 h-4" /> {tf.f02239}</TabsTrigger>
+          <TabsTrigger value="workflow" className="gap-2 font-bold"><Webhook className="w-4 h-4" /> {tf.f01636}</TabsTrigger>
+          <TabsTrigger value="global" className="gap-2 font-bold"><Zap className="w-4 h-4" /> {tf.f00959}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="sns">
@@ -107,7 +106,7 @@ export default function MarketingAdmin() {
             <PlatformCard 
               title="Meta (Facebook/Instagram)" 
               icon={<Instagram className="text-pink-500" />}
-              description={tr('Meta for Developers에서 발급받은 App ID 및 Secret Key', 'App ID and secret from Meta for Developers')}
+              description={tf.f02268}
               configKey="meta_api_config"
               data={config.meta_api_config || { appId: '', appSecret: '' }}
               onSave={(val: any) => handleSave('meta_api_config', val)}
@@ -115,7 +114,7 @@ export default function MarketingAdmin() {
             <PlatformCard 
               title="Naver Developers" 
               icon={<Zap className="text-green-500" />}
-              description={tr('네이버 블로그/검색 광고 API 제어용 키', 'Keys for Naver Blog / search ads APIs')}
+              description={tf.f01038}
               configKey="naver_api_config"
               data={config.naver_api_config || { clientId: '', clientSecret: '' }}
               onSave={(val: any) => handleSave('naver_api_config', val)}
@@ -123,7 +122,7 @@ export default function MarketingAdmin() {
             <PlatformCard 
               title="YouTube / Google" 
               icon={<Youtube className="text-red-500" />}
-              description={tr('YouTube Shorts 업로드 및 Google Ads 제어', 'YouTube Shorts upload and Google Ads')}
+              description={tf.f02299}
               configKey="google_api_config"
               data={config.google_api_config || { apiKey: '', clientId: '' }}
               onSave={(val: any) => handleSave('google_api_config', val)}
@@ -131,7 +130,7 @@ export default function MarketingAdmin() {
             <PlatformCard 
               title="TikTok for Business" 
               icon={<Video className="text-slate-900" />}
-              description={tr('TikTok 비디오 업로드 및 트렌드 분석 API', 'TikTok upload and trend APIs')}
+              description={tf.f02296}
               configKey="tiktok_api_config"
               data={config.tiktok_api_config || { clientKey: '', clientSecret: '' }}
               onSave={(val: any) => handleSave('tiktok_api_config', val)}
@@ -143,9 +142,9 @@ export default function MarketingAdmin() {
           <Card className="border-none shadow-xl ring-1 ring-slate-100 dark:ring-slate-800">
             <CardHeader className="border-b bg-slate-50/50 dark:bg-slate-900/50">
               <CardTitle className="flex items-center gap-2">
-                <Brain className="w-5 h-5 text-purple-600" /> {tr('AI 모델 전역 키 설정', 'Global AI API keys')}
+                <Brain className="w-5 h-5 text-purple-600" /> {tf.f02235}
               </CardTitle>
-              <CardDescription>{tr('홍보 엔진 구동에 사용되는 멀티 모델(OpenAI, Anthropic 등)의 마스터 키입니다.', 'Master keys for OpenAI, Anthropic, and other models used by marketing.')}</CardDescription>
+              <CardDescription>{tf.f02203}</CardDescription>
             </CardHeader>
             <CardContent className="pt-8 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
@@ -157,7 +156,7 @@ export default function MarketingAdmin() {
                     value={config.openai_key || ''} 
                     onChange={(e) => setConfig({...config, openai_key: e.target.value})}
                   />
-                  <Button size="sm" onClick={() => handleSave('openai_key', config.openai_key)}>{tr('저장하기', 'Save')}</Button>
+                  <Button size="sm" onClick={() => handleSave('openai_key', config.openai_key)}>{tf.f01771}</Button>
                 </div>
                 <div className="space-y-4">
                   <Label className="font-bold">Anthropic (Claude) API Key</Label>
@@ -167,7 +166,7 @@ export default function MarketingAdmin() {
                     value={config.anthropic_key || ''} 
                     onChange={(e) => setConfig({...config, anthropic_key: e.target.value})}
                   />
-                  <Button size="sm" onClick={() => handleSave('anthropic_key', config.anthropic_key)}>{tr('저장하기', 'Save')}</Button>
+                  <Button size="sm" onClick={() => handleSave('anthropic_key', config.anthropic_key)}>{tf.f01771}</Button>
                 </div>
               </div>
             </CardContent>
@@ -178,9 +177,9 @@ export default function MarketingAdmin() {
           <Card className="border-none shadow-xl ring-1 ring-slate-100 dark:ring-slate-800">
             <CardHeader className="border-b bg-slate-50/50 dark:bg-slate-900/50">
               <CardTitle className="flex items-center gap-2">
-                <Webhook className="w-5 h-5 text-indigo-600" /> {tr('n8n 마스터 파이프라인', 'n8n master pipeline')}
+                <Webhook className="w-5 h-5 text-indigo-600" /> {tf.f02269}
               </CardTitle>
-              <CardDescription>{tr('모든 캠페인 작전이 사출되는 n8n 통합 웹훅 주소입니다.', 'Unified webhook URL where campaigns are dispatched.')}</CardDescription>
+              <CardDescription>{tf.f01197}</CardDescription>
             </CardHeader>
             <CardContent className="pt-8 space-y-6">
               <div className="grid grid-cols-1 gap-6">
@@ -193,7 +192,7 @@ export default function MarketingAdmin() {
                       value={config.n8n_master_url || ''} 
                       onChange={(e) => setConfig({...config, n8n_master_url: e.target.value})}
                     />
-                    <Button onClick={() => handleSave('n8n_master_url', config.n8n_master_url)} className="bg-indigo-600">{tr('연결 저장', 'Save URL')}</Button>
+                    <Button onClick={() => handleSave('n8n_master_url', config.n8n_master_url)} className="bg-indigo-600">{tf.f01560}</Button>
                   </div>
                 </div>
               </div>
@@ -208,6 +207,7 @@ export default function MarketingAdmin() {
 function PlatformCard({ title, icon, description, data, onSave }: any) {
   const [localData, setLocalData] = useState(data);
   const locale = usePreferredLocale();
+  const tf = getMessages(locale).tenantFlows;
   const baseLocale = toBaseLocale(locale);
   const tr = (koText: string, enText: string) => (baseLocale === 'ko' ? koText : enText);
 
@@ -243,7 +243,7 @@ function PlatformCard({ title, icon, description, data, onSave }: any) {
           />
         </div>
         <Button size="sm" variant="secondary" className="w-full font-bold h-9" onClick={() => onSave(localData)}>
-          <Save className="w-3.5 h-3.5 mr-2" /> {tr('설정 업데이트', 'Update')}
+          <Save className="w-3.5 h-3.5 mr-2" /> {tf.f01415}
         </Button>
       </CardContent>
     </Card>

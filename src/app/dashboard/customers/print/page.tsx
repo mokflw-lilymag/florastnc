@@ -1,4 +1,5 @@
 "use client";
+import { getMessages } from "@/i18n/getMessages";
 
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
@@ -27,10 +28,8 @@ function PrintContent() {
     businessNumber: "123-45-67890"
   });
   const locale = usePreferredLocale();
-  const isKo = toBaseLocale(locale) === "ko";
-  const tr = (ko: string, en: string) => (isKo ? ko : en);
-
-  useEffect(() => {
+  const tf = getMessages(locale).tenantFlows;
+  const isKo = toBaseLocale(locale) === "ko";  useEffect(() => {
     const ids = searchParams.get("ids")?.split(",") || [];
     const manualItemsBase64 = searchParams.get("manual_items");
     const recipientParam = searchParams.get("recipient") || "";
@@ -150,7 +149,7 @@ function PrintContent() {
     }
   };
 
-  if (loading) return <div className="p-10 text-center">{tr("인쇄 대기 중...", "Preparing print...")}</div>;
+  if (loading) return <div className="p-10 text-center">{tf.f00513}</div>;
 
   const flattenedItems = items.flatMap(order => {
     const products = (order.items || []).map((item: any) => ({
@@ -165,7 +164,7 @@ function PrintContent() {
     if (order.summary?.deliveryFee > 0) {
       products.push({
         date: order.order_date,
-        name: tr("배송비", "Delivery fee"),
+        name: tf.f00259,
         quantity: 1,
         price: order.summary.deliveryFee,
         amount: order.summary.deliveryFee,
@@ -176,7 +175,7 @@ function PrintContent() {
     if (order.summary?.discountAmount > 0) {
       products.push({
         date: order.order_date,
-        name: tr("할인", "Discount"),
+        name: tf.f00759,
         quantity: 1,
         price: -order.summary.discountAmount,
         amount: -order.summary.discountAmount,
@@ -196,7 +195,7 @@ function PrintContent() {
       <div className="flex justify-between items-start border-b-2 border-slate-900 pb-4 mb-8">
         <div>
           <h1 className="text-3xl font-black tracking-tighter mb-1">
-            {type === 'statement' ? tr('거 래 명 세 서', 'STATEMENT') : type === 'estimate' ? tr('견 적 서', 'ESTIMATE') : tr('간 이 영 수 증', 'RECEIPT')}
+            {type === 'statement' ? tf.f00031 : type === 'estimate' ? tf.f00040 : tf.f00023}
           </h1>
         </div>
         <div className="text-right">
@@ -225,10 +224,10 @@ function PrintContent() {
           </div>
           <p className="text-xs leading-relaxed text-slate-500 italic font-bold">
             {type === 'estimate' 
-              ? tr('아래와 같이 품목 및 규격에 따른 견적을 제출하오니 검토하여 주시기 바랍니다.', 'Please review the estimate below by item/spec.')
-              : tr('아래와 같이 거래 내역을 명세하오니 확인하여 주시기 바랍니다.', 'Please review the transaction details below.')
+              ? tf.f00429
+              : tf.f00428
             }<br />
-            {tr("항상 저희를 믿고 거래해 주셔서 깊은 감사를 드립니다.", "Thank you for your trust and business.")}
+            {tf.f00766}
           </p>
         </div>
         

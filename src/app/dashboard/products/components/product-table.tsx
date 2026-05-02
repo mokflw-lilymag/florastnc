@@ -1,4 +1,5 @@
 "use client";
+import { getMessages } from "@/i18n/getMessages";
 
 import { useState, useMemo } from "react";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
@@ -61,19 +62,14 @@ export function ProductTable({
   selectedProducts = [] 
 }: ProductTableProps) {
   const locale = usePreferredLocale();
-  const baseLocale = toBaseLocale(locale);
-  const tr = (koText: string, enText: string) => (baseLocale === "ko" ? koText : enText);
-
-  const pageRows = pageProducts ?? products;
+  const tf = getMessages(locale).tenantFlows;
+  const baseLocale = toBaseLocale(locale);  const pageRows = pageProducts ?? products;
   const emptyListMessage = useMemo(() => {
-    if (pageRows.length > 0) return tr("검색 결과가 없습니다.", "No results match your search.");
+    if (pageRows.length > 0) return tf.f00036;
     if (registeredTotal != null && registeredTotal > 0) {
-      return tr(
-        "이 페이지에 표시할 상품이 없습니다. 이전 페이지로 이동해 보세요.",
-        "No products on this page. Try going to the previous page."
-      );
+      return tf.f01677;
     }
-    return tr("등록된 상품이 없습니다.", "No products yet.");
+    return tf.f00168;
   }, [pageRows.length, registeredTotal, baseLocale]);
 
   const [selectedRows, setSelectedRows] = useState<Record<string, boolean>>({});
@@ -103,10 +99,10 @@ export function ProductTable({
   }, [selectedRows, products]);
 
   const getStatusInfo = (status: string, stock: number) => {
-    if (status === "inactive") return { text: tr("비활성", "Inactive"), variant: "secondary" as const };
-    if (stock <= 0 || status === "sold_out") return { text: tr("품절", "Sold out"), variant: "destructive" as const };
-    if (stock < 10) return { text: tr("재고 부족", "Low stock"), variant: "outline" as const };
-    return { text: tr("판매중", "Active"), variant: "default" as const };
+    if (status === "inactive") return { text: tf.f01311, variant: "secondary" as const };
+    if (stock <= 0 || status === "sold_out") return { text: tf.f00747, variant: "destructive" as const };
+    if (stock < 10) return { text: tf.f01760, variant: "outline" as const };
+    return { text: tf.f02100, variant: "default" as const };
   };
 
   return (
@@ -119,16 +115,16 @@ export function ProductTable({
                 <Checkbox
                   checked={isAllSelected}
                   onCheckedChange={(checked) => handleSelectAll(!!checked)}
-                  aria-label={tr("모두 선택", "Select all")}
+                  aria-label={tf.f01192}
                 />
               </TableHead>
-              <TableHead className="font-semibold text-slate-700">{tr("상품명", "Product")}</TableHead>
-              <TableHead className="font-semibold text-slate-700">{tr("카테고리", "Category")}</TableHead>
-              <TableHead className="font-semibold text-slate-700">{tr("가격", "Price")}</TableHead>
-              <TableHead className="font-semibold text-slate-700 text-right">{tr("재고", "Stock")}</TableHead>
-              <TableHead className="font-semibold text-slate-700">{tr("상태", "Status")}</TableHead>
+              <TableHead className="font-semibold text-slate-700">{tf.f00338}</TableHead>
+              <TableHead className="font-semibold text-slate-700">{tf.f02060}</TableHead>
+              <TableHead className="font-semibold text-slate-700">{tf.f00021}</TableHead>
+              <TableHead className="font-semibold text-slate-700 text-right">{tf.f00538}</TableHead>
+              <TableHead className="font-semibold text-slate-700">{tf.f00319}</TableHead>
               <TableHead className="w-[80px]">
-                <span className="sr-only">{tr("작업", "Actions")}</span>
+                <span className="sr-only">{tf.f01754}</span>
               </TableHead>
             </TableRow>
           </TableHeader>
@@ -199,11 +195,11 @@ export function ProductTable({
                         />
                         <DropdownMenuContent align="end" className="w-40">
                           <DropdownMenuGroup>
-                            <DropdownMenuLabel className="text-xs text-slate-500 px-2 py-1.5">{tr("관리", "Manage")}</DropdownMenuLabel>
+                            <DropdownMenuLabel className="text-xs text-slate-500 px-2 py-1.5">{tf.f00087}</DropdownMenuLabel>
                           </DropdownMenuGroup>
                           <DropdownMenuItem onClick={() => onEdit(product)}>
                             <Pencil className="mr-2 h-4 w-4" />
-                            {tr("수정", "Edit")}
+                            {tf.f00394}
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
@@ -211,7 +207,7 @@ export function ProductTable({
                             onClick={() => setPendingDelete(product)}
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
-                            {tr("삭제", "Delete")}
+                            {tf.f00306}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -241,16 +237,13 @@ export function ProductTable({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-slate-900">{tr("상품 삭제", "Delete product")}</AlertDialogTitle>
+            <AlertDialogTitle className="text-slate-900">{tf.f01356}</AlertDialogTitle>
             <AlertDialogDescription className="text-slate-500">
-              {tr(
-                `정말로 '${pendingDelete?.name ?? ""}' 상품을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`,
-                `Delete "${pendingDelete?.name ?? ""}"? This cannot be undone.`
-              )}
+              {tf.f02307.replace("{name}", pendingDelete?.name ?? "")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>{tr("취소", "Cancel")}</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleting}>{tf.f00702}</AlertDialogCancel>
             <Button
               type="button"
               className="bg-red-600 hover:bg-red-700 text-white"
@@ -266,7 +259,7 @@ export function ProductTable({
                 }
               }}
             >
-              {deleting ? tr("삭제 중…", "Deleting…") : tr("삭제", "Delete")}
+              {deleting ? tf.f01331 : tf.f00306}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>

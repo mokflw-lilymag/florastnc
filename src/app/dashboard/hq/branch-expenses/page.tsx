@@ -1,4 +1,5 @@
 "use client";
+import { getMessages } from "@/i18n/getMessages";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { format, startOfMonth } from "date-fns";
@@ -78,16 +79,15 @@ export default function HqBranchExpensesPage() {
   const [fromInput, setFromInput] = useState("");
   const [toInput, setToInput] = useState("");
   const locale = usePreferredLocale();
-  const baseLocale = toBaseLocale(locale);
-  const tr = (koText: string, enText: string) => (baseLocale === "ko" ? koText : enText);
-  const amountSuffix = tr("원", "");
+  const tf = getMessages(locale).tenantFlows;
+  const baseLocale = toBaseLocale(locale);  const amountSuffix = tf.f00487;
   const formatPaymentMethod = (value: string) => {
     const map: Record<string, string> = {
-      card: tr("카드", "Card"),
-      cash: tr("현금", "Cash"),
-      bank_transfer: tr("계좌이체", "Bank Transfer"),
-      transfer: tr("계좌이체", "Bank Transfer"),
-      other: tr("기타", "Other"),
+      card: tf.f00704,
+      cash: tf.f00769,
+      bank_transfer: tf.f00057,
+      transfer: tf.f00057,
+      other: tf.f00115,
     };
     return map[value] ?? value;
   };
@@ -183,20 +183,20 @@ export default function HqBranchExpensesPage() {
     return (
       <div className="container max-w-6xl mx-auto p-6 space-y-6">
         <PageHeader
-          title={tr("지점별 지출", "Branch Expenses")}
-          description={tr("소속 조직 매장들의 지출 합계와 최근 내역을 한 화면에서 봅니다.", "View total and recent expenses across organization branches.")}
+          title={tf.f01923}
+          description={tf.f01436}
           icon={Receipt}
         />
         <Card className="max-w-lg border-slate-200">
           <CardHeader>
-            <CardTitle>{tr("접근할 수 없습니다", "Access denied")}</CardTitle>
+            <CardTitle>{tf.f01814}</CardTitle>
             <CardDescription>
-              {tr("조직에 배정된 계정만 지점별 지출을 볼 수 있습니다.", "Only organization-assigned accounts can view branch expenses.")}
+              {tf.f01852}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Button variant="outline" onClick={() => router.push("/dashboard/hq")}>
-              {tr("본사 개요로", "Back to HQ")}
+              {tf.f01264}
             </Button>
           </CardContent>
         </Card>
@@ -209,28 +209,28 @@ export default function HqBranchExpensesPage() {
   return (
     <div className="container max-w-6xl mx-auto p-6 space-y-8 animate-in fade-in duration-500">
       <PageHeader
-        title={tr("지점별 지출", "Branch Expenses")}
-        description={tr("조직 전체·지점별·카테고리별 지출과 건수를 한 번에 봅니다. 건별 입력·수정은 각 매장 계정의 지출 메뉴에서 합니다.", "View totals by organization/branch/category. Per-line edits are done in each branch expense menu.")}
+        title={tf.f01923}
+        description={tf.f01844}
         icon={Receipt}
       />
 
       <Card className="border-slate-200/80 shadow-sm">
         <CardHeader className="pb-4">
-          <CardTitle className="text-base">{tr("조회 기간", "Date Range")}</CardTitle>
+          <CardTitle className="text-base">{tf.f01858}</CardTitle>
           <CardDescription>
             {range.from && range.to ? (
               <>
-                {tr("현재 표", "Current range")}: <strong className="text-foreground">{range.from}</strong> ~{" "}
+                {tf.f02193}: <strong className="text-foreground">{range.from}</strong> ~{" "}
                 <strong className="text-foreground">{range.to}</strong>
               </>
             ) : (
-              tr("시작일·종료일을 선택한 뒤 조회합니다.", "Select start/end dates and search.")
+              tf.f01489
             )}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end">
           <div className="space-y-2">
-            <Label htmlFor="hq-exp-from">{tr("시작일", "From")}</Label>
+            <Label htmlFor="hq-exp-from">{tf.f01488}</Label>
             <Input
               id="hq-exp-from"
               type="date"
@@ -240,7 +240,7 @@ export default function HqBranchExpensesPage() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="hq-exp-to">{tr("종료일", "To")}</Label>
+            <Label htmlFor="hq-exp-to">{tf.f01861}</Label>
             <Input
               id="hq-exp-to"
               type="date"
@@ -251,7 +251,7 @@ export default function HqBranchExpensesPage() {
           </div>
           <Button type="button" className="gap-2" onClick={applyRange} disabled={loading}>
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            {tr("조회", "Search")}
+            {tf.f01857}
           </Button>
         </CardContent>
       </Card>
@@ -275,18 +275,18 @@ export default function HqBranchExpensesPage() {
       <div className="grid gap-4 sm:grid-cols-2">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground font-medium">{tr("합계 지출", "Total Expense")}</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground font-medium">{tf.f02167}</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold tabular-nums">{grandTotal.toLocaleString()}{tr("원", "")}</p>
+            <p className="text-2xl font-bold tabular-nums">{grandTotal.toLocaleString()}{tf.f00487}</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground font-medium">{tr("지출 건수", "Expense Count")}</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground font-medium">{tf.f01930}</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold tabular-nums">{grandCount.toLocaleString()}{tr("건", "")}</p>
+            <p className="text-2xl font-bold tabular-nums">{grandCount.toLocaleString()}{tf.f00033}</p>
           </CardContent>
         </Card>
       </div>
@@ -295,10 +295,10 @@ export default function HqBranchExpensesPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <PieChart className="h-5 w-5 text-indigo-600" />
-            {tr("카테고리별 지출 (전체 조직)", "Expense by Category (Organization-wide)")}
+            {tf.f02067}
           </CardTitle>
           <CardDescription>
-            {tr("선택한 기간 동안 모든 지점을 합친 분류별 금액·건수·전체 대비 비율입니다.", "Category amount/count/share across all branches in selected range.")}
+            {tf.f01408}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -307,16 +307,16 @@ export default function HqBranchExpensesPage() {
               <Loader2 className="h-7 w-7 animate-spin text-slate-400" />
             </div>
           ) : categoryStats.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4">{tr("표시할 카테고리가 없습니다.", "No category data to display.")}</p>
+            <p className="text-sm text-muted-foreground py-4">{tf.f02121}</p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{tr("카테고리", "Category")}</TableHead>
-                  <TableHead className="text-right">{tr("건수", "Count")}</TableHead>
-                  <TableHead className="text-right">{tr("금액", "Amount")}</TableHead>
-                  <TableHead className="text-right w-[72px]">{tr("비율", "Ratio")}</TableHead>
-                  <TableHead className="min-w-[140px]">{tr("구성비", "Composition")}</TableHead>
+                  <TableHead>{tf.f02060}</TableHead>
+                  <TableHead className="text-right">{tf.f00896}</TableHead>
+                  <TableHead className="text-right">{tf.f00097}</TableHead>
+                  <TableHead className="text-right w-[72px]">{tf.f01306}</TableHead>
+                  <TableHead className="min-w-[140px]">{tf.f00989}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -350,9 +350,9 @@ export default function HqBranchExpensesPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Receipt className="h-5 w-5" />
-            {tr("지점별 합계", "Branch Totals")}
+            {tf.f01924}
           </CardTitle>
-          <CardDescription>{tr("금액 내림차순입니다. 지점명을 누르면 해당 지점 요약으로 이동합니다.", "Sorted by amount desc. Click branch name to open its summary.")}</CardDescription>
+          <CardDescription>{tf.f00997}</CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -363,10 +363,10 @@ export default function HqBranchExpensesPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{tr("지점", "Branch")}</TableHead>
-                  <TableHead className="text-right">{tr("건수", "Count")}</TableHead>
-                  <TableHead className="text-right">{tr("합계", "Total")}</TableHead>
-                  <TableHead className="min-w-[200px]">{tr("카테고리 요약", "Category Summary")}</TableHead>
+                  <TableHead>{tf.f00663}</TableHead>
+                  <TableHead className="text-right">{tf.f00896}</TableHead>
+                  <TableHead className="text-right">{tf.f02164}</TableHead>
+                  <TableHead className="min-w-[200px]">{tf.f02066}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -387,7 +387,7 @@ export default function HqBranchExpensesPage() {
                     </TableCell>
                     <TableCell className="text-right tabular-nums">{b.expenseCount}</TableCell>
                     <TableCell className="text-right font-semibold tabular-nums">
-                      {b.totalAmount.toLocaleString()}{tr("원", "")}
+                      {b.totalAmount.toLocaleString()}{tf.f00487}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground max-w-[360px]">
                       {categorySummaryShort(b.categoryRows, amountSuffix)}
@@ -402,9 +402,9 @@ export default function HqBranchExpensesPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>{tr("지점 · 카테고리별 상세", "Branch · Category Details")}</CardTitle>
+          <CardTitle>{tf.f01906}</CardTitle>
           <CardDescription>
-            {tr("각 지점에서 분류별로 얼마를 썼는지 건수·금액·지점 내 비중·전체 대비 비중으로 나눕니다.", "Shows count/amount/share-in-branch/share-in-total by category for each branch.")}
+            {tf.f00851}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -413,18 +413,18 @@ export default function HqBranchExpensesPage() {
               <Loader2 className="h-7 w-7 animate-spin text-slate-400" />
             </div>
           ) : branchCategoryDetailRows.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4">{tr("해당 기간에 지출이 없습니다.", "No expenses in this period.")}</p>
+            <p className="text-sm text-muted-foreground py-4">{tf.f02178}</p>
           ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>{tr("지점", "Branch")}</TableHead>
-                    <TableHead>{tr("카테고리", "Category")}</TableHead>
-                    <TableHead className="text-right">{tr("건수", "Count")}</TableHead>
-                    <TableHead className="text-right">{tr("금액", "Amount")}</TableHead>
-                    <TableHead className="text-right">{tr("지점 내", "Within Branch")}</TableHead>
-                    <TableHead className="text-right">{tr("전체 대비", "vs Total")}</TableHead>
+                    <TableHead>{tf.f00663}</TableHead>
+                    <TableHead>{tf.f02060}</TableHead>
+                    <TableHead className="text-right">{tf.f00896}</TableHead>
+                    <TableHead className="text-right">{tf.f00097}</TableHead>
+                    <TableHead className="text-right">{tf.f01907}</TableHead>
+                    <TableHead className="text-right">{tf.f01796}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -441,7 +441,7 @@ export default function HqBranchExpensesPage() {
                       <TableCell>{row.category}</TableCell>
                       <TableCell className="text-right tabular-nums">{row.count.toLocaleString()}건</TableCell>
                       <TableCell className="text-right font-medium tabular-nums">
-                        {row.amount.toLocaleString()}{tr("원", "")}
+                        {row.amount.toLocaleString()}{tf.f00487}
                       </TableCell>
                       <TableCell className="text-right tabular-nums text-muted-foreground">
                         {row.pctBranch}%
@@ -460,8 +460,8 @@ export default function HqBranchExpensesPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>{tr("최근 지출 내역", "Recent Expenses")}</CardTitle>
-          <CardDescription>{tr("선택한 기간 안에서 최신순 최대 100건입니다.", "Up to 100 latest entries in selected range.")}</CardDescription>
+          <CardTitle>{tf.f02015}</CardTitle>
+          <CardDescription>{tf.f01409}</CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -469,17 +469,17 @@ export default function HqBranchExpensesPage() {
               <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
             </div>
           ) : recentLines.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4">{tr("해당 기간에 등록된 지출이 없습니다.", "No expenses recorded in this period.")}</p>
+            <p className="text-sm text-muted-foreground py-4">{tf.f02177}</p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{tr("일자", "Date")}</TableHead>
-                  <TableHead>{tr("지점", "Branch")}</TableHead>
-                  <TableHead>{tr("분류", "Category")}</TableHead>
-                  <TableHead>{tr("적요", "Description")}</TableHead>
-                  <TableHead>{tr("결제", "Payment")}</TableHead>
-                  <TableHead className="text-right">{tr("금액", "Amount")}</TableHead>
+                  <TableHead>{tf.f01717}</TableHead>
+                  <TableHead>{tf.f00663}</TableHead>
+                  <TableHead>{tf.f01290}</TableHead>
+                  <TableHead>{tf.f01772}</TableHead>
+                  <TableHead>{tf.f00909}</TableHead>
+                  <TableHead className="text-right">{tf.f00097}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -504,7 +504,7 @@ export default function HqBranchExpensesPage() {
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">{formatPaymentMethod(r.payment_method)}</TableCell>
                     <TableCell className="text-right text-sm font-medium tabular-nums">
-                      {r.amount.toLocaleString()}{tr("원", "")}
+                      {r.amount.toLocaleString()}{tf.f00487}
                     </TableCell>
                   </TableRow>
                 ))}

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useIsCapacitorAndroid } from '@/hooks/use-capacitor-android';
 import { usePreferredLocale } from '@/hooks/use-preferred-locale';
-import { resolveLocale } from '@/i18n/config';
+import { getMessages } from '@/i18n/getMessages';
 import { 
   Plus, 
   Printer, 
@@ -20,23 +20,23 @@ import { cn } from '@/lib/utils';
 export function GlobalQuickNav() {
   const pathname = usePathname();
   const isAndroidApp = useIsCapacitorAndroid();
-  const preferredLocale = usePreferredLocale();
-  const isKo = resolveLocale(preferredLocale).startsWith('ko');
+  const locale = usePreferredLocale();
 
   const navItems = useMemo(() => {
+    const q = getMessages(locale).dashboardCommon.quickNav;
     const all = [
-      { icon: LayoutDashboard, label: isKo ? '홈' : 'Home', href: '/dashboard' },
-      { icon: Plus, label: isKo ? '새주문' : 'New Order', href: '/dashboard/orders/new' },
-      { icon: ClipboardList, label: isKo ? '주문현황' : 'Orders', href: '/dashboard/orders' },
-      { icon: Printer, label: isKo ? '리본' : 'Ribbon', href: '/dashboard/printer' },
-      { icon: Truck, label: isKo ? '배송/픽업' : 'Delivery / Pickup', href: '/dashboard/delivery' },
-      { icon: ScrollText, label: isKo ? '정산' : 'Reports', href: '/dashboard/reports' },
-      { icon: CreditCard, label: isKo ? '지출' : 'Expenses', href: '/dashboard/expenses' },
-      { icon: Boxes, label: isKo ? '재고' : 'Inventory', href: '/dashboard/inventory' },
+      { icon: LayoutDashboard, label: q.home, href: '/dashboard' },
+      { icon: Plus, label: q.newOrder, href: '/dashboard/orders/new' },
+      { icon: ClipboardList, label: q.orders, href: '/dashboard/orders' },
+      { icon: Printer, label: q.ribbon, href: '/dashboard/printer' },
+      { icon: Truck, label: q.deliveryPickup, href: '/dashboard/delivery' },
+      { icon: ScrollText, label: q.reports, href: '/dashboard/reports' },
+      { icon: CreditCard, label: q.expenses, href: '/dashboard/expenses' },
+      { icon: Boxes, label: q.inventory, href: '/dashboard/inventory' },
     ];
     if (isAndroidApp) return all.filter((i) => i.href !== '/dashboard/printer');
     return all;
-  }, [isAndroidApp, isKo]);
+  }, [isAndroidApp, locale]);
 
   return (
     <>

@@ -1,4 +1,5 @@
 "use client";
+import { getMessages } from "@/i18n/getMessages";
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
@@ -103,9 +104,8 @@ function cloneAiDraftForReview(raw: unknown): Record<string, unknown> {
 
 export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
   const locale = usePreferredLocale();
-  const isKo = toBaseLocale(locale) === "ko";
-  const tr = (ko: string, en: string) => (isKo ? ko : en);
-  const [isOpen, setIsOpen] = useState(false);
+  const tf = getMessages(locale).tenantFlows;
+  const isKo = toBaseLocale(locale) === "ko";  const [isOpen, setIsOpen] = useState(false);
   // UI State
   const [activeTab, setActiveTab] = useState<"smart" | "image">("smart");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -212,8 +212,11 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
       console.error("SpeechRecognition error:", ev);
       toast.error(
         ev.error === "not-allowed"
-          ? tr("마이크·음성 인식 권한이 필요합니다.", "Microphone/speech permissions are required.")
-          : tr(`음성 인식 오류${ev.error ? `: ${ev.error}` : ""}`, `Speech recognition error${ev.error ? `: ${ev.error}` : ""}`)
+          ? tf.f00187
+          : tf.f00801.replace(
+              "{suffix}",
+              ev.error ? `: ${ev.error}` : ""
+            )
       );
       stopSpeechRecognitionUi();
     };
@@ -225,7 +228,7 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
       if (t) {
         void runAiAnalysis({ textOverride: t });
       } else {
-        toast.error(tr("인식된 말이 없습니다. 조금 더 크게 말하거나 텍스트로 입력해 보세요.", "No speech recognized. Try speaking louder or type text."));
+        toast.error(tf.f00522);
       }
     };
 
@@ -306,17 +309,17 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
       setIsListening(true);
     } catch (e) {
       console.error("Recording error:", e);
-      toast.error(tr("마이크를 시작할 수 없습니다. 권한 설정을 확인해 주세요.", "Cannot start microphone. Check permission settings."));
+      toast.error(tf.f00188);
     }
   };
 
   const startRecording = async () => {
     usingSpeechRecognitionRef.current = false;
     if (startBrowserSpeechRecognition()) {
-      toast.message(tr("말씀해 주세요. 끝나면 마이크를 다시 눌러 주세요. (Chrome·Edge 권장)", "Please speak. Tap mic again when done. (Chrome/Edge recommended)"));
+      toast.message(tf.f00190);
       return;
     }
-    toast.message(tr("이 브라우저는 음성→글자 변환을 지원하지 않아 녹음 파일로 시도합니다. 실패 시 크롬으로 시도하거나 텍스트를 입력해 주세요.", "This browser doesn't support speech-to-text. Trying audio upload mode."));
+    toast.message(tf.f00495);
     await startMediaRecorder();
   };
 
@@ -360,7 +363,7 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
 
   const loadImageFromFile = useCallback((file: File) => {
     if (!file.type.startsWith("image/")) {
-      toast.error(tr("이미지 파일만 붙여넣을 수 있어요.", "Only image files can be pasted."));
+      toast.error(tf.f00505);
       return;
     }
     const reader = new FileReader();
@@ -392,7 +395,7 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
           const file = item.getAsFile();
           if (file) {
             loadImageFromFile(file);
-            toast.success(tr("이미지를 붙여넣었습니다.", "Image pasted."));
+            toast.success(tf.f00506);
           }
           return;
         }
@@ -429,7 +432,7 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
       } else if (activeTab === "smart") {
         if (!textForSmart) {
           clearInterval(interval);
-          toast.error(tr("내용을 입력하거나 음성으로 말씀해 주세요.", "Please enter text or speak."));
+          toast.error(tf.f00135);
           return;
         }
         result = await parseOrderWithAi({ text: textForSmart });
@@ -443,13 +446,13 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
       setProgress(100);
       if (result) {
         setAiReviewDraft(cloneAiDraftForReview(result));
-        toast.success(tr("AI 분석이 완료되었습니다. 내용을 확인·수정한 뒤 적용해 주세요.", "AI analysis completed. Review and apply."));
+        toast.success(tf.f00782);
       }
     } catch (error: unknown) {
       const msg =
         error instanceof Error
           ? error.message
-          : tr("분석에 실패했습니다. 텍스트로 입력하거나 Chrome에서 다시 시도해 주세요.", "Analysis failed. Enter text or try again in Chrome.");
+          : tf.f00297;
       toast.error(msg);
     } finally {
       setIsProcessing(false);
@@ -463,7 +466,7 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
     setAiReviewDraft(null);
     setTextInput("");
     setImagePreview(null);
-    toast.success(tr("주문 정보가 자동 입력되었습니다.", "Order fields were auto-filled."));
+    toast.success(tf.f00617);
   };
 
   return (

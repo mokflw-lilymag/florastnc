@@ -1,4 +1,5 @@
 "use client";
+import { getMessages } from "@/i18n/getMessages";
 
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -61,10 +62,8 @@ export function FulfillRequestDialog({ request, open, onOpenChange, onSuccess }:
   const [expenseDate, setExpenseDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [paymentMethod, setPaymentMethod] = useState("card");
   const locale = usePreferredLocale();
-  const baseLocale = toBaseLocale(locale);
-  const tr = (koText: string, enText: string) => (baseLocale === "ko" ? koText : enText);
-
-  const branchTenantId = request?.tenant_id ?? "";
+  const tf = getMessages(locale).tenantFlows;
+  const baseLocale = toBaseLocale(locale);  const branchTenantId = request?.tenant_id ?? "";
 
   useEffect(() => {
     if (!open || !request) return;
@@ -90,7 +89,7 @@ export function FulfillRequestDialog({ request, open, onOpenChange, onSuccess }:
       );
       const j = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(typeof j.error === "string" ? j.error : tr("거래처 목록을 불러오지 못했습니다.", "Failed to load suppliers."));
+        toast.error(typeof j.error === "string" ? j.error : tf.f00876);
         setSuppliers([]);
         return;
       }
@@ -121,11 +120,11 @@ export function FulfillRequestDialog({ request, open, onOpenChange, onSuccess }:
     for (const it of items) {
       if (it.exclude) continue;
       if (!Number.isFinite(it.actualQuantity) || it.actualQuantity <= 0) {
-        toast.error(tr("제외하지 않은 줄은 실입고 수량을 1 이상으로 입력하세요.", "For non-excluded rows, actual quantity must be 1 or more."));
+        toast.error(tf.f01827);
         return;
       }
       if (!Number.isFinite(it.unitPrice) || it.unitPrice < 0) {
-        toast.error(tr("단가는 0 이상이어야 합니다.", "Unit price must be 0 or more."));
+        toast.error(tf.f01065);
         return;
       }
     }
@@ -145,11 +144,11 @@ export function FulfillRequestDialog({ request, open, onOpenChange, onSuccess }:
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(typeof j.error === "string" ? j.error : tr("처리에 실패했습니다.", "Processing failed."));
+        toast.error(typeof j.error === "string" ? j.error : tf.f01978);
         return;
       }
       toast.success(
-        `${tr("처리 완료", "Completed")} — ${tr("재고", "stock")} ${j.stockLineCount ?? 0}${tr("건", "")}, ${tr("지출", "expense")} ${j.expenseCount ?? 0}${tr("건", "")} ${tr("반영됨", "applied")}.`
+        `${tf.f00675} — ${tf.f00538} ${j.stockLineCount ?? 0}${tf.f00033}, ${tf.f01929} ${j.expenseCount ?? 0}${tf.f00033} ${tf.f01226}.`
       );
       onSuccess();
       onOpenChange(false);
@@ -168,29 +167,29 @@ export function FulfillRequestDialog({ request, open, onOpenChange, onSuccess }:
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <PackageCheck className="h-5 w-5 text-emerald-600" />
-            {tr("입고·지출 확정", "Confirm Stock & Expense")}
+            {tf.f01722}
           </DialogTitle>
           <DialogDescription>
-            {tr("실제 입고 수량·단가를 입력하면", "Entering actual quantity and unit price will increase")} <strong className="text-foreground">{tr("해당 지점 자재 재고", "branch material stock")}</strong>{tr("가 증가하고,", " and create rows in")}{" "}
-            <strong className="text-foreground">{tr("같은 지점 지출", "branch expense")}</strong>{tr("에 자동 등록됩니다. 자재 연결 줄만 재고 반영됩니다(수기 품목은 지출만).", ". Only material-linked lines affect stock (manual items affect expense only).")}
+            {tf.f01515} <strong className="text-foreground">{tf.f02179}</strong>{tf.f00847}{" "}
+            <strong className="text-foreground">{tf.f00860}</strong>{tf.f01546}
           </DialogDescription>
         </DialogHeader>
 
         <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm space-y-1">
           <div>
-            <span className="text-muted-foreground">{tr("지점", "Branch")}</span>{" "}
+            <span className="text-muted-foreground">{tf.f00663}</span>{" "}
             <span className="font-medium">{request.tenant_name ?? request.tenant_id.slice(0, 8)}</span>
           </div>
           {request.branch_note ? (
             <div>
-              <span className="text-muted-foreground">{tr("지점 메모", "Branch Note")}</span> {request.branch_note}
+              <span className="text-muted-foreground">{tf.f01908}</span> {request.branch_note}
             </div>
           ) : null}
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <Label htmlFor="fulfill-date">{tr("지출 일자", "Expense Date")}</Label>
+            <Label htmlFor="fulfill-date">{tf.f01946}</Label>
             <Input
               id="fulfill-date"
               type="date"
@@ -199,7 +198,7 @@ export function FulfillRequestDialog({ request, open, onOpenChange, onSuccess }:
             />
           </div>
           <div className="space-y-1.5">
-            <Label>{tr("결제 수단", "Payment Method")}</Label>
+            <Label>{tf.f00049}</Label>
             <Select
               value={paymentMethod}
               onValueChange={(v) => setPaymentMethod(v ?? "card")}
@@ -208,10 +207,10 @@ export function FulfillRequestDialog({ request, open, onOpenChange, onSuccess }:
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="card">{tr("카드", "Card")}</SelectItem>
-                <SelectItem value="cash">{tr("현금", "Cash")}</SelectItem>
-                <SelectItem value="bank_transfer">{tr("계좌이체", "Bank Transfer")}</SelectItem>
-                <SelectItem value="other">{tr("기타", "Other")}</SelectItem>
+                <SelectItem value="card">{tf.f00704}</SelectItem>
+                <SelectItem value="cash">{tf.f00769}</SelectItem>
+                <SelectItem value="bank_transfer">{tf.f00057}</SelectItem>
+                <SelectItem value="other">{tf.f00115}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -221,12 +220,12 @@ export function FulfillRequestDialog({ request, open, onOpenChange, onSuccess }:
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-10">{tr("제외", "Exclude")}</TableHead>
-                <TableHead>{tr("품목", "Item")}</TableHead>
-                <TableHead className="w-20 text-right">{tr("요청", "Requested")}</TableHead>
-                <TableHead className="w-24">{tr("실입고", "Actual")}</TableHead>
-                <TableHead className="w-28">{tr("단가", "Unit Price")}</TableHead>
-                <TableHead className="min-w-[140px]">{tr("거래처", "Supplier")}</TableHead>
+                <TableHead className="w-10">{tf.f01826}</TableHead>
+                <TableHead>{tf.f02124}</TableHead>
+                <TableHead className="w-20 text-right">{tf.f01622}</TableHead>
+                <TableHead className="w-24">{tf.f01513}</TableHead>
+                <TableHead className="w-28">{tf.f00148}</TableHead>
+                <TableHead className="min-w-[140px]">{tf.f00872}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -249,9 +248,9 @@ export function FulfillRequestDialog({ request, open, onOpenChange, onSuccess }:
                       <div className="text-xs text-muted-foreground">
                         {ln.main_category} · {ln.mid_category}
                         {ln.material_id ? (
-                          <span className="ml-1 font-mono">· {tr("재고연동", "Stock-linked")}</span>
+                          <span className="ml-1 font-mono">· {tf.f01764}</span>
                         ) : (
-                          <span className="ml-1">· {tr("수기(지출만)", "Manual (expense only)")}</span>
+                          <span className="ml-1">· {tf.f01445}</span>
                         )}
                       </div>
                     </TableCell>
@@ -292,10 +291,10 @@ export function FulfillRequestDialog({ request, open, onOpenChange, onSuccess }:
                         disabled={r.exclude || loadingSuppliers}
                       >
                         <SelectTrigger className="h-8">
-                          <SelectValue placeholder={loadingSuppliers ? tr("불러오는 중…", "Loading...") : tr("선택", "Select")} />
+                          <SelectValue placeholder={loadingSuppliers ? tf.f01292 : tf.f01403} />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="__none__">{tr("미지정", "Unassigned")}</SelectItem>
+                          <SelectItem value="__none__">{tf.f00224}</SelectItem>
                           {suppliers.map((s) => (
                             <SelectItem key={s.id} value={s.id}>
                               {s.name}
@@ -305,7 +304,7 @@ export function FulfillRequestDialog({ request, open, onOpenChange, onSuccess }:
                       </Select>
                       {!r.exclude && rowSum > 0 ? (
                         <div className="text-[11px] text-muted-foreground tabular-nums mt-1">
-                          {tr("소계", "Subtotal")} {rowSum.toLocaleString()}{tr("원", "")}
+                          {tf.f01434} {rowSum.toLocaleString()}{tf.f00487}
                         </div>
                       ) : null}
                     </TableCell>
@@ -316,16 +315,16 @@ export function FulfillRequestDialog({ request, open, onOpenChange, onSuccess }:
           </Table>
         </div>
         <p className="text-xs text-muted-foreground">
-          {tr("단가·수량이 모두 0보다 큰 줄만 지출로 잡힙니다. 단가 0은 재고만 증가(단가 갱신 없음)할 때 사용하세요.", "Only rows with both unit price and quantity greater than 0 are recorded as expense. Use 0 price for stock-only increase.")}
+          {tf.f01064}
         </p>
 
         <DialogFooter className="gap-2 sm:gap-0">
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
-            {tr("취소", "Cancel")}
+            {tf.f00702}
           </Button>
           <Button type="button" onClick={() => void handleSubmit()} disabled={submitting}>
             {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            {tr("확정 (재고·지출·요청완료)", "Confirm (stock/expense/request complete)")}
+            {tf.f02218}
           </Button>
         </DialogFooter>
       </DialogContent>

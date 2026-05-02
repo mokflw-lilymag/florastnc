@@ -2,11 +2,11 @@
 import React from 'react';
 import { Sidebar } from './sidebar';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
 import { Menu } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
-import { getDashboardCommonMessages } from "@/i18n/dashboard-common-messages";
+import { getMessages } from "@/i18n/getMessages";
 
 interface MobileSidebarProps {
   isSuperAdmin: boolean;
@@ -36,7 +36,7 @@ export function MobileSidebar({
   showBranchMaterialRequestLink = false,
 }: MobileSidebarProps) {
   const locale = usePreferredLocale();
-  const t = getDashboardCommonMessages(locale);
+  const t = getMessages(locale).dashboardCommon;
 
   return (
     <Sheet>

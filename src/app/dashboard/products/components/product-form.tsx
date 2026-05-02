@@ -1,4 +1,5 @@
 "use client";
+import { getMessages } from "@/i18n/getMessages";
 
 import { useState, useEffect, useMemo } from "react";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
@@ -35,33 +36,31 @@ interface ProductFormProps {
 
 export function ProductForm({ isOpen, onOpenChange, onSubmit, product }: ProductFormProps) {
   const locale = usePreferredLocale();
-  const baseLocale = toBaseLocale(locale);
-  const tr = (koText: string, enText: string) => (baseLocale === "ko" ? koText : enText);
-
-  const sizeLabels = useMemo<Record<string, string>>(
+  const tf = getMessages(locale).tenantFlows;
+  const baseLocale = toBaseLocale(locale);  const sizeLabels = useMemo<Record<string, string>>(
     () => ({
-      small: tr("소형 (꽃다발/꽃함)", "Small (bouquet / box)"),
-      medium: tr("중형 (꽃바구니/난)", "Medium (basket / orchid)"),
-      large: tr("대형 (화환/대형관엽)", "Large (wreath / large foliage)"),
+      small: tf.f01440,
+      medium: tf.f01891,
+      large: tf.f01083,
     }),
     [baseLocale]
   );
 
   const ribbonLabels = useMemo<Record<string, string>>(
     () => ({
-      "38mm": tr("38mm (슬림형)", "38mm (slim)"),
-      "70mm": tr("70mm (표준 리본)", "70mm (standard ribbon)"),
-      "100mm": tr("100mm (화환용 와이드)", "100mm (wreath wide)"),
-      none: tr("사용 안함 (카드)", "None (card only)"),
+      "38mm": tf.f00838,
+      "70mm": tf.f00842,
+      "100mm": tf.f00822,
+      none: tf.f01321,
     }),
     [baseLocale]
   );
 
   const statusLabels = useMemo<Record<string, string>>(
     () => ({
-      active: tr("판매중", "Active"),
-      inactive: tr("비활성 (미노출)", "Inactive (hidden)"),
-      sold_out: tr("품절", "Sold out"),
+      active: tf.f02100,
+      inactive: tf.f01312,
+      sold_out: tf.f00747,
     }),
     [baseLocale]
   );
@@ -131,23 +130,23 @@ export function ProductForm({ isOpen, onOpenChange, onSubmit, product }: Product
       <DialogContent className="sm:max-w-[500px] border-none shadow-2xl">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold text-slate-900">
-            {product ? tr("상품 정보 수정", "Edit product") : tr("새 상품 등록", "Add product")}
+            {product ? tf.f01357 : tf.f01374}
           </DialogTitle>
           <DialogDescription className="text-slate-500">
-            {tr("상품의 이름, 가격, 카테고리 등 상세 정보를 입력해주세요.", "Enter name, price, category, and other details.")}
+            {tf.f01364}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-5 py-4">
           <div className="grid gap-4">
             <div className="grid gap-2">
               <Label htmlFor="name" className="text-slate-700 font-medium">
-                {tr("상품명", "Product name")} <span className="text-red-500">*</span>
+                {tf.f00338} <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder={tr("예: 장미 꽃다발 (M)", "e.g. Rose bouquet (M)")}
+                placeholder={tf.f01590}
                 className="border-slate-200 focus:ring-blue-500/20"
                 required
               />
@@ -156,14 +155,14 @@ export function ProductForm({ isOpen, onOpenChange, onSubmit, product }: Product
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="main_category" className="text-slate-700 font-medium">
-                  {tr("대분류", "Main category")} <span className="text-red-500">*</span>
+                  {tf.f01074} <span className="text-red-500">*</span>
                 </Label>
                 <Select
                   value={formData.main_category || ""}
                   onValueChange={(value: string | null) => setFormData({ ...formData, main_category: value || undefined, mid_category: "" })}
                 >
                   <SelectTrigger className="border-slate-200 focus:ring-blue-500/20">
-                    <SelectValue placeholder={tr("선택", "Select")} />
+                    <SelectValue placeholder={tf.f01403} />
                   </SelectTrigger>
                   <SelectContent>
                     {CATEGORIES.main.map((cat: string) => (
@@ -174,14 +173,14 @@ export function ProductForm({ isOpen, onOpenChange, onSubmit, product }: Product
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="mid_category" className="text-slate-700 font-medium">{tr("중분류", "Subcategory")}</Label>
+                <Label htmlFor="mid_category" className="text-slate-700 font-medium">{tf.f01887}</Label>
                 <Select
                   value={formData.mid_category || ""}
                   onValueChange={(value: string | null) => setFormData({ ...formData, mid_category: value || undefined })}
                   disabled={!formData.main_category}
                 >
                   <SelectTrigger className="border-slate-200 focus:ring-blue-500/20">
-                    <SelectValue placeholder={tr("선택", "Select")} />
+                    <SelectValue placeholder={tf.f01403} />
                   </SelectTrigger>
                   <SelectContent>
                     {subCategories.map((cat: string) => (
@@ -195,7 +194,7 @@ export function ProductForm({ isOpen, onOpenChange, onSubmit, product }: Product
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="product-price" className="text-slate-700 font-medium">
-                  {tr("판매 가격 (₩)", "Price (₩)")} <span className="text-red-500">*</span>
+                  {tf.f02094} <span className="text-red-500">*</span>
                 </Label>
                 <Input 
                   id="product-price"
@@ -207,7 +206,7 @@ export function ProductForm({ isOpen, onOpenChange, onSubmit, product }: Product
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="product-stock" className="text-slate-700 font-medium">{tr("초기 재고", "Initial stock")}</Label>
+                <Label htmlFor="product-stock" className="text-slate-700 font-medium">{tf.f01986}</Label>
                 <Input 
                   id="product-stock"
                   type="number" 
@@ -220,22 +219,22 @@ export function ProductForm({ isOpen, onOpenChange, onSubmit, product }: Product
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="product-code" className="text-slate-700 font-medium">{tr("관리 코드 (SKU)", "SKU / code")}</Label>
+                <Label htmlFor="product-code" className="text-slate-700 font-medium">{tf.f00963}</Label>
                 <Input 
                   id="product-code"
                   value={formData.code || ""} 
                   onChange={e => setFormData(prev => ({ ...prev, code: e.target.value }))}
-                  placeholder={tr("예: FLOW-001", "e.g. FLOW-001")}
+                  placeholder={tf.f01593}
                   className="font-mono"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="product-supplier" className="text-slate-700 font-medium">{tr("공급업체", "Supplier")}</Label>
+                <Label htmlFor="product-supplier" className="text-slate-700 font-medium">{tf.f00950}</Label>
                 <Input 
                   id="product-supplier"
                   value={formData.supplier || ""} 
                   onChange={e => setFormData(prev => ({ ...prev, supplier: e.target.value }))}
-                  placeholder={tr("예: 양재꽃시장 A", "e.g. Wholesale market A")}
+                  placeholder={tf.f01587}
                 />
               </div>
             </div>
@@ -243,7 +242,7 @@ export function ProductForm({ isOpen, onOpenChange, onSubmit, product }: Product
             <div className="grid grid-cols-2 gap-4 pb-4 border-b border-dashed border-slate-100 mb-4">
               <div className="space-y-2">
                 <Label className="text-[11px] font-bold text-blue-600 uppercase">
-                  {tr("기본 상품 규격 (배송비 자동용)", "Default size (shipping rules)")}
+                  {tf.f01007}
                 </Label>
                 <Select 
                   value={formData.extra_data?.item_size || "medium"} 
@@ -264,7 +263,7 @@ export function ProductForm({ isOpen, onOpenChange, onSubmit, product }: Product
               </div>
               <div className="space-y-2">
                 <Label className="text-[11px] font-bold text-indigo-600 uppercase">
-                  {tr("기본 리본 선정 (출력 설정용)", "Default ribbon (print settings)")}
+                  {tf.f01005}
                 </Label>
                 <Select 
                   value={formData.extra_data?.ribbon_size || "70mm"} 
@@ -287,7 +286,7 @@ export function ProductForm({ isOpen, onOpenChange, onSubmit, product }: Product
             </div>
 
             <div className="space-y-2">
-              <Label className="text-slate-700 font-medium">{tr("판매 상태", "Sale status")}</Label>
+              <Label className="text-slate-700 font-medium">{tf.f02097}</Label>
               <Select 
                 value={formData.status} 
                 onValueChange={val => setFormData(prev => ({ ...prev, status: val as any }))}
@@ -305,9 +304,9 @@ export function ProductForm({ isOpen, onOpenChange, onSubmit, product }: Product
           </div>
 
           <DialogFooter className="pt-2">
-            <DialogClose render={<Button type="button" variant="ghost">{tr("취소", "Cancel")}</Button>} />
+            <DialogClose render={<Button type="button" variant="ghost">{tf.f00702}</Button>} />
             <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white min-w-[100px]">
-              {product ? tr("수정 완료", "Save changes") : tr("상품 등록", "Add product")}
+              {product ? tf.f00395 : tf.f01352}
             </Button>
           </DialogFooter>
         </form>

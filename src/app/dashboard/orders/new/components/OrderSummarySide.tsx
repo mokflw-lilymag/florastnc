@@ -1,3 +1,4 @@
+import { getMessages } from "@/i18n/getMessages";
 import { Product } from "@/types/product";
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -113,10 +114,8 @@ export function OrderSummarySide({
     isSubmitting
 }: OrderSummarySideProps) {
     const locale = usePreferredLocale();
-    const isKo = toBaseLocale(locale) === "ko";
-    const tr = (ko: string, en: string) => (isKo ? ko : en);
-
-    const updateQuantity = (index: number, delta: number) => {
+    const tf = getMessages(locale).tenantFlows;
+    const isKo = toBaseLocale(locale) === "ko";    const updateQuantity = (index: number, delta: number) => {
         const newItems = [...orderItems];
         newItems[index].quantity = Math.max(1, newItems[index].quantity + delta);
         setOrderItems(newItems);
@@ -127,29 +126,29 @@ export function OrderSummarySide({
     };
 
     const PAYMENT_METHODS: { value: PaymentMethod; label: string; icon: any }[] = [
-        { value: "card", label: tr("카드", "Card"), icon: CreditCard },
-        { value: "cash", label: tr("현금", "Cash"), icon: Banknote },
-        { value: "transfer", label: tr("계좌이체", "Transfer"), icon: Coins },
-        { value: "mainpay", label: tr("메인페이", "Mainpay"), icon: Smartphone },
-        { value: "shopping_mall", label: tr("쇼핑몰", "Mall"), icon: Globe },
+        { value: "card", label: tf.f00704, icon: CreditCard },
+        { value: "cash", label: tf.f00769, icon: Banknote },
+        { value: "transfer", label: tf.f00057, icon: Coins },
+        { value: "mainpay", label: tf.f00211, icon: Smartphone },
+        { value: "shopping_mall", label: tf.f00368, icon: Globe },
         { value: "epay", label: "e-Pay", icon: Smartphone },
-        { value: "kakao", label: tr("카카오페이", "KakaoPay"), icon: Smartphone },
-        { value: "apple", label: tr("애플페이", "ApplePay"), icon: Smartphone },
+        { value: "kakao", label: tf.f00712, icon: Smartphone },
+        { value: "apple", label: tf.f00432, icon: Smartphone },
     ];
 
     return (
         <Card className="h-[calc(100vh-2rem)] flex flex-col sticky top-4">
             <CardHeader className="pb-2 bg-muted/30">
-                <CardTitle>{tr("결제 금액", "Payment Summary")}</CardTitle>
+                <CardTitle>{tf.f00045}</CardTitle>
             </CardHeader>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-6">
                 {/* 1. Order Items List */}
                 <div className="space-y-4">
-                    <h4 className="text-sm font-semibold text-muted-foreground mb-2">{tr("주문 상품", "Order Items")}</h4>
+                    <h4 className="text-sm font-semibold text-muted-foreground mb-2">{tf.f00600}</h4>
                     {orderItems.length === 0 ? (
                         <div className="text-center py-8 border-2 border-dashed rounded-lg text-muted-foreground text-sm">
-                            {tr("선택된 상품이 없습니다.", "No selected items.")}
+                            {tf.f00360}
                         </div>
                     ) : (
                         <div className="space-y-3">
@@ -157,7 +156,7 @@ export function OrderSummarySide({
                                 <div key={`${item.id}-${index}`} className="flex items-start justify-between bg-white p-3 rounded-md border shadow-sm">
                                     <div className="flex-1 min-w-0 mr-2">
                                         <div className="font-medium text-sm truncate">{item.name}</div>
-                                        <div className="text-xs text-muted-foreground">{item.price.toLocaleString()}{tr("원", " KRW")}</div>
+                                        <div className="text-xs text-muted-foreground">{item.price.toLocaleString()}{tf.f00487}</div>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <div className="flex items-center border rounded-md">
@@ -184,7 +183,7 @@ export function OrderSummarySide({
                 {/* 2. Discount & Points */}
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                            <Label>{tr("할인 적용", "Discount")}</Label>
+                            <Label>{tf.f00762}</Label>
                         <Select
                             value={selectedDiscountRate === -1 ? "custom" : selectedDiscountRate.toString()}
                             onValueChange={(val) => {
@@ -193,24 +192,24 @@ export function OrderSummarySide({
                             }}
                         >
                             <SelectTrigger className="w-[140px] h-8 text-xs">
-                                <SelectValue placeholder={tr("할인 선택", "Select discount")} />
+                                <SelectValue placeholder={tf.f00761} />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="0">{tr("적용 안함", "No discount")}</SelectItem>
+                                <SelectItem value="0">{tf.f00545}</SelectItem>
                                 {(activeDiscountRates || []).map((rate: any) => (
                                     <SelectItem key={rate.rate} value={rate.rate.toString()}>
                                         {rate.label || `${rate.rate}%`}
                                     </SelectItem>
                                 ))}
                                 {/* Use rate.label if available, or just rate% */}
-                                <SelectItem value="custom">{tr("직접 입력", "Custom")}</SelectItem>
+                                <SelectItem value="custom">{tf.f00668}</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
                     {selectedDiscountRate === -1 && (
                         <Input
                             type="number"
-                            placeholder={tr("할인율(%)", "Discount rate(%)")}
+                            placeholder={tf.f00763}
                             value={customDiscountRate}
                             onChange={(e) => setCustomDiscountRate(Number(e.target.value))}
                             className="mt-2 text-right"
@@ -219,20 +218,20 @@ export function OrderSummarySide({
 
                     <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                            <Label>{tr("배송비 설정", "Delivery Fee")}</Label>
+                            <Label>{tf.f00260}</Label>
                             <div className="flex items-center space-x-2">
-                                <span className={cn("text-xs", deliveryFeeType === 'auto' ? "font-bold" : "text-muted-foreground")}>{tr("자동", "Auto")}</span>
+                                <span className={cn("text-xs", deliveryFeeType === 'auto' ? "font-bold" : "text-muted-foreground")}>{tf.f00533}</span>
                                 <Switch
                                     checked={deliveryFeeType === 'manual'}
                                     onCheckedChange={(checked) => setDeliveryFeeType(checked ? 'manual' : 'auto')}
                                 />
-                                <span className={cn("text-xs", deliveryFeeType === 'manual' ? "font-bold" : "text-muted-foreground")}>{tr("수동", "Manual")}</span>
+                                <span className={cn("text-xs", deliveryFeeType === 'manual' ? "font-bold" : "text-muted-foreground")}>{tf.f00373}</span>
                             </div>
                         </div>
                         {deliveryFeeType === 'manual' && (
                             <Input
                                 type="number"
-                                placeholder={tr("배송비 입력", "Enter delivery fee")}
+                                placeholder={tf.f00261}
                                 value={manualDeliveryFee}
                                 onChange={(e) => setManualDeliveryFee(Number(e.target.value))}
                                 className="text-right"
@@ -242,8 +241,8 @@ export function OrderSummarySide({
 
                     <div className="space-y-2">
                         <Label className="flex justify-between">
-                            <span>{tr("포인트 사용", "Use points")}</span>
-                            <span className="text-xs text-muted-foreground font-normal">{tr("보유", "Available")}: {maxPoints?.toLocaleString()} P</span>
+                            <span>{tf.f00732}</span>
+                            <span className="text-xs text-muted-foreground font-normal">{tf.f00285}: {maxPoints?.toLocaleString()} P</span>
                         </Label>
                         <div className="flex gap-2">
                             <Input
@@ -256,7 +255,7 @@ export function OrderSummarySide({
                                 variant="outline"
                                 size="sm"
                                 onClick={() => setUsedPoints(maxPoints)}
-                            >{tr("전액", "Max")}</Button>
+                            >{tf.f00551}</Button>
                         </div>
                     </div>
                 </div>
@@ -266,14 +265,14 @@ export function OrderSummarySide({
                 {/* 3. Payment Method */}
                 <div className="space-y-4">
                     <div className="flex items-center justify-between mb-2">
-                        <Label>{tr("결제 수단", "Payment Method")}</Label>
+                        <Label>{tf.f00049}</Label>
                         <div className="flex items-center space-x-2">
                             <Checkbox
                                 id="splitPay"
                                 checked={isSplitPaymentEnabled}
                                 onCheckedChange={(c) => setIsSplitPaymentEnabled(c as boolean)}
                             />
-                            <Label htmlFor="splitPay" className="text-xs font-normal cursor-pointer">{tr("복합 결제", "Split payment")}</Label>
+                            <Label htmlFor="splitPay" className="text-xs font-normal cursor-pointer">{tf.f00289}</Label>
                         </div>
                     </div>
 
@@ -295,7 +294,7 @@ export function OrderSummarySide({
                         // Split Payment UI
                         <div className="space-y-3 bg-muted/20 p-3 rounded-md">
                             <div className="space-y-1">
-                                <Label className="text-xs">{tr("1차 결제", "1st payment")}</Label>
+                                <Label className="text-xs">{tf.f00015}</Label>
                                 <div className="flex gap-2">
                                     <Select value={firstPaymentMethod} onValueChange={(v) => setFirstPaymentMethod(v as PaymentMethod)}>
                                         <SelectTrigger className="w-[100px] h-8 text-xs"><SelectValue /></SelectTrigger>
@@ -312,7 +311,7 @@ export function OrderSummarySide({
                                 </div>
                             </div>
                             <div className="space-y-1">
-                                <Label className="text-xs">{tr("2차 결제 (잔액)", "2nd payment (remaining)")}</Label>
+                                <Label className="text-xs">{tf.f00018}</Label>
                                 <div className="flex gap-2">
                                     <Select value={secondPaymentMethod} onValueChange={(v) => setSecondPaymentMethod(v as PaymentMethod)}>
                                         <SelectTrigger className="w-[100px] h-8 text-xs"><SelectValue /></SelectTrigger>
@@ -321,7 +320,7 @@ export function OrderSummarySide({
                                         </SelectContent>
                                     </Select>
                                     <div className="flex-1 h-8 flex items-center justify-end px-3 border rounded bg-muted text-xs font-medium">
-                                        {(orderSummary.total - firstPaymentAmount).toLocaleString()}{tr("원", " KRW")}
+                                        {(orderSummary.total - firstPaymentAmount).toLocaleString()}{tf.f00487}
                                     </div>
                                 </div>
                             </div>
@@ -335,7 +334,7 @@ export function OrderSummarySide({
                             className="flex-1 mr-2"
                             onClick={() => setPaymentStatus('paid')}
                         >
-                            <CheckCircle2 className="w-4 h-4 mr-1" /> {tr("결제 완료", "Paid")}
+                            <CheckCircle2 className="w-4 h-4 mr-1" /> {tf.f00051}
                         </Button>
                         <Button
                             variant={paymentStatus === 'pending' ? 'default' : 'outline'}
@@ -343,7 +342,7 @@ export function OrderSummarySide({
                             className="flex-1"
                             onClick={() => setPaymentStatus('pending')}
                         >
-                            <Circle className="w-4 h-4 mr-1" /> {tr("미수금(외상)", "Pending")}
+                            <Circle className="w-4 h-4 mr-1" /> {tf.f00222}
                         </Button>
                     </div>
                 </div>
@@ -353,29 +352,29 @@ export function OrderSummarySide({
             <CardFooter className="flex-col bg-muted/50 p-4 border-t">
                 <div className="w-full space-y-2 text-sm mb-4">
                     <div className="flex justify-between text-muted-foreground">
-                        <span>{tr("상품 합계", "Subtotal")}</span>
-                        <span>{orderSummary.subtotal.toLocaleString()}{tr("원", " KRW")}</span>
+                        <span>{tf.f00336}</span>
+                        <span>{orderSummary.subtotal.toLocaleString()}{tf.f00487}</span>
                     </div>
                     {orderSummary.discountAmount > 0 && (
                         <div className="flex justify-between text-red-500">
-                            <span>{tr("할인", "Discount")}</span>
-                            <span>- {orderSummary.discountAmount.toLocaleString()}{tr("원", " KRW")}</span>
+                            <span>{tf.f00759}</span>
+                            <span>- {orderSummary.discountAmount.toLocaleString()}{tf.f00487}</span>
                         </div>
                     )}
                     <div className="flex justify-between text-muted-foreground">
-                        <span>{tr("배송비", "Delivery")}</span>
-                        <span>+ {orderSummary.deliveryFee.toLocaleString()}{tr("원", " KRW")}</span>
+                        <span>{tf.f00259}</span>
+                        <span>+ {orderSummary.deliveryFee.toLocaleString()}{tf.f00487}</span>
                     </div>
                     {orderSummary.pointsUsed > 0 && (
                         <div className="flex justify-between text-blue-500">
-                            <span>{tr("포인트 사용", "Points")}</span>
-                            <span>- {orderSummary.pointsUsed.toLocaleString()}{tr("원", " KRW")}</span>
+                            <span>{tf.f00732}</span>
+                            <span>- {orderSummary.pointsUsed.toLocaleString()}{tf.f00487}</span>
                         </div>
                     )}
                     <Separator className="my-2" />
                     <div className="flex justify-between font-bold text-lg">
-                        <span>{tr("최종 결제 금액", "Total")}</span>
-                        <span className="text-primary">{orderSummary.total.toLocaleString()}{tr("원", " KRW")}</span>
+                        <span>{tf.f00692}</span>
+                        <span className="text-primary">{orderSummary.total.toLocaleString()}{tf.f00487}</span>
                     </div>
                 </div>
 
@@ -385,7 +384,7 @@ export function OrderSummarySide({
                     onClick={onSubmit}
                     disabled={isSubmitting || orderItems.length === 0}
                 >
-                    {isSubmitting ? tr("처리 중...", "Processing...") : `${orderSummary.total.toLocaleString()}${tr("원 결제하기", " Pay now")}`}
+                    {isSubmitting ? tf.f00677 : `${orderSummary.total.toLocaleString()}${tf.f00488}`}
                 </Button>
             </CardFooter>
         </Card>

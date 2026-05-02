@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { differenceInCalendarDays, format } from "date-fns";
-import { ko } from "date-fns/locale";
+import { enUS, ko } from "date-fns/locale";
 import { User, LogOut, Settings, Bell, BookOpen, Wifi, WifiOff, Globe } from "lucide-react";
 import { MobileSidebar } from "./mobile-sidebar";
 import { Button } from "@/components/ui/button";
@@ -30,7 +30,7 @@ import {
   resolveDashboardSelectLocale,
 } from "@/i18n/ui-locale-options";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
-import { getDashboardCommonMessages } from "@/i18n/dashboard-common-messages";
+import { getMessages } from "@/i18n/getMessages";
 
 interface HeaderProps {
   userEmail: string;
@@ -83,8 +83,9 @@ export function Header({
   const isAndroidApp = useIsCapacitorAndroid();
   const preferredLocale = usePreferredLocale();
   const isKo = resolveLocale(preferredLocale).startsWith("ko");
-  const tr = (koText: string, enText: string) => (isKo ? koText : enText);
-  const t = getDashboardCommonMessages(preferredLocale);
+  const messages = getMessages(preferredLocale);
+  const t = messages.dashboardCommon;
+  const dh = messages.dashboardHeader;
   const [uiLocale, setUiLocale] = useState<AppLocale>("ko");
   const selectLocale = resolveDashboardSelectLocale(uiLocale);
 
@@ -144,7 +145,7 @@ export function Header({
       return `${label} · ${t.header.subscriptionMissing}`;
     }
     const end = new Date(subscriptionEnd);
-    const dateStr = format(end, "yyyy.MM.dd", { locale: ko });
+    const dateStr = format(end, "yyyy.MM.dd", { locale: isKo ? ko : enUS });
     if (isExpired) {
       return `${label} · ${dateStr}(${t.header.subscriptionExpired}) · ${t.header.subscriptionRenew}`;
     }
@@ -152,7 +153,10 @@ export function Header({
     if (daysLeft <= 0) {
       return `${label} · ${t.header.subscriptionToday}`;
     }
-    return isKo ? `${label} · ${dateStr}까지 · D-${daysLeft}` : `${label} · until ${dateStr} · D-${daysLeft}`;
+    return t.header.subscriptionActiveCountdown
+      .replace(/\{\{label\}\}/g, label)
+      .replace(/\{\{date\}\}/g, dateStr)
+      .replace(/\{\{days\}\}/g, String(daysLeft));
   })();
 
   return (
@@ -212,7 +216,7 @@ export function Header({
         <div className="hidden md:flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5">
           <Globe className="h-3.5 w-3.5 text-slate-500" />
           <select
-            aria-label={tr("표시 언어", "Display language")}
+            aria-label={dh.displayLanguageAria}
             value={selectLocale}
             onChange={(e) => handleLocaleChange(e.target.value as AppLocale)}
             className="bg-transparent text-[11px] font-semibold text-slate-700 outline-none"
@@ -257,9 +261,9 @@ export function Header({
         {/* Quick Manual Link */}
         <Link
           href="/docs/manual"
-          title={tr("매뉴얼", "Manual")}
+          title={dh.manualTitle}
           className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-indigo-200 bg-white text-lg hover:bg-indigo-50 transition-colors shadow-sm"
-          aria-label={tr("매뉴얼 열기", "Open manual")}
+          aria-label={dh.manualOpenAria}
         >
           📘
         </Link>
@@ -271,7 +275,7 @@ export function Header({
             size="icon" 
             className="text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-all rounded-full"
             onClick={() => router.push("/dashboard/admin/manual")}
-            title={tr("본사 직무 매뉴얼", "HQ role manual")}
+            title={dh.hqManualTitle}
           >
             <BookOpen className="h-5 w-5" />
           </Button>

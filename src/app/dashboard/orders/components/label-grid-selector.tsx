@@ -1,4 +1,5 @@
 "use client";
+import { getMessages } from "@/i18n/getMessages";
 
 import { useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -70,10 +71,8 @@ export function LabelGridSelector({
     senderFontSize
 }: LabelGridSelectorProps) {
     const locale = usePreferredLocale();
-    const isKo = toBaseLocale(locale) === "ko";
-    const tr = (ko: string, en: string) => (isKo ? ko : en);
-
-    const spec = LABEL_SPECS[labelType] || LABEL_SPECS['formtec-3108'];
+    const tf = getMessages(locale).tenantFlows;
+    const isKo = toBaseLocale(locale) === "ko";    const spec = LABEL_SPECS[labelType] || LABEL_SPECS['formtec-3108'];
     const SCALE = 0.6;
     const displayWidth = 210 * SCALE;
     const displayHeight = 297 * SCALE;
@@ -84,11 +83,11 @@ export function LabelGridSelector({
                 {FONT_CATALOG.map((font, i) => (
                     <link key={i} rel="stylesheet" href={font.url} />
                 ))}
-                <Label className="font-semibold">{tr("라벨 미리보기 (A4 용지)", "Label Preview (A4)")}</Label>
+                <Label className="font-semibold">{tf.f00173}</Label>
                 <div className="flex gap-1">
-                    <Button variant="outline" size="xs" onClick={onSelectFirst}>{tr("첫장만", "First")}</Button>
-                    <Button variant="outline" size="xs" onClick={onSelectAll}>{tr("전체", "All")}</Button>
-                    <Button variant="outline" size="xs" onClick={onClearAll}>{tr("해제", "Clear")}</Button>
+                    <Button variant="outline" size="xs" onClick={onSelectFirst}>{tf.f00681}</Button>
+                    <Button variant="outline" size="xs" onClick={onSelectAll}>{tf.f00553}</Button>
+                    <Button variant="outline" size="xs" onClick={onClearAll}>{tf.f00768}</Button>
                 </div>
             </div>
 
@@ -133,7 +132,7 @@ export function LabelGridSelector({
                                                 wordBreak: 'break-word',
                                             }}
                                         >
-                                            {messageContent || <span className="text-gray-300 italic text-[6px]">{tr("내용 없음", "No content")}</span>}
+                                            {messageContent || <span className="text-gray-300 italic text-[6px]">{tf.f00134}</span>}
                                         </div>
                                         {senderName && (
                                             <div
@@ -161,7 +160,7 @@ export function LabelGridSelector({
                 </div>
             </div>
             <p className="text-[10px] text-muted-foreground text-center">
-                * {tr("실제 A4 용지의 약", "This is about")} {Math.round(SCALE * 100)}% {tr("축소 비율입니다.", "of real A4 size.")}
+                * {tf.f00422} {Math.round(SCALE * 100)}% {tf.f00698}
             </p>
         </div>
     );

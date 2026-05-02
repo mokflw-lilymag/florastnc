@@ -1,4 +1,5 @@
 "use client";
+import { getMessages } from "@/i18n/getMessages";
 
 import React, { useState, useMemo, useEffect } from "react";
 import {
@@ -57,26 +58,24 @@ export default function AnalyticsPage() {
   const { orders, fetchOrders, loading: ordersLoading } = useOrders(false);
   const { suppliers, loading: suppliersLoading } = useSuppliers();
   const locale = usePreferredLocale();
-  const baseLocale = toBaseLocale(locale);
-  const tr = (koText: string, enText: string) => (baseLocale === "ko" ? koText : enText);
-
-  const [viewMonth, setViewMonth] = useState(new Date());
+  const tf = getMessages(locale).tenantFlows;
+  const baseLocale = toBaseLocale(locale);  const [viewMonth, setViewMonth] = useState(new Date());
   const [rangeMode, setRangeMode] = useState<string>("month");
 
   const loading = expensesLoading || ordersLoading || suppliersLoading;
   const categoryLabelMap: Record<string, string> = {
-    materials_flowers: tr("자재/꽃 사입", "Materials/Flowers"),
-    transportation: tr("운송비", "Transportation"),
-    rent: tr("임대료", "Rent"),
-    utility: tr("공과금", "Utilities"),
-    labor: tr("인건비", "Labor"),
-    marketing: tr("마케팅", "Marketing"),
-    etc: tr("기타", "Other"),
+    materials_flowers: tf.f01744,
+    transportation: tf.f01632,
+    rent: tf.f01721,
+    utility: tf.f00949,
+    labor: tf.f01695,
+    marketing: tf.f01139,
+    etc: tf.f00115,
   };
   const methodLabelMap: Record<string, string> = {
-    card: tr("카드", "Card"),
-    cash: tr("현금", "Cash"),
-    transfer: tr("이체", "Transfer"),
+    card: tf.f00704,
+    cash: tf.f00769,
+    transfer: tf.f01693,
   };
 
   // Fetch orders for a full year to support all range modes
@@ -161,7 +160,7 @@ export default function AnalyticsPage() {
     return Array.from(map.entries())
       .map(([id, data]) => ({
         id,
-        name: suppliers.find(s => s.id === id)?.name || tr("알 수 없음", "Unknown"),
+        name: suppliers.find(s => s.id === id)?.name || tf.f01526,
         ...data,
       }))
       .sort((a, b) => b.amount - a.amount)
@@ -242,7 +241,7 @@ export default function AnalyticsPage() {
 
   return (
     <div className="p-6 max-w-[1600px] mx-auto space-y-6 animate-in fade-in duration-500">
-      <PageHeader title={tr("매입/매출 통계", "Sales & Expense Analytics")} description={tr("지출 분석과 매출 현황을 한눈에 파악합니다.", "Track expense analysis and sales performance at a glance.")} icon={BarChart3}>
+      <PageHeader title={tf.f01160} description={tf.f01942} icon={BarChart3}>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" className="h-9 w-9 rounded-xl" onClick={prevMonth}>
             <ChevronLeft className="h-4 w-4" />
@@ -258,10 +257,10 @@ export default function AnalyticsPage() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="month">{tr("1개월", "1 month")}</SelectItem>
-              <SelectItem value="3months">{tr("3개월", "3 months")}</SelectItem>
-              <SelectItem value="6months">{tr("6개월", "6 months")}</SelectItem>
-              <SelectItem value="year">{tr("12개월", "12 months")}</SelectItem>
+              <SelectItem value="month">{tf.f00824}</SelectItem>
+              <SelectItem value="3months">{tf.f00839}</SelectItem>
+              <SelectItem value="6months">{tf.f00841}</SelectItem>
+              <SelectItem value="year">{tf.f00823}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -279,12 +278,12 @@ export default function AnalyticsPage() {
               <div className="absolute right-0 top-0 opacity-10 scale-150 rotate-12 p-3"><TrendingUp size={64} /></div>
               <CardHeader className="pb-2">
                 <CardTitle className="text-xs font-medium opacity-80 uppercase tracking-widest flex items-center gap-1.5">
-                  <TrendingUp className="h-3.5 w-3.5" /> {tr("총 매출", "Total Sales")}
+                  <TrendingUp className="h-3.5 w-3.5" /> {tf.f01995}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-light">₩{totalSales.toLocaleString()}</div>
-                <p className="text-[11px] text-indigo-200 mt-1 font-light">{rangeOrders.length}{tr("건 주문", " orders")}</p>
+                <p className="text-[11px] text-indigo-200 mt-1 font-light">{rangeOrders.length}{tf.f00890}</p>
               </CardContent>
             </Card>
 
@@ -292,12 +291,12 @@ export default function AnalyticsPage() {
               <div className="absolute right-0 top-0 opacity-10 scale-150 rotate-12 p-3"><TrendingDown size={64} /></div>
               <CardHeader className="pb-2">
                 <CardTitle className="text-xs font-medium opacity-80 uppercase tracking-widest flex items-center gap-1.5">
-                  <TrendingDown className="h-3.5 w-3.5" /> {tr("총 지출", "Total Expense")}
+                  <TrendingDown className="h-3.5 w-3.5" /> {tf.f01998}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-light">₩{totalExpense.toLocaleString()}</div>
-                <p className="text-[11px] text-rose-200 mt-1 font-light">{rangeExpenses.length}{tr("건 지출", " expenses")}</p>
+                <p className="text-[11px] text-rose-200 mt-1 font-light">{rangeExpenses.length}{tf.f00891}</p>
               </CardContent>
             </Card>
 
@@ -305,12 +304,12 @@ export default function AnalyticsPage() {
               <div className="absolute right-0 top-0 opacity-10 scale-150 rotate-12 p-3"><Wallet size={64} /></div>
               <CardHeader className="pb-2">
                 <CardTitle className="text-xs font-medium opacity-80 uppercase tracking-widest flex items-center gap-1.5">
-                  {profit >= 0 ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownRight className="h-3.5 w-3.5" />} {tr("매출이익", "Gross Profit")}
+                  {profit >= 0 ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownRight className="h-3.5 w-3.5" />} {tf.f01180}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-light">₩{profit.toLocaleString()}</div>
-                <p className="text-[11px] opacity-70 mt-1 font-light">{tr("매출이익률", "Profit Margin")} {profitRate.toFixed(1)}%</p>
+                <p className="text-[11px] opacity-70 mt-1 font-light">{tf.f01181} {profitRate.toFixed(1)}%</p>
               </CardContent>
             </Card>
 
@@ -318,12 +317,12 @@ export default function AnalyticsPage() {
               <div className="absolute right-0 top-0 opacity-10 scale-150 rotate-12 p-3"><CreditCard size={64} /></div>
               <CardHeader className="pb-2">
                 <CardTitle className="text-xs font-medium opacity-80 uppercase tracking-widest flex items-center gap-1.5">
-                  <CreditCard className="h-3.5 w-3.5" /> {tr("건당 평균 지출", "Avg Expense / Record")}
+                  <CreditCard className="h-3.5 w-3.5" /> {tf.f00895}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-light">₩{rangeExpenses.length > 0 ? Math.round(totalExpense / rangeExpenses.length).toLocaleString() : 0}</div>
-                <p className="text-[11px] text-slate-300 mt-1 font-light">{tr("건당 평균 매출", "Avg Sales / Order")}: ₩{rangeOrders.length > 0 ? Math.round(totalSales / rangeOrders.length).toLocaleString() : 0}</p>
+                <p className="text-[11px] text-slate-300 mt-1 font-light">{tf.f00894}: ₩{rangeOrders.length > 0 ? Math.round(totalSales / rangeOrders.length).toLocaleString() : 0}</p>
               </CardContent>
             </Card>
           </div>
@@ -335,7 +334,7 @@ export default function AnalyticsPage() {
               <CardHeader>
                 <CardTitle className="text-sm font-medium text-slate-800 flex items-center gap-2">
                   <BarChart3 className="h-4 w-4 text-indigo-500" />
-                  {rangeMode === "month" ? tr("일별", "Daily") : tr("월별", "Monthly")} {tr("매출 vs 지출 추이", "Sales vs Expense Trend")}
+                  {rangeMode === "month" ? tf.f01713 : tf.f01648} {tf.f01178}
                 </CardTitle>
                 <CardDescription className="text-xs font-light">
                   {format(dateRange.start, "yyyy.MM.dd")} ~ {format(dateRange.end, "yyyy.MM.dd")}
@@ -350,8 +349,8 @@ export default function AnalyticsPage() {
                       <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} tickFormatter={(v) => `${(v / 10000).toFixed(0)}만`} />
                       <Tooltip content={<CustomTooltip />} />
                       <Legend wrapperStyle={{ fontSize: 11 }} />
-                      <Area type="monotone" dataKey="sales" name={tr("매출", "Sales")} stroke="#6366f1" fill="#6366f1" fillOpacity={0.15} strokeWidth={2} />
-                      <Area type="monotone" dataKey="expense" name={tr("지출", "Expense")} stroke="#ef4444" fill="#ef4444" fillOpacity={0.1} strokeWidth={2} />
+                      <Area type="monotone" dataKey="sales" name={tf.f01173} stroke="#6366f1" fill="#6366f1" fillOpacity={0.15} strokeWidth={2} />
+                      <Area type="monotone" dataKey="expense" name={tf.f01929} stroke="#ef4444" fill="#ef4444" fillOpacity={0.1} strokeWidth={2} />
                     </AreaChart>
                   ) : (
                     <BarChart data={trendData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
@@ -360,9 +359,9 @@ export default function AnalyticsPage() {
                       <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} tickFormatter={(v) => `${(v / 10000).toFixed(0)}만`} />
                       <Tooltip content={<CustomTooltip />} />
                       <Legend wrapperStyle={{ fontSize: 11 }} />
-                      <Bar dataKey="sales" name={tr("매출", "Sales")} fill="#6366f1" radius={[6, 6, 0, 0]} />
-                      <Bar dataKey="expense" name={tr("지출", "Expense")} fill="#ef4444" radius={[6, 6, 0, 0]} />
-                      <Line type="monotone" dataKey="profit" name={tr("매출이익", "Profit")} stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} />
+                      <Bar dataKey="sales" name={tf.f01173} fill="#6366f1" radius={[6, 6, 0, 0]} />
+                      <Bar dataKey="expense" name={tf.f01929} fill="#ef4444" radius={[6, 6, 0, 0]} />
+                      <Line type="monotone" dataKey="profit" name={tf.f01180} stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} />
                     </BarChart>
                   )}
                 </ResponsiveContainer>
@@ -373,7 +372,7 @@ export default function AnalyticsPage() {
             <Card className="lg:col-span-2 border-none shadow-md bg-white rounded-2xl overflow-hidden">
               <CardHeader>
                 <CardTitle className="text-sm font-medium text-slate-800 flex items-center gap-2">
-                  <PieChartIcon className="h-4 w-4 text-violet-500" /> {tr("분류별 지출 비중", "Expense Ratio by Category")}
+                  <PieChartIcon className="h-4 w-4 text-violet-500" /> {tf.f01291}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -424,13 +423,13 @@ export default function AnalyticsPage() {
             <Card className="lg:col-span-4 border-none shadow-md bg-white rounded-2xl overflow-hidden">
               <CardHeader>
                 <CardTitle className="text-sm font-medium text-slate-800 flex items-center gap-2">
-                  <Trophy className="h-4 w-4 text-amber-500" /> {tr("거래처별 매입 순위 TOP 10", "Top 10 Suppliers by Purchase")}
+                  <Trophy className="h-4 w-4 text-amber-500" /> {tf.f00885}
                 </CardTitle>
               </CardHeader>
               <CardContent className="h-[360px]">
                 {supplierRanking.length === 0 ? (
                   <div className="h-full flex items-center justify-center text-sm text-slate-400 font-light">
-                    {tr("거래처 매입 데이터가 없습니다.", "No supplier purchase data available.")}
+                    {tf.f00875}
                   </div>
                 ) : (
                   <ResponsiveContainer width="100%" height="100%" minWidth={0}>
@@ -446,7 +445,7 @@ export default function AnalyticsPage() {
                             <div className="bg-white/95 backdrop-blur-md shadow-xl rounded-xl p-3 border border-slate-100">
                               <p className="text-xs font-bold text-slate-700">{d.name}</p>
                               <p className="text-xs text-blue-600">₩{d.amount.toLocaleString()}</p>
-                              <p className="text-xs text-slate-400">{d.count}{tr("건 거래", " transactions")}</p>
+                              <p className="text-xs text-slate-400">{d.count}{tf.f00887}</p>
                             </div>
                           );
                         }}
@@ -462,7 +461,7 @@ export default function AnalyticsPage() {
             <Card className="lg:col-span-3 border-none shadow-md bg-white rounded-2xl overflow-hidden">
               <CardHeader>
                 <CardTitle className="text-sm font-medium text-slate-800 flex items-center gap-2">
-                  <Wallet className="h-4 w-4 text-emerald-500" /> {tr("결제수단별 지출", "Expense by Payment Method")}
+                  <Wallet className="h-4 w-4 text-emerald-500" /> {tf.f00927}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -511,7 +510,7 @@ export default function AnalyticsPage() {
           {supplierRanking.length > 0 && (
             <div>
               <h3 className="text-sm font-medium text-slate-700 mb-3 flex items-center gap-2">
-                <Building2 className="h-4 w-4 text-blue-500" /> {tr("주요 거래처 상세 현황", "Key Supplier Details")}
+                <Building2 className="h-4 w-4 text-blue-500" /> {tf.f01880}
               </h3>
               <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
                 {supplierRanking.slice(0, 10).map((s, i) => {
@@ -536,7 +535,7 @@ export default function AnalyticsPage() {
                           ₩{s.amount.toLocaleString()}
                         </div>
                         <div className="flex items-center justify-between text-[11px] text-slate-400">
-                          <span>{s.count}{tr("건 거래", " transactions")}</span>
+                          <span>{s.count}{tf.f00887}</span>
                           <span className="font-medium text-blue-500">{pct}%</span>
                         </div>
                         {/* Progress bar */}

@@ -1,4 +1,5 @@
 "use client";
+import { getMessages } from "@/i18n/getMessages";
 
 import { useCallback, useEffect, useState } from "react";
 import { FulfillRequestDialog } from "./fulfill-request-dialog";
@@ -51,14 +52,13 @@ export default function HqMaterialRequestsPage() {
   const [fulfillOpen, setFulfillOpen] = useState(false);
   const [fulfillTarget, setFulfillTarget] = useState<Req | null>(null);
   const locale = usePreferredLocale();
-  const baseLocale = toBaseLocale(locale);
-  const tr = (koText: string, enText: string) => (baseLocale === "ko" ? koText : enText);
-  const formatStatus = (status: string) => {
+  const tf = getMessages(locale).tenantFlows;
+  const baseLocale = toBaseLocale(locale);  const formatStatus = (status: string) => {
     const map: Record<string, string> = {
-      pending: tr("대기", "Pending"),
-      reviewing: tr("검토중", "Reviewing"),
-      fulfilled: tr("처리완료", "Fulfilled"),
-      cancelled: tr("취소", "Cancelled"),
+      pending: tf.f01072,
+      reviewing: tf.f00905,
+      fulfilled: tf.f01980,
+      cancelled: tf.f00702,
     };
     return map[status] ?? status;
   };
@@ -122,18 +122,18 @@ export default function HqMaterialRequestsPage() {
     return (
       <div className="container max-w-6xl mx-auto p-6 space-y-6">
         <PageHeader
-          title={tr("지점 자재 요청", "Branch Material Requests")}
-          description={tr("조직에 배정된 계정만 전체 요청 목록을 볼 수 있습니다.", "Only organization-assigned accounts can view full request list.")}
+          title={tf.f01915}
+          description={tf.f01851}
           icon={ClipboardList}
         />
         <Card className="max-w-lg">
           <CardHeader>
-            <CardTitle>{tr("접근할 수 없습니다", "Access denied")}</CardTitle>
-            <CardDescription>{tr("본사·다매장 권한이 필요합니다.", "HQ/multi-store permission required.")}</CardDescription>
+            <CardTitle>{tf.f01814}</CardTitle>
+            <CardDescription>{tf.f01279}</CardDescription>
           </CardHeader>
           <CardContent>
             <Button variant="outline" onClick={() => router.push("/dashboard/hq")}>
-              {tr("본사 개요로", "Go to HQ overview")}
+              {tf.f01264}
             </Button>
           </CardContent>
         </Card>
@@ -144,8 +144,8 @@ export default function HqMaterialRequestsPage() {
   return (
     <div className="container max-w-6xl mx-auto p-6 space-y-8">
       <PageHeader
-        title={tr("지점 자재 요청", "Branch Material Requests")}
-        description={tr("취합 발주안·내보내기·상태 변경 후, 지점별 원본에서 입고·지출 확정 시 해당 지점 재고와 지출에 반영됩니다. (supabase/branch_material_request_fulfillment.sql 적용 필요)", "After consolidation/export/status changes, confirming fulfillment applies stock/expense to each branch. (Requires supabase/branch_material_request_fulfillment.sql)")}
+        title={tf.f01915}
+        description={tf.f02042}
         icon={ClipboardList}
       />
 
@@ -160,17 +160,17 @@ export default function HqMaterialRequestsPage() {
           <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
         </div>
       ) : requests.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{tr("요청이 없습니다.", "No requests.")}</p>
+        <p className="text-sm text-muted-foreground">{tf.f01629}</p>
       ) : (
         <Tabs defaultValue="consolidate" className="gap-6">
           <TabsList variant="line" className="w-full sm:w-auto">
             <TabsTrigger value="consolidate" className="gap-1.5">
               <LayoutGrid className="h-4 w-4" />
-              {tr("취합 발주안", "Consolidated Draft")}
+              {tf.f02041}
             </TabsTrigger>
             <TabsTrigger value="by-branch" className="gap-1.5">
               <ListTree className="h-4 w-4" />
-              {tr("지점별 원본", "Per-branch Source")}
+              {tf.f01922}
             </TabsTrigger>
           </TabsList>
 
@@ -205,7 +205,7 @@ export default function HqMaterialRequestsPage() {
                             setFulfillOpen(true);
                           }}
                         >
-                          {tr("입고·지출 확정", "Confirm Stock & Expense")}
+                          {tf.f01722}
                         </Button>
                       ) : null}
                       {!isSuperAdmin ? (
@@ -213,7 +213,7 @@ export default function HqMaterialRequestsPage() {
                           href={`/dashboard/hq/branches/${r.tenant_id}`}
                           className="text-xs text-primary underline underline-offset-4"
                         >
-                          {tr("지점 요약", "Branch Summary")}
+                          {tf.f01914}
                         </Link>
                       ) : null}
                     </div>
@@ -226,11 +226,11 @@ export default function HqMaterialRequestsPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>{tr("품목", "Item")}</TableHead>
-                        <TableHead>{tr("대분류", "Main Category")}</TableHead>
-                        <TableHead>{tr("중분류", "Mid Category")}</TableHead>
-                        <TableHead className="text-right">{tr("수량", "Qty")}</TableHead>
-                        <TableHead>{tr("비고", "Note")}</TableHead>
+                        <TableHead>{tf.f02124}</TableHead>
+                        <TableHead>{tf.f01074}</TableHead>
+                        <TableHead>{tf.f01887}</TableHead>
+                        <TableHead className="text-right">{tf.f00377}</TableHead>
+                        <TableHead>{tf.f01302}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>

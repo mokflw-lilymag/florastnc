@@ -1,4 +1,5 @@
 "use client";
+import { getMessages } from "@/i18n/getMessages";
 
 import React, { useMemo, useState } from "react";
 import { format } from "date-fns";
@@ -17,10 +18,8 @@ export default function DeliveryProfitPage() {
   const { orders, loading } = useOrders();
   const [searchTerm, setSearchTerm] = useState("");
   const locale = usePreferredLocale();
-  const isKo = toBaseLocale(locale) === "ko";
-  const tr = (ko: string, en: string) => (isKo ? ko : en);
-
-  const deliveryOrders = useMemo(() => {
+  const tf = getMessages(locale).tenantFlows;
+  const isKo = toBaseLocale(locale) === "ko";  const deliveryOrders = useMemo(() => {
     return orders.filter(
       (order) => 
         order.receipt_type === "delivery_reservation" &&
@@ -52,8 +51,8 @@ export default function DeliveryProfitPage() {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <PageHeader 
-        title={tr("배송비 정산 및 차익", "Delivery Cost Settlement & Margin")} 
-        description={tr("고객에게 청구된 배송비와 실제 배송에 사용된 지출의 차액을 분석합니다.", "Analyze the difference between charged and actual delivery costs.")}
+        title={tf.f00263} 
+        description={tf.f00083}
         icon={TrendingUp}
       />
 
@@ -61,18 +60,18 @@ export default function DeliveryProfitPage() {
         <Card className="border-none shadow-md bg-gradient-to-br from-indigo-50 to-white">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2 text-indigo-700">
-              <Package className="w-4 h-4" /> {tr("배송 건수", "Delivery Count")}
+              <Package className="w-4 h-4" /> {tf.f00241}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-indigo-900">{stats.count}{tr("건", "")}</div>
+            <div className="text-2xl font-bold text-indigo-900">{stats.count}{tf.f00033}</div>
           </CardContent>
         </Card>
 
         <Card className="border-none shadow-md bg-gradient-to-br from-blue-50 to-white">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2 text-blue-700">
-              <DollarSign className="w-4 h-4" /> {tr("고객 청구 배송비 (수입)", "Charged Delivery Fee (Revenue)")}
+              <DollarSign className="w-4 h-4" /> {tf.f00073}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -83,7 +82,7 @@ export default function DeliveryProfitPage() {
         <Card className="border-none shadow-md bg-gradient-to-br from-rose-50 to-white">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2 text-rose-700">
-              <Truck className="w-4 h-4" /> {tr("실제 배송비 (지출)", "Actual Delivery Cost (Expense)")}
+              <Truck className="w-4 h-4" /> {tf.f00419}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -94,7 +93,7 @@ export default function DeliveryProfitPage() {
         <Card className="border-none shadow-md bg-gradient-to-br from-emerald-50 to-white">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2 text-emerald-700">
-              <TrendingUp className="w-4 h-4" /> {tr("배송비 차익", "Delivery Margin")}
+              <TrendingUp className="w-4 h-4" /> {tf.f00264}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -108,13 +107,13 @@ export default function DeliveryProfitPage() {
       <Card className="border-none shadow-xl">
         <CardHeader className="flex flex-row items-center justify-between border-b">
           <div>
-            <CardTitle>{tr("상세 내역", "Detail List")}</CardTitle>
-            <CardDescription>{tr("개별 주문건에 대한 배송비 정산 내역입니다.", "Settlement details by order.")}</CardDescription>
+            <CardTitle>{tf.f00312}</CardTitle>
+            <CardDescription>{tf.f00026}</CardDescription>
           </div>
           <div className="relative w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <Input
-              placeholder={tr("주문번호, 고객명, 업체 검색...", "Search order no, customer, carrier...")}
+              placeholder={tf.f00625}
               className="pl-9 bg-gray-50 border-gray-200"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -123,23 +122,23 @@ export default function DeliveryProfitPage() {
         </CardHeader>
         <CardContent className="pt-6">
           {loading ? (
-             <div className="h-40 flex items-center justify-center text-gray-400">{tr("데이터를 불러오는 중...", "Loading data...")}</div>
+             <div className="h-40 flex items-center justify-center text-gray-400">{tf.f00157}</div>
           ) : (
              <Table>
                 <TableHeader>
                    <TableRow className="hover:bg-transparent">
-                      <TableHead className="font-bold text-slate-700">{tr("날짜 / 주문번호", "Date / Order No")}</TableHead>
-                      <TableHead className="font-bold text-slate-700">{tr("고객명", "Customer")}</TableHead>
-                      <TableHead className="font-bold text-slate-700">{tr("배송업체", "Carrier")}</TableHead>
-                      <TableHead className="text-right font-bold text-slate-700">{tr("청구 배송비(A)", "Charged Fee (A)")}</TableHead>
-                      <TableHead className="text-right font-bold text-slate-700">{tr("실제 배송비(B)", "Actual Cost (B)")}</TableHead>
-                      <TableHead className="text-right font-black text-slate-700">{tr("차액 (A-B)", "Difference (A-B)")}</TableHead>
+                      <TableHead className="font-bold text-slate-700">{tf.f00128}</TableHead>
+                      <TableHead className="font-bold text-slate-700">{tf.f00076}</TableHead>
+                      <TableHead className="font-bold text-slate-700">{tf.f00266}</TableHead>
+                      <TableHead className="text-right font-bold text-slate-700">{tf.f00682}</TableHead>
+                      <TableHead className="text-right font-bold text-slate-700">{tf.f00421}</TableHead>
+                      <TableHead className="text-right font-black text-slate-700">{tf.f00672}</TableHead>
                    </TableRow>
                 </TableHeader>
                 <TableBody>
                    {deliveryOrders.length === 0 ? (
                       <TableRow>
-                         <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">{tr("내역이 없습니다.", "No records.")}</TableCell>
+                         <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">{tf.f00133}</TableCell>
                       </TableRow>
                    ) : (
                       deliveryOrders.map(order => {
@@ -154,7 +153,7 @@ export default function DeliveryProfitPage() {
                              </TableCell>
                              <TableCell className="font-bold text-slate-800">{order.orderer.name}</TableCell>
                              <TableCell>
-                               <Badge variant="outline" className="bg-white">{order.delivery_info?.driverAffiliation || tr("미지정(자체)", "Unassigned (self)")}</Badge>
+                               <Badge variant="outline" className="bg-white">{order.delivery_info?.driverAffiliation || tf.f00226}</Badge>
                              </TableCell>
                              <TableCell className="text-right font-semibold text-blue-600">₩{received.toLocaleString()}</TableCell>
                              <TableCell className="text-right font-semibold text-rose-600">₩{actual.toLocaleString()}</TableCell>

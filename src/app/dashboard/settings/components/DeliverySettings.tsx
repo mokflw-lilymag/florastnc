@@ -1,4 +1,5 @@
 "use client";
+import { getMessages } from "@/i18n/getMessages";
 
 import { MapPin, Plus, Trash2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,21 +30,20 @@ export function DeliverySettings({
   importFees
 }: DeliverySettingsProps) {
   const locale = usePreferredLocale();
-  const isKo = toBaseLocale(locale) === "ko";
-  const tr = (ko: string, en: string) => (isKo ? ko : en);
-  const [newRegion, setNewRegion] = useState("");
+  const tf = getMessages(locale).tenantFlows;
+  const isKo = toBaseLocale(locale) === "ko";  const [newRegion, setNewRegion] = useState("");
   const [newFee, setNewFee] = useState("");
 
   return (
     <Card className="border-0 shadow-sm ring-1 ring-slate-200">
       <CardHeader>
-        <CardTitle>{tr("배송 정책", "Delivery Policy")}</CardTitle>
-        <CardDescription>{tr("화원 위치와 거리에 따른 배송비 규칙을 정합니다.", "Configure delivery fee rules by location and distance.")}</CardDescription>
+        <CardTitle>{tf.f01236}</CardTitle>
+        <CardDescription>{tf.f02209}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
-            <Label htmlFor="default-fee">{tr("기본 배송비", "Default Delivery Fee")}</Label>
+            <Label htmlFor="default-fee">{tf.f01006}</Label>
             <div className="flex items-center gap-3">
               <Input 
                 id="default-fee" 
@@ -55,7 +55,7 @@ export function DeliverySettings({
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="free-thresh">{tr("무료 배송 임계값", "Free Delivery Threshold")}</Label>
+            <Label htmlFor="free-thresh">{tf.f01207}</Label>
             <div className="flex items-center gap-3">
               <Input 
                 id="free-thresh" 
@@ -71,8 +71,8 @@ export function DeliverySettings({
         <div className="space-y-4">
           <div className="flex items-center justify-between">
              <div className="space-y-1">
-                <Label className="text-sm font-bold">{tr("지역별 추가 배송비", "Additional Fee by Region")}</Label>
-                <p className="text-xs text-slate-400">{tr("구역별로 다른 비용이 발생할 시 설정하세요.", "Set this when delivery fee varies by region.")}</p>
+                <Label className="text-sm font-bold">{tf.f01905}</Label>
+                <p className="text-xs text-slate-400">{tf.f00990}</p>
              </div>
              {regionFees.length === 0 && settings.districtDeliveryFees && settings.districtDeliveryFees.length > 0 && (
                 <Button 
@@ -81,7 +81,7 @@ export function DeliverySettings({
                   className="text-xs border-indigo-200 text-indigo-600 hover:bg-indigo-50"
                   onClick={() => importFees(settings.districtDeliveryFees)}
                 >
-                  {tr("광화문점 기준 배송비 자동 적용하기", "Apply sample fees preset")}
+                  {tf.f00969}
                 </Button>
              )}
           </div>
@@ -89,9 +89,9 @@ export function DeliverySettings({
             <div className="bg-slate-50 border-b p-4 space-y-3 sticky top-0 z-20">
               <div className="flex items-end gap-3">
                 <div className="grid gap-1.5 flex-1">
-                  <Label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{tr("새 지역 등록", "Add Region")}</Label>
+                  <Label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{tf.f01380}</Label>
                   <Input 
-                    placeholder={tr("지역명 (예: 강남구, 서초동)", "Region name (e.g. Downtown, West District)")} 
+                    placeholder={tf.f01904} 
                     value={newRegion} 
                     onChange={e => setNewRegion(e.target.value)}
                     className="h-9 bg-white"
@@ -105,7 +105,7 @@ export function DeliverySettings({
                   />
                 </div>
                 <div className="grid gap-1.5 w-32">
-                  <Label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{tr("배송비", "Delivery Fee")}</Label>
+                  <Label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{tf.f00259}</Label>
                   <Input 
                     type="number" 
                     placeholder="10000" 
@@ -124,19 +124,19 @@ export function DeliverySettings({
                   }} 
                   className="h-9 bg-slate-900 text-slate-50 px-4"
                 >
-                  <Plus className="h-4 w-4 mr-1" /> {tr("추가", "Add")}
+                  <Plus className="h-4 w-4 mr-1" /> {tf.f00697}
                 </Button>
               </div>
 
               <div className="flex items-center justify-between pt-2">
                  <div className="text-[11px] text-slate-400 font-medium">
-                   {tr("등록된 지역", "Registered regions")}: <span className="text-slate-900 font-bold">{regionFees.length}</span>{tr("개", "")}
+                   {tf.f01118}: <span className="text-slate-900 font-bold">{regionFees.length}</span>{tf.f00025}
                  </div>
                  <div className="flex items-center gap-4 text-slate-500 font-semibold flex-1 justify-end">
                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px 80px', width: '100%', maxWidth: '400px' }}>
-                     <div className="px-4 text-[10px] uppercase font-bold text-slate-400">{tr("지역/구역", "Region")}</div>
-                     <div className="text-right text-[10px] uppercase font-bold text-slate-400 pr-8">{tr("배송비", "Fee")}</div>
-                     <div className="text-center text-[10px] uppercase font-bold text-slate-400">{tr("관리", "Action")}</div>
+                     <div className="px-4 text-[10px] uppercase font-bold text-slate-400">{tf.f01903}</div>
+                     <div className="text-right text-[10px] uppercase font-bold text-slate-400 pr-8">{tf.f00259}</div>
+                     <div className="text-center text-[10px] uppercase font-bold text-slate-400">{tf.f00087}</div>
                    </div>
                  </div>
               </div>
@@ -148,7 +148,7 @@ export function DeliverySettings({
                     <tr>
                       <td colSpan={3} className="px-4 py-20 text-center text-slate-400 bg-slate-50/20">
                         <MapPin className="h-10 w-10 mx-auto mb-3 opacity-20" />
-                        <p>{tr("등록된 지역별 배송비가 없습니다.", "No region-specific delivery fees yet.")}</p>
+                        <p>{tf.f01119}</p>
                       </td>
                     </tr>
                   ) : regionFees.map(fee => (

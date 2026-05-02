@@ -1,4 +1,5 @@
 "use client";
+import { getMessages } from "@/i18n/getMessages";
 
 import { CreditCard, Settings as SettingsIcon, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,9 +17,8 @@ interface PosIntegrationCardProps {
 
 export function PosIntegrationCard({ posIntegration, isLoading }: PosIntegrationCardProps) {
   const locale = usePreferredLocale();
-  const isKo = toBaseLocale(locale) === "ko";
-  const tr = (ko: string, en: string) => (isKo ? ko : en);
-  const isEasyCheckActive = posIntegration?.pos_type === 'easycheck' && posIntegration?.is_active;
+  const tf = getMessages(locale).tenantFlows;
+  const isKo = toBaseLocale(locale) === "ko";  const isEasyCheckActive = posIntegration?.pos_type === 'easycheck' && posIntegration?.is_active;
   const isTossActive = posIntegration?.pos_type === 'toss' && posIntegration?.is_active;
 
   return (
@@ -26,13 +26,13 @@ export function PosIntegrationCard({ posIntegration, isLoading }: PosIntegration
       <div className="flex items-center justify-between">
         <div className="space-y-1">
           <Label className="text-sm font-bold flex items-center gap-2">
-            <CreditCard className="h-4 w-4 text-orange-600" /> {tr("오프라인 POS 연동 (이지체크/토스)", "Offline POS Integration (EasyCheck/Toss)")}
+            <CreditCard className="h-4 w-4 text-orange-600" /> {tf.f01611}
           </Label>
-          <p className="text-xs text-slate-500">{tr("포스기에서 결제 시 자동으로 주문을 생성하고 포인트를 적립합니다.", "Create orders and points automatically from POS payments.")}</p>
+          <p className="text-xs text-slate-500">{tf.f02106}</p>
         </div>
         <Link href="/dashboard/settings/pos">
           <Button size="sm" variant="outline" className="gap-2 rounded-xl border-orange-200 text-orange-600 hover:bg-orange-50">
-            <SettingsIcon className="h-3 w-3" /> {tr("상세 설정", "Details")}
+            <SettingsIcon className="h-3 w-3" /> {tf.f01340}
           </Button>
         </Link>
       </div>
@@ -41,7 +41,7 @@ export function PosIntegrationCard({ posIntegration, isLoading }: PosIntegration
         {isLoading ? (
           <div className="col-span-2 h-24 border border-dashed rounded-2xl flex items-center justify-center bg-slate-50/50">
             <Loader2 className="h-5 w-5 animate-spin text-slate-400 mr-2" />
-            <span className="text-xs text-slate-400">{tr("데이터를 불러오는 중...", "Loading data...")}</span>
+            <span className="text-xs text-slate-400">{tf.f00157}</span>
           </div>
         ) : (
           <>
@@ -55,13 +55,13 @@ export function PosIntegrationCard({ posIntegration, isLoading }: PosIntegration
                 </div>
                 <div>
                   <p className="text-xs font-bold">이지체크 (EasyCheck)</p>
-                  <p className="text-[10px] text-slate-400">{isEasyCheckActive ? tr('웹훅 연동 활성화됨', 'Webhook active') : tr('연동 정보 없음', 'No integration info')}</p>
+                  <p className="text-[10px] text-slate-400">{isEasyCheckActive ? tf.f01651 : tf.f01571}</p>
                 </div>
               </div>
               {isEasyCheckActive ? (
-                <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">{tr("연결됨", "Connected")}</Badge>
+                <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">{tf.f01565}</Badge>
               ) : (
-                <Badge variant="outline" className="text-slate-400">{tr("미연결", "Not connected")}</Badge>
+                <Badge variant="outline" className="text-slate-400">{tf.f01220}</Badge>
               )}
             </div>
             
@@ -75,13 +75,13 @@ export function PosIntegrationCard({ posIntegration, isLoading }: PosIntegration
                  </div>
                  <div>
                    <p className="text-xs font-bold">토스 POS (Toss)</p>
-                   <p className="text-[10px] text-slate-400">{isTossActive ? tr('연동 활성화됨', 'Integration active') : tr('연동 정보 없음', 'No integration info')}</p>
+                   <p className="text-[10px] text-slate-400">{isTossActive ? tf.f01574 : tf.f01571}</p>
                  </div>
                </div>
                {isTossActive ? (
-                 <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">{tr("연결됨", "Connected")}</Badge>
+                 <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">{tf.f01565}</Badge>
                ) : (
-                 <Badge variant="outline" className="text-slate-400">{tr("미연결", "Not connected")}</Badge>
+                 <Badge variant="outline" className="text-slate-400">{tf.f01220}</Badge>
                )}
             </div>
           </>

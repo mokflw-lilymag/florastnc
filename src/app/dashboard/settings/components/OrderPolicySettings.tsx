@@ -1,4 +1,5 @@
 "use client";
+import { getMessages } from "@/i18n/getMessages";
 
 import { Building2, CreditCard, Coins, RefreshCw, Percent, Trash2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,9 +20,8 @@ interface OrderPolicySettingsProps {
 
 export function OrderPolicySettings({ settings, saveSettings }: OrderPolicySettingsProps) {
   const locale = usePreferredLocale();
-  const isKo = toBaseLocale(locale) === "ko";
-  const tr = (ko: string, en: string) => (isKo ? ko : en);
-  return (
+  const tf = getMessages(locale).tenantFlows;
+  const isKo = toBaseLocale(locale) === "ko";  return (
     <div className="space-y-6">
       <Card className="border-0 shadow-lg ring-1 ring-slate-200 overflow-hidden">
         <CardHeader className="bg-gradient-to-r from-violet-600 to-indigo-600 text-white pb-8">
@@ -29,9 +29,9 @@ export function OrderPolicySettings({ settings, saveSettings }: OrderPolicySetti
             <Coins className="h-5 w-5" />
             <span className="text-xs font-bold uppercase tracking-widest">Loyalty & Marketing Policy</span>
           </div>
-          <CardTitle className="text-2xl font-black">{tr("주문 할인 및 포인트 설정", "Order Discounts & Points")}</CardTitle>
+          <CardTitle className="text-2xl font-black">{tf.f01873}</CardTitle>
           <CardDescription className="text-violet-100 opacity-80">
-            {tr("고객의 재방문을 유도하는 포인트 제도와 효율적인 할인 정책을 관리합니다.", "Manage loyalty points and discount policies to increase repeat visits.")}
+            {tf.f00942}
           </CardDescription>
         </CardHeader>
         
@@ -42,14 +42,14 @@ export function OrderPolicySettings({ settings, saveSettings }: OrderPolicySetti
               <div className="w-8 h-8 rounded-lg bg-violet-100 text-violet-600 flex items-center justify-center">
                 <Coins size={18} />
               </div>
-              <h3 className="text-lg font-bold text-slate-900">{tr("포인트 적립 및 사용 정책", "Point Earning & Usage Policy")}</h3>
+              <h3 className="text-lg font-bold text-slate-900">{tf.f02112}</h3>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="group space-y-3 p-6 rounded-2xl bg-violet-50/50 border border-violet-100 hover:border-violet-300 transition-all shadow-sm">
                 <div className="flex items-center justify-between">
-                  <Label className="text-violet-900 font-bold text-sm">{tr("기본 포인트 적립률 (%)", "Default Point Rate (%)")}</Label>
-                  <Badge className="bg-violet-600">{tr("마케팅 효과UP", "Marketing Boost")}</Badge>
+                  <Label className="text-violet-900 font-bold text-sm">{tf.f01009}</Label>
+                  <Badge className="bg-violet-600">{tf.f01140}</Badge>
                 </div>
                 <div className="flex items-center gap-3">
                   <Input 
@@ -61,12 +61,12 @@ export function OrderPolicySettings({ settings, saveSettings }: OrderPolicySetti
                   <span className="font-black text-violet-400 text-lg">%</span>
                 </div>
                 <p className="text-xs text-violet-600/70 font-medium leading-relaxed">
-                  {tr("결제 금액의", "Automatically earn")} <span className="font-bold underline">{settings.pointRate}%</span> {tr("가 고객님께 자동으로 적립됩니다.", "of payment amount as points.")}
+                  {tf.f00910} <span className="font-bold underline">{settings.pointRate}%</span> {tf.f00845}
                 </p>
               </div>
 
               <div className="group space-y-3 p-6 rounded-2xl bg-slate-50/50 border border-slate-200 hover:border-slate-300 transition-all shadow-sm">
-                <Label className="text-slate-900 font-bold text-sm">{tr("최소 사용 가능 포인트", "Minimum Redeemable Points")}</Label>
+                <Label className="text-slate-900 font-bold text-sm">{tf.f02018}</Label>
                 <div className="flex items-center gap-3">
                   <Input 
                     type="number" 
@@ -77,7 +77,7 @@ export function OrderPolicySettings({ settings, saveSettings }: OrderPolicySetti
                   <span className="font-black text-slate-400 text-lg">P</span>
                 </div>
                 <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                  {tr("누적 포인트가", "Points can be used like cash only when balance is at least")} <span className="font-bold text-slate-900">{settings.minPointUsage.toLocaleString()} P</span>.
+                  {tf.f01053} <span className="font-bold text-slate-900">{settings.minPointUsage.toLocaleString()} P</span>.
                 </p>
               </div>
             </div>
@@ -91,7 +91,7 @@ export function OrderPolicySettings({ settings, saveSettings }: OrderPolicySetti
               <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center">
                 <Percent size={18} />
               </div>
-              <h3 className="text-lg font-bold text-slate-900">{tr("자주 사용하는 할인율 (퀵 버튼)", "Frequently Used Discount Rates (Quick Buttons)")}</h3>
+              <h3 className="text-lg font-bold text-slate-900">{tf.f01750}</h3>
             </div>
 
             <div className="p-8 rounded-3xl bg-emerald-50/30 border border-emerald-100/50">
@@ -114,7 +114,7 @@ export function OrderPolicySettings({ settings, saveSettings }: OrderPolicySetti
                 ))}
                 <div className="flex items-center gap-2">
                    <Input 
-                      placeholder={tr("추가 %", "Add %")} 
+                      placeholder={tf.f02025} 
                       className="w-24 h-11 text-sm font-bold border-emerald-200 focus-visible:ring-emerald-500" 
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
@@ -129,7 +129,7 @@ export function OrderPolicySettings({ settings, saveSettings }: OrderPolicySetti
                 </div>
               </div>
               <p className="text-xs text-emerald-700 font-medium bg-white/50 p-3 rounded-lg border border-emerald-100/50 inline-block">
-                {tr("💡 주문 등록 화면에서 이 할인율들이 단축 버튼으로 노출되어 빠른 업무 처리가 가능해집니다.", "💡 These rates appear as quick buttons on the order screen for faster processing.")}
+                {tf.f00809}
               </p>
             </div>
           </div>
@@ -142,7 +142,7 @@ export function OrderPolicySettings({ settings, saveSettings }: OrderPolicySetti
               <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center">
                 <RefreshCw size={18} />
               </div>
-              <h3 className="text-lg font-bold text-slate-900">{tr("매출 집계 기준 설정", "Revenue Recognition Basis")}</h3>
+              <h3 className="text-lg font-bold text-slate-900">{tf.f01176}</h3>
             </div>
 
             <div className="p-6 rounded-2xl border-2 border-slate-100 bg-slate-50/10">
@@ -161,8 +161,8 @@ export function OrderPolicySettings({ settings, saveSettings }: OrderPolicySetti
                     <Building2 className="h-5 w-5" />
                   </div>
                   <div className="flex flex-col items-center">
-                    <span className="text-base font-black">{tr("당일 주문일 기준", "Order Date Basis")}</span>
-                    <span className="text-[10px] opacity-70">{tr("주문서가 생성된 날짜를 매출로 집계", "Recognize revenue on order creation date")}</span>
+                    <span className="text-base font-black">{tf.f01071}</span>
+                    <span className="text-[10px] opacity-70">{tf.f01877}</span>
                   </div>
                 </Button>
                 <Button 
@@ -179,15 +179,15 @@ export function OrderPolicySettings({ settings, saveSettings }: OrderPolicySetti
                     <CreditCard className="h-5 w-5" />
                   </div>
                   <div className="flex flex-col items-center">
-                    <span className="text-base font-black">{tr("결제 완료 기준", "Payment Completed Basis")}</span>
-                    <span className="text-[10px] opacity-70">{tr("실제로 돈이 들어온 시점을 매출로 집계", "Recognize revenue when payment is completed")}</span>
+                    <span className="text-base font-black">{tf.f00918}</span>
+                    <span className="text-[10px] opacity-70">{tf.f01516}</span>
                   </div>
                 </Button>
               </div>
               <div className="mt-6 flex items-start gap-3 p-4 bg-blue-50/50 rounded-xl border border-blue-100/50 text-xs text-blue-700 leading-relaxed">
                 <span className="text-base">ℹ️</span>
                 <p>
-                  {tr("이 설정은 대시보드 차트와 보고서, 일일 마감 통계에 반영됩니다. 화원 운영 정책에 맞춰 주문 시점 혹은 결제 완료 시점 중 하나를 선택해 주세요.", "This setting affects dashboard charts, reports, and daily closing stats. Choose order time or payment completion to match your operation policy.")}
+                  {tf.f01670}
                 </p>
               </div>
             </div>

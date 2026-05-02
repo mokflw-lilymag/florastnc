@@ -1,4 +1,5 @@
 "use client";
+import { getMessages } from "@/i18n/getMessages";
 
 import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
@@ -115,16 +116,6 @@ const OPERATING_COUNTRIES = [
   { code: "RU", nameKo: "러시아", nameEn: "Russia", flag: "🇷🇺", defaultCurrency: "RUB" },
 ] as const;
 
-const PRESET_FIELD_LABELS: Partial<Record<keyof typeof defaultSettings, string>> = {
-  country: "운영 국가",
-  currency: "통화",
-  isTaxExempt: "면세 여부",
-  defaultTaxRate: "기본 세율",
-  useKakaoTalk: "카카오톡 연동",
-  autoDeliveryBooking: "자동 배송 접수",
-  deliveryCarriers: "배송사 기본값",
-};
-
 export default function SettingsPage() {
   const router = useRouter();
   const supabase = createClient();
@@ -173,7 +164,7 @@ export default function SettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const t = useMemo(() => getDashboardSettingsMessages(uiLocale), [uiLocale]);
   const isKo = useMemo(() => toBaseLocale(uiLocale) === "ko", [uiLocale]);
-  const tr = (ko: string, en: string) => (isKo ? ko : en);
+  const tf = useMemo(() => getMessages(uiLocale).tenantFlows, [uiLocale]);
   const selectedCountryPreset = useMemo(() => getCountryPreset(localCountry), [localCountry]);
   const presetDiffItems = useMemo(() => {
     if (!selectedCountryPreset) return [];
@@ -302,7 +293,7 @@ export default function SettingsPage() {
     const file = event.target.files?.[0];
     if (!file || !tenantId) return;
     if (!file.type.startsWith("image/")) {
-      toast.error(tr("이미지 파일만 업로드 가능합니다.", "Only image files can be uploaded."));
+      toast.error(tf.f01686);
       return;
     }
 
@@ -332,10 +323,10 @@ export default function SettingsPage() {
         .eq("id", tenantId);
 
       if (dbError) throw dbError;
-      toast.success(tr("새로운 로고가 정상적으로 적용되었습니다!", "New logo applied successfully."));
+      toast.success(tf.f01386);
       window.location.reload(); 
     } catch (err: any) {
-      toast.error(tr(`이미지 업로드 중 오류: ${err.message}`, `Image upload failed: ${err.message}`));
+      toast.error(tf.f02301.replace("{message}", String(err.message)));
     } finally {
       setSaving(false);
     }
@@ -375,10 +366,12 @@ export default function SettingsPage() {
 
       document.cookie = `preferred_country=${localCountry}; path=/; max-age=${60 * 60 * 24 * 365}`;
 
-      toast.success(tr(`상점 정보가 저장되었습니다. 운영 통화는 ${presetAppliedSettings.currency}로 적용되었습니다.`, `Store info saved. Operating currency set to ${presetAppliedSettings.currency}.`));
+      toast.success(
+        tf.f02302.replace("{currency}", String(presetAppliedSettings.currency))
+      );
       router.refresh();
     } catch (err) {
-      toast.error(tr("저장 중 오류가 발생했습니다.", "An error occurred while saving."));
+      toast.error(tf.f00540);
     } finally {
       setSaving(false);
     }
@@ -386,7 +379,7 @@ export default function SettingsPage() {
 
   const handleBackup = async () => {
     try {
-      toast.loading(tr("데이터 백업 파일 생성 중...", "Generating backup file..."));
+      toast.loading(tf.f01094);
       const [ordersRes, customersRes, productsRes, feesRes] = await Promise.all([
         supabase.from('orders').select('*').eq('tenant_id', tenantId),
         supabase.from('customers').select('*').eq('tenant_id', tenantId),
@@ -414,10 +407,10 @@ export default function SettingsPage() {
       link.click();
       document.body.removeChild(link);
       toast.dismiss();
-      toast.success(tr("백업 파일이 다운로드되었습니다.", "Backup file downloaded."));
+      toast.success(tf.f01247);
     } catch (err) {
       toast.dismiss();
-      toast.error(tr("백업 생성 중 오류가 발생했습니다.", "Failed to generate backup."));
+      toast.error(tf.f01246);
     }
   };
 
@@ -430,39 +423,39 @@ export default function SettingsPage() {
         try {
           const content = JSON.parse(e.target?.result as string);
           if (content.tenant_id !== tenantId) {
-            toast.error(tr("이 백업 파일은 다른 매장의 데이터입니다.", "This backup file belongs to another store."));
+            toast.error(tf.f01669);
             return;
           }
-          toast.loading(tr("데이터 복구 중...", "Restoring data..."));
+          toast.loading(tf.f01095);
           if (content.settings) await saveSettings(content.settings);
           toast.dismiss();
-          toast.success(tr("데이터 라이브러리가 복구되었습니다.", "Data restored successfully."));
+          toast.success(tf.f01091);
           window.location.reload();
         } catch (err) {
-          toast.error(tr("잘못된 백업 파일 형식입니다.", "Invalid backup file format."));
+          toast.error(tf.f01755);
         }
       };
       reader.readAsText(file);
     } catch (err) {
-      toast.error(tr("파일을 읽는 중 오류가 발생했습니다.", "An error occurred while reading the file."));
+      toast.error(tf.f02091);
     }
   };
 
   const handleReset = async () => {
     try {
-      toast.loading(tr("초기화 진행 중...", "Reset in progress..."));
+      toast.loading(tf.f01990);
       await Promise.all([
         supabase.from('orders').delete().eq('tenant_id', tenantId),
         supabase.from('customers').delete().eq('tenant_id', tenantId),
         supabase.from('products').delete().eq('tenant_id', tenantId)
       ]);
       toast.dismiss();
-      toast.success(tr("데이터가 초기화되었습니다.", "Data has been reset."));
+      toast.success(tf.f01099);
       setIsInitDialogOpen(false);
       window.location.reload();
     } catch (err) {
       toast.dismiss();
-      toast.error(tr("초기화 중 오류가 발생했습니다.", "An error occurred during reset."));
+      toast.error(tf.f01988);
     }
   };
 
@@ -476,7 +469,7 @@ export default function SettingsPage() {
 
   const getPlanBadge = (planCode: string) => {
     switch (planCode) {
-      case "pro": return <Badge className="bg-gradient-to-r from-blue-600 to-indigo-600 border-0">{tr("PRO (통합)", "PRO (All-in-One)")}</Badge>;
+      case "pro": return <Badge className="bg-gradient-to-r from-blue-600 to-indigo-600 border-0">{tf.f02284}</Badge>;
       case "erp_only": return <Badge className="bg-emerald-600 border-0">ERP Only</Badge>;
       case "ribbon_only": return <Badge className="bg-purple-600 border-0">Ribbon Only</Badge>;
       default: return <Badge variant="outline" className="text-slate-500">Free / Trial</Badge>;
@@ -570,7 +563,7 @@ export default function SettingsPage() {
                     >
                       {OPERATING_COUNTRIES.map((country) => (
                         <option key={country.code} value={country.code}>
-                          {country.flag} {isKo ? country.nameKo : country.nameEn} ({country.code}) · {tr("기본", "Default")} {country.defaultCurrency}
+                          {country.flag} {isKo ? country.nameKo : country.nameEn} ({country.code}) · {tf.f01003} {country.defaultCurrency}
                         </option>
                       ))}
                     </select>
@@ -590,12 +583,18 @@ export default function SettingsPage() {
                           <p className="text-[10px] font-bold text-emerald-900">{t.store.presetDiffTitle}</p>
                           {presetDiffItems.slice(0, 6).map((item) => (
                             <p key={String(item.key)} className="text-[10px] text-emerald-900/80">
-                              {(PRESET_FIELD_LABELS[item.key as keyof typeof defaultSettings] ?? String(item.key))}:{" "}
+                              {(
+                                t.store.presetFieldLabels[item.key as keyof typeof t.store.presetFieldLabels] ??
+                                String(item.key)
+                              )}
+                              :{" "}
                               <span className="line-through opacity-70">{String(item.before)}</span> → {String(item.after)}
                             </p>
                           ))}
                           {presetDiffItems.length > 6 ? (
-                            <p className="text-[10px] text-emerald-800/80">{tr(`... 외 ${presetDiffItems.length - 6}개 항목`, `... and ${presetDiffItems.length - 6} more`)}</p>
+                            <p className="text-[10px] text-emerald-800/80">
+                              {tf.f02303.replace("{n}", String(presetDiffItems.length - 6))}
+                            </p>
                           ) : null}
                         </div>
                       ) : (
@@ -608,13 +607,10 @@ export default function SettingsPage() {
                     <div className="space-y-0.5 flex-1 min-w-0">
                       <Label className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                         <MonitorPlay className="h-4 w-4 text-indigo-600 shrink-0" />
-                        {tr("대시보드 전광판 표시", "Dashboard Ticker")}
+                        {tf.f01079}
                       </Label>
                       <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-snug">
-                        {tr(
-                          "모든 매장(tenant) 계정에 기본으로 켜져 있습니다. 메인 대시보드(/dashboard) 화면에서만 상단에 표시되며, 주문·설정 등 다른 메뉴에서는 보이지 않습니다. 이 스위치를 끄면 해당 매장 사용자만 전광판이 숨겨집니다. 날짜·오늘/내일 배송·픽업·본사 공지 제목이 흘러갑니다. 날씨는 브라우저에서 위치를 허용하면 그 좌표 기준(Open-Meteo), 거부하거나 미지원이면 서울 기준으로 표시됩니다. 공지에 https:// 링크를 넣으면 배너에서 클릭할 수 있습니다.",
-                          "Enabled by default for all tenant accounts. It appears only at the top of the main dashboard (/dashboard), not on order/settings pages. Turning this off hides the ticker for this store only. It cycles date, today/tomorrow delivery, pickup, and HQ notices. Weather uses browser location (Open-Meteo); if denied or unsupported, Seoul is used. Notice links starting with https:// are clickable."
-                        )}
+                        {tf.f01196}
                       </p>
                     </div>
                     <Switch
@@ -635,8 +631,8 @@ export default function SettingsPage() {
                   <div className="space-y-4">
                     <div className="flex items-center justify-between p-4 bg-slate-50/80 rounded-2xl border border-slate-100">
                       <div className="space-y-0.5">
-                        <Label className="text-sm font-bold text-slate-900">{tr("부가세 면세(비과세) 사업장", "Tax-Exempt Business")}</Label>
-                        <p className="text-[10px] text-slate-500 font-medium">{tr("생화 상품 위주 매장은 면세 적용 체크", "Enable for stores mainly selling tax-exempt flowers.")}</p>
+                        <Label className="text-sm font-bold text-slate-900">{tf.f01287}</Label>
+                        <p className="text-[10px] text-slate-500 font-medium">{tf.f01394}</p>
                       </div>
                       <Switch 
                         checked={settings.isTaxExempt} 
@@ -647,8 +643,8 @@ export default function SettingsPage() {
                     {!settings.isTaxExempt && (
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-blue-50/30 rounded-2xl border border-blue-100/50 animate-in fade-in slide-in-from-top-2">
                         <div className="space-y-1">
-                          <Label className="text-sm font-bold flex items-center gap-2">{tr("부가세율 (%)", "VAT Rate (%)")} <Percent size={14} className="text-blue-500" /></Label>
-                          <p className="text-[10px] text-slate-400">{tr("일반 과세자 기준 기본 10%", "Default 10% for standard taxation.")}</p>
+                          <Label className="text-sm font-bold flex items-center gap-2">{tf.f01288} <Percent size={14} className="text-blue-500" /></Label>
+                          <p className="text-[10px] text-slate-400">{tf.f01712}</p>
                         </div>
                         <div className="flex items-center gap-2">
                           <Input 
@@ -667,8 +663,8 @@ export default function SettingsPage() {
                       {logoUrl ? <img src={logoUrl} className="h-full w-full object-contain p-2" /> : <ImageIcon className="h-8 w-8 opacity-20" />}
                     </div>
                     <div className="space-y-2">
-                      <p className="text-xs font-bold">{tr("화원 대표 로고", "Store Logo")}</p>
-                      <Button size="sm" onClick={() => fileInputRef.current?.click()} disabled={saving}>{tr("로고 변경", "Change Logo")}</Button>
+                      <p className="text-xs font-bold">{tf.f02208}</p>
+                      <Button size="sm" onClick={() => fileInputRef.current?.click()} disabled={saving}>{tf.f01128}</Button>
                       <input type="file" className="hidden" ref={fileInputRef} onChange={handleLogoUpload} />
                     </div>
                   </div>
@@ -719,10 +715,10 @@ export default function SettingsPage() {
 
             <TabsContent value="categories" className="space-y-4">
               <Card className="border-0 shadow-sm ring-1 ring-orange-200 bg-orange-50/5">
-                <CardHeader><CardTitle>{tr("카테고리 관리", "Category Management")}</CardTitle></CardHeader>
+                <CardHeader><CardTitle>{tf.f02061}</CardTitle></CardHeader>
                 <CardContent className="py-12 flex flex-col items-center">
                   <Link href="/dashboard/settings/categories">
-                    <Button className="bg-orange-600 hover:bg-orange-700">{tr("관리 페이지로 이동", "Go to Management Page")}</Button>
+                    <Button className="bg-orange-600 hover:bg-orange-700">{tf.f00964}</Button>
                   </Link>
                 </CardContent>
               </Card>
@@ -744,7 +740,7 @@ export default function SettingsPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                        <MessageCircle className="h-5 w-5" />
-                       <CardTitle>{tr("카카오T 배송 자동화 (Kakao T)", "Kakao T Delivery Automation")}</CardTitle>
+                       <CardTitle>{tf.f02058}</CardTitle>
                     </div>
                     <Switch 
                       className="data-[state=checked]:bg-white data-[state=checked]:text-amber-600"
@@ -756,17 +752,14 @@ export default function SettingsPage() {
                 <CardContent className="p-6 space-y-6">
                   <div className="p-4 bg-amber-50 rounded-xl border border-amber-100 space-y-3">
                     <p className="text-xs text-amber-900 leading-relaxed font-medium">
-                      {tr(
-                        "배송 상품 제작이 완료되면 자동으로 카카오T 배송을 호출합니다. 아래 비즈니스 ID와 API 키가 정확해야 자동 예약이 성공합니다.",
-                        "When production is completed, Kakao T delivery is requested automatically. Business ID and API key must be valid."
-                      )}
+                      {tf.f01234}
                     </p>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label className="text-[10px] font-bold text-slate-500 uppercase">Kakao T Business ID</Label>
                       <Input 
-                        placeholder={tr("카카오T 비즈니스 계정 ID", "Kakao T Business Account ID")}
+                        placeholder={tf.f02059}
                         value={settings.kakaoTDeliveryBizId}
                         onChange={e => saveSettings({...settings, kakaoTDeliveryBizId: e.target.value})}
                       />
@@ -775,7 +768,7 @@ export default function SettingsPage() {
                       <Label className="text-[10px] font-bold text-slate-500 uppercase">Kakao T API Key</Label>
                       <Input 
                         type="password"
-                        placeholder={tr("카카오T 개발자 API 키", "Kakao T Developer API Key")}
+                        placeholder={tf.f02057}
                         value={settings.kakaoTDeliveryApiKey}
                         onChange={e => saveSettings({...settings, kakaoTDeliveryApiKey: e.target.value})}
                       />
@@ -787,14 +780,14 @@ export default function SettingsPage() {
 
             <TabsContent value="printer" className="space-y-4">
               <Card className="border-0 shadow-sm ring-1 ring-slate-200">
-                <CardHeader><CardTitle>{tr("프린터 브릿지", "Printer Bridge")}</CardTitle></CardHeader>
+                <CardHeader><CardTitle>{tf.f02141}</CardTitle></CardHeader>
                 <CardContent>
                   <div className="p-6 border rounded-2xl flex items-center justify-between">
                     <div>
-                      <p className="text-lg font-bold">{bridgeStatus ? tr("연결됨", "Connected") : tr("연결 안됨", "Disconnected")}</p>
-                      <p className="text-xs text-slate-500">{tr("로컬 프린터 연동 상태", "Local printer bridge status")}</p>
+                      <p className="text-lg font-bold">{bridgeStatus ? tf.f01565 : tf.f01559}</p>
+                      <p className="text-xs text-slate-500">{tf.f01131}</p>
                     </div>
-                    <Button variant="outline" onClick={checkBridgeStatus}>{checkingBridge ? <Loader2 className="animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}{tr("새로고침", "Refresh")}</Button>
+                    <Button variant="outline" onClick={checkBridgeStatus}>{checkingBridge ? <Loader2 className="animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}{tf.f00348}</Button>
                   </div>
                 </CardContent>
               </Card>
@@ -806,23 +799,23 @@ export default function SettingsPage() {
               <Card className="border-0 shadow-sm ring-1 ring-blue-100">
                 <CardHeader className="bg-blue-600 text-white rounded-t-lg">
                   <div className="flex items-center justify-between">
-                    <CardTitle>{tr("협력사 네트워크", "Partner Network")}</CardTitle>
+                    <CardTitle>{tf.f02197}</CardTitle>
                     <Switch checked={canReceiveOrders} onCheckedChange={setCanReceiveOrders} />
                   </div>
                 </CardHeader>
                 <CardContent className="p-6 space-y-4">
-                  <Input placeholder={tr("수주 가능 지역", "Serviceable region")} value={partnerRegion} onChange={e => setPartnerRegion(e.target.value)} disabled={!canReceiveOrders} />
-                  <Button className="w-full" disabled={!canReceiveOrders}>{tr("네트워크 프로필 저장", "Save network profile")}</Button>
+                  <Input placeholder={tf.f01456} value={partnerRegion} onChange={e => setPartnerRegion(e.target.value)} disabled={!canReceiveOrders} />
+                  <Button className="w-full" disabled={!canReceiveOrders}>{tf.f01048}</Button>
                 </CardContent>
               </Card>
             </TabsContent>
 
             <TabsContent value="data" className="space-y-4">
               <Card className="border-0 shadow-sm ring-1 ring-rose-100">
-                <CardHeader><CardTitle>{tr("데이터 관리", "Data Management")}</CardTitle></CardHeader>
+                <CardHeader><CardTitle>{tf.f01088}</CardTitle></CardHeader>
                 <CardContent className="grid grid-cols-2 gap-4">
-                  <Button variant="outline" className="h-20" onClick={handleBackup}>{tr("전체 데이터 백업", "Backup all data")}</Button>
-                  <Button variant="destructive" className="h-20" onClick={() => setIsInitDialogOpen(true)}>{tr("데이터 초기화", "Reset data")}</Button>
+                  <Button variant="outline" className="h-20" onClick={handleBackup}>{tf.f01797}</Button>
+                  <Button variant="destructive" className="h-20" onClick={() => setIsInitDialogOpen(true)}>{tf.f01097}</Button>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -832,10 +825,10 @@ export default function SettingsPage() {
 
       <Dialog open={isInitDialogOpen} onOpenChange={setIsInitDialogOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>{tr("정말 초기화하시겠습니까?", "Are you sure you want to reset?")}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{tf.f01817}</DialogTitle></DialogHeader>
           <DialogFooter>
-            <Button variant="destructive" onClick={handleReset}>{tr("초기화 진행", "Run reset")}</Button>
-            <Button variant="ghost" onClick={() => setIsInitDialogOpen(false)}>{tr("취소", "Cancel")}</Button>
+            <Button variant="destructive" onClick={handleReset}>{tf.f01989}</Button>
+            <Button variant="ghost" onClick={() => setIsInitDialogOpen(false)}>{tf.f00702}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

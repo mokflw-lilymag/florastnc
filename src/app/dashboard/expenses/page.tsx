@@ -1,4 +1,5 @@
 "use client";
+import { getMessages } from "@/i18n/getMessages";
 
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import {
@@ -240,30 +241,28 @@ export default function ExpensesPage() {
   const [amountMismatchDialogOpen, setAmountMismatchDialogOpen] = useState(false);
   const [amountMismatchExpenses, setAmountMismatchExpenses] = useState<Expense[]>([]);
   const locale = usePreferredLocale();
-  const isKo = toBaseLocale(locale) === "ko";
-  const tr = (ko: string, en: string) => (isKo ? ko : en);
-
-  const categoryLabels: Record<string, string> = {
-    all: tr("전체 분류", "All categories"),
-    materials: tr("자재/꽃 사입", "Materials/Flowers"),
-    transportation: tr("운송비", "Transportation"),
-    rent: tr("임대료", "Rent"),
-    utility: tr("공과금", "Utilities"),
-    labor: tr("인건비", "Labor"),
-    marketing: tr("마케팅", "Marketing"),
-    etc: tr("기타", "Other")
+  const tf = getMessages(locale).tenantFlows;
+  const isKo = toBaseLocale(locale) === "ko";  const categoryLabels: Record<string, string> = {
+    all: tf.f01798,
+    materials: tf.f01744,
+    transportation: tf.f01632,
+    rent: tf.f01721,
+    utility: tf.f00949,
+    labor: tf.f01695,
+    marketing: tf.f01139,
+    etc: tf.f00115
   };
 
   const methodLabels: Record<string, string> = {
-    all: tr("전체 수단", "All methods"),
-    card: tr("카드", "Card"),
-    cash: tr("현금", "Cash"),
-    transfer: tr("이체", "Transfer")
+    all: tf.f01801,
+    card: tf.f00704,
+    cash: tf.f00769,
+    transfer: tf.f01693
   };
 
   const supplierLabels: Record<string, string> = {
-    all: tr("전체 거래처", "All suppliers"),
-    none: tr("거래처 없음", "No supplier")
+    all: tf.f01790,
+    none: tf.f00879
   };
 
   const [formData, setFormData] = useState<ExpenseFormData>({ ...defaultFormData });
@@ -1020,7 +1019,7 @@ export default function ExpensesPage() {
     const mode = webcamModeRef.current;
     const canvas = document.createElement("canvas");
     if (!applyVideoFrameToCanvas(videoRef.current, canvas, webcamPreviewTransform)) {
-      toast.error(tr("카메라 화면이 준비될 때까지 잠시 후 다시 촬영해 주세요.", "Camera is getting ready. Try again in a moment."));
+      toast.error(tf.f02053);
       return;
     }
     canvas.toBlob(
@@ -1050,8 +1049,8 @@ export default function ExpensesPage() {
   return (
     <div className="p-6 max-w-[1400px] mx-auto space-y-6 animate-in fade-in duration-500">
       <PageHeader
-        title={tr("지출 관리", "Expense Management")}
-        description={tr("운영 지출과 거래처별 매입 내역을 관리하고 분석합니다.", "Manage and analyze operational expenses and supplier purchases.")}
+        title={tf.f01931}
+        description={tf.f01634}
         icon={Receipt}
       >
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-end">
@@ -1062,15 +1061,15 @@ export default function ExpensesPage() {
             onClick={openCreateDialog}
           >
             <Sparkles className="h-4 w-4 text-violet-600" />
-            {tr("AI 영수증 입력", "AI Receipt Input")}
-            <span className="hidden text-[10px] font-normal text-violet-600/80 sm:inline">{tr("(촬영·앨범)", "(Camera/Gallery)")}</span>
+            {tf.f02240}
+            <span className="hidden text-[10px] font-normal text-violet-600/80 sm:inline">{tf.f00793}</span>
           </Button>
           <Button
             type="button"
             className="h-11 bg-primary text-white shadow-lg shadow-primary/20 hover:bg-primary/90"
             onClick={openCreateDialog}
           >
-            <PlusCircle className="mr-2 h-4 w-4" /> {tr("지출 내역 등록", "Add Expense")}
+            <PlusCircle className="mr-2 h-4 w-4" /> {tf.f01935}
           </Button>
         </div>
       </PageHeader>
@@ -1082,9 +1081,9 @@ export default function ExpensesPage() {
               <ScanText className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-sm font-bold text-slate-900">{tr("영수증만 있으면 AI가 품목·금액을 채워 드립니다", "AI fills items and amounts from receipt images.")}</p>
+              <p className="text-sm font-bold text-slate-900">{tf.f01582}</p>
               <p className="mt-0.5 text-xs text-slate-600">
-                {tr("갤러리 다중 선택 또는 카메라「연속 촬영」으로 여러 장을 모은 뒤 한 번에 분석합니다. 촬영·선택 후 원본과 대조해 저장하세요.", "Select multiple images or use burst camera mode, then analyze all at once. Verify against original before saving.")}
+                {tf.f00868}
               </p>
             </div>
           </div>
@@ -1097,7 +1096,7 @@ export default function ExpensesPage() {
               onClick={openCreateDialog}
             >
               <Sparkles className="h-3.5 w-3.5" />
-              {tr("지금 영수증 넣기", "Upload Receipt Now")}
+              {tf.f01899}
             </Button>
             <Button
               type="button"
@@ -1110,7 +1109,7 @@ export default function ExpensesPage() {
               }}
             >
               <Camera className="mr-1 h-3.5 w-3.5" />
-              {tr("카메라 1장", "Single Shot")}
+              {tf.f02052}
             </Button>
             <Button
               type="button"
@@ -1123,7 +1122,7 @@ export default function ExpensesPage() {
               }}
             >
               <Images className="mr-1 h-3.5 w-3.5" />
-              {tr("연속 촬영", "Burst Shot")}
+              {tf.f01578}
             </Button>
           </div>
         </CardContent>
@@ -1149,10 +1148,10 @@ export default function ExpensesPage() {
             <DialogHeader>
               <DialogTitle className="text-xl font-bold text-slate-900 flex items-center gap-2">
                 {editingExpense ? <Pencil className="w-5 h-5 text-indigo-500" /> : <PlusCircle className="w-5 h-5 text-primary" />}
-                {editingExpense ? tr("지출 내역 수정", "Edit Expense") : tr("새 지출 등록", "New Expense")}
+                {editingExpense ? tf.f01936 : tf.f01381}
               </DialogTitle>
               <DialogDescription className="text-slate-500">
-                {editingExpense ? tr("수정할 내용을 변경한 뒤 저장하세요.", "Update fields and save your changes.") : tr("상세 지출 내역과 해당 거래처를 선택해 주세요.", "Enter expense details and select supplier.")}
+                {editingExpense ? tf.f01455 : tf.f01342}
               </DialogDescription>
             </DialogHeader>
           </div>
@@ -1167,14 +1166,14 @@ export default function ExpensesPage() {
               {formData.receipt_url ? (
                 <div className="space-y-3 lg:sticky lg:top-0 lg:self-start">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <Label className="text-sm font-bold text-slate-800">{tr("영수증 원본 (대조)", "Original Receipt")}</Label>
+                    <Label className="text-sm font-bold text-slate-800">{tf.f01580}</Label>
                     {fieldsFromOcr ? (
                       <Badge
                         variant="secondary"
                         className="gap-1 border border-violet-200 bg-violet-100 text-[10px] font-bold text-violet-800"
                       >
                         <Sparkles className="h-3 w-3" />
-                        {tr("AI·스캔 인식", "AI Recognized")}
+                        {tf.f02246}
                       </Badge>
                     ) : null}
                   </div>
@@ -1199,7 +1198,7 @@ export default function ExpensesPage() {
                       className="text-xs font-semibold"
                       onClick={() => window.open(formData.receipt_url, "_blank", "noopener,noreferrer")}
                     >
-                      {tr("새 탭에서 크게 보기", "Open in new tab")}
+                      {tf.f01382}
                     </Button>
                     <Button
                       type="button"
@@ -1211,11 +1210,11 @@ export default function ExpensesPage() {
                         setFormData((prev) => ({ ...prev, receipt_url: "", receipt_file_id: "" }));
                       }}
                     >
-                      {tr("영수증 바꾸기", "Replace receipt")}
+                      {tf.f01579}
                     </Button>
                   </div>
                   <p className="text-[10px] leading-relaxed text-slate-500">
-                    {tr("아래 입력란과 글자·금액을 맞춰 보시고, 틀린 부분은 직접 수정한 뒤 등록해 주세요.", "Verify text and amount with the original, then correct if needed before saving.")}
+                    {tf.f01519}
                   </p>
                 </div>
               ) : null}
@@ -1225,7 +1224,7 @@ export default function ExpensesPage() {
                 <div className="flex gap-2 rounded-lg border border-violet-200 bg-violet-50/90 px-3 py-2.5 text-xs text-violet-950">
                   <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-violet-600" />
                   <p>
-                    <span className="font-bold">{tr("AI(OCR)로 입력됨", "Filled by AI (OCR)")}</span> — {tr("날짜·거래처·품목·합계는 영수증에서 읽은", "Date, supplier, items, and totals are read from the receipt")}
+                    <span className="font-bold">{tf.f02247}</span> — {tf.f01027}
                     값입니다. 위쪽(또는 왼쪽) 원본과 다르면 이 화면에서 고친 뒤 저장하세요.
                   </p>
                 </div>
@@ -1234,7 +1233,7 @@ export default function ExpensesPage() {
               {/* Basic Info Section */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="date" className="text-sm font-bold text-slate-700">{tr("날짜", "Date")}</Label>
+                  <Label htmlFor="date" className="text-sm font-bold text-slate-700">{tf.f00127}</Label>
                   <Input
                     id="date"
                     type="date"
@@ -1244,7 +1243,7 @@ export default function ExpensesPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="supplier" className="text-sm font-bold text-slate-700">{tr("거래처", "Supplier")}</Label>
+                  <Label htmlFor="supplier" className="text-sm font-bold text-slate-700">{tf.f00872}</Label>
                   <Popover open={isSupplierOpen} onOpenChange={setIsSupplierOpen}>
                     <PopoverTrigger
                       render={
@@ -1257,14 +1256,14 @@ export default function ExpensesPage() {
                     >
                       {formData.supplier_id && formData.supplier_id !== "none"
                         ? suppliers.find(s => s.id === formData.supplier_id)?.name
-                        : tr("거래처 선택 (선택사항)", "Select supplier (optional)")}
+                        : tf.f00878}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </PopoverTrigger>
                     <PopoverContent className="w-[300px] p-0" align="start">
                       <Command>
-                        <CommandInput placeholder={tr("거래처 검색...", "Search supplier...")} />
+                        <CommandInput placeholder={tf.f00873} />
                         <CommandList>
-                          <CommandEmpty>{tr("결과 없음.", "No results.")}</CommandEmpty>
+                          <CommandEmpty>{tf.f00907}</CommandEmpty>
                           <CommandGroup>
                             <CommandItem
                               onSelect={() => {
@@ -1273,7 +1272,7 @@ export default function ExpensesPage() {
                               }}
                             >
                               <Check className={cn("mr-2 h-4 w-4", formData.supplier_id === "none" ? "opacity-100" : "opacity-0")} />
-                              {tr("선택 안함", "No selection")}
+                              {tf.f01406}
                             </CommandItem>
                             {suppliers.map(s => (
                               <CommandItem
@@ -1297,7 +1296,7 @@ export default function ExpensesPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="category" className="text-sm font-bold text-slate-700">{tr("분류", "Category")}</Label>
+                  <Label htmlFor="category" className="text-sm font-bold text-slate-700">{tf.f01290}</Label>
                   <Select
                     value={formData.category}
                     onValueChange={(v: string | null) => setFormData(prev => ({ ...prev, category: v || "materials" }))}
@@ -1306,18 +1305,18 @@ export default function ExpensesPage() {
                       <SelectValue>{categoryLabels[formData.category] || formData.category}</SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="materials">{tr("자재/꽃 사입", "Materials/Flowers")}</SelectItem>
-                      <SelectItem value="transportation">{tr("운송비", "Transportation")}</SelectItem>
-                      <SelectItem value="rent">{tr("임대료", "Rent")}</SelectItem>
-                      <SelectItem value="utility">{tr("공과금", "Utilities")}</SelectItem>
-                      <SelectItem value="labor">{tr("인건비", "Labor")}</SelectItem>
-                      <SelectItem value="marketing">{tr("마케팅", "Marketing")}</SelectItem>
-                      <SelectItem value="etc">{tr("기타", "Other")}</SelectItem>
+                      <SelectItem value="materials">{tf.f01744}</SelectItem>
+                      <SelectItem value="transportation">{tf.f01632}</SelectItem>
+                      <SelectItem value="rent">{tf.f01721}</SelectItem>
+                      <SelectItem value="utility">{tf.f00949}</SelectItem>
+                      <SelectItem value="labor">{tf.f01695}</SelectItem>
+                      <SelectItem value="marketing">{tf.f01139}</SelectItem>
+                      <SelectItem value="etc">{tf.f00115}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="method" className="text-sm font-bold text-slate-700">{tr("결제 수단", "Payment Method")}</Label>
+                  <Label htmlFor="method" className="text-sm font-bold text-slate-700">{tf.f00049}</Label>
                   <Select
                     value={formData.payment_method}
                     onValueChange={(v: string | null) => setFormData(prev => ({ ...prev, payment_method: v || "card" }))}
@@ -1326,9 +1325,9 @@ export default function ExpensesPage() {
                       <SelectValue>{methodLabels[formData.payment_method] || formData.payment_method}</SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="card">{tr("카드", "Card")}</SelectItem>
-                      <SelectItem value="cash">{tr("현금", "Cash")}</SelectItem>
-                      <SelectItem value="transfer">{tr("이체", "Transfer")}</SelectItem>
+                      <SelectItem value="card">{tf.f00704}</SelectItem>
+                      <SelectItem value="cash">{tf.f00769}</SelectItem>
+                      <SelectItem value="transfer">{tf.f01693}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1340,8 +1339,8 @@ export default function ExpensesPage() {
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-black text-slate-800 flex items-center gap-2">
                       <div className="w-1 h-4 bg-primary rounded-full" />
-                      {tr("영수증 품목 리스트", "Receipt Items")}
-                      <span className="text-[10px] font-normal text-slate-400 ml-2">{tr("여러 품목을 한 번에 입력하려면 항목을 추가하세요.", "Add rows to enter multiple items at once.")}</span>
+                      {tf.f01581}
+                      <span className="text-[10px] font-normal text-slate-400 ml-2">{tf.f01556}</span>
                     </h3>
                     <Button
                       type="button"
@@ -1350,17 +1349,17 @@ export default function ExpensesPage() {
                       onClick={addReceiptItem}
                       className="h-8 gap-1 font-bold border-indigo-200 text-indigo-600 hover:bg-indigo-50"
                     >
-                      <Plus className="w-3.5 h-3.5" /> {tr("항목 추가", "Add Item")}
+                      <Plus className="w-3.5 h-3.5" /> {tf.f02174}
                     </Button>
                   </div>
 
                   {(!editingExpense || formData.items.length > 0) && (
                     <div className="border rounded-xl bg-white shadow-sm overflow-hidden">
                       <div className="grid grid-cols-12 gap-2 px-3 py-2 bg-slate-50 border-b text-[10px] font-bold text-slate-500 uppercase">
-                        <div className="col-span-5">{tr("품목명 / 상세내용", "Item / Description")}</div>
-                        <div className="col-span-2 text-center">{tr("수량", "Qty")}</div>
-                        <div className="col-span-2 text-right">{tr("단가", "Unit")}</div>
-                        <div className="col-span-2 text-right">{tr("금액", "Amount")}</div>
+                        <div className="col-span-5">{tf.f02134}</div>
+                        <div className="col-span-2 text-center">{tf.f00377}</div>
+                        <div className="col-span-2 text-right">{tf.f00148}</div>
+                        <div className="col-span-2 text-right">{tf.f00097}</div>
                         <div className="col-span-1"></div>
                       </div>
                       <div className="divide-y max-h-[400px] overflow-y-auto">
@@ -1407,7 +1406,7 @@ export default function ExpensesPage() {
                                       <CommandList className="max-h-[300px]">
                                         <CommandEmpty>
                                           <div className="p-4 text-center">
-                                            <p className="text-xs text-slate-500">{tr("검색 결과가 없습니다.", "No search results.")}</p>
+                                            <p className="text-xs text-slate-500">{tf.f00036}</p>
                                             <Button
                                               variant="link"
                                               size="sm"
@@ -1490,7 +1489,7 @@ export default function ExpensesPage() {
                       <div className="p-4 bg-slate-50 flex justify-between items-center border-t">
                         <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Receipt Summary</div>
                         <div className="flex items-center gap-3">
-                          <span className="text-xs text-slate-500 font-medium">{tr("총", "Total")} {formData.items.length}{tr("개 품목 합계", " items")}:</span>
+                          <span className="text-xs text-slate-500 font-medium">{tf.f01992} {formData.items.length}{tf.f00863}:</span>
                           <span className="text-xl font-black text-indigo-700 tracking-tight">₩{totalItemsAmount.toLocaleString()}</span>
                         </div>
                       </div>
@@ -1503,7 +1502,7 @@ export default function ExpensesPage() {
               {editingExpense && (
                 <div className="space-y-4 pt-2 animate-in fade-in slide-in-from-top-4 duration-500">
                   <div className="space-y-2">
-                    <Label htmlFor="desc" className="text-sm font-bold text-slate-700">{tr("지출 내용", "Description")}</Label>
+                    <Label htmlFor="desc" className="text-sm font-bold text-slate-700">{tf.f01938}</Label>
                     <Input
                       id="desc"
                       placeholder="예: 생화 사입(장미 10단), 월세 등"
@@ -1513,7 +1512,7 @@ export default function ExpensesPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="amount" className="text-sm font-bold text-slate-700">{tr("금액", "Amount")}</Label>
+                    <Label htmlFor="amount" className="text-sm font-bold text-slate-700">{tf.f00097}</Label>
                     <div className="relative">
                       <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">₩</span>
                       <Input
@@ -1543,7 +1542,7 @@ export default function ExpensesPage() {
 
               {/* Receipt File Section */}
               <div className="pt-4 border-t border-slate-100">
-                <Label className="mb-3 block text-sm font-bold text-slate-700">{tr("증빙 자료 (영수증)", "Proof (Receipt)")}</Label>
+                <Label className="mb-3 block text-sm font-bold text-slate-700">{tf.f01893}</Label>
 
                 {!formData.receipt_url ? (
                   <>
@@ -1563,8 +1562,8 @@ export default function ExpensesPage() {
                               <Camera className="h-5 w-5 text-emerald-600" />
                             )}
                             <div className="flex flex-col items-start leading-tight">
-                              <span className="text-sm">{tr("카메라 1장", "Single Shot")}</span>
-                              <span className="text-[10px] font-normal opacity-60">{tr("찍으면 바로 분석", "Analyze immediately")}</span>
+                              <span className="text-sm">{tf.f02052}</span>
+                              <span className="text-[10px] font-normal opacity-60">{tf.f01971}</span>
                             </div>
                             <div className="absolute -top-1 -right-1">
                               <Sparkles className="h-3 w-3 animate-pulse text-emerald-400" />
@@ -1584,8 +1583,8 @@ export default function ExpensesPage() {
                               <Images className="h-5 w-5 text-teal-700" />
                             )}
                             <div className="flex flex-col items-start leading-tight">
-                              <span className="text-sm">{tr("연속 촬영", "Burst Shot")}</span>
-                              <span className="text-[10px] font-normal opacity-60">{tr("최대", "Up to")} {MAX_RECEIPT_FILES_PER_BATCH}{tr("장 후 완료", " images")}</span>
+                              <span className="text-sm">{tf.f01578}</span>
+                              <span className="text-[10px] font-normal opacity-60">{tf.f02017} {MAX_RECEIPT_FILES_PER_BATCH}{tf.f01756}</span>
                             </div>
                           </Button>
                         </div>
@@ -1602,7 +1601,7 @@ export default function ExpensesPage() {
                             <ScanText className="h-5 w-5 text-slate-600" />
                           )}
                           <div className="flex flex-col items-start leading-tight">
-                            <span className="text-sm">{tr("파일 불러오기", "Import files")}</span>
+                            <span className="text-sm">{tf.f02090}</span>
                             <span className="text-[10px] font-normal opacity-60">
                               앨범·여러 장 선택 · 최대 {MAX_RECEIPT_FILES_PER_BATCH}장
                             </span>
@@ -1648,7 +1647,7 @@ export default function ExpensesPage() {
             </div>
           </div>
           <div className="p-6 bg-slate-50 border-t flex justify-end gap-3">
-            <Button variant="ghost" onClick={() => setIsDialogOpen(false)} className="font-bold text-slate-500">{tr("취소", "Cancel")}</Button>
+            <Button variant="ghost" onClick={() => setIsDialogOpen(false)} className="font-bold text-slate-500">{tf.f00702}</Button>
             <Button
               onClick={handleSubmit}
               className={cn(
@@ -1700,7 +1699,7 @@ export default function ExpensesPage() {
                 >
                   {detailExpense.receipt_url ? (
                     <div className="space-y-3 lg:sticky lg:top-0 lg:self-start">
-                      <Label className="text-sm font-bold text-slate-800">{tr("영수증", "Receipt")}</Label>
+                      <Label className="text-sm font-bold text-slate-800">{tf.f00448}</Label>
                       <a
                         href={receiptLinkHref(detailExpense.receipt_url) || detailExpense.receipt_url}
                         target="_blank"
@@ -1733,13 +1732,13 @@ export default function ExpensesPage() {
                   <div className="min-w-0 space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-1.5">
-                        <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{tr("지출일", "Date")}</p>
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{tf.f01952}</p>
                         <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2.5 text-sm font-medium text-slate-900">
                           {format(new Date(detailExpense.expense_date), "yyyy-MM-dd")}
                         </div>
                       </div>
                       <div className="space-y-1.5">
-                        <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{tr("거래처", "Supplier")}</p>
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{tf.f00872}</p>
                         <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2.5 text-sm font-medium text-slate-900">
                           {getSupplierName(detailExpense.supplier_id)}
                         </div>
@@ -1747,13 +1746,13 @@ export default function ExpensesPage() {
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-1.5">
-                        <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{tr("분류", "Category")}</p>
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{tf.f01290}</p>
                         <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2.5 text-sm">
                           {getCategoryLabel(detailExpense.category)}
                         </div>
                       </div>
                       <div className="space-y-1.5">
-                        <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{tr("결제 수단", "Payment")}</p>
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{tf.f00049}</p>
                         <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2.5 text-sm">
                           {methodLabels[detailExpense.payment_method] || detailExpense.payment_method}
                         </div>
@@ -1761,20 +1760,20 @@ export default function ExpensesPage() {
                     </div>
                     {detailExpense.sub_category ? (
                       <div className="space-y-1.5">
-                        <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{tr("하위 분류", "Sub Category")}</p>
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{tf.f02161}</p>
                         <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2.5 text-sm">
                           {detailExpense.sub_category}
                         </div>
                       </div>
                     ) : null}
                     <div className="space-y-1.5">
-                      <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{tr("내용", "Description")}</p>
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{tf.f01033}</p>
                       <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2.5 text-sm leading-relaxed text-slate-900">
                         {detailExpense.description || "—"}
                       </div>
                     </div>
                     <div className="space-y-1.5">
-                      <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{tr("금액", "Amount")}</p>
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{tf.f00097}</p>
                       <div className="rounded-lg border border-indigo-100 bg-indigo-50/50 px-3 py-3 text-xl font-black tracking-tight text-indigo-800">
                         ₩{detailExpense.amount.toLocaleString()}
                       </div>
@@ -1803,7 +1802,7 @@ export default function ExpensesPage() {
                   }}
                 >
                   <Pencil className="h-4 w-4" />
-                  {tr("이 지출 수정하기", "Edit this expense")}
+                  {tf.f01676}
                 </Button>
               </div>
             </>
@@ -1823,17 +1822,17 @@ export default function ExpensesPage() {
             <AlertDialogMedia>
               <AlertTriangle className="text-amber-600" />
             </AlertDialogMedia>
-            <AlertDialogTitle>{tr("비슷한 지출이 이미 있습니다", "Similar expense already exists")}</AlertDialogTitle>
+            <AlertDialogTitle>{tf.f01305}</AlertDialogTitle>
             <AlertDialogDescription className="sr-only">
               같은 거래일·같은 거래처·같은 금액이거나, 같은 증빙 링크인 기존 지출이 있습니다. 목록을 확인한 뒤 등록 여부를 선택하세요.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-3 text-sm text-muted-foreground">
             <p>
-              <span className="font-medium text-foreground">{tr("같은 거래일", "same date")}</span>{tr("에", "")}{" "}
-              <span className="font-medium text-foreground">{tr("같은 거래처", "same supplier")}</span>{tr("로", "")}{" "}
-              <span className="font-medium text-foreground">{tr("같은 금액", "same amount")}</span>{tr("인 지출이 이미 있거나, 붙인", "expense already exists, or the attached")}{" "}
-              <span className="font-medium text-foreground">{tr("증빙 URL", "proof URL")}</span>{tr("이 기존과 같습니다. 다른 날·다른 금액만으로는 띄우지 않습니다. 거래처가 비어 있으면 URL이 같을 때만 알려 줍니다.", "matches an existing one. Different date/amount alone will not trigger this. If supplier is empty, it only warns on same URL.")}
+              <span className="font-medium text-foreground">{tf.f00857}</span>{tf.f01545}{" "}
+              <span className="font-medium text-foreground">{tf.f00858}</span>{tf.f01126}{" "}
+              <span className="font-medium text-foreground">{tf.f00859}</span>{tf.f01694}{" "}
+              <span className="font-medium text-foreground">{tf.f01894}</span>{tf.f01666}
             </p>
             <ul className="max-h-48 space-y-2 overflow-y-auto rounded-md border bg-muted/40 p-3 text-xs text-foreground">
               {similarExpenses.map((e) => (
@@ -1853,13 +1852,13 @@ export default function ExpensesPage() {
             </ul>
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel>{tr("돌아가서 수정", "Go back and edit")}</AlertDialogCancel>
+            <AlertDialogCancel>{tf.f01102}</AlertDialogCancel>
             <Button
               type="button"
               className="bg-amber-600 hover:bg-amber-700"
               onClick={() => void confirmSubmitDespiteSimilarExpenses()}
             >
-              {tr("그래도 등록", "Register anyway")}
+              {tf.f00994}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1877,7 +1876,7 @@ export default function ExpensesPage() {
             <AlertDialogMedia>
               <Pencil className="text-sky-600" />
             </AlertDialogMedia>
-            <AlertDialogTitle>{tr("기존 지출과 금액이 다릅니다", "Amount differs from existing expense")}</AlertDialogTitle>
+            <AlertDialogTitle>{tf.f01012}</AlertDialogTitle>
             <AlertDialogDescription className="sr-only">
               같은 거래일·같은 거래처에 비슷한 품목으로 이미 등록된 지출이 있으나 금액이 다릅니다. 정정 영수증이면 기존 건을 수정할 수 있습니다.
             </AlertDialogDescription>
@@ -1885,8 +1884,8 @@ export default function ExpensesPage() {
           <div className="space-y-3 text-sm text-muted-foreground">
             <p>
               같은 날·같은 거래처에, 이번에 입력한 품목·내용과{" "}
-              <span className="font-medium text-foreground">{tr("겹치는 기존 지출", "overlapping expense")}</span>{tr("이 있는데", " exists, but")}{" "}
-              <span className="font-medium text-foreground">{tr("합계 금액만 다릅니다", "only total amount differs")}</span>{tr(". 정정 영수증이라면 새로 또 넣기보다 아래 기존 건을 수정하는 편이 안전합니다.", ". If this is a correction receipt, updating the existing record is safer than adding a new one.")}
+              <span className="font-medium text-foreground">{tf.f00929}</span>{tf.f01671}{" "}
+              <span className="font-medium text-foreground">{tf.f02166}</span>{tf.f00790}
             </p>
             <p className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-foreground">
               이번 입력 합계:{" "}
@@ -1919,7 +1918,7 @@ export default function ExpensesPage() {
             ) : null}
           </div>
           <AlertDialogFooter className="flex-col gap-2 sm:flex-row sm:justify-end">
-            <AlertDialogCancel type="button">{tr("돌아가기", "Back")}</AlertDialogCancel>
+            <AlertDialogCancel type="button">{tf.f00159}</AlertDialogCancel>
             <Button
               type="button"
               variant="outline"
@@ -1930,14 +1929,14 @@ export default function ExpensesPage() {
                 if (first) switchToEditFromAmountMismatch(first);
               }}
             >
-              {tr("최근 건 수정하기", "Edit latest entry")}
+              {tf.f02010}
             </Button>
             <Button
               type="button"
               className="bg-slate-700 hover:bg-slate-800"
               onClick={() => void confirmSubmitDespiteAmountMismatch()}
             >
-              {tr("그래도 새로 등록", "Create new anyway")}
+              {tf.f00995}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1947,28 +1946,28 @@ export default function ExpensesPage() {
         <Card className="border-none shadow-md bg-gradient-to-br from-red-50 to-white overflow-hidden border-l-4 border-l-red-500">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-red-600 flex items-center gap-2">
-              <TrendingDown className="w-4 h-4" /> {tr("총 지출 합계", "Total Expense")}
+              <TrendingDown className="w-4 h-4" /> {tf.f02000}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-700">₩{totalAmount.toLocaleString()}</div>
-            <p className="text-[10px] text-slate-400 mt-1">{tr("조회된 필터 기준 합계", "Sum for current filters")}</p>
+            <p className="text-[10px] text-slate-400 mt-1">{tf.f01859}</p>
           </CardContent>
         </Card>
 
         <Card className="border-none shadow-md bg-gradient-to-br from-blue-50 to-white overflow-hidden border-l-4 border-l-blue-500">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-blue-600 flex items-center gap-2">
-              <Building2 className="w-4 h-4" /> {tr("주요 거래처", "Top Supplier")}
+              <Building2 className="w-4 h-4" /> {tf.f01879}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-xl font-bold text-blue-700 truncate">
-              {stats.topSupplier ? stats.topSupplier.name : tr("없음", "None")}
+              {stats.topSupplier ? stats.topSupplier.name : tf.f00441}
             </div>
             {stats.topSupplier && (
               <p className="text-[10px] text-slate-500 mt-1">
-                {tr("누적 매입액", "Accumulated amount")}: ₩{stats.topSupplier.amount.toLocaleString()}
+                {tf.f01051}: ₩{stats.topSupplier.amount.toLocaleString()}
               </p>
             )}
           </CardContent>
@@ -1977,26 +1976,26 @@ export default function ExpensesPage() {
         <Card className="border-none shadow-md bg-gradient-to-br from-purple-50 to-white overflow-hidden border-l-4 border-l-purple-500">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-purple-600 flex items-center gap-2">
-              <PieChart className="w-4 h-4" /> {tr("평균 건당 지출", "Average per Expense")}
+              <PieChart className="w-4 h-4" /> {tf.f02104}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-purple-700">
               ₩{Math.round(stats.avgExpense).toLocaleString()}
             </div>
-            <p className="text-[10px] text-slate-400 mt-1">{tr("총", "Based on")} {filteredExpenses.length}{tr("건 기준", " records")}</p>
+            <p className="text-[10px] text-slate-400 mt-1">{tf.f01992} {filteredExpenses.length}{tf.f00888}</p>
           </CardContent>
         </Card>
 
         <Card className="border-none shadow-md bg-gradient-to-br from-slate-50 to-white overflow-hidden border-l-4 border-l-slate-700">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-slate-600 flex items-center gap-2">
-              <Filter className="w-4 h-4" /> {tr("활성 거래처 수", "Active Suppliers")}
+              <Filter className="w-4 h-4" /> {tf.f02222}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-slate-700">{stats.supplierCount} <span className="text-sm font-normal">{tr("개소", "")}</span></div>
-            <p className="text-[10px] text-slate-400 mt-1">{tr("지출 내역이 있는 업체", "Suppliers with expense history")}</p>
+            <div className="text-2xl font-bold text-slate-700">{stats.supplierCount} <span className="text-sm font-normal">{tf.f00865}</span></div>
+            <p className="text-[10px] text-slate-400 mt-1">{tf.f01937}</p>
           </CardContent>
         </Card>
       </div>
@@ -2005,7 +2004,7 @@ export default function ExpensesPage() {
         <CardHeader className="pb-3">
           <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
             <div>
-              <CardTitle className="text-xl font-bold text-gray-800">{tr("지출 일지", "Expense Ledger")}</CardTitle>
+              <CardTitle className="text-xl font-bold text-gray-800">{tf.f01947}</CardTitle>
               <CardDescription>
                 행을 누르면 상세(조회 전용)가 열립니다. 수정·삭제는 오른쪽 아이콘을 사용하세요.
               </CardDescription>
@@ -2014,7 +2013,7 @@ export default function ExpensesPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
               <Input
                 type="search"
-                placeholder={tr("지출 내용, 거래처, 카테고리 검색", "Search description, supplier, category")}
+                placeholder={tf.f01939}
                 className="pl-9 bg-gray-50 border-gray-200 focus:bg-white transition-all shadow-sm"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -2026,7 +2025,7 @@ export default function ExpensesPage() {
           <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-slate-100 mt-3">
             <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium mr-1">
               <SlidersHorizontal className="h-3.5 w-3.5" />
-              {tr("필터", "Filters")}
+              {tf.f02158}
               {activeFilterCount > 0 && (
                 <Badge className="h-4 min-w-4 px-1 text-[9px] bg-indigo-500 text-white border-none">{activeFilterCount}</Badge>
               )}
@@ -2037,7 +2036,7 @@ export default function ExpensesPage() {
               value={filterDateFrom}
               onChange={(e) => setFilterDateFrom(e.target.value)}
               className="h-8 w-[130px] text-xs border-slate-200 rounded-lg"
-              placeholder={tr("시작일", "From")}
+              placeholder={tf.f01488}
             />
             <span className="text-slate-300 text-xs">~</span>
             <Input
@@ -2045,34 +2044,34 @@ export default function ExpensesPage() {
               value={filterDateTo}
               onChange={(e) => setFilterDateTo(e.target.value)}
               className="h-8 w-[130px] text-xs border-slate-200 rounded-lg"
-              placeholder={tr("종료일", "To")}
+              placeholder={tf.f01861}
             />
 
             <Select value={filterCategory} onValueChange={(v: string | null) => setFilterCategory(v || "all")}>
               <SelectTrigger className="h-8 w-[120px] text-xs border-slate-200 rounded-lg">
-                <SelectValue placeholder={tr("분류", "Category")}>{categoryLabels[filterCategory]}</SelectValue>
+                <SelectValue placeholder={tf.f01290}>{categoryLabels[filterCategory]}</SelectValue>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">{tr("전체 분류", "All categories")}</SelectItem>
-                <SelectItem value="materials">{tr("자재/꽃 사입", "Materials/Flowers")}</SelectItem>
-                <SelectItem value="transportation">{tr("운송비", "Transportation")}</SelectItem>
-                <SelectItem value="rent">{tr("임대료", "Rent")}</SelectItem>
-                <SelectItem value="utility">{tr("공과금", "Utilities")}</SelectItem>
-                <SelectItem value="labor">{tr("인건비", "Labor")}</SelectItem>
-                <SelectItem value="marketing">{tr("마케팅", "Marketing")}</SelectItem>
-                <SelectItem value="etc">{tr("기타", "Other")}</SelectItem>
+                <SelectItem value="all">{tf.f01798}</SelectItem>
+                <SelectItem value="materials">{tf.f01744}</SelectItem>
+                <SelectItem value="transportation">{tf.f01632}</SelectItem>
+                <SelectItem value="rent">{tf.f01721}</SelectItem>
+                <SelectItem value="utility">{tf.f00949}</SelectItem>
+                <SelectItem value="labor">{tf.f01695}</SelectItem>
+                <SelectItem value="marketing">{tf.f01139}</SelectItem>
+                <SelectItem value="etc">{tf.f00115}</SelectItem>
               </SelectContent>
             </Select>
 
             <Select value={filterSupplier} onValueChange={(v: string | null) => setFilterSupplier(v || "all")}>
               <SelectTrigger className="h-8 w-[130px] text-xs border-slate-200 rounded-lg">
-                <SelectValue placeholder={tr("거래처", "Supplier")}>
+                <SelectValue placeholder={tf.f00872}>
                   {supplierLabels[filterSupplier] || suppliers.find(s => s.id === filterSupplier)?.name || filterSupplier}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">{tr("전체 거래처", "All suppliers")}</SelectItem>
-                <SelectItem value="none">{tr("거래처 없음", "No supplier")}</SelectItem>
+                <SelectItem value="all">{tf.f01790}</SelectItem>
+                <SelectItem value="none">{tf.f00879}</SelectItem>
                 {expenseSupplierIds.map(id => {
                   const s = suppliers.find(sup => sup.id === id);
                   return s ? <SelectItem key={id} value={id}>{s.name}</SelectItem> : null;
@@ -2082,24 +2081,24 @@ export default function ExpensesPage() {
 
             <Select value={filterMethod} onValueChange={(v: string | null) => setFilterMethod(v || "all")}>
               <SelectTrigger className="h-8 w-[110px] text-xs border-slate-200 rounded-lg">
-                <SelectValue placeholder={tr("결제수단", "Payment")}>{methodLabels[filterMethod]}</SelectValue>
+                <SelectValue placeholder={tf.f00926}>{methodLabels[filterMethod]}</SelectValue>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">{tr("전체 수단", "All methods")}</SelectItem>
-                <SelectItem value="card">{tr("카드", "Card")}</SelectItem>
-                <SelectItem value="cash">{tr("현금", "Cash")}</SelectItem>
-                <SelectItem value="transfer">{tr("이체", "Transfer")}</SelectItem>
+                <SelectItem value="all">{tf.f01801}</SelectItem>
+                <SelectItem value="card">{tf.f00704}</SelectItem>
+                <SelectItem value="cash">{tf.f00769}</SelectItem>
+                <SelectItem value="transfer">{tf.f01693}</SelectItem>
               </SelectContent>
             </Select>
 
             {activeFilterCount > 0 && (
               <Button variant="ghost" size="sm" className="h-8 text-xs text-slate-500 hover:text-red-500 gap-1 px-2" onClick={resetFilters}>
-                <X className="h-3 w-3" /> {tr("초기화", "Reset")}
+                <X className="h-3 w-3" /> {tf.f01987}
               </Button>
             )}
 
             <span className="ml-auto text-[11px] text-slate-400 font-medium">
-              {sortedExpenses.length}{tr("건", "")} / {tr("총", "Total")} {expenses.length}{tr("건", "")}
+              {sortedExpenses.length}{tf.f00033} / {tf.f01992} {expenses.length}{tf.f00033}
             </span>
           </div>
         </CardHeader>
@@ -2114,21 +2113,21 @@ export default function ExpensesPage() {
                 <TableHeader className="bg-gray-50/50">
                   <TableRow className="hover:bg-transparent border-b">
                     <TableHead className="font-bold text-gray-600 cursor-pointer select-none hover:text-indigo-600 transition-colors" onClick={() => handleSort("date")}>
-                      <span className="inline-flex items-center">{tr("날짜", "Date")} <SortIcon column="date" /></span>
+                      <span className="inline-flex items-center">{tf.f00127} <SortIcon column="date" /></span>
                     </TableHead>
                     <TableHead className="font-bold text-gray-600 cursor-pointer select-none hover:text-indigo-600 transition-colors" onClick={() => handleSort("category")}>
-                      <span className="inline-flex items-center">{tr("분류", "Category")} <SortIcon column="category" /></span>
+                      <span className="inline-flex items-center">{tf.f01290} <SortIcon column="category" /></span>
                     </TableHead>
-                    <TableHead className="font-bold text-gray-600">{tr("지출 내용", "Description")}</TableHead>
-                    <TableHead className="font-bold text-gray-600 text-center">{tr("증빙", "Proof")}</TableHead>
+                    <TableHead className="font-bold text-gray-600">{tf.f01938}</TableHead>
+                    <TableHead className="font-bold text-gray-600 text-center">{tf.f01892}</TableHead>
                     <TableHead className="font-bold text-gray-600 text-center cursor-pointer select-none hover:text-indigo-600 transition-colors" onClick={() => handleSort("supplier")}>
-                      <span className="inline-flex items-center justify-center w-full">{tr("거래처", "Supplier")} <SortIcon column="supplier" /></span>
+                      <span className="inline-flex items-center justify-center w-full">{tf.f00872} <SortIcon column="supplier" /></span>
                     </TableHead>
                     <TableHead className="font-bold text-gray-600 text-center cursor-pointer select-none hover:text-indigo-600 transition-colors" onClick={() => handleSort("method")}>
-                      <span className="inline-flex items-center justify-center w-full">{tr("결제수단", "Payment")} <SortIcon column="method" /></span>
+                      <span className="inline-flex items-center justify-center w-full">{tf.f00926} <SortIcon column="method" /></span>
                     </TableHead>
                     <TableHead className="font-bold text-gray-600 text-right cursor-pointer select-none hover:text-indigo-600 transition-colors" onClick={() => handleSort("amount")}>
-                      <span className="inline-flex items-center justify-end w-full">{tr("지출 금액", "Amount")} <SortIcon column="amount" /></span>
+                      <span className="inline-flex items-center justify-end w-full">{tf.f01933} <SortIcon column="amount" /></span>
                     </TableHead>
                     <TableHead className="w-[100px]"></TableHead>
                   </TableRow>
@@ -2139,7 +2138,7 @@ export default function ExpensesPage() {
                       <TableCell colSpan={8} className="h-48 text-center text-muted-foreground font-medium">
                         <div className="flex flex-col items-center justify-center space-y-3">
                           <Receipt className="w-10 h-10 text-slate-200" />
-                          <p>{tr("검색 결과가 없거나 등록된 지출 내역이 없습니다.", "No results or expense records.")}</p>
+                          <p>{tf.f00902}</p>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -2174,7 +2173,7 @@ export default function ExpensesPage() {
                               <FileCheck className="h-3.5 w-3.5" /> 있음
                             </span>
                           ) : (
-                            <span className="text-[10px] text-slate-300 font-light italic">{tr("없음", "None")}</span>
+                            <span className="text-[10px] text-slate-300 font-light italic">{tf.f00441}</span>
                           )}
                         </TableCell>
                         <TableCell className="text-center">
@@ -2275,7 +2274,7 @@ export default function ExpensesPage() {
                 <div className="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-emerald-400 rounded-tr-xl" />
                 <div className="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-emerald-400 rounded-bl-xl" />
                 <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-emerald-400 rounded-br-xl" />
-                <div className="text-white/30 font-bold text-sm bg-black/40 px-3 py-1 rounded-full backdrop-blur-md">{tr("영수증을 네모 안에 맞춰주세요", "Align receipt inside the frame")}</div>
+                <div className="text-white/30 font-bold text-sm bg-black/40 px-3 py-1 rounded-full backdrop-blur-md">{tf.f01583}</div>
               </div>
             </div>
 

@@ -1,4 +1,5 @@
 "use client";
+import { getMessages } from "@/i18n/getMessages";
 
 import { useEffect, useState } from "react";
 import { Loader2, Package } from "lucide-react";
@@ -20,10 +21,8 @@ export default function HqSharedProductsPage() {
   const [organizations, setOrganizations] = useState<{ id: string; name: string }[]>([]);
   const [canManage, setCanManage] = useState(false);
   const locale = usePreferredLocale();
-  const baseLocale = toBaseLocale(locale);
-  const tr = (koText: string, enText: string) => (baseLocale === "ko" ? koText : enText);
-
-  useEffect(() => {
+  const tf = getMessages(locale).tenantFlows;
+  const baseLocale = toBaseLocale(locale);  useEffect(() => {
     if (authLoading) return;
     let cancelled = false;
     (async () => {
@@ -71,8 +70,8 @@ export default function HqSharedProductsPage() {
     return (
       <div className="container max-w-6xl mx-auto p-6 space-y-8">
         <PageHeader
-          title={tr("공동상품관리", "Shared Product Management")}
-          description={tr("조직에 속한 지점으로 배포할 공유 상품을 등록합니다. 지점 화면의 상품 메뉴에서 가져올 수 있습니다.", "Register shared products to distribute to organization branches. Branches can import from products menu.")}
+          title={tf.f00952}
+          description={tf.f01853}
           icon={Package}
         />
         <div className="flex justify-center py-16">
@@ -86,20 +85,20 @@ export default function HqSharedProductsPage() {
     return (
       <div className="container max-w-6xl mx-auto p-6 space-y-6">
         <PageHeader
-          title={tr("공동상품관리", "Shared Product Management")}
-          description={tr("조직 단위로 지점에 내려보낼 공유 상품(브랜드 상품)을 등록·관리합니다.", "Register/manage shared (brand) products distributed to branches by organization.")}
+          title={tf.f00952}
+          description={tf.f01832}
           icon={Package}
         />
         <Card className="max-w-lg border-slate-200">
           <CardHeader>
-            <CardTitle>{tr("이용할 수 없습니다", "Not available")}</CardTitle>
+            <CardTitle>{tf.f01688}</CardTitle>
             <CardDescription>
-              {tr("조직에 배정된 계정만 공동 상품을 관리할 수 있습니다. 플랫폼 관리자에게 멤버 배정을 요청하세요.", "Only organization-assigned accounts can manage shared products. Ask platform admin for membership assignment.")}
+              {tf.f01849}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Button variant="outline" onClick={() => router.push("/dashboard/hq")}>
-              {tr("본사 개요로", "Back to HQ")}
+              {tf.f01264}
             </Button>
           </CardContent>
         </Card>
@@ -110,16 +109,16 @@ export default function HqSharedProductsPage() {
   return (
     <div className="container max-w-6xl mx-auto p-6 space-y-8 animate-in fade-in duration-500">
       <PageHeader
-        title={tr("공동상품관리", "Shared Product Management")}
-        description={tr("조직에 속한 지점으로 배포할 공유 상품을 등록합니다. 지점 화면의 상품 메뉴에서 가져올 수 있습니다.", "Register shared products to distribute to organization branches. Branches can import from products menu.")}
+        title={tf.f00952}
+        description={tf.f01853}
         icon={Package}
       />
       <p className="text-sm text-muted-foreground">
-        {tr("공지·게시는 사이드바", "Announcements are managed from sidebar")}{" "}
+        {tf.f00957}{" "}
         <Link href="/dashboard/org-board" className="text-primary font-medium underline underline-offset-4">
-          {tr("본사 게시판", "HQ Board")}
+          {tf.f01266}
         </Link>
-        {tr("에서 처리합니다.", ".")}
+        {tf.f01549}
       </p>
       <HqCatalogSection orgNames={organizations} canManage={canManage} />
     </div>

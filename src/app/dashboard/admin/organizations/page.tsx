@@ -1,4 +1,5 @@
 "use client";
+import { getMessages } from "@/i18n/getMessages";
 
 import { useEffect, useState, useCallback } from "react";
 import {
@@ -42,7 +43,7 @@ import { AccessDenied } from "@/components/access-denied";
 import { createClient } from "@/utils/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { ko } from "date-fns/locale";
+import { enUS, ko } from "date-fns/locale";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
 
@@ -58,8 +59,8 @@ export default function OrganizationsAdminPage() {
   const supabase = createClient();
   const { isSuperAdmin, isLoading: authLoading } = useAuth();
   const locale = usePreferredLocale();
+  const tf = getMessages(locale).tenantFlows;
   const baseLocale = toBaseLocale(locale);
-  const tr = (koText: string, enText: string) => (baseLocale === "ko" ? koText : enText);
   const [loading, setLoading] = useState(true);
   const [orgs, setOrgs] = useState<Org[]>([]);
   const [tenants, setTenants] = useState<TenantRow[]>([]);
@@ -77,11 +78,11 @@ export default function OrganizationsAdminPage() {
   const formatPlanLabel = (plan: string | null) => {
     if (!plan) return "—";
     const map: Record<string, string> = {
-      free: tr("무료", "Free"),
-      basic: tr("베이직", "Basic"),
-      pro: tr("프로", "Pro"),
-      premium: tr("프리미엄", "Premium"),
-      enterprise: tr("엔터프라이즈", "Enterprise"),
+      free: tf.f01206,
+      basic: tf.f01251,
+      pro: tf.f02138,
+      premium: tf.f02140,
+      enterprise: tf.f01555,
     };
     return map[plan] ?? plan;
   };
@@ -120,7 +121,7 @@ export default function OrganizationsAdminPage() {
       }
     } catch (e) {
       console.error(e);
-      toast.error(tr("목록을 불러오지 못했습니다. Supabase에 organization_schema.sql 적용 여부를 확인하세요.", "Failed to load list. Check whether organization_schema.sql was applied in Supabase."));
+      toast.error(tf.f01205);
     } finally {
       setLoading(false);
     }
@@ -133,7 +134,7 @@ export default function OrganizationsAdminPage() {
 
   const handleCreateOrg = async () => {
     if (!newOrgName.trim()) {
-      toast.error(tr("조직 이름을 입력하세요.", "Enter organization name."));
+      toast.error(tf.f01842);
       return;
     }
     const { error } = await supabase.from("organizations").insert({ name: newOrgName.trim() });
@@ -141,7 +142,7 @@ export default function OrganizationsAdminPage() {
       toast.error(error.message);
       return;
     }
-    toast.success(tr("조직이 생성되었습니다.", "Organization created."));
+    toast.success(tf.f01856);
     setCreateOpen(false);
     setNewOrgName("");
     load();
@@ -160,7 +161,7 @@ export default function OrganizationsAdminPage() {
       toast.error(error.message);
       return;
     }
-    toast.success(tr("지점이 조직에 연결되었습니다.", "Branch linked to organization."));
+    toast.success(tf.f01927);
     setLinkOpen(false);
     load();
   };
@@ -171,7 +172,7 @@ export default function OrganizationsAdminPage() {
       toast.error(error.message);
       return;
     }
-    toast.success(tr("지점 연결이 해제되었습니다.", "Branch unlinked."));
+    toast.success(tf.f01913);
     load();
   };
 
@@ -194,10 +195,10 @@ export default function OrganizationsAdminPage() {
     });
     const json = await res.json().catch(() => ({}));
     if (!res.ok) {
-      toast.error(json.error || tr("멤버 추가 실패", "Failed to add member"));
+      toast.error(json.error || tf.f01187);
       return;
     }
-    toast.success(tr("조직 멤버가 추가되었습니다. (단독 매장만 있는 계정은 org_admin 역할로 갱신됩니다.)", "Organization member added. (Single-store account may be upgraded to org_admin.)"));
+    toast.success(tf.f01834);
     setMemberOpen(false);
     load();
   };
@@ -214,10 +215,10 @@ export default function OrganizationsAdminPage() {
     });
     const json = await res.json().catch(() => ({}));
     if (!res.ok) {
-      toast.error(json.error || tr("제거 실패", "Remove failed"));
+      toast.error(json.error || tf.f01824);
       return;
     }
-    toast.success(tr("멤버에서 제외했습니다.", "Member removed."));
+    toast.success(tf.f01188);
     load();
   };
 
@@ -238,14 +239,14 @@ export default function OrganizationsAdminPage() {
   return (
     <div className="container max-w-5xl mx-auto p-6 space-y-8">
       <PageHeader
-        title={tr("조직(본사) 관리", "Organization (HQ) Management")}
-        description={tr("다매장 고객의 본사 단위를 만들고, 지점(tenant) 연결 및 본사 사용자(org_admin)를 배정합니다.", "Create HQ units for multi-store clients, link branches (tenants), and assign HQ users (org_admin).")}
+        title={tf.f01846}
+        description={tf.f01059}
       />
 
       <div className="flex justify-end">
         <Button onClick={() => setCreateOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
-          {tr("조직 추가", "Add Organization")}
+          {tf.f01845}
         </Button>
       </div>
 
@@ -253,7 +254,7 @@ export default function OrganizationsAdminPage() {
         {orgs.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center text-muted-foreground">
-              {tr("등록된 조직이 없습니다. 상단에서 조직을 추가하세요.", "No organizations found. Add one from the top.")}
+              {tf.f01117}
             </CardContent>
           </Card>
         ) : (
@@ -268,32 +269,34 @@ export default function OrganizationsAdminPage() {
                     {org.name}
                   </CardTitle>
                   <CardDescription>
-                    {tr("생성일", "Created At")}{" "}
-                    {baseLocale === "ko" ? format(new Date(org.created_at), "yyyy년 M월 d일", { locale: ko }) : format(new Date(org.created_at), "yyyy-MM-dd")}
+                    {tf.f01393}{" "}
+                    {format(new Date(org.created_at), "PP", {
+                      locale: baseLocale === "ko" ? ko : enUS,
+                    })}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="flex flex-wrap gap-2">
                     <Button variant="secondary" size="sm" onClick={() => openLink(org.id)}>
                       <Link2 className="h-3.5 w-3.5 mr-1" />
-                      {tr("지점 연결", "Link Branch")}
+                      {tf.f01912}
                     </Button>
                     <Button variant="outline" size="sm" onClick={() => openMember(org.id)}>
                       <UserPlus className="h-3.5 w-3.5 mr-1" />
-                      {tr("본사 사용자 추가", "Add HQ User")}
+                      {tf.f01269}
                     </Button>
                   </div>
 
                   <div>
-                    <h4 className="text-sm font-semibold mb-2">{tr("연결된 지점", "Linked Branches")}</h4>
+                    <h4 className="text-sm font-semibold mb-2">{tf.f01563}</h4>
                     {branches.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">{tr("연결된 지점이 없습니다.", "No linked branches.")}</p>
+                      <p className="text-sm text-muted-foreground">{tf.f01564}</p>
                     ) : (
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>{tr("지점명", "Branch")}</TableHead>
-                            <TableHead>{tr("플랜", "Plan")}</TableHead>
+                            <TableHead>{tf.f01917}</TableHead>
+                            <TableHead>{tf.f02143}</TableHead>
                             <TableHead className="w-[100px]" />
                           </TableRow>
                         </TableHeader>
@@ -310,7 +313,7 @@ export default function OrganizationsAdminPage() {
                                   onClick={() => handleUnlinkTenant(b.id)}
                                 >
                                   <Unlink className="h-4 w-4 mr-1" />
-                                  {tr("해제", "Unlink")}
+                                  {tf.f00768}
                                 </Button>
                               </TableCell>
                             </TableRow>
@@ -321,14 +324,14 @@ export default function OrganizationsAdminPage() {
                   </div>
 
                   <div>
-                    <h4 className="text-sm font-semibold mb-2">{tr("본사 사용자 (org_admin)", "HQ Users (org_admin)")}</h4>
+                    <h4 className="text-sm font-semibold mb-2">{tf.f01268}</h4>
                     {mems.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">{tr("배정된 사용자가 없습니다.", "No assigned users.")}</p>
+                      <p className="text-sm text-muted-foreground">{tf.f01239}</p>
                     ) : (
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>{tr("이메일", "Email")}</TableHead>
+                            <TableHead>{tf.f00504}</TableHead>
                             <TableHead className="w-[100px]" />
                           </TableRow>
                         </TableHeader>
@@ -342,7 +345,7 @@ export default function OrganizationsAdminPage() {
                                   size="sm"
                                   className="text-red-600"
                                   onClick={() => handleRemoveMember(org.id, m.user_id)}
-                                  title={tr("멤버 제외", "Remove member")}
+                                  title={tf.f01186}
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
@@ -363,17 +366,17 @@ export default function OrganizationsAdminPage() {
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{tr("조직 만들기", "Create Organization")}</DialogTitle>
+            <DialogTitle>{tf.f01833}</DialogTitle>
           </DialogHeader>
           <div className="space-y-2">
-            <Label>{tr("조직 이름", "Organization Name")}</Label>
-            <Input value={newOrgName} onChange={(e) => setNewOrgName(e.target.value)} placeholder={tr("예: OO플라워 본사", "e.g. OO Flower HQ")} />
+            <Label>{tf.f01841}</Label>
+            <Input value={newOrgName} onChange={(e) => setNewOrgName(e.target.value)} placeholder={tf.f01595} />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>
-              {tr("취소", "Cancel")}
+              {tf.f00702}
             </Button>
-            <Button onClick={handleCreateOrg}>{tr("생성", "Create")}</Button>
+            <Button onClick={handleCreateOrg}>{tf.f01392}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -381,33 +384,33 @@ export default function OrganizationsAdminPage() {
       <Dialog open={linkOpen} onOpenChange={setLinkOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{tr("지점을 조직에 연결", "Link Branch to Organization")}</DialogTitle>
+            <DialogTitle>{tf.f01925}</DialogTitle>
           </DialogHeader>
           <div className="space-y-2">
-            <Label>{tr("지점 선택", "Select Branch")}</Label>
+            <Label>{tf.f00664}</Label>
             <Select value={linkTenantId} onValueChange={(v) => setLinkTenantId(v ?? "")}>
               <SelectTrigger>
-                <SelectValue placeholder={tr("지점 선택…", "Select branch...")} />
+                <SelectValue placeholder={tf.f01910} />
               </SelectTrigger>
               <SelectContent>
                 {linkCandidates.map((t) => (
                   <SelectItem key={t.id} value={t.id}>
                     {t.name}
-                    {t.organization_id ? tr(" (다른 조직에서 이동)", " (move from another org)") : ""}
+                    {t.organization_id ? tf.f00787 : ""}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              {tr("이미 다른 조직에 속한 지점을 선택하면 이 조직으로 옮겨집니다.", "Selecting a branch already in another organization will move it here.")}
+              {tf.f01684}
             </p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setLinkOpen(false)}>
-              {tr("취소", "Cancel")}
+              {tf.f00702}
             </Button>
             <Button onClick={handleLinkTenant} disabled={!linkTenantId}>
-              {tr("연결", "Link")}
+              {tf.f01558}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -416,10 +419,10 @@ export default function OrganizationsAdminPage() {
       <Dialog open={memberOpen} onOpenChange={setMemberOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{tr("본사 사용자 추가", "Add HQ User")}</DialogTitle>
+            <DialogTitle>{tf.f01269}</DialogTitle>
           </DialogHeader>
           <div className="space-y-2">
-            <Label>{tr("가입된 이메일 (profiles)", "Registered Email (profiles)")}</Label>
+            <Label>{tf.f00848}</Label>
             <Input
               type="email"
               value={memberEmail}
@@ -427,15 +430,15 @@ export default function OrganizationsAdminPage() {
               placeholder="user@example.com"
             />
             <p className="text-xs text-muted-foreground">
-              {tr("서버에서 프로필을 찾아 멤버로 넣습니다. 단독 매장만 있는 계정은 역할이 org_admin으로 바뀔 수 있습니다.", "Server looks up the profile and adds it as member. Single-store accounts may be switched to org_admin.")}
+              {tf.f01396}
             </p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setMemberOpen(false)}>
-              {tr("취소", "Cancel")}
+              {tf.f00702}
             </Button>
             <Button onClick={handleAddMember} disabled={!memberEmail.trim()}>
-              {tr("추가", "Add")}
+              {tf.f00697}
             </Button>
           </DialogFooter>
         </DialogContent>

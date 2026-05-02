@@ -1,4 +1,5 @@
 "use client";
+import { getMessages } from "@/i18n/getMessages";
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -12,10 +13,8 @@ export default function DesignTemplatesAdminPage() {
   const { isSuperAdmin, isLoading } = useAuth();
   const router = useRouter();
   const locale = usePreferredLocale();
-  const baseLocale = toBaseLocale(locale);
-  const tr = (koText: string, enText: string) => (baseLocale === "ko" ? koText : enText);
-
-  useEffect(() => {
+  const tf = getMessages(locale).tenantFlows;
+  const baseLocale = toBaseLocale(locale);  useEffect(() => {
     if (!isLoading && !isSuperAdmin) {
       router.push("/dashboard");
     }
@@ -33,8 +32,8 @@ export default function DesignTemplatesAdminPage() {
             <Layers size={24} />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-slate-800 tracking-tight">{tr("디자인 템플릿 보관함 관리", "Design Template Repository")}</h1>
-            <p className="text-sm font-medium text-slate-500 mt-1">{tr("시스템 전역 디자인 스튜디오 템플릿(카테고리 및 배경)을 관리합니다.", "Manage global design studio templates (categories/backgrounds).")}</p>
+            <h1 className="text-2xl font-black text-slate-800 tracking-tight">{tf.f01125}</h1>
+            <p className="text-sm font-medium text-slate-500 mt-1">{tf.f01482}</p>
           </div>
         </div>
       </header>

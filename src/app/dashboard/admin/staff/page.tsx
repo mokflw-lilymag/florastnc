@@ -1,4 +1,5 @@
 "use client";
+import { getMessages } from "@/i18n/getMessages";
 
 import React, { useState, useEffect } from "react";
 import { 
@@ -54,10 +55,8 @@ export default function StaffManagementPage() {
   const [isRoleManagerOpen, setIsRoleManagerOpen] = useState(false);
   const [newRole, setNewRole] = useState({ role_key: '', role_name: '', description: '' });
   const locale = usePreferredLocale();
-  const baseLocale = toBaseLocale(locale);
-  const tr = (koText: string, enText: string) => (baseLocale === "ko" ? koText : enText);
-
-  const supabase = createClient();
+  const tf = getMessages(locale).tenantFlows;
+  const baseLocale = toBaseLocale(locale);  const supabase = createClient();
 
   useEffect(() => {
     fetchInitialData();
@@ -81,7 +80,7 @@ export default function StaffManagementPage() {
       const { data: roleData } = await supabase.from('hq_roles').select('*').order('role_name');
       setHqRoles(roleData || []);
     } catch (error) {
-      toast.error(tr("데이터 로딩 실패", "Failed to load data"));
+      toast.error(tf.f01092);
     } finally {
       setLoading(false);
     }
@@ -91,16 +90,16 @@ export default function StaffManagementPage() {
     const { error } = await supabase.from('profiles').update({ role: newRoleKey }).eq('id', userId);
     if (!error) {
       setStaff(prev => prev.map(s => s.id === userId ? { ...s, role: newRoleKey } : s));
-      toast.success(tr("직원의 직책이 변경되었습니다.", "Staff role updated."));
+      toast.success(tf.f01957);
     }
   };
 
   const addHqRole = async () => {
-    if (!newRole.role_key || !newRole.role_name) return toast.error(tr("키와 이름을 입력해주세요.", "Please enter key and name."));
+    if (!newRole.role_key || !newRole.role_name) return toast.error(tf.f02077);
     const roleKey = newRole.role_key.startsWith('hq_') ? newRole.role_key : `hq_${newRole.role_key}`;
     const { error } = await supabase.from('hq_roles').insert([{ ...newRole, role_key: roleKey }]);
-    if (error) return toast.error(tr("직책 추가 중 오류가 발생했습니다.", "Error while adding role."));
-    toast.success(tr("새로운 직책이 추가되었습니다.", "New role added."));
+    if (error) return toast.error(tf.f01962);
+    toast.success(tf.f01388);
     setNewRole({ role_key: '', role_name: '', description: '' });
     fetchInitialData();
   };
@@ -108,7 +107,7 @@ export default function StaffManagementPage() {
   const deleteHqRole = async (id: string) => {
     const { error } = await supabase.from('hq_roles').delete().eq('id', id);
     if (!error) {
-      toast.success(tr("직책이 삭제되었습니다.", "Role removed."));
+      toast.success(tf.f01964);
       fetchInitialData();
     }
   };
@@ -116,7 +115,7 @@ export default function StaffManagementPage() {
   const filteredStaff = staff.filter(s => s.email.toLowerCase().includes(searchTerm.toLowerCase()));
 
   const getRoleDisplayName = (roleKey: string) => {
-    if (roleKey === 'super_admin') return tr('슈퍼 관리자', 'Super Admin');
+    if (roleKey === 'super_admin') return tf.f01464;
     const role = hqRoles.find(r => r.role_key === roleKey);
     return role ? role.role_name : roleKey;
   };
@@ -125,12 +124,12 @@ export default function StaffManagementPage() {
     <div className="flex-1 space-y-8 p-8 pt-6 max-w-7xl mx-auto">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="space-y-1">
-          <Badge variant="outline" className="text-indigo-600 bg-indigo-50/50 border-indigo-100 font-black text-[10px] tracking-widest px-2 py-0.5 uppercase">{tr("조직 관리", "Organization Management")}</Badge>
+          <Badge variant="outline" className="text-indigo-600 bg-indigo-50/50 border-indigo-100 font-black text-[10px] tracking-widest px-2 py-0.5 uppercase">{tf.f01831}</Badge>
           <h2 className="text-3xl font-black tracking-tight flex items-center gap-3">
             <Users className="w-8 h-8 text-slate-900" />
-            {tr("본사 직원 및 직책 관리", "HQ Staff & Role Management")}
+            {tf.f01273}
           </h2>
-          <p className="text-slate-500 font-medium">{tr("소속 직원의 직책 변경과 시스템 내 직책 자율 구성을 지원합니다.", "Manage staff roles and customize role structures.")}</p>
+          <p className="text-slate-500 font-medium">{tf.f01439}</p>
         </div>
         <div className="flex items-center gap-3">
             <Dialog open={isRoleManagerOpen} onOpenChange={setIsRoleManagerOpen}>
@@ -138,29 +137,29 @@ export default function StaffManagementPage() {
                     render={
                         <Button variant="outline" className="rounded-2xl h-10 px-5 font-black gap-2 border-slate-200">
                             <Settings className="w-4 h-4" />
-                            {tr("직책 마스터 관리", "Role Master")}
+                            {tf.f01959}
                         </Button>
                     }
                 />
                 <DialogContent className="max-w-2xl rounded-[2.5rem] max-h-[85vh] overflow-y-auto">
                     <DialogHeader>
-                        <DialogTitle className="text-2xl font-black">{tr("본사 직책(Role) 마스터 관리", "HQ Role Master Management")}</DialogTitle>
-                        <DialogDescription className="font-medium">{tr("시스템에서 사용할 직책의 종류를 추가하거나 삭제할 수 있습니다.", "Add or remove role types used in the system.")}</DialogDescription>
+                        <DialogTitle className="text-2xl font-black">{tf.f01276}</DialogTitle>
+                        <DialogDescription className="font-medium">{tf.f01487}</DialogDescription>
                     </DialogHeader>
                     
                     <div className="space-y-6 pt-4">
                         <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 space-y-3">
-                            <h4 className="text-xs font-black text-slate-400 tracking-widest uppercase">{tr("신규 직책 정의", "Define New Role")}</h4>
+                            <h4 className="text-xs font-black text-slate-400 tracking-widest uppercase">{tf.f01496}</h4>
                             <div className="grid grid-cols-2 gap-3">
-                                <Input placeholder={tr("코드 (예: marketing)", "Code (e.g. marketing)")} value={newRole.role_key} onChange={(e) => setNewRole({...newRole, role_key: e.target.value})} className="rounded-xl h-11 font-bold bg-white" />
-                                <Input placeholder={tr("표시 이름 (예: 마케팅 팀)", "Display Name (e.g. Marketing Team)")} value={newRole.role_name} onChange={(e) => setNewRole({...newRole, role_name: e.target.value})} className="rounded-xl h-11 font-bold bg-white" />
+                                <Input placeholder={tf.f02074} value={newRole.role_key} onChange={(e) => setNewRole({...newRole, role_key: e.target.value})} className="rounded-xl h-11 font-bold bg-white" />
+                                <Input placeholder={tf.f02117} value={newRole.role_name} onChange={(e) => setNewRole({...newRole, role_name: e.target.value})} className="rounded-xl h-11 font-bold bg-white" />
                             </div>
-                            <Input placeholder={tr("직책 설명 (선택 사항)", "Role description (optional)")} value={newRole.description} onChange={(e) => setNewRole({...newRole, description: e.target.value})} className="rounded-xl h-11 font-bold bg-white" />
-                            <Button onClick={addHqRole} className="w-full bg-slate-900 text-white rounded-xl font-black h-11">{tr("직책 새로 만들기", "Create Role")}</Button>
+                            <Input placeholder={tf.f01961} value={newRole.description} onChange={(e) => setNewRole({...newRole, description: e.target.value})} className="rounded-xl h-11 font-bold bg-white" />
+                            <Button onClick={addHqRole} className="w-full bg-slate-900 text-white rounded-xl font-black h-11">{tf.f01960}</Button>
                         </div>
 
                         <div className="space-y-3">
-                            <h4 className="text-xs font-black text-slate-400 tracking-widest uppercase mb-3">{tr("현재 정의된 직책", "Defined Roles")} ({hqRoles.length})</h4>
+                            <h4 className="text-xs font-black text-slate-400 tracking-widest uppercase mb-3">{tf.f02190} ({hqRoles.length})</h4>
                             <div className="grid gap-2">
                                 {hqRoles.map(role => (
                                     <div key={role.id} className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl group hover:border-slate-300">
@@ -184,7 +183,7 @@ export default function StaffManagementPage() {
 
             <Button className="bg-slate-900 hover:bg-slate-800 text-white rounded-[1.2rem] h-10 px-5 font-black gap-2">
                 <UserPlus className="w-4 h-4" />
-                {tr("직원 추가", "Add Staff")}
+                {tf.f01956}
             </Button>
         </div>
       </div>
@@ -195,7 +194,7 @@ export default function StaffManagementPage() {
             <div className="flex items-center justify-between">
                 <div className="relative max-w-sm w-full">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <Input placeholder={tr("이메일로 직원 검색...", "Search staff by email...")} className="pl-10 h-10 bg-white border-slate-200 rounded-2xl" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                    <Input placeholder={tf.f01683} className="pl-10 h-10 bg-white border-slate-200 rounded-2xl" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                 </div>
             </div>
           </CardHeader>
@@ -203,15 +202,15 @@ export default function StaffManagementPage() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-slate-50/30 hover:bg-transparent">
-                  <TableHead className="pl-10 h-14 text-[10px] font-black uppercase tracking-widest text-slate-400">{tr("직원 계정", "Staff Account")}</TableHead>
-                  <TableHead className="h-14 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">{tr("부여된 직책", "Assigned Role")}</TableHead>
-                  <TableHead className="h-14 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">{tr("등록 및 상태", "Registered & Status")}</TableHead>
+                  <TableHead className="pl-10 h-14 text-[10px] font-black uppercase tracking-widest text-slate-400">{tf.f01954}</TableHead>
+                  <TableHead className="h-14 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">{tf.f01289}</TableHead>
+                  <TableHead className="h-14 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">{tf.f01108}</TableHead>
                   <TableHead className="h-14 pr-10 text-right"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
-                    <TableRow><TableCell colSpan={4} className="h-48 text-center text-slate-300 font-bold">{tr("로딩 중...", "Loading...")}</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={4} className="h-48 text-center text-slate-300 font-bold">{tf.f00177}</TableCell></TableRow>
                 ) : filteredStaff.map((person) => (
                   <TableRow key={person.id} className="group hover:bg-slate-50/50 transition-colors">
                     <TableCell className="pl-10 py-5">
@@ -228,7 +227,7 @@ export default function StaffManagementPage() {
                     <TableCell className="text-center">
                         <div className="flex flex-col items-center">
                             <span className="text-[10px] font-black text-slate-900">{new Date(person.created_at).toLocaleDateString()}</span>
-                            <span className="text-[9px] font-bold text-emerald-500 uppercase">{tr("활성 계정", "Online Account")}</span>
+                            <span className="text-[9px] font-bold text-emerald-500 uppercase">{tf.f02223}</span>
                         </div>
                     </TableCell>
                     <TableCell className="pr-10 text-right">
@@ -243,7 +242,7 @@ export default function StaffManagementPage() {
                             />
                             <DropdownMenuContent align="end" className="w-52 rounded-2xl shadow-xl border-slate-100 p-2">
                                 <DropdownMenuGroup>
-                                    <DropdownMenuLabel className="px-3 py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">{tr("본사 직책 할당", "Assign HQ Role")}</DropdownMenuLabel>
+                                    <DropdownMenuLabel className="px-3 py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">{tf.f01275}</DropdownMenuLabel>
                                 </DropdownMenuGroup>
                                 <DropdownMenuSeparator />
                                 {hqRoles.map(role => (
@@ -252,7 +251,7 @@ export default function StaffManagementPage() {
                                     </DropdownMenuItem>
                                 ))}
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem className="rounded-xl cursor-pointer font-bold text-xs py-2.5 text-red-500">{tr("계정 해제", "Deactivate Account")}</DropdownMenuItem>
+                                <DropdownMenuItem className="rounded-xl cursor-pointer font-bold text-xs py-2.5 text-red-500">{tf.f00933}</DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
                       )}

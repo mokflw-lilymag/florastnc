@@ -1,4 +1,5 @@
 "use client";
+import { getMessages } from "@/i18n/getMessages";
 
 import { useState, useEffect, useMemo } from "react";
 import { format } from "date-fns";
@@ -71,10 +72,8 @@ export function CustomerDetailDialog({
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [isOrderDetailOpen, setIsOrderDetailOpen] = useState(false);
   const locale = usePreferredLocale();
-  const isKo = toBaseLocale(locale) === "ko";
-  const tr = (ko: string, en: string) => (isKo ? ko : en);
-
-  useEffect(() => {
+  const tf = getMessages(locale).tenantFlows;
+  const isKo = toBaseLocale(locale) === "ko";  useEffect(() => {
     if (isOpen && customer) {
       fetchCustomerOrders();
       fetchPointTransactions();
@@ -153,16 +152,16 @@ export function CustomerDetailDialog({
                     <div className="flex items-center gap-2">
                        <DialogTitle className="text-2xl font-black text-slate-900">{customer.name}</DialogTitle>
                         <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-100 uppercase tracking-tighter font-black text-[10px]">
-                           {customer.grade || tr('일반 고객', 'General')}
+                           {customer.grade || tf.f00526}
                         </Badge>
                         {customer.source === 'pos' && (
                           <Badge className="bg-indigo-600 text-white border-none h-5 px-1.5 text-[9px] font-bold gap-1 flex items-center shadow-sm">
-                            {tr("📟 POS 연동", "📟 POS Linked")}
+                            {tf.f00010}
                           </Badge>
                         )}
                      </div>
                     <DialogDescription className="text-slate-500 font-medium">
-                       {customer.company_name ? `${customer.company_name} · ${customer.department || tr('부서 미정', 'No department')}` : tr('개인 회원', 'Individual')}
+                       {customer.company_name ? `${customer.company_name} · ${customer.department || tf.f00295}` : tf.f00029}
                     </DialogDescription>
                  </div>
               </div>
@@ -174,7 +173,7 @@ export function CustomerDetailDialog({
                      className="h-9 hover:bg-emerald-50 border-slate-200 gap-2 font-bold text-emerald-600"
                   >
                      <ReceiptIcon className="h-4 w-4" />
-                     {tr("간이영수증", "Receipt")}
+                     {tf.f00024}
                   </Button>
                   <Button 
                      variant="outline" 
@@ -183,7 +182,7 @@ export function CustomerDetailDialog({
                      className="h-9 hover:bg-blue-50 border-slate-200 gap-2 font-bold text-blue-600"
                   >
                      <FileText className="h-4 w-4" />
-                     {tr("거래명세서", "Statement")}
+                     {tf.f00032}
                   </Button>
                   <Button 
                      variant="outline" 
@@ -192,7 +191,7 @@ export function CustomerDetailDialog({
                      className="h-9 hover:bg-amber-50 border-slate-200 gap-2 font-bold text-amber-600"
                   >
                      <FileText className="h-4 w-4" />
-                     {tr("견적서", "Estimate")}
+                     {tf.f00041}
                   </Button>
                </div>
             </div>
@@ -204,44 +203,44 @@ export function CustomerDetailDialog({
                <Card className="border-none shadow-sm bg-blue-600 text-white overflow-hidden">
                   <div className="p-4 relative">
                      <TrendingUp className="absolute right-4 top-4 h-12 w-12 opacity-10" />
-                     <p className="text-blue-100 text-xs font-bold uppercase tracking-wider">{tr("총 구매액", "Total Spend")}</p>
+                     <p className="text-blue-100 text-xs font-bold uppercase tracking-wider">{tf.f00684}</p>
                      <h3 className="text-2xl font-black mt-1">₩{stats.total.toLocaleString()}</h3>
-                     <p className="text-blue-200 text-[10px] mt-1 font-medium italic">{stats.count}{tr(" 번의 꾸준한 구매", " orders")}</p>
+                     <p className="text-blue-200 text-[10px] mt-1 font-medium italic">{stats.count}{tf.f00001}</p>
                   </div>
                </Card>
                <Card className="border-none shadow-sm bg-white overflow-hidden">
                   <div className="p-4 border-l-4 border-l-indigo-500">
-                     <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">{tr("마지막 구매일", "Last Order")}</p>
+                     <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">{tf.f00189}</p>
                      <h3 className="text-lg font-bold text-slate-900 mt-1">
-                        {stats.lastDate ? (isKo ? format(new Date(stats.lastDate), 'yyyy년 MM월 dd일') : format(new Date(stats.lastDate), 'yyyy-MM-dd')) : tr('첫 구매 대기중', 'Waiting for first order')}
+                        {stats.lastDate ? (isKo ? format(new Date(stats.lastDate), 'yyyy년 MM월 dd일') : format(new Date(stats.lastDate), 'yyyy-MM-dd')) : tf.f00680}
                      </h3>
-                     <p className="text-slate-500 text-[10px] mt-1 font-medium">{stats.lastDate ? tr('꽃과 함께한지 얼마 되지 않았네요 :)', 'Recent flower moments :)') : tr('새로운 인연을 환영합니다', 'Welcome!')}</p>
+                     <p className="text-slate-500 text-[10px] mt-1 font-medium">{stats.lastDate ? tf.f00119 : tf.f00350}</p>
                   </div>
                </Card>
                <Card className="border-none shadow-sm bg-white overflow-hidden">
                   <div className="p-4 border-l-4 border-l-amber-500">
-                     <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">{tr("보유 포인트", "Points")}</p>
+                     <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">{tf.f00286}</p>
                      <div className="flex items-center gap-2 mt-1">
                         <h3 className="text-xl font-bold text-slate-900">{(customer.points || 0).toLocaleString()} P</h3>
                         <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-200 border-none px-1.5 h-5 text-[10px]">REWARD</Badge>
                      </div>
-                     <p className="text-slate-500 text-[10px] mt-1 font-medium">{tr("다음 구매에 사용 가능한 혜택", "Available for next purchase")}</p>
+                     <p className="text-slate-500 text-[10px] mt-1 font-medium">{tf.f00147}</p>
                   </div>
                </Card>
             </div>
 
             <Tabs defaultValue="history" className="w-full">
                <TabsList className="grid w-full grid-cols-3 bg-white/50 backdrop-blur-sm border border-slate-200 rounded-xl p-1">
-                  <TabsTrigger value="history" className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">{tr("주문 이력", "Orders")} ({orders.length})</TabsTrigger>
-                  <TabsTrigger value="points" className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm text-amber-600">{tr("포인트 내역", "Points")}</TabsTrigger>
-                  <TabsTrigger value="info" className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">{tr("상세 정보", "Details")}</TabsTrigger>
+                  <TabsTrigger value="history" className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">{tf.f00606} ({orders.length})</TabsTrigger>
+                  <TabsTrigger value="points" className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm text-amber-600">{tf.f00730}</TabsTrigger>
+                  <TabsTrigger value="info" className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">{tf.f00315}</TabsTrigger>
                </TabsList>
                
                <TabsContent value="points" className="mt-4 animate-in fade-in duration-300">
                   <Card className="border-slate-200 shadow-sm bg-white overflow-hidden">
                      <CardHeader className="pb-3 border-b border-slate-50">
                         <CardTitle className="text-base font-black flex items-center gap-2 text-slate-800">
-                           <TrendingUp className="h-4 w-4 text-amber-500" /> {tr("포인트 적립/차감 히스토리", "Point Transactions")}
+                           <TrendingUp className="h-4 w-4 text-amber-500" /> {tf.f00734}
                         </CardTitle>
                      </CardHeader>
                      <CardContent className="p-0">
@@ -264,10 +263,10 @@ export function CustomerDetailDialog({
                                              {tx.amount > 0 ? `+` : ``}{tx.amount.toLocaleString()}
                                           </div>
                                           <div className="space-y-0.5">
-                                             <p className="text-sm font-bold text-slate-800">{tx.description || tr('포인트 변동', 'Point change')}</p>
+                                             <p className="text-sm font-bold text-slate-800">{tx.description || tf.f00731}</p>
                                              <div className="flex items-center gap-2 text-[10px] text-slate-400 font-medium">
                                                 <Badge variant="outline" className="text-[8px] h-4 px-1 leading-none border-slate-200 uppercase tracking-tighter">
-                                                   {tx.source === 'pos' ? '📟 POS' : tx.source === 'order' ? tr('🛒 주문', '🛒 Order') : tr('⚙️ 시스템', '⚙️ System')}
+                                                   {tx.source === 'pos' ? '📟 POS' : tx.source === 'order' ? tf.f00012 : tf.f00009}
                                                 </Badge>
                                                 <span>{format(new Date(tx.created_at), 'yyyy-MM-dd HH:mm')}</span>
                                              </div>
@@ -278,7 +277,7 @@ export function CustomerDetailDialog({
                                              "text-[10px] px-1.5 py-0",
                                              tx.type === 'earn' ? 'bg-emerald-500' : tx.type === 'use' ? 'bg-rose-500' : 'bg-slate-500'
                                           )}>
-                                             {tx.type === 'earn' ? tr('적립', 'Earn') : tx.type === 'use' ? tr('사용', 'Use') : tx.type === 'cancel' ? tr('취소', 'Cancel') : tr('기타', 'Other')}
+                                             {tx.type === 'earn' ? tf.f00544 : tx.type === 'use' ? tf.f00302 : tx.type === 'cancel' ? tf.f00702 : tf.f00115}
                                           </Badge>
                                        </div>
                                     </div>
@@ -287,7 +286,7 @@ export function CustomerDetailDialog({
                            ) : (
                               <div className="h-64 flex flex-col items-center justify-center text-slate-400 gap-2">
                                  <Trophy className="h-12 w-12 opacity-10" />
-                                 <p className="font-bold text-sm">{tr("포인트 거래 내역이 아직 없습니다.", "No point transactions yet.")}</p>
+                                 <p className="font-bold text-sm">{tf.f00729}</p>
                               </div>
                            )}
                         </ScrollArea>
@@ -299,9 +298,9 @@ export function CustomerDetailDialog({
                   <Card className="border-slate-200 shadow-sm bg-white">
                      <CardHeader className="pb-3 flex flex-row items-center justify-between border-b border-slate-50">
                         <CardTitle className="text-base font-black flex items-center gap-2 text-slate-800">
-                           <History className="h-4 w-4 text-blue-500" /> {tr("주문 히스토리", "Order History")}
+                           <History className="h-4 w-4 text-blue-500" /> {tf.f00622}
                         </CardTitle>
-                        <span className="text-xs text-slate-400 font-medium">{tr("최신 주문순으로 정렬됨", "Sorted by latest")}</span>
+                        <span className="text-xs text-slate-400 font-medium">{tf.f00690}</span>
                      </CardHeader>
                      <CardContent className="p-0">
                         <ScrollArea className="h-[400px]">
@@ -322,7 +321,7 @@ export function CustomerDetailDialog({
                                                    ? 'bg-emerald-50 text-emerald-600 border-emerald-100' 
                                                    : 'bg-blue-50 text-blue-600 border-blue-100'
                                                 }>
-                                                   {order.status === 'completed' ? tr('배송완료', 'Completed') : tr('진행중', 'In progress')}
+                                                   {order.status === 'completed' ? tf.f00272 : tf.f00671}
                                                 </Badge>
                                              </div>
                                              <div className="flex flex-wrap gap-1 items-center">
@@ -342,7 +341,7 @@ export function CustomerDetailDialog({
                                           <div className="flex items-center gap-4 text-[11px] text-slate-500 font-medium">
                                              <div className="flex items-center gap-1">
                                                 <Package className="h-3 w-3" />
-                                                {order.receipt_type === 'delivery_reservation' ? tr('배송예약', 'Delivery') : tr('매장픽업', 'Pickup')}
+                                                {order.receipt_type === 'delivery_reservation' ? tf.f00271 : tf.f00196}
                                              </div>
                                              {order.memo && (
                                                 <div className="flex items-center gap-1 max-w-[300px] truncate italic text-slate-400">
@@ -351,7 +350,7 @@ export function CustomerDetailDialog({
                                              )}
                                           </div>
                                           <Button variant="ghost" size="sm" className="h-7 text-[10px] gap-1 opacity-40 group-hover:opacity-100 transition-all text-blue-600 font-black">
-                                             {tr("주문상세", "Order Detail")} <ChevronRight className="h-3 w-3" />
+                                             {tf.f00627} <ChevronRight className="h-3 w-3" />
                                           </Button>
                                        </div>
                                     </div>
@@ -360,13 +359,13 @@ export function CustomerDetailDialog({
                            ) : (
                               <div className="h-64 flex flex-col items-center justify-center text-slate-400 gap-2">
                                  <History className="h-12 w-12 opacity-10" />
-                                 <p className="font-bold text-lg">{tr("아직 주문 이력이 없네요!", "No order history yet!")}</p>
+                                 <p className="font-bold text-lg">{tf.f00431}</p>
                                  <Button 
                                     className="mt-2 bg-blue-600 hover:bg-blue-700 text-white font-bold gap-2"
                                     onClick={() => window.location.href = `/dashboard/orders/new?customerId=${customer.id}`}
                                  >
                                     <Package className="h-4 w-4" />
-                                    {tr("새 견적/주문 만들기", "Create Estimate/Order")}
+                                    {tf.f00341}
                                  </Button>
                               </div>
                            )}
@@ -380,23 +379,23 @@ export function CustomerDetailDialog({
                      <Card className="border-slate-200 shadow-sm bg-white">
                         <CardHeader className="pb-2 border-b border-slate-50">
                            <CardTitle className="text-sm font-black text-slate-700 flex items-center gap-2">
-                              <Phone className="h-4 w-4 text-blue-500" /> {tr("연락처 및 기본정보", "Contact & Basic Info")}
+                              <Phone className="h-4 w-4 text-blue-500" /> {tf.f00446}
                            </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4 pt-4">
                            <div className="space-y-1">
-                              <Label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">{tr("휴대전화", "Phone")}</Label>
-                              <p className="text-slate-900 font-bold">{customer.contact || tr('등록된 번호 없음', 'No phone')}</p>
+                              <Label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">{tf.f00781}</Label>
+                              <p className="text-slate-900 font-bold">{customer.contact || tf.f00167}</p>
                            </div>
                            <div className="space-y-1">
-                              <Label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">{tr("이메일", "Email")}</Label>
-                              <p className="text-slate-900 font-bold">{customer.email || tr('등록된 이메일 없음', 'No email')}</p>
+                              <Label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">{tf.f00504}</Label>
+                              <p className="text-slate-900 font-bold">{customer.email || tf.f00169}</p>
                            </div>
                            <div className="space-y-1">
-                              <Label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">{tr("주소", "Address")}</Label>
+                              <Label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">{tf.f00650}</Label>
                               <div className="flex items-start gap-1 p-3 bg-slate-50 rounded-lg text-slate-700 text-sm font-medium border border-slate-100">
                                  <MapPin className="h-4 w-4 text-slate-400 shrink-0 mt-0.5" />
-                                 {customer.address || tr('기본 주소지가 없습니다.', 'No address')}
+                                 {customer.address || tf.f00108}
                               </div>
                            </div>
                         </CardContent>
@@ -405,16 +404,16 @@ export function CustomerDetailDialog({
                      <Card className="border-slate-200 shadow-sm bg-white">
                         <CardHeader className="pb-2 border-b border-slate-50">
                            <CardTitle className="text-sm font-black text-slate-700 flex items-center gap-2">
-                              <FileText className="h-4 w-4 text-amber-500" /> {tr("주문 시 메모 & 특징", "Memo & Preferences")}
+                              <FileText className="h-4 w-4 text-amber-500" /> {tf.f00604}
                            </CardTitle>
                         </CardHeader>
                         <CardContent className="pt-4">
                            <div className="p-4 bg-amber-50 text-amber-900 rounded-xl min-h-[120px] text-sm leading-relaxed border border-amber-100 font-medium">
-                              {customer.memo || tr('고객에 대한 특이사항이 없습니다.', 'No special notes.')}
+                              {customer.memo || tf.f00082}
                            </div>
                            <div className="mt-4 flex flex-wrap gap-2">
-                              <Badge variant="secondary" className="bg-slate-100 text-slate-600 border-none font-bold"># {customer.type === 'company' ? tr('기업회원', 'Company') : tr('개인회원', 'Individual')}</Badge>
-                              <Badge variant="secondary" className="bg-slate-100 text-slate-600 border-none font-bold"># {customer.grade || tr('골드등급', 'Gold')}</Badge>
+                              <Badge variant="secondary" className="bg-slate-100 text-slate-600 border-none font-bold"># {customer.type === 'company' ? tf.f00110 : tf.f00030}</Badge>
+                              <Badge variant="secondary" className="bg-slate-100 text-slate-600 border-none font-bold"># {customer.grade || tf.f00085}</Badge>
                            </div>
                         </CardContent>
                      </Card>
@@ -424,7 +423,7 @@ export function CustomerDetailDialog({
          </div>
 
          <DialogFooter className="p-6 pt-2 bg-white border-t border-slate-100">
-            <Button variant="ghost" onClick={() => onOpenChange(false)} className="px-8 font-bold border border-slate-200 text-slate-600">{tr("닫기", "Close")}</Button>
+            <Button variant="ghost" onClick={() => onOpenChange(false)} className="px-8 font-bold border border-slate-200 text-slate-600">{tf.f00149}</Button>
             <Button 
                onClick={() => {
                   if (customer && onEdit) {
@@ -434,7 +433,7 @@ export function CustomerDetailDialog({
                }}
                className="bg-blue-600 hover:bg-blue-700 text-white px-8 font-black shadow-lg shadow-blue-200 gap-2"
             >
-               {tr("정보 수정하기", "Edit Customer")}
+               {tf.f00567}
             </Button>
          </DialogFooter>
       </DialogContent>

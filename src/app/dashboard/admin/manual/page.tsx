@@ -1,4 +1,5 @@
 "use client";
+import { getMessages } from "@/i18n/getMessages";
 
 import React from "react";
 import { 
@@ -16,55 +17,53 @@ import { toBaseLocale } from "@/i18n/config";
 export default function AdminManualPage() {
   const router = useRouter();
   const locale = usePreferredLocale();
-  const baseLocale = toBaseLocale(locale);
-  const tr = (koText: string, enText: string) => (baseLocale === "ko" ? koText : enText);
-
-  const roles = [
+  const tf = getMessages(locale).tenantFlows;
+  const baseLocale = toBaseLocale(locale);  const roles = [
     {
-      title: tr("기본 관리자 (Super Admin)", "Core Admin (Super Admin)"),
+      title: tf.f01004,
       icon: <Shield className="w-8 h-8 text-indigo-500" />,
-      description: tr("플랫폼의 모든 권한을 가진 대표 관리자입니다.", "Primary admin with full platform permissions."),
+      description: tf.f02153,
       tasks: [
-        tr("전체 시스템 설정 및 보안 관리", "Manage global system settings and security"),
-        tr("본사 직원(관리자) 계정 생성 및 권한 배정", "Create HQ staff accounts and assign permissions"),
-        tr("플랫폼 전용 공지사항 작성 및 관리", "Create/manage platform-wide announcements"),
-        tr("모든 결제 및 정산 데이터 최종 승인", "Final approval of payment and settlement data")
+        tf.f01802,
+        tf.f01274,
+        tf.f02148,
+        tf.f01194
       ],
       color: "bg-indigo-500/10 border-indigo-500/20"
     },
     {
-      title: tr("운영 팀장 (Ops Manager)", "Ops Manager"),
+      title: tf.f01635,
       icon: <Users className="w-8 h-8 text-emerald-500" />,
-      description: tr("화원사 파트너 관계 및 서비스 품질을 관리합니다.", "Manages florist partnerships and service quality."),
+      description: tf.f02214,
       tasks: [
-        tr("신규 화원사 가입 승인 및 서류 검토", "Approve new florist onboarding and review documents"),
-        tr("유입되는 상담 문의 적정 상담원 배정", "Assign incoming inquiries to suitable agents"),
-        tr("상담 품질 모니터링 및 완료된 상담 기록 검토", "Monitor support quality and review completed records"),
-        tr("플랫폼 파트너 대상 이벤트 및 정책 공지", "Announce partner events and policy updates")
+        tf.f01497,
+        tf.f01659,
+        tf.f01338,
+        tf.f02150
       ],
       color: "bg-emerald-500/10 border-emerald-500/20"
     },
     {
-      title: tr("고객 상담원 (CS Specialist)", "CS Specialist"),
+      title: tf.f00937,
       icon: <MessageSquare className="w-8 h-8 text-blue-500" />,
-      description: tr("현장에서 화원사의 문의를 실시간으로 해결합니다.", "Handles florist inquiries in real time."),
+      description: tf.f02184,
       tasks: [
-        tr("1:1 실시간 채팅 상담 및 문제 해결", "Handle 1:1 real-time chat support and issue resolution"),
-        tr("리본 출력 및 프로그램 설치 가이드 제공", "Provide ribbon printing and installation guidance"),
-        tr("화원사 불편 사항 접수 및 상급자 보고", "Capture florist pain points and escalate"),
-        tr("상담 종료 후 필요 시 상담 요약 기록", "Record support summary after sessions when needed")
+        tf.f00818,
+        tf.f01132,
+        tf.f02212,
+        tf.f01337
       ],
       color: "bg-blue-500/10 border-blue-500/20"
     },
     {
-      title: tr("재무 담당자 (Finance Manager)", "Finance Manager"),
+      title: tf.f01766,
       icon: <CreditCard className="w-8 h-8 text-rose-500" />,
-      description: tr("화원사 간 정산 및 구독료 결제를 관리합니다.", "Manages inter-florist settlements and subscription payments."),
+      description: tf.f02211,
       tasks: [
-        tr("화원사 간 미수금/예치금 정산 데이터 검증", "Validate receivable/float settlement data across florists"),
-        tr("PRO 플랜 등 유료 서비스 구독 결제 확인", "Verify paid subscription transactions including PRO plans"),
-        tr("플랫폼 포인트 및 수수료 정책 관리", "Manage platform point and commission policies"),
-        tr("월간 매출 통계 리포트 작성 및 보고", "Prepare and report monthly sales analytics")
+        tf.f02210,
+        tf.f02285,
+        tf.f02151,
+        tf.f01647
       ],
       color: "bg-rose-500/10 border-rose-500/20"
     }
@@ -77,12 +76,12 @@ export default function AdminManualPage() {
           <Badge variant="outline" className="mb-2 text-indigo-600 bg-indigo-50 border-indigo-200 uppercase tracking-widest text-[10px] font-black"> Floxync Headquarters </Badge>
           <h2 className="text-3xl font-black tracking-tight flex items-center gap-3">
             <BookOpen className="w-8 h-8 text-slate-900" />
-            {tr("본사 직무 관리 매뉴얼", "HQ Role Management Manual")}
+            {tf.f01271}
           </h2>
-          <p className="text-slate-500 font-medium">{tr("효율적인 플랫폼 운영을 위한 직책별 표준 업무 가이드라인입니다.", "Standard role-based work guidelines for efficient operations.")}</p>
+          <p className="text-slate-500 font-medium">{tf.f02234}</p>
         </div>
         <Button variant="ghost" className="text-slate-400 hover:text-slate-900 font-bold" onClick={() => router.back()}>
-          {tr("돌아가기", "Back")}
+          {tf.f00159}
         </Button>
       </div>
 
@@ -100,7 +99,7 @@ export default function AdminManualPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">{tr("핵심 직책 업무 (Core Tasks)", "Core Tasks")}</h4>
+                <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">{tf.f02181}</h4>
                 <div className="grid gap-2.5">
                   {role.tasks.map((task, tidx) => (
                     <div key={tidx} className="flex items-start gap-3 bg-white/50 p-3 rounded-xl border border-white/50">
@@ -121,24 +120,24 @@ export default function AdminManualPage() {
                 <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
                 <span className="text-[10px] font-black text-white/50 uppercase tracking-[0.2em]">Management Tip</span>
             </div>
-          <CardTitle className="text-2xl font-black">{tr("대표 관리자의 역할 (Representative Admin)", "Role of Representative Admin")}</CardTitle>
+          <CardTitle className="text-2xl font-black">{tf.f01082}</CardTitle>
           <CardDescription className="text-white/60 font-medium">
-            {tr("시스템 초기 구축 단계에서는 별도의 직원이 없는 경우 모든 업무를 수행하며, 추후 조직 확장 시 관리자 페이지를 통해 권한을 배분합니다.", "In early setup, the representative may perform all tasks; later, permissions can be distributed as the team grows.")}
+            {tf.f01485}
           </CardDescription>
         </CardHeader>
         <CardContent className="p-8 pt-4">
           <div className="grid gap-4 md:grid-cols-3">
               <div className="bg-white/10 p-5 rounded-2xl border border-white/10">
-                  <h5 className="text-sm font-black mb-1">{tr("책임 경영", "Accountable Leadership")}</h5>
-                  <p className="text-[11px] text-white/40 leading-relaxed font-medium">{tr("모든 데이터의 최종 결정권을 가지며 시스템 보안 및 정책을 관리합니다.", "Holds final decision authority and manages security/policies.")}</p>
+                  <h5 className="text-sm font-black mb-1">{tf.f01975}</h5>
+                  <p className="text-[11px] text-white/40 leading-relaxed font-medium">{tf.f01195}</p>
               </div>
               <div className="bg-white/10 p-5 rounded-2xl border border-white/10">
-                  <h5 className="text-sm font-black mb-1">{tr("유연한 권한 체계", "Flexible Permission Model")}</h5>
-                  <p className="text-[11px] text-white/40 leading-relaxed font-medium">{tr("직책별 로그인이 불가능한 상황에서는 대표 관리자가 원스톱으로 대응합니다.", "When role-based access is unavailable, representative admin handles end-to-end actions.")}</p>
+                  <h5 className="text-sm font-black mb-1">{tf.f01658}</h5>
+                  <p className="text-[11px] text-white/40 leading-relaxed font-medium">{tf.f01963}</p>
               </div>
               <div className="bg-white/10 p-5 rounded-2xl border border-white/10">
-                  <h5 className="text-sm font-black mb-1">{tr("표준 업무 확산", "Standard Process Rollout")}</h5>
-                  <p className="text-[11px] text-white/40 leading-relaxed font-medium">{tr("본 매뉴얼을 기반으로 추후 신규 직원을 교육하고 각 계정에 권한을 바인딩합니다.", "Use this manual to onboard new staff and bind permissions per account.")}</p>
+                  <h5 className="text-sm font-black mb-1">{tf.f02123}</h5>
+                  <p className="text-[11px] text-white/40 leading-relaxed font-medium">{tf.f01261}</p>
               </div>
           </div>
         </CardContent>

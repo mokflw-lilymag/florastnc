@@ -1,3 +1,4 @@
+import { getMessages } from "@/i18n/getMessages";
 
 "use client";
 import { useState, useEffect } from 'react';
@@ -16,9 +17,8 @@ interface CustomerSearchProps {
 export function CustomerSearch({ onSelect, selectedCustomer }: CustomerSearchProps) {
   const { customers, loading } = useCustomers();
   const locale = usePreferredLocale();
-  const isKo = toBaseLocale(locale) === "ko";
-  const tr = (ko: string, en: string) => (isKo ? ko : en);
-  const [searchTerm, setSearchTerm] = useState('');
+  const tf = getMessages(locale).tenantFlows;
+  const isKo = toBaseLocale(locale) === "ko";  const [searchTerm, setSearchTerm] = useState('');
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
   const [showResults, setShowResults] = useState(false);
   useEffect(() => {
@@ -53,14 +53,14 @@ export function CustomerSearch({ onSelect, selectedCustomer }: CustomerSearchPro
             <div>
               <h3 className="font-medium">{selectedCustomer.name}</h3>
               <p className="text-sm text-gray-600">
-                {selectedCustomer.company_name || tr('개인', 'Individual')} - {selectedCustomer.contact}
+                {selectedCustomer.company_name || tf.f00028} - {selectedCustomer.contact}
               </p>
               {selectedCustomer.address && (
                 <p className="text-sm text-gray-500">{selectedCustomer.address}</p>
               )}
             </div>
             <Button variant="outline" size="sm" onClick={handleClear}>
-              {tr("변경", "Change")}
+              {tf.f00278}
             </Button>
           </div>
         </CardContent>
@@ -70,7 +70,7 @@ export function CustomerSearch({ onSelect, selectedCustomer }: CustomerSearchPro
   return (
     <div className="relative">
       <Input
-        placeholder={tr("고객명, 연락처, 회사명으로 검색...", "Search by name, contact, company...")}
+        placeholder={tf.f00078}
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
         onFocus={() => searchTerm && setShowResults(true)}
@@ -79,7 +79,7 @@ export function CustomerSearch({ onSelect, selectedCustomer }: CustomerSearchPro
         <Card className="absolute top-full left-0 right-0 z-10 mt-1 max-h-60 overflow-y-auto">
           <CardContent className="p-0">
             {loading ? (
-              <div className="p-4 text-center text-gray-500">{tr("검색 중...", "Searching...")}</div>
+              <div className="p-4 text-center text-gray-500">{tf.f00037}</div>
             ) : filteredCustomers.length > 0 ? (
               filteredCustomers.map((customer) => (
                 <div
@@ -88,7 +88,7 @@ export function CustomerSearch({ onSelect, selectedCustomer }: CustomerSearchPro
                   onClick={() => handleSelect(customer)}
                 >
                   <div className="font-medium">
-                    {customer.name} ({customer.company_name || tr('개인', 'Individual')}) - {customer.contact}
+                    {customer.name} ({customer.company_name || tf.f00028}) - {customer.contact}
                   </div>
                   {customer.address && (
                     <div className="text-sm text-gray-500">{customer.address}</div>
@@ -97,7 +97,7 @@ export function CustomerSearch({ onSelect, selectedCustomer }: CustomerSearchPro
               ))
             ) : (
               <div className="p-4 text-center text-gray-500">
-                {tr("검색 결과가 없습니다.", "No results found.")}
+                {tf.f00036}
               </div>
             )}
           </CardContent>

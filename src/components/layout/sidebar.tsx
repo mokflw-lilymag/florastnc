@@ -22,7 +22,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useIsCapacitorAndroid } from "@/hooks/use-capacitor-android";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
-import { getDashboardCommonMessages } from "@/i18n/dashboard-common-messages";
+import { getMessages } from "@/i18n/getMessages";
 
 interface SidebarProps {
   isSuperAdmin: boolean;
@@ -103,7 +103,7 @@ export function Sidebar({
   const supabase = createClient();
   const isAndroidApp = useIsCapacitorAndroid();
   const locale = usePreferredLocale();
-  const t = getDashboardCommonMessages(locale);
+  const t = getMessages(locale).dashboardCommon;
 
   const handleLogout = async () => {
     await supabase.auth.signOut();

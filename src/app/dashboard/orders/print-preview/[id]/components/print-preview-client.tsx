@@ -1,4 +1,5 @@
 "use client";
+import { getMessages } from "@/i18n/getMessages";
 
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
@@ -26,9 +27,8 @@ export function PrintPreviewClient({ orderId }: PrintPreviewClientProps) {
     const { profile, isLoading: authLoading, tenantId } = useAuth();
     const { settings } = useSettings();
     const locale = usePreferredLocale();
-    const isKo = toBaseLocale(locale) === "ko";
-    const tr = (ko: string, en: string) => (isKo ? ko : en);
-    const [order, setOrder] = useState<Order | null>(null);
+    const tf = getMessages(locale).tenantFlows;
+    const isKo = toBaseLocale(locale) === "ko";    const [order, setOrder] = useState<Order | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -47,10 +47,10 @@ export function PrintPreviewClient({ orderId }: PrintPreviewClientProps) {
 
                 if (fetchError) throw fetchError;
                 if (data) setOrder(data as Order);
-                else setError(tr('주문을 찾을 수 없습니다.', 'Order not found.'));
+                else setError(tf.f00635);
             } catch (error) {
                 console.error("Error fetching order:", error);
-                setError(tr('주문 데이터를 불러오는 중 오류가 발생했습니다.', 'Error while loading order data.'));
+                setError(tf.f00592);
             } finally {
                 setLoading(false);
             }
@@ -79,7 +79,7 @@ export function PrintPreviewClient({ orderId }: PrintPreviewClientProps) {
         return (
             <div className="flex h-screen w-full items-center justify-center bg-white">
                 <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
-                <p className="ml-2 text-slate-500 font-light">{tr("데이터를 불러오는 중입니다...", "Loading data...")}</p>
+                <p className="ml-2 text-slate-500 font-light">{tf.f00158}</p>
             </div>
         );
     }
@@ -88,10 +88,10 @@ export function PrintPreviewClient({ orderId }: PrintPreviewClientProps) {
         return (
             <div className="flex h-screen w-full items-center justify-center bg-white">
                 <div className="text-center">
-                    <p className="text-red-500 mb-4 font-light">{error || tr('주문 정보가 없습니다.', 'No order information.')}</p>
+                    <p className="text-red-500 mb-4 font-light">{error || tf.f00616}</p>
                     <Button variant="outline" onClick={() => router.back()} className="font-light">
                         <ArrowLeft className="mr-2 h-4 w-4" />
-                        {tr("목록으로 돌아가기", "Back to list")}
+                        {tf.f00216}
                     </Button>
                 </div>
             </div>
@@ -120,14 +120,14 @@ export function PrintPreviewClient({ orderId }: PrintPreviewClientProps) {
     // Mapping SaaS order to PrintableOrder format
     const printData: OrderPrintData = {
         orderDate: format(orderDateObject, "yyyy-MM-dd HH:mm (E)", { locale: ko }),
-        ordererName: order.orderer?.name || tr("미지정", "N/A"),
+        ordererName: order.orderer?.name || tf.f00224,
         ordererCompany: order.orderer?.company || '',
         ordererContact: order.orderer?.contact || '-',
         items: itemsText,
         totalAmount: order.summary?.total || 0,
         deliveryFee: order.summary?.deliveryFee || 0,
         paymentMethod: order.payment?.method || 'cash',
-        paymentStatus: ['paid', 'completed'].includes(order.payment?.status) ? tr('완결', 'Paid') : tr('미결', 'Pending'),
+        paymentStatus: ['paid', 'completed'].includes(order.payment?.status) ? tf.f00470 : tf.f00217,
         deliveryDate: formattedDeliveryDate,
         recipientName: order.receipt_type === 'delivery_reservation' 
             ? order.delivery_info?.recipientName || "" 
@@ -137,7 +137,7 @@ export function PrintPreviewClient({ orderId }: PrintPreviewClientProps) {
             : order.pickup_info?.pickerContact || "",
         deliveryAddress: order.receipt_type === 'delivery_reservation' 
             ? order.delivery_info?.address || "" 
-            : tr("매장 수령 (픽업)", "Store Pickup"),
+            : tf.f00192,
         message: order.message?.content || "",
         messageType: order.message?.type === 'ribbon' ? 'ribbon' : 'card',
         isAnonymous: order.outsource_info?.hideCustomerInfo || false,
@@ -188,17 +188,17 @@ export function PrintPreviewClient({ orderId }: PrintPreviewClientProps) {
             
             <div className="max-w-4xl mx-auto p-4 md:p-8 no-print">
                 <PageHeader
-                    title={tr("주문서 인쇄 미리보기", "Order Print Preview")}
-                    description={`${tr("주문번호", "Order No")}: ${order.order_number}`}
+                    title={tf.f00630}
+                    description={`${tf.f00624}: ${order.order_number}`}
                 >
                     <div className="flex gap-2">
                         <Button variant="outline" size="sm" onClick={() => router.back()} className="font-light">
                             <ArrowLeft className="mr-2 h-4 w-4" />
-                            {tr("목록", "List")}
+                            {tf.f00214}
                         </Button>
                         <Button size="sm" onClick={() => window.print()} className="font-light">
                             <Printer className="mr-2 h-4 w-4" />
-                            {tr("Print (Ctrl+P)", "Print (Ctrl+P)")}
+                            {tf.f00785}
                         </Button>
                     </div>
                 </PageHeader>

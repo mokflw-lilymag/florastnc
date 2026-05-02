@@ -19,14 +19,13 @@ import {
 import { Loader2, Eye, EyeOff, Lock, Mail, Building, Info, Shield } from 'lucide-react';
 import Image from 'next/image';
 import { usePreferredLocale } from '@/hooks/use-preferred-locale';
-import { toBaseLocale } from '@/i18n/config';
+import { getMessages } from '@/i18n/getMessages';
 
 export default function LoginPage() {
   const router = useRouter();
   const supabase = createClient();
   const locale = usePreferredLocale();
-  const isKo = toBaseLocale(locale) === "ko";
-  const tr = (ko: string, en: string) => (isKo ? ko : en);
+  const L = getMessages(locale).login;
   
   // Login State
   const [email, setEmail] = useState('');
@@ -59,7 +58,7 @@ export default function LoginPage() {
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!resetEmail) {
-      toast.error(tr('이메일을 입력해 주세요.', 'Please enter your email.'));
+      toast.error(L.toastResetEmailRequired);
       return;
     }
 
@@ -71,12 +70,12 @@ export default function LoginPage() {
 
       if (error) throw error;
       
-      toast.success(tr('비밀번호 재설정 메일 발송', 'Password reset email sent'), {
-        description: tr('입력하신 이메일로 재설정 링크가 전송되었습니다.', 'A reset link has been sent to your email.')
+      toast.success(L.toastResetSent, {
+        description: L.toastResetSentDesc,
       });
       setIsResetDialogOpen(false);
     } catch (error: any) {
-      toast.error(tr('발송 실패', 'Send failed'), { description: error.message });
+      toast.error(L.toastSendFailed, { description: error.message });
     } finally {
       setResetLoading(false);
     }
@@ -110,11 +109,11 @@ export default function LoginPage() {
       console.error('Google Sign-in Error:', error);
       let errorDesc = error.message;
       if (error.message?.includes('provider')) {
-        errorDesc = tr('구글 로그인 설정이 활성화되지 않았거나 설정이 올바르지 않습니다. 관리자 도구(Supabase)를 확인해 주세요.', 'Google sign-in is not enabled or misconfigured. Please check Supabase settings.');
+        errorDesc = L.errGoogleProvider;
       } else if (error.message?.includes('redirect')) {
-        errorDesc = tr('리다이렉션 주소가 허용되지 않았습니다. 관리자 도구에서 배포 주소를 추가해 주세요.', 'Redirect URL is not allowed. Add your deployment URL in admin settings.');
+        errorDesc = L.errGoogleRedirect;
       }
-      toast.error(tr('Google 로그인 실패', 'Google sign-in failed'), { description: errorDesc });
+      toast.error(L.errGoogleSignInFailed, { description: errorDesc });
       setGoogleLoading(false);
     }
   };
@@ -133,22 +132,21 @@ export default function LoginPage() {
       if (error) throw error;
 
       if (data.user) {
-        toast.success(tr('반갑습니다!', 'Welcome!'), {
-          description: tr('Floxync에 성공적으로 로그인했습니다.', 'Signed in to Floxync successfully.'),
+        toast.success(L.toastWelcome, {
+          description: L.toastWelcomeDesc,
         });
         router.push('/dashboard');
         router.refresh();
       }
     } catch (error: any) {
       console.error('Login error details:', error);
-      let errorMessage = tr('이메일 또는 비밀번호가 올바르지 않습니다.', 'Invalid email or password.');
-      
-      // 이메일 미인증 에러 처리
+      let errorMessage = L.errInvalidCreds;
+
       if (error.message?.includes('Email not confirmed')) {
-        errorMessage = tr('이메일 인증이 완료되지 않았습니다. 이메일함을 확인해 주세요.', 'Email verification is not completed. Please check your inbox.');
+        errorMessage = L.errEmailNotConfirmed;
       }
-      
-      toast.error(tr('로그인 실패', 'Login failed'), { description: errorMessage });
+
+      toast.error(L.errLoginFailed, { description: errorMessage });
     } finally {
       setLoading(false);
     }
@@ -174,8 +172,8 @@ export default function LoginPage() {
       if (error) throw error;
 
       if (data.user) {
-        toast.success(tr('회원가입 성공!', 'Sign-up successful!'), {
-          description: tr('입력하신 이메일로 인증 링크를 보냈습니다. 이메일 확인 후 로그인해 주세요.', 'A verification link was sent to your email. Please verify and sign in.'),
+        toast.success(L.toastSignupOk, {
+          description: L.toastSignupOkDesc,
         });
         // Clear form
         setRegEmail('');
@@ -184,7 +182,7 @@ export default function LoginPage() {
       }
     } catch (error: any) {
       console.error('Signup error details:', error);
-      toast.error(tr('가입 실패', 'Sign-up failed'), { description: error.message });
+      toast.error(L.errSignupFailed, { description: error.message });
     } finally {
       setRegLoading(false);
     }
@@ -204,7 +202,7 @@ export default function LoginPage() {
             <div className="mx-auto flex h-16 w-full items-center justify-center p-2 mb-2">
               <Image
                 src="/images/floxync-logo-dark.png"
-                alt="Logo"
+                alt={L.logoAlt}
                 width={400}
                 height={100}
                 className="w-auto h-[100px] object-contain dark:hidden"
@@ -212,7 +210,7 @@ export default function LoginPage() {
               />
               <Image
                 src="/images/floxync-logo-white.png"
-                alt="Logo"
+                alt={L.logoAlt}
                 width={400}
                 height={100}
                 className="w-auto h-[100px] object-contain hidden dark:block"
@@ -223,20 +221,20 @@ export default function LoginPage() {
           <CardContent className="pt-6">
             <Tabs defaultValue="login" className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-6">
-                <TabsTrigger value="login">{tr("로그인", "Login")}</TabsTrigger>
-                <TabsTrigger value="register">{tr("새 화원 등록", "Register shop")}</TabsTrigger>
+                <TabsTrigger value="login">{L.tabLogin}</TabsTrigger>
+                <TabsTrigger value="register">{L.tabRegister}</TabsTrigger>
               </TabsList>
               
               {/* LOGIN TAB */}
               <TabsContent value="login" className="space-y-5">
                 <div className="text-center mb-4">
                   <CardTitle className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
-                    {tr("Floxync 로그인", "Floxync login")}
+                    {L.titleLogin}
                   </CardTitle>
                 </div>
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="email">{tr("이메일", "Email")}</Label>
+                    <Label htmlFor="email">{L.email}</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                       <Input
@@ -252,13 +250,13 @@ export default function LoginPage() {
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="password">{tr("비밀번호", "Password")}</Label>
+                      <Label htmlFor="password">{L.password}</Label>
                       <button 
                         type="button"
                         onClick={() => setIsResetDialogOpen(true)}
                         className="text-xs font-medium text-blue-600 hover:text-blue-500 hover:underline transition-all"
                       >
-                        {tr("비밀번호를 잊으셨나요?", "Forgot password?")}
+                        {L.forgotPassword}
                       </button>
                     </div>
                     <div className="relative">
@@ -287,7 +285,7 @@ export default function LoginPage() {
                     </div>
                   </div>
                   <Button type="submit" className="w-full h-11 mt-2 text-md font-medium" disabled={loading}>
-                    {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {tr("로그인 중...", "Signing in...")}</> : tr('로그인', 'Login')}
+                    {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {L.signingIn}</> : L.signInSubmit}
                   </Button>
                 </form>
 
@@ -296,7 +294,7 @@ export default function LoginPage() {
                     <div className="w-full border-t border-slate-200 dark:border-slate-800"></div>
                   </div>
                   <div className="relative flex justify-center text-[10px] uppercase font-bold tracking-widest">
-                    <span className="bg-white dark:bg-slate-900 px-3 text-slate-400">{tr("또는 소셜 계정으로 계속하기", "Or continue with social account")}</span>
+                    <span className="bg-white dark:bg-slate-900 px-3 text-slate-400">{L.socialDivider}</span>
                   </div>
                 </div>
 
@@ -315,16 +313,16 @@ export default function LoginPage() {
                       <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
                     </svg>
                   )}
-                  {tr("Google 계정으로 계속하기", "Continue with Google")}
+                  {L.continueGoogle}
                 </Button>
 
                 {/* Mobile browser warning */}
                 <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/20 rounded-xl mt-3">
                   <Info className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
                   <p className="text-[10px] text-amber-800 dark:text-amber-400 leading-tight">
-                    {tr("모바일 환경(카카오톡, 인스타 등)에서 구글 로그인이 안 될 경우, 우상단 메뉴를 눌러 ", "If Google login fails in in-app browsers (KakaoTalk, Instagram, etc.), tap the top-right menu and select ")}
-                    <b>{tr("'다른 브라우저로 열기(크롬/사파리)'", "'Open in another browser (Chrome/Safari)'")}</b>
-                    {tr("를 선택해 주세요.", ".")}
+                    {L.mobileWarnBefore}
+                    <b>{L.mobileWarnBold}</b>
+                    {L.mobileWarnAfter}
                   </p>
                 </div>
 
@@ -335,18 +333,18 @@ export default function LoginPage() {
               <TabsContent value="register" className="space-y-5">
                 <div className="text-center mb-4">
                   <CardTitle className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
-                    {tr("SaaS 파트너 가입", "SaaS partner sign up")}
+                    {L.titleRegister}
                   </CardTitle>
                 </div>
                 <form onSubmit={handleSignUp} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="shop">{tr("화원 상호명", "Shop name")}</Label>
+                    <Label htmlFor="shop">{L.shopName}</Label>
                     <div className="relative">
                       <Building className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                       <Input
                         id="shop"
                         type="text"
-                        placeholder={tr("예: 강남플라워", "e.g. Gangnam Flower")}
+                        placeholder={L.shopPlaceholder}
                         required
                         value={regShopName}
                         onChange={(e) => setRegShopName(e.target.value)}
@@ -355,7 +353,7 @@ export default function LoginPage() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="reg-email">{tr("운영자 이메일", "Owner email")}</Label>
+                    <Label htmlFor="reg-email">{L.ownerEmail}</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                       <Input
@@ -370,7 +368,7 @@ export default function LoginPage() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="reg-password">{tr("비밀번호", "Password")}</Label>
+                    <Label htmlFor="reg-password">{L.password}</Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                       <Input
@@ -397,7 +395,7 @@ export default function LoginPage() {
                     </div>
                   </div>
                   <Button type="submit" className="w-full h-11 mt-2 text-md font-medium" disabled={regLoading}>
-                    {regLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {tr("가입 처리중...", "Creating account...")}</> : tr('새 상점 등록하기 (무료)', 'Register new shop (Free)')}
+                    {regLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {L.creatingAccount}</> : L.registerSubmit}
                   </Button>
                 </form>
 
@@ -406,7 +404,7 @@ export default function LoginPage() {
                     <div className="w-full border-t border-slate-200 dark:border-slate-800"></div>
                   </div>
                   <div className="relative flex justify-center text-[10px] uppercase font-bold tracking-widest">
-                    <span className="bg-white dark:bg-slate-900 px-3 text-slate-400">{tr("또는 소셜 계정으로 계속하기", "Or continue with social account")}</span>
+                    <span className="bg-white dark:bg-slate-900 px-3 text-slate-400">{L.socialDivider}</span>
                   </div>
                 </div>
 
@@ -425,16 +423,16 @@ export default function LoginPage() {
                       <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
                     </svg>
                   )}
-                  {tr("Google 계정으로 3초 가입", "Sign up with Google in seconds")}
+                  {L.continueGoogleSignup}
                 </Button>
 
                 {/* Mobile browser warning */}
                 <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/20 rounded-xl mt-3">
                   <Info className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
                   <p className="text-[10px] text-amber-800 dark:text-amber-400 leading-tight">
-                    {tr("모바일 환경(카카오톡, 인스타 등)에서 구글 로그인이 안 될 경우, 우상단 메뉴를 눌러 ", "If Google login fails in in-app browsers (KakaoTalk, Instagram, etc.), tap the top-right menu and select ")}
-                    <b>{tr("'다른 브라우저로 열기(크롬/사파리)'", "'Open in another browser (Chrome/Safari)'")}</b>
-                    {tr("를 선택해 주세요.", ".")}
+                    {L.mobileWarnBefore}
+                    <b>{L.mobileWarnBold}</b>
+                    {L.mobileWarnAfter}
                   </p>
                 </div>
 
@@ -449,17 +447,17 @@ export default function LoginPage() {
             <DialogHeader>
               <DialogTitle className="text-xl font-bold flex items-center gap-2 text-slate-900">
                 <Lock className="h-5 w-5 text-blue-500" />
-                {tr("비밀번호 찾기", "Reset password")}
+                {L.resetTitle}
               </DialogTitle>
               <DialogDescription className="text-slate-500">
-                {tr("가입하신 이메일 주소를 입력해 주세요.", "Enter the email you used to sign up.")}
+                {L.resetDescLine1}
                 <br />
-                {tr("비밀번호 재설정 링크를 보내드립니다.", "We will send a password reset link.")}
+                {L.resetDescLine2}
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleResetPassword} className="space-y-4 pt-2">
               <div className="space-y-2">
-                <Label htmlFor="reset-email" className="text-slate-700">{tr("이메일 주소", "Email address")}</Label>
+                <Label htmlFor="reset-email" className="text-slate-700">{L.resetEmailLabel}</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                   <Input
@@ -476,16 +474,16 @@ export default function LoginPage() {
               <div className="p-3 bg-blue-50 rounded-xl border border-blue-100 flex items-start gap-3">
                 <Info className="h-4 w-4 text-blue-500 mt-0.5" />
                 <p className="text-[11px] text-blue-800 leading-relaxed font-medium">
-                  {tr("이메일이 기억나지 않으시거나 다른 문제가 있다면", "If you forgot your email or have another issue,")}
+                  {L.resetHintLine1}
                   <br />
-                  <strong>{tr("시스템 관리자(lily@flower.com)", "System administrator (lily@flower.com)")}</strong>
-                  {tr("에게 직접 문의해 주세요.", " directly.")}
+                  <strong>{L.resetHintAdmin}</strong>
+                  {L.resetHintAfter}
                 </p>
               </div>
               <DialogFooter className="sm:justify-end gap-2">
-                <Button type="button" variant="ghost" onClick={() => setIsResetDialogOpen(false)}>{tr("취소", "Cancel")}</Button>
+                <Button type="button" variant="ghost" onClick={() => setIsResetDialogOpen(false)}>{L.cancel}</Button>
                 <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={resetLoading}>
-                  {resetLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : tr('재설정 링크 받기', 'Send reset link')}
+                  {resetLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : L.sendResetLink}
                 </Button>
               </DialogFooter>
             </form>

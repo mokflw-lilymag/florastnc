@@ -1,3 +1,4 @@
+import { getMessages } from "@/i18n/getMessages";
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -39,10 +40,8 @@ export default function AdminMarketingSettings() {
 
   const supabase = createClient();
   const locale = usePreferredLocale();
-  const baseLocale = toBaseLocale(locale);
-  const tr = (koText: string, enText: string) => (baseLocale === "ko" ? koText : enText);
-
-  useEffect(() => {
+  const tf = getMessages(locale).tenantFlows;
+  const baseLocale = toBaseLocale(locale);  useEffect(() => {
     fetchSettings();
   }, []);
 
@@ -70,9 +69,9 @@ export default function AdminMarketingSettings() {
         }, { onConflict: 'key' });
 
       if (error) throw error;
-      toast.success(tr('마스터 API 키가 DB에 안전하게 저장되었습니다.', 'Master API keys were saved safely to DB.'));
+      toast.success(tf.f01137);
     } catch (err: any) {
-      toast.error(tr('저장 중 오류 발생: ', 'Save failed: ') + err.message);
+      toast.error(tf.f01770 + err.message);
     } finally {
       setIsSaving(false);
     }
@@ -88,7 +87,7 @@ export default function AdminMarketingSettings() {
             </div>
             <h1 className="text-3xl font-black tracking-tighter uppercase">Marketing Master Keys</h1>
           </div>
-          <p className="text-muted-foreground font-medium">{tr("전체 서비스의 소셜 미디어 API 연동을 위한 마스터 키를 관리합니다.", "Manage master keys for social media API integrations across the platform.")}</p>
+          <p className="text-muted-foreground font-medium">{tf.f01800}</p>
         </div>
         <Button 
           size="lg" 
@@ -97,7 +96,7 @@ export default function AdminMarketingSettings() {
           disabled={isSaving}
         >
           {isSaving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-          {tr("설정 일괄 저장", "Save All Settings")}
+          {tf.f01416}
         </Button>
       </div>
 
@@ -112,7 +111,7 @@ export default function AdminMarketingSettings() {
         <TabsContent value="meta">
           <KeyCard 
             title="Meta (Instagram & Facebook)" 
-            desc={tr("메타 개발자 포털에서 발급받은 앱 정보를 입력하세요.", "Enter app credentials issued from Meta developer portal.")}
+            desc={tf.f01185}
             icon={<Instagram className="w-8 h-8 text-pink-500" />}
           >
             <div className="space-y-4">
@@ -125,7 +124,7 @@ export default function AdminMarketingSettings() {
         <TabsContent value="tiktok">
           <KeyCard 
             title="TikTok for Developers" 
-            desc={tr("틱톡 개발자 앱의 클라이언트 키 정보를 입력하세요.", "Enter client key information from your TikTok developer app.")}
+            desc={tf.f02088}
             icon={<Globe className="w-8 h-8 text-slate-900 dark:text-white" />}
           >
             <div className="space-y-4">
@@ -138,7 +137,7 @@ export default function AdminMarketingSettings() {
         <TabsContent value="google">
           <KeyCard 
             title="Google Cloud (YouTube & Blogger)" 
-            desc={tr("유튜브 쇼츠와 블로거 API를 위한 구글 클라우드 자격 증명입니다.", "Google Cloud credentials for YouTube Shorts and Blogger APIs.")}
+            desc={tf.f01660}
             icon={<Youtube className="w-8 h-8 text-red-600" />}
           >
             <div className="space-y-4">
@@ -151,7 +150,7 @@ export default function AdminMarketingSettings() {
         <TabsContent value="naver">
           <KeyCard 
             title="Naver & Automation Config" 
-            desc={tr("네이버 API 및 n8n 워크플로우 웹훅 주소를 관리합니다.", "Manage Naver API and n8n workflow webhook URLs.")}
+            desc={tf.f01043}
             icon={<Zap className="w-8 h-8 text-green-600" />}
           >
             <div className="space-y-4">

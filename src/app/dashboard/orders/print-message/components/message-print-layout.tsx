@@ -1,4 +1,5 @@
 "use client"
+import { getMessages } from "@/i18n/getMessages";
 
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
@@ -69,9 +70,8 @@ export function MessagePrintLayout({
 }: MessagePrintLayoutProps) {
   const router = useRouter();
   const locale = usePreferredLocale();
-  const isKo = toBaseLocale(locale) === "ko";
-  const tr = (ko: string, en: string) => (isKo ? ko : en);
-  const config = labelConfigs[labelType] || labelConfigs['formtec-3108'];
+  const tf = getMessages(locale).tenantFlows;
+  const isKo = toBaseLocale(locale) === "ko";  const config = labelConfigs[labelType] || labelConfigs['formtec-3108'];
   const labels = Array(config.cells).fill(null);
 
   let finalMessageContent = messageContent || order.message?.content || "";
@@ -127,8 +127,8 @@ export function MessagePrintLayout({
 
       <div className="no-print p-4">
         <PageHeader
-          title={tr("메시지 인쇄 미리보기", "Message Print Preview")}
-          description={`${tr("주문자", "Orderer")}: ${order.orderer?.name || tr('익명', 'Anonymous')} / ${tr("라벨지", "Label")}: ${labelType}`}
+          title={tf.f00204}
+          description={`${tf.f00640}: ${order.orderer?.name || tf.f00511} / ${tf.f00174}: ${labelType}`}
         >
           <div className="flex gap-2">
             <Button
@@ -140,11 +140,11 @@ export function MessagePrintLayout({
               }}
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
-              {tr("옵션 수정", "Edit Options")}
+              {tf.f00469}
             </Button>
             <Button onClick={() => window.print()}>
               <Printer className="mr-2 h-4 w-4" />
-              {tr("인쇄하기", "Print")}
+              {tf.f00520}
             </Button>
           </div>
         </PageHeader>

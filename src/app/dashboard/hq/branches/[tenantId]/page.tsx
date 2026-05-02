@@ -1,4 +1,5 @@
 "use client";
+import { getMessages } from "@/i18n/getMessages";
 
 import { useEffect, useState, use } from "react";
 import Link from "next/link";
@@ -70,15 +71,14 @@ export default function HqBranchDetailPage({
   const [workSwitching, setWorkSwitching] = useState(false);
   const [catalogApplying, setCatalogApplying] = useState(false);
   const locale = usePreferredLocale();
-  const baseLocale = toBaseLocale(locale);
-  const tr = (koText: string, enText: string) => (baseLocale === "ko" ? koText : enText);
-  const formatReceiptType = (value: string) => {
+  const tf = getMessages(locale).tenantFlows;
+  const baseLocale = toBaseLocale(locale);  const formatReceiptType = (value: string) => {
     const map: Record<string, string> = {
-      delivery: tr("배송", "Delivery"),
-      pickup: tr("픽업", "Pickup"),
-      pickup_reservation: tr("픽업 예약", "Pickup Reservation"),
-      delivery_reservation: tr("배송 예약", "Delivery Reservation"),
-      store_pickup: tr("매장 수령", "Store Pickup"),
+      delivery: tf.f00240,
+      pickup: tf.f00752,
+      pickup_reservation: tf.f00753,
+      delivery_reservation: tf.f00245,
+      store_pickup: tf.f00191,
     };
     return map[value] ?? value;
   };
@@ -93,26 +93,26 @@ export default function HqBranchDetailPage({
           credentials: "include",
         });
         if (res.status === 401) {
-          if (!cancelled) setError(tr("로그인이 필요합니다.", "Login required."));
+          if (!cancelled) setError(tf.f00176);
           return;
         }
         if (res.status === 403) {
-          if (!cancelled) setError(tr("이 지점을 볼 권한이 없거나 소속 조직이 아닙니다.", "No permission for this branch or not in your organization."));
+          if (!cancelled) setError(tf.f01675);
           return;
         }
         if (res.status === 404) {
-          if (!cancelled) setError(tr("지점을 찾을 수 없습니다.", "Branch not found."));
+          if (!cancelled) setError(tf.f01926);
           return;
         }
         if (!res.ok) {
           const j = await res.json().catch(() => ({}));
-          if (!cancelled) setError((j as { error?: string }).error || tr("불러오지 못했습니다.", "Failed to load."));
+          if (!cancelled) setError((j as { error?: string }).error || tf.f01293);
           return;
         }
         const json = (await res.json()) as BranchDetailResponse;
         if (!cancelled) setData(json);
       } catch {
-        if (!cancelled) setError(tr("네트워크 오류가 발생했습니다.", "Network error occurred."));
+        if (!cancelled) setError(tf.f01047);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -133,10 +133,10 @@ export default function HqBranchDetailPage({
   if (error || !data) {
     return (
       <div className="container max-w-6xl mx-auto p-6 space-y-6">
-        <PageHeader title={tr("지점 상세", "Branch Details")} description={tr("소속 지점 요약(읽기 전용)", "Branch summary (read-only)")} />
+        <PageHeader title={tf.f01909} description={tf.f01438} />
         <Card className="max-w-lg border-slate-200">
           <CardHeader>
-            <CardTitle>{tr("표시할 수 없습니다", "Cannot display")}</CardTitle>
+            <CardTitle>{tf.f02120}</CardTitle>
             <CardDescription>{error}</CardDescription>
           </CardHeader>
           <CardContent>
@@ -145,7 +145,7 @@ export default function HqBranchDetailPage({
               className={cn(buttonVariants({ variant: "outline" }), "inline-flex gap-2")}
             >
               <ArrowLeft className="h-4 w-4" />
-              {tr("본사 개요로", "Back to HQ")}
+              {tf.f01264}
             </Link>
           </CardContent>
         </Card>
@@ -166,14 +166,14 @@ export default function HqBranchDetailPage({
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error((j as { error?: string }).error ?? tr("업무 전환에 실패했습니다.", "Failed to switch work context."));
+        toast.error((j as { error?: string }).error ?? tf.f01540);
         return;
       }
       await refreshAuth();
-      toast.success(`${tenant.name} ${tr("업무 모드로 전환했습니다.", "work mode enabled.")}`);
+      toast.success(`${tenant.name} ${tf.f01538}`);
       router.push("/dashboard");
     } catch {
-      toast.error(tr("네트워크 오류", "Network error"));
+      toast.error(tf.f01046);
     } finally {
       setWorkSwitching(false);
     }
@@ -190,14 +190,14 @@ export default function HqBranchDetailPage({
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error((j as { error?: string }).error ?? tr("적용에 실패했습니다.", "Apply failed."));
+        toast.error((j as { error?: string }).error ?? tf.f01777);
         return;
       }
       toast.success(
-        `${tr("공유 상품 적용", "Shared catalog applied")}: ${tr("신규", "new")} ${(j as { inserted?: number }).inserted ?? 0}${tr("건", "")} · ${tr("갱신", "updated")} ${(j as { updated?: number }).updated ?? 0}${tr("건", "")} · ${tr("건너뜀", "skipped")} ${(j as { skipped?: number }).skipped ?? 0}${tr("건", "")}`
+        `${tf.f00956}: ${tf.f00415} ${(j as { inserted?: number }).inserted ?? 0}${tf.f00033} · ${tf.f00870} ${(j as { updated?: number }).updated ?? 0}${tf.f00033} · ${tf.f00892} ${(j as { skipped?: number }).skipped ?? 0}${tf.f00033}`
       );
     } catch {
-      toast.error(tr("네트워크 오류", "Network error"));
+      toast.error(tf.f01046);
     } finally {
       setCatalogApplying(false);
     }
@@ -208,7 +208,7 @@ export default function HqBranchDetailPage({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <PageHeader
           title={tenant.name}
-          description={`${tr("플랜", "Plan")} ${tenant.plan ?? "—"} · ${tr("최근 14일", "Last 14 days")} (${range.from} ~ ${range.to})`}
+          description={`${tf.f02143} ${tenant.plan ?? "—"} · ${tf.f02005} (${range.from} ~ ${range.to})`}
         />
         <div className="flex flex-col gap-2 sm:items-end">
           <div className="flex flex-wrap gap-2 justify-end">
@@ -220,7 +220,7 @@ export default function HqBranchDetailPage({
               onClick={enterWorkContext}
             >
               {workSwitching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Store className="h-4 w-4" />}
-              {tr("이 지점으로 업무하기", "Work as this branch")}
+              {tf.f01674}
             </Button>
             <Button
               type="button"
@@ -231,7 +231,7 @@ export default function HqBranchDetailPage({
               onClick={applySharedCatalog}
             >
               {catalogApplying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Package className="h-4 w-4" />}
-              {tr("공유 상품 일괄 등록", "Apply Shared Catalog")}
+              {tf.f00955}
             </Button>
           </div>
           <Link
@@ -239,7 +239,7 @@ export default function HqBranchDetailPage({
             className={cn(buttonVariants({ variant: "outline", size: "sm" }), "shrink-0 gap-1.5 w-fit sm:ml-auto")}
           >
             <ArrowLeft className="h-4 w-4" />
-            {tr("본사 개요", "HQ Overview")}
+            {tf.f01263}
           </Link>
         </div>
       </div>
@@ -247,7 +247,7 @@ export default function HqBranchDetailPage({
       {warning ? (
         <Card className="border-amber-200 bg-amber-50/80 dark:bg-amber-950/30">
           <CardHeader className="py-3">
-            <CardTitle className="text-sm text-amber-900 dark:text-amber-100">{tr("안내", "Notice")}</CardTitle>
+            <CardTitle className="text-sm text-amber-900 dark:text-amber-100">{tf.f01522}</CardTitle>
             <CardDescription className="text-amber-800 dark:text-amber-200">{warning}</CardDescription>
           </CardHeader>
         </Card>
@@ -257,44 +257,44 @@ export default function HqBranchDetailPage({
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{tr("유효 주문", "Valid Orders")}</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">{tf.f01661}</CardTitle>
               <ShoppingCart className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.orderCount}{tr("건", "")}</div>
-              <p className="text-xs text-muted-foreground mt-1">{tr("취소 제외 · 본사 개요 표와 동일 규칙", "Canceled excluded · same rules as HQ overview")}</p>
+              <div className="text-2xl font-bold">{stats.orderCount}{tf.f00033}</div>
+              <p className="text-xs text-muted-foreground mt-1">{tf.f02038}</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{tr("매출 합계", "Total Sales")}</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">{tf.f01177}</CardTitle>
               <Building2 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.revenue.toLocaleString()}{tr("원", "")}</div>
-              <p className="text-xs text-muted-foreground mt-1">{tr("취소 건 제외 합산", "Total excluding canceled orders")}</p>
+              <div className="text-2xl font-bold">{stats.revenue.toLocaleString()}{tf.f00487}</div>
+              <p className="text-xs text-muted-foreground mt-1">{tf.f02035}</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{tr("객단가", "AOV")}</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">{tf.f00867}</CardTitle>
               <Store className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.avgOrderValue.toLocaleString()}{tr("원", "")}</div>
-              <p className="text-xs text-muted-foreground mt-1">{tr("유효 주문 기준 평균", "Average by valid orders")}</p>
+              <div className="text-2xl font-bold">{stats.avgOrderValue.toLocaleString()}{tf.f00487}</div>
+              <p className="text-xs text-muted-foreground mt-1">{tf.f01662}</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{tr("취소 건수", "Canceled Count")}</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">{tf.f02036}</CardTitle>
               <Badge variant="outline" className="font-normal">
-                {tr("동일 기간", "Same period")}
+                {tf.f01105}
               </Badge>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.canceledCount}{tr("건", "")}</div>
-              <p className="text-xs text-muted-foreground mt-1">{tr("참고 지표", "Reference metric")}</p>
+              <div className="text-2xl font-bold">{stats.canceledCount}{tf.f00033}</div>
+              <p className="text-xs text-muted-foreground mt-1">{tf.f01973}</p>
             </CardContent>
           </Card>
         </div>
@@ -304,23 +304,23 @@ export default function HqBranchDetailPage({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ShoppingCart className="h-5 w-5" />
-            {tr("최근 주문", "Recent Orders")}
+            {tf.f02013}
           </CardTitle>
-          <CardDescription>{tr("위 기간 안에서 최신 순 최대 10건입니다.", "Up to 10 latest orders in selected period.")}</CardDescription>
+          <CardDescription>{tf.f01652}</CardDescription>
         </CardHeader>
         <CardContent>
           {recentOrders.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-8 text-center">{tr("해당 기간 주문이 없습니다.", "No orders in this period.")}</p>
+            <p className="text-sm text-muted-foreground py-8 text-center">{tf.f02176}</p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{tr("주문번호", "Order No.")}</TableHead>
-                  <TableHead>{tr("일자", "Date")}</TableHead>
-                  <TableHead>{tr("주문자", "Orderer")}</TableHead>
-                  <TableHead>{tr("수령", "Receipt")}</TableHead>
-                  <TableHead className="text-right">{tr("금액", "Amount")}</TableHead>
-                  <TableHead className="text-center">{tr("상태", "Status")}</TableHead>
+                  <TableHead>{tf.f00624}</TableHead>
+                  <TableHead>{tf.f01717}</TableHead>
+                  <TableHead>{tf.f00640}</TableHead>
+                  <TableHead>{tf.f00378}</TableHead>
+                  <TableHead className="text-right">{tf.f00097}</TableHead>
+                  <TableHead className="text-center">{tf.f00319}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -331,7 +331,7 @@ export default function HqBranchDetailPage({
                     <TableCell className="text-sm">{o.ordererName}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">{formatReceiptType(o.receipt_type)}</TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {o.total.toLocaleString()}{tr("원", "")}
+                      {o.total.toLocaleString()}{tf.f00487}
                     </TableCell>
                     <TableCell className="text-center">
                       <Badge
@@ -346,11 +346,11 @@ export default function HqBranchDetailPage({
                         )}
                       >
                         {o.status === "completed"
-                          ? tr("완료", "Done")
+                          ? tf.f00471
                           : o.status === "processing"
-                            ? tr("준비중", "Preparing")
+                            ? tf.f00654
                             : o.status === "canceled"
-                              ? tr("취소", "Canceled")
+                              ? tf.f00702
                               : o.status}
                       </Badge>
                     </TableCell>
@@ -363,12 +363,12 @@ export default function HqBranchDetailPage({
       </Card>
 
       <p className="text-xs text-muted-foreground">
-        {tr("「이 지점으로 업무하기」는 상단 배너에서 언제든 종료할 수 있습니다. 공유 상품은", "\"Work as this branch\" can be ended anytime from top banner. Shared catalog is")}{" "}
+        {tf.f00796}{" "}
         <code className="text-[10px]">organization_catalog_schema.sql</code> 적용 후 사이드바{" "}
         <Link href="/dashboard/hq/shared-products" className="underline font-medium text-foreground">
-          {tr("공동상품관리", "Shared Products")}
+          {tf.f00952}
         </Link>
-        {tr("에서 관리합니다.", "managed there.")}
+        {tf.f01548}
       </p>
     </div>
   );

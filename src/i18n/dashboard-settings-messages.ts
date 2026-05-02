@@ -34,6 +34,16 @@ type SettingsMessages = {
     presetTax: string;
     presetDiffTitle: string;
     presetNoDiff: string;
+    /** Labels for country-preset diff rows (system_settings keys). */
+    presetFieldLabels: {
+      country: string;
+      currency: string;
+      isTaxExempt: string;
+      defaultTaxRate: string;
+      useKakaoTalk: string;
+      autoDeliveryBooking: string;
+      deliveryCarriers: string;
+    };
   };
 };
 
@@ -70,6 +80,15 @@ const KO: SettingsMessages = {
     presetTax: "세금",
     presetDiffTitle: "저장 시 적용될 변경 미리보기",
     presetNoDiff: "현재 설정이 이미 프리셋과 유사하여 큰 변경이 없습니다.",
+    presetFieldLabels: {
+      country: "운영 국가",
+      currency: "통화",
+      isTaxExempt: "면세 여부",
+      defaultTaxRate: "기본 세율",
+      useKakaoTalk: "카카오톡 연동",
+      autoDeliveryBooking: "자동 배송 접수",
+      deliveryCarriers: "배송사 기본값",
+    },
   },
 };
 
@@ -106,6 +125,15 @@ const EN: SettingsMessages = {
     presetTax: "Tax",
     presetDiffTitle: "Changes that will be applied",
     presetNoDiff: "Current settings already match this preset closely.",
+    presetFieldLabels: {
+      country: "Operating country",
+      currency: "Currency",
+      isTaxExempt: "Tax exempt",
+      defaultTaxRate: "Default tax rate",
+      useKakaoTalk: "KakaoTalk integration",
+      autoDeliveryBooking: "Auto delivery booking",
+      deliveryCarriers: "Default delivery carriers",
+    },
   },
 };
 

@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { resolveLocale } from "@/i18n/config";
+import { getMessages } from "@/i18n/getMessages";
 
 const STORAGE_KEY_PREFIX = "floxync_renewal_notice_dismissed";
 
@@ -50,7 +51,7 @@ export function AnnualRenewalReminder({
   const [open, setOpen] = useState(false);
   const preferredLocale = usePreferredLocale();
   const isKo = resolveLocale(preferredLocale).startsWith("ko");
-  const tr = (koText: string, enText: string) => (isKo ? koText : enText);
+  const R = getMessages(preferredLocale).renewalReminder;
 
   useEffect(() => {
     if (isSuperAdmin || isExpired || !subscriptionEnd || plan === "free") return;
@@ -95,15 +96,15 @@ export function AnnualRenewalReminder({
     <AlertDialog open={open} onOpenChange={handleOpenChange}>
       <AlertDialogContent className="max-w-[min(100%-2rem,380px)] sm:max-w-md">
         <AlertDialogHeader>
-          <AlertDialogTitle>{tr("구독 만료 예정 안내", "Upcoming subscription expiry")}</AlertDialogTitle>
+          <AlertDialogTitle>{R.title}</AlertDialogTitle>
           <AlertDialogDescription className="text-left">
-            {tr("연간 이용 중이신 매장입니다. 서비스 이용 기한이 ", "Your store is currently on an annual plan. Service access ends on ")}
+            {R.bodyBefore}
             <strong>{endLabel}</strong>
-            {tr("에 종료됩니다. 중단 없이 사용하시려면 미리 연장해 주세요.", ". Please renew in advance to avoid interruption.")}
+            {R.bodyAfter}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>{tr("닫기", "Close")}</AlertDialogCancel>
+          <AlertDialogCancel>{R.close}</AlertDialogCancel>
           <AlertDialogAction
             onClick={() => {
               persistDismiss();
@@ -111,7 +112,7 @@ export function AnnualRenewalReminder({
               router.push("/dashboard/subscription");
             }}
           >
-            {tr("구독 · 플랜 확인", "View subscription")}
+            {R.viewSubscription}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

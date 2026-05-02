@@ -3,14 +3,19 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, Leaf, Smartphone, Terminal, Globe, ChevronDown } from 'lucide-react';
-import { AppLocale, LOCALE_COOKIE, resolveLocale, SUPPORTED_LOCALES } from '@/i18n/config';
+import { Menu, X, Smartphone, Terminal, Globe } from 'lucide-react';
+import { AppLocale, LOCALE_COOKIE, localizePath, resolveLocale, SUPPORTED_LOCALES } from '@/i18n/config';
+import { getMessages } from '@/i18n/getMessages';
 import { LANDING_LOCALE_SELECT_OPTIONS, resolveLandingSelectLocale } from '@/i18n/ui-locale-options';
 
 export function Navbar({ locale }: { locale?: AppLocale }) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [uiLocale, setUiLocale] = useState<AppLocale>(locale || 'ko');
+
+  useEffect(() => {
+    if (locale) setUiLocale(locale);
+  }, [locale]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -46,14 +51,17 @@ export function Navbar({ locale }: { locale?: AppLocale }) {
     }
   };
 
+  const nav = getMessages(uiLocale).landing.navbar;
   const navLinks = [
-    { name: '솔루션', href: '#solutions' },
-    { name: '테크놀로지', href: '#technology' },
-    { name: '네트워크', href: '#network' },
-    { name: '문서', href: '#documentation' },
+    { name: nav.solutions, href: '#solutions' },
+    { name: nav.technology, href: '#technology' },
+    { name: nav.network, href: '#network' },
+    { name: nav.documentation, href: '#documentation' },
   ];
 
   const selectLocale = resolveLandingSelectLocale(uiLocale);
+  const homeHref = localizePath(uiLocale, '/');
+  const loginHref = localizePath(uiLocale, '/login');
 
   return (
     <header 
@@ -65,8 +73,8 @@ export function Navbar({ locale }: { locale?: AppLocale }) {
     >
       <div className="container mx-auto px-6 md:px-12 flex items-center justify-between">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-3 group relative">
-          <img src="/images/floxync-logo-official-white.png" alt="Floxync Logo" className="h-20 md:h-28 w-auto object-contain" />
+        <Link href={homeHref} className="flex items-center gap-3 group relative">
+          <img src="/images/floxync-logo-official-white.png" alt={nav.logoAlt} className="h-20 md:h-28 w-auto object-contain" />
         </Link>
 
         {/* Desktop Nav */}
@@ -102,17 +110,17 @@ export function Navbar({ locale }: { locale?: AppLocale }) {
           </div>
 
           <Link 
-            href="/login" 
+            href={loginHref} 
             className="text-xs font-black text-slate-400 hover:text-white transition-colors uppercase tracking-[0.2em]"
           >
-            LOGIN
+            {nav.login}
           </Link>
           <Link 
-            href="/login" 
+            href={loginHref} 
             className="group relative px-6 py-3 bg-white text-black font-black text-xs rounded-xl overflow-hidden shadow-[0_0_15px_rgba(255,255,255,0.1)] hover:shadow-white/20 transition-all uppercase tracking-[0.1em]"
           >
             <span className="relative z-10 flex items-center gap-2">
-              Get Started <Terminal size={14} className="animate-pulse" />
+              {nav.getStarted} <Terminal size={14} className="animate-pulse" />
             </span>
             <div className="absolute inset-x-0 bottom-0 h-0 group-hover:h-full bg-emerald-500/10 transition-all duration-500" />
           </Link>
@@ -140,7 +148,7 @@ export function Navbar({ locale }: { locale?: AppLocale }) {
               {/* Mobile Language Switcher */}
               <div className="flex items-center justify-between px-2 py-4 border-b border-white/5">
                 <span className="text-sm font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                  <Globe size={16} /> Language
+                  <Globe size={16} /> {nav.languageLabel}
                 </span>
                 <select
                   value={selectLocale}
@@ -166,11 +174,11 @@ export function Navbar({ locale }: { locale?: AppLocale }) {
                 </Link>
               ))}
               <div className="flex flex-col gap-4 pt-8">
-                <Link href="/login" className="py-5 text-center font-black text-white border border-white/10 rounded-2xl bg-white/5 flex items-center justify-center gap-2">
-                  <Smartphone size={20} /> 모바일 앱 다운로드
+                <Link href={loginHref} className="py-5 text-center font-black text-white border border-white/10 rounded-2xl bg-white/5 flex items-center justify-center gap-2">
+                  <Smartphone size={20} /> {nav.mobileApp}
                 </Link>
-                <Link href="/login" className="py-5 text-center font-black bg-emerald-500 text-[#0A0F0D] rounded-2xl text-xl shadow-lg shadow-emerald-500/20">
-                  대시보드 바로가기
+                <Link href={loginHref} className="py-5 text-center font-black bg-emerald-500 text-[#0A0F0D] rounded-2xl text-xl shadow-lg shadow-emerald-500/20">
+                  {nav.dashboardNow}
                 </Link>
               </div>
             </div>

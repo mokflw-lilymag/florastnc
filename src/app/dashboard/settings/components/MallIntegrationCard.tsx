@@ -1,4 +1,5 @@
 "use client";
+import { getMessages } from "@/i18n/getMessages";
 
 import { useState, useEffect } from "react";
 import { ShoppingBag, Loader2, Save, ShoppingCart, RefreshCw, KeyRound, CheckCircle2, Download } from "lucide-react";
@@ -10,12 +11,10 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { createClient } from "@/utils/supabase/client";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
-import { toBaseLocale } from "@/i18n/config";
 
 export function MallIntegrationCard({ tenantId }: { tenantId: string }) {
   const locale = usePreferredLocale();
-  const isKo = toBaseLocale(locale) === "ko";
-  const tr = (ko: string, en: string) => (isKo ? ko : en);
+  const tf = getMessages(locale).tenantFlows;
   const [isNaverActive, setIsNaverActive] = useState(false);
   const [naverClientId, setNaverClientId] = useState("");
   const [naverSecret, setNaverSecret] = useState("");
@@ -60,8 +59,8 @@ export function MallIntegrationCard({ tenantId }: { tenantId: string }) {
     // TODO: 실제로 백엔드 API를 호출하여 유효성을 검증하는 로직 추가
     setTimeout(async () => {
       setIsTesting(false);
-      toast.success(`${platform === 'naver' ? tr('네이버 스마트스토어', 'Naver Smartstore') : 'Cafe24'} ${tr('설정이 저장되었습니다!', 'settings saved!')}`, {
-        description: tr("권한 인증을 완료해야 실제 수집이 시작됩니다.", "Data collection starts after authorization is complete."),
+      toast.success(`${platform === 'naver' ? tf.f01039 : 'Cafe24'} ${tf.f01423}`, {
+        description: tf.f00992,
       });
       
       // 데모용: 로컬 스토리지에 저장하거나, 실제로는 Supabase에 upsert 합니다.
@@ -91,15 +90,15 @@ export function MallIntegrationCard({ tenantId }: { tenantId: string }) {
       if (data.success) {
         toast.success(`🎉 ${data.message}`, {
           description: data.synced_count > 0
-            ? tr(`${data.synced_count}건의 주문이 주문 목록에 추가되었습니다. 새로고침해 주세요.`, `${data.synced_count} orders added. Please refresh.`)
-            : tr('새 주문이 없습니다.', 'No new orders.'),
+            ? tf.f02317.replace("{count}", String(data.synced_count))
+            : tf.f01379,
           duration: 6000,
         });
       } else {
-        toast.error(tr('Sync failed', 'Sync failed'), { description: data.error });
+        toast.error(tf.f02295, { description: data.error });
       }
     } catch (err: any) {
-      toast.error(tr('동기화 오류', 'Sync error'), { description: err.message });
+      toast.error(tf.f01103, { description: err.message });
     } finally {
       setIsSyncing(false);
     }
@@ -143,12 +142,12 @@ export function MallIntegrationCard({ tenantId }: { tenantId: string }) {
     }
 
     if (error) {
-      toast.error(tr("설정 변경 실패", "Failed to update settings"), { description: error.message });
+      toast.error(tf.f01413, { description: error.message });
       // 실패 시 UI 복구
       if (platform === 'naver_commerce') setIsNaverActive(!active);
       else if (platform === 'cafe24') setIsCafeActive(!active);
     } else {
-      toast.success(`${platform === 'naver_commerce' ? tr('네이버', 'Naver') : 'Cafe24'} ${tr('연동이', 'integration')} ${active ? tr('활성화', 'enabled') : tr('비활성화', 'disabled')} ${tr('되었습니다.', '')}`);
+      toast.success(`${platform === 'naver_commerce' ? tf.f01037 : 'Cafe24'} ${tf.f01577} ${active ? tf.f02225 : tf.f01314} ${tf.f01107}`);
     }
   };
 
@@ -157,7 +156,7 @@ export function MallIntegrationCard({ tenantId }: { tenantId: string }) {
       <CardHeader className="bg-emerald-600 text-white">
         <div className="flex items-center gap-2">
           <ShoppingCart className="h-5 w-5" />
-          <CardTitle>{tr("쇼핑몰 주문 자동 수집 (API 연동)", "Store Order Auto Sync (API Integration)")}</CardTitle>
+          <CardTitle>{tf.f01443}</CardTitle>
         </div>
       </CardHeader>
       
@@ -169,14 +168,14 @@ export function MallIntegrationCard({ tenantId }: { tenantId: string }) {
               <div className="bg-green-500 text-white p-2 rounded-lg font-bold">N</div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h4 className="font-bold text-slate-800">{tr("네이버 커머스 API", "Naver Commerce API")}</h4>
+                  <h4 className="font-bold text-slate-800">{tf.f01040}</h4>
                   {naverClientId && (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold">
-                      <CheckCircle2 className="w-3 h-3" /> {tr("연동됨", "Connected")}
+                      <CheckCircle2 className="w-3 h-3" /> {tf.f01576}
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-slate-500">{tr("스마트스토어 주문을 실시간으로 가져옵니다.", "Pull Smartstore orders in real-time.")}</p>
+                <p className="text-xs text-slate-500">{tf.f01466}</p>
               </div>
             </div>
             <Switch 
@@ -191,7 +190,7 @@ export function MallIntegrationCard({ tenantId }: { tenantId: string }) {
               <div className="space-y-2">
                 <Label className="text-[10px] font-bold text-slate-500 uppercase">Application ID</Label>
                 <Input 
-                  placeholder={tr("네이버 커머스 API Client ID", "Naver Commerce API Client ID")}
+                  placeholder={tf.f01041}
                   value={naverClientId}
                   onChange={e => setNaverClientId(e.target.value)}
                 />
@@ -200,7 +199,7 @@ export function MallIntegrationCard({ tenantId }: { tenantId: string }) {
                 <Label className="text-[10px] font-bold text-slate-500 uppercase">Application Secret</Label>
                 <Input 
                   type="password"
-                  placeholder={tr("네이버 커머스 API Secret", "Naver Commerce API Secret")}
+                  placeholder={tf.f01042}
                   value={naverSecret}
                   onChange={e => setNaverSecret(e.target.value)}
                 />
@@ -208,7 +207,7 @@ export function MallIntegrationCard({ tenantId }: { tenantId: string }) {
               <div className="col-span-1 md:col-span-2 flex justify-end">
                 <Button onClick={() => handleTestAndSave('naver')} disabled={isTesting || !naverClientId || !naverSecret} className="bg-emerald-600 hover:bg-emerald-700">
                   {isTesting ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <KeyRound className="mr-2 h-4 w-4" />}
-                  {tr("인증 테스트 및 저장", "Test auth and save")}
+                  {tf.f01702}
                 </Button>
               </div>
             </div>
@@ -222,14 +221,14 @@ export function MallIntegrationCard({ tenantId }: { tenantId: string }) {
               <div className="bg-slate-800 text-white p-2 rounded-lg font-bold text-sm">Cafe24</div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h4 className="font-bold text-slate-800">{tr("카페24 개발자 API", "Cafe24 Developer API")}</h4>
+                  <h4 className="font-bold text-slate-800">{tf.f02068}</h4>
                   {cafeClientId && (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold">
-                      <CheckCircle2 className="w-3 h-3" /> {tr("연동됨", "Connected")}
+                      <CheckCircle2 className="w-3 h-3" /> {tf.f01576}
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-slate-500">{tr("자사몰 주문을 실시간으로 가져옵니다.", "Pull self-hosted mall orders in real-time.")}</p>
+                <p className="text-xs text-slate-500">{tf.f01729}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -242,7 +241,7 @@ export function MallIntegrationCard({ tenantId }: { tenantId: string }) {
                   className="h-8 text-xs font-bold border-blue-200 text-blue-600 hover:bg-blue-50 gap-1 rounded-full px-3"
                 >
                   {isSyncing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
-                  {isSyncing ? tr('동기화 중...', 'Syncing...') : tr('주문 수동 동기화', 'Manual order sync')}
+                  {isSyncing ? tf.f01104 : tf.f01870}
                 </Button>
               )}
               {cafeClientId && (
@@ -252,7 +251,7 @@ export function MallIntegrationCard({ tenantId }: { tenantId: string }) {
                   onClick={async (e) => {
                     e.stopPropagation();
                     if (!cafeMallId) {
-                      toast.error(tr("쇼핑몰 아이디(Mall ID)를 입력해주세요.", "Please enter Mall ID."));
+                      toast.error(tf.f01442);
                       return;
                     }
                     const redirectUri = encodeURIComponent(`https://floxync.com/api/sync/cafe24/callback`);
@@ -262,7 +261,7 @@ export function MallIntegrationCard({ tenantId }: { tenantId: string }) {
                   }}
                   className="h-8 text-xs font-bold border-emerald-200 text-emerald-600 hover:bg-emerald-50 gap-1 rounded-full px-3"
                 >
-                  <KeyRound className="w-3 h-3" /> {hasAccessToken ? tr('재인증', 'Re-auth') : tr('카페24 로그인 연동', 'Connect Cafe24 login')}
+                  <KeyRound className="w-3 h-3" /> {hasAccessToken ? tf.f01767 : tf.f02069}
                 </Button>
               )}
               <Switch 
@@ -275,9 +274,9 @@ export function MallIntegrationCard({ tenantId }: { tenantId: string }) {
           {isCafeActive && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-white rounded-xl border border-slate-200">
               <div className="space-y-2">
-                <Label className="text-[10px] font-bold text-slate-500 uppercase">{tr("쇼핑몰 아이디 (Mall ID)", "Mall ID")}</Label>
+                <Label className="text-[10px] font-bold text-slate-500 uppercase">{tf.f01441}</Label>
                 <Input 
-                  placeholder={tr("예: floxync", "e.g. floxync")}
+                  placeholder={tf.f01594}
                   value={cafeMallId}
                   onChange={e => setCafeMallId(e.target.value)}
                 />
@@ -285,7 +284,7 @@ export function MallIntegrationCard({ tenantId }: { tenantId: string }) {
               <div className="space-y-2">
                 <Label className="text-[10px] font-bold text-slate-500 uppercase">Client ID</Label>
                 <Input 
-                  placeholder={tr("카페24 앱 Client ID", "Cafe24 app Client ID")}
+                  placeholder={tf.f02070}
                   value={cafeClientId}
                   onChange={e => setCafeClientId(e.target.value)}
                 />
@@ -294,7 +293,7 @@ export function MallIntegrationCard({ tenantId }: { tenantId: string }) {
                 <Label className="text-[10px] font-bold text-slate-500 uppercase">Client Secret</Label>
                 <Input 
                   type="password"
-                  placeholder={tr("카페24 앱 Client Secret", "Cafe24 app Client Secret")}
+                  placeholder={tf.f02071}
                   value={cafeSecret}
                   onChange={e => setCafeSecret(e.target.value)}
                 />
@@ -302,7 +301,7 @@ export function MallIntegrationCard({ tenantId }: { tenantId: string }) {
               <div className="col-span-1 md:col-span-2 flex justify-end">
                 <Button onClick={() => handleTestAndSave('cafe24')} disabled={isTesting || !cafeClientId || !cafeSecret} variant="outline">
                   {isTesting ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <KeyRound className="mr-2 h-4 w-4" />}
-                  {tr("인증 테스트 및 저장", "Test auth and save")}
+                  {tf.f01702}
                 </Button>
               </div>
             </div>

@@ -1,4 +1,5 @@
 "use client";
+import { getMessages } from "@/i18n/getMessages";
 
 import React, { useState, useEffect } from "react";
 import { 
@@ -36,10 +37,8 @@ export default function BillingAdminPage() {
     const [withdrawals, setWithdrawals] = useState<any[]>([]);
     const [search, setSearch] = useState("");
     const locale = usePreferredLocale();
-    const baseLocale = toBaseLocale(locale);
-    const tr = (koText: string, enText: string) => (baseLocale === "ko" ? koText : enText);
-
-    useEffect(() => {
+    const tf = getMessages(locale).tenantFlows;
+    const baseLocale = toBaseLocale(locale);    useEffect(() => {
         if (isSuperAdmin) {
             fetchAdminData();
         }
@@ -77,14 +76,14 @@ export default function BillingAdminPage() {
 
         } catch (error) {
             console.error(error);
-            toast.error(tr("관리자 데이터를 불러오는데 실패했습니다.", "Failed to load admin data."));
+            toast.error(tf.f00965);
         } finally {
             setLoading(false);
         }
     };
 
     const handleRecharge = async (tenantId: string, currentBalance: number) => {
-        const amountStr = prompt(tr("충전할 금액을 입력하세요 (예: 100000)", "Enter recharge amount (e.g. 100000)"));
+        const amountStr = prompt(tf.f02032);
         if (!amountStr) return;
         const amount = parseInt(amountStr);
         if (isNaN(amount) || amount <= 0) return;
@@ -102,14 +101,14 @@ export default function BillingAdminPage() {
                 amount: amount,
                 type: 'recharge',
                 status: 'completed',
-                metadata: { admin_id: profile?.id, note: tr('관리자 수동 충전', 'Admin manual recharge') }
+                metadata: { admin_id: profile?.id, note: tf.f00966 }
             }]);
 
-            toast.success(tr("예치금이 충전되었습니다.", "Balance recharged."));
+            toast.success(tf.f01601);
             fetchAdminData();
         } catch (error) {
             console.error(error);
-            toast.error(tr("충전 실패", "Recharge failed"));
+            toast.error(tf.f02031);
         }
     };
 
@@ -125,12 +124,12 @@ export default function BillingAdminPage() {
             if (status === 'paid') {
                 // Already deducted from balance when requested? 
                 // Wait, I should implement the deduction logic on request.
-                toast.success(tr("지급 완료 처리되었습니다.", "Marked as paid."));
+                toast.success(tf.f01901);
             } else if (status === 'rejected') {
                 // Refund back to wallet
                 const { data: wallet } = await supabase.from('wallets').select('balance').eq('tenant_id', tenantId).single();
                 await supabase.from('wallets').update({ balance: (wallet?.balance || 0) + amount }).eq('tenant_id', tenantId);
-                toast.info(tr("반려 및 환불 처리되었습니다.", "Rejected and refunded."));
+                toast.info(tf.f01223);
             }
 
             fetchAdminData();
@@ -145,53 +144,53 @@ export default function BillingAdminPage() {
     return (
         <div className="p-6 max-w-7xl mx-auto space-y-6 pb-20 animate-in fade-in duration-500">
             <PageHeader 
-                title={tr("💳 정산 관제 및 예치금 관리", "💳 Settlement Control & Float Management")} 
-                description={tr("협력사 네트워크의 전체 자금 흐름과 수수료 수익을 관리합니다.", "Manage network-wide cash flow and commission revenue.")} 
+                title={tf.f00811} 
+                description={tf.f02198} 
                 icon={TrendingUp}
             >
                <Button variant="outline" className="border-slate-200 rounded-xl">
-                  <Download className="h-4 w-4 mr-2" /> {tr("정산 내역 다운로드", "Download Settlements")}
+                  <Download className="h-4 w-4 mr-2" /> {tf.f01818}
                </Button>
             </PageHeader>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Card className="border-0 shadow-sm bg-indigo-50/50">
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-xs font-bold text-indigo-600 uppercase tracking-wider">{tr("네트워크 누적 수수료", "Network Commission Total")}</CardTitle>
+                        <CardTitle className="text-xs font-bold text-indigo-600 uppercase tracking-wider">{tf.f01045}</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="text-xl font-bold text-indigo-900">₩{stats.networkCommission.toLocaleString()}</div>
-                        <p className="text-[10px] text-indigo-500/80 mt-1">{tr("2% 중개 수수료 수익 요약", "Summary of 2% brokerage fee revenue")}</p>
+                        <p className="text-[10px] text-indigo-500/80 mt-1">{tf.f00827}</p>
                     </CardContent>
                 </Card>
                 
                 <Card className="border-0 shadow-sm bg-emerald-50/50">
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-xs font-bold text-emerald-600 uppercase tracking-wider">{tr("전체 예치금 총액 (Float)", "Total Float Balance")}</CardTitle>
+                        <CardTitle className="text-xs font-bold text-emerald-600 uppercase tracking-wider">{tf.f01803}</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="text-xl font-bold text-emerald-900">₩{stats.totalFloat.toLocaleString()}</div>
-                        <p className="text-[10px] text-emerald-500/80 mt-1">{tr("현재 사장님 계좌에 머물고 있는 자금", "Funds currently held in member wallets")}</p>
+                        <p className="text-[10px] text-emerald-500/80 mt-1">{tf.f02186}</p>
                     </CardContent>
                 </Card>
 
                 <Card className="border-0 shadow-sm bg-rose-50/50">
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-xs font-bold text-rose-600 uppercase tracking-wider">{tr("미지급 정산 대기", "Pending Payouts")}</CardTitle>
+                        <CardTitle className="text-xs font-bold text-rose-600 uppercase tracking-wider">{tf.f01221}</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="text-xl font-bold text-rose-900">₩{withdrawals.filter(w=>w.status==='pending').reduce((a,b)=>a+b.amount,0).toLocaleString()}</div>
-                        <p className="text-[10px] text-rose-500/80 mt-1">{withdrawals.filter(w=>w.status==='pending').length}{tr("건의 출금 요청 대기 중", " withdrawal requests pending")}</p>
+                        <p className="text-[10px] text-rose-500/80 mt-1">{withdrawals.filter(w=>w.status==='pending').length}{tf.f00901}</p>
                     </CardContent>
                 </Card>
 
                 <Card className="border-0 shadow-sm bg-slate-50/50">
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-xs font-bold text-slate-600 uppercase tracking-wider">{tr("네트워크 가맹점", "Network Shops")}</CardTitle>
+                        <CardTitle className="text-xs font-bold text-slate-600 uppercase tracking-wider">{tf.f01044}</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="text-xl font-bold text-slate-900">{stats.activeShops} Places</div>
-                        <p className="text-[10px] text-slate-500/80 mt-1">{tr("지갑이 활성화된 회원사", "Tenants with active wallets")}</p>
+                        <p className="text-[10px] text-slate-500/80 mt-1">{tf.f01895}</p>
                     </CardContent>
                 </Card>
             </div>
@@ -199,10 +198,10 @@ export default function BillingAdminPage() {
             <Tabs defaultValue="wallets" className="space-y-4">
                 <TabsList className="bg-white p-1 h-12 rounded-2xl border border-slate-100 shadow-sm w-fit">
                     <TabsTrigger value="wallets" className="rounded-xl px-6 data-[state=active]:bg-indigo-600 data-[state=active]:text-white">
-                        <Wallet className="w-4 h-4 mr-2" /> {tr("회원사 예치금 관리", "Tenant Float Management")}
+                        <Wallet className="w-4 h-4 mr-2" /> {tf.f02231}
                     </TabsTrigger>
                     <TabsTrigger value="requests" className="rounded-xl px-6 data-[state=active]:bg-indigo-600 data-[state=active]:text-white">
-                        <AlertCircle className="w-4 h-4 mr-2" /> {tr("출금 승인 대기", "Withdrawal Approvals")}
+                        <AlertCircle className="w-4 h-4 mr-2" /> {tf.f02029}
                     </TabsTrigger>
                 </TabsList>
 
@@ -212,7 +211,7 @@ export default function BillingAdminPage() {
                             <div className="relative flex-1">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                 <Input 
-                                    placeholder={tr("회원사 이름 검색...", "Search tenant name...")} 
+                                    placeholder={tf.f02232} 
                                     className="pl-10 rounded-xl border-slate-100 w-full"
                                     value={search}
                                     onChange={(e)=>setSearch(e.target.value)}
@@ -222,10 +221,10 @@ export default function BillingAdminPage() {
                         <Table>
                             <TableHeader className="bg-slate-50/50">
                                 <TableRow>
-                                    <TableHead>{tr("회원사명", "Tenant")}</TableHead>
-                                    <TableHead className="text-right">{tr("현재 잔액", "Current Balance")}</TableHead>
-                                    <TableHead>{tr("마지막 업데이트", "Last Updated")}</TableHead>
-                                    <TableHead className="text-right pr-6">{tr("동작", "Actions")}</TableHead>
+                                    <TableHead>{tf.f02233}</TableHead>
+                                    <TableHead className="text-right">{tf.f02189}</TableHead>
+                                    <TableHead>{tf.f01138}</TableHead>
+                                    <TableHead className="text-right pr-6">{tf.f01106}</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -246,7 +245,7 @@ export default function BillingAdminPage() {
                                                 className="bg-indigo-600 hover:bg-indigo-700 rounded-xl px-4"
                                                 onClick={() => handleRecharge(t.tenant_id, t.balance)}
                                             >
-                                                {tr("예치금 충전", "Recharge")}
+                                                {tf.f01600}
                                             </Button>
                                         </TableCell>
                                     </TableRow>
@@ -261,19 +260,19 @@ export default function BillingAdminPage() {
                         <Table>
                             <TableHeader className="bg-slate-50/50">
                                 <TableRow>
-                                    <TableHead>{tr("신청일시", "Requested At")}</TableHead>
-                                    <TableHead>{tr("회원사", "Tenant")}</TableHead>
-                                    <TableHead className="text-right">{tr("신청금액", "Amount")}</TableHead>
-                                    <TableHead>{tr("입금정보", "Bank Info")}</TableHead>
-                                    <TableHead className="text-center">{tr("상태", "Status")}</TableHead>
-                                    <TableHead className="text-right pr-6">{tr("승인", "Decision")}</TableHead>
+                                    <TableHead>{tf.f01504}</TableHead>
+                                    <TableHead>{tf.f02229}</TableHead>
+                                    <TableHead className="text-right">{tf.f01503}</TableHead>
+                                    <TableHead>{tf.f01723}</TableHead>
+                                    <TableHead className="text-center">{tf.f00319}</TableHead>
+                                    <TableHead className="text-right pr-6">{tf.f01467}</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {withdrawals.length === 0 ? (
                                     <TableRow>
                                         <TableCell colSpan={6} className="h-40 text-center text-slate-400 font-light italic">
-                                            {tr("현재 처리할 출금 요청이 없습니다.", "No withdrawal requests to process.")}
+                                            {tf.f02192}
                                         </TableCell>
                                     </TableRow>
                                 ) : (
@@ -301,7 +300,7 @@ export default function BillingAdminPage() {
                                                             className="bg-emerald-600 hover:bg-emerald-700 rounded-xl"
                                                             onClick={() => handleWithdrawalStatus(req.id, req.tenant_id, req.amount, 'paid')}
                                                         >
-                                                            {tr("지급 완료", "Mark Paid")}
+                                                            {tf.f01900}
                                                         </Button>
                                                         <Button 
                                                             variant="outline"
@@ -309,7 +308,7 @@ export default function BillingAdminPage() {
                                                             className="text-rose-600 border-rose-100 hover:bg-rose-50 rounded-xl"
                                                             onClick={() => handleWithdrawalStatus(req.id, req.tenant_id, req.amount, 'rejected')}
                                                         >
-                                                            {tr("거절", "Reject")}
+                                                            {tf.f00886}
                                                         </Button>
                                                     </>
                                                 )}

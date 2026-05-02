@@ -1,4 +1,5 @@
 "use client";
+import { getMessages } from "@/i18n/getMessages";
 
 import React from 'react';
 import Image from 'next/image';
@@ -47,9 +48,7 @@ export class PrintableOrder extends React.Component<PrintableOrderProps> {
         const { data, locale = "ko" } = this.props;
         if (!data) return null;
         const isKo = String(locale).toLowerCase().startsWith("ko");
-        const tr = (ko: string, en: string) => (isKo ? ko : en);
-
-        const Checkbox = ({ checked }: { checked: boolean }) => (
+        const tf = getMessages(locale).tenantFlows;        const Checkbox = ({ checked }: { checked: boolean }) => (
             <span style={{ 
                 display: 'inline-block', 
                 width: '14px', 
@@ -88,11 +87,11 @@ export class PrintableOrder extends React.Component<PrintableOrderProps> {
                 <table className="w-full border-collapse border border-black text-sm">
                     <tbody>
                         <tr>
-                            <td className="border border-black p-1 font-bold w-[12%] text-center bg-slate-50/50">{tr("주문일", "Order Date")}</td>
+                            <td className="border border-black p-1 font-bold w-[12%] text-center bg-slate-50/50">{tf.f00638}</td>
                             <td className="border border-black p-1 w-[20%]" style={{ fontSize: '11px' }}>
                                 <div className="whitespace-nowrap overflow-hidden text-ellipsis">{data.orderDate}</div>
                             </td>
-                            <td className="border border-black p-1 font-bold w-[8%] text-center bg-slate-50/50">{tr("주문자", "Orderer")}</td>
+                            <td className="border border-black p-1 font-bold w-[8%] text-center bg-slate-50/50">{tf.f00640}</td>
                             <td className="border border-black p-1 w-[28%]">
                                 <div className="whitespace-nowrap overflow-hidden text-ellipsis text-[12px]">
                                     {(() => {
@@ -101,13 +100,13 @@ export class PrintableOrder extends React.Component<PrintableOrderProps> {
                                     })()}
                                 </div>
                             </td>
-                            <td className="border border-black p-1 font-bold w-[8%] text-center bg-slate-50/50">{tr("연락처", "Contact")}</td>
+                            <td className="border border-black p-1 font-bold w-[8%] text-center bg-slate-50/50">{tf.f00444}</td>
                             <td className="border border-black p-1 w-[24%]" style={{ fontSize: '12px' }}>
                                 <div className="whitespace-nowrap overflow-hidden text-ellipsis">{data.isAnonymous && isReceipt ? '' : data.ordererContact}</div>
                             </td>
                         </tr>
                         <tr>
-                            <td className="border border-black p-1 font-bold align-middle h-8 text-center bg-slate-50/50">{tr("항목/수량", "Items/Qty")}</td>
+                            <td className="border border-black p-1 font-bold align-middle h-8 text-center bg-slate-50/50">{tf.f00765}</td>
                             <td className="border border-black p-1 align-middle" colSpan={5}>
                                 <div className="whitespace-nowrap overflow-hidden text-ellipsis text-[11px] leading-tight">
                                     {data.items}
@@ -124,8 +123,8 @@ export class PrintableOrder extends React.Component<PrintableOrderProps> {
                                         <div className="flex items-center gap-2">
                                             <span className="whitespace-nowrap overflow-hidden text-ellipsis">결제수단: {paymentMethodText}</span>
                                             <div className="flex items-center gap-2 pr-2">
-                                                <div className="flex items-center whitespace-nowrap"><Checkbox checked={data.paymentStatus === '미결' || data.paymentStatus === 'Pending'} /><span>{tr("미결", "Pending")}</span></div>
-                                                <div className="flex items-center whitespace-nowrap"><Checkbox checked={data.paymentStatus === '완결' || data.paymentStatus === 'Paid'} /><span>{tr("완결", "Paid")}</span></div>
+                                                <div className="flex items-center whitespace-nowrap"><Checkbox checked={data.paymentStatus === '미결' || data.paymentStatus === 'Pending'} /><span>{tf.f00217}</span></div>
+                                                <div className="flex items-center whitespace-nowrap"><Checkbox checked={data.paymentStatus === '완결' || data.paymentStatus === 'Paid'} /><span>{tf.f00470}</span></div>
                                             </div>
                                         </div>
                                     </div>
@@ -133,11 +132,11 @@ export class PrintableOrder extends React.Component<PrintableOrderProps> {
                             </tr>
                         )}
                         <tr>
-                            <td className="border border-black p-1 font-bold text-center bg-slate-50/50">{tr("배송일시", "Delivery Date/Time")}</td>
+                            <td className="border border-black p-1 font-bold text-center bg-slate-50/50">{tf.f00274}</td>
                             <td className="border border-black p-1">
                                 <div className="whitespace-nowrap overflow-hidden text-ellipsis text-[11px]">{data.deliveryDate}</div>
                             </td>
-                            <td className="border border-black p-1 font-bold text-center bg-slate-50/50">{tr("받는 분", "Recipient")}</td>
+                            <td className="border border-black p-1 font-bold text-center bg-slate-50/50">{tf.f00228}</td>
                             <td className="border border-black p-1">
                                 <div className="whitespace-nowrap overflow-hidden text-ellipsis text-[12px]">{data.recipientName}</div>
                             </td>
@@ -147,7 +146,7 @@ export class PrintableOrder extends React.Component<PrintableOrderProps> {
                             </td>
                         </tr>
                         <tr>
-                            <td className="border border-black p-1 font-bold align-middle text-center bg-slate-50/50 h-8">{tr("배송지주소", "Address")}</td>
+                            <td className="border border-black p-1 font-bold align-middle text-center bg-slate-50/50 h-8">{tf.f00277}</td>
                             <td colSpan={5} className="border border-black p-1 align-middle">
                                 <div className="whitespace-nowrap overflow-hidden text-ellipsis text-[11px]">
                                     {data.deliveryAddress}
@@ -217,9 +216,9 @@ export class PrintableOrder extends React.Component<PrintableOrderProps> {
 
         return (
             <div className="p-4 bg-white text-black font-sans px-[15mm]">
-                {renderSection(tr('주문서', 'Order Sheet'), false)}
+                {renderSection(tf.f00628, false)}
                 <div className="border-t-2 border-dashed border-gray-400 my-8"></div>
-                {renderSection(tr('인수증', 'Receipt'), true)}
+                {renderSection(tf.f00521, true)}
             </div>
         );
     }

@@ -1,4 +1,5 @@
 "use client";
+import { getMessages } from "@/i18n/getMessages";
 
 import { useState, useMemo } from "react";
 import { PageHeader } from "@/components/page-header";
@@ -29,9 +30,8 @@ export default function CustomersPage() {
   const { profile, tenantId, isSuperAdmin, isLoading: authLoading } = useAuth();
   const plan = profile?.tenants?.plan || (isSuperAdmin ? "pro" : "free");
   const locale = usePreferredLocale();
+  const tf = getMessages(locale).tenantFlows;
   const isKo = toBaseLocale(locale) === "ko";
-  const tr = (ko: string, en: string) => (isKo ? ko : en);
-
   const { 
     customers, 
     loading, 
@@ -91,28 +91,30 @@ export default function CustomersPage() {
 
   const handleExport = () => {
     if (filteredCustomers.length === 0) {
-      toast.error(tr("내보낼 고객 데이터가 없습니다.", "No customer data to export."));
+      toast.error(tf.f00130);
       return;
     }
     
     const dataToExport = filteredCustomers.map(customer => ({
-        [tr('고객명', 'Customer')]: customer.name || '',
-        [tr('고객분류', 'Type')]: customer.type === 'company' ? tr('기업', 'Company') : tr('개인', 'Individual'),
-        [tr('회사명', 'Company')]: customer.company_name || '',
-        [tr('연락처', 'Contact')]: customer.contact || '',
-        [tr('이메일', 'Email')]: customer.email || '',
-        [tr('주소', 'Address')]: customer.address || '',
-        [tr('등급', 'Grade')]: customer.grade || tr('신규', 'New'),
-        [tr('보유포인트', 'Points')]: customer.points || 0,
-        [tr('누적구매액', 'Total Spent')]: customer.total_spent || 0,
-        [tr('주문횟수', 'Order Count')]: customer.order_count || 0,
-        [tr('메모', 'Memo')]: customer.memo || '',
-        [tr('등록일', 'Created At')]: customer.created_at ? format(new Date(customer.created_at), 'yyyy-MM-dd HH:mm') : '',
+        [tf.f00076]: customer.name || '',
+        [tf.f00081]: customer.type === 'company' ? tf.f00109 : tf.f00028,
+        [tf.f00779]: customer.company_name || '',
+        [tf.f00444]: customer.contact || '',
+        [tf.f00504]: customer.email || '',
+        [tf.f00650]: customer.address || '',
+        [tf.f00163]: customer.grade || tf.f00415,
+        [tf.f00288]: customer.points || 0,
+        [tf.f00146]: customer.total_spent || 0,
+        [tf.f00649]: customer.order_count || 0,
+        [tf.f00197]: customer.memo || '',
+        [tf.f00170]: customer.created_at ? format(new Date(customer.created_at), 'yyyy-MM-dd HH:mm') : '',
     }));
     
     const today = format(new Date(), 'yyyy-MM-dd');
-    exportToExcel(dataToExport, `${tr('고객리스트', 'customers')}_${today}.xlsx`, tr("고객목록", "Customers"));
-    toast.success(tr(`${dataToExport.length}명의 고객 정보가 엑셀로 저장되었습니다.`, `Saved ${dataToExport.length} customers to Excel.`));
+    exportToExcel(dataToExport, `${tf.f00075}_${today}.xlsx`, tf.f00079);
+    toast.success(
+      tf.f00806.replace("{count}", String(dataToExport.length))
+    );
   };
 
   const handleSyncFromOrders = async () => {
@@ -155,11 +157,13 @@ export default function CustomersPage() {
         }
       }
 
-      toast.success(tr(`${totalUpdated}명의 고객 정보가 최신 데이터로 동기화되었습니다.`, `Synced ${totalUpdated} customers.`));
+      toast.success(
+        tf.f00807.replace("{count}", String(totalUpdated))
+      );
       fetchCustomers();
     } catch (err) {
       console.error("Sync error:", err);
-      toast.error(tr("동기화 중 오류가 발생했습니다.", "Sync error occurred."));
+      toast.error(tf.f00160);
     } finally {
       // isRefreshing is managed by hook, if we want to show loading during sync
       // we could add a local state, but for now we rely on toast and fetchCustomers reload
@@ -180,23 +184,23 @@ export default function CustomersPage() {
     try {
       if (editingCustomer) {
         const success = await updateCustomer(editingCustomer.id, data);
-        if (success) toast.success(tr("고객 정보가 수정되었습니다.", "Customer updated."));
+        if (success) toast.success(tf.f00072);
       } else {
         const id = await addCustomer(data);
-        if (id) toast.success(tr("새 고객이 등록되었습니다.", "Customer created."));
+        if (id) toast.success(tf.f00343);
       }
       setIsFormOpen(false);
     } catch (error) {
-      toast.error(tr("저장 중 오류가 발생했습니다.", "Error while saving."));
+      toast.error(tf.f00540);
     }
   };
 
   const handleDelete = async (id: string) => {
     try {
       const success = await deleteCustomer(id);
-      if (success) toast.success(tr("고객 정보가 삭제되었습니다.", "Customer deleted."));
+      if (success) toast.success(tf.f00071);
     } catch (error) {
-      toast.error(tr("삭제 중 오류가 발생했습니다.", "Error while deleting."));
+      toast.error(tf.f00307);
     }
   };
 
@@ -207,8 +211,8 @@ export default function CustomersPage() {
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       <PageHeader
-        title={tr("고객 관리", "Customer Management")}
-        description={tr("고객별 구매 성향과 주문 내역을 통합 관리하여 맞춤형 서비스를 제공합니다.", "Manage customer purchase behavior and order history in one place.")}
+        title={tf.f00061}
+        description={tf.f00080}
         icon={Users}
       >
         <div className="flex flex-wrap items-center gap-2">
@@ -220,7 +224,7 @@ export default function CustomersPage() {
             className="hidden sm:flex border-slate-200"
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-            {tr("새로고침", "Refresh")}
+            {tf.f00348}
           </Button>
           <Button 
               variant="outline" 
@@ -229,7 +233,7 @@ export default function CustomersPage() {
               onClick={() => setIsRegistryOpen(true)}
           >
             <Archive className="text-amber-500" size={16} />
-            {tr("디지털 서류함", "Digital Documents")}
+            {tf.f00172}
           </Button>
           <Button 
             variant="outline" 
@@ -238,7 +242,7 @@ export default function CustomersPage() {
             onClick={handleExport}
           >
             <Download size={16} />
-            {tr("엑셀 내보내기", "Export Excel")}
+            {tf.f00443}
           </Button>
           <Button 
             size="sm"
@@ -246,7 +250,7 @@ export default function CustomersPage() {
             onClick={handleCreateNew}
           >
             <Plus size={16} />
-            {tr("신규 고객 등록", "Add Customer")}
+            {tf.f00418}
           </Button>
         </div>
       </PageHeader>
@@ -255,7 +259,7 @@ export default function CustomersPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="border-none shadow-sm bg-blue-50/50">
           <CardContent className="p-4 flex flex-col pt-4">
-            <span className="text-xs text-blue-600 font-semibold mb-1 uppercase tracking-wider">{tr("전체 고객", "Total")}</span>
+            <span className="text-xs text-blue-600 font-semibold mb-1 uppercase tracking-wider">{tf.f00554}</span>
             <div className="flex items-baseline gap-2">
               <span className="text-2xl font-bold text-blue-900">{stats.total}</span>
               <Users className="h-4 w-4 text-blue-300" />
@@ -264,7 +268,7 @@ export default function CustomersPage() {
         </Card>
         <Card className="border-none shadow-sm bg-purple-50/50">
           <CardContent className="p-4 flex flex-col pt-4">
-            <span className="text-xs text-purple-600 font-semibold mb-1 uppercase tracking-wider">{tr("VIP 고객", "VIP")}</span>
+            <span className="text-xs text-purple-600 font-semibold mb-1 uppercase tracking-wider">{tf.f00786}</span>
             <div className="flex items-baseline gap-2">
               <span className="text-2xl font-bold text-purple-900">{stats.vip}</span>
               <Star className="h-4 w-4 text-purple-300" />
@@ -273,7 +277,7 @@ export default function CustomersPage() {
         </Card>
         <Card className="border-none shadow-sm bg-emerald-50/50">
           <CardContent className="p-4 flex flex-col pt-4">
-            <span className="text-xs text-emerald-600 font-semibold mb-1 uppercase tracking-wider">{tr("신규 (30일)", "New (30d)")}</span>
+            <span className="text-xs text-emerald-600 font-semibold mb-1 uppercase tracking-wider">{tf.f00416}</span>
             <div className="flex items-baseline gap-2">
               <span className="text-2xl font-bold text-emerald-900">{stats.recent}</span>
               <Clock className="h-4 w-4 text-emerald-300" />
@@ -282,7 +286,7 @@ export default function CustomersPage() {
         </Card>
         <Card className="border-none shadow-sm bg-amber-50/50">
           <CardContent className="p-4 flex flex-col pt-4">
-            <span className="text-xs text-amber-600 font-semibold mb-1 uppercase tracking-wider">{tr("우수 고객", "Top Customers")}</span>
+            <span className="text-xs text-amber-600 font-semibold mb-1 uppercase tracking-wider">{tf.f00485}</span>
             <div className="flex items-baseline gap-2">
               <span className="text-2xl font-bold text-amber-900">{stats.topSpenders}</span>
               <UserCheck className="h-4 w-4 text-amber-300" />
@@ -297,9 +301,9 @@ export default function CustomersPage() {
           <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-4 flex items-center justify-between">
             <h3 className="text-white font-bold flex items-center gap-2">
               <Trophy className="h-5 w-5 text-yellow-300" />
-              {tr("누적 구매 랭킹 TOP 5", "Top 5 by spending")}
+              {tf.f00145}
             </h3>
-            <span className="text-blue-100 text-xs font-medium">{tr("최우수 고객", "Best customers")}</span>
+            <span className="text-blue-100 text-xs font-medium">{tf.f00691}</span>
           </div>
           <CardContent className="p-0">
             <div className="divide-y divide-slate-50">
@@ -311,17 +315,17 @@ export default function CustomersPage() {
                     </span>
                     <div className="flex flex-col">
                       <span className="text-sm font-bold text-slate-800">{c.name}</span>
-                      <span className="text-[10px] text-slate-500">{c.company_name || tr('개인', 'Individual')}</span>
+                      <span className="text-[10px] text-slate-500">{c.company_name || tf.f00028}</span>
                     </div>
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-black text-blue-600">₩{(Number(c.total_spent) || 0).toLocaleString()}</p>
-                    <p className="text-[10px] text-slate-400 font-medium">{c.order_count || 0}{tr("회 주문", " orders")}</p>
+                    <p className="text-[10px] text-slate-400 font-medium">{c.order_count || 0}{tf.f00778}</p>
                   </div>
                 </div>
               ))}
               {rankings.topBuyers.length === 0 && (
-                <div className="p-8 text-center text-slate-400 text-sm">{tr("데이터가 없습니다.", "No data.")}</div>
+                <div className="p-8 text-center text-slate-400 text-sm">{tf.f00155}</div>
               )}
             </div>
           </CardContent>
@@ -331,9 +335,9 @@ export default function CustomersPage() {
           <div className="bg-gradient-to-r from-amber-500 to-orange-500 p-4 flex items-center justify-between">
             <h3 className="text-white font-bold flex items-center gap-2">
               <Medal className="h-5 w-5 text-white" />
-              {tr("보유 포인트 랭킹 TOP 5", "Top 5 by points")}
+              {tf.f00287}
             </h3>
-            <span className="text-amber-100 text-xs font-medium">{tr("포인트 우수 고객", "Points leaders")}</span>
+            <span className="text-amber-100 text-xs font-medium">{tf.f00733}</span>
           </div>
           <CardContent className="p-0">
             <div className="divide-y divide-slate-50">
@@ -345,17 +349,17 @@ export default function CustomersPage() {
                     </span>
                     <div className="flex flex-col">
                       <span className="text-sm font-bold text-slate-800">{c.name}</span>
-                      <span className="text-[10px] text-slate-500">{c.company_name || tr('개인', 'Individual')}</span>
+                      <span className="text-[10px] text-slate-500">{c.company_name || tf.f00028}</span>
                     </div>
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-black text-amber-600">{(c.points || 0).toLocaleString()} P</p>
-                    <p className="text-[10px] text-slate-400 font-medium">{tr("사용 가능 포인트", "Available points")}</p>
+                    <p className="text-[10px] text-slate-400 font-medium">{tf.f00303}</p>
                   </div>
                 </div>
               ))}
               {rankings.topPoints.length === 0 && (
-                <div className="p-8 text-center text-slate-400 text-sm">{tr("데이터가 없습니다.", "No data.")}</div>
+                <div className="p-8 text-center text-slate-400 text-sm">{tf.f00155}</div>
               )}
             </div>
           </CardContent>
@@ -367,7 +371,7 @@ export default function CustomersPage() {
         <div className="relative w-full sm:w-96">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <Input
-            placeholder={tr("고객명, 연락처, 회사명 검색...", "Search name, contact, company...")}
+            placeholder={tf.f00077}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10 border-slate-200 bg-white shadow-sm focus:ring-blue-500/20"

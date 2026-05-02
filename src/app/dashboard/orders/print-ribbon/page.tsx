@@ -1,4 +1,5 @@
 "use client";
+import { getMessages } from "@/i18n/getMessages";
 
 import { Suspense, useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
@@ -35,23 +36,21 @@ function PrintRibbonContent() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const locale = usePreferredLocale();
-    const isKo = toBaseLocale(locale) === "ko";
-    const tr = (ko: string, en: string) => (isKo ? ko : en);
-
-    const orderId = searchParams.get('orderId') || '';
+    const tf = getMessages(locale).tenantFlows;
+    const isKo = toBaseLocale(locale) === "ko";    const orderId = searchParams.get('orderId') || '';
     const messageContent = searchParams.get('messageContent') || '';
     const senderName = searchParams.get('senderName') || '';
 
     useEffect(() => {
         const fetchOrder = async () => {
             if (!orderId) {
-                setError(tr('주문 ID가 필요합니다.', 'Order ID is required.'));
+                setError(tf.f00623);
                 setIsLoading(false);
                 return;
             }
 
             if (!tenantId && !authLoading) {
-                setError(tr('로그인이 필요합니다.', 'Login is required.'));
+                setError(tf.f00176);
                 setIsLoading(false);
                 return;
             }
@@ -69,10 +68,10 @@ function PrintRibbonContent() {
                     if (data) {
                         setOrderData(data as Order);
                     } else {
-                        setError(tr('주문을 찾을 수 없습니다.', 'Order not found.'));
+                        setError(tf.f00635);
                     }
                 } catch (err) {
-                    setError(tr('주문 데이터를 가져오는 중 오류가 발생했습니다.', 'Error while fetching order data.'));
+                    setError(tf.f00591);
                     console.error('Error fetching order:', err);
                 } finally {
                     setIsLoading(false);
@@ -97,8 +96,8 @@ function PrintRibbonContent() {
         return (
             <div className="max-w-4xl mx-auto p-6">
                 <div className="text-center">
-                    <h2 className="text-2xl font-bold text-red-600 mb-4">{tr("오류 발생", "Error")}</h2>
-                    <p className="text-gray-600 font-light">{error || tr('주문 정보가 없습니다.', 'No order information.')}</p>
+                    <h2 className="text-2xl font-bold text-red-600 mb-4">{tf.f00467}</h2>
+                    <p className="text-gray-600 font-light">{error || tf.f00616}</p>
                 </div>
             </div>
         );

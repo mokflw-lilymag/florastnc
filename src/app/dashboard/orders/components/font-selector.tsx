@@ -1,4 +1,5 @@
 "use client";
+import { getMessages } from "@/i18n/getMessages";
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Check, ChevronsUpDown, Search, Settings2 } from "lucide-react";
@@ -24,9 +25,8 @@ interface FontSelectorProps {
 
 export function FontSelector({ value, onValueChange, className, label }: FontSelectorProps) {
     const locale = usePreferredLocale();
-    const isKo = toBaseLocale(locale) === "ko";
-    const tr = (ko: string, en: string) => (isKo ? ko : en);
-    const [open, setOpen] = useState(false);
+    const tf = getMessages(locale).tenantFlows;
+    const isKo = toBaseLocale(locale) === "ko";    const [open, setOpen] = useState(false);
     const [search, setSearch] = useState("");
     const [fontManagerOpen, setFontManagerOpen] = useState(false);
     const [fonts, setFonts] = useState<FontCatalogItem[]>([]);
@@ -94,7 +94,7 @@ export function FontSelector({ value, onValueChange, className, label }: FontSel
                                 ref={searchRef}
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                placeholder={tr("폰트 검색...", "Search fonts...")}
+                                placeholder={tf.f00737}
                                 className="flex h-10 w-full bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground"
                             />
                         </div>
@@ -104,7 +104,7 @@ export function FontSelector({ value, onValueChange, className, label }: FontSel
                         >
                             {filteredFonts.length === 0 ? (
                                 <div className="py-6 text-center text-sm text-muted-foreground">
-                                    {tr("폰트를 찾을 수 없습니다.", "No fonts found.")}
+                                    {tf.f00743}
                                 </div>
                             ) : (
                                 filteredFonts.map((font) => (
@@ -143,7 +143,7 @@ export function FontSelector({ value, onValueChange, className, label }: FontSel
                                 className="flex w-full items-center rounded-sm px-2 py-1.5 text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer"
                             >
                                 <Settings2 className="mr-2 h-3.5 w-3.5" />
-                                {tr("폰트 관리...", "Manage fonts...")}
+                                {tf.f00738}
                             </button>
                         </div>
                     </PopoverContent>

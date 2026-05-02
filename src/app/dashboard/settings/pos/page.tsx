@@ -1,4 +1,5 @@
 "use client";
+import { getMessages } from "@/i18n/getMessages";
 
 import { useState, useEffect } from "react";
 import { 
@@ -43,9 +44,8 @@ import { toBaseLocale } from "@/i18n/config";
 
 export default function PosSettingsPage() {
   const locale = usePreferredLocale();
-  const isKo = toBaseLocale(locale) === "ko";
-  const tr = (ko: string, en: string) => (isKo ? ko : en);
-  const { integration, loading, logs, logsLoading, fetchLogs, saveIntegration } = usePosSettings();
+  const tf = getMessages(locale).tenantFlows;
+  const isKo = toBaseLocale(locale) === "ko";  const { integration, loading, logs, logsLoading, fetchLogs, saveIntegration } = usePosSettings();
   const [activeTab, setActiveTab] = useState("general");
   const [saving, setSaving] = useState(false);
 
@@ -92,23 +92,23 @@ export default function PosSettingsPage() {
     { 
       id: "easycheck", 
       name: "이지체크 (EasyCheck)", 
-      desc: tr("꽃집 점유율 1위. 정교한 API 연동 지원", "Top florist POS. Advanced API integration support"), 
+      desc: tf.f01023, 
       icon: Monitor,
       color: "bg-blue-500",
-      badge: tr("가장 권장", "Recommended")
+      badge: tf.f00849
     },
     { 
       id: "toss", 
       name: "토스 POS (TossPlace)", 
-      desc: tr("세련된 디자인과 스마트한 분석", "Modern design and smart analytics"), 
+      desc: tf.f01427, 
       icon: Smartphone,
       color: "bg-blue-600",
-      badge: tr("인기", "Popular")
+      badge: tf.f01696
     },
     { 
       id: "manual", 
-      name: tr("수동 연동 / 기타", "Manual / Other"), 
-      desc: tr("기타 카드 단말기 Webhook 연동", "Webhook integration for other terminals"), 
+      name: tf.f01446, 
+      desc: tf.f01018, 
       icon: SettingsIcon,
       color: "bg-slate-500",
       badge: ""
@@ -119,7 +119,7 @@ export default function PosSettingsPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
         <Loader2 className="w-10 h-10 text-primary animate-spin" />
-        <p className="text-slate-500 animate-pulse">{tr("POS 연동 정보를 불러오는 중...", "Loading POS integration info...")}</p>
+        <p className="text-slate-500 animate-pulse">{tf.f02278}</p>
       </div>
     );
   }
@@ -134,13 +134,13 @@ export default function PosSettingsPage() {
              <Badge className="bg-primary/20 text-primary border-primary/30 hover:bg-primary/30">Enterprise Feature</Badge>
              {integration?.last_synced_at && (
                <Badge variant="outline" className="text-green-400 border-green-500/30">
-                <CheckCircle2 className="w-3 h-3 mr-1" /> {tr("실시간 동기화 중", "Realtime sync active")}
+                <CheckCircle2 className="w-3 h-3 mr-1" /> {tf.f01505}
                </Badge>
              )}
           </div>
-          <h1 className="text-4xl font-bold tracking-tight">{tr("POS 시스템 연동 마스터", "POS Integration Master")}</h1>
+          <h1 className="text-4xl font-bold tracking-tight">{tf.f02274}</h1>
           <p className="text-slate-300 max-w-xl text-lg font-light leading-relaxed">
-            {tr("오프라인 결제가 완료되는 즉시 주문, 고객, 포인트를 자동으로 동기화합니다. 이제 이중 입력 없이 매장 운영에만 집중하세요.", "Automatically sync orders, customers, and points when offline payments complete. Focus on store operations without duplicate entry.")}
+            {tf.f01610}
           </p>
         </div>
         <div className="relative z-10 flex flex-col gap-2 min-w-[200px]">
@@ -152,18 +152,18 @@ export default function PosSettingsPage() {
              {saving ? (
                <>
                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                 {tr("설정 저장 중...", "Saving settings...")}
+                 {tf.f01418}
                </>
              ) : (
                <>
                  <Save className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
-                 {tr("Save all settings", "Save all settings")}
+                 {tf.f02288}
                </>
              )}
            </Button>
            {integration?.last_synced_at && (
              <p className="text-[10px] text-center text-slate-400">
-               {tr("최근 동기화", "Last sync")}: {new Date(integration.last_synced_at).toLocaleString()}
+               {tf.f02011}: {new Date(integration.last_synced_at).toLocaleString()}
              </p>
            )}
         </div>
@@ -184,7 +184,7 @@ export default function PosSettingsPage() {
                   onClick={() => setActiveTab("general")}
                 >
                   <Monitor className="w-5 h-5" />
-                  <span className="font-semibold text-base">{tr("연동 POS 선택", "Select POS")}</span>
+                  <span className="font-semibold text-base">{tf.f01575}</span>
                 </Button>
                 <Button 
                   variant={activeTab === "credentials" ? "default" : "ghost"}
@@ -195,7 +195,7 @@ export default function PosSettingsPage() {
                   onClick={() => setActiveTab("credentials")}
                 >
                   <Key className="w-5 h-5" />
-                  <span className="font-semibold text-base">{tr("인증 및 API 설정", "Auth & API Settings")}</span>
+                  <span className="font-semibold text-base">{tf.f01701}</span>
                 </Button>
                 <Button 
                   variant={activeTab === "automation" ? "default" : "ghost"}
@@ -206,7 +206,7 @@ export default function PosSettingsPage() {
                   onClick={() => setActiveTab("automation")}
                 >
                   <Zap className="w-5 h-5" />
-                  <span className="font-semibold text-base">{tr("자동화 정책", "Automation Policy")}</span>
+                  <span className="font-semibold text-base">{tf.f01728}</span>
                 </Button>
                 <Button 
                   variant={activeTab === "logs" ? "default" : "ghost"}
@@ -217,7 +217,7 @@ export default function PosSettingsPage() {
                   onClick={() => setActiveTab("logs")}
                 >
                   <ScrollText className="w-5 h-5" />
-                  <span className="font-semibold text-base">{tr("트랜잭션 로그", "Transaction Logs")}</span>
+                  <span className="font-semibold text-base">{tf.f02087}</span>
                 </Button>
               </div>
             </CardContent>
@@ -230,12 +230,12 @@ export default function PosSettingsPage() {
                 <ShieldCheck className="w-5 h-5 text-blue-200" />
                 <span className="text-sm font-medium text-blue-100 uppercase tracking-widest">Setup Guide</span>
               </div>
-              <h3 className="text-xl font-bold leading-tight">{tr("이지체크 파트너십", "EasyCheck Partnership")}<br />{tr("연동 안내", "Integration Guide")}</h3>
+              <h3 className="text-xl font-bold leading-tight">{tf.f01691}<br />{tf.f01570}</h3>
               <p className="text-sm text-blue-100/80 leading-relaxed">
-                {tr("이지체크 API 사용을 위해서는 이지체크 본사와 Floxync 플랫폼 간의 파트너 계약이 필요합니다. 연동이 어려우신 경우 고객센터로 연락주세요.", "EasyCheck API requires a partnership contract between EasyCheck HQ and Floxync. Contact support if you need help.")}
+                {tf.f01692}
               </p>
               <Button variant="secondary" className="w-full bg-white/20 hover:bg-white/30 border-none text-white font-bold rounded-2xl py-6 gap-2 group">
-                 {tr("고객센터 가이드", "Support Guide")} <ExternalLink className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                 {tf.f00939} <ExternalLink className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Button>
             </div>
           </Card>
@@ -254,8 +254,8 @@ export default function PosSettingsPage() {
               >
                 <Card className="border-none shadow-lg rounded-[32px] overflow-hidden bg-white">
                   <CardHeader className="pb-0 pt-8 px-8">
-                     <CardTitle className="text-2xl font-bold text-slate-800">{tr("연동 하실 POS를 선택하세요", "Choose your POS provider")}</CardTitle>
-                     <CardDescription className="text-slate-500 text-lg">{tr("결제를 담당하는 단말기 제조사를 선택하면 해당 사의 규격에 맞게 연동됩니다.", "Select the payment terminal provider to match its integration specs.")}</CardDescription>
+                     <CardTitle className="text-2xl font-bold text-slate-800">{tf.f01573}</CardTitle>
+                     <CardDescription className="text-slate-500 text-lg">{tf.f00923}</CardDescription>
                   </CardHeader>
                   <CardContent className="p-8">
                     <RadioGroup 
@@ -301,8 +301,8 @@ export default function PosSettingsPage() {
                 <Card className="border-none shadow-lg rounded-[32px] overflow-hidden bg-white">
                    <CardHeader className="pt-8 px-8 flex flex-row items-center justify-between">
                       <div className="space-y-1">
-                         <CardTitle className="text-xl font-bold text-slate-800">{tr("연동 마스터 스위치", "Integration Master Switch")}</CardTitle>
-                         <CardDescription>{tr("현재 POS 연동 기능을 활성화하거나 일시 중지합니다.", "Enable or pause POS integration.")}</CardDescription>
+                         <CardTitle className="text-xl font-bold text-slate-800">{tf.f01568}</CardTitle>
+                         <CardDescription>{tf.f02195}</CardDescription>
                       </div>
                       <Switch 
                         checked={formData.is_active} 
@@ -318,8 +318,8 @@ export default function PosSettingsPage() {
                          {formData.is_active ? <Zap className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
                          <p className="text-sm font-medium">
                            {formData.is_active 
-                             ? tr("실시간 POS 연동 서비스가 활성화되어 있습니다. 결제 완료 시 즉시 데이터가 동기화됩니다.", "Realtime POS integration is active. Data syncs immediately after payment.")
-                             : tr("연동 서비스가 중지되었습니다. POS에서 결제가 발생해도 데이터가 기록되지 않습니다.", "Integration is paused. POS payments will not be recorded.")}
+                             ? tf.f01512
+                             : tf.f01569}
                          </p>
                       </div>
                    </CardContent>
@@ -337,23 +337,23 @@ export default function PosSettingsPage() {
               >
                 <Card className="border-none shadow-lg rounded-[32px] overflow-hidden bg-white">
                   <CardHeader className="pt-8 px-8">
-                     <CardTitle className="text-2xl font-bold flex items-center gap-2"><Webhook className="w-6 h-6 text-primary" /> {tr("API 및 Webhook 설정", "API & Webhook Settings")}</CardTitle>
-                     <CardDescription>{tr("POS 업체로부터 발급받은 API 정보를 입력하세요.", "Enter API credentials issued by your POS provider.")}</CardDescription>
+                     <CardTitle className="text-2xl font-bold flex items-center gap-2"><Webhook className="w-6 h-6 text-primary" /> {tf.f02250}</CardTitle>
+                     <CardDescription>{tf.f02275}</CardDescription>
                   </CardHeader>
                   <CardContent className="p-8 space-y-8">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <Label className="text-slate-700 font-semibold">{tr("매장 식별 코드 (Store Code)", "Store identification code (Store Code)")}</Label>
+                        <Label className="text-slate-700 font-semibold">{tf.f01168}</Label>
                         <div className="relative group">
                           <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
                           <Input 
                             className="pl-10 h-12 rounded-xl bg-slate-50 focus:bg-white transition-all border-slate-200"
-                            placeholder={tr("이지체크 가맹점 번호 등", "EasyCheck merchant code, etc.")}
+                            placeholder={tf.f01690}
                             value={formData.store_code}
                             onChange={(e) => setFormData(prev => ({ ...prev, store_code: e.target.value }))}
                           />
                         </div>
-                        <p className="text-[10px] text-slate-400">{tr("POS 업체에서 발급한 고유 매장 식별 코드입니다.", "A unique store identifier issued by your POS provider.")}</p>
+                        <p className="text-[10px] text-slate-400">{tf.f02276}</p>
                       </div>
 
                       <div className="space-y-2">
@@ -363,12 +363,12 @@ export default function PosSettingsPage() {
                           <Input 
                             type="password"
                             className="pl-10 h-12 rounded-xl bg-slate-50 focus:bg-white transition-all border-slate-200"
-                            placeholder={tr("서명 검증용 키", "Signature verification key")}
+                            placeholder={tf.f01395}
                             value={formData.webhook_secret}
                             onChange={(e) => setFormData(prev => ({ ...prev, webhook_secret: e.target.value }))}
                           />
                         </div>
-                        <p className="text-[10px] text-slate-400">{tr("보안성 높은 데이터 전송을 위한 HMAC 서명 검증 키입니다.", "HMAC signature key used for secure data verification.")}</p>
+                        <p className="text-[10px] text-slate-400">{tf.f01258}</p>
                       </div>
                     </div>
 
@@ -381,7 +381,7 @@ export default function PosSettingsPage() {
                         <Input 
                           type="password"
                           className="pl-10 h-12 rounded-xl bg-slate-50 focus:bg-white transition-all border-slate-200"
-                          placeholder={tr("발급받은 API 키를 입력하세요", "Enter issued API key")}
+                          placeholder={tf.f01227}
                           value={formData.api_key}
                           onChange={(e) => setFormData(prev => ({ ...prev, api_key: e.target.value }))}
                         />
@@ -395,7 +395,7 @@ export default function PosSettingsPage() {
                         <Input 
                           type="password"
                           className="pl-10 h-12 rounded-xl bg-slate-50 focus:bg-white transition-all border-slate-200"
-                          placeholder={tr("API 시크릿 키 (필요한 경우)", "API secret key (if required)")}
+                          placeholder={tf.f02251}
                           value={formData.api_secret}
                           onChange={(e) => setFormData(prev => ({ ...prev, api_secret: e.target.value }))}
                         />
@@ -411,7 +411,7 @@ export default function PosSettingsPage() {
                             <Info className="w-6 h-6 text-primary" />
                          </div>
                          <div className="space-y-3">
-                            <h4 className="text-lg font-bold">{tr("Webhook 수신 URL (복사하여 POS 설정에 입력)", "Webhook receive URL (copy into POS settings)")}</h4>
+                            <h4 className="text-lg font-bold">{tf.f02298}</h4>
                             <div className="flex items-center gap-2 bg-black/40 p-4 rounded-xl border border-white/10 group h-14">
                                <code className="text-primary font-mono text-sm flex-1">
                                  {typeof window !== 'undefined' ? `${window.location.origin}/api/pos/webhook/${formData.pos_type}` : `/api/pos/webhook/${formData.pos_type}`}
@@ -419,15 +419,15 @@ export default function PosSettingsPage() {
                                <Button size="sm" variant="ghost" className="hover:bg-white/10 text-[10px] uppercase tracking-widest text-white/60 hover:text-white" onClick={() => {
                                  const url = `${window.location.origin}/api/pos/webhook/${formData.pos_type}`;
                                  navigator.clipboard.writeText(url);
-                                 toast.success(tr('URL이 클립보드에 복사되었습니다.', 'URL copied to clipboard.'));
+                                 toast.success(tf.f02297);
                                }}>
                                   COPY
                                </Button>
                             </div>
                             <p className="text-xs text-slate-400 italic">
-                               {tr("※ 이 URL로 POS 시스템의 '결제 완료' Webhook을 설정해주세요. store_code는 ", "Set POS 'payment complete' webhook to this URL. store_code must be sent as ")}
-                               {formData.store_code || tr('설정 필요', 'required')}
-                               {tr("로 전송되어야 합니다.", ".")}
+                               {tf.f00804}
+                               {formData.store_code || tf.f01419}
+                               {tf.f01127}
                             </p>
                          </div>
                       </div>
@@ -446,8 +446,8 @@ export default function PosSettingsPage() {
               >
                 <Card className="border-none shadow-lg rounded-[32px] overflow-hidden bg-white">
                   <CardHeader className="pt-8 px-8">
-                     <CardTitle className="text-2xl font-bold flex items-center gap-2"><Zap className="w-6 h-6 text-yellow-500" /> {tr("지능적 자동화 정책", "Intelligent automation policy")}</CardTitle>
-                     <CardDescription>{tr("데이터 동기화 시 비즈니스 로직을 설정합니다.", "Configure business logic for data sync.")}</CardDescription>
+                     <CardTitle className="text-2xl font-bold flex items-center gap-2"><Zap className="w-6 h-6 text-yellow-500" /> {tf.f01902}</CardTitle>
+                     <CardDescription>{tf.f01090}</CardDescription>
                   </CardHeader>
                   <CardContent className="p-8 space-y-8">
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -458,8 +458,8 @@ export default function PosSettingsPage() {
                                  <UserPlus className="w-6 h-6" />
                               </div>
                               <div className="space-y-1">
-                                 <h4 className="font-bold text-slate-800">{tr("비회원 자동 등록", "Auto-register non-members")}</h4>
-                                 <p className="text-xs text-slate-500 max-w-[200px]">{tr("등록되지 않은 연락처로 결제 시 자동으로 신규 고객으로 등록합니다.", "Automatically creates a new customer when payment uses an unknown contact.")}</p>
+                                 <h4 className="font-bold text-slate-800">{tf.f01315}</h4>
+                                 <p className="text-xs text-slate-500 max-w-[200px]">{tf.f01110}</p>
                               </div>
                            </div>
                            <Switch 
@@ -475,8 +475,8 @@ export default function PosSettingsPage() {
                                  <TrendingUp className="w-6 h-6" />
                               </div>
                               <div className="space-y-1">
-                                 <h4 className="font-bold text-slate-800">{tr("포인트 자동 적립 정책", "Auto point accrual policy")}</h4>
-                                 <p className="text-xs text-slate-500">{tr("POS 결제 금액 대비 적립률", "Accrual rate against POS payment amount")}</p>
+                                 <h4 className="font-bold text-slate-800">{tf.f02111}</h4>
+                                 <p className="text-xs text-slate-500">{tf.f02273}</p>
                               </div>
                            </div>
                            <div className="flex items-center gap-2">
@@ -514,20 +514,20 @@ export default function PosSettingsPage() {
                      <div className="bg-slate-50 p-6 rounded-[24px] border border-slate-100 space-y-4">
                         <div className="flex items-center gap-2 font-bold text-slate-700">
                            <CreditCard className="w-5 h-5 text-slate-500" />
-                           {tr("매핑 시나리오 확인", "Mapping scenario check")}
+                           {tf.f01182}
                         </div>
                         <ul className="space-y-3">
                            <li className="flex items-start gap-3 text-sm text-slate-600">
                               <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 flex-shrink-0" />
-                              <p><b>{tr("기존 회원", "Existing member")}</b>: {tr("POS 전화번호 입력 → 기존 회원 포인트 자동 적립 + 주문 내역 회원 매칭", "POS phone number -> auto points for existing member + order/member matching")}</p>
+                              <p><b>{tf.f01014}</b>: {tf.f02279}</p>
                            </li>
                            <li className="flex items-start gap-3 text-sm text-slate-600">
                               <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 flex-shrink-0" />
-                              <p><b>{tr("워킹 고객(비회원)", "Walk-in customer (non-member)")}</b>: {tr("주문은 정상 생성되며 '워킹 고객'으로 표시됩니다. 나중에 고객 관리에서 수동으로 회원과 연결 가능합니다.", "Order is created normally and marked as walk-in. You can link to a member later in customer management.")}</p>
+                              <p><b>{tf.f01637}</b>: {tf.f01878}</p>
                            </li>
                            <li className="flex items-start gap-3 text-sm text-slate-600">
                               <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 flex-shrink-0" />
-                              <p><b>{tr("지출 자동 연동", "Auto expense linkage")}</b>: {tr("매장 결제 발생 시 해당 날짜의 '매장 매출'로 자동 집계됩니다.", "When store payment occurs, it is automatically aggregated as store sales for that date.")}</p>
+                              <p><b>{tf.f01948}</b>: {tf.f01165}</p>
                            </li>
                         </ul>
                      </div>
@@ -546,12 +546,12 @@ export default function PosSettingsPage() {
                 <Card className="border-none shadow-lg rounded-[32px] overflow-hidden bg-white">
                   <CardHeader className="pt-8 px-8 flex flex-row items-center justify-between">
                      <div className="space-y-1">
-                        <CardTitle className="text-2xl font-bold flex items-center gap-2"><ScrollText className="w-6 h-6 text-slate-400" /> {tr("POS 트랜잭션 로그", "POS transaction logs")}</CardTitle>
-                        <CardDescription>{tr("최근 50건의 Webhook 수신 및 처리 기록입니다.", "Latest 50 webhook receive/process records.")}</CardDescription>
+                        <CardTitle className="text-2xl font-bold flex items-center gap-2"><ScrollText className="w-6 h-6 text-slate-400" /> {tf.f02280}</CardTitle>
+                        <CardDescription>{tf.f02008}</CardDescription>
                      </div>
                      <Button variant="outline" size="sm" onClick={() => fetchLogs()} disabled={logsLoading} className="rounded-xl">
                         {logsLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
-                        {tr("새로고침", "Refresh")}
+                        {tf.f00348}
                      </Button>
                   </CardHeader>
                   <CardContent className="p-0">
@@ -559,18 +559,18 @@ export default function PosSettingsPage() {
                       <Table>
                         <TableHeader className="bg-slate-50">
                           <TableRow>
-                            <TableHead className="w-[180px] font-bold">{tr("수신 일시", "Received At")}</TableHead>
-                            <TableHead className="w-[100px] font-bold">{tr("POS사", "Provider")}</TableHead>
-                            <TableHead className="font-bold">{tr("주문번호/금액", "Order/Amount")}</TableHead>
-                            <TableHead className="w-[100px] font-bold text-center">{tr("상태", "Status")}</TableHead>
-                            <TableHead className="font-bold">{tr("처리 결과", "Result")}</TableHead>
+                            <TableHead className="w-[180px] font-bold">{tf.f01449}</TableHead>
+                            <TableHead className="w-[100px] font-bold">{tf.f02281}</TableHead>
+                            <TableHead className="font-bold">{tf.f01876}</TableHead>
+                            <TableHead className="w-[100px] font-bold text-center">{tf.f00319}</TableHead>
+                            <TableHead className="font-bold">{tf.f01976}</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {logs.length === 0 ? (
                             <TableRow>
                               <TableCell colSpan={5} className="h-64 text-center text-slate-400">
-                                {logsLoading ? tr("로그를 불러오는 중...", "Loading logs...") : tr("최근 처리된 트랜잭션이 없습니다.", "No recent transactions.")}
+                                {logsLoading ? tf.f01129 : tf.f02016}
                               </TableCell>
                             </TableRow>
                           ) : (
@@ -591,14 +591,14 @@ export default function PosSettingsPage() {
                                     "rounded-md text-[10px] px-2 py-0.5",
                                     log.status === 'success' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-rose-50 text-rose-600 border-rose-100"
                                   )}>
-                                    {log.status === 'success' ? tr('정상', 'OK') : tr('실패', 'Failed')}
+                                    {log.status === 'success' ? tf.f01819 : tf.f01517}
                                   </Badge>
                                 </TableCell>
                                 <TableCell className="text-xs max-w-[200px] truncate">
                                   {log.status === 'success' ? (
-                                    <span className="text-slate-600">{tr("주문 생성 및 포인트 적립 완료", "Order created and points granted")}</span>
+                                    <span className="text-slate-600">{tf.f01868}</span>
                                   ) : (
-                                    <span className="text-rose-500 font-medium">{log.error_message || tr("알 수 없는 처리 오류", "Unknown processing error")}</span>
+                                    <span className="text-rose-500 font-medium">{log.error_message || tf.f01525}</span>
                                   )}
                                 </TableCell>
                               </TableRow>
@@ -612,7 +612,7 @@ export default function PosSettingsPage() {
 
                 <div className="p-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-center">
                    <p className="text-xs text-slate-500">
-                     {tr("※ 트랜잭션 로그는 기술 지원 및 장애 복구 목적으로 사용됩니다. 민감한 데이터는 마스킹 처리되어 기록됩니다.", "Transaction logs are used for support and recovery. Sensitive data is masked.")}
+                     {tf.f00805}
                    </p>
                 </div>
               </motion.div>
@@ -622,7 +622,7 @@ export default function PosSettingsPage() {
           <footer className="pt-4 flex justify-end gap-3 text-slate-400 text-sm italic">
              <div className="flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4" />
-                {tr("모든 통신은 256비트 SSL 암호화로 보호됩니다.", "All communication is protected with 256-bit SSL encryption.")}
+                {tf.f01200}
              </div>
           </footer>
         </div>

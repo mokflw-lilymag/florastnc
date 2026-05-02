@@ -1,4 +1,5 @@
 "use client";
+import { getMessages } from "@/i18n/getMessages";
 
 import React, { useState, useMemo } from 'react';
 import { PageHeader } from '@/components/page-header';
@@ -44,7 +45,6 @@ import { CategoryManagementDialog } from '@/components/inventory/category-manage
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
-import { toBaseLocale } from "@/i18n/config";
 
 export default function InventoryPage() {
   const {
@@ -62,9 +62,7 @@ export default function InventoryPage() {
   const { materialCategories, loading: settingsLoading } = useSettings();
   const loading = materialsLoading || settingsLoading || suppliersLoading;
   const locale = usePreferredLocale();
-  const isKo = toBaseLocale(locale) === "ko";
-  const tr = (ko: string, en: string) => (isKo ? ko : en);
-  
+  const tf = getMessages(locale).tenantFlows;
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedMidCategory, setSelectedMidCategory] = useState("all");
@@ -117,10 +115,10 @@ export default function InventoryPage() {
           successCount++;
         }
       }
-      toast.success(tr(`${successCount}개의 자재가 등록되었습니다.`, `${successCount} materials imported.`));
+      toast.success(tf.f02319.replace("{count}", String(successCount)));
     } catch (err) {
       console.error(err);
-      toast.error(tr("데이터 가져오기에 실패했습니다.", "Failed to import data."));
+      toast.error(tf.f01087);
     } finally {
       setIsImporting(false);
       e.target.value = '';
@@ -129,7 +127,7 @@ export default function InventoryPage() {
 
   const handleLoadSamples = async () => {
     if (stats.totalTypes > 0) {
-      if (!window.confirm(tr("현재 자재가 이미 존재합니다. 샘플 데이터를 추가로 불러오시겠습니까?", "Materials already exist. Load sample data anyway?"))) return;
+      if (!window.confirm(tf.f02188)) return;
     }
     
     setIsImporting(true);
@@ -139,9 +137,9 @@ export default function InventoryPage() {
         await addMaterial(sample);
         count++;
       }
-      toast.success(tr(`${count}개의 샘플 자재가 등록되었습니다.`, `${count} sample materials imported.`));
+      toast.success(tf.f02320.replace("{count}", String(count)));
     } catch (err) {
-      toast.error(tr("샘플 데이터 로딩 중 오류가 발생했습니다.", "Sample data load failed."));
+      toast.error(tf.f01390);
     } finally {
       setIsImporting(false);
     }
@@ -232,15 +230,15 @@ export default function InventoryPage() {
   return (
     <div className="p-6 max-w-[1600px] mx-auto space-y-6 animate-in fade-in duration-500">
       <PageHeader 
-        title={tr("재고 관리", "Inventory Management")} 
-        description={tr("자재 및 상품의 실시간 재고를 관리하고 입출고 내역을 확인합니다.", "Manage material/product stock and inbound/outbound history.")}
+        title={tf.f01757} 
+        description={tf.f01734}
         icon={Layers}
       >
         <div className="flex flex-wrap items-center justify-end gap-2">
           <Link href="/dashboard/suppliers">
             <Button variant="ghost" size="sm" className="hidden sm:flex text-slate-500 hover:text-slate-900 border border-transparent hover:border-slate-200">
               <Building2 className="h-4 w-4 mr-2" />
-              {tr("거래처 관리", "Suppliers")}
+              {tf.f00874}
             </Button>
           </Link>
 
@@ -251,7 +249,7 @@ export default function InventoryPage() {
             className="hidden sm:flex text-slate-500 hover:text-slate-900 border border-transparent hover:border-slate-200"
           >
             <Settings2 className="h-4 w-4 mr-2" />
-            {tr("카테고리 설정", "Categories")}
+            {tf.f02063}
           </Button>
 
           <Button 
@@ -261,7 +259,7 @@ export default function InventoryPage() {
             className="border-slate-200 text-slate-900 font-medium"
           >
             <Download className="h-4 w-4 mr-2 text-green-600" />
-            {tr("데이터 다운로드", "Download Data")}
+            {tf.f01089}
           </Button>
 
           <Button 
@@ -271,7 +269,7 @@ export default function InventoryPage() {
             className="border-slate-200 text-slate-900 font-medium"
           >
             <Download className="h-4 w-4 mr-2 text-slate-500" />
-            {tr("양식 다운로드", "Download Template")}
+            {tf.f01532}
           </Button>
 
           <div className="relative">
@@ -288,7 +286,7 @@ export default function InventoryPage() {
               className="bg-slate-800 hover:bg-slate-900 text-white shadow-sm transition-all"
             >
               <Upload className={`h-4 w-4 mr-2 ${isImporting ? 'animate-pulse' : ''}`} />
-              {isImporting ? tr('가져오는 중...', 'Importing...') : tr('데이터 가져오기', 'Import Data')}
+              {isImporting ? tf.f00850 : tf.f01086}
             </Button>
           </div>
 
@@ -300,13 +298,13 @@ export default function InventoryPage() {
               setIsAddDialogOpen(true);
             }}
           >
-            <Plus className="w-4 h-4 mr-2" /> {tr("새 자재 등록", "Add Material")}
+            <Plus className="w-4 h-4 mr-2" /> {tf.f01377}
           </Button>
         </div>
       </PageHeader>
 
       <p className="text-xs text-muted-foreground px-1">
-        {tr("상단 요약 카드는 매장 전체 자재 기준입니다. 아래 표는 이름순으로 한 번에", "Top summary uses all materials. Table is paged by")} {DASHBOARD_LIST_PAGE_SIZE}{tr("건씩 페이지를 나눠 불러옵니다. 검색·분류 필터는 현재 페이지 안에서만 적용됩니다.", " rows sorted by name. Filters apply to current page only.")}
+        {tf.f01335} {DASHBOARD_LIST_PAGE_SIZE}{tf.f00897}
       </p>
 
       {/* Stats Cards */}
@@ -314,12 +312,12 @@ export default function InventoryPage() {
         <Card className="border-none shadow-md bg-gradient-to-br from-blue-50 to-white overflow-hidden group hover:shadow-lg transition-all border-l-4 border-l-blue-500">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-blue-600 flex items-center gap-2">
-              <Package className="w-4 h-4" /> {tr("전체 품목", "Total Types")}
+              <Package className="w-4 h-4" /> {tf.f01806}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-blue-500">
-              {stats.totalTypes} <span className="text-sm font-normal text-muted-foreground ml-1">{tr("종", "types")}</span>
+              {stats.totalTypes} <span className="text-sm font-normal text-muted-foreground ml-1">{tf.f01860}</span>
             </div>
           </CardContent>
         </Card>
@@ -327,7 +325,7 @@ export default function InventoryPage() {
         <Card className="border-none shadow-md bg-gradient-to-br from-green-50 to-white overflow-hidden group hover:shadow-lg transition-all border-l-4 border-l-green-500">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-green-600 flex items-center gap-2">
-              <Activity className="w-4 h-4" /> {tr("총 재고량", "Total Stock")}
+              <Activity className="w-4 h-4" /> {tf.f01997}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -340,12 +338,12 @@ export default function InventoryPage() {
         <Card className="border-none shadow-md bg-gradient-to-br from-orange-50 to-white overflow-hidden group hover:shadow-lg transition-all border-l-4 border-l-orange-500">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-orange-600 flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4" /> {tr("재고 부족", "Low Stock")}
+              <AlertTriangle className="w-4 h-4" /> {tf.f01760}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-orange-700 to-orange-500 text-orange-600 font-bold">
-              {stats.lowStock} <span className="text-sm font-normal text-muted-foreground ml-1">{tr("종", "types")}</span>
+              {stats.lowStock} <span className="text-sm font-normal text-muted-foreground ml-1">{tf.f01860}</span>
             </div>
           </CardContent>
         </Card>
@@ -353,12 +351,12 @@ export default function InventoryPage() {
         <Card className="border-none shadow-md bg-gradient-to-br from-red-50 to-white overflow-hidden group hover:shadow-lg transition-all border-l-4 border-l-red-500">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-red-600 flex items-center gap-2">
-              <Info className="w-4 h-4" /> {tr("품절 품목", "Out of Stock")}
+              <Info className="w-4 h-4" /> {tf.f02136}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-red-700 to-red-500 text-red-600 font-bold">
-              {stats.outOfStock} <span className="text-sm font-normal text-muted-foreground ml-1">{tr("종", "types")}</span>
+              {stats.outOfStock} <span className="text-sm font-normal text-muted-foreground ml-1">{tf.f01860}</span>
             </div>
           </CardContent>
         </Card>
@@ -368,8 +366,8 @@ export default function InventoryPage() {
       <Card className="border-none shadow-xl bg-white/80 backdrop-blur-md">
         <CardHeader className="flex flex-row items-center justify-between pb-4 space-y-0">
           <div>
-            <CardTitle className="text-xl font-bold text-gray-800">{tr("자재 현황", "Material Status")}</CardTitle>
-            <CardDescription>{tr("재고 관리 항목을 효율적으로 관리하세요", "Manage inventory items efficiently.")}</CardDescription>
+            <CardTitle className="text-xl font-bold text-gray-800">{tf.f01741}</CardTitle>
+            <CardDescription>{tf.f01759}</CardDescription>
           </div>
           <div className="flex flex-wrap items-center gap-2 w-full max-w-4xl">
             {/* Primary Category Filter */}
@@ -381,10 +379,10 @@ export default function InventoryPage() {
               }}
             >
               <SelectTrigger className="w-[150px] bg-slate-50 border-slate-200 text-xs h-9 rounded-xl">
-                <SelectValue placeholder={tr("대분류", "Main")} />
+                <SelectValue placeholder={tf.f01074} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">{tr("전체 (대분류)", "All (main)")}</SelectItem>
+                <SelectItem value="all">{tf.f01787}</SelectItem>
                 {CATEGORIES.main.map(cat => (
                   <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                 ))}
@@ -398,10 +396,10 @@ export default function InventoryPage() {
               disabled={selectedCategory === "all" || midCategoriesForSelected.length === 0}
             >
               <SelectTrigger className="w-[150px] bg-slate-50 border-slate-200 text-xs h-9 rounded-xl">
-                <SelectValue placeholder={tr("중분류", "Middle")} />
+                <SelectValue placeholder={tf.f01887} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">{tr("전체 (중분류)", "All (middle)")}</SelectItem>
+                <SelectItem value="all">{tf.f01788}</SelectItem>
                 {midCategoriesForSelected.map(cat => (
                   <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                 ))}
@@ -412,7 +410,7 @@ export default function InventoryPage() {
             <div className="relative flex-1 min-w-[200px] group">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
               <Input 
-                placeholder={tr("자재명, 중분류, 거래처 검색...", "Search material, middle category, supplier...")} 
+                placeholder={tf.f01747} 
                 className="pl-9 bg-slate-50 border-slate-200 h-9 rounded-xl focus:bg-white transition-all ring-offset-background text-xs"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -430,19 +428,19 @@ export default function InventoryPage() {
               <Table>
                 <TableHeader className="bg-gray-50/50">
                   <TableRow className="hover:bg-transparent border-b">
-                    <TableHead className="font-bold text-center w-12 text-gray-600">{tr("번호", "No")}</TableHead>
-                    <TableHead className="font-bold text-gray-600">{tr("자재ID", "Material ID")}</TableHead>
-                    <TableHead className="font-bold text-gray-600">{tr("자재명", "Material")}</TableHead>
-                    <TableHead className="font-bold text-gray-600">대분류</TableHead>
-                    <TableHead className="font-bold text-gray-600">중분류</TableHead>
-                    <TableHead className="font-bold text-gray-600 text-center">단위</TableHead>
-                    <TableHead className="font-bold text-gray-600">규격</TableHead>
-                    <TableHead className="font-bold text-gray-600 text-right">가격</TableHead>
-                    <TableHead className="font-bold text-gray-600 text-center">색상</TableHead>
-                    <TableHead className="font-bold text-gray-600 text-center">재고</TableHead>
-                    <TableHead className="font-bold text-gray-600">공급업체</TableHead>
-                    <TableHead className="font-bold text-gray-600">메모</TableHead>
-                    <TableHead className="font-bold text-gray-600 text-right">{tr("관리", "Actions")}</TableHead>
+                    <TableHead className="font-bold text-center w-12 text-gray-600">{tf.f01250}</TableHead>
+                    <TableHead className="font-bold text-gray-600">{tf.f01749}</TableHead>
+                    <TableHead className="font-bold text-gray-600">{tf.f01746}</TableHead>
+                    <TableHead className="font-bold text-gray-600">{tf.f01074}</TableHead>
+                    <TableHead className="font-bold text-gray-600">{tf.f01887}</TableHead>
+                    <TableHead className="font-bold text-gray-600 text-center">{tf.f01066}</TableHead>
+                    <TableHead className="font-bold text-gray-600">{tf.f02374}</TableHead>
+                    <TableHead className="font-bold text-gray-600 text-right">{tf.f00021}</TableHead>
+                    <TableHead className="font-bold text-gray-600 text-center">{tf.f02375}</TableHead>
+                    <TableHead className="font-bold text-gray-600 text-center">{tf.f00538}</TableHead>
+                    <TableHead className="font-bold text-gray-600">{tf.f00950}</TableHead>
+                    <TableHead className="font-bold text-gray-600">{tf.f00197}</TableHead>
+                    <TableHead className="font-bold text-gray-600 text-right">{tf.f00087}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -454,15 +452,15 @@ export default function InventoryPage() {
                              <Layers className="w-16 h-16 text-slate-300" />
                            </div>
                            <div className="space-y-2">
-                             <h3 className="text-xl font-bold text-slate-800">{tr("등록된 자재가 없네요!", "No materials yet!")}</h3>
+                             <h3 className="text-xl font-bold text-slate-800">{tf.f01115}</h3>
                              <p className="max-w-md text-slate-500">
-                               {tr("처음 시작이 막막하시다면 클릭 한 번으로 기본 샘플 데이터(꽃, 꽃바구니 등)를 불러올 수 있습니다.", "You can load starter sample data with one click.")}
+                               {tf.f01981}
                              </p>
                            </div>
                            <div className="flex gap-3">
                               <Button onClick={handleLoadSamples} variant="outline" className="bg-white border-orange-200 text-orange-700 hover:bg-orange-50">
                                 <RefreshCw className="w-4 h-4 mr-2 text-orange-500" />
-                                {tr("샘플 데이터 불러오기", "Load Samples")}
+                                {tf.f01391}
                               </Button>
                               <Button onClick={() => {
                                 setEditingMaterial(null);
@@ -470,7 +468,7 @@ export default function InventoryPage() {
                                 setIsAddDialogOpen(true);
                               }} className="bg-primary hover:bg-primary/90 text-white font-bold">
                                 <Plus className="w-4 h-4 mr-2" />
-                                {tr("첫 자재 등록하기", "Add First Material")}
+                                {tf.f01983}
                               </Button>
                            </div>
                         </div>
@@ -479,13 +477,13 @@ export default function InventoryPage() {
                   ) : materials.length === 0 && stats.totalTypes > 0 ? (
                     <TableRow>
                       <TableCell colSpan={13} className="h-64 text-center text-muted-foreground font-medium">
-                        <p>이 페이지에 표시할 자재가 없습니다. 위의 이전 페이지 버튼으로 돌아가 보거나 새로고침 해 보세요.</p>
+                        <p>{tf.f02391}</p>
                       </TableCell>
                     </TableRow>
                   ) : filteredMaterials.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={13} className="h-64 text-center text-muted-foreground font-medium">
-                        <p>{tr("검색 결과가 없습니다.", "No search results.")}</p>
+                        <p>{tf.f00036}</p>
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -550,7 +548,7 @@ export default function InventoryPage() {
                               size="icon" 
                               className="h-8 w-8 hover:text-red-600 hover:bg-red-50"
                               onClick={() => {
-                                if(window.confirm(tr("정말 삭제하시겠습니까?", "Are you sure you want to delete?"))) deleteMaterial(material.id);
+                                if(window.confirm(tf.f01816)) deleteMaterial(material.id);
                               }}
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -574,13 +572,13 @@ export default function InventoryPage() {
                 onClick={() => void setListPage(listPage - 1)}
               >
                 <ChevronLeft className="h-4 w-4 mr-1" />
-                {tr("이전", "Prev")}
+                {tf.f01689}
               </Button>
               <span>
                 {materialsTotalCount === 0
                   ? "0"
                   : `${listPage * DASHBOARD_LIST_PAGE_SIZE + 1}–${Math.min((listPage + 1) * DASHBOARD_LIST_PAGE_SIZE, materialsTotalCount)}`}{" "}
-                / {tr("전체", "Total")} {materialsTotalCount}{tr("건", "")} · {tr("페이지", "Page")} {listPage + 1} /{" "}
+                / {tf.f00553} {materialsTotalCount}{tf.f00033} · {tf.f02103} {listPage + 1} /{" "}
                 {Math.max(1, Math.ceil(materialsTotalCount / DASHBOARD_LIST_PAGE_SIZE))}
               </span>
               <Button
@@ -592,7 +590,7 @@ export default function InventoryPage() {
                 }
                 onClick={() => void setListPage(listPage + 1)}
               >
-                {tr("다음", "Next")}
+                {tf.f01062}
                 <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
             </div>
@@ -604,15 +602,15 @@ export default function InventoryPage() {
         <DialogContent className="sm:max-w-[500px] border-none shadow-2xl bg-white">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-orange-500">
-              {editingMaterial ? "자재 정보 수정" : "새 자재 등록"}
+              {editingMaterial ? tf.f02380 : tf.f02381}
             </DialogTitle>
-            <DialogDescription className="text-slate-500">
-              재고 관리를 위해 자재의 상세 정보를 입력해 주세요.
-            </DialogDescription>
+            <DialogDescription className="text-slate-500">{tf.f02382}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right font-semibold text-slate-700">자재명</Label>
+              <Label htmlFor="name" className="text-right font-semibold text-slate-700">
+                {tf.f01746}
+              </Label>
               <Input
                 id="name"
                 value={formData.name}
@@ -622,13 +620,13 @@ export default function InventoryPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid grid-cols-2 items-center gap-2">
-                <Label className="text-right font-semibold text-slate-700">대분류</Label>
+                <Label className="text-right font-semibold text-slate-700">{tf.f01074}</Label>
                 <Select 
                   value={formData.main_category || ""} 
                   onValueChange={(val: string | null) => setFormData({...formData, main_category: val || ""})}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="선택" />
+                    <SelectValue placeholder={tf.f01403} />
                   </SelectTrigger>
                   <SelectContent>
                     {CATEGORIES.main.map(cat => (
@@ -638,14 +636,14 @@ export default function InventoryPage() {
                 </Select>
               </div>
               <div className="grid grid-cols-2 items-center gap-2">
-                <Label className="text-right font-semibold">중분류</Label>
+                <Label className="text-right font-semibold">{tf.f01887}</Label>
                 {formData.main_category && CATEGORIES.mid[formData.main_category]?.length > 0 ? (
                   <Select 
                     value={formData.mid_category || ""} 
                     onValueChange={(val) => setFormData({...formData, mid_category: val || ""})}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="중분류 선택" />
+                      <SelectValue placeholder={tf.f02383} />
                     </SelectTrigger>
                     <SelectContent>
                       {CATEGORIES.mid[formData.main_category].map(cat => (
@@ -657,22 +655,22 @@ export default function InventoryPage() {
                   <Input
                     value={formData.mid_category || ""}
                     onChange={(e) => setFormData({...formData, mid_category: e.target.value})}
-                    placeholder="중분류 직접 입력"
+                    placeholder={tf.f02384}
                   />
                 )}
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
                <div className="grid grid-cols-2 items-center gap-2">
-                 <Label className="text-right font-semibold text-slate-700">단위</Label>
+                 <Label className="text-right font-semibold text-slate-700">{tf.f01066}</Label>
                  <Input
                    value={formData.unit}
                    onChange={(e) => setFormData({...formData, unit: e.target.value})}
-                   placeholder="ea, 롤 등"
+                   placeholder={tf.f02385}
                  />
                </div>
                <div className="grid grid-cols-2 items-center gap-2">
-                  <Label className="text-right font-semibold text-slate-700">규격</Label>
+                  <Label className="text-right font-semibold text-slate-700">{tf.f02374}</Label>
                   <Input
                     value={formData.spec || ""}
                     onChange={(e) => setFormData({...formData, spec: e.target.value})}
@@ -681,7 +679,7 @@ export default function InventoryPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid grid-cols-2 items-center gap-2">
-                <Label className="text-right font-semibold text-slate-700">가격</Label>
+                <Label className="text-right font-semibold text-slate-700">{tf.f00021}</Label>
                 <Input
                   type="number"
                   value={formData.price}
@@ -689,16 +687,18 @@ export default function InventoryPage() {
                 />
               </div>
               <div className="grid grid-cols-2 items-center gap-2">
-                <Label className="text-right font-semibold text-slate-700">색상</Label>
+                <Label className="text-right font-semibold text-slate-700">{tf.f02375}</Label>
                 <Input
                   value={formData.color || ""}
                   onChange={(e) => setFormData({...formData, color: e.target.value})}
-                  placeholder="빨강, #FF0000"
+                  placeholder={tf.f02386}
                 />
               </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="stock" className="text-right font-semibold text-slate-700">현재 재고</Label>
+              <Label htmlFor="stock" className="text-right font-semibold text-slate-700">
+                {tf.f02379}
+              </Label>
               <Input
                 id="stock"
                 type="number"
@@ -708,7 +708,9 @@ export default function InventoryPage() {
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="supplier_select" className="text-right font-semibold text-slate-700">공급업체</Label>
+              <Label htmlFor="supplier_select" className="text-right font-semibold text-slate-700">
+                {tf.f00950}
+              </Label>
               <div className="col-span-3 space-y-2">
                   <Popover open={isSupplierOpen} onOpenChange={setIsSupplierOpen}>
                     <PopoverTrigger 
@@ -723,14 +725,14 @@ export default function InventoryPage() {
                     >
                       {formData.supplier_id
                         ? suppliers.find((s) => s.id === formData.supplier_id)?.name
-                        : "공급업체 선택"}
+                        : tf.f02387}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </PopoverTrigger>
                     <PopoverContent className="w-[400px] p-0">
                       <Command>
-                        <CommandInput placeholder="거래처 검색..." />
+                        <CommandInput placeholder={tf.f02388} />
                         <CommandList>
-                          <CommandEmpty>검색 결과가 없습니다.</CommandEmpty>
+                          <CommandEmpty>{tf.f00036}</CommandEmpty>
                           <CommandGroup>
                             <CommandItem
                               value="none"
@@ -745,7 +747,7 @@ export default function InventoryPage() {
                                   !formData.supplier_id ? "opacity-100" : "opacity-0"
                                 )}
                               />
-                              직접 입력 또는 선택안함
+                              {tf.f02389}
                             </CommandItem>
                             {suppliers.map((s) => (
                               <CommandItem
@@ -771,14 +773,16 @@ export default function InventoryPage() {
                     </PopoverContent>
                   </Popover>
                   <Input
-                    placeholder="직접 입력 (위에서 선택하지 않은 경우)"
+                    placeholder={tf.f02390}
                     value={formData.supplier || ""}
                     onChange={(e) => setFormData({...formData, supplier: e.target.value})}
                   />
               </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="memo" className="text-right font-semibold text-slate-700">메모</Label>
+              <Label htmlFor="memo" className="text-right font-semibold text-slate-700">
+                {tf.f00197}
+              </Label>
               <Input
                 id="memo"
                 value={formData.memo || ""}
@@ -788,8 +792,15 @@ export default function InventoryPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>취소</Button>
-            <Button onClick={handleSave} className="bg-primary hover:bg-primary/90 text-white font-bold px-8 shadow-lg shadow-primary/20">저장하기</Button>
+            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+              {tf.f00702}
+            </Button>
+            <Button
+              onClick={handleSave}
+              className="bg-primary hover:bg-primary/90 text-white font-bold px-8 shadow-lg shadow-primary/20"
+            >
+              {tf.f01771}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

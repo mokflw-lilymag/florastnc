@@ -1,4 +1,5 @@
 "use client";
+import { getMessages } from "@/i18n/getMessages";
 import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Check, Loader2, Printer, PlusCircle, Search, Trash2 } from "lucide-react";
@@ -59,10 +60,8 @@ export default function NewOrderPage() {
   const { fees: regionFees } = useDeliveryFees();
   const { settings } = useSettings();
   const locale = usePreferredLocale();
-  const isKo = toBaseLocale(locale) === "ko";
-  const tr = (ko: string, en: string) => (isKo ? ko : en);
-  
-  const router = useRouter();
+  const tf = getMessages(locale).tenantFlows;
+  const isKo = toBaseLocale(locale) === "ko";  const router = useRouter();
   const searchParams = useSearchParams();
   const orderId = searchParams.get('id');
   
@@ -412,7 +411,7 @@ export default function NewOrderPage() {
     setIsSubmitting(true);
 
     if (orderItems.length === 0) {
-      toast.error(tr('상품을 선택해주세요.', 'Please select at least one item.'));
+      toast.error(tf.f00340);
       setIsSubmitting(false); return;
     }
 
@@ -427,14 +426,14 @@ export default function NewOrderPage() {
           company_name: ordererCompany,
           email: ordererEmail,
           type: ordererCompany ? 'company' : 'individual',
-          grade: tr('신규', 'New'),
+          grade: tf.f00415,
           points: 0,
         });
         if (newCustomerId) {
           finalCustomerId = newCustomerId;
         }
       } catch (e) {
-        console.error(tr("고객 자동 등록 실패", "Customer auto-registration failed"), e);
+        console.error(tf.f00068, e);
       }
     }
 
@@ -496,10 +495,10 @@ export default function NewOrderPage() {
       if (existingOrder) {
         const success = await updateOrder(existingOrder.id, orderPayload);
         if (success) {
-          toast.success(tr("주문이 수정되었습니다.", "Order updated."));
+          toast.success(tf.f00637);
           router.push("/dashboard/orders");
         } else {
-          toast.error(tr("주문 수정에 실패했습니다.", "Failed to update order."));
+          toast.error(tf.f00603);
         }
       } else {
         const resultId = await addOrder(orderPayload);
@@ -508,12 +507,12 @@ export default function NewOrderPage() {
           setLastOrderNumber(orderPayload.order_number || `ORD-${Date.now()}`);
           setShowSuccessDialog(true);
         } else {
-          toast.error(tr("주문 저장에 실패했습니다. 데이터를 다시 확인해주세요.", "Failed to save order. Please check input data."));
+          toast.error(tf.f00610);
         }
       }
     } catch (error) {
        console.error(error);
-       toast.error(tr("주문 저장 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.", "Error while saving order. Please try again."));
+       toast.error(tf.f00609);
     } finally {
        setIsSubmitting(false);
     }
@@ -538,7 +537,7 @@ export default function NewOrderPage() {
     if (data.items && data.items.length > 0) {
       const newItems = data.items.map((item: any) => ({
         id: `ai_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        name: item.name || tr("이름 없음", "Unnamed"),
+        name: item.name || tf.f00501,
         price: item.price || 0,
         quantity: item.quantity || 1,
         stock: 999
@@ -569,10 +568,15 @@ export default function NewOrderPage() {
   return (
     <div className="h-full flex flex-col bg-gray-50/30">
       <PageHeader
-        title={existingOrder ? tr("주문 수정", "Edit Order") : (externalVendor ? `${tr("협력사 발주", "Partner Order")} (${externalVendor.name})` : tr("새 주문 등록", "New Order"))}
+        title={existingOrder ? tf.f00602 : (externalVendor ? `${tf.f00773} (${externalVendor.name})` : tf.f00346)}
         description={existingOrder 
-          ? tr("기존 주문 정보를 수정합니다.", "Edit existing order information.") 
-          : (externalVendor ? tr(`${externalVendor.name}님에게 보낼 상품을 선택하고 정보를 입력하세요.`, `Select items and fill details for ${externalVendor.name}.`) : tr(`${profile?.tenants?.name || "새로운 화원"}의 새로운 주문을 접수합니다.`, `Create a new order for ${profile?.tenants?.name || "your flower shop"}.`))}
+          ? tf.f00113 
+          : (externalVendor
+              ? tf.f00799.replace("{name}", externalVendor.name)
+              : tf.f00800.replace(
+                  "{shop}",
+                  profile?.tenants?.name || (isKo ? "새로운 화원" : "your flower shop")
+                ))}
       >
         <div className="mt-4 flex justify-end px-4 md:px-6">
           <AiOrderConcierge onApply={handleApplyAiData} />
@@ -583,7 +587,7 @@ export default function NewOrderPage() {
         <div className="md:col-span-8 space-y-6 overflow-y-auto pr-0 md:pr-2 pb-32 md:pb-20 scrollbar-hide">
           <CustomerSection
             selectedBranch={selectedBranch}
-            availableBranches={tenantId ? [{ id: tenantId, name: profile?.tenants?.name || tr('본점', 'Main Store') }] : []}
+            availableBranches={tenantId ? [{ id: tenantId, name: profile?.tenants?.name || tf.f00293 }] : []}
             onBranchChange={() => {}}
             isAdmin={profile?.role === 'super_admin'}
             isCustomerSearchOpen={isCustomerSearchOpen}
@@ -727,10 +731,10 @@ export default function NewOrderPage() {
       <div className="md:hidden fixed bottom-16 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-3 pb-safe flex flex-col gap-2 shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
         <div className="flex items-center justify-between px-1">
           <div className="flex flex-col">
-            <span className="text-xs text-slate-500 font-medium">{tr("선택 상품", "Selected items")} {orderItems.length}{tr("개", "")}</span>
+            <span className="text-xs text-slate-500 font-medium">{tf.f00356} {orderItems.length}{tf.f00025}</span>
             <div className="flex items-baseline gap-1">
               <span className="text-xl font-bold text-primary">{orderSummary.total.toLocaleString()}</span>
-              <span className="text-xs font-bold text-primary">{tr("원", "KRW")}</span>
+              <span className="text-xs font-bold text-primary">{tf.f00487}</span>
             </div>
           </div>
           <Button 
@@ -739,12 +743,12 @@ export default function NewOrderPage() {
             className="text-xs text-slate-500 underline decoration-slate-300"
             onClick={() => setIsMobileSummaryOpen(true)}
           >
-            {tr("내역 확인", "View details")}
+            {tf.f00131}
           </Button>
           <Dialog open={isMobileSummaryOpen} onOpenChange={setIsMobileSummaryOpen}>
             <DialogContent className="max-h-[85vh] overflow-y-auto p-0 border-none rounded-t-3xl sm:rounded-3xl">
               <DialogHeader className="p-4 bg-slate-50 border-b">
-                <DialogTitle>{tr("주문 요약 (결제 상세)", "Order Summary (Payment)")}</DialogTitle>
+                <DialogTitle>{tf.f00605}</DialogTitle>
               </DialogHeader>
               <div className="p-4">
                 <OrderSummarySide
@@ -792,7 +796,7 @@ export default function NewOrderPage() {
                 onClick={handleCompleteOrder}
                 disabled={isSubmitting || orderItems.length === 0}
             >
-                {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : `${orderSummary.total.toLocaleString()}${tr("원 주문하기", " Place Order")}`}
+                {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : `${orderSummary.total.toLocaleString()}${tf.f00489}`}
             </Button>
         </div>
       </div>
@@ -801,15 +805,15 @@ export default function NewOrderPage() {
       <Dialog open={isCustomProductDialogOpen} onOpenChange={setIsCustomProductDialogOpen}>
         <DialogContent className="rounded-3xl">
           <DialogHeader>
-            <DialogTitle className="text-slate-900">{tr("수동 상품 추가", "Add Custom Item")}</DialogTitle>
+            <DialogTitle className="text-slate-900">{tf.f00374}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-               <Label className="text-slate-700">{tr("상품명", "Item Name")}</Label>
+               <Label className="text-slate-700">{tf.f00338}</Label>
                <Input value={customProductName} onChange={e => setCustomProductName(e.target.value)} />
             </div>
             <div className="space-y-2">
-               <Label className="text-slate-700">{tr("가격", "Price")}</Label>
+               <Label className="text-slate-700">{tf.f00021}</Label>
                <Input type="number" value={customProductPrice} onChange={e => setCustomProductPrice(e.target.value)} />
             </div>
           </div>
@@ -819,7 +823,7 @@ export default function NewOrderPage() {
               if (!customProductName || price <= 0) return;
               setOrderItems(prev => [...prev, { id: `custom_${Date.now()}`, name: customProductName, price, quantity: 1, stock: 999 }]);
               setIsCustomProductDialogOpen(false);
-            }}>{tr("추가", "Add")}</Button>
+            }}>{tf.f00697}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -830,14 +834,14 @@ export default function NewOrderPage() {
             <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
               <Check className="w-10 h-10 text-green-600" />
             </div>
-            <DialogTitle className="text-center text-2xl font-bold text-slate-900">{tr("주문 접수 완료!", "Order Submitted!")}</DialogTitle>
+            <DialogTitle className="text-center text-2xl font-bold text-slate-900">{tf.f00614}</DialogTitle>
             <DialogDescription className="text-center font-mono text-primary font-bold">
               {lastOrderNumber}
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-2 pt-4">
             <Button className="w-full rounded-2xl bg-primary text-white h-12 font-bold" onClick={() => router.push('/dashboard/orders')}>
-              {tr("주문 현황 보기", "View Orders")}
+              {tf.f00621}
             </Button>
             {lastOrderId && receipt_type === 'delivery_reservation' && (
               <div className="flex flex-col gap-2 w-full">
@@ -846,19 +850,19 @@ export default function NewOrderPage() {
                   className="w-full rounded-2xl h-12 font-bold border-primary text-primary hover:bg-primary/5 flex items-center justify-center gap-2" 
                   onClick={() => router.push(`/dashboard/orders/print-preview/${lastOrderId}`)}
                 >
-                  <Printer className="w-4 h-4" /> {tr("주문서 출력 (배송용)", "Print Order Sheet (Delivery)")}
+                  <Printer className="w-4 h-4" /> {tf.f00631}
                 </Button>
                 <Button 
                   variant="ghost" 
                   className="w-full rounded-2xl h-10 font-bold text-slate-500 flex items-center justify-center gap-2" 
                   onClick={() => router.push(`/dashboard/orders?openMessagePrint=true&orderId=${lastOrderId}`)}
                 >
-                  <Printer className="w-4 h-4" /> {tr("리본/카드 추가 인쇄", "Print Ribbon/Card")}
+                  <Printer className="w-4 h-4" /> {tf.f00185}
                 </Button>
               </div>
             )}
             <Button variant="ghost" className="w-full rounded-2xl h-12 font-bold text-gray-500" onClick={() => window.location.reload()}>
-              {tr("새 주문 계속 등록", "Create Another Order")}
+              {tf.f00345}
             </Button>
           </div>
         </DialogContent>

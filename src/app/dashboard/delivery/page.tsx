@@ -1,4 +1,5 @@
 "use client";
+import { getMessages } from "@/i18n/getMessages";
 import * as React from 'react';
 import { useState, useMemo } from 'react';
 import { PageHeader } from '@/components/page-header';
@@ -57,9 +58,8 @@ export default function DeliveryManagementPage() {
   const { orders, loading, updateOrder } = useOrders();
   const { settings, saveSettings } = useSettings();
   const locale = usePreferredLocale();
-  const isKo = toBaseLocale(locale) === "ko";
-  const tr = (ko: string, en: string) => (isKo ? ko : en);
-  const [searchTerm, setSearchTerm] = useState("");
+  const tf = getMessages(locale).tenantFlows;
+  const isKo = toBaseLocale(locale) === "ko";  const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<"all" | "delivery" | "pickup">("all");
   const [newCarrier, setNewCarrier] = useState("");
   const [localOverrides, setLocalOverrides] = useState<Record<string, Partial<any>>>({});
@@ -113,9 +113,9 @@ export default function DeliveryManagementPage() {
   const handleStatusChange = async (orderId: string, status: 'processing' | 'completed' | 'canceled') => {
     try {
       await updateOrder(orderId, { status });
-      toast.success(tr(`주문 상태가 ${status === 'completed' ? '완료' : '변경'}되었습니다.`, `Order status ${status === "completed" ? "completed" : "updated"}.`));
+      toast.success(status === "completed" ? tf.f00804 : tf.f00805);
     } catch (error) {
-       toast.error(tr("상태 변경 실패", "Failed to change status"));
+       toast.error(tf.f00323);
     }
   };
 
@@ -165,7 +165,7 @@ export default function DeliveryManagementPage() {
       };
 
       await updateOrder(orderId, updates);
-      toast.success(tr("배송 정보가 저장되었습니다.", "Delivery info saved."));
+      toast.success(tf.f00253);
     } catch (error) {
       // 실패 시 낙관적 업데이트 롤백
       setLocalOverrides(prev => {
@@ -173,35 +173,35 @@ export default function DeliveryManagementPage() {
         delete next[orderId];
         return next;
       });
-      toast.error(tr("배송 정보 저장 실패", "Failed to save delivery info."));
+      toast.error(tf.f00252);
     }
   };
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6 animate-in slide-in-from-bottom-4 duration-500 pb-20">
       <PageHeader 
-        title={tr("배송 및 픽업 관리", "Delivery & Pickup Management")} 
-        description={tr("오늘의 배송 및 픽업 일정을 확인하고 진행 상태를 관리합니다.", "Check today's delivery/pickup schedule and manage progress.")}
+        title={tf.f00243} 
+        description={tf.f00466}
         icon={Truck}
       >
         <Link 
           href="/dashboard/delivery/profit" 
           className={cn(buttonVariants({ variant: "outline" }), "gap-2 font-bold shadow-sm rounded-xl border-gray-200")}
         >
-          <TrendingUp className="w-4 h-4 text-emerald-600" /> {tr("배송비 정산 내역", "Delivery Cost Settlement")}
+          <TrendingUp className="w-4 h-4 text-emerald-600" /> {tf.f00262}
         </Link>
         <Dialog>
           <DialogTrigger render={<Button variant="outline" className="gap-2 font-bold shadow-sm rounded-xl border-gray-200" />}>
-            <Settings className="w-4 h-4" /> {tr("배송업체 관리", "Carriers")}
+            <Settings className="w-4 h-4" /> {tf.f00268}
           </DialogTrigger>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>{tr("배송업체 항목 관리", "Manage Carrier List")}</DialogTitle>
+              <DialogTitle>{tf.f00270}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="flex items-center gap-2">
                 <Input 
-                  placeholder={tr("새 배송업체 입력", "Add new carrier")} 
+                  placeholder={tf.f00344} 
                   value={newCarrier}
                   onChange={(e) => setNewCarrier(e.target.value)}
                   onKeyDown={(e) => {
@@ -223,7 +223,7 @@ export default function DeliveryManagementPage() {
                     setNewCarrier("");
                   }
                 }}>
-                  <Plus className="w-4 h-4" /> {tr("추가", "Add")}
+                  <Plus className="w-4 h-4" /> {tf.f00697}
                 </Button>
               </div>
               <div className="border rounded-md divide-y max-h-60 overflow-y-auto">
@@ -241,7 +241,7 @@ export default function DeliveryManagementPage() {
                   </div>
                 ))}
                 {(!settings?.deliveryCarriers || settings.deliveryCarriers.length === 0) && (
-                  <div className="p-4 text-center text-sm text-gray-500">{tr("등록된 배송업체가 없습니다.", "No carriers registered.")}</div>
+                  <div className="p-4 text-center text-sm text-gray-500">{tf.f00166}</div>
                 )}
               </div>
             </div>
@@ -255,8 +255,8 @@ export default function DeliveryManagementPage() {
            <CardContent className="pt-6">
               <div className="flex justify-between items-start">
                  <div>
-                    <p className="text-indigo-100 text-sm font-medium">{tr("전체 일정", "Total schedules")}</p>
-                    <h3 className="text-3xl font-bold mt-1 text-white">{filteredOrders.length} <span className="text-lg font-normal">{tr("건", "")}</span></h3>
+                    <p className="text-indigo-100 text-sm font-medium">{tf.f00559}</p>
+                    <h3 className="text-3xl font-bold mt-1 text-white">{filteredOrders.length} <span className="text-lg font-normal">{tf.f00033}</span></h3>
                  </div>
                  <div className="p-2 bg-white/20 rounded-lg">
                     <Clock className="w-6 h-6" />
@@ -269,9 +269,9 @@ export default function DeliveryManagementPage() {
            <CardContent className="pt-6">
               <div className="flex justify-between items-start">
                  <div>
-                    <p className="text-blue-100 text-sm font-medium">{tr("배송 예약", "Delivery reservations")}</p>
+                    <p className="text-blue-100 text-sm font-medium">{tf.f00245}</p>
                     <h3 className="text-3xl font-bold mt-1 text-white">
-                      {filteredOrders.filter(o => o.receipt_type === "delivery_reservation").length} <span className="text-lg font-normal">{tr("건", "")}</span>
+                      {filteredOrders.filter(o => o.receipt_type === "delivery_reservation").length} <span className="text-lg font-normal">{tf.f00033}</span>
                     </h3>
                  </div>
                  <div className="p-2 bg-white/20 rounded-lg">
@@ -285,9 +285,9 @@ export default function DeliveryManagementPage() {
            <CardContent className="pt-6">
               <div className="flex justify-between items-start">
                  <div>
-                    <p className="text-amber-100 text-sm font-medium">{tr("픽업 예약", "Pickup reservations")}</p>
+                    <p className="text-amber-100 text-sm font-medium">{tf.f00753}</p>
                     <h3 className="text-3xl font-bold mt-1 text-white">
-                      {filteredOrders.filter(o => o.receipt_type !== "delivery_reservation").length} <span className="text-lg font-normal">{tr("건", "")}</span>
+                      {filteredOrders.filter(o => o.receipt_type !== "delivery_reservation").length} <span className="text-lg font-normal">{tf.f00033}</span>
                     </h3>
                  </div>
                  <div className="p-2 bg-white/20 rounded-lg">
@@ -307,7 +307,7 @@ export default function DeliveryManagementPage() {
             onClick={() => setDateFilterMode("today")}
             className={`rounded-xl px-4 h-9 font-bold ${dateFilterMode === "today" ? "bg-primary text-white" : "text-gray-500"}`}
           >
-            {tr("오늘", "Today")}
+            {tf.f00458}
           </Button>
           <Button 
             variant={dateFilterMode === "tomorrow" ? "default" : "ghost"}
@@ -315,7 +315,7 @@ export default function DeliveryManagementPage() {
             onClick={() => setDateFilterMode("tomorrow")}
             className={`rounded-xl px-4 h-9 font-bold ${dateFilterMode === "tomorrow" ? "bg-primary text-white" : "text-gray-500"}`}
           >
-            {tr("내일", "Tomorrow")}
+            {tf.f00137}
           </Button>
           <Button 
             variant={dateFilterMode === "all" ? "default" : "ghost"}
@@ -323,7 +323,7 @@ export default function DeliveryManagementPage() {
             onClick={() => setDateFilterMode("all")}
             className={`rounded-xl px-4 h-9 font-bold ${dateFilterMode === "all" ? "bg-primary text-white" : "text-gray-500"}`}
           >
-            {tr("전체 일정", "All Schedules")}
+            {tf.f00559}
           </Button>
           
           <div className="h-4 w-[1px] bg-gray-200 mx-1" />
@@ -335,7 +335,7 @@ export default function DeliveryManagementPage() {
                 dateFilterMode === "custom" ? "bg-primary text-white" : "text-gray-500"
               )}>
               <CalendarIcon className="w-4 h-4" />
-              {selectedDate ? format(selectedDate, 'yyyy-MM-dd') : tr('날짜 선택', 'Pick date')}
+              {selectedDate ? format(selectedDate, 'yyyy-MM-dd') : tf.f00129}
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
@@ -358,27 +358,27 @@ export default function DeliveryManagementPage() {
                 onClick={() => setFilterType("all")}
                 className={`rounded-lg flex-1 md:flex-none h-9 ${filterType === "all" ? "bg-white text-black shadow-sm font-bold border-none" : "text-gray-500 hover:text-black hover:bg-white/50"}`}
               >
-                {tr("전체", "All")}
+                {tf.f00553}
               </Button>
               <Button 
                 variant={filterType === "delivery" ? "default" : "ghost"}
                 onClick={() => setFilterType("delivery")}
                 className={`rounded-lg flex-1 md:flex-none h-9 ${filterType === "delivery" ? "bg-white text-blue-600 shadow-sm font-bold border-none" : "text-gray-500 hover:text-blue-600 hover:bg-white/50"}`}
               >
-                {tr("배송", "Delivery")}
+                {tf.f00240}
               </Button>
               <Button 
                 variant={filterType === "pickup" ? "default" : "ghost"}
                 onClick={() => setFilterType("pickup")}
                 className={`rounded-lg flex-1 md:flex-none h-9 ${filterType === "pickup" ? "bg-white text-amber-600 shadow-sm font-bold border-none" : "text-gray-500 hover:text-amber-600 hover:bg-white/50"}`}
               >
-                {tr("픽업", "Pickup")}
+                {tf.f00752}
               </Button>
           </div>
           <div className="relative w-full md:w-72">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input 
-                placeholder={tr("주문자, 수령인, 주소 검색...", "Search customer, recipient, address...")} 
+                placeholder={tf.f00645} 
                 className="pl-10 rounded-xl bg-gray-50 border-none focus:ring-2 focus:ring-primary/20"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -393,20 +393,20 @@ export default function DeliveryManagementPage() {
            {loading ? (
              <div className="flex flex-col items-center justify-center h-64 space-y-4">
                 <Loader2 className="w-10 h-10 text-primary animate-spin" />
-                <p className="text-gray-500 font-medium animate-pulse text-lg">{tr("데이터를 매칭하는 중...", "Matching data...")}</p>
+                <p className="text-gray-500 font-medium animate-pulse text-lg">{tf.f00156}</p>
              </div>
            ) : (
              <Table>
                 <TableHeader className="bg-gray-50/80">
                    <TableRow className="hover:bg-transparent border-b">
-                      <TableHead className="py-4 pl-6 font-bold text-gray-700">{tr("시간 / 구분", "Time / Type")}</TableHead>
-                      <TableHead className="font-bold text-gray-700">{tr("고객 정보", "Customer")}</TableHead>
-                      <TableHead className="font-bold text-gray-700">{tr("상품 정보", "Products")}</TableHead>
-                      <TableHead className="font-bold text-gray-700">{tr("수령 정보", "Pickup/Recipient")}</TableHead>
-                      <TableHead className="font-bold text-gray-700">{tr("실지출 배송비", "Actual delivery cost")}</TableHead>
-                      <TableHead className="font-bold text-gray-700 w-44">{tr("배송업체 / 배차", "Carrier / Dispatch")}</TableHead>
-                      <TableHead className="font-bold text-gray-700 text-center">{tr("상태", "Status")}</TableHead>
-                      <TableHead className="pr-6 text-right font-bold text-gray-700">{tr("관리", "Actions")}</TableHead>
+                      <TableHead className="py-4 pl-6 font-bold text-gray-700">{tf.f00410}</TableHead>
+                      <TableHead className="font-bold text-gray-700">{tf.f00069}</TableHead>
+                      <TableHead className="font-bold text-gray-700">{tf.f00333}</TableHead>
+                      <TableHead className="font-bold text-gray-700">{tf.f00381}</TableHead>
+                      <TableHead className="font-bold text-gray-700">{tf.f00424}</TableHead>
+                      <TableHead className="font-bold text-gray-700 w-44">{tf.f00267}</TableHead>
+                      <TableHead className="font-bold text-gray-700 text-center">{tf.f00319}</TableHead>
+                      <TableHead className="pr-6 text-right font-bold text-gray-700">{tf.f00087}</TableHead>
                    </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -415,7 +415,7 @@ export default function DeliveryManagementPage() {
                         <TableCell colSpan={6} className="h-96 text-center">
                            <div className="flex flex-col items-center justify-center space-y-3 opacity-40">
                               <Truck className="w-20 h-20" />
-                              <p className="text-xl font-bold">{tr("진행 중인 배송/픽업 일정이 없습니다.", "No active delivery or pickup schedules.")}</p>
+                              <p className="text-xl font-bold">{tf.f00670}</p>
                            </div>
                         </TableCell>
                      </TableRow>
@@ -435,14 +435,14 @@ export default function DeliveryManagementPage() {
                                <div className="flex flex-col gap-1">
                                   <div className="flex items-center gap-2 text-primary font-bold text-lg">
                                      <Clock className="w-4 h-4" />
-                                     {info?.time || tr("시간미정", "TBD")}
+                                     {info?.time || tf.f00413}
                                   </div>
                                   <Badge 
                                     className={`w-fit py-0.5 px-2 text-[10px] font-black uppercase tracking-wider shadow-sm transition-all ${
                                       isDelivery ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-amber-500 hover:bg-amber-600 text-white"
                                     }`}
                                   >
-                                    {isDelivery ? tr("배송", "Delivery") : tr("픽업", "Pickup")}
+                                    {isDelivery ? tf.f00240 : tf.f00752}
                                   </Badge>
                                </div>
                             </TableCell>
@@ -459,7 +459,7 @@ export default function DeliveryManagementPage() {
                                     {order.items.map((item: any) => item.name).join(", ")}
                                   </p>
                                   <p className="text-xs text-muted-foreground mt-0.5 truncate italic">
-                                    {order.memo || tr("요청사항 없음", "No request notes")}
+                                    {order.memo || tf.f00483}
                                   </p>
                                </div>
                             </TableCell>
@@ -480,7 +480,7 @@ export default function DeliveryManagementPage() {
                                  <div className="flex flex-col gap-1">
                                     <div className="flex items-center gap-1.5 font-bold text-sm text-gray-800">
                                        <ShoppingBag className="w-3.5 h-3.5 text-amber-500" />
-                                       {tr("매장 수령", "Store pickup")}
+                                       {tf.f00191}
                                     </div>
                                     <div className="flex items-center gap-2 text-xs font-medium text-gray-500">
                                        <User className="w-3 h-3" /> {order.pickup_info?.pickerName}
@@ -510,8 +510,8 @@ export default function DeliveryManagementPage() {
                                         />
                                       </div>
                                       <div className="flex gap-1 mt-1">
-                                        <Button size="sm" className="h-6 text-[10px] px-2 bg-primary hover:bg-primary/90" onClick={() => saveDeliveryInfo(order.id)}>{tr("저장", "Save")}</Button>
-                                        <Button size="sm" variant="ghost" className="h-6 text-[10px] px-2 text-gray-500 hover:bg-gray-100" onClick={cancelEditing}>{tr("취소", "Cancel")}</Button>
+                                        <Button size="sm" className="h-6 text-[10px] px-2 bg-primary hover:bg-primary/90" onClick={() => saveDeliveryInfo(order.id)}>{tf.f00539}</Button>
+                                        <Button size="sm" variant="ghost" className="h-6 text-[10px] px-2 text-gray-500 hover:bg-gray-100" onClick={cancelEditing}>{tf.f00702}</Button>
                                       </div>
                                    </div>
                                  ) : (
@@ -520,9 +520,9 @@ export default function DeliveryManagementPage() {
                                      onClick={() => startEditing(order)}
                                    >
                                       <span className={cn("font-black text-sm", displayOrder.actual_delivery_cost ? "text-rose-600" : "text-gray-300 italic")}>
-                                        {displayOrder.actual_delivery_cost ? `₩${displayOrder.actual_delivery_cost.toLocaleString()}` : tr("미입력", "Not set")}
+                                        {displayOrder.actual_delivery_cost ? `₩${displayOrder.actual_delivery_cost.toLocaleString()}` : tf.f00223}
                                       </span>
-                                      <span className="text-[10px] text-gray-400 font-medium group-hover/cost:text-blue-500 underline decoration-dotted decoration-blue-200 underline-offset-2">{tr("배송비 입력", "Set cost")}</span>
+                                      <span className="text-[10px] text-gray-400 font-medium group-hover/cost:text-blue-500 underline decoration-dotted decoration-blue-200 underline-offset-2">{tf.f00261}</span>
                                    </div>
                                  )
                                ) : (
@@ -540,10 +540,10 @@ export default function DeliveryManagementPage() {
                                      editingOrderId === order.id ? (
                                        <Select value={tempCarrier} onValueChange={(val: string | null) => setTempCarrier(val || "")}>
                                           <SelectTrigger className="h-7 text-[10px] font-medium border-gray-300 bg-white">
-                                            <SelectValue placeholder={tr("수동 업체 선택", "Select manual carrier")} />
+                                            <SelectValue placeholder={tf.f00375} />
                                           </SelectTrigger>
                                           <SelectContent>
-                                            <SelectItem value="none">{tr("미지정", "Unassigned")}</SelectItem>
+                                            <SelectItem value="none">{tf.f00224}</SelectItem>
                                             {(settings?.deliveryCarriers || []).map((carrier: string) => (
                                               <SelectItem key={carrier} value={carrier}>{carrier}</SelectItem>
                                             ))}
@@ -555,7 +555,7 @@ export default function DeliveryManagementPage() {
                                          onClick={() => startEditing(order)}
                                        >
                                           <span className="text-[10px] font-bold text-gray-500 flex items-center justify-between">
-                                            {order.delivery_info?.driverAffiliation ? (isKo ? `수동: ${order.delivery_info.driverAffiliation}` : `Manual: ${order.delivery_info.driverAffiliation}`) : tr("수동업체 미지정", "No manual carrier")}
+                                            {order.delivery_info?.driverAffiliation ? (isKo ? `수동: ${order.delivery_info.driverAffiliation}` : `Manual: ${order.delivery_info.driverAffiliation}`) : tf.f00376}
                                           </span>
                                        </div>
                                      )
@@ -576,7 +576,7 @@ export default function DeliveryManagementPage() {
                                        : "bg-red-50 text-red-700 border-red-200"
                                  }`}
                                >
-                                {order.status === 'completed' ? tr("처리 완료", "Completed") : order.status === 'processing' ? tr("준비중", "Processing") : tr("취소됨", "Canceled")}
+                                {order.status === 'completed' ? tf.f00675 : order.status === 'processing' ? tf.f00654 : tf.f00703}
                                </Badge>
                             </TableCell>
                             <TableCell className="pr-6 text-right">
@@ -588,7 +588,7 @@ export default function DeliveryManagementPage() {
                                     onClick={() => handleStatusChange(order.id, 'completed')}
                                     disabled={order.status === 'completed'}
                                   >
-                                    {tr("완료처리", "Mark done")}
+                                    {tf.f00474}
                                   </Button>
                                   
                                   <DropdownMenu>
@@ -600,16 +600,16 @@ export default function DeliveryManagementPage() {
                                      </DropdownMenuTrigger>
                                      <DropdownMenuContent align="end" className="rounded-xl w-40 p-1">
                                         <DropdownMenuItem onClick={() => openRibbonPrint(order)} className="rounded-lg gap-2 font-medium">
-                                           <Printer className="w-4 h-4 text-primary" /> {tr("리본 출력", "Print ribbon")}
+                                           <Printer className="w-4 h-4 text-primary" /> {tf.f00180}
                                         </DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => router.push(`/dashboard/orders/${order.id}`)} className="rounded-lg gap-2 font-medium">
-                                           <ExternalLink className="w-4 h-4 text-blue-500" /> {tr("상세 보기", "View details")}
+                                           <ExternalLink className="w-4 h-4 text-blue-500" /> {tf.f00314}
                                         </DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => handleStatusChange(order.id, 'processing')} className="rounded-lg gap-2 font-medium">
-                                           <Loader2 className="w-4 h-4 text-amber-500" /> {tr("준비중으로 변경", "Set processing")}
+                                           <Loader2 className="w-4 h-4 text-amber-500" /> {tf.f00656}
                                         </DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => handleStatusChange(order.id, 'canceled')} className="rounded-lg gap-2 font-medium text-red-600 hover:bg-red-50">
-                                           <AlertCircle className="w-4 h-4" /> {tr("주문 취소", "Cancel order")}
+                                           <AlertCircle className="w-4 h-4" /> {tf.f00620}
                                         </DropdownMenuItem>
                                      </DropdownMenuContent>
                                   </DropdownMenu>
@@ -629,8 +629,8 @@ export default function DeliveryManagementPage() {
       <div className="bg-blue-50/50 rounded-2xl p-4 border border-blue-100/50 flex items-start gap-3">
          <Info className="w-5 h-5 text-blue-500 mt-0.5 shrink-0" />
          <div className="text-xs text-blue-700 leading-relaxed font-medium">
-            <p>{tr("• 배송 리스트는 실시간으로 업데이트 됩니다. 배송 출발 시 '준비중' 상태를 확인하고, 완료 시 '완료처리'를 눌러 상태를 변경해 주세요.", "• Delivery list updates in real-time. Confirm 'Processing' at dispatch, then mark done when completed.")}</p>
-            <p>{tr("• 리본 출력이 필요한 경우 리스트의 '더보기' 메뉴에서 바로 리본 출력 페이지로 이동할 수 있습니다.", "• If ribbon print is needed, open the More menu and jump directly to ribbon printing.")}</p>
+            <p>{tf.f00007}</p>
+            <p>{tf.f00006}</p>
          </div>
       </div>
 
@@ -640,7 +640,7 @@ export default function DeliveryManagementPage() {
           onOpenChange={setIsPrintDialogOpen}
           onSubmit={(data) => {
             console.log("Printing message:", data);
-            toast.success(tr("인쇄 명령을 보냈습니다.", "Print command sent."));
+            toast.success(tf.f00514);
             setIsPrintDialogOpen(false);
           }}
           order={printingOrder}

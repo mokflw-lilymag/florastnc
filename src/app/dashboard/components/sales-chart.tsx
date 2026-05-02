@@ -1,4 +1,5 @@
 "use client";
+import { getMessages } from "@/i18n/getMessages";
 
 import { useState, useEffect, useId } from "react";
 import {
@@ -17,9 +18,8 @@ interface SalesChartProps {
 
 export default function SalesChart({ chartData, height = 350 }: SalesChartProps) {
   const locale = usePreferredLocale();
-  const baseLocale = toBaseLocale(locale);
-  const tr = (koText: string, enText: string) => (baseLocale === "ko" ? koText : enText);
-  const seriesName = tr("매출", "Sales");
+  const tf = getMessages(locale).tenantFlows;
+  const baseLocale = toBaseLocale(locale);  const seriesName = tf.f01173;
   const [isMounted, setIsMounted] = useState(false);
   const reactId = useId();
   const wrapperId = `sales-chart-${reactId.replace(/:/g, "")}`;
@@ -68,7 +68,7 @@ export default function SalesChart({ chartData, height = 350 }: SalesChartProps)
         className="w-full flex flex-col items-center justify-center border-2 border-dashed border-slate-100 rounded-3xl bg-slate-50/50"
         style={{ height, minHeight: height }}
       >
-        <p className="text-sm text-slate-400 font-medium">{tr("표시할 데이터가 없습니다.", "No data to display.")}</p>
+        <p className="text-sm text-slate-400 font-medium">{tf.f02119}</p>
       </div>
     );
   }

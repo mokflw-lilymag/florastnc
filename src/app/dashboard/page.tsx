@@ -1,4 +1,5 @@
 "use client";
+import { getMessages } from "@/i18n/getMessages";
 
 import { useMemo } from "react";
 import dynamic from "next/dynamic";
@@ -347,10 +348,8 @@ export default function DashboardPage() {
 
   const [chartPeriod, setChartPeriod] = useState<TenantSalesChartPeriod>("daily");
   const locale = usePreferredLocale();
-  const baseLocale = toBaseLocale(locale);
-  const tr = (koText: string, enText: string) => (baseLocale === "ko" ? koText : enText);
-
-  const chartOpts = useMemo(
+  const tf = getMessages(locale).tenantFlows;
+  const baseLocale = toBaseLocale(locale);  const chartOpts = useMemo(
     () => ({ isLoading, isSuperAdmin, settings }),
     [isLoading, isSuperAdmin, settings]
   );
@@ -390,9 +389,9 @@ export default function DashboardPage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
              <h1 className="text-3xl font-medium text-gray-900 tracking-tight">
-               {tr("관리 시스템", "Management System")} <span className="text-indigo-600 font-bold">{tr("통합 관제", "Control Center")}</span>
+               {tf.f00962} <span className="text-indigo-600 font-bold">{tf.f02083}</span>
              </h1>
-             <p className="text-slate-600 font-medium text-sm">{tr("시스템 어드민", "System Admin")} <span className="text-black">{profile?.full_name}</span>{tr("님, 환영합니다.", ", welcome.")}</p>
+             <p className="text-slate-600 font-medium text-sm">{tf.f01480} <span className="text-black">{profile?.full_name}</span>{tf.f01056}</p>
           </div>
           <div className="bg-white p-1 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-1 text-[11px] font-bold px-3 py-1 uppercase tracking-widest text-indigo-500">
              <ShieldCheck className="w-4 h-4 mr-1" /> System Admin Mode
@@ -401,10 +400,10 @@ export default function DashboardPage() {
 
         {/* Admin Stats Cards */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          <AdminStatCard icon={Store} label={tr("전체 화원사", "Total Shops")} value={tenantStats?.total || 0} unit={tr("개소", "")} color="bg-indigo-600" />
-          <AdminStatCard icon={CheckCircle2} label={tr("활성 서비스 중", "Active Services")} value={tenantStats?.active || 0} unit={tr("개소", "")} color="bg-emerald-600" />
-          <AdminStatCard icon={Gem} label={tr("PRO 플랜 이용", "Using PRO")} value={tenantStats?.pro || 0} unit={tr("개소", "")} color="bg-blue-600" />
-          <AdminStatCard icon={Calendar} label={tr("오늘 날짜", "Today")} value={format(new Date(), 'MM/dd')} unit="" color="bg-slate-800" />
+          <AdminStatCard icon={Store} label={tf.f01807} value={tenantStats?.total || 0} unit={tf.f00865} color="bg-indigo-600" />
+          <AdminStatCard icon={CheckCircle2} label={tf.f02224} value={tenantStats?.active || 0} unit={tf.f00865} color="bg-emerald-600" />
+          <AdminStatCard icon={Gem} label={tf.f02286} value={tenantStats?.pro || 0} unit={tf.f00865} color="bg-blue-600" />
+          <AdminStatCard icon={Calendar} label={tf.f01602} value={format(new Date(), 'MM/dd')} unit="" color="bg-slate-800" />
         </div>
 
         <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
@@ -412,20 +411,20 @@ export default function DashboardPage() {
           <Card className="lg:col-span-2 border-none shadow-sm rounded-3xl bg-white overflow-hidden">
             <CardHeader className="flex flex-row items-center justify-between border-b border-gray-50 pb-4">
               <div>
-                <CardTitle className="text-lg font-light">{tr("최근 신규 가입 화원사", "Recent New Shops")}</CardTitle>
-                <CardDescription className="text-xs font-medium">{tr("SaaS 시스템에 새로 합류한 파트너사 목록입니다", "Newly joined SaaS partners")}</CardDescription>
+                <CardTitle className="text-lg font-light">{tf.f02012}</CardTitle>
+                <CardDescription className="text-xs font-medium">{tf.f02287}</CardDescription>
               </div>
-              <a href="/dashboard/tenants" className="text-indigo-600 text-[11px] font-bold hover:underline uppercase tracking-tighter">{tr("전체 회원사 관리", "Manage All Tenants")}</a>
+              <a href="/dashboard/tenants" className="text-indigo-600 text-[11px] font-bold hover:underline uppercase tracking-tighter">{tf.f01809}</a>
             </CardHeader>
             <CardContent className="p-0">
                <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm">
                      <thead className="bg-gray-50/50 text-slate-400 font-medium uppercase text-[11px] tracking-widest leading-none">
                         <tr>
-                           <th className="px-6 py-4">{tr("상호명", "Shop Name")}</th>
-                           <th className="px-6 py-4">{tr("플랜", "Plan")}</th>
-                           <th className="px-6 py-4">{tr("상태", "Status")}</th>
-                           <th className="px-6 py-4 text-right">{tr("등록일", "Created At")}</th>
+                           <th className="px-6 py-4">{tf.f01367}</th>
+                           <th className="px-6 py-4">{tf.f02143}</th>
+                           <th className="px-6 py-4">{tf.f00319}</th>
+                           <th className="px-6 py-4 text-right">{tf.f00170}</th>
                         </tr>
                      </thead>
                      <tbody className="divide-y divide-gray-50">
@@ -447,7 +446,7 @@ export default function DashboardPage() {
                                   "border-none px-2 py-0.5 text-[10px]",
                                   tenant.status === 'active' ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
                                 )}>
-                                  {tenant.status === 'active' ? tr('정상', 'Active') : tr('정지', 'Paused')}
+                                  {tenant.status === 'active' ? tf.f01819 : tf.f01822}
                                 </Badge>
                              </td>
                              <td className="px-6 py-5 text-right font-light text-slate-400 text-xs">
@@ -467,27 +466,27 @@ export default function DashboardPage() {
                 <CardHeader className="pb-2">
                    <CardTitle className="text-lg font-light flex items-center gap-2 text-indigo-400">
                       <ShieldCheck className="w-5 h-5" />
-                      {tr("시스템 퀵 관리", "System Quick Actions")}
+                      {tf.f01486}
                    </CardTitle>
                 </CardHeader>
                 <CardContent className="grid grid-cols-2 gap-3 pt-2">
-                   <DashboardIconButton icon={Store} label={tr("회원사 관리", "Tenants")} href="/dashboard/tenants" color="bg-indigo-600" />
-                   <DashboardIconButton icon={ScrollText} label={tr("공지사항", "Announcements")} href="/dashboard/announcements" color="bg-slate-700" />
-                   <DashboardIconButton icon={CreditCard} label={tr("결제 모니터", "Billing Monitor")} href="/dashboard/billing-admin" color="bg-emerald-600" />
-                   <DashboardIconButton icon={Settings} label={tr("전역 설정", "Global Settings")} href="/dashboard/system-settings" color="bg-blue-600" />
+                   <DashboardIconButton icon={Store} label={tf.f02230} href="/dashboard/tenants" color="bg-indigo-600" />
+                   <DashboardIconButton icon={ScrollText} label={tf.f00958} href="/dashboard/announcements" color="bg-slate-700" />
+                   <DashboardIconButton icon={CreditCard} label={tf.f00911} href="/dashboard/billing-admin" color="bg-emerald-600" />
+                   <DashboardIconButton icon={Settings} label={tf.f01786} href="/dashboard/system-settings" color="bg-blue-600" />
                 </CardContent>
              </Card>
 
              <Card className="border-none shadow-sm rounded-3xl bg-white border border-indigo-50 overflow-hidden">
                 <CardHeader className="bg-indigo-50/30 border-b border-indigo-50/50">
                    <CardTitle className="text-sm font-bold flex items-center gap-2 text-indigo-700">
-                      <Zap className="w-4 h-4" /> {tr("시스템 바로가기", "System Shortcuts")}
+                      <Zap className="w-4 h-4" /> {tf.f01479}
                    </CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 space-y-2">
                    <Link href="/dashboard/settings" className="w-full">
                       <Button variant="ghost" className="w-full justify-start text-xs font-medium text-slate-600 hover:bg-slate-50">
-                         ⚙️ {tr("관리자 환경설정 바로가기", "Open Admin Settings")}
+                         ⚙️ {tf.f00968}
                       </Button>
                    </Link>
                 </CardContent>
@@ -509,13 +508,13 @@ export default function DashboardPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
            <h1 className={cn("font-medium text-gray-900 tracking-tight", touchUi ? "text-2xl" : "text-3xl")}>
-             {tr("안녕하세요", "Hello")} <span className="text-primary">{profile?.tenants?.name || profile?.full_name || tr('사용자', 'User')}</span>{tr("님!", "!")}
+             {tf.f01523} <span className="text-primary">{profile?.tenants?.name || profile?.full_name || tf.f01322}</span>{tf.f01057}
            </h1>
-           <p className="text-slate-600 font-medium text-sm">{tr("오늘", "Today")} {baseLocale === "ko" ? format(new Date(), 'yyyy년 MM월 dd일') : format(new Date(), 'yyyy-MM-dd')} {tr("의 현황입니다.", "overview.")}</p>
+           <p className="text-slate-600 font-medium text-sm">{tf.f00458} {baseLocale === "ko" ? format(new Date(), 'yyyy년 MM월 dd일') : format(new Date(), 'yyyy-MM-dd')} {tf.f01665}</p>
         </div>
         <div className="bg-white p-1 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-1">
            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-100 font-light px-3 py-1 text-[11px]">
-              {tr("실시간 동기화 활성", "Real-time sync active")}
+              {tf.f01506}
            </Badge>
         </div>
       </div>
@@ -527,12 +526,12 @@ export default function DashboardPage() {
              <ShoppingCart className="w-12 h-12 text-blue-600" />
           </div>
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-blue-600 uppercase tracking-widest">{tr("오늘 주문 건수", "Today's Orders")}</CardTitle>
+            <CardTitle className="text-xs font-medium text-blue-600 uppercase tracking-widest">{tf.f01606}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-medium text-slate-900">{stats?.todayCount} <span className="text-lg font-light">{tr("건", "")}</span></div>
+            <div className="text-3xl font-medium text-slate-900">{stats?.todayCount} <span className="text-lg font-light">{tf.f00033}</span></div>
             <div className="flex items-center gap-1 text-[11px] text-blue-600 font-light mt-2 bg-blue-100/50 w-fit px-2 py-0.5 rounded-full">
-               <ArrowUpRight className="w-3 h-3" /> {tr("실시간 집계 중", "Live counting")}
+               <ArrowUpRight className="w-3 h-3" /> {tf.f01510}
             </div>
           </CardContent>
         </Card>
@@ -542,11 +541,11 @@ export default function DashboardPage() {
              <Wallet className="w-12 h-12 text-emerald-600" />
           </div>
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-emerald-600 uppercase tracking-widest">{tr("오늘 매출액", "Today's Sales")}</CardTitle>
+            <CardTitle className="text-xs font-medium text-emerald-600 uppercase tracking-widest">{tf.f01604}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-medium text-slate-900">₩{stats?.todayRevenue.toLocaleString()}</div>
-            <div className="text-[11px] text-slate-700 font-medium mt-1.5">{tr("취소 건 제외 실매출", "Net sales excluding canceled orders")}</div>
+            <div className="text-[11px] text-slate-700 font-medium mt-1.5">{tf.f02034}</div>
           </CardContent>
         </Card>
 
@@ -555,34 +554,34 @@ export default function DashboardPage() {
              <Calendar className="w-12 h-12 text-white" />
           </div>
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-bold text-indigo-300 uppercase tracking-widest">{tr("일정 요약 (방문 & 배송)", "Schedule Summary (Pickup & Delivery)")}</CardTitle>
+            <CardTitle className="text-xs font-bold text-indigo-300 uppercase tracking-widest">{tf.f01720}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
                <div className="space-y-1">
-                  <div className="text-[10px] font-bold text-indigo-300 uppercase tracking-tighter">{tr("오늘 일정", "Today")}</div>
+                  <div className="text-[10px] font-bold text-indigo-300 uppercase tracking-tighter">{tf.f01605}</div>
                   <div className="flex flex-col">
                     <span className="text-lg font-black leading-none">
                       {((stats?.todayPickup || 0) + (stats?.todayDelivery || 0))} 
-                      <span className="text-[10px] font-medium ml-1">{tr("건", "")}</span>
+                      <span className="text-[10px] font-medium ml-1">{tf.f00033}</span>
                     </span>
-                    <span className="text-[9px] text-indigo-200 mt-1">{tr("픽업", "Pickup")} {stats?.todayPickup} / {tr("배송", "Delivery")} {stats?.todayDelivery}</span>
+                    <span className="text-[9px] text-indigo-200 mt-1">{tf.f00752} {stats?.todayPickup} / {tf.f00240} {stats?.todayDelivery}</span>
                   </div>
                </div>
                <div className="space-y-1 border-l border-indigo-800 pl-4">
-                  <div className="text-[10px] font-bold text-indigo-300 uppercase tracking-tighter">{tr("내일 예약", "Tomorrow")}</div>
+                  <div className="text-[10px] font-bold text-indigo-300 uppercase tracking-tighter">{tf.f01036}</div>
                   <div className="flex flex-col">
                     <span className="text-lg font-black leading-none text-amber-300">
                       {((stats?.tomorrowPickup || 0) + (stats?.tomorrowDelivery || 0))} 
-                      <span className="text-[10px] font-medium ml-1 text-white">{tr("건", "")}</span>
+                      <span className="text-[10px] font-medium ml-1 text-white">{tf.f00033}</span>
                     </span>
-                    <span className="text-[9px] text-indigo-200 mt-1">{tr("픽업", "Pickup")} {stats?.tomorrowPickup} / {tr("배송", "Delivery")} {stats?.tomorrowDelivery}</span>
+                    <span className="text-[9px] text-indigo-200 mt-1">{tf.f00752} {stats?.tomorrowPickup} / {tf.f00240} {stats?.tomorrowDelivery}</span>
                   </div>
                </div>
             </div>
             <Link href="/dashboard/delivery">
               <Button variant="ghost" size="sm" className="w-full bg-white/10 hover:bg-white/20 text-white text-[10px] font-bold h-7 rounded-xl gap-1.5 border-none">
-                {tr("상세 일정 확인", "View detailed schedule")} <ArrowUpRight className="w-3 h-3" />
+                {tf.f01341} <ArrowUpRight className="w-3 h-3" />
               </Button>
             </Link>
           </CardContent>
@@ -596,9 +595,9 @@ export default function DashboardPage() {
             <div>
               <CardTitle className="text-lg font-light flex items-center gap-2">
                 <TrendingUp className="w-5 h-5 text-indigo-500" />
-                {tr("매출 지표 추이", "Sales Trend")}
+                {tf.f01175}
               </CardTitle>
-              <CardDescription className="text-xs font-medium">{tr("실시간 매출 데이터 흐름을 분석합니다", "Analyze real-time sales flow")}</CardDescription>
+              <CardDescription className="text-xs font-medium">{tf.f01507}</CardDescription>
             </div>
             <div className="flex flex-wrap bg-slate-50 p-1 rounded-xl gap-1 w-full sm:w-auto">
               {(["daily", "weekly", "monthly", "yearly"] as const).map((p) => (
@@ -613,7 +612,7 @@ export default function DashboardPage() {
                   )}
                   onClick={() => setChartPeriod(p)}
                 >
-                  {p === "daily" ? tr("일별", "Daily") : p === "weekly" ? tr("주간별", "Weekly") : p === "monthly" ? tr("월별", "Monthly") : tr("년별", "Yearly")}
+                  {p === "daily" ? tf.f01713 : p === "weekly" ? tf.f01865 : p === "monthly" ? tf.f01648 : tf.f01049}
                 </Button>
               ))}
             </div>
@@ -627,10 +626,10 @@ export default function DashboardPage() {
         <Card className="lg:col-span-2 border-none shadow-sm rounded-3xl bg-white/80 overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between border-b border-gray-50 pb-4">
             <div>
-              <CardTitle className="text-lg font-light">{tr("최근 주문 내역", "Recent Orders")}</CardTitle>
-              <CardDescription className="text-xs font-medium">{tr("새로 접수된 5개의 주문입니다", "The latest 5 received orders")}</CardDescription>
+              <CardTitle className="text-lg font-light">{tf.f02014}</CardTitle>
+              <CardDescription className="text-xs font-medium">{tf.f01385}</CardDescription>
             </div>
-            <Link href="/dashboard/orders" className="text-primary text-[11px] font-medium hover:underline uppercase tracking-tighter">{tr("전체보기", "View all")}</Link>
+            <Link href="/dashboard/orders" className="text-primary text-[11px] font-medium hover:underline uppercase tracking-tighter">{tf.f01811}</Link>
           </CardHeader>
           <CardContent className="p-0">
              <div className="lg:hidden divide-y divide-gray-50">
@@ -651,29 +650,29 @@ export default function DashboardPage() {
                           "bg-red-100 text-red-700"
                         )}
                       >
-                        {order.status === "completed" ? tr("완료", "Done") : order.status === "processing" ? tr("준비중", "Preparing") : tr("취소", "Canceled")}
+                        {order.status === "completed" ? tf.f00471 : order.status === "processing" ? tf.f00654 : tf.f00702}
                       </Badge>
                     </div>
                     <div className="text-sm font-medium text-slate-900">{order.orderer.name}</div>
                     <div className="text-xs text-slate-600 line-clamp-2">
-                      {order.items[0]?.name}{order.items.length > 1 ? ` ${tr("외", "+")} ${order.items.length - 1}${tr("건", "")}` : ""}
+                      {order.items[0]?.name}{order.items.length > 1 ? ` ${tf.f00475} ${order.items.length - 1}${tf.f00033}` : ""}
                     </div>
                     <div className="text-sm font-bold text-slate-900">₩{order.summary?.total.toLocaleString()}</div>
                   </Link>
                 ))}
                 {stats?.recentOrders.length === 0 && (
-                  <div className="px-6 py-16 text-center text-gray-400 font-medium italic">{tr("접수된 주문이 없습니다.", "No orders received yet.")}</div>
+                  <div className="px-6 py-16 text-center text-gray-400 font-medium italic">{tf.f01815}</div>
                 )}
              </div>
              <div className="hidden lg:block overflow-x-auto">
                 <table className="w-full text-left text-sm">
                    <thead className="bg-gray-50/50 text-slate-400 font-medium uppercase text-[11px] tracking-widest">
                       <tr>
-                         <th className="px-6 py-4">{tr("주문번호", "Order No.")}</th>
-                         <th className="px-6 py-4">{tr("주문자", "Customer")}</th>
-                         <th className="px-6 py-4">{tr("상품", "Item")}</th>
-                         <th className="px-6 py-4 text-right">{tr("금액", "Amount")}</th>
-                         <th className="px-6 py-4 text-center">{tr("상태", "Status")}</th>
+                         <th className="px-6 py-4">{tf.f00624}</th>
+                         <th className="px-6 py-4">{tf.f00640}</th>
+                         <th className="px-6 py-4">{tf.f01350}</th>
+                         <th className="px-6 py-4 text-right">{tf.f00097}</th>
+                         <th className="px-6 py-4 text-center">{tf.f00319}</th>
                       </tr>
                    </thead>
                    <tbody className="divide-y divide-gray-50">
@@ -682,7 +681,7 @@ export default function DashboardPage() {
                            <td className="px-6 py-4 font-mono text-[11px] font-light text-primary uppercase">{order.order_number}</td>
                            <td className="px-6 py-4 font-light text-slate-800 text-xs">{order.orderer.name}</td>
                            <td className="px-6 py-4 text-gray-600 truncate max-w-[150px] text-xs font-medium">
-                              {order.items[0]?.name} {order.items.length > 1 ? `${tr("외", "+")} ${order.items.length - 1}${tr("건", "")}` : ''}
+                              {order.items[0]?.name} {order.items.length > 1 ? `${tf.f00475} ${order.items.length - 1}${tf.f00033}` : ''}
                            </td>
                            <td className="px-6 py-4 text-right font-medium text-slate-900 text-sm">
                               ₩{order.summary?.total.toLocaleString()}
@@ -696,13 +695,13 @@ export default function DashboardPage() {
                                   'bg-red-100 text-red-700'
                                 }`}
                               >
-                                {order.status === 'completed' ? tr('완료', 'Done') : order.status === 'processing' ? tr('준비중', 'Preparing') : tr('취소', 'Canceled')}
+                                {order.status === 'completed' ? tf.f00471 : order.status === 'processing' ? tf.f00654 : tf.f00702}
                               </Badge>
                            </td>
                         </tr>
                       ))}
                       {stats?.recentOrders.length === 0 && (
-                        <tr><td colSpan={5} className="px-6 py-20 text-center text-gray-400 font-medium italic">{tr("접수된 주문이 없습니다.", "No orders received yet.")}</td></tr>
+                        <tr><td colSpan={5} className="px-6 py-20 text-center text-gray-400 font-medium italic">{tf.f01815}</td></tr>
                       )}
                    </tbody>
                 </table>
@@ -716,20 +715,20 @@ export default function DashboardPage() {
               <CardHeader className="pb-2">
                  <CardTitle className="text-lg font-light flex items-center gap-2">
                     <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                    {tr("빠른 작업", "Quick Actions")}
+                    {tf.f01316}
                  </CardTitle>
               </CardHeader>
               <CardContent className={cn("grid grid-cols-2 gap-3 pt-2", touchUi && "gap-4")}>
-                 <DashboardIconButton icon={ShoppingCart} label={tr("주문등록", "New Order")} href="/dashboard/orders/new" color="bg-primary" largeTouch={touchUi} />
+                 <DashboardIconButton icon={ShoppingCart} label={tf.f01874} href="/dashboard/orders/new" color="bg-primary" largeTouch={touchUi} />
                  {isAndroidApp ? (
-                   <DashboardIconButton icon={ScrollText} label={tr("주문목록", "Order List")} href="/dashboard/orders" color="bg-indigo-500" largeTouch={touchUi} />
+                   <DashboardIconButton icon={ScrollText} label={tf.f01875} href="/dashboard/orders" color="bg-indigo-500" largeTouch={touchUi} />
                  ) : (
-                   <DashboardIconButton icon={Printer} label={tr("리본출력", "Ribbon Print")} href="/dashboard/orders" color="bg-indigo-500" largeTouch={touchUi} />
+                   <DashboardIconButton icon={Printer} label={tf.f01134} href="/dashboard/orders" color="bg-indigo-500" largeTouch={touchUi} />
                  )}
-                 <DashboardIconButton icon={Truck} label={tr("배송관리", "Delivery")} href="/dashboard/delivery" color="bg-blue-500" largeTouch={touchUi} />
-                 <DashboardIconButton icon={Boxes} label={tr("재고관리", "Inventory")} href="/dashboard/inventory" color="bg-amber-500" largeTouch={touchUi} />
+                 <DashboardIconButton icon={Truck} label={tf.f01237} href="/dashboard/delivery" color="bg-blue-500" largeTouch={touchUi} />
+                 <DashboardIconButton icon={Boxes} label={tf.f01763} href="/dashboard/inventory" color="bg-amber-500" largeTouch={touchUi} />
                  {showOrgBoard ? (
-                  <DashboardIconButton icon={Megaphone} label={tr("본사 게시판", "HQ Board")} href="/dashboard/org-board" color="bg-violet-600" largeTouch={touchUi} />
+                  <DashboardIconButton icon={Megaphone} label={tf.f01266} href="/dashboard/org-board" color="bg-violet-600" largeTouch={touchUi} />
                  ) : null}
               </CardContent>
            </Card>
@@ -738,27 +737,27 @@ export default function DashboardPage() {
               <CardHeader className="pb-2 border-b border-gray-50 mb-2">
                  <CardTitle className="text-lg font-light flex items-center gap-2">
                     <AlertCircle className="w-5 h-5 text-amber-500" />
-                    {tr("재고 알림", "Stock Alerts")}
+                    {tf.f01762}
                  </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4 pt-2">
                  <div className="flex items-center justify-between p-3 bg-red-50 rounded-2xl border border-red-100/50">
                     <div className="flex items-center gap-2">
                        <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
-                       <span className="text-xs font-light text-red-700">{tr("품절 상품", "Out of stock")}</span>
+                       <span className="text-xs font-light text-red-700">{tf.f02135}</span>
                     </div>
-                    <span className="text-lg font-medium text-red-900">{stats?.outOfStockProducts}{tr("건", "")}</span>
+                    <span className="text-lg font-medium text-red-900">{stats?.outOfStockProducts}{tf.f00033}</span>
                  </div>
                  <div className="flex items-center justify-between p-3 bg-amber-50 rounded-2xl border border-amber-100/50">
                     <div className="flex items-center gap-2">
                        <div className="h-2 w-2 rounded-full bg-amber-500" />
-                       <span className="text-xs font-light text-amber-700">{tr("재고 부족 (10개 미만)", "Low stock (under 10)")}</span>
+                       <span className="text-xs font-light text-amber-700">{tf.f01761}</span>
                     </div>
-                    <span className="text-lg font-medium text-amber-900">{stats?.lowStockProducts}{tr("건", "")}</span>
+                    <span className="text-lg font-medium text-amber-900">{stats?.lowStockProducts}{tf.f00033}</span>
                  </div>
                  <a href="/dashboard/inventory" className="w-full">
                     <Button variant="ghost" className="w-full rounded-2xl text-[11px] font-medium text-gray-400 hover:bg-gray-50 h-10 uppercase tracking-widest">
-                       {tr("재고 관리 바로가기", "Open Inventory")}
+                       {tf.f01758}
                     </Button>
                  </a>
               </CardContent>

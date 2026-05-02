@@ -1,4 +1,5 @@
 "use client";
+import { getMessages } from "@/i18n/getMessages";
 
 import { useState, useEffect, useRef, useMemo } from "react";
 import { loadTossPayments } from "@tosspayments/payment-sdk";
@@ -39,6 +40,22 @@ import { isAfter } from "date-fns";
 import { toast } from "sonner";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
+
+type Period = "1m" | "3m" | "6m" | "12m";
+
+/** English discount lines (source of truth; Korean stays on `PLANS`). */
+const EN_PLAN_DISCOUNTS: Record<string, Record<Period, string>> = {
+  free: { "1m": "", "3m": "5% off", "6m": "8% off", "12m": "17% off" },
+  erp_only: { "1m": "", "3m": "6% off", "6m": "8% off", "12m": "17% off" },
+  pro: { "1m": "", "3m": "7% off", "6m": "8% off", "12m": "23% off" },
+};
+
+const EN_PERIOD_LABELS: Record<Period, string> = {
+  "1m": "1 month",
+  "3m": "3 months",
+  "6m": "6 months",
+  "12m": "12 months",
+};
 
 const PLANS = [
   {
@@ -135,8 +152,8 @@ export default function SubscriptionPage() {
   const [selectedPeriod, setSelectedPeriod] = useState<Period>("12m");
   const [isProcessing, setIsProcessing] = useState(false);
   const locale = usePreferredLocale();
+  const tf = getMessages(locale).tenantFlows;
   const baseLocale = toBaseLocale(locale);
-  const tr = (koText: string, enText: string) => (baseLocale === "ko" ? koText : enText);
   const localizedPlans = useMemo(() => {
     if (baseLocale === "ko") return PLANS;
     return PLANS.map((plan) => ({
@@ -178,12 +195,12 @@ export default function SubscriptionPage() {
                 "VIP membership storefront support",
               ],
       pricing: Object.fromEntries(
-        Object.entries(plan.pricing).map(([k, v]) => [
+        (Object.keys(plan.pricing) as Period[]).map((k) => [
           k,
           {
-            ...v,
-            label: k === "1m" ? "1 month" : k === "3m" ? "3 months" : k === "6m" ? "6 months" : "12 months",
-            discount: v.discount.replace("할인", "off").replace("특가", "special"),
+            ...plan.pricing[k],
+            label: EN_PERIOD_LABELS[k],
+            discount: EN_PLAN_DISCOUNTS[plan.id][k],
           },
         ])
       ) as typeof plan.pricing,
@@ -219,7 +236,7 @@ export default function SubscriptionPage() {
 
   const handleSubscribe = async (planId: string, period: Period) => {
     if (!tenantId) {
-      toast.error(tr("로그인이 필요합니다.", "Login is required."));
+      toast.error(tf.f00176);
       return;
     }
 
@@ -235,17 +252,17 @@ export default function SubscriptionPage() {
       const orderId = `${tenantId.substring(0, 8)}_${planId}_${period}_${Date.now()}`;
       const { data: { user } } = await supabase.auth.getUser();
 
-      await tossPayments.requestPayment(baseLocale === "ko" ? "카드" : "CARD", {
+      await tossPayments.requestPayment(tf.f02482 as "카드" | "CARD", {
         amount,
         orderId,
-        orderName: `${plan.name} (${pricing.label}) ${tr("구독", "Subscription")}`,
+        orderName: `${plan.name} (${pricing.label}) ${tf.f00974}`,
         successUrl: window.location.origin + "/dashboard/subscription/success",
         failUrl: window.location.origin + "/dashboard/subscription/fail",
         customerEmail: user?.email || "",
-        customerName: tenantData?.name || tr("Floxync 가입자", "Floxync Subscriber"),
+        customerName: tenantData?.name || tf.f02266,
       });
     } catch (error: any) {
-      toast.error(tr("결제 프로세스 에러", "Payment process error"), { description: error.message });
+      toast.error(tf.f00922, { description: error.message });
       setIsProcessing(false);
     }
   };
@@ -285,22 +302,22 @@ export default function SubscriptionPage() {
                  <Rocket className="w-5 h-5 text-white" />
               </div>
               <div className="hidden sm:block">
-                 <h2 className="text-sm font-black tracking-widest text-white uppercase">Growth Dashboard</h2>
-                 <p className="text-[10px] text-slate-400 font-bold">{tr("비즈니스의 레벨을 높이세요.", "Level up your business.")}</p>
+                 <h2 className="text-sm font-black tracking-widest text-white uppercase">{tf.f02419}</h2>
+                 <p className="text-[10px] text-slate-400 font-bold">{tf.f01309}</p>
               </div>
            </div>
            
            <div className="flex items-center gap-6">
               {usageData && (
                  <div className="hidden lg:flex items-center gap-8 pr-8 border-r border-white/10">
-                    <Stat text="Orders" value={usageData.orders} />
-                    <Stat text="CRM" value={usageData.customers} />
-                    <Stat text="AI Scans" value={usageData.expenses} />
+                    <Stat text={tf.f02405} value={usageData.orders} />
+                    <Stat text={tf.f02406} value={usageData.customers} />
+                    <Stat text={tf.f02407} value={usageData.expenses} />
                  </div>
               )}
               <div className="flex flex-col items-end">
                  <Badge className="bg-white/10 text-white hover:bg-white/20 border-white/10 px-3 py-1 text-[10px] font-black tracking-widest uppercase">
-                    {localizedPlans.find(p => p.id === currentPlan)?.name || "GUEST"}
+                    {localizedPlans.find(p => p.id === currentPlan)?.name || tf.f02420}
                  </Badge>
               </div>
            </div>
@@ -316,7 +333,7 @@ export default function SubscriptionPage() {
              animate={{ opacity: 1, scale: 1 }}
              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-black uppercase tracking-[0.3em]"
           >
-             <Star className="w-3 h-3 fill-indigo-400" /> Premium Ecosystem
+             <Star className="w-3 h-3 fill-indigo-400" /> {tf.f02431}
           </motion.div>
           
           <h1 className="text-5xl md:text-8xl font-black tracking-tighter leading-[0.9] overflow-hidden">
@@ -326,7 +343,7 @@ export default function SubscriptionPage() {
                transition={{ duration: 0.8, ease: "circOut" }}
                className="block"
              >
-                {tr("당신의 화원에", "Your flower shop,")}
+                {tf.f01070}
              </motion.span>
              <motion.span 
                initial={{ y: 100 }}
@@ -334,7 +351,7 @@ export default function SubscriptionPage() {
                transition={{ duration: 0.8, delay: 0.1, ease: "circOut" }}
                className="block text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-blue-400 to-teal-400"
              >
-                {tr("날개를 다는 시간.", "now ready to take flight.")}
+                {tf.f01025}
              </motion.span>
           </h1>
           
@@ -344,8 +361,8 @@ export default function SubscriptionPage() {
              transition={{ delay: 0.5 }}
              className="text-slate-400 max-w-3xl mx-auto text-lg md:text-xl font-medium leading-relaxed"
           >
-             {tr("전 세계 상위 1% 릴리맥 파트너사가 선택한 Floxync와 함께하세요.", "Join Floxync trusted by top-tier global flower partners.")} <br />
-             {tr("복잡한 매장 운영은 저희가 맡고, 사장님은 아름다움에만 집중하세요.", "We handle complex operations so you can focus on creation and sales.")}
+             {tf.f01779} <br />
+             {tf.f01260}
           </motion.p>
           
           <div className="flex justify-center pt-8">
@@ -361,7 +378,9 @@ export default function SubscriptionPage() {
                        : "text-slate-400 hover:text-white"
                    )}
                  >
-                   <span className="relative z-10">{p === "1m" ? "Monthly" : p === "3m" ? "3 Months" : p === "6m" ? "6 Months" : "Yearly Pack"}</span>
+                   <span className="relative z-10">
+                     {p === "1m" ? tf.f02401 : p === "3m" ? tf.f02402 : p === "6m" ? tf.f02403 : tf.f02404}
+                   </span>
                    {p === "12m" && (
                      <div className="absolute top-0 right-0 h-full w-full bg-indigo-600/10 pointer-events-none" />
                    )}
@@ -388,46 +407,47 @@ export default function SubscriptionPage() {
                isCurrent={currentPlan === plan.id && !isExpired}
                isProcessing={isProcessing}
                index={i}
+               tf={tf}
              />
            ))}
         </div>
 
         {/* Brand Core Values */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-40">
-           <ValueCard icon={<Shield className="w-6 h-6" />} title="Enterprise Security" desc={tr("군사급 암호화로 모든 데이터를 보호합니다.", "Military-grade encryption protects all data.")} />
-           <ValueCard icon={<Scan className="w-6 h-6" />} title="AI OCR Logic" desc={tr("AI가 영수증 한 장 한 장을 자동 분석합니다.", "AI analyzes receipts automatically.")} />
-           <ValueCard icon={<Cloud className="w-6 h-6" />} title="Cloud Infinity" desc={tr("기기 제한 없는 무제한 클라우드 동기화.", "Unlimited cloud sync across devices.")} />
-           <ValueCard icon={<Trophy className="w-6 h-6" />} title="VIP Concierge" desc={tr("24시간 연중무휴 기술 지원팀이 상주합니다.", "24/7 technical support team.")} />
+           <ValueCard icon={<Shield className="w-6 h-6" />} title={tf.f02413} desc={tf.f00991} />
+           <ValueCard icon={<Scan className="w-6 h-6" />} title={tf.f02414} desc={tf.f02248} />
+           <ValueCard icon={<Cloud className="w-6 h-6" />} title={tf.f02415} desc={tf.f01002} />
+           <ValueCard icon={<Trophy className="w-6 h-6" />} title={tf.f02416} desc={tf.f00829} />
         </div>
 
         {/* Comparison Table */}
         <div className="mb-40">
            <div className="text-center space-y-4 mb-20">
-              <h2 className="text-3xl md:text-5xl font-black tracking-tight">Full Compatibility Matrix</h2>
-              <p className="text-slate-400 font-bold uppercase tracking-[0.5em] text-[10px]">{tr("상세 기능별 상세 전력 분석", "Detailed feature comparison")}</p>
+              <h2 className="text-3xl md:text-5xl font-black tracking-tight">{tf.f02417}</h2>
+              <p className="text-slate-400 font-bold uppercase tracking-[0.5em] text-[10px]">{tf.f01339}</p>
            </div>
            
            <div className="bg-white/5 backdrop-blur-2xl rounded-[48px] border border-white/10 p-12 overflow-hidden shadow-3xl">
               <table className="w-full">
                  <thead>
                     <tr className="border-b border-white/5">
-                       <th className="pb-10 px-4 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest">Platform Core</th>
+                       <th className="pb-10 px-4 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest">{tf.f02418}</th>
                        {(["PRINT", "SMART", "PRO"] as const).map(p => (
                          <th key={p} className="pb-10 px-4 text-center text-sm font-black text-white">{p}</th>
                        ))}
                     </tr>
                  </thead>
                     <tbody className="divide-y divide-white/5">
-                       <Row label={tr("전문 리본 출력 엔진 (모든 규격)", "Professional ribbon print engine (all sizes)")} v1 v2 v3 />
-                       <Row label={tr("무제한 이력 데이터 관리", "Unlimited history management")} v1 v2 v3 />
-                       <Row label={tr("고객 CRM 및 포인트 마케팅", "Customer CRM and point marketing")} v1={false} v2 v3 />
-                       <Row label={tr("실시간 배송 배차 및 동선 추적", "Live delivery dispatch and route tracking")} v1={false} v2 v3 />
-                       <Row label={tr("AI 영수증 OCR 정산 엔진", "AI receipt OCR settlement engine")} v1={false} v2 v3 />
-                       <Row label={tr("자동 세무 설정 및 손익 통계", "Auto tax setup and P&L analytics")} v1={false} v2 v3 />
-                       <Row label={tr("카카오 알림톡 자동화 시스템", "Kakao notification automation")} v1={false} v2={false} v3 />
-                       <Row label={tr("AI 인스타/블로그 배포 자동화", "AI Instagram/Blog publishing")} v1={false} v2={false} v3 />
-                       <Row label={tr("외부 쇼핑몰 주문 자동 연동", "External marketplace order sync")} v1={false} v2={false} v3 />
-                       <Row label={tr("최우선 전담 기술 지원", "Priority dedicated support")} v1="E-mail" v2={tr("채팅", "Chat")} v3={tr("24/7 전담", "24/7 Dedicated")} />
+                       <Row label={tf.f01785} v1 v2 v3 />
+                       <Row label={tf.f01210} v1 v2 v3 />
+                       <Row label={tf.f00938} v1={false} v2 v3 />
+                       <Row label={tf.f01509} v1={false} v2 v3 />
+                       <Row label={tf.f02241} v1={false} v2 v3 />
+                       <Row label={tf.f01725} v1={false} v2 v3 />
+                       <Row label={tf.f02055} v1={false} v2={false} v3 />
+                       <Row label={tf.f02242} v1={false} v2={false} v3 />
+                       <Row label={tf.f01618} v1={false} v2={false} v3 />
+                       <Row label={tf.f02020} v1="E-mail" v2={tf.f01974} v3={tf.f00828} />
                     </tbody>
               </table>
            </div>
@@ -441,8 +461,8 @@ export default function SubscriptionPage() {
            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.1] mix-blend-overlay" />
            <div className="relative z-10 space-y-12">
               <h3 className="text-4xl md:text-7xl font-black tracking-tighter leading-none mb-6">
-                 {tr("당신의 비즈니스가", "Your business")}<br />
-                 {tr("지금 막 도약을 준비합니다.", "is ready for the next leap.")}
+                 {tf.f01069}<br />
+                 {tf.f01897}
               </h3>
               <div className="flex items-center justify-center gap-4">
                  <div className="flex -space-x-3">
@@ -452,10 +472,10 @@ export default function SubscriptionPage() {
                       </div>
                     ))}
                  </div>
-                 <p className="text-indigo-200 font-bold text-sm">{tr("+2,400명의 사장님들이 구독 중", "+2,400 owners already subscribed")}</p>
+                 <p className="text-indigo-200 font-bold text-sm">{tf.f00806}</p>
               </div>
               <Button className="h-20 px-16 rounded-full bg-white text-indigo-700 font-black text-2xl hover:scale-110 transition-transform shadow-2xl shadow-indigo-500/50">
-                 {tr("지금 결제하고 특전 받기", "Pay now and get benefits")}
+                 {tf.f01896}
               </Button>
            </div>
         </motion.div>
@@ -473,7 +493,7 @@ function Stat({ text, value }: { text: string, value: number }) {
   );
 }
 
-function TiltCard({ plan, period, onSubscribe, isCurrent, isProcessing, index }: any) {
+function TiltCard({ plan, period, onSubscribe, isCurrent, isProcessing, index, tf }: any) {
   const x = useMotionValue(0);
   const y = useMotionValue(0);
   const mouseXSpring = useSpring(x);
@@ -522,7 +542,7 @@ function TiltCard({ plan, period, onSubscribe, isCurrent, isProcessing, index }:
                    <plan.icon className="w-7 h-7" />
                 </div>
                 {plan.popular && (
-                  <Badge className="bg-indigo-600 text-white border-0 px-4 py-1.5 font-black uppercase text-[10px] tracking-[0.2em] shadow-lg shadow-indigo-500/20">Recommended</Badge>
+                  <Badge className="bg-indigo-600 text-white border-0 px-4 py-1.5 font-black uppercase text-[10px] tracking-[0.2em] shadow-lg shadow-indigo-500/20">{tf.f02408}</Badge>
                 )}
              </div>
              <CardTitle className="text-4xl font-black tracking-tighter text-white mb-2">{plan.name}</CardTitle>
@@ -538,7 +558,9 @@ function TiltCard({ plan, period, onSubscribe, isCurrent, isProcessing, index }:
                 {pricing.discount && (
                    <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full border border-white/10">
                       <Zap className="w-3 h-3 text-yellow-400 fill-yellow-400" />
-                      <span className="text-[10px] font-black uppercase text-slate-300 italic">{pricing.discount} Applied</span>
+                      <span className="text-[10px] font-black uppercase text-slate-300 italic">
+                        {pricing.discount} {tf.f02412}
+                      </span>
                    </div>
                 )}
              </div>
@@ -568,7 +590,7 @@ function TiltCard({ plan, period, onSubscribe, isCurrent, isProcessing, index }:
                      : "bg-white text-slate-900 hover:bg-slate-100 shadow-white/5"
                )}
              >
-               {isCurrent ? "Current Plan" : isProcessing ? "Processing..." : `${plan.name} Select`}
+               {isCurrent ? tf.f02409 : isProcessing ? tf.f02410 : tf.f02411}
              </Button>
           </CardFooter>
 
@@ -611,5 +633,3 @@ function Row({ label, v1, v2, v3 }: any) {
     </tr>
   );
 }
-
-type Period = "1m" | "3m" | "6m" | "12m";

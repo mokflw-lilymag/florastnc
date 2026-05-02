@@ -1,4 +1,5 @@
 "use client";
+import { getMessages } from "@/i18n/getMessages";
 
 import React, { useState, useMemo } from 'react';
 import { PageHeader } from '@/components/page-header';
@@ -27,7 +28,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from 'sonner';
 import { downloadTemplate, parseExcel, exportDataToExcel } from "@/utils/excel";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
-import { toBaseLocale } from "@/i18n/config";
 
 export default function SuppliersPage() {
   const { suppliers, loading, addSupplier, updateSupplier, deleteSupplier } = useSuppliers();
@@ -36,9 +36,20 @@ export default function SuppliersPage() {
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
   const [isImporting, setIsImporting] = useState(false);
   const locale = usePreferredLocale();
-  const isKo = toBaseLocale(locale) === "ko";
-  const tr = (ko: string, en: string) => (isKo ? ko : en);
-
+  const tf = getMessages(locale).tenantFlows;
+  const supplierSpecialtyLabel = useMemo(() => {
+    const t = getMessages(locale).tenantFlows;
+    const m: Record<string, string> = {
+      생화: t.f02394,
+      분화: t.f02395,
+      서양란: t.f02396,
+      동양란: t.f02397,
+      화환: t.f02398,
+      자재: t.f02399,
+      기타: t.f00115,
+    };
+    return (v: string | undefined) => (v ? m[v] || v : "");
+  }, [locale]);
   const [formData, setFormData] = useState<Partial<Supplier>>({
     name: "",
     contact: "",
@@ -77,10 +88,10 @@ export default function SuppliersPage() {
           successCount++;
         }
       }
-      toast.success(tr(`${successCount}개의 거래처가 등록되었습니다.`, `${successCount} suppliers imported.`));
+      toast.success(tf.f02300.replace("{count}", String(successCount)));
     } catch (err) {
       console.error(err);
-      toast.error(tr("데이터 가져오기에 실패했습니다.", "Failed to import data."));
+      toast.error(tf.f01087);
     } finally {
       setIsImporting(false);
       e.target.value = '';
@@ -90,7 +101,7 @@ export default function SuppliersPage() {
 
   const handleSave = async () => {
     if (!formData.name) {
-      toast.error(tr("업체명은 필수 항목입니다.", "Company name is required."));
+      toast.error(tf.f01544);
       return;
     }
 
@@ -121,8 +132,8 @@ export default function SuppliersPage() {
   return (
     <div className="p-6 max-w-[1200px] mx-auto space-y-6 animate-in fade-in duration-500">
       <PageHeader
-        title={tr("거래처 관리", "Supplier Management")}
-        description={tr("원부자재 및 상품 공급 업체를 관리하고 거래 상세 내역을 파악합니다.", "Manage vendors for materials/products and track details.")}
+        title={tf.f00874}
+        description={tf.f01643}
         icon={Building2}
       >
         <div className="flex flex-wrap items-center gap-2">
@@ -133,7 +144,7 @@ export default function SuppliersPage() {
             className="border-slate-200 text-slate-900 font-medium"
           >
             <Download className="h-4 w-4 mr-2 text-green-600" />
-            {tr("데이터 다운로드", "Download Data")}
+            {tf.f01089}
           </Button>
 
           <Button
@@ -143,7 +154,7 @@ export default function SuppliersPage() {
             className="border-slate-200 text-slate-900 font-medium"
           >
             <Download className="h-4 w-4 mr-2 text-slate-500" />
-            {tr("양식 다운로드", "Download Template")}
+            {tf.f01532}
           </Button>
 
           <div className="relative">
@@ -160,7 +171,7 @@ export default function SuppliersPage() {
               className="bg-slate-800 hover:bg-slate-900 text-white shadow-sm transition-all"
             >
               <Upload className={`h-4 w-4 mr-2 ${isImporting ? 'animate-pulse' : ''}`} />
-              {isImporting ? tr('업로드 중...', 'Uploading...') : tr('엑셀 업로드', 'Upload Excel')}
+              {isImporting ? tf.f01535 : tf.f01552}
             </Button>
           </div>
 
@@ -173,7 +184,7 @@ export default function SuppliersPage() {
               setIsAddDialogOpen(true);
             }}
           >
-            <Plus className="w-4 h-4 mr-2" /> {tr("신규 거래처 등록", "Add Supplier")}
+            <Plus className="w-4 h-4 mr-2" /> {tf.f01492}
           </Button>
         </div>
       </PageHeader>
@@ -181,14 +192,14 @@ export default function SuppliersPage() {
       <Card className="border-none shadow-xl bg-white/80 backdrop-blur-md">
         <CardHeader className="flex flex-row items-center justify-between pb-4 space-y-0">
           <div>
-            <CardTitle className="text-xl font-bold text-gray-800">{tr("등록된 거래처", "Suppliers")}</CardTitle>
-            <CardDescription>{tr("공급업체별 정보를 실시간으로 관리하세요", "Manage supplier information in real time.")}</CardDescription>
+            <CardTitle className="text-xl font-bold text-gray-800">{tf.f01111}</CardTitle>
+            <CardDescription>{tf.f00951}</CardDescription>
           </div>
           <div className="flex items-center gap-2 w-full max-w-sm">
             <div className="relative w-full group">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
               <Input
-                placeholder={tr("업체명, 연락처 검색...", "Search company or contact...")}
+                placeholder={tf.f01543}
                 className="pl-9 bg-gray-50 border-gray-200 focus:bg-white transition-all"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -206,13 +217,13 @@ export default function SuppliersPage() {
               <Table>
                 <TableHeader className="bg-gray-50/50">
                   <TableRow className="hover:bg-transparent border-b">
-                    <TableHead className="font-bold text-gray-600">업체명</TableHead>
-                    <TableHead className="font-bold text-gray-600">연락처</TableHead>
-                    <TableHead className="font-bold text-gray-600">주요품목</TableHead>
-                    <TableHead className="font-bold text-gray-600">사업자번호</TableHead>
-                    <TableHead className="font-bold text-gray-600">주소</TableHead>
-                    <TableHead className="font-bold text-gray-600">이메일</TableHead>
-                    <TableHead className="font-bold text-gray-600 text-right">관리</TableHead>
+                    <TableHead className="font-bold text-gray-600">{tf.f02376}</TableHead>
+                    <TableHead className="font-bold text-gray-600">{tf.f00444}</TableHead>
+                    <TableHead className="font-bold text-gray-600">{tf.f02377}</TableHead>
+                    <TableHead className="font-bold text-gray-600">{tf.f02378}</TableHead>
+                    <TableHead className="font-bold text-gray-600">{tf.f00650}</TableHead>
+                    <TableHead className="font-bold text-gray-600">{tf.f00504}</TableHead>
+                    <TableHead className="font-bold text-gray-600 text-right">{tf.f00087}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -223,7 +234,7 @@ export default function SuppliersPage() {
                           <div className="p-4 bg-slate-50 rounded-full">
                             <Phone className="w-10 h-10 text-slate-300" />
                           </div>
-                      <p>{tr("등록된 거래처가 없습니다.", "No suppliers found.")}</p>
+                      <p>{tf.f01112}</p>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -239,11 +250,14 @@ export default function SuppliersPage() {
                             {supplier.contact || '-'}
                           </div>
                         </TableCell>
-                        <TableCell className="text-gray-600 text-sm max-w-[200px] truncate" title={`${supplier.supplier_type ? '유형: ' + supplier.supplier_type : ''} ${supplier.memo || ''}`}>
+                        <TableCell
+                          className="text-gray-600 text-sm max-w-[200px] truncate"
+                          title={`${supplier.supplier_type ? tf.f02400 + supplierSpecialtyLabel(supplier.supplier_type) : ""} ${supplier.memo || ""}`}
+                        >
                           <div className="flex items-center gap-2 overflow-hidden">
                             {supplier.supplier_type && (
                               <span className="px-2 py-0.5 rounded-full bg-slate-100 text-xs font-medium shrink-0 text-slate-700">
-                                {supplier.supplier_type}
+                                {supplierSpecialtyLabel(supplier.supplier_type)}
                               </span>
                             )}
                             {supplier.memo && (
@@ -285,7 +299,7 @@ export default function SuppliersPage() {
                               size="icon"
                               className="h-8 w-8 hover:text-red-600 hover:bg-red-50"
                               onClick={() => {
-                                if (window.confirm(tr("정말 삭제하시겠습니까?", "Are you sure you want to delete?"))) deleteSupplier(supplier.id);
+                                if (window.confirm(tf.f01816)) deleteSupplier(supplier.id);
                               }}
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -306,12 +320,14 @@ export default function SuppliersPage() {
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-slate-900">
-              {editingSupplier ? tr("거래처 정보 수정", "Edit Supplier") : tr("새 거래처 등록", "New Supplier")}
+              {editingSupplier ? tf.f00882 : tf.f01370}
             </DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right font-semibold text-slate-700">업체명</Label>
+              <Label htmlFor="name" className="text-right font-semibold text-slate-700">
+                {tf.f02376}
+              </Label>
               <Input
                 id="name"
                 value={formData.name}
@@ -320,7 +336,9 @@ export default function SuppliersPage() {
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="contact" className="text-right font-semibold text-slate-700">연락처</Label>
+              <Label htmlFor="contact" className="text-right font-semibold text-slate-700">
+                {tf.f00444}
+              </Label>
               <Input
                 id="contact"
                 placeholder="02-000-0000"
@@ -330,7 +348,9 @@ export default function SuppliersPage() {
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="email" className="text-right font-semibold text-slate-700">이메일</Label>
+              <Label htmlFor="email" className="text-right font-semibold text-slate-700">
+                {tf.f00504}
+              </Label>
               <Input
                 id="email"
                 type="email"
@@ -341,7 +361,9 @@ export default function SuppliersPage() {
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="business" className="text-right font-semibold text-slate-700">사업자번호</Label>
+              <Label htmlFor="business" className="text-right font-semibold text-slate-700">
+                {tf.f02378}
+              </Label>
               <Input
                 id="business"
                 placeholder="000-00-00000"
@@ -351,7 +373,9 @@ export default function SuppliersPage() {
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="address" className="text-right font-semibold text-slate-700">주소</Label>
+              <Label htmlFor="address" className="text-right font-semibold text-slate-700">
+                {tf.f00650}
+              </Label>
               <Input
                 id="address"
                 value={formData.address || ""}
@@ -360,30 +384,34 @@ export default function SuppliersPage() {
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="supplier_type" className="text-right font-semibold text-slate-700">주요품목</Label>
+              <Label htmlFor="supplier_type" className="text-right font-semibold text-slate-700">
+                {tf.f02377}
+              </Label>
               <div className="col-span-3">
                 <Select
                   value={formData.supplier_type || "unassigned"}
                   onValueChange={(val: any) => setFormData({ ...formData, supplier_type: val === "unassigned" ? "" : (val || "") })}
                 >
                   <SelectTrigger className="border-gray-200">
-                    <SelectValue placeholder="주요품목(유형) 선택" />
+                    <SelectValue placeholder={tf.f02392} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="unassigned">선택 없음</SelectItem>
-                    <SelectItem value="생화">생화</SelectItem>
-                    <SelectItem value="분화">분화</SelectItem>
-                    <SelectItem value="서양란">서양란</SelectItem>
-                    <SelectItem value="동양란">동양란</SelectItem>
-                    <SelectItem value="화환">화환</SelectItem>
-                    <SelectItem value="자재">자재(포장/화기등)</SelectItem>
-                    <SelectItem value="기타">기타</SelectItem>
+                    <SelectItem value="unassigned">{tf.f02393}</SelectItem>
+                    <SelectItem value="생화">{tf.f02394}</SelectItem>
+                    <SelectItem value="분화">{tf.f02395}</SelectItem>
+                    <SelectItem value="서양란">{tf.f02396}</SelectItem>
+                    <SelectItem value="동양란">{tf.f02397}</SelectItem>
+                    <SelectItem value="화환">{tf.f02398}</SelectItem>
+                    <SelectItem value="자재">{tf.f02399}</SelectItem>
+                    <SelectItem value="기타">{tf.f00115}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="memo" className="text-right font-semibold text-slate-700">메모</Label>
+              <Label htmlFor="memo" className="text-right font-semibold text-slate-700">
+                {tf.f00197}
+              </Label>
               <Input
                 id="memo"
                 value={formData.memo || ""}
@@ -393,8 +421,8 @@ export default function SuppliersPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>{tr("취소", "Cancel")}</Button>
-            <Button onClick={handleSave} className="bg-slate-800 text-white font-bold hover:bg-slate-900 border-none transition-all">{tr("저장하기", "Save")}</Button>
+            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>{tf.f00702}</Button>
+            <Button onClick={handleSave} className="bg-slate-800 text-white font-bold hover:bg-slate-900 border-none transition-all">{tf.f01771}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
