@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, Leaf, Smartphone, Terminal, Globe, ChevronDown } from 'lucide-react';
 import { AppLocale, LOCALE_COOKIE, resolveLocale, SUPPORTED_LOCALES } from '@/i18n/config';
-import { toast } from 'sonner';
+import { LANDING_LOCALE_SELECT_OPTIONS, resolveLandingSelectLocale } from '@/i18n/ui-locale-options';
 
 export function Navbar({ locale }: { locale?: AppLocale }) {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -53,30 +53,7 @@ export function Navbar({ locale }: { locale?: AppLocale }) {
     { name: '문서', href: '#documentation' },
   ];
 
-  const localeOptions: Array<{ value: AppLocale; label: string }> = [
-    { value: 'ko', label: '한국어' },
-    { value: 'en-US', label: 'English (US)' },
-    { value: 'en-GB', label: 'English (UK)' },
-    { value: 'en-AU', label: 'English (Australia)' },
-    { value: 'en-SG', label: 'English (Singapore)' },
-    { value: 'en-CA', label: 'English (Canada)' },
-    { value: 'en-NZ', label: 'English (New Zealand)' },
-    { value: 'vi', label: 'Tiếng Việt' },
-    { value: 'zh', label: '中文' },
-    { value: 'ja', label: '日本語' },
-    { value: 'es-ES', label: 'Español (España)' },
-    { value: 'es-MX', label: 'Español (México)' },
-    { value: 'es-AR', label: 'Español (Argentina)' },
-    { value: 'es-CL', label: 'Español (Chile)' },
-    { value: 'pt-PT', label: 'Português (Portugal)' },
-    { value: 'pt-BR', label: 'Português (Brasil)' },
-    { value: 'pt-MZ', label: 'Português (Moçambique)' },
-    { value: 'fr-FR', label: 'Français (France)' },
-    { value: 'fr-CA', label: 'Français (Canada)' },
-    { value: 'de-DE', label: 'Deutsch (Deutschland)' },
-    { value: 'de-CH', label: 'Deutsch (Schweiz)' },
-    { value: 'ru-RU', label: 'Русский (Россия)' },
-  ];
+  const selectLocale = resolveLandingSelectLocale(uiLocale);
 
   return (
     <header 
@@ -112,11 +89,11 @@ export function Navbar({ locale }: { locale?: AppLocale }) {
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition-colors cursor-pointer group">
             <Globe size={14} className="text-slate-400 group-hover:text-emerald-400 transition-colors" />
             <select
-              value={uiLocale}
+              value={selectLocale}
               onChange={(e) => handleLocaleChange(e.target.value as AppLocale)}
               className="bg-transparent text-[10px] font-black text-slate-400 hover:text-white outline-none cursor-pointer uppercase tracking-tighter"
             >
-              {localeOptions.map((opt) => (
+              {LANDING_LOCALE_SELECT_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value} className="bg-[#0A0F0D] text-white">
                   {opt.label}
                 </option>
@@ -166,11 +143,11 @@ export function Navbar({ locale }: { locale?: AppLocale }) {
                   <Globe size={16} /> Language
                 </span>
                 <select
-                  value={uiLocale}
+                  value={selectLocale}
                   onChange={(e) => handleLocaleChange(e.target.value as AppLocale)}
                   className="bg-transparent text-lg font-black text-white outline-none"
                 >
-                  {localeOptions.map((opt) => (
+                  {LANDING_LOCALE_SELECT_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value} className="bg-[#0A0F0D] text-white">
                       {opt.label}
                     </option>

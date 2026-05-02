@@ -25,6 +25,10 @@ import { toast } from "sonner";
 import { useIsCapacitorAndroid } from "@/hooks/use-capacitor-android";
 import { isCapacitorAndroid } from "@/lib/client-platform";
 import { AppLocale, LOCALE_COOKIE, resolveLocale } from "@/i18n/config";
+import {
+  DASHBOARD_LOCALE_SELECT_OPTIONS,
+  resolveDashboardSelectLocale,
+} from "@/i18n/ui-locale-options";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { getDashboardCommonMessages } from "@/i18n/dashboard-common-messages";
 
@@ -82,30 +86,7 @@ export function Header({
   const tr = (koText: string, enText: string) => (isKo ? koText : enText);
   const t = getDashboardCommonMessages(preferredLocale);
   const [uiLocale, setUiLocale] = useState<AppLocale>("ko");
-  const localeOptions: Array<{ value: AppLocale; label: string }> = [
-    { value: "ko", label: "한국어" },
-    { value: "en-US", label: "English (US)" },
-    { value: "en-GB", label: "English (UK)" },
-    { value: "en-AU", label: "English (Australia)" },
-    { value: "en-SG", label: "English (Singapore)" },
-    { value: "en-CA", label: "English (Canada)" },
-    { value: "en-NZ", label: "English (New Zealand)" },
-    { value: "vi", label: "Tiếng Việt" },
-    { value: "zh", label: "中文" },
-    { value: "ja", label: "日本語" },
-    { value: "es-ES", label: "Español (España)" },
-    { value: "es-MX", label: "Español (México)" },
-    { value: "es-AR", label: "Español (Argentina)" },
-    { value: "es-CL", label: "Español (Chile)" },
-    { value: "pt-PT", label: "Português (Portugal)" },
-    { value: "pt-BR", label: "Português (Brasil)" },
-    { value: "pt-MZ", label: "Português (Moçambique)" },
-    { value: "fr-FR", label: "Français (France)" },
-    { value: "fr-CA", label: "Français (Canada)" },
-    { value: "de-DE", label: "Deutsch (Deutschland)" },
-    { value: "de-CH", label: "Deutsch (Schweiz)" },
-    { value: "ru-RU", label: "Русский (Россия)" },
-  ];
+  const selectLocale = resolveDashboardSelectLocale(uiLocale);
 
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -232,11 +213,11 @@ export function Header({
           <Globe className="h-3.5 w-3.5 text-slate-500" />
           <select
             aria-label={tr("표시 언어", "Display language")}
-            value={uiLocale}
+            value={selectLocale}
             onChange={(e) => handleLocaleChange(e.target.value as AppLocale)}
             className="bg-transparent text-[11px] font-semibold text-slate-700 outline-none"
           >
-            {localeOptions.map((option) => (
+            {DASHBOARD_LOCALE_SELECT_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
