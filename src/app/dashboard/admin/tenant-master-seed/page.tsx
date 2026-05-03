@@ -26,6 +26,7 @@ import type { TenantMasterSeedBulkResult, TenantMasterSeedResult } from "@/lib/t
 import { TENANT_MASTER_SEED_BULK_MAX } from "@/lib/tenant-master-seed/run-seed";
 import { resolvedMaterialSeedMemo, resolvedProductCode } from "@/lib/tenant-master-seed/seed-db-shape";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
 
 /** Base UI Select may treat value="" as uncontrolled, so empty uses sentinel only */
 const SELECT_TENANT_EMPTY = "__fs_seed_tenant_empty__";
@@ -220,6 +221,7 @@ export default function TenantMasterSeedPage() {
   const seedAbortRef = useRef<AbortController | null>(null);
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
+  const baseLocale = toBaseLocale(locale);
   const armSeedAbort = useCallback(() => {
     seedAbortRef.current?.abort();
     const ac = new AbortController();
@@ -269,7 +271,7 @@ export default function TenantMasterSeedPage() {
             id: t.id,
             name: formatTenantDisplayName(t.name, t.id, messages),
           }))
-          .sort((a, b) => a.name.localeCompare(b.name, "ko"))
+          .sort((a, b) => a.name.localeCompare(b.name, baseLocale))
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -278,7 +280,7 @@ export default function TenantMasterSeedPage() {
     } finally {
       setLoadingTenants(false);
     }
-  }, [locale]);
+  }, [locale, baseLocale]);
 
   const loadVersions = useCallback(async () => {
     try {
@@ -302,7 +304,7 @@ export default function TenantMasterSeedPage() {
         throw new Error(typeof json?.error === "string" ? json.error : res.statusText);
       }
       const rows = (json.organizations as OrganizationRow[]) ?? [];
-      setOrganizations(rows.sort((a, b) => a.name.localeCompare(b.name, "ko")));
+      setOrganizations(rows.sort((a, b) => a.name.localeCompare(b.name, baseLocale)));
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       console.error("tenant-master-seed loadOrganizations:", msg, e);
@@ -310,7 +312,7 @@ export default function TenantMasterSeedPage() {
     } finally {
       setLoadingOrgs(false);
     }
-  }, []);
+  }, [baseLocale, tf]);
 
   useEffect(() => {
     if (!isSuperAdmin) return;

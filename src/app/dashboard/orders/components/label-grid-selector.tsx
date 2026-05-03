@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { FONT_CATALOG } from "@/lib/font-catalog";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
-import { toBaseLocale } from "@/i18n/config";
 
 interface LabelGridSelectorProps {
     labelType: string;
@@ -72,7 +71,7 @@ export function LabelGridSelector({
 }: LabelGridSelectorProps) {
     const locale = usePreferredLocale();
     const tf = getMessages(locale).tenantFlows;
-    const isKo = toBaseLocale(locale) === "ko";    const spec = LABEL_SPECS[labelType] || LABEL_SPECS['formtec-3108'];
+    const spec = LABEL_SPECS[labelType] || LABEL_SPECS['formtec-3108'];
     const SCALE = 0.6;
     const displayWidth = 210 * SCALE;
     const displayHeight = 297 * SCALE;

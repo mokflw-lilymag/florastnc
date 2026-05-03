@@ -9,7 +9,7 @@ import {
   Wallet, ArrowRight, ArrowUpRight
 } from "lucide-react";
 import { format, startOfYear, endOfYear, startOfMonth, endOfMonth, eachMonthOfInterval, differenceInDays } from "date-fns";
-import { enUS, ko } from "date-fns/locale";
+import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -69,7 +69,8 @@ export default function TaxPage() {
   const [viewYear, setViewYear] = useState(new Date().getFullYear());
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
-  const isKo = toBaseLocale(locale) === "ko";
+  const baseLocale = toBaseLocale(locale);
+  const dfLoc = dateFnsLocaleForBase(baseLocale);
   const loading = expensesLoading || ordersLoading || suppliersLoading || settingsLoading;
 
   const taxLineLabels = useMemo(() => {
@@ -138,7 +139,7 @@ export default function TaxPage() {
     const months = eachMonthOfInterval({ start: yearStart, end: yearEnd });
     return months.map((monthStart, i) => {
       const monthEnd = endOfMonth(monthStart);
-      const label = isKo ? format(monthStart, "M월") : format(monthStart, "MMM", { locale: enUS });
+      const label = format(monthStart, "MMM", { locale: dfLoc });
 
       const revenue = orders
         .filter(o => { const d = new Date(o.order_date); return d >= monthStart && d <= monthEnd && o.status !== 'canceled'; })
@@ -154,7 +155,7 @@ export default function TaxPage() {
 
       return { name: label, revenue, totalExpense: expense, materialPurchase: purchase };
     });
-  }, [orders, expenses, yearStart, yearEnd, isKo]);
+  }, [orders, expenses, yearStart, yearEnd, baseLocale, dfLoc]);
 
   // 거래처별 매입 내역 (사업장 현황신고에 필요)
   const supplierPurchases = useMemo(() => {
@@ -223,7 +224,7 @@ export default function TaxPage() {
     const lines: string[] = [];
     const kind = isExempt ? tf.f02356 : tf.f02357;
     lines.push(tf.f02355.replace("{year}", String(viewYear)).replace("{kind}", kind));
-    lines.push(`${tf.f02358} ${format(now, "yyyy-MM-dd HH:mm")}`);
+    lines.push(`${tf.f02358} ${format(now, "Pp", { locale: dfLoc })}`);
     lines.push("");
     lines.push(tf.f02359);
     lines.push(`${tf.f02360},${totalRevenue}`);
@@ -348,7 +349,7 @@ export default function TaxPage() {
                       <p className="text-[10px] text-slate-400 mt-2 flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
                         {item.detail} | {tf.f01019}:{" "}
-                        {format(item.deadline, "P", { locale: isKo ? ko : enUS })}
+                        {format(item.deadline, "P", { locale: dfLoc })}
                       </p>
                       <div className="mt-3 pt-3 border-t border-slate-50 flex justify-end">
                         <a
@@ -458,7 +459,9 @@ export default function TaxPage() {
                       <YAxis
                         tick={{ fontSize: 10, fill: "#94a3b8" }}
                         tickFormatter={(v) =>
-                          isKo ? `${(v / 10000).toFixed(0)}만` : `${Math.round(v / 1000)}k`
+                          baseLocale === "ko"
+                            ? `${(v / 10000).toFixed(0)}${tf.f02653}`
+                            : `${Math.round(v / 1000)}k`
                         }
                       />
                       <Tooltip content={<CustomTooltip />} />

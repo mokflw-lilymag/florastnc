@@ -4,6 +4,7 @@ import { getMessages } from "@/i18n/getMessages";
 import { useState, useMemo } from "react";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
+import { pickUiText } from "@/i18n/pick-ui-text";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -63,7 +64,8 @@ export function ProductTable({
 }: ProductTableProps) {
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
-  const baseLocale = toBaseLocale(locale);  const pageRows = pageProducts ?? products;
+  const baseLocale = toBaseLocale(locale);
+  const pageRows = pageProducts ?? products;
   const emptyListMessage = useMemo(() => {
     if (pageRows.length > 0) return tf.f00036;
     if (registeredTotal != null && registeredTotal > 0) {
@@ -138,7 +140,12 @@ export function ProductTable({
                       <Checkbox
                         checked={!!selectedRows[product.id]}
                         onCheckedChange={() => handleSelectionChange(product.id)}
-                        aria-label={baseLocale === "ko" ? `${product.name} 선택` : `Select ${product.name}`}
+                        aria-label={pickUiText(
+                          baseLocale,
+                          `${product.name} 선택`,
+                          `Select ${product.name}`,
+                          `Chọn ${product.name}`
+                        )}
                       />
                     </TableCell>
                     <TableCell>

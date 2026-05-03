@@ -41,11 +41,43 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
+import { pickUiText } from "@/i18n/pick-ui-text";
 
 export default function PosSettingsPage() {
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
-  const isKo = toBaseLocale(locale) === "ko";  const { integration, loading, logs, logsLoading, fetchLogs, saveIntegration } = usePosSettings();
+  const baseLocale = toBaseLocale(locale);
+  const enterpriseBadge = pickUiText(
+    baseLocale,
+    "기업용 기능",
+    "Enterprise feature",
+    "Tính năng doanh nghiệp"
+  );
+  const setupGuideLabel = pickUiText(
+    baseLocale,
+    "설정 가이드",
+    "Setup guide",
+    "Hướng dẫn thiết lập"
+  );
+  const labelWebhookSecret = pickUiText(
+    baseLocale,
+    "Webhook 시크릿 키",
+    "Webhook secret key",
+    "Khóa bí mật Webhook"
+  );
+  const labelApiKeyToken = pickUiText(
+    baseLocale,
+    "API 키 / 액세스 토큰",
+    "API key / Access token",
+    "API key / Access token"
+  );
+  const labelApiSecret = pickUiText(
+    baseLocale,
+    "API 시크릿",
+    "API secret",
+    "API secret"
+  );
+  const { integration, loading, logs, logsLoading, fetchLogs, saveIntegration } = usePosSettings();
   const [activeTab, setActiveTab] = useState("general");
   const [saving, setSaving] = useState(false);
 
@@ -91,7 +123,7 @@ export default function PosSettingsPage() {
   const posProviders = [
     { 
       id: "easycheck", 
-      name: "이지체크 (EasyCheck)", 
+      name: pickUiText(baseLocale, "이지체크 (EasyCheck)", "EasyCheck", "EasyCheck"),
       desc: tf.f01023, 
       icon: Monitor,
       color: "bg-blue-500",
@@ -99,7 +131,7 @@ export default function PosSettingsPage() {
     },
     { 
       id: "toss", 
-      name: "토스 POS (TossPlace)", 
+      name: pickUiText(baseLocale, "토스 POS (TossPlace)", "Toss POS (TossPlace)", "Toss POS (TossPlace)"),
       desc: tf.f01427, 
       icon: Smartphone,
       color: "bg-blue-600",
@@ -131,7 +163,7 @@ export default function PosSettingsPage() {
         <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl group-hover:bg-primary/20 transition-all duration-700" />
         <div className="relative z-10 space-y-2">
           <div className="flex items-center gap-2">
-             <Badge className="bg-primary/20 text-primary border-primary/30 hover:bg-primary/30">Enterprise Feature</Badge>
+             <Badge className="bg-primary/20 text-primary border-primary/30 hover:bg-primary/30">{enterpriseBadge}</Badge>
              {integration?.last_synced_at && (
                <Badge variant="outline" className="text-green-400 border-green-500/30">
                 <CheckCircle2 className="w-3 h-3 mr-1" /> {tf.f01505}
@@ -228,7 +260,7 @@ export default function PosSettingsPage() {
             <div className="relative z-10 space-y-4">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="w-5 h-5 text-blue-200" />
-                <span className="text-sm font-medium text-blue-100 uppercase tracking-widest">Setup Guide</span>
+                <span className="text-sm font-medium text-blue-100 uppercase tracking-widest">{setupGuideLabel}</span>
               </div>
               <h3 className="text-xl font-bold leading-tight">{tf.f01691}<br />{tf.f01570}</h3>
               <p className="text-sm text-blue-100/80 leading-relaxed">
@@ -357,7 +389,7 @@ export default function PosSettingsPage() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label className="text-slate-700 font-semibold">Webhook Secret Key</Label>
+                        <Label className="text-slate-700 font-semibold">{labelWebhookSecret}</Label>
                         <div className="relative group">
                           <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
                           <Input 
@@ -375,7 +407,7 @@ export default function PosSettingsPage() {
                     <Separator className="bg-slate-100" />
 
                     <div className="space-y-2">
-                      <Label className="text-slate-700 font-semibold">API Key / Access Token</Label>
+                      <Label className="text-slate-700 font-semibold">{labelApiKeyToken}</Label>
                       <div className="relative group">
                         <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
                         <Input 
@@ -389,7 +421,7 @@ export default function PosSettingsPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-slate-700 font-semibold">API Secret</Label>
+                      <Label className="text-slate-700 font-semibold">{labelApiSecret}</Label>
                       <div className="relative group">
                         <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
                         <Input 

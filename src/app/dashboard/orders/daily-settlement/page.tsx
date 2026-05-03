@@ -1,7 +1,7 @@
 "use client";
 import { getMessages } from "@/i18n/getMessages";
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +13,7 @@ import {
   RefreshCw, ChevronLeft, ChevronRight, FileText, 
   XCircle, Download, CheckCircle2, ShoppingCart, Loader2, Package, TrendingUp
 } from "lucide-react";
-import { format, subDays, addDays, startOfDay, endOfDay, differenceInDays } from "date-fns";
+import { format, parse, subDays, addDays, startOfDay, endOfDay } from "date-fns";
 import { useOrders } from "@/hooks/use-orders";
 import { useAuth } from "@/hooks/use-auth";
 import { useDailySettlements, DailySettlementRecord } from "@/hooks/use-daily-settlements";
@@ -26,6 +26,7 @@ import { parseDate } from "@/lib/date-utils";
 import { toast } from "sonner";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
+import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
 
 export default function DailySettlementPage() {
     const { orders, fetchOrdersByRange, loading: ordersLoading } = useOrders();
@@ -35,7 +36,12 @@ export default function DailySettlementPage() {
     const { profile } = useAuth();
     const locale = usePreferredLocale();
     const tf = getMessages(locale).tenantFlows;
-    const isKo = toBaseLocale(locale) === "ko";    const [reportDate, setReportDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+    const dfLoc = dateFnsLocaleForBase(toBaseLocale(locale));
+    const [reportDate, setReportDate] = useState(format(new Date(), "yyyy-MM-dd"));
+    const reportDateLabel = useMemo(
+        () => format(parse(reportDate, "yyyy-MM-dd", new Date()), "P", { locale: dfLoc }),
+        [reportDate, dfLoc]
+    );
     const [settlementRecord, setSettlementRecord] = useState<DailySettlementRecord | null>(null);
     const [prevSettlementRecord, setPrevSettlementRecord] = useState<DailySettlementRecord | null>(null);
     const [vaultDeposit, setVaultDeposit] = useState<number>(0);
@@ -355,7 +361,7 @@ export default function DailySettlementPage() {
             </div>
             <PageHeader
                 title={tf.f00529}
-                description={tf.f00802.replace("{date}", reportDate)}
+                description={tf.f00802.replace("{date}", reportDateLabel)}
             >
                 <div className="flex items-center gap-3">
                     <div className="hidden lg:flex flex-col items-end mr-2">
@@ -566,7 +572,13 @@ export default function DailySettlementPage() {
                                     <TableRow key={`${order.id}-${idx}`} className="group hover:bg-slate-50/50 transition-colors border-b border-slate-50/50">
                                         <TableCell className="px-6 py-4">
                                             <div className="flex flex-col">
-                                                <span className="text-[10px] text-slate-400 font-medium">{format(new Date(order.order_date || order.created_at || new Date().toISOString()), 'HH:mm:ss')}</span>
+                                                <span className="text-[10px] text-slate-400 font-medium">
+                                                    {format(
+                                                        new Date(order.order_date || order.created_at || new Date().toISOString()),
+                                                        "pp",
+                                                        { locale: dfLoc }
+                                                    )}
+                                                </span>
                                                 <span className="font-mono text-[10px] text-slate-700 uppercase">{order.order_number}</span>
                                             </div>
                                         </TableCell>

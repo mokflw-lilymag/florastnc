@@ -1,7 +1,7 @@
 "use client";
 import { getMessages } from "@/i18n/getMessages";
 
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { 
   Sparkles, 
@@ -25,24 +25,14 @@ import { parseOrderWithAi } from "@/app/actions/ai/order-parser";
 import { setFloxyncFloatingUiSuppressed } from "@/lib/floating-ui-bridge";
 import { cn } from "@/lib/utils";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
-import { toBaseLocale } from "@/i18n/config";
-
-/** 마이크 녹음 시 사용자가 참고할 말하기 예시 (입력폼 안내용) */
-const VOICE_ORDER_SCRIPT_EXAMPLE = `000님 주문, 0만 원 꽃다발, 0월 0일 0시 픽업 또는 배송.
-
-주소: 도로명주소, 수령인 이름, 연락처.
-
-카드/리본 메시지 — 메시지 블라블라 등 원하시는 문구.`;
+import { speechRecognitionLangTag, toBaseLocale } from "@/i18n/config";
+import { pickUiText } from "@/i18n/pick-ui-text";
 
 interface AiOrderConciergeProps {
   onApply: (data: any) => void;
 }
 
-const DELIVERY_TYPES = [
-  { value: "delivery_reservation", label: "배송 예약" },
-  { value: "pickup_reservation", label: "픽업 예약" },
-  { value: "store_pickup", label: "매장 픽업" },
-] as const;
+const DELIVERY_TYPE_VALUES = ["delivery_reservation", "pickup_reservation", "store_pickup"] as const;
 
 /** 분석 직후 검토·수정용으로 기본값을 채운 얕은 복사 */
 function cloneAiDraftForReview(raw: unknown): Record<string, unknown> {
@@ -57,7 +47,7 @@ function cloneAiDraftForReview(raw: unknown): Record<string, unknown> {
   const deliveryRaw =
     typeof src.delivery === "object" && src.delivery ? (src.delivery as Record<string, unknown>) : {};
   let type = String(deliveryRaw.type ?? "delivery_reservation");
-  if (!DELIVERY_TYPES.some((t) => t.value === type)) type = "delivery_reservation";
+  if (!DELIVERY_TYPE_VALUES.some((t) => t === type)) type = "delivery_reservation";
 
   const itemsRaw = Array.isArray(src.items) ? src.items : [];
   const items =
@@ -105,7 +95,33 @@ function cloneAiDraftForReview(raw: unknown): Record<string, unknown> {
 export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
-  const isKo = toBaseLocale(locale) === "ko";  const [isOpen, setIsOpen] = useState(false);
+  const baseLocale = toBaseLocale(locale);
+  const voiceExample = useMemo(
+    () => pickUiText(baseLocale, tf.f02551, tf.f02552, tf.f02553),
+    [baseLocale, tf]
+  );
+  const deliveryTypes = useMemo(
+    () =>
+      [
+        { value: "delivery_reservation" as const, label: tf.f02554 },
+        { value: "pickup_reservation" as const, label: tf.f02555 },
+        { value: "store_pickup" as const, label: tf.f02556 },
+      ] as const,
+    [tf]
+  );
+  const phDeliveryDate = pickUiText(
+    baseLocale,
+    "예: 2026-04-18",
+    "e.g. 2026-04-18",
+    "VD: 2026-04-18"
+  );
+  const phDeliveryTime = pickUiText(
+    baseLocale,
+    "예: 15:00",
+    "e.g. 15:00",
+    "VD: 15:00"
+  );
+  const [isOpen, setIsOpen] = useState(false);
   // UI State
   const [activeTab, setActiveTab] = useState<"smart" | "image">("smart");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -194,7 +210,7 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
       onend: (() => void) | null;
     };
 
-    rec.lang = "ko-KR";
+    rec.lang = speechRecognitionLangTag(baseLocale);
     rec.continuous = true;
     rec.interimResults = true;
 
@@ -483,7 +499,7 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
         >
           <Sparkles className="w-5 h-5" />
         </motion.div>
-        <span className="font-bold text-base">AI 주문 마스터 시작하기</span>
+        <span className="font-bold text-base">{tf.f02545}</span>
         
         {/* Animated background glow */}
         <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
@@ -525,7 +541,7 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
                 <div className="flex items-center justify-between border-b pb-4">
                   <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                     <History className="w-4 h-4 text-violet-500" />
-                    AI에게 주문 알려주기
+                    {tf.f02546}
                   </h3>
                   <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
                     <X className="w-4 h-4" />
@@ -535,8 +551,8 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
                 {/* Tabs — 좁은 폭에서도 아이콘·긴 문구가 한 줄에 겹치지 않도록 세로 스택 */}
                 <div className="grid grid-cols-2 gap-1 p-1 bg-slate-100 rounded-xl">
                   {[
-                    { id: "smart", icon: Sparkles, label: "음성/텍스트 통합 입력" },
-                    { id: "image", icon: ImageIcon, label: "주문서 이미지/사진" },
+                    { id: "smart", icon: Sparkles, label: tf.f02547 },
+                    { id: "image", icon: ImageIcon, label: tf.f02548 },
                   ].map((tab) => (
                     <button
                       key={tab.id}
@@ -569,7 +585,7 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
                         <Sparkles className="w-8 h-8 text-violet-600" />
                       </motion.div>
                       <div className="w-full max-w-xs space-y-2">
-                        <p className="text-center text-sm font-medium text-slate-600">AI 비서가 분석 중입니다...</p>
+                        <p className="text-center text-sm font-medium text-slate-600">{tf.f02549}</p>
                         <Progress value={progress} className="h-1 bg-slate-100" />
                       </div>
                     </div>
@@ -578,19 +594,15 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
                       {activeTab === "smart" && (
                         <div className="relative group space-y-2">
                           <div className="rounded-xl border border-violet-100 bg-violet-50/60 px-3 py-2.5 text-xs text-slate-600 leading-relaxed">
-                            <p className="font-semibold text-violet-800 mb-1">마이크로 말할 때 예시</p>
+                            <p className="font-semibold text-violet-800 mb-1">{tf.f02550}</p>
                             <pre className="whitespace-pre-wrap font-sans text-[11px] sm:text-xs text-slate-700">
-                              {VOICE_ORDER_SCRIPT_EXAMPLE}
+                              {voiceExample}
                             </pre>
                           </div>
                           <textarea
                             value={textInput}
                             onChange={(e) => setTextInput(e.target.value)}
-                            placeholder={
-                              isListening
-                                ? "사장님의 말씀을 듣고 있습니다. 말씀이 끝나면 마이크를 다시 눌러 주세요!"
-                                : "위 예시처럼 말씀해 주시거나, 카톡·문자 내용을 여기에 붙여 넣어 주세요."
-                            }
+                            placeholder={isListening ? tf.f02557 : tf.f02558}
                             className={`w-full h-40 p-5 bg-slate-50 rounded-2xl border-2 transition-all text-sm resize-none ${
                               isListening 
                                 ? "border-violet-400 bg-violet-50/30 ring-4 ring-violet-100" 
@@ -624,10 +636,10 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
                               {/* Mic Help Tooltip/Link */}
                               {!isListening && activeTab === "smart" && (
                                 <button 
-                                  onClick={() => toast.info("마이크가 안 되시나요? 다른 마이크를 쓰시거나 카톡 내용을 복사해서 붙여넣어 보세요!")}
+                                  onClick={() => toast.info(tf.f02559)}
                                   className="text-[10px] text-slate-400 hover:text-violet-500 transition-colors"
                                 >
-                                  마이크가 안 되시나요?
+                                  {tf.f02560}
                                 </button>
                               )}
                               <Button
@@ -650,7 +662,7 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
                         <div className="flex flex-col items-center w-full gap-2">
                           {imagePreview ? (
                             <div className="relative w-full aspect-video rounded-xl overflow-hidden border">
-                              <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                              <img src={imagePreview} alt={tf.f02586} className="w-full h-full object-cover" />
                               <button 
                                 onClick={() => setImagePreview(null)}
                                 className="absolute top-2 right-2 p-1 bg-black/50 text-white rounded-full"
@@ -665,15 +677,11 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
                               className="w-full aspect-video border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors"
                             >
                               <ImageIcon className="w-8 h-8 text-slate-400" />
-                              <span className="text-sm font-medium text-slate-500">주문서 캡처 사진 올리기</span>
+                              <span className="text-sm font-medium text-slate-500">{tf.f02561}</span>
                             </button>
                           )}
                           <p className="text-[11px] text-slate-500 text-center leading-relaxed px-1">
-                            웹·카톡 등에서 이미지를 복사한 뒤, 이 탭을 연 상태에서{" "}
-                            <kbd className="px-1 py-0.5 rounded bg-slate-100 border text-[10px]">Ctrl</kbd>
-                            {" + "}
-                            <kbd className="px-1 py-0.5 rounded bg-slate-100 border text-[10px]">V</kbd>
-                            {" "}(Mac: ⌘V)로 붙여넣을 수 있어요.
+                            {tf.f02562}
                           </p>
                           <input 
                             type="file" 
@@ -694,7 +702,7 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
                     onClick={() => void runAiAnalysis()}
                     className="w-full h-12 shrink-0 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold"
                   >
-                    AI 비서에게 건네주기 <ArrowRight className="w-4 h-4 ml-2" />
+                    {tf.f02563} <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
                 )}
               </div>
@@ -704,10 +712,10 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
                   <div>
                     <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2 text-violet-600">
                       <Check className="w-5 h-5 shrink-0" />
-                      AI가 분석한 주문 내용
+                      {tf.f02564}
                     </h3>
                     <p className="text-xs text-slate-500 mt-1">
-                      아래에서 바로 수정한 뒤「이대로 입력하기」를 눌러 주세요.
+                      {tf.f02565}
                     </p>
                   </div>
                   <Button variant="ghost" size="icon" onClick={() => setAiReviewDraft(null)} className="shrink-0">
@@ -719,7 +727,7 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
                   <div className="bg-violet-50/50 p-4 rounded-2xl border border-violet-100 space-y-4 text-sm">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label className="text-xs text-slate-500">주문자 이름</Label>
+                        <Label className="text-xs text-slate-500">{tf.f02566}</Label>
                         <Input
                           value={String((aiReviewDraft.orderer as Record<string, string> | undefined)?.name ?? "")}
                           onChange={(e) =>
@@ -729,10 +737,10 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
                               return { ...prev, orderer: { ...o, name: e.target.value } };
                             })
                           }
-                          placeholder="미입력"
+                          placeholder={tf.f02585}
                           className="bg-white"
                         />
-                        <Label className="text-xs text-slate-500">주문자 연락처</Label>
+                        <Label className="text-xs text-slate-500">{tf.f02567}</Label>
                         <Input
                           value={String((aiReviewDraft.orderer as Record<string, string> | undefined)?.contact ?? "")}
                           onChange={(e) =>
@@ -744,7 +752,7 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
                           }
                           className="bg-white"
                         />
-                        <Label className="text-xs text-slate-500">주문자 회사(선택)</Label>
+                        <Label className="text-xs text-slate-500">{tf.f02568}</Label>
                         <Input
                           value={String((aiReviewDraft.orderer as Record<string, string> | undefined)?.company ?? "")}
                           onChange={(e) =>
@@ -758,7 +766,7 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-xs text-slate-500">수령인 이름</Label>
+                        <Label className="text-xs text-slate-500">{tf.f02569}</Label>
                         <Input
                           value={String((aiReviewDraft.recipient as Record<string, string> | undefined)?.name ?? "")}
                           onChange={(e) =>
@@ -770,7 +778,7 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
                           }
                           className="bg-white"
                         />
-                        <Label className="text-xs text-slate-500">수령인 연락처</Label>
+                        <Label className="text-xs text-slate-500">{tf.f02570}</Label>
                         <Input
                           value={String((aiReviewDraft.recipient as Record<string, string> | undefined)?.contact ?? "")}
                           onChange={(e) =>
@@ -786,7 +794,7 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
                     </div>
 
                     <div className="space-y-2 pt-2 border-t border-violet-100">
-                      <Label className="text-xs text-slate-500">배송·픽업 유형</Label>
+                      <Label className="text-xs text-slate-500">{tf.f02571}</Label>
                       <select
                         className="h-8 w-full rounded-lg border border-input bg-white px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
                         value={String((aiReviewDraft.delivery as Record<string, string> | undefined)?.type ?? "delivery_reservation")}
@@ -798,7 +806,7 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
                           })
                         }
                       >
-                        {DELIVERY_TYPES.map((t) => (
+                        {deliveryTypes.map((t) => (
                           <option key={t.value} value={t.value}>
                             {t.label}
                           </option>
@@ -806,7 +814,7 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
                       </select>
                       <div className="grid grid-cols-2 gap-2">
                         <div>
-                          <Label className="text-xs text-slate-500">날짜 (YYYY-MM-DD)</Label>
+                          <Label className="text-xs text-slate-500">{tf.f02572}</Label>
                           <Input
                             value={String((aiReviewDraft.delivery as Record<string, string> | undefined)?.date ?? "")}
                             onChange={(e) =>
@@ -816,12 +824,12 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
                                 return { ...prev, delivery: { ...del, date: e.target.value } };
                               })
                             }
-                            placeholder="2026-04-18"
+                            placeholder={phDeliveryDate}
                             className="bg-white"
                           />
                         </div>
                         <div>
-                          <Label className="text-xs text-slate-500">시간 (HH:mm)</Label>
+                          <Label className="text-xs text-slate-500">{tf.f02573}</Label>
                           <Input
                             value={String((aiReviewDraft.delivery as Record<string, string> | undefined)?.time ?? "")}
                             onChange={(e) =>
@@ -831,7 +839,7 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
                                 return { ...prev, delivery: { ...del, time: e.target.value } };
                               })
                             }
-                            placeholder="15:00"
+                            placeholder={phDeliveryTime}
                             className="bg-white"
                           />
                         </div>
@@ -839,7 +847,7 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
                     </div>
 
                     <div className="space-y-2 pt-2 border-t border-violet-100">
-                      <Label className="text-xs text-slate-500">상품 (첫 줄)</Label>
+                      <Label className="text-xs text-slate-500">{tf.f02574}</Label>
                       <Input
                         value={String((aiReviewDraft.items as Array<Record<string, unknown>>)?.[0]?.name ?? "")}
                         onChange={(e) =>
@@ -854,7 +862,7 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
                       />
                       <div className="grid grid-cols-2 gap-2">
                         <div>
-                          <Label className="text-xs text-slate-500">가격 (원)</Label>
+                          <Label className="text-xs text-slate-500">{tf.f02575}</Label>
                           <Input
                             type="number"
                             min={0}
@@ -871,7 +879,7 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
                           />
                         </div>
                         <div>
-                          <Label className="text-xs text-slate-500">수량</Label>
+                          <Label className="text-xs text-slate-500">{tf.f02576}</Label>
                           <Input
                             type="number"
                             min={1}
@@ -891,7 +899,7 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
                     </div>
 
                     <div className="space-y-2 pt-2 border-t border-violet-100">
-                      <Label className="text-xs text-slate-500">주소</Label>
+                      <Label className="text-xs text-slate-500">{tf.f02577}</Label>
                       <Input
                         value={String((aiReviewDraft.recipient as Record<string, string> | undefined)?.address ?? "")}
                         onChange={(e) =>
@@ -903,7 +911,7 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
                         }
                         className="bg-white"
                       />
-                      <Label className="text-xs text-slate-500">상세 주소</Label>
+                      <Label className="text-xs text-slate-500">{tf.f02578}</Label>
                       <Input
                         value={String((aiReviewDraft.recipient as Record<string, string> | undefined)?.detailAddress ?? "")}
                         onChange={(e) =>
@@ -918,7 +926,7 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
                     </div>
 
                     <div className="space-y-2 pt-2 border-t border-violet-100">
-                      <Label className="text-xs text-slate-500">리본·카드 문구</Label>
+                      <Label className="text-xs text-slate-500">{tf.f02579}</Label>
                       <Textarea
                         value={String((aiReviewDraft.message as Record<string, string> | undefined)?.content ?? "")}
                         onChange={(e) =>
@@ -930,18 +938,18 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
                         }
                         rows={3}
                         className="bg-white text-sm min-h-[72px]"
-                        placeholder="리본·카드에 넣을 문구"
+                        placeholder={tf.f02580}
                       />
                     </div>
 
                     <div className="space-y-2 pt-2 border-t border-violet-100">
-                      <Label className="text-xs text-slate-500">특이사항·메모</Label>
+                      <Label className="text-xs text-slate-500">{tf.f02581}</Label>
                       <Textarea
                         value={String(aiReviewDraft.memo ?? "")}
                         onChange={(e) => setAiReviewDraft((prev) => (prev ? { ...prev, memo: e.target.value } : prev))}
                         rows={2}
                         className="bg-white text-sm min-h-[56px]"
-                        placeholder="배송 요청 등"
+                        placeholder={tf.f02582}
                       />
                     </div>
                   </div>
@@ -953,13 +961,13 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
                     onClick={() => setAiReviewDraft(null)}
                     className="flex-1 rounded-xl h-12"
                   >
-                    다시 하기
+                    {tf.f02583}
                   </Button>
                   <Button
                     onClick={handleApply}
                     className="flex-[1.4] rounded-xl h-12 bg-violet-600 hover:bg-violet-700 text-white font-bold px-6"
                   >
-                    이대로 입력하기 <ArrowRight className="w-4 h-4 ml-2" />
+                    {tf.f02584} <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
                 </div>
               </div>

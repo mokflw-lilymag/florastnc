@@ -26,7 +26,6 @@ import { createClient } from "@/utils/supabase/client";
 import { toast } from "sonner";
 import { format, startOfWeek, startOfMonth } from "date-fns";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
-import { toBaseLocale } from "@/i18n/config";
 
 interface ChecklistTask {
   id: string;
@@ -63,7 +62,8 @@ export default function DailyChecklistPage() {
   const supabase = createClient();
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
-  const baseLocale = toBaseLocale(locale);  useEffect(() => {
+
+  useEffect(() => {
     fetchInitialData();
   }, [activeTab]);
 

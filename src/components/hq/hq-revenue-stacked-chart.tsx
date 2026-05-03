@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getMessages } from "@/i18n/getMessages";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
 import {
   Bar,
   BarChart,
@@ -20,7 +23,7 @@ type BranchKey = { id: string; name: string };
 type Props = {
   chartRows: Record<string, string | number>[];
   branchKeys: BranchKey[];
-  /** 툴팁 라벨 (예: 일자, 주간, 월, 연도) */
+  /** 툴팁 라벨 (예: 일자, 주간, 월, 연도). 생략 시 다국어 기본(조회 기간) */
   xLabel?: string;
   /** 대시보드 다열 배치용 높이(px) */
   chartHeight?: number;
@@ -29,10 +32,18 @@ type Props = {
 export function HqRevenueStackedChart({
   chartRows,
   branchKeys,
-  xLabel = "기간",
+  xLabel,
   chartHeight = 360,
 }: Props) {
   const [mounted, setMounted] = useState(false);
+  const locale = usePreferredLocale();
+  const tf = getMessages(locale).tenantFlows;
+  const baseLocale = toBaseLocale(locale);
+  const resolvedXLabel = xLabel ?? tf.f01858;
+  const axisMoneyTick = (v: number) =>
+    baseLocale === "ko"
+      ? `${(v / 10000).toFixed(0)}${tf.f02653}`
+      : `${Math.round(v / 1000)}k`;
 
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), 100);
@@ -50,7 +61,7 @@ export function HqRevenueStackedChart({
         className="w-full flex items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 text-sm text-muted-foreground px-2 text-center"
         style={{ height: emptyH }}
       >
-        차트로 표시할 기간 데이터가 없습니다.
+        {tf.f02119}
       </div>
     );
   }
@@ -65,11 +76,14 @@ export function HqRevenueStackedChart({
             tick={{ fontSize: 10, fill: "#64748b" }}
             axisLine={false}
             tickLine={false}
-            tickFormatter={(v) => `${(v / 10000).toFixed(0)}만`}
+            tickFormatter={axisMoneyTick}
           />
           <Tooltip
-            formatter={(value, name) => [`${Number(value ?? 0).toLocaleString()}원`, String(name)]}
-            labelFormatter={(label) => `${xLabel}: ${label}`}
+            formatter={(value, name) => [
+              `${Number(value ?? 0).toLocaleString()}${tf.f00487}`,
+              String(name),
+            ]}
+            labelFormatter={(label) => `${resolvedXLabel}: ${label}`}
             contentStyle={{ fontSize: 12 }}
           />
           <Legend wrapperStyle={{ fontSize: 11 }} />

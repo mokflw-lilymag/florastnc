@@ -2,12 +2,19 @@
 
 import React, { useState } from "react";
 import { Store, Delete, X } from "lucide-react";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
+import { pickUiText } from "@/i18n/pick-ui-text";
 
 interface KioskPinEntryProps {
   onComplete: (pin: string) => void;
 }
 
 export function KioskPinEntry({ onComplete }: KioskPinEntryProps) {
+  const locale = usePreferredLocale();
+  const baseLocale = toBaseLocale(locale);
+  const L = (ko: string, en: string, vi?: string) => pickUiText(baseLocale, ko, en, vi);
+
   const [pin, setPin] = useState("");
   const [active, setActive] = useState<number | string | null>(null);
 
@@ -40,7 +47,13 @@ export function KioskPinEntry({ onComplete }: KioskPinEntryProps) {
           </div>
         </div>
         <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Floxync Kiosk</h1>
-        <p className="text-slate-500 font-semibold tracking-tight">직원 화면의 3자리 핀번호를 입력해주세요</p>
+        <p className="text-slate-500 font-semibold tracking-tight">
+          {L(
+            "직원 화면의 3자리 핀번호를 입력해주세요",
+            "Enter the 3-digit PIN shown on the staff screen.",
+            "Nhập mã PIN 3 chữ số hiển thị trên màn hình nhân viên.",
+          )}
+        </p>
       </div>
 
       <div className="flex justify-center gap-4 mb-10">

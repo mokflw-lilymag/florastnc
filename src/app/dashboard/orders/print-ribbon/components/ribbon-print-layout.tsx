@@ -4,9 +4,6 @@ import { getMessages } from "@/i18n/getMessages";
 import React, { useState, useEffect, useRef } from "react";
 import { Printer, RefreshCw, Save, ArrowLeft, MoreHorizontal, Settings, Target } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { format } from "date-fns";
-import { ko } from "date-fns/locale";
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -16,7 +13,6 @@ import { Order } from "@/types/order";
 import { FontSelector } from "../../components/font-selector";
 import { Separator } from "@/components/ui/separator";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
-import { toBaseLocale } from "@/i18n/config";
 
 interface RibbonPrintLayoutProps {
     order: Order;
@@ -28,7 +24,7 @@ export function RibbonPrintLayout({ order, initialContent, initialSender }: Ribb
     const router = useRouter();
     const locale = usePreferredLocale();
     const tf = getMessages(locale).tenantFlows;
-    const isKo = toBaseLocale(locale) === "ko";    const [content, setContent] = useState(initialContent || "");
+    const [content, setContent] = useState(initialContent || "");
     const [sender, setSender] = useState(initialSender || "");
     
     const [fontSize, setFontSize] = useState(60);

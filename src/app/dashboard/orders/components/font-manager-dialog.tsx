@@ -16,7 +16,6 @@ import {
     setActiveFonts,
 } from "@/lib/font-catalog";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
-import { toBaseLocale } from "@/i18n/config";
 
 interface FontManagerDialogProps {
     isOpen: boolean;
@@ -27,7 +26,7 @@ interface FontManagerDialogProps {
 export function FontManagerDialog({ isOpen, onOpenChange, onFontsChanged }: FontManagerDialogProps) {
     const locale = usePreferredLocale();
     const tf = getMessages(locale).tenantFlows;
-    const isKo = toBaseLocale(locale) === "ko";    const [activeFonts, setActiveFontsState] = useState<string[]>([]);
+    const [activeFonts, setActiveFontsState] = useState<string[]>([]);
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
     const [search, setSearch] = useState("");
 

@@ -44,7 +44,6 @@ import { Order } from "@/types/order";
 import { createClient } from "@/utils/supabase/client";
 import { cn } from "@/lib/utils";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
-import { toBaseLocale } from "@/i18n/config";
 
 interface OrderDetailDialogProps {
   isOpen: boolean;
@@ -61,7 +60,7 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
   const { updateOrder } = useOrders();
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
-  const isKo = toBaseLocale(locale) === "ko";  const [isDateEditing, setIsDateEditing] = useState(false);
+  const [isDateEditing, setIsDateEditing] = useState(false);
   const [editOrderDate, setEditOrderDate] = useState("");
   const [editPaymentDate, setEditPaymentDate] = useState("");
   const [editPaymentMethod, setEditPaymentMethod] = useState("");

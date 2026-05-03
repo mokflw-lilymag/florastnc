@@ -25,11 +25,12 @@ import {
 import { useOrders } from '@/hooks/use-orders';
 import { useExpenses } from '@/hooks/use-expenses';
 import { format, startOfMonth, endOfMonth, subDays, isSameDay, isToday, startOfToday } from 'date-fns';
-import { ko } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
+import { pickUiText } from "@/i18n/pick-ui-text";
+import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
 
 export default function ReportsPage() {
   const { orders, loading: ordersLoading } = useOrders();
@@ -37,7 +38,9 @@ export default function ReportsPage() {
   const [dateRange, setDateRange] = useState("today"); // Default to today for "일일정산"
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
-  const isKo = toBaseLocale(locale) === "ko";  const stats = useMemo(() => {
+  const baseLocale = toBaseLocale(locale);
+  const dfLoc = dateFnsLocaleForBase(baseLocale);
+  const stats = useMemo(() => {
     const now = new Date();
     let fromDate = startOfToday();
     
@@ -85,7 +88,15 @@ export default function ReportsPage() {
       paymentMethods: Object.entries(paymentMethods).sort((a,b) => b[1] - a[1]),
       topProducts: Object.values(topProducts).sort((a,b) => b.total - a.total).slice(0, 5)
     };
-  }, [orders, expenses, dateRange]);
+  }, [orders, expenses, dateRange, tf]);
+
+  const rangeBadgeDateLabel = useMemo(() => {
+    if (dateRange === "today") return format(new Date(), "P", { locale: dfLoc });
+    if (dateRange === "week") return tf.f02009;
+    if (dateRange === "month") return format(new Date(), "MMM yyyy", { locale: dfLoc });
+    const yStr = format(new Date(), "yyyy", { locale: dfLoc });
+    return pickUiText(baseLocale, `${yStr}년`, yStr, yStr);
+  }, [dateRange, dfLoc, baseLocale, tf]);
 
   const loading = ordersLoading || expensesLoading;
 
@@ -117,10 +128,7 @@ export default function ReportsPage() {
             </TabsList>
          </Tabs>
          <Badge variant="outline" className="rounded-full px-4 py-1.5 font-bold text-gray-500 bg-white border-gray-100 shadow-sm">
-            {tf.f01015}: {dateRange === 'today' ? format(new Date(), 'yyyy-MM-dd') : 
-                        dateRange === 'week' ? tf.f02009 : 
-                        dateRange === 'month' ? format(new Date(), 'yyyy-MM') : 
-                        (isKo ? format(new Date(), 'yyyy년') : format(new Date(), 'yyyy'))}
+            {tf.f01015}: {rangeBadgeDateLabel}
          </Badge>
       </div>
 

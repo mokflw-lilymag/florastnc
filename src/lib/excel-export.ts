@@ -1,8 +1,13 @@
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
-import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
-import { parseISO } from 'date-fns';
+import { format } from "date-fns";
+import { parseISO } from "date-fns";
+import { resolveLocale, toBaseLocale } from "@/i18n/config";
+import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
+
+function dateFnsLoc(appLocale?: string) {
+  return dateFnsLocaleForBase(toBaseLocale(resolveLocale(appLocale)));
+}
 
 /**
  * 엑셀 내보내기 유틸리티 (SaaS 버전)
@@ -19,7 +24,12 @@ const parseDate = (dateStr: any): Date => {
 };
 
 // 주문 내역 엑셀 내보내기
-export const exportOrdersToExcel = (orders: any[], startDate?: string, endDate?: string) => {
+export const exportOrdersToExcel = (
+  orders: any[],
+  startDate?: string,
+  endDate?: string,
+  appLocale?: string
+) => {
   try {
     if (!orders || !Array.isArray(orders)) {
       throw new Error('주문 데이터가 올바르지 않습니다.');
@@ -43,7 +53,7 @@ export const exportOrdersToExcel = (orders: any[], startDate?: string, endDate?:
     const rows: any[] = [];
     filteredOrders.forEach(order => {
       const orderDate = parseDate(order.order_date);
-      const formattedOrderDate = format(orderDate, 'yyyy-MM-dd HH:mm', { locale: ko });
+      const formattedOrderDate = format(orderDate, "Pp", { locale: dateFnsLoc(appLocale) });
 
       const fulfillmentInfo = order.receipt_type === 'delivery_reservation' 
         ? order.delivery_info 
@@ -141,7 +151,12 @@ export const exportToExcel = (data: any[], fileName: string, sheetName: string =
 /**
  * 주문 데이터 → 구글 시트용 2D 배열 변환
  */
-export const prepareOrdersForGoogleSheet = (orders: any[], startDate: string, endDate: string) => {
+export const prepareOrdersForGoogleSheet = (
+  orders: any[],
+  startDate: string,
+  endDate: string,
+  appLocale?: string
+) => {
   const filteredOrders = orders.filter(order => {
     const orderDate = parseDate(order.order_date).toISOString().split('T')[0];
     return orderDate >= startDate && orderDate <= endDate;
@@ -156,7 +171,7 @@ export const prepareOrdersForGoogleSheet = (orders: any[], startDate: string, en
   const rows: any[][] = [];
   filteredOrders.forEach(order => {
     const orderDate = parseDate(order.order_date);
-    const formattedDate = format(orderDate, 'yyyy-MM-dd HH:mm', { locale: ko });
+    const formattedDate = format(orderDate, "Pp", { locale: dateFnsLoc(appLocale) });
     const info = order.receipt_type === 'delivery_reservation' 
       ? order.delivery_info 
       : order.pickup_info;
@@ -196,7 +211,12 @@ export const prepareOrdersForGoogleSheet = (orders: any[], startDate: string, en
 /**
  * 지출 데이터 → 구글 시트용 2D 배열 변환
  */
-export const prepareExpensesForGoogleSheet = (expenses: any[], startDate: string, endDate: string) => {
+export const prepareExpensesForGoogleSheet = (
+  expenses: any[],
+  startDate: string,
+  endDate: string,
+  appLocale?: string
+) => {
   const filteredExpenses = expenses.filter(exp => {
     const expDate = parseDate(exp.expense_date).toISOString().split('T')[0];
     return expDate >= startDate && expDate <= endDate;
@@ -207,7 +227,7 @@ export const prepareExpensesForGoogleSheet = (expenses: any[], startDate: string
   ];
 
   const rows = filteredExpenses.map(exp => [
-    format(parseDate(exp.expense_date), 'yyyy-MM-dd', { locale: ko }),
+    format(parseDate(exp.expense_date), "P", { locale: dateFnsLoc(appLocale) }),
     exp.category || '-',
     exp.sub_category || '-',
     exp.amount || 0,

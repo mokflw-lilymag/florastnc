@@ -5,11 +5,19 @@ import { motion } from 'framer-motion';
 import { Terminal, Sparkles } from 'lucide-react';
 import { LANDING_FEATURES } from '@/data/landing-features';
 import { FeatureCardIcon, featureAccentIconClass } from '@/components/landing/feature-visual';
-import { AppLocale, localizePath } from '@/i18n/config';
+import { AppLocale, localizePath, toBaseLocale } from '@/i18n/config';
+import { pickUiText } from '@/i18n/pick-ui-text';
 import { getMessages } from '@/i18n/getMessages';
 
 export function Features({ locale = 'ko' }: { locale?: AppLocale }) {
   const t = getMessages(locale).landing.features;
+  const baseLocale = toBaseLocale(locale);
+  const commerceBridgeLabel = pickUiText(
+    baseLocale,
+    "커머스 API 브릿지",
+    "Commerce API bridge",
+    "Cầu nối API thương mại"
+  );
   return (
     <section id="technology" className="py-24 md:py-32 bg-[#0A0F0D] relative overflow-hidden">
       {/* Dynamic Background Elements */}
@@ -175,7 +183,7 @@ export function Features({ locale = 'ko' }: { locale?: AppLocale }) {
                   </div>
                   
                   <div className="absolute bottom-10 text-center z-10 bg-[#0A0F0D]/60 px-6 py-2 rounded-full backdrop-blur-md border border-white/5">
-                    <p className="text-emerald-400 font-bold tracking-widest text-sm uppercase">Commerce API Bridge</p>
+                    <p className="text-emerald-400 font-bold tracking-widest text-sm uppercase">{commerceBridgeLabel}</p>
                   </div>
                 </div>
               </motion.div>

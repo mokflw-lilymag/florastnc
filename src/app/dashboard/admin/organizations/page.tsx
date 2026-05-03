@@ -43,9 +43,10 @@ import { AccessDenied } from "@/components/access-denied";
 import { createClient } from "@/utils/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { enUS, ko } from "date-fns/locale";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
+import { pickUiText } from "@/i18n/pick-ui-text";
+import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
 
 type Org = { id: string; name: string; created_at: string };
 type TenantRow = {
@@ -61,6 +62,13 @@ export default function OrganizationsAdminPage() {
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
   const baseLocale = toBaseLocale(locale);
+  const dfLoc = dateFnsLocaleForBase(baseLocale);
+  const phMemberEmail = pickUiText(
+    baseLocale,
+    "user@example.com",
+    "user@example.com",
+    "email@congty.com"
+  );
   const [loading, setLoading] = useState(true);
   const [orgs, setOrgs] = useState<Org[]>([]);
   const [tenants, setTenants] = useState<TenantRow[]>([]);
@@ -271,7 +279,7 @@ export default function OrganizationsAdminPage() {
                   <CardDescription>
                     {tf.f01393}{" "}
                     {format(new Date(org.created_at), "PP", {
-                      locale: baseLocale === "ko" ? ko : enUS,
+                      locale: dfLoc,
                     })}
                   </CardDescription>
                 </CardHeader>
@@ -427,7 +435,7 @@ export default function OrganizationsAdminPage() {
               type="email"
               value={memberEmail}
               onChange={(e) => setMemberEmail(e.target.value)}
-              placeholder="user@example.com"
+              placeholder={phMemberEmail}
             />
             <p className="text-xs text-muted-foreground">
               {tf.f01396}

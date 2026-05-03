@@ -63,6 +63,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSettings, DEFAULT_MATERIAL_CATEGORIES } from "@/hooks/use-settings";
 import { toast } from 'sonner';
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
+import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
 
 // --- Types & Defaults ---
 const DATE_FORMAT = "yyyy-MM-dd";
@@ -577,6 +579,7 @@ export default function PurchasesPage() {
   const [isManualOpen, setIsManualOpen] = useState(false);
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
+  const dfLoc = dateFnsLocaleForBase(toBaseLocale(locale));
   const materialMainCategoryLabel = useMemo(() => {
     const t = getMessages(locale).tenantFlows;
     const m: Record<string, string> = {
@@ -1095,7 +1098,10 @@ export default function PurchasesPage() {
                             <div className="flex items-center gap-2 mt-1">
                               <span className="flex items-center gap-1.5 text-[11px] font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
                                 <Check className="size-2.5" />
-                                {tf.f01151}: {batch.items[0]?.purchase_date ? format(new Date(batch.items[0].purchase_date), "yyyy-MM-dd HH:mm") : '-'}
+                                {tf.f01151}:{" "}
+                                {batch.items[0]?.purchase_date
+                                  ? format(new Date(batch.items[0].purchase_date), "Pp", { locale: dfLoc })
+                                  : "-"}
                               </span>
                               <Button
                                 variant="ghost"

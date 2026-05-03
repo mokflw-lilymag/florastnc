@@ -31,9 +31,9 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { ko } from "date-fns/locale";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
+import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
 
 type DraftLine = {
   key: string;
@@ -81,9 +81,11 @@ export default function BranchMaterialRequestsPage() {
   const [historyLoading, setHistoryLoading] = useState(true);
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
-  const baseLocale = toBaseLocale(locale);  const materialOptions = useMemo(
-    () => [...materials].sort((a, b) => a.name.localeCompare(b.name, "ko")),
-    [materials]
+  const baseLocale = toBaseLocale(locale);
+  const dfLoc = dateFnsLocaleForBase(baseLocale);
+  const materialOptions = useMemo(
+    () => [...materials].sort((a, b) => a.name.localeCompare(b.name, baseLocale)),
+    [materials, baseLocale]
   );
 
   const loadHistory = useCallback(async () => {
@@ -126,10 +128,10 @@ export default function BranchMaterialRequestsPage() {
         materials.filter((m) => m.main_category === main).map((m) => m.mid_category).filter(Boolean)
       );
       return [...new Set([...mids, ...Array.from(used)])].sort((a, b) =>
-        String(a).localeCompare(String(b), "ko")
+        String(a).localeCompare(String(b), baseLocale)
       ) as string[];
     },
-    [CATEGORIES.mid, materials]
+    [CATEGORIES.mid, materials, baseLocale]
   );
 
   const applyMaterial = (key: string, materialId: string) => {
@@ -472,7 +474,7 @@ export default function BranchMaterialRequestsPage() {
                   <div className="flex flex-wrap items-center gap-2 px-3 py-2 bg-slate-50/80 dark:bg-slate-900/50 text-sm">
                     <Badge variant="secondary">{h.status}</Badge>
                     <span className="text-muted-foreground tabular-nums">
-                      {format(new Date(h.created_at), "yyyy.M.d HH:mm", { locale: ko })}
+                      {format(new Date(h.created_at), "Pp", { locale: dfLoc })}
                     </span>
                     {h.branch_note ? (
                       <span className="text-xs text-muted-foreground truncate max-w-[240px]">{h.branch_note}</span>

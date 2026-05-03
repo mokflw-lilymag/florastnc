@@ -41,6 +41,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
+import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
 
 export default function OrderDetailPage() {
   const { id } = useParams();
@@ -49,7 +50,10 @@ export default function OrderDetailPage() {
   const [order, setOrder] = useState<Order | null>(null);
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
-  const isKo = toBaseLocale(locale) === "ko";  useEffect(() => {
+  const baseLocale = toBaseLocale(locale);
+  const orderDateLocale = dateFnsLocaleForBase(baseLocale);
+
+  useEffect(() => {
     if (!loading && orders.length > 0) {
       const found = orders.find(o => o.id === id);
       if (found) {
@@ -157,7 +161,10 @@ export default function OrderDetailPage() {
                   <span className="text-[11px] font-black text-slate-300 uppercase tracking-widest leading-none">#{order.order_number}</span>
                 </div>
                 <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-                  {order.items[0]?.name || tf.f00715} {order.items.length > 1 ? (isKo ? `외 ${order.items.length - 1}건` : `+ ${order.items.length - 1} more`) : ""}
+                  {order.items[0]?.name || tf.f00715}{" "}
+                  {order.items.length > 1
+                    ? tf.f02507.replace("{n}", String(order.items.length - 1))
+                    : ""}
                 </h1>
               </div>
               <div className="md:text-right">
@@ -172,7 +179,11 @@ export default function OrderDetailPage() {
                    <div className="text-[10px] font-bold text-slate-400 flex items-center gap-1.5">
                      <Calendar className="w-3 h-3" /> {tf.f00607}
                    </div>
-                   <div className="text-sm font-bold text-slate-700">{format(parseISO(order.order_date), isKo ? 'yyyy년 MM월 dd일 HH:mm' : 'yyyy-MM-dd HH:mm')}</div>
+                   <div className="text-sm font-bold text-slate-700">
+                     {format(parseISO(order.order_date), "PPp", {
+                       locale: orderDateLocale,
+                     })}
+                   </div>
                  </div>
                  <div className="space-y-1">
                    <div className="text-[10px] font-bold text-slate-400 flex items-center gap-1.5">

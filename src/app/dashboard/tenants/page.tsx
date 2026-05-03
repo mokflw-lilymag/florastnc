@@ -13,11 +13,11 @@ import { useAuth } from "@/hooks/use-auth";
 import { AccessDenied } from "@/components/access-denied";
 import { createClient } from "@/utils/supabase/client";
 import { format, addMonths, addDays, isAfter } from "date-fns";
-import { enUS, ko } from "date-fns/locale";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
+import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -91,7 +91,7 @@ export default function TenantsPage() {
   const [editEnd, setEditEnd] = useState<Date | undefined>(undefined);
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
-  const baseLocale = toBaseLocale(locale);
+  const dfLoc = dateFnsLocaleForBase(toBaseLocale(locale));
   const fetchTenants = async () => {
     try {
       setLoading(true);
@@ -339,7 +339,9 @@ export default function TenantsPage() {
                         {getStatusBadge(tenant)}
                         <span className="text-[10px] text-slate-500 font-normal flex items-center gap-1">
                           <Clock className="h-2.5 w-2.5" />
-                          {tenant.subscription_end ? format(new Date(tenant.subscription_end), 'yyyy-MM-dd') : tf.f01020}
+                          {tenant.subscription_end
+                            ? format(new Date(tenant.subscription_end), "P", { locale: dfLoc })
+                            : tf.f01020}
                         </span>
                       </div>
                     </TableCell>
@@ -503,7 +505,7 @@ export default function TenantsPage() {
                         editEnd ? "text-slate-900 font-semibold" : "text-slate-400 font-normal"
                       )}>
                         <CalendarIcon className="mr-2 h-4 w-4 text-slate-400" />
-                        {editEnd ? (baseLocale === "ko" ? format(editEnd, "yyyy년 MM월 dd일", { locale: ko }) : format(editEnd, "yyyy-MM-dd")) : <span className="text-red-500 font-semibold">{tf.f01144}</span>}
+                        {editEnd ? format(editEnd, "PPP", { locale: dfLoc }) : <span className="text-red-500 font-semibold">{tf.f01144}</span>}
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0 rounded-2xl border-0 shadow-2xl bg-white" align="start">
                       <Calendar
@@ -511,7 +513,7 @@ export default function TenantsPage() {
                         selected={editEnd}
                         onSelect={setEditEnd}
                         initialFocus
-                        locale={ko}
+                        locale={dfLoc}
                         className="rounded-2xl border-0"
                       />
                     </PopoverContent>
@@ -536,7 +538,7 @@ export default function TenantsPage() {
                   <span className="text-emerald-900 font-bold text-sm">
                     {editEnd.getFullYear() >= 2099
                       ? tf.f01209
-                      : format(editEnd, "yyyy-MM-dd", { locale: baseLocale === "ko" ? ko : enUS })}
+                      : format(editEnd, "P", { locale: dfLoc })}
                   </span>
                   <div className="h-6 w-6 rounded-full bg-emerald-100 flex items-center justify-center">
                     <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />

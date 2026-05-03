@@ -3,7 +3,6 @@ import { getMessages } from "@/i18n/getMessages";
 
 import { useState, useEffect, useMemo } from "react";
 import { format } from "date-fns";
-import { ko } from "date-fns/locale";
 import { 
   Users, 
   Phone, 
@@ -44,6 +43,7 @@ import { createClient } from "@/utils/supabase/client";
 import { OrderDetailDialog } from "@/app/dashboard/orders/components/order-detail-dialog";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
+import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
 
 interface CustomerDetailDialogProps {
   customer: Customer | null;
@@ -73,7 +73,13 @@ export function CustomerDetailDialog({
   const [isOrderDetailOpen, setIsOrderDetailOpen] = useState(false);
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
-  const isKo = toBaseLocale(locale) === "ko";  useEffect(() => {
+  const dfLoc = dateFnsLocaleForBase(toBaseLocale(locale));
+
+  const formatDayLabel = (d: Date) => format(d, "PPP", { locale: dfLoc });
+
+  const formatOrderRowDate = (d: Date) => format(d, "PP", { locale: dfLoc });
+
+  useEffect(() => {
     if (isOpen && customer) {
       fetchCustomerOrders();
       fetchPointTransactions();
@@ -212,7 +218,7 @@ export function CustomerDetailDialog({
                   <div className="p-4 border-l-4 border-l-indigo-500">
                      <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">{tf.f00189}</p>
                      <h3 className="text-lg font-bold text-slate-900 mt-1">
-                        {stats.lastDate ? (isKo ? format(new Date(stats.lastDate), 'yyyy년 MM월 dd일') : format(new Date(stats.lastDate), 'yyyy-MM-dd')) : tf.f00680}
+                        {stats.lastDate ? formatDayLabel(new Date(stats.lastDate)) : tf.f00680}
                      </h3>
                      <p className="text-slate-500 text-[10px] mt-1 font-medium">{stats.lastDate ? tf.f00119 : tf.f00350}</p>
                   </div>
@@ -268,7 +274,7 @@ export function CustomerDetailDialog({
                                                 <Badge variant="outline" className="text-[8px] h-4 px-1 leading-none border-slate-200 uppercase tracking-tighter">
                                                    {tx.source === 'pos' ? '📟 POS' : tx.source === 'order' ? tf.f00012 : tf.f00009}
                                                 </Badge>
-                                                <span>{format(new Date(tx.created_at), 'yyyy-MM-dd HH:mm')}</span>
+                                                <span>{format(new Date(tx.created_at), "Pp", { locale: dfLoc })}</span>
                                              </div>
                                           </div>
                                        </div>
@@ -315,7 +321,9 @@ export function CustomerDetailDialog({
                                        <div className="flex justify-between items-start mb-2">
                                           <div>
                                              <div className="flex items-center gap-2 mb-1">
-                                                <span className="text-sm font-black text-slate-900">{isKo ? format(new Date(order.order_date), 'yyyy년 MM월 dd일 (EEE)', { locale: ko }) : format(new Date(order.order_date), 'yyyy-MM-dd (EEE)')}</span>
+                                                <span className="text-sm font-black text-slate-900">
+                                                  {formatOrderRowDate(new Date(order.order_date))}
+                                                </span>
                                                 <Badge className={
                                                    order.status === 'completed' 
                                                    ? 'bg-emerald-50 text-emerald-600 border-emerald-100' 

@@ -25,13 +25,16 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
+import { pickUiText } from "@/i18n/pick-ui-text";
 
 export default function ReceivedOrdersPage() {
     const supabase = createClient();
     const { tenantId } = useAuth();
     const locale = usePreferredLocale();
     const tf = getMessages(locale).tenantFlows;
-    const baseLocale = toBaseLocale(locale);    const [loading, setLoading] = useState(true);
+    const baseLocale = toBaseLocale(locale);
+    const tr = (ko: string, en: string, vi?: string) => pickUiText(baseLocale, ko, en, vi);
+    const [loading, setLoading] = useState(true);
     const [orders, setOrders] = useState<any[]>([]);
     const [search, setSearch] = useState("");
     const [filterStatus, setFilterStatus] = useState("all");
@@ -138,24 +141,32 @@ export default function ReceivedOrdersPage() {
                 <Card className="border-0 shadow-2xl bg-indigo-600 text-white rounded-[2.5rem] overflow-hidden group">
                     <CardContent className="p-8 relative">
                          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-16 translate-x-16 blur-2xl group-hover:scale-150 transition-all duration-700" />
-                         <div className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-200 mb-2">New Requests</div>
+                         <div className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-200 mb-2">
+                            {tr("신규 요청", "New requests", "Yêu cầu mới")}
+                         </div>
                          <div className="text-4xl font-black">{pendingCount} <span className="text-base font-light">{tf.f00033}</span></div>
                          <p className="text-xs text-indigo-100/60 mt-2">{tf.f00771}</p>
                     </CardContent>
                 </Card>
                 <Card className="border-0 shadow-2xl bg-white rounded-[2.5rem] overflow-hidden group">
                     <CardContent className="p-8">
-                         <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Today Earnings</div>
+                         <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">
+                            {tr("오늘 매출", "Today's earnings", "Doanh thu hôm nay")}
+                         </div>
                          <div className="text-4xl font-black text-slate-900">₩{todayRevenue.toLocaleString()}</div>
                          <div className="flex items-center gap-2 mt-2">
-                             <Badge className="bg-emerald-100 text-emerald-600 border-0 h-5 text-[9px]">Settled</Badge>
+                             <Badge className="bg-emerald-100 text-emerald-600 border-0 h-5 text-[9px]">
+                                {tr("정산 완료", "Settled", "Đã quyết toán")}
+                             </Badge>
                              <span className="text-xs text-slate-400 font-light italic">{tf.f00461}</span>
                          </div>
                     </CardContent>
                 </Card>
                 <Card className="border-0 shadow-2xl bg-slate-900 text-white rounded-[2.5rem] overflow-hidden group">
                     <CardContent className="p-8">
-                         <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Total Received</div>
+                         <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">
+                            {tr("누적 수신", "Total received", "Tổng đã nhận")}
+                         </div>
                          <div className="text-4xl font-black text-indigo-400">{orders.length} <span className="text-base font-light text-white">{tf.f00033}</span></div>
                          <p className="text-xs text-slate-500 mt-2 font-light">{tf.f00142}</p>
                     </CardContent>
@@ -275,7 +286,8 @@ function ReceivedOrderRow({ order, onViewDetail, onUpdateStatus, getStatusBadge 
     const items = orderData.items || [];
     const locale = usePreferredLocale();
     const tf = getMessages(locale).tenantFlows;
-    const baseLocale = toBaseLocale(locale);    return (
+    const baseLocale = toBaseLocale(locale);
+    return (
         <TableRow className="group hover:bg-slate-50/50 transition-all duration-300 cursor-pointer h-24" onClick={onViewDetail}>
             <TableCell className="px-8 py-6">
                 <div className="flex flex-col">
@@ -336,9 +348,17 @@ function ReceivedOrderRow({ order, onViewDetail, onUpdateStatus, getStatusBadge 
 function OrderReceivedDetailDialog({ isOpen, onOpenChange, order, onUpdateStatus, getStatusBadge }: any) {
     const locale = usePreferredLocale();
     const tf = getMessages(locale).tenantFlows;
-    const baseLocale = toBaseLocale(locale);    if (!order) return null;
+    const baseLocale = toBaseLocale(locale);
+    const tr = (ko: string, en: string, vi?: string) => pickUiText(baseLocale, ko, en, vi);
+    if (!order) return null;
     const orderData = order.order_data || {};
     const items = orderData.items || [];
+    const messageTypeLabel = (() => {
+        const raw = orderData.message?.type as string | undefined;
+        if (raw === "ribbon") return tf.f00179;
+        if (raw === "none") return tf.f00441;
+        return tf.f00207;
+    })();
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -352,7 +372,9 @@ function OrderReceivedDetailDialog({ isOpen, onOpenChange, order, onUpdateStatus
                             </div>
                             <div>
                                 <h3 className="text-2xl font-black">{tf.f00402}</h3>
-                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Network Order Details</p>
+                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">
+                                    {tr("네트워크 주문 상세", "Network order details", "Chi tiết đơn liên kết")}
+                                </p>
                             </div>
                         </div>
                         <div className="flex flex-wrap items-center gap-4 mt-8">
@@ -376,7 +398,9 @@ function OrderReceivedDetailDialog({ isOpen, onOpenChange, order, onUpdateStatus
                                 <Clock className="w-6 h-6" />
                             </div>
                             <div>
-                                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Status</div>
+                                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                                    {tr("상태", "Status", "Trạng thái")}
+                                </div>
                                 {getStatusBadge(order.status)}
                             </div>
                          </div>
@@ -429,7 +453,10 @@ function OrderReceivedDetailDialog({ isOpen, onOpenChange, order, onUpdateStatus
                                         <div className="text-[10px] text-white/40 font-bold mb-1">{tf.f00257}</div>
                                         <div className="text-sm font-black text-amber-400">{orderData.delivery_info?.date} {orderData.delivery_info?.time}</div>
                                     </div>
-                                    <Badge className="bg-indigo-500/20 text-indigo-300 border-indigo-500/30 text-[9px] font-black">{orderData.delivery_info?.itemSize || 'S'} SIZE</Badge>
+                                    <Badge className="bg-indigo-500/20 text-indigo-300 border-indigo-500/30 text-[9px] font-black">
+                                        {orderData.delivery_info?.itemSize || "S"}{" "}
+                                        {tr("사이즈", "SIZE", "Cỡ")}
+                                    </Badge>
                                 </div>
                             </div>
                         </div>
@@ -439,7 +466,11 @@ function OrderReceivedDetailDialog({ isOpen, onOpenChange, order, onUpdateStatus
                     <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-6">
                         <div className="flex items-center gap-4 py-4 border-b border-slate-50">
                              <div className="w-14 h-14 rounded-full bg-slate-50 flex items-center justify-center p-2 border border-slate-100 italic font-black text-indigo-600 text-xs">
-                                {orderData.sender_branding?.logo_url ? <img src={orderData.sender_branding.logo_url} alt="Logo" /> : "Brand"}
+                                {orderData.sender_branding?.logo_url ? (
+                                    <img src={orderData.sender_branding.logo_url} alt={tr("로고", "Logo", "Logo")} />
+                                ) : (
+                                    tr("브랜드", "Brand", "Thương hiệu")
+                                )}
                              </div>
                              <div>
                                 <div className="text-[10px] font-black text-slate-400 uppercase">{tf.f00235}</div>
@@ -452,7 +483,9 @@ function OrderReceivedDetailDialog({ isOpen, onOpenChange, order, onUpdateStatus
                         </div>
 
                         <div className="space-y-3">
-                            <div className="text-[10px] font-black text-slate-400 uppercase">{tf.f00200} ({orderData.message?.type || 'card'})</div>
+                            <div className="text-[10px] font-black text-slate-400 uppercase">
+                                {tf.f00200} ({messageTypeLabel})
+                            </div>
                             <div className="p-6 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 min-h-[100px] text-sm text-slate-700 font-medium whitespace-pre-wrap leading-relaxed">
                                 {orderData.message?.content || tf.f00184}
                             </div>

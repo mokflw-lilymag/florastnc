@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { differenceInCalendarDays, format } from "date-fns";
-import { enUS, ko } from "date-fns/locale";
 import { User, LogOut, Settings, Bell, BookOpen, Wifi, WifiOff, Globe } from "lucide-react";
 import { MobileSidebar } from "./mobile-sidebar";
 import { Button } from "@/components/ui/button";
@@ -24,13 +23,14 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useIsCapacitorAndroid } from "@/hooks/use-capacitor-android";
 import { isCapacitorAndroid } from "@/lib/client-platform";
-import { AppLocale, LOCALE_COOKIE, resolveLocale } from "@/i18n/config";
+import { AppLocale, LOCALE_COOKIE, resolveLocale, toBaseLocale } from "@/i18n/config";
 import {
   DASHBOARD_LOCALE_SELECT_OPTIONS,
   resolveDashboardSelectLocale,
 } from "@/i18n/ui-locale-options";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { getMessages } from "@/i18n/getMessages";
+import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
 
 interface HeaderProps {
   userEmail: string;
@@ -82,7 +82,6 @@ export function Header({
   const [isBridgeOnline, setIsBridgeOnline] = useState(false);
   const isAndroidApp = useIsCapacitorAndroid();
   const preferredLocale = usePreferredLocale();
-  const isKo = resolveLocale(preferredLocale).startsWith("ko");
   const messages = getMessages(preferredLocale);
   const t = messages.dashboardCommon;
   const dh = messages.dashboardHeader;
@@ -145,7 +144,7 @@ export function Header({
       return `${label} · ${t.header.subscriptionMissing}`;
     }
     const end = new Date(subscriptionEnd);
-    const dateStr = format(end, "yyyy.MM.dd", { locale: isKo ? ko : enUS });
+    const dateStr = format(end, "P", { locale: dateFnsLocaleForBase(toBaseLocale(resolveLocale(preferredLocale))) });
     if (isExpired) {
       return `${label} · ${dateStr}(${t.header.subscriptionExpired}) · ${t.header.subscriptionRenew}`;
     }

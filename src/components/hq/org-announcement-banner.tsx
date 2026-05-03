@@ -12,6 +12,7 @@ import { LinkifiedText } from "@/components/ui/linkified-text";
 import { htmlToPlainText } from "@/lib/html-plain-text";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
+import { pickUiText } from "@/i18n/pick-ui-text";
 
 type Ann = {
   id: string;
@@ -34,8 +35,8 @@ export function OrgAnnouncementBanner() {
   const [dismissTick, setDismissTick] = useState(0);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const locale = usePreferredLocale();
-  const isKo = toBaseLocale(locale) === "ko";
-  const tr = (ko: string, en: string) => (isKo ? ko : en);
+  const baseLocale = toBaseLocale(locale);
+  const tr = (ko: string, en: string, vi: string) => pickUiText(baseLocale, ko, en, vi);
 
   useEffect(() => {
     if (isLoading || isSuperAdmin) return;
@@ -75,7 +76,15 @@ export function OrgAnnouncementBanner() {
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(typeof json?.error === "string" ? json.error : tr("확인 기록에 실패했습니다.", "Failed to save read confirmation."));
+        toast.error(
+          typeof json?.error === "string"
+            ? json.error
+            : tr(
+                "확인 기록에 실패했습니다.",
+                "Failed to save read confirmation.",
+                "Không thể lưu xác nhận đã đọc."
+              )
+        );
         return;
       }
       await refetchAnnouncements();
@@ -135,7 +144,7 @@ export function OrgAnnouncementBanner() {
             <Megaphone className="h-4 w-4 shrink-0 mt-0.5 opacity-80" aria-hidden />
             <div className="min-w-0 space-y-1">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                {tr("본사 공지", "HQ announcement")}
+                {tr("본사 공지", "HQ announcement", "Thông báo trụ sở")}
                 {a.organization_name ? ` · ${a.organization_name}` : ""}
               </p>
               <p className="text-sm font-bold leading-snug">{a.title}</p>
@@ -162,7 +171,7 @@ export function OrgAnnouncementBanner() {
                 {a.confirmedAt ? (
                   <span className="inline-flex items-center gap-1 rounded-full bg-white/60 px-2 py-0.5 text-[10px] font-semibold text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200">
                     <CheckCircle2 className="h-3 w-3" aria-hidden />
-                    {tr("본사에 확인 기록됨", "Confirmed to HQ")}
+                    {tr("본사에 확인 기록됨", "Confirmed to HQ", "Đã xác nhận với trụ sở")}
                   </span>
                 ) : (
                   <Button
@@ -176,10 +185,14 @@ export function OrgAnnouncementBanner() {
                     {confirmingId === a.id ? (
                       <>
                         <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                        {tr("처리 중…", "Processing...")}
+                        {tr("처리 중…", "Processing...", "Đang xử lý…")}
                       </>
                     ) : (
-                      tr("내용 확인(본사에 전달)", "Confirm content (notify HQ)")
+                      tr(
+                        "내용 확인(본사에 전달)",
+                        "Confirm content (notify HQ)",
+                        "Xác nhận nội dung (thông báo trụ sở)"
+                      )
                     )}
                   </Button>
                 )}
@@ -187,7 +200,7 @@ export function OrgAnnouncementBanner() {
                   href="/dashboard/org-board"
                   className="text-[10px] font-semibold underline underline-offset-2 opacity-90 hover:opacity-100"
                 >
-                  {tr("본사 게시판", "HQ board")}
+                  {tr("본사 게시판", "HQ board", "Bảng tin trụ sở")}
                 </Link>
               </div>
             </div>
@@ -198,7 +211,7 @@ export function OrgAnnouncementBanner() {
             size="icon"
             className="absolute right-1 top-1 h-8 w-8 text-current opacity-60 hover:opacity-100"
             onClick={() => dismiss(a.id)}
-            aria-label={tr("닫기", "Close")}
+            aria-label={tr("닫기", "Close", "Đóng")}
           >
             <X className="h-4 w-4" />
           </Button>

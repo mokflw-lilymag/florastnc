@@ -28,6 +28,10 @@ import { parseDate } from "@/lib/date-utils";
 import { createClient } from "@/utils/supabase/client";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
+import { pickUiText } from "@/i18n/pick-ui-text";
+
+/** 지출 `sub_category` DB·기존 데이터 호환용 고정값 */
+const DELIVERY_EXPENSE_SUB_CATEGORY = "배송비" as const;
 
 interface OrderEditDialogProps {
   isOpen: boolean;
@@ -42,7 +46,14 @@ export function OrderEditDialog({ isOpen, onOpenChange, order }: OrderEditDialog
   const supabase = createClient();
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
-  const isKo = toBaseLocale(locale) === "ko";  const [isLoading, setIsLoading] = useState(false);
+  const baseLocale = toBaseLocale(locale);
+  const condolenceRibbonText = pickUiText(
+    baseLocale,
+    "삼가 故人의 冥福을 빕니다",
+    "With deepest condolences",
+    "Kính viếng người đã khuất"
+  );
+  const [isLoading, setIsLoading] = useState(false);
   
   const [formData, setFormData] = useState({
     orderer: {
@@ -200,11 +211,17 @@ export function OrderEditDialog({ isOpen, onOpenChange, order }: OrderEditDialog
       
       // Handle expense synchronization for delivery costs
       if (formData.receipt_type === 'delivery_reservation' && formData.actual_delivery_cost > 0) {
+        const deliveryDescPrefix = pickUiText(
+          baseLocale,
+          "[배송비]",
+          "[Delivery fee]",
+          "[Phí giao hàng]"
+        );
         const expenseData = {
           category: "transportation",
-          sub_category: "배송비", // Keep DB key fixed for compatibility
+          sub_category: DELIVERY_EXPENSE_SUB_CATEGORY,
           amount: formData.actual_delivery_cost,
-          description: `[배송비] ${order.order_number} (${formData.driverAffiliation || tf.f00534})`,
+          description: `${deliveryDescPrefix} ${order.order_number} (${formData.driverAffiliation || tf.f00534})`,
           expense_date: formData.order_date ? new Date(formData.order_date).toISOString() : new Date().toISOString(),
           payment_method: formData.actual_delivery_payment_method || "card",
         };
@@ -213,7 +230,7 @@ export function OrderEditDialog({ isOpen, onOpenChange, order }: OrderEditDialog
           .from('expenses')
           .select('id')
           .eq('related_order_id', order.id)
-          .eq('sub_category', '배송비');
+          .eq("sub_category", DELIVERY_EXPENSE_SUB_CATEGORY);
 
         if (existingExpenses && existingExpenses.length > 0) {
           await updateExpense(existingExpenses[0].id, expenseData);
@@ -226,7 +243,7 @@ export function OrderEditDialog({ isOpen, onOpenChange, order }: OrderEditDialog
           await addExpense({ ...expenseData, related_order_id: order.id });
         }
       } else if (order.actual_delivery_cost && order.actual_delivery_cost > 0) {
-        await deleteExpenseByOrderId(order.id, "배송비");
+        await deleteExpenseByOrderId(order.id, DELIVERY_EXPENSE_SUB_CATEGORY);
       }
 
       toast.success(tf.f00637);
@@ -438,7 +455,7 @@ export function OrderEditDialog({ isOpen, onOpenChange, order }: OrderEditDialog
                     variant="outline"
                     size="sm"
                     className="h-7 px-2 text-[11px] bg-orange-50 hover:bg-orange-100 border-orange-200 text-orange-700 font-medium"
-                    onClick={() => handleInputChange('message', 'content', "삼가 故人의 冥福을 빕니다")}
+                    onClick={() => handleInputChange('message', 'content', condolenceRibbonText)}
                   >
                     {tf.f00309}
                   </Button>

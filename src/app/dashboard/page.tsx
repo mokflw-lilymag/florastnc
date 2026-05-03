@@ -44,7 +44,6 @@ import { useExpenses } from "@/hooks/use-expenses";
 import { useSettings } from "@/hooks/use-settings";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format, isToday, isTomorrow, addDays, startOfToday, endOfToday, subDays, subMonths, subYears, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, isSameDay, isSameWeek, isSameMonth, isSameYear, getWeekOfMonth } from "date-fns";
-import { ko, enUS } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -53,6 +52,8 @@ import { cn } from "@/lib/utils";
 import { DashboardTicker } from "@/components/dashboard/dashboard-ticker";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
+import { pickUiText } from "@/i18n/pick-ui-text";
+import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
 
 // 🚀 Recharts lazy load — 차트가 필요할 때만 ~200KB 번들 로드
 const SalesChart = dynamic(() => import('./components/sales-chart'), {
@@ -75,7 +76,7 @@ function buildTenantSalesChartData(
   const { isLoading, isSuperAdmin, settings } = opts;
   if (isLoading || isSuperAdmin) return [];
 
-  const isKo = baseLocale === "ko";
+  const dfLoc = dateFnsLocaleForBase(baseLocale);
   let data: Array<{ name: string; sales: number }> = [];
   const now = new Date();
   const basis = settings?.revenueRecognitionBasis || "order_date";
@@ -93,7 +94,7 @@ function buildTenantSalesChartData(
     data = days.map((day) => {
       const dStart = startOfDay(day);
       const dEnd = endOfDay(day);
-      const label = format(day, "MM.dd");
+      const label = format(day, "d MMM", { locale: dfLoc });
 
       const rev = orders
         .filter((o) => {
@@ -111,9 +112,13 @@ function buildTenantSalesChartData(
     data = weeks.map((week) => {
       const wStart = startOfWeek(week);
       const wEnd = endOfWeek(week);
-      const label = isKo
-        ? `${format(wStart, "M월", { locale: ko })} ${getWeekOfMonth(wStart)}주`
-        : `W${getWeekOfMonth(wStart)} ${format(wStart, "MMM d", { locale: enUS })}`;
+      const weekNum = getWeekOfMonth(wStart);
+      const label = pickUiText(
+        baseLocale,
+        `${format(wStart, "M월", { locale: dfLoc })} ${weekNum}주`,
+        `W${weekNum} ${format(wStart, "MMM d", { locale: dfLoc })}`,
+        `W${weekNum} ${format(wStart, "d MMM", { locale: dfLoc })}`
+      );
 
       const rev = orders
         .filter((o) => {
@@ -131,9 +136,7 @@ function buildTenantSalesChartData(
     data = months.map((month) => {
       const mStart = startOfMonth(month);
       const mEnd = endOfMonth(month);
-      const label = isKo
-        ? format(month, "M월", { locale: ko })
-        : format(month, "MMM yyyy", { locale: enUS });
+      const label = format(month, "MMM yyyy", { locale: dfLoc });
 
       const rev = orders
         .filter((o) => {
@@ -151,7 +154,8 @@ function buildTenantSalesChartData(
     data = years.map((year) => {
       const yStart = startOfYear(year);
       const yEnd = endOfYear(year);
-      const label = isKo ? format(year, "yyyy년") : format(year, "yyyy", { locale: enUS });
+      const yStr = format(year, "yyyy", { locale: dfLoc });
+      const label = pickUiText(baseLocale, `${yStr}년`, yStr, yStr);
 
       const rev = orders
         .filter((o) => {
@@ -349,7 +353,9 @@ export default function DashboardPage() {
   const [chartPeriod, setChartPeriod] = useState<TenantSalesChartPeriod>("daily");
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
-  const baseLocale = toBaseLocale(locale);  const chartOpts = useMemo(
+  const baseLocale = toBaseLocale(locale);
+  const dfLoc = dateFnsLocaleForBase(baseLocale);
+  const chartOpts = useMemo(
     () => ({ isLoading, isSuperAdmin, settings }),
     [isLoading, isSuperAdmin, settings]
   );
@@ -403,7 +409,7 @@ export default function DashboardPage() {
           <AdminStatCard icon={Store} label={tf.f01807} value={tenantStats?.total || 0} unit={tf.f00865} color="bg-indigo-600" />
           <AdminStatCard icon={CheckCircle2} label={tf.f02224} value={tenantStats?.active || 0} unit={tf.f00865} color="bg-emerald-600" />
           <AdminStatCard icon={Gem} label={tf.f02286} value={tenantStats?.pro || 0} unit={tf.f00865} color="bg-blue-600" />
-          <AdminStatCard icon={Calendar} label={tf.f01602} value={format(new Date(), 'MM/dd')} unit="" color="bg-slate-800" />
+          <AdminStatCard icon={Calendar} label={tf.f01602} value={format(new Date(), "P", { locale: dfLoc })} unit="" color="bg-slate-800" />
         </div>
 
         <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
@@ -450,7 +456,7 @@ export default function DashboardPage() {
                                 </Badge>
                              </td>
                              <td className="px-6 py-5 text-right font-light text-slate-400 text-xs">
-                                {format(new Date(tenant.created_at), 'yyyy-MM-dd')}
+                                {format(new Date(tenant.created_at), "P", { locale: dfLoc })}
                              </td>
                           </tr>
                         ))}
@@ -510,7 +516,13 @@ export default function DashboardPage() {
            <h1 className={cn("font-medium text-gray-900 tracking-tight", touchUi ? "text-2xl" : "text-3xl")}>
              {tf.f01523} <span className="text-primary">{profile?.tenants?.name || profile?.full_name || tf.f01322}</span>{tf.f01057}
            </h1>
-           <p className="text-slate-600 font-medium text-sm">{tf.f00458} {baseLocale === "ko" ? format(new Date(), 'yyyy년 MM월 dd일') : format(new Date(), 'yyyy-MM-dd')} {tf.f01665}</p>
+           <p className="text-slate-600 font-medium text-sm">
+             {tf.f00458}{" "}
+             {format(new Date(), "PPP", {
+               locale: dateFnsLocaleForBase(baseLocale),
+             })}{" "}
+             {tf.f01665}
+           </p>
         </div>
         <div className="bg-white p-1 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-1">
            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-100 font-light px-3 py-1 text-[11px]">

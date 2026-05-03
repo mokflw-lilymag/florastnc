@@ -11,8 +11,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { Calendar as CalendarIcon, MessageSquare, Search } from "lucide-react";
 import { format } from "date-fns";
-import { ko } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
 import Textarea from "@/components/ui/textarea";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
@@ -101,7 +101,8 @@ export function FulfillmentSection({
 }: FulfillmentSectionProps) {
     const locale = usePreferredLocale();
     const tf = getMessages(locale).tenantFlows;
-    const isKo = toBaseLocale(locale) === "ko";    const isDelivery = receiptType === 'delivery_reservation';
+    const dateLocale = dateFnsLocaleForBase(toBaseLocale(locale));
+    const isDelivery = receiptType === 'delivery_reservation';
 
     return (
         <div className="space-y-6">
@@ -157,7 +158,9 @@ export function FulfillmentSection({
                                     !scheduleDate && "text-muted-foreground"
                                 )}>
                                     <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {scheduleDate ? format(scheduleDate, isKo ? "yyyy년 MM월 dd일" : "yyyy-MM-dd", { locale: ko }) : <span className="text-sm">{tf.f00129}</span>}
+                                    {scheduleDate
+                                      ? format(scheduleDate, "PPP", { locale: dateLocale })
+                                      : <span className="text-sm">{tf.f00129}</span>}
                                 </PopoverTrigger>
                                 <PopoverContent className="w-auto p-0">
                                     <Calendar
@@ -165,6 +168,7 @@ export function FulfillmentSection({
                                         selected={scheduleDate}
                                         onSelect={setScheduleDate}
                                         initialFocus
+                                        locale={dateLocale}
                                     />
                                 </PopoverContent>
                             </Popover>
@@ -214,7 +218,7 @@ export function FulfillmentSection({
                                 <Input
                                     value={recipientContact}
                                     onChange={(e: any) => setRecipientContact(formatPhoneNumber(e.target.value))}
-                                    placeholder="010-0000-0000"
+                                    placeholder={tf.f02603}
                                     maxLength={13}
                                     disabled={isSameAsOrderer}
                                 />
@@ -358,26 +362,16 @@ export function FulfillmentSection({
                             <div className="space-y-2">
                                 {/* 인기 리본 문구 퀵 버튼 */}
                                 <div className="flex flex-wrap gap-1.5 mb-2 notranslate" translate="no">
-                                    {[
-                                        { ko: "축발전", zh: "祝發展" },
-                                        { ko: "축개업", zh: "祝開業" },
-                                        { ko: "축승진", zh: "祝昇進" },
-                                        { ko: "축영전", zh: "祝榮轉" },
-                                        { ko: "근조", zh: "謹弔" },
-                                        { ko: "축결혼", zh: "祝結婚" },
-                                    ].map((msg) => (
+                                    {[tf.f02597, tf.f02598, tf.f02599, tf.f02600, tf.f02601, tf.f02602].map((msg, idx) => (
                                         <Button
-                                            key={msg.ko}
+                                            key={idx}
                                             type="button"
                                             variant="outline"
                                             size="sm"
                                             className="h-7 px-2 text-[11px] bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary font-medium"
-                                            onClick={() => {
-                                                const content = `${msg.ko} / ${msg.zh}`;
-                                                setMessageContent(content);
-                                            }}
+                                            onClick={() => setMessageContent(msg)}
                                         >
-                                            {msg.ko} / {msg.zh}
+                                            {msg}
                                         </Button>
                                     ))}
                                     <Button
@@ -385,7 +379,7 @@ export function FulfillmentSection({
                                         variant="outline"
                                         size="sm"
                                         className="h-7 px-2 text-[11px] bg-orange-50 hover:bg-orange-100 border-orange-200 text-orange-700 font-medium"
-                                        onClick={() => setMessageContent("삼가 故人의 冥福을 빕니다")}
+                                        onClick={() => setMessageContent(tf.f00310)}
                                     >
                                         {tf.f00310}
                                     </Button>

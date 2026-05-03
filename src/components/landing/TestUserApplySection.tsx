@@ -9,36 +9,45 @@ import {
   CheckCircle2,
   Mail,
 } from "lucide-react";
-import { AppLocale } from "@/i18n/config";
+import { AppLocale, toBaseLocale } from "@/i18n/config";
 import { getMessages } from "@/i18n/getMessages";
+import { pickUiText } from "@/i18n/pick-ui-text";
 
 const SUPPORT_EMAIL = "admin@floxync.com";
 
-function buildMailtoBody(values: {
-  fullName: string;
-  businessName: string;
-  contact: string;
-  email: string;
-  applyReason: string;
-  featureNotes: string;
-}) {
+function buildMailtoBody(
+  baseLocale: string,
+  values: {
+    fullName: string;
+    businessName: string;
+    contact: string;
+    email: string;
+    applyReason: string;
+    featureNotes: string;
+  },
+) {
+  const T = (ko: string, en: string, vi?: string) => pickUiText(baseLocale, ko, en, vi);
   const lines = [
-    "[Floxync 테스트 유저 신청]",
+    T("[Floxync 테스트 유저 신청]", "[Floxync] Test user application", "[Floxync] Đơn đăng ký dùng thử"),
     "",
-    `이름: ${values.fullName}`,
-    `상호: ${values.businessName}`,
-    `연락처: ${values.contact}`,
-    `이메일: ${values.email}`,
+    `${T("이름", "Name", "Họ tên")}: ${values.fullName}`,
+    `${T("상호", "Business name", "Tên cửa hàng")}: ${values.businessName}`,
+    `${T("연락처", "Contact", "Liên hệ")}: ${values.contact}`,
+    `${T("이메일", "Email", "Email")}: ${values.email}`,
     "",
-    `신청 사유:\n${values.applyReason}`,
+    `${T("신청 사유", "Reason for applying", "Lý do đăng ký")}:\n${values.applyReason}`,
     "",
-    values.featureNotes ? `추가로 남기는 말:\n${values.featureNotes}` : "",
+    values.featureNotes
+      ? `${T("추가로 남기는 말", "Additional notes", "Ghi chú thêm")}:\n${values.featureNotes}`
+      : "",
   ].filter(Boolean);
   return lines.join("\n");
 }
 
 export function TestUserApplySection({ locale = "ko" }: { locale?: AppLocale }) {
   const t = getMessages(locale).landing.testApply;
+  const baseLocale = toBaseLocale(locale);
+  const L = (ko: string, en: string, vi?: string) => pickUiText(baseLocale, ko, en, vi);
   const [fullName, setFullName] = useState("");
   const [businessName, setBusinessName] = useState("");
   const [contact, setContact] = useState("");
@@ -48,9 +57,10 @@ export function TestUserApplySection({ locale = "ko" }: { locale?: AppLocale }) 
   const [website, setWebsite] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
+  const [mailFallbackHint, setMailFallbackHint] = useState(false);
 
   const openMailtoFallback = () => {
-    const body = buildMailtoBody({
+    const body = buildMailtoBody(baseLocale, {
       fullName,
       businessName,
       contact,
@@ -58,7 +68,9 @@ export function TestUserApplySection({ locale = "ko" }: { locale?: AppLocale }) 
       applyReason,
       featureNotes,
     });
-    const subject = encodeURIComponent("[Floxync] 테스트 유저 신청");
+    const subject = encodeURIComponent(
+      L("[Floxync] 테스트 유저 신청", "[Floxync] Test user application", "[Floxync] Đăng ký dùng thử"),
+    );
     const q = encodeURIComponent(body);
     window.location.href = `mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${q}`;
   };
@@ -67,6 +79,7 @@ export function TestUserApplySection({ locale = "ko" }: { locale?: AppLocale }) 
     e.preventDefault();
     setStatus("loading");
     setMessage("");
+    setMailFallbackHint(false);
     try {
       const res = await fetch("/api/public/test-user-application", {
         method: "POST",
@@ -85,7 +98,13 @@ export function TestUserApplySection({ locale = "ko" }: { locale?: AppLocale }) 
 
       if (res.ok && data.ok) {
         setStatus("success");
-        setMessage("신청이 접수되었습니다. 순차적으로 연락드릴게요.");
+        setMessage(
+          L(
+            "신청이 접수되었습니다. 순차적으로 연락드릴게요.",
+            "Application received. We’ll get back to you in order.",
+            "Đã nhận đơn. Chúng tôi sẽ liên hệ theo thứ tự.",
+          ),
+        );
         setFullName("");
         setBusinessName("");
         setContact("");
@@ -98,17 +117,35 @@ export function TestUserApplySection({ locale = "ko" }: { locale?: AppLocale }) 
 
       if (res.status === 503 && data.code === "NO_DB") {
         setStatus("error");
+        setMailFallbackHint(true);
         setMessage(
-          "온라인 접수 저장소가 아직 연결되지 않았습니다. 아래 버튼으로 메일을 보내 주시면 동일하게 접수됩니다.",
+          L(
+            "온라인 접수 저장소가 아직 연결되지 않았습니다. 아래 버튼으로 메일을 보내 주시면 동일하게 접수됩니다.",
+            "Online intake isn’t connected yet. Use the email button below to apply the same way.",
+            "Kho lưu trực tuyến chưa kết nối. Dùng nút email bên dưới để gửi đơn tương tự.",
+          ),
         );
         return;
       }
 
       setStatus("error");
-      setMessage(data.error || "전송에 실패했습니다. 잠시 후 다시 시도해 주세요.");
+      setMessage(
+        data.error ||
+          L(
+            "전송에 실패했습니다. 잠시 후 다시 시도해 주세요.",
+            "Could not send. Please try again shortly.",
+            "Gửi thất bại. Vui lòng thử lại sau.",
+          ),
+      );
     } catch {
       setStatus("error");
-      setMessage("네트워크 오류입니다. 메일로 보내 주시거나 잠시 후 다시 시도해 주세요.");
+      setMessage(
+        L(
+          "네트워크 오류입니다. 메일로 보내 주시거나 잠시 후 다시 시도해 주세요.",
+          "Network error. Email us or try again shortly.",
+          "Lỗi mạng. Gửi email hoặc thử lại sau.",
+        ),
+      );
     }
   };
 
@@ -175,7 +212,9 @@ export function TestUserApplySection({ locale = "ko" }: { locale?: AppLocale }) 
           ) : (
             <form onSubmit={onSubmit} className="space-y-6">
               <div className="hidden" aria-hidden="true">
-                <label htmlFor="tu-website">Website</label>
+                <label htmlFor="tu-website">
+                  {L("웹사이트 (자동 입력 금지)", "Website (leave blank)", "Website (để trống)")}
+                </label>
                 <input id="tu-website" value={website} onChange={(e) => setWebsite(e.target.value)} tabIndex={-1} autoComplete="off" />
               </div>
 
@@ -190,7 +229,7 @@ export function TestUserApplySection({ locale = "ko" }: { locale?: AppLocale }) 
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     className="w-full h-12 px-4 rounded-xl bg-black/45 border border-white/15 text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-                    placeholder="홍길동"
+                    placeholder={L("홍길동", "Jane Doe", "Nguyễn Văn A")}
                   />
                 </div>
                 <div>
@@ -203,7 +242,7 @@ export function TestUserApplySection({ locale = "ko" }: { locale?: AppLocale }) 
                     value={businessName}
                     onChange={(e) => setBusinessName(e.target.value)}
                     className="w-full h-12 px-4 rounded-xl bg-black/45 border border-white/15 text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-                    placeholder="○○플라워"
+                    placeholder={L("○○플라워", "Your Flower Shop", "Cửa hàng hoa của bạn")}
                   />
                 </div>
                 <div>
@@ -216,7 +255,7 @@ export function TestUserApplySection({ locale = "ko" }: { locale?: AppLocale }) 
                     value={contact}
                     onChange={(e) => setContact(e.target.value)}
                     className="w-full h-12 px-4 rounded-xl bg-black/45 border border-white/15 text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-                    placeholder="010-0000-0000"
+                    placeholder={L("010-0000-0000", "+1 555-000-0000", "0909 000 000")}
                   />
                 </div>
                 <div>
@@ -230,7 +269,7 @@ export function TestUserApplySection({ locale = "ko" }: { locale?: AppLocale }) 
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full h-12 px-4 rounded-xl bg-black/45 border border-white/15 text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-                    placeholder="you@example.com"
+                    placeholder={L("email@example.com", "you@example.com", "email@company.com")}
                   />
                 </div>
               </div>
@@ -296,11 +335,17 @@ export function TestUserApplySection({ locale = "ko" }: { locale?: AppLocale }) 
                 </button>
               </div>
 
-              {status === "error" && message?.includes("연결되지") && (
+              {status === "error" && mailFallbackHint ? (
                 <p className="text-center text-xs text-slate-300">
-                  위 <strong className="text-slate-100">메일로 보내기</strong>를 누르면 입력하신 내용이 메일 작성창에 채워집니다.
+                  {L("위 ", "Tap ", "Nhấn ")}
+                  <strong className="text-slate-100">{t.mailSend}</strong>
+                  {L(
+                    "를 누르면 입력하신 내용이 메일 작성창에 채워집니다.",
+                    " to open your mail app with the form pre-filled.",
+                    " để mở ứng dụng thư với nội dung đã điền sẵn.",
+                  )}
                 </p>
-              )}
+              ) : null}
 
               <p className="text-[11px] text-slate-400 text-center leading-relaxed">{t.policy}</p>
             </form>

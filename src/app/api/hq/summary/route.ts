@@ -15,15 +15,19 @@ import {
   subMonths,
   subYears,
 } from "date-fns";
-import { ko } from "date-fns/locale";
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
+import { resolveLocale, toBaseLocale } from "@/i18n/config";
+import { pickUiText } from "@/i18n/pick-ui-text";
+import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
 
-const RECEIPT_LABELS: Record<string, string> = {
-  delivery_reservation: "배송",
-  pickup_reservation: "픽업·예약",
-  store_pickup: "매장수령",
-};
+function receiptMixLabelsFor(baseLocale: string): Record<string, string> {
+  return {
+    delivery_reservation: pickUiText(baseLocale, "배송", "Delivery", "Giao hàng"),
+    pickup_reservation: pickUiText(baseLocale, "픽업·예약", "Pickup (reserved)", "Lấy hàng · đặt trước"),
+    store_pickup: pickUiText(baseLocale, "매장수령", "In-store pickup", "Lấy tại cửa hàng"),
+  };
+}
 
 export type HqChartPeriod = "daily" | "weekly" | "monthly" | "yearly";
 
@@ -33,7 +37,8 @@ function normalizePeriod(raw: string | null): HqChartPeriod {
 }
 
 /** YYYY-MM-DD bucket keys aligned with 매장 대시보드 chartPeriod 규칙 */
-function buildBuckets(period: HqChartPeriod, now: Date) {
+function buildBuckets(period: HqChartPeriod, now: Date, baseLocale: string) {
+  const dfLoc = dateFnsLocaleForBase(baseLocale);
   const toStr = format(endOfDay(now), "yyyy-MM-dd");
 
   if (period === "daily") {
@@ -42,7 +47,7 @@ function buildBuckets(period: HqChartPeriod, now: Date) {
     const daysList = eachDayOfInterval({ start: rangeStart, end: now });
     const meta = daysList.map((day) => ({
       key: format(day, "yyyy-MM-dd"),
-      label: format(day, "M/d", { locale: ko }),
+      label: format(day, "d MMM", { locale: dfLoc }),
     }));
     return { fromStr, toStr, meta, period };
   }
@@ -53,7 +58,13 @@ function buildBuckets(period: HqChartPeriod, now: Date) {
     const fromStr = format(startOfDay(first), "yyyy-MM-dd");
     const meta = weeks.map((week) => {
       const wStart = startOfWeek(week);
-      const label = `${format(wStart, "M월", { locale: ko })} ${getWeekOfMonth(wStart)}주`;
+      const weekNum = getWeekOfMonth(wStart);
+      const label = pickUiText(
+        baseLocale,
+        `${format(wStart, "M월", { locale: dfLoc })} ${weekNum}주`,
+        `W${weekNum} ${format(wStart, "MMM d", { locale: dfLoc })}`,
+        `W${weekNum} ${format(wStart, "d MMM", { locale: dfLoc })}`
+      );
       return {
         key: format(wStart, "yyyy-MM-dd"),
         label,
@@ -67,17 +78,20 @@ function buildBuckets(period: HqChartPeriod, now: Date) {
     const fromStr = format(startOfMonth(months[0]), "yyyy-MM-dd");
     const meta = months.map((m) => ({
       key: format(m, "yyyy-MM"),
-      label: format(m, "M월", { locale: ko }),
+      label: format(m, "MMM yyyy", { locale: dfLoc }),
     }));
     return { fromStr, toStr, meta, period };
   }
 
   const years = [subYears(now, 2), subYears(now, 1), now];
   const fromStr = format(startOfYear(years[0]), "yyyy-MM-dd");
-  const meta = years.map((y) => ({
-    key: format(y, "yyyy"),
-    label: format(y, "yyyy년"),
-  }));
+  const meta = years.map((y) => {
+    const yStr = format(y, "yyyy", { locale: dfLoc });
+    return {
+      key: format(y, "yyyy"),
+      label: pickUiText(baseLocale, `${yStr}년`, yStr, yStr),
+    };
+  });
   return { fromStr, toStr, meta, period };
 }
 
@@ -141,8 +155,10 @@ export async function GET(req: Request) {
 
   const searchParams = new URL(req.url).searchParams;
   const period = normalizePeriod(searchParams.get("period"));
+  const baseLocale = toBaseLocale(resolveLocale(searchParams.get("locale")));
+  const receiptLabels = receiptMixLabelsFor(baseLocale);
   const now = new Date();
-  const { fromStr, toStr, meta: bucketMeta } = buildBuckets(period, now);
+  const { fromStr, toStr, meta: bucketMeta } = buildBuckets(period, now, baseLocale);
 
   const emptyBranch = (tenants ?? []).map((t) => ({
     ...t,
@@ -158,7 +174,7 @@ export async function GET(req: Request) {
       period,
       canManageAnnouncements,
       receiptMix: { delivery_reservation: 0, pickup_reservation: 0, store_pickup: 0, other: 0 },
-      receiptMixLabels: RECEIPT_LABELS,
+      receiptMixLabels: receiptLabels,
       ops: { canceledCount: 0, activeOrderCount: 0, cancelRate: 0 },
       chartRows: [] as Record<string, string | number>[],
       branchChartKeys: [] as { id: string; name: string }[],
@@ -262,7 +278,7 @@ export async function GET(req: Request) {
     period,
     canManageAnnouncements,
     receiptMix,
-    receiptMixLabels: RECEIPT_LABELS,
+    receiptMixLabels: receiptLabels,
     ops: { canceledCount, activeOrderCount, cancelRate },
     chartRows,
     branchChartKeys,

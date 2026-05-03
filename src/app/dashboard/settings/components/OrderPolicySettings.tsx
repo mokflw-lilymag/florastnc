@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { SystemSettings } from "@/hooks/use-settings";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
+import { pickUiText } from "@/i18n/pick-ui-text";
 
 interface OrderPolicySettingsProps {
   settings: SystemSettings;
@@ -21,13 +22,21 @@ interface OrderPolicySettingsProps {
 export function OrderPolicySettings({ settings, saveSettings }: OrderPolicySettingsProps) {
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
-  const isKo = toBaseLocale(locale) === "ko";  return (
+  const baseLocale = toBaseLocale(locale);
+  return (
     <div className="space-y-6">
       <Card className="border-0 shadow-lg ring-1 ring-slate-200 overflow-hidden">
         <CardHeader className="bg-gradient-to-r from-violet-600 to-indigo-600 text-white pb-8">
           <div className="flex items-center gap-2 mb-2 opacity-90">
             <Coins className="h-5 w-5" />
-            <span className="text-xs font-bold uppercase tracking-widest">Loyalty & Marketing Policy</span>
+            <span className="text-xs font-bold uppercase tracking-widest">
+              {pickUiText(
+                baseLocale,
+                "포인트·마케팅 정책",
+                "Loyalty & marketing policy",
+                "Chính sách điểm thưởng & marketing"
+              )}
+            </span>
           </div>
           <CardTitle className="text-2xl font-black">{tf.f01873}</CardTitle>
           <CardDescription className="text-violet-100 opacity-80">

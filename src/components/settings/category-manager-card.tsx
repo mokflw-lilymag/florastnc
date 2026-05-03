@@ -8,6 +8,9 @@ import { CategoryData } from "@/hooks/use-settings";
 import { Plus, Trash2, Save, RotateCcw, LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
+import { pickUiText } from "@/i18n/pick-ui-text";
 
 interface CategoryManagerCardProps {
   title: string;
@@ -30,6 +33,11 @@ export function CategoryManagerCard({
   colorScheme = "blue",
   isLoading = false,
 }: CategoryManagerCardProps) {
+  const locale = usePreferredLocale();
+  const baseLocale = toBaseLocale(locale);
+  const tr = (ko: string, en: string, vi?: string) => pickUiText(baseLocale, ko, en, vi);
+  const phNewMain = tr("추가하실 대분류", "New main category", "Thêm nhóm chính");
+  const phNewMid = tr("새 하위 분류 입력", "New subcategory", "Nhập nhóm con");
   const [data, setData] = useState<CategoryData>(initialData || defaultData);
   const [selectedMain, setSelectedMain] = useState<string>("");
   const [newMain, setNewMain] = useState("");
@@ -71,7 +79,8 @@ export function CategoryManagerCard({
 
   const handleAddMain = () => {
     if (!newMain) return;
-    if (data.main.includes(newMain)) return toast.error("이미 존재하는 카테고리입니다.");
+    if (data.main.includes(newMain))
+      return toast.error(tr("이미 존재하는 카테고리입니다.", "This category already exists.", "Danh mục này đã tồn tại."));
     
     setData({
       main: [...data.main, newMain],
@@ -84,7 +93,8 @@ export function CategoryManagerCard({
   const handleAddMid = () => {
     if (!newMid || !selectedMain) return;
     const list = data.mid[selectedMain] || [];
-    if (list.includes(newMid)) return toast.error("이미 존재하는 소분류입니다.");
+    if (list.includes(newMid))
+      return toast.error(tr("이미 존재하는 소분류입니다.", "This subcategory already exists.", "Nhóm con này đã tồn tại."));
     
     setData({
       ...data,
@@ -94,7 +104,15 @@ export function CategoryManagerCard({
   };
 
   const handleDeleteMain = (cat: string) => {
-    if (window.confirm(`'${cat}' 대분류를 삭제하시겠습니까?\n하위 분류도 모두 삭제됩니다.`)) {
+    if (
+      window.confirm(
+        tr(
+          "'{name}' 대분류를 삭제하시겠습니까?\n하위 분류도 모두 삭제됩니다.",
+          "Delete main category \"{name}\"? All subcategories will be removed.",
+          "Xóa nhóm chính \"{name}\"? Mọi nhóm con cũng sẽ bị xóa."
+        ).replace("{name}", cat)
+      )
+    ) {
       const nextMain = data.main.filter(m => m !== cat);
       const nextMid = { ...data.mid };
       delete nextMid[cat];
@@ -112,10 +130,24 @@ export function CategoryManagerCard({
   };
 
   const handleRestore = () => {
-    if (window.confirm("초기 기본값으로 복원하시겠습니까? (저장 전까지는 실제 반영되지 않습니다)")) {
+    if (
+      window.confirm(
+        tr(
+          "초기 기본값으로 복원하시겠습니까? (저장 전까지는 실제 반영되지 않습니다)",
+          "Restore factory defaults? Changes are not saved until you click Save.",
+          "Khôi phục mặc định gốc? Thay đổi chỉ được lưu khi bạn nhấn Lưu."
+        )
+      )
+    ) {
       setData(JSON.parse(JSON.stringify(defaultData)));
       setSelectedMain("");
-      toast.info("기본값으로 설정되었습니다. 저장을 눌러야 반영됩니다.");
+      toast.info(
+        tr(
+          "기본값으로 설정되었습니다. 저장을 눌러야 반영됩니다.",
+          "Defaults applied. Click Save to persist.",
+          "Đã áp dụng mặc định. Nhấn Lưu để ghi lại."
+        )
+      );
     }
   };
 
@@ -144,7 +176,7 @@ export function CategoryManagerCard({
             className="bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
           >
             <RotateCcw className="h-4 w-4 mr-2" />
-            기본값 복원
+            {tr("기본값 복원", "Restore defaults", "Khôi phục mặc định")}
           </Button>
           <Button 
             size="sm"
@@ -153,7 +185,7 @@ export function CategoryManagerCard({
             className={`${scheme.button} text-white shadow-lg ${scheme.shadow}`}
           >
             <Save className="h-4 w-4 mr-2" />
-            변경사항 저장
+            {tr("변경사항 저장", "Save changes", "Lưu thay đổi")}
           </Button>
         </div>
       </div>
@@ -162,14 +194,16 @@ export function CategoryManagerCard({
         <Card className="md:col-span-5 border-none shadow-sm bg-slate-50/50">
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-semibold flex items-center justify-between">
-              대분류 (Main)
-              <Badge variant="outline" className="font-normal text-[10px]">Total {data.main.length}</Badge>
+              {tr("대분류 (Main)", "Main categories", "Nhóm chính")}
+              <Badge variant="outline" className="font-normal text-[10px]">
+                {tr("합계", "Total", "Tổng")} {data.main.length}
+              </Badge>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex gap-2">
               <Input 
-                placeholder="추가하실 대분류" 
+                placeholder={phNewMain}
                 value={newMain} 
                 onChange={(e) => setNewMain(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAddMain()}
@@ -207,9 +241,12 @@ export function CategoryManagerCard({
             <CardTitle className="text-base font-semibold">
               {selectedMain ? (
                 <div className="flex items-center gap-2">
-                  <span className={`${scheme.text}`}>[{selectedMain}]</span> 하위 분류
+                  <span className={`${scheme.text}`}>[{selectedMain}]</span>{" "}
+                  {tr("하위 분류", "Subcategories", "Nhóm con")}
                 </div>
-              ) : "분류를 선택하세요"}
+              ) : (
+                tr("분류를 선택하세요", "Select a category", "Chọn một nhóm")
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -217,7 +254,7 @@ export function CategoryManagerCard({
               <>
                 <div className="flex gap-2">
                   <Input 
-                    placeholder="새 하위 분류 입력" 
+                    placeholder={phNewMid}
                     value={newMid} 
                     onChange={(e) => setNewMid(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleAddMid()}
@@ -237,7 +274,7 @@ export function CategoryManagerCard({
                   ))}
                   {(!data.mid[selectedMain] || data.mid[selectedMain].length === 0) && (
                     <div className="col-span-2 py-12 text-center text-slate-400 text-sm border-2 border-dashed border-slate-100 rounded-2xl">
-                      등록된 하위 분류가 없습니다.
+                      {tr("등록된 하위 분류가 없습니다.", "No subcategories yet.", "Chưa có nhóm con.")}
                     </div>
                   )}
                 </div>
@@ -247,7 +284,9 @@ export function CategoryManagerCard({
                 <div className="p-4 bg-slate-50 rounded-full">
                   <Icon className="h-10 w-10 opacity-20" />
                 </div>
-                <p className="text-sm">관리할 대분류를 선택해주세요.</p>
+                <p className="text-sm">
+                  {tr("관리할 대분류를 선택해주세요.", "Select a main category to manage.", "Chọn nhóm chính để quản lý.")}
+                </p>
               </div>
             )}
           </CardContent>

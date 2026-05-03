@@ -2,7 +2,6 @@
 
 import { Fragment, useMemo, useState } from "react";
 import { format } from "date-fns";
-import { enUS, ko } from "date-fns/locale";
 import {
   buildMaterialRequestConsolidation,
   consolidationToCsv,
@@ -40,8 +39,9 @@ import { toast } from "sonner";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
-import { toBaseLocale } from "@/i18n/config";
+import { bcp47LangTag, toBaseLocale } from "@/i18n/config";
 import { getMessages } from "@/i18n/getMessages";
+import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
 
 type Props = {
   requests: HqRequestInput[];
@@ -55,7 +55,7 @@ function openPrintableConsolidation(opts: {
   hqNote: string;
   rows: ConsolidatedMaterialRow[];
   filterSummary: string;
-  baseLocale: "ko" | "en";
+  baseLocale: string;
   tf: Record<string, string>;
 }) {
   const { title, batchRef, generatedAt, hqNote, rows, filterSummary, baseLocale, tf } = opts;
@@ -72,7 +72,7 @@ function openPrintableConsolidation(opts: {
         byBranch.set(b.tenant_name, (byBranch.get(b.tenant_name) ?? 0) + b.quantity);
       }
       const branchCells = [...byBranch.entries()]
-        .sort((a, b) => a[0].localeCompare(b[0], "ko"))
+        .sort((a, b) => a[0].localeCompare(b[0], baseLocale))
         .map(
           ([name, q]) =>
             `<tr><td colspan="2" style="padding:4px 8px;border:1px solid #ccc;font-size:12px;">${escapeHtml(
@@ -102,7 +102,7 @@ function openPrintableConsolidation(opts: {
     .join("");
 
   const html = `<!DOCTYPE html>
-<html lang="ko"><head><meta charset="utf-8"/><title>${escapeHtml(title)}</title>
+<html lang="${bcp47LangTag(baseLocale)}"><head><meta charset="utf-8"/><title>${escapeHtml(title)}</title>
 <style>
   body { font-family: system-ui, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; padding: 24px; color: #111; }
   h1 { font-size: 20px; margin: 0 0 8px; }
@@ -157,7 +157,7 @@ export function MaterialRequestsConsolidationPanel({ requests, onReload }: Props
   const [patching, setPatching] = useState(false);
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
-  const baseLocale: "ko" | "en" = toBaseLocale(locale) === "ko" ? "ko" : "en";
+  const baseLocale = toBaseLocale(locale);
   const ribbonMsgs = getMessages(locale).dashboard.ribbon;
 
   const statuses = useMemo(() => {
@@ -266,10 +266,7 @@ export function MaterialRequestsConsolidationPanel({ requests, onReload }: Props
     openPrintableConsolidation({
       title: tf.f01916,
       batchRef,
-      generatedAt:
-        baseLocale === "ko"
-          ? format(new Date(), "yyyy년 M월 d일 HH:mm", { locale: ko })
-          : format(new Date(), "yyyy-MM-dd HH:mm", { locale: enUS }),
+      generatedAt: format(new Date(), "PPpp", { locale: dateFnsLocaleForBase(baseLocale) }),
       hqNote,
       rows: consolidated,
       filterSummary,
@@ -524,7 +521,7 @@ export function MaterialRequestsConsolidationPanel({ requests, onReload }: Props
                               <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{tf.f01919}</div>
                               <ul className="grid gap-1 sm:grid-cols-2 lg:grid-cols-3">
                                 {[...byBranch.entries()]
-                                  .sort((a, b) => a[0].localeCompare(b[0], "ko"))
+                                  .sort((a, b) => a[0].localeCompare(b[0], baseLocale))
                                   .map(([name, q]) => (
                                     <li
                                       key={name}

@@ -9,10 +9,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2, Lock } from "lucide-react";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
+import { pickUiText } from "@/i18n/pick-ui-text";
 
 export default function ResetPasswordPage() {
   const supabase = createClient();
   const router = useRouter();
+  const locale = usePreferredLocale();
+  const baseLocale = toBaseLocale(locale);
+  const L = (ko: string, en: string, vi?: string) => pickUiText(baseLocale, ko, en, vi);
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -22,22 +28,38 @@ export default function ResetPasswordPage() {
 
   useEffect(() => {
     let mounted = true;
+    const bl = toBaseLocale(locale);
 
     const init = async () => {
-      // 링크 유효성 확인: 복구 링크로 들어오면 세션이 잡혀 있어야 함.
+      // Recovery link should establish a session before this page is used.
       const { data, error } = await supabase.auth.getSession();
       if (!mounted) return;
 
       if (error) {
-        setSessionError("재설정 링크 확인에 실패했습니다. 새 링크를 다시 요청해 주세요.");
+        setSessionError(
+          pickUiText(
+            bl,
+            "재설정 링크 확인에 실패했습니다. 새 링크를 다시 요청해 주세요.",
+            "Could not verify the reset link. Please request a new one.",
+            "Không xác minh được liên kết đặt lại. Vui lòng yêu cầu liên kết mới.",
+          ),
+        );
         return;
       }
 
       if (!data.session) {
-        setSessionError("재설정 링크가 만료되었거나 유효하지 않습니다. 다시 요청해 주세요.");
+        setSessionError(
+          pickUiText(
+            bl,
+            "재설정 링크가 만료되었거나 유효하지 않습니다. 다시 요청해 주세요.",
+            "This reset link has expired or is invalid. Please request a new one.",
+            "Liên kết đặt lại đã hết hạn hoặc không hợp lệ. Vui lòng yêu cầu lại.",
+          ),
+        );
         return;
       }
 
+      setSessionError("");
       setReady(true);
     };
 
@@ -46,21 +68,21 @@ export default function ResetPasswordPage() {
     return () => {
       mounted = false;
     };
-  }, [supabase.auth]);
+  }, [supabase.auth, locale]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
     if (!password || !confirmPassword) {
-      toast.error("비밀번호를 모두 입력해 주세요.");
+      toast.error(L("비밀번호를 모두 입력해 주세요.", "Please enter both password fields.", "Vui lòng nhập cả hai ô mật khẩu."));
       return;
     }
     if (password.length < 6) {
-      toast.error("비밀번호는 6자 이상이어야 합니다.");
+      toast.error(L("비밀번호는 6자 이상이어야 합니다.", "Password must be at least 6 characters.", "Mật khẩu phải có ít nhất 6 ký tự."));
       return;
     }
     if (password !== confirmPassword) {
-      toast.error("비밀번호가 일치하지 않습니다.");
+      toast.error(L("비밀번호가 일치하지 않습니다.", "Passwords do not match.", "Mật khẩu không khớp."));
       return;
     }
 
@@ -69,13 +91,22 @@ export default function ResetPasswordPage() {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
 
-      toast.success("비밀번호가 변경되었습니다. 새 비밀번호로 로그인해 주세요.");
+      toast.success(
+        L(
+          "비밀번호가 변경되었습니다. 새 비밀번호로 로그인해 주세요.",
+          "Password updated. Please sign in with your new password.",
+          "Đã đổi mật khẩu. Vui lòng đăng nhập bằng mật khẩu mới.",
+        ),
+      );
       await supabase.auth.signOut();
       router.replace("/login");
       router.refresh();
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "비밀번호 변경 중 오류가 발생했습니다.";
-      toast.error("변경 실패", { description: message });
+      const message =
+        error instanceof Error
+          ? error.message
+          : L("비밀번호 변경 중 오류가 발생했습니다.", "Something went wrong while updating your password.", "Đã xảy ra lỗi khi đổi mật khẩu.");
+      toast.error(L("변경 실패", "Update failed", "Đổi mật khẩu thất bại"), { description: message });
     } finally {
       setLoading(false);
     }
@@ -87,10 +118,14 @@ export default function ResetPasswordPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Lock className="h-5 w-5" />
-            비밀번호 재설정
+            {L("비밀번호 재설정", "Reset password", "Đặt lại mật khẩu")}
           </CardTitle>
           <CardDescription>
-            새 비밀번호를 입력한 뒤 변경 버튼을 눌러주세요.
+            {L(
+              "새 비밀번호를 입력한 뒤 변경 버튼을 눌러주세요.",
+              "Enter a new password, then tap Change password.",
+              "Nhập mật khẩu mới, sau đó nhấn Đổi mật khẩu.",
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -98,13 +133,13 @@ export default function ResetPasswordPage() {
             <div className="space-y-4">
               <p className="text-sm text-red-600">{sessionError}</p>
               <Button className="w-full" onClick={() => router.push("/login")}>
-                로그인으로 이동
+                {L("로그인으로 이동", "Go to sign in", "Đi tới đăng nhập")}
               </Button>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="password">새 비밀번호</Label>
+                <Label htmlFor="password">{L("새 비밀번호", "New password", "Mật khẩu mới")}</Label>
                 <Input
                   id="password"
                   type="password"
@@ -115,7 +150,9 @@ export default function ResetPasswordPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">새 비밀번호 확인</Label>
+                <Label htmlFor="confirmPassword">
+                  {L("새 비밀번호 확인", "Confirm new password", "Xác nhận mật khẩu mới")}
+                </Label>
                 <Input
                   id="confirmPassword"
                   type="password"
@@ -129,10 +166,10 @@ export default function ResetPasswordPage() {
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    변경 중...
+                    {L("변경 중...", "Updating...", "Đang cập nhật...")}
                   </>
                 ) : (
-                  "비밀번호 변경"
+                  L("비밀번호 변경", "Change password", "Đổi mật khẩu")
                 )}
               </Button>
             </form>

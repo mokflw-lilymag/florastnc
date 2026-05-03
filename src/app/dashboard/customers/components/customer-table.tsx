@@ -80,7 +80,7 @@ export function CustomerTable({ customers, onEdit, onDelete, onRowClick }: Custo
               <TableHead className="font-semibold text-slate-700 text-right">{tf.f00286}</TableHead>
               <TableHead className="font-semibold text-slate-700 text-right">{tf.f00144}</TableHead>
               <TableHead className="w-[80px]">
-                <span className="sr-only">작업</span>
+                <span className="sr-only">{tf.f01754}</span>
               </TableHead>
             </TableRow>
           </TableHeader>

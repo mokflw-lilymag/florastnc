@@ -72,6 +72,8 @@ import {
 } from "@/lib/floating-ui-bridge";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
+import { pickUiText } from "@/i18n/pick-ui-text";
+import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
 
 /** 미리보기와 동일한 변환을 캔버스 캡처에 적용 (모바일 카메라 방향·좌우 보정) */
 function applyVideoFrameToCanvas(
@@ -242,7 +244,15 @@ export default function ExpensesPage() {
   const [amountMismatchExpenses, setAmountMismatchExpenses] = useState<Expense[]>([]);
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
-  const isKo = toBaseLocale(locale) === "ko";  const categoryLabels: Record<string, string> = {
+  const baseLocale = toBaseLocale(locale);
+  const dfLoc = dateFnsLocaleForBase(baseLocale);
+  const phReceiptUrl = pickUiText(
+    baseLocale,
+    "https://…",
+    "https://…",
+    "https://…"
+  );
+  const categoryLabels: Record<string, string> = {
     all: tf.f01798,
     materials: tf.f01744,
     transportation: tf.f01632,
@@ -424,7 +434,7 @@ export default function ExpensesPage() {
 
     const supplierStats = Array.from(supplierMap.entries())
       .map(([id, amount]) => ({
-        name: suppliers.find(s => s.id === id)?.name || "알 수 없음",
+        name: suppliers.find(s => s.id === id)?.name || tf.f01526,
         amount
       }))
       .sort((a, b) => b.amount - a.amount);
@@ -434,7 +444,7 @@ export default function ExpensesPage() {
       supplierCount: supplierMap.size,
       avgExpense: filteredExpenses.length > 0 ? totalAmount / filteredExpenses.length : 0
     };
-  }, [filteredExpenses, suppliers, totalAmount]);
+  }, [filteredExpenses, suppliers, totalAmount, tf]);
 
   const openCreateDialog = () => {
     setFieldsFromOcr(false);
@@ -520,7 +530,7 @@ export default function ExpensesPage() {
 
   const performExpenseSubmit = async () => {
     if (isInvalidSingleLineExpense(formData)) {
-      toast.error("지출 내역과 금액을 정확히 입력해 주세요.");
+      toast.error(tf.f02483);
       return;
     }
 
@@ -555,7 +565,11 @@ export default function ExpensesPage() {
           category: formData.category,
           sub_category: item.sub_category || formData.sub_category,
           amount: item.amount,
-          description: item.description || (item.material_id !== "none" ? `${item.material_name} 사입` : formData.description),
+          description:
+            item.description ||
+            (item.material_id !== "none"
+              ? tf.f02495.replace("{name}", item.material_name)
+              : formData.description),
           expense_date: new Date(formData.expense_date).toISOString(),
           payment_method: formData.payment_method,
           supplier_id: formData.supplier_id === "none" ? undefined : formData.supplier_id,
@@ -596,7 +610,7 @@ export default function ExpensesPage() {
 
   const handleSubmit = async () => {
     if (isInvalidSingleLineExpense(formData)) {
-      toast.error("지출 내역과 금액을 정확히 입력해 주세요.");
+      toast.error(tf.f02483);
       return;
     }
 
@@ -643,21 +657,12 @@ export default function ExpensesPage() {
     await performExpenseSubmit();
   };
 
-  const getCategoryLabel = (cat: string) => {
-    switch (cat) {
-      case "materials": return "자재/꽃 사입";
-      case "transportation": return "운송비";
-      case "rent": return "임대료";
-      case "utility": return "공과금";
-      case "labor": return "인건비";
-      case "marketing": return "마케팅";
-      default: return "기타";
-    }
-  };
+  const getCategoryLabel = (cat: string) =>
+    (categoryLabels as Record<string, string>)[cat] ?? tf.f00115;
 
   const getSupplierName = (id?: string) => {
     if (!id) return "-";
-    return suppliers.find(s => s.id === id)?.name || "정보 없음";
+    return suppliers.find(s => s.id === id)?.name || tf.f02498;
   };
 
   // Image Compression: 긴 변 최대 1000px, 그레이스케일, JPEG ~60% (OCR·용량 절충)
@@ -730,14 +735,14 @@ export default function ExpensesPage() {
   const processReceiptFiles = async (originalFiles: File[]) => {
     const imageFiles = originalFiles.filter((f) => f.type.startsWith("image/"));
     if (imageFiles.length === 0) {
-      toast.error("영수증 이미지 파일(JPG, PNG)을 선택해 주세요.");
+      toast.error(tf.f02484);
       return;
     }
 
     let files = imageFiles;
     if (files.length > MAX_RECEIPT_FILES_PER_BATCH) {
-      toast.message(`한 번에 최대 ${MAX_RECEIPT_FILES_PER_BATCH}장까지 처리합니다.`, {
-        description: "나머지는 제외되었습니다. 필요하면 나누어 등록해 주세요.",
+      toast.message(tf.f02499.replace("{max}", String(MAX_RECEIPT_FILES_PER_BATCH)), {
+        description: tf.f02485,
       });
       files = files.slice(0, MAX_RECEIPT_FILES_PER_BATCH);
     }
@@ -745,8 +750,8 @@ export default function ExpensesPage() {
     setIsOcrLoading(true);
     const toastId = toast.loading(
       files.length > 1
-        ? `AI 분석 중… (0/${files.length}장)`
-        : "AI가 영수증을 분석하고 최적화 중입니다..."
+        ? tf.f02513.replace("{done}", "0").replace("{total}", String(files.length))
+        : tf.f02486
     );
 
     type PerFileOk = { ok: true; compressed: File; receipts: Record<string, unknown>[] };
@@ -757,7 +762,10 @@ export default function ExpensesPage() {
     const bumpProgress = () => {
       progressDone += 1;
       if (files.length > 1) {
-        toast.loading(`AI 분석 중… (${progressDone}/${files.length}장)`, { id: toastId });
+        toast.loading(
+          tf.f02513.replace("{done}", String(progressDone)).replace("{total}", String(files.length)),
+          { id: toastId }
+        );
       }
     };
 
@@ -785,7 +793,10 @@ export default function ExpensesPage() {
             () => ({} as { error?: string; data?: unknown; diagnose?: string; vercelEnv?: string | null })
           );
           if (!response.ok) {
-            let msg = typeof result.error === "string" ? result.error : `OCR 실패 (HTTP ${response.status})`;
+            let msg =
+              typeof result.error === "string"
+                ? result.error
+                : tf.f02515.replace("{status}", String(response.status));
             if (response.status === 503 && result.vercelEnv != null) {
               msg += ` (Vercel: ${result.vercelEnv})`;
             }
@@ -796,11 +807,11 @@ export default function ExpensesPage() {
           }
           const data = result.data as { receipts?: Record<string, unknown>[]; store_name?: string } | undefined;
           if (!data) {
-            return { ok: false as const, name: file.name, error: "응답 없음" };
+            return { ok: false as const, name: file.name, error: tf.f02487 };
           }
           const receipts = data.receipts || (data.store_name ? [data as Record<string, unknown>] : []);
           if (receipts.length === 0) {
-            return { ok: false as const, name: file.name, error: "영수증에서 유효한 정보를 찾지 못했습니다." };
+            return { ok: false as const, name: file.name, error: tf.f02488 };
           }
           return { ok: true as const, compressed: compressedFile, receipts };
         } catch (e: unknown) {
@@ -816,7 +827,7 @@ export default function ExpensesPage() {
 
       if (successes.length === 0) {
         toast.dismiss(toastId);
-        toast.error(failures[0]?.error || "AI 분석에 실패했습니다.");
+        toast.error(failures[0]?.error || tf.f02489);
         return;
       }
 
@@ -855,7 +866,10 @@ export default function ExpensesPage() {
         allNewItems.push(...items);
       });
 
-      toast.loading(files.length > 1 ? `클라우드에 저장 중… (${files.length}장)` : "클라우드에 저장 중…", { id: toastId });
+      toast.loading(
+        files.length > 1 ? tf.f02514.replace("{n}", String(files.length)) : tf.f02506,
+        { id: toastId }
+      );
 
       const uploadResults = await runPool(successes, RECEIPT_OCR_CONCURRENCY, async (s) => uploadReceipt(s.compressed));
       const firstUpload = uploadResults.find((u) => u != null) ?? null;
@@ -873,7 +887,7 @@ export default function ExpensesPage() {
         ),
         description: mainStoreName
           ? receipts.length > 1
-            ? `${mainStoreName} 외 ${receipts.length - 1}건`
+            ? tf.f02516.replace("{name}", mainStoreName).replace("{n}", String(receipts.length - 1))
             : mainStoreName
           : prev.description,
         // 수정 모드는 단일 지출 행만 갱신 — OCR 품목 배열을 두면 검증/합계 로직만 꼬이고 금액 필드와 불일치할 수 있음
@@ -884,22 +898,25 @@ export default function ExpensesPage() {
 
       toast.dismiss(toastId);
       if (failures.length > 0) {
-        toast.warning(`${successes.length}/${files.length}장만 분석되었습니다.`, {
-          description: failures.map((f) => f.name).join(", "),
-        });
+        toast.warning(
+          tf.f02508.replace("{ok}", String(successes.length)).replace("{total}", String(files.length)),
+          {
+            description: failures.map((f) => f.name).join(", "),
+          }
+        );
       } else if (files.length > 1) {
-        toast.success(`${files.length}장 분석·저장 완료`, {
-          description: "품목·금액은 모두 합산되었습니다. 미리보기·증빙 링크는 첫 번째 영수증 기준입니다.",
+        toast.success(tf.f02509.replace("{n}", String(files.length)), {
+          description: tf.f02510,
         });
       } else if (receipts.length > 1) {
-        toast.success(`AI가 총 ${receipts.length}개의 영수증을 감지하여 합산했습니다!`);
+        toast.success(tf.f02511.replace("{n}", String(receipts.length)));
       } else {
-        toast.success("AI 분석 및 클라우드 저장 완료 (이미지 최적화 적용됨)");
+        toast.success(tf.f02512);
       }
       setFieldsFromOcr(Boolean(firstUpload?.url));
     } catch (err: unknown) {
       toast.dismiss(toastId);
-      const message = err instanceof Error ? err.message : "AI 분석 중 오류가 발생했습니다.";
+      const message = err instanceof Error ? err.message : tf.f02505;
       toast.error(message);
       console.error("OCR Error:", err);
     } finally {
@@ -919,7 +936,7 @@ export default function ExpensesPage() {
 
   const openWebcam = (mode: "single" | "multi" = "single") => {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      toast.error("현재 브라우저에서 카메라 기능을 지원하지 않습니다. 파일 불러오기를 이용해주세요.");
+      toast.error(tf.f02490);
       return;
     }
 
@@ -961,18 +978,17 @@ export default function ExpensesPage() {
         setWebcamQueue([]);
         setWebcamPreviewTransform({ rotation: 0, flipH: false });
 
-        if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
-          toast.error("기기에 연결된 카메라를 찾을 수 없습니다.");
-        } else if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-          toast.error("카메라 접근 권한이 거부되었습니다. 브라우저 설정에서 권한을 허용해주세요.");
+        if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
+          toast.error(tf.f02491);
+        } else if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
+          toast.error(tf.f02492);
         } else {
-          toast.error(`카메라를 시작할 수 없습니다: ${err.message || '알 수 없는 오류'}`);
+          toast.error(
+            tf.f02503.replace("{msg}", err.message || tf.f02504)
+          );
         }
         if (typeof navigator !== "undefined" && /Android/i.test(navigator.userAgent)) {
-          toast.message(
-            "카카오·메신저 말풍선, ‘다른 앱 위에 표시’ 앱이 켜져 있으면 권한 창이 막힐 수 있어요. 접은 뒤 다시 시도해 주세요.",
-            { duration: 6000 }
-          );
+          toast.message(tf.f02502, { duration: 6000 });
         }
       }
     }, 180);
@@ -994,7 +1010,7 @@ export default function ExpensesPage() {
   const finishWebcamMulti = async () => {
     const files = [...webcamQueue];
     if (files.length === 0) {
-      toast.error("촬영된 영수증이 없습니다.");
+      toast.error(tf.f02493);
       return;
     }
     if (streamRef.current) {
@@ -1029,8 +1045,8 @@ export default function ExpensesPage() {
         if (mode === "multi") {
           setWebcamQueue((prev) => {
             if (prev.length >= MAX_RECEIPT_FILES_PER_BATCH) {
-              toast.message(`연속 촬영은 최대 ${MAX_RECEIPT_FILES_PER_BATCH}장까지입니다.`, {
-                description: "완료를 눌러 분석하세요.",
+              toast.message(tf.f02501.replace("{max}", String(MAX_RECEIPT_FILES_PER_BATCH)), {
+                description: tf.f02500,
               });
               return prev;
             }
@@ -1186,7 +1202,7 @@ export default function ExpensesPage() {
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={formData.receipt_url}
-                      alt="영수증 원본"
+                      alt={tf.f02538}
                       className="max-h-[min(48vh,420px)] w-full object-contain"
                     />
                   </button>
@@ -1225,7 +1241,7 @@ export default function ExpensesPage() {
                   <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-violet-600" />
                   <p>
                     <span className="font-bold">{tf.f02247}</span> — {tf.f01027}
-                    값입니다. 위쪽(또는 왼쪽) 원본과 다르면 이 화면에서 고친 뒤 저장하세요.
+                    {tf.f02537}
                   </p>
                 </div>
               ) : null}
@@ -1382,7 +1398,7 @@ export default function ExpensesPage() {
                                     <span className="truncate text-slate-700 font-medium leading-none mb-1">
                                       {item.material_id && item.material_id !== "none"
                                         ? item.material_name
-                                        : item.description || "품목 선택 또는 직접 입력"}
+                                        : item.description || tf.f02127}
                                     </span>
                                     {item.main_category && (
                                       <span className="text-[10px] text-slate-400 truncate leading-none">
@@ -1396,7 +1412,7 @@ export default function ExpensesPage() {
                                   {activeItemPopover === item.id && (
                                     <Command shouldFilter={false}>
                                       <CommandInput
-                                        placeholder="품목 검색..."
+                                        placeholder={tf.f02125}
                                         value={itemSearchText}
                                         onValueChange={(v) => {
                                           setItemSearchText(v);
@@ -1416,11 +1432,11 @@ export default function ExpensesPage() {
                                                 setItemSearchText("");
                                               }}
                                             >
-                                              현재 입력값으로 적용
+                                              {tf.f02517}
                                             </Button>
                                           </div>
                                         </CommandEmpty>
-                                        <CommandGroup heading="검색 결과 (최대 50개)">
+                                        <CommandGroup heading={tf.f02518}>
                                           {itemSearchList.map(m => (
                                             <CommandItem
                                               key={m.id}
@@ -1431,7 +1447,7 @@ export default function ExpensesPage() {
                                                   material_name: m.name,
                                                   unit: m.unit || "ea",
                                                   unit_price: m.price || 0,
-                                                  description: `${m.name} 사입`,
+                                                  description: tf.f02495.replace("{name}", m.name),
                                                   main_category: m.main_category || "",
                                                   mid_category: m.mid_category || ""
                                                 });
@@ -1505,7 +1521,7 @@ export default function ExpensesPage() {
                     <Label htmlFor="desc" className="text-sm font-bold text-slate-700">{tf.f01938}</Label>
                     <Input
                       id="desc"
-                      placeholder="예: 생화 사입(장미 10단), 월세 등"
+                      placeholder={tf.f02519}
                       value={formData.description}
                       onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
                       className="bg-white border-slate-200"
@@ -1603,21 +1619,21 @@ export default function ExpensesPage() {
                           <div className="flex flex-col items-start leading-tight">
                             <span className="text-sm">{tf.f02090}</span>
                             <span className="text-[10px] font-normal opacity-60">
-                              앨범·여러 장 선택 · 최대 {MAX_RECEIPT_FILES_PER_BATCH}장
+                              {tf.f02520.replace("{max}", String(MAX_RECEIPT_FILES_PER_BATCH))}
                             </span>
                           </div>
                         </Button>
                     </div>
                     <details className="rounded-lg border border-dashed border-slate-200 bg-slate-50/60 px-3 py-2">
                       <summary className="cursor-pointer list-inside text-xs font-bold text-slate-600 marker:text-slate-400">
-                        외부 링크로만 첨부 (구글 드라이브 등)
+                        {tf.f02521}
                       </summary>
                       <div className="relative mt-2">
                         <div className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-slate-400">
                           <Link2 className="h-4 w-4" />
                         </div>
                         <Input
-                          placeholder="https://…"
+                          placeholder={phReceiptUrl}
                           className="border-slate-200 bg-white pl-9 font-mono text-[11px]"
                           value={formData.receipt_url}
                           onChange={(e) => {
@@ -1628,14 +1644,14 @@ export default function ExpensesPage() {
                       </div>
                     </details>
                     <p className="mt-2 ml-1 text-[10px] font-medium italic text-slate-400">
-                      * 앨범 다중 선택·연속 촬영·파일 여러 장은 병렬 분석 후 합산합니다. 증빙 미리보기는 첫 번째 영수증만 표시됩니다.
+                      {tf.f02522}
                     </p>
                   </>
                 ) : (
                   <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2 text-xs text-slate-600">
                     <p className="flex items-center gap-2 font-medium text-slate-700">
                       <Check className="h-4 w-4 text-emerald-600" />
-                      영수증이 첨부되었습니다. 위쪽 미리보기에서 확인하세요.
+                      {tf.f02523}
                     </p>
                   </div>
                 )}
@@ -1656,7 +1672,11 @@ export default function ExpensesPage() {
               )}
             >
               {editingExpense ? <FileCheck className="w-4 h-4" /> : (formData.items.length > 0 ? <TrendingDown className="w-4 h-4" /> : <PlusCircle className="w-4 h-4" />)}
-              {editingExpense ? "수정 완료" : (formData.items.length > 0 ? `품목 ${formData.items.length}개 일괄 등록` : "지출 등록하기")}
+              {editingExpense
+                ? tf.f02524
+                : formData.items.length > 0
+                  ? tf.f02525.replace("{n}", String(formData.items.length))
+                  : tf.f02526}
             </Button>
           </div>
         </DialogContent>
@@ -1682,10 +1702,10 @@ export default function ExpensesPage() {
                 <DialogHeader>
                   <DialogTitle className="flex items-center gap-2 text-xl font-bold text-slate-900">
                     <Eye className="h-5 w-5 shrink-0 text-slate-600" />
-                    지출 상세
+                    {tf.f02527}
                   </DialogTitle>
                   <DialogDescription className="text-slate-500">
-                    조회 전용입니다. 수정·삭제는 목록 맨 오른쪽 버튼을 사용하세요.
+                    {tf.f02528}
                   </DialogDescription>
                 </DialogHeader>
               </div>
@@ -1709,7 +1729,7 @@ export default function ExpensesPage() {
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={detailExpense.receipt_url}
-                          alt="영수증"
+                          alt={tf.f02539}
                           className="max-h-[min(48vh,420px)] w-full object-contain"
                         />
                       </a>
@@ -1725,7 +1745,7 @@ export default function ExpensesPage() {
                           window.open(u, "_blank", "noopener,noreferrer");
                         }}
                       >
-                        새 탭에서 크게 보기
+                        {tf.f02529}
                       </Button>
                     </div>
                   ) : null}
@@ -1734,7 +1754,7 @@ export default function ExpensesPage() {
                       <div className="space-y-1.5">
                         <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{tf.f01952}</p>
                         <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2.5 text-sm font-medium text-slate-900">
-                          {format(new Date(detailExpense.expense_date), "yyyy-MM-dd")}
+                          {format(new Date(detailExpense.expense_date), "P", { locale: dfLoc })}
                         </div>
                       </div>
                       <div className="space-y-1.5">
@@ -1781,7 +1801,7 @@ export default function ExpensesPage() {
                     {detailExpense.purchase_id ? (
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge variant="outline" className="gap-1 border-indigo-100 bg-indigo-50 text-indigo-700">
-                          <ShoppingCart className="h-3 w-3" /> 매입 연동
+                          <ShoppingCart className="h-3 w-3" /> {tf.f02496}
                         </Badge>
                       </div>
                     ) : null}
@@ -1790,7 +1810,7 @@ export default function ExpensesPage() {
               </div>
               <div className="flex flex-col-reverse gap-2 border-t bg-slate-50 p-6 sm:flex-row sm:justify-end">
                 <Button type="button" variant="ghost" className="font-bold text-slate-600" onClick={() => setDetailExpense(null)}>
-                  닫기
+                  {tf.f02530}
                 </Button>
                 <Button
                   type="button"
@@ -1824,7 +1844,7 @@ export default function ExpensesPage() {
             </AlertDialogMedia>
             <AlertDialogTitle>{tf.f01305}</AlertDialogTitle>
             <AlertDialogDescription className="sr-only">
-              같은 거래일·같은 거래처·같은 금액이거나, 같은 증빙 링크인 기존 지출이 있습니다. 목록을 확인한 뒤 등록 여부를 선택하세요.
+              {tf.f02531}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-3 text-sm text-muted-foreground">
@@ -1838,7 +1858,7 @@ export default function ExpensesPage() {
               {similarExpenses.map((e) => (
                 <li key={e.id} className="border-b border-border/60 pb-2 last:border-0 last:pb-0">
                   <span className="font-semibold text-slate-800">
-                    {format(new Date(e.expense_date), "yyyy-MM-dd")}
+                    {format(new Date(e.expense_date), "P", { locale: dfLoc })}
                   </span>
                   <span className="mx-2 text-slate-400">·</span>
                   <span className="font-bold text-indigo-700">₩{e.amount.toLocaleString()}</span>
@@ -1878,17 +1898,17 @@ export default function ExpensesPage() {
             </AlertDialogMedia>
             <AlertDialogTitle>{tf.f01012}</AlertDialogTitle>
             <AlertDialogDescription className="sr-only">
-              같은 거래일·같은 거래처에 비슷한 품목으로 이미 등록된 지출이 있으나 금액이 다릅니다. 정정 영수증이면 기존 건을 수정할 수 있습니다.
+              {tf.f02532}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-3 text-sm text-muted-foreground">
             <p>
-              같은 날·같은 거래처에, 이번에 입력한 품목·내용과{" "}
+              {tf.f02533}
               <span className="font-medium text-foreground">{tf.f00929}</span>{tf.f01671}{" "}
               <span className="font-medium text-foreground">{tf.f02166}</span>{tf.f00790}
             </p>
             <p className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-foreground">
-              이번 입력 합계:{" "}
+              {tf.f02534}{" "}
               <span className="font-bold text-indigo-700">
                 ₩
                 {(formData.items.length > 0
@@ -1903,7 +1923,7 @@ export default function ExpensesPage() {
                   <span className="font-bold text-indigo-700">₩{e.amount.toLocaleString()}</span>
                   <span className="mx-2 text-slate-400">·</span>
                   <span className="font-semibold text-slate-800">
-                    {format(new Date(e.expense_date), "yyyy-MM-dd")}
+                    {format(new Date(e.expense_date), "P", { locale: dfLoc })}
                   </span>
                   {e.description ? (
                     <span className="mt-0.5 line-clamp-2 block text-[11px] text-slate-600">{e.description}</span>
@@ -1913,7 +1933,7 @@ export default function ExpensesPage() {
             </ul>
             {amountMismatchExpenses.length > 1 ? (
               <p className="text-[11px] italic text-slate-500">
-                여러 건이면 목록에서 맞는 건을 고른 뒤 표에서 직접 수정할 수도 있습니다. 여기서는 가장 최근 등록 건부터 엽니다.
+                {tf.f02535}
               </p>
             ) : null}
           </div>
@@ -2006,7 +2026,7 @@ export default function ExpensesPage() {
             <div>
               <CardTitle className="text-xl font-bold text-gray-800">{tf.f01947}</CardTitle>
               <CardDescription>
-                행을 누르면 상세(조회 전용)가 열립니다. 수정·삭제는 오른쪽 아이콘을 사용하세요.
+                {tf.f02536}
               </CardDescription>
             </div>
             <div className="relative w-full md:w-80 group">
@@ -2150,7 +2170,7 @@ export default function ExpensesPage() {
                         onClick={() => setDetailExpense(e)}
                       >
                         <TableCell className="text-sm font-mono text-slate-500 py-4">
-                          {format(new Date(e.expense_date), "yyyy-MM-dd")}
+                          {format(new Date(e.expense_date), "P", { locale: dfLoc })}
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline" className="bg-white border-slate-200 text-slate-600 text-[10px] font-bold px-2 py-0.5">
@@ -2162,7 +2182,7 @@ export default function ExpensesPage() {
                             {e.description}
                             {e.purchase_id && (
                               <Badge variant="outline" className="h-4 px-1.5 text-[8px] bg-indigo-50 text-indigo-600 border-indigo-100 font-bold gap-1 flex items-center">
-                                <ShoppingCart className="w-2.5 h-2.5" /> 매입 연동
+                                <ShoppingCart className="w-2.5 h-2.5" /> {tf.f02496}
                               </Badge>
                             )}
                           </div>
@@ -2170,7 +2190,7 @@ export default function ExpensesPage() {
                         <TableCell className="text-center">
                           {e.receipt_url ? (
                             <span className="inline-flex items-center justify-center gap-1 text-xs font-semibold text-emerald-700">
-                              <FileCheck className="h-3.5 w-3.5" /> 있음
+                              <FileCheck className="h-3.5 w-3.5" /> {tf.f02497}
                             </span>
                           ) : (
                             <span className="text-[10px] text-slate-300 font-light italic">{tf.f00441}</span>
@@ -2204,7 +2224,7 @@ export default function ExpensesPage() {
                               size="icon"
                               className="h-8 w-8 hover:bg-red-50 hover:text-red-500"
                               onClick={async () => {
-                                if (!window.confirm("지출 내역을 삭제하시겠습니까?")) return;
+                                if (!window.confirm(tf.f02494)) return;
                                 if (e.sub_category === '배송비' && e.related_order_id) {
                                   await updateOrder(e.related_order_id, { actual_delivery_cost: null } as any);
                                 }
@@ -2246,7 +2266,7 @@ export default function ExpensesPage() {
                 variant="secondary"
                 size="icon"
                 className="h-9 w-9 rounded-full bg-black/55 border-0 text-white shadow-md hover:bg-black/70"
-                title="화면 90° 회전 (글자 방향에 맞출 때)"
+                title={tf.f02540}
                 onClick={() =>
                   setWebcamPreviewTransform((t) => ({
                     ...t,
@@ -2261,7 +2281,7 @@ export default function ExpensesPage() {
                 variant="secondary"
                 size="icon"
                 className="h-9 w-9 rounded-full bg-black/55 border-0 text-white shadow-md hover:bg-black/70"
-                title="좌우 반전"
+                title={tf.f02541}
                 onClick={() => setWebcamPreviewTransform((t) => ({ ...t, flipH: !t.flipH }))}
               >
                 <FlipHorizontal className="h-4 w-4" />
@@ -2281,7 +2301,9 @@ export default function ExpensesPage() {
             {webcamMode === "multi" ? (
               <div className="pointer-events-none absolute top-3 left-0 right-0 flex justify-center px-3">
                 <div className="rounded-full bg-black/55 px-3 py-1.5 text-xs font-bold text-white backdrop-blur-md">
-                  연속 촬영 {webcamQueue.length}/{MAX_RECEIPT_FILES_PER_BATCH} · 셔터마다 추가 · 완료 시 일괄 분석
+                  {tf.f02542
+                    .replace("{current}", String(webcamQueue.length))
+                    .replace("{max}", String(MAX_RECEIPT_FILES_PER_BATCH))}
                 </div>
               </div>
             ) : null}
@@ -2304,7 +2326,7 @@ export default function ExpensesPage() {
                   className="h-12 w-12 shrink-0 rounded-full bg-white/10 border-white/20 text-white hover:bg-white/20 backdrop-blur-md transition-all disabled:opacity-30"
                   onClick={undoLastWebcamCapture}
                   disabled={webcamQueue.length === 0}
-                  title="마지막 촬영 취소"
+                  title={tf.f02543}
                 >
                   <Undo2 className="h-5 w-5" />
                 </Button>
@@ -2327,7 +2349,7 @@ export default function ExpensesPage() {
                   disabled={webcamQueue.length === 0 || isOcrLoading}
                   onClick={() => void finishWebcamMulti()}
                 >
-                  완료 ({webcamQueue.length})
+                  {tf.f02544.replace("{n}", String(webcamQueue.length))}
                 </Button>
               ) : (
                 <div className="w-12 shrink-0" />

@@ -20,12 +20,33 @@ import { Loader2, Eye, EyeOff, Lock, Mail, Building, Info, Shield } from 'lucide
 import Image from 'next/image';
 import { usePreferredLocale } from '@/hooks/use-preferred-locale';
 import { getMessages } from '@/i18n/getMessages';
+import { toBaseLocale } from "@/i18n/config";
+import { pickUiText } from "@/i18n/pick-ui-text";
 
 export default function LoginPage() {
   const router = useRouter();
   const supabase = createClient();
   const locale = usePreferredLocale();
   const L = getMessages(locale).login;
+  const baseLocale = toBaseLocale(locale);
+  const phLoginEmail = pickUiText(
+    baseLocale,
+    "name@flower.com",
+    "you@example.com",
+    "email@company.com"
+  );
+  const phRegEmail = pickUiText(
+    baseLocale,
+    "master@flower.com",
+    "owner@example.com",
+    "chu@company.com"
+  );
+  const phResetEmail = pickUiText(
+    baseLocale,
+    "example@flower.com",
+    "you@example.com",
+    "email@company.com"
+  );
   
   // Login State
   const [email, setEmail] = useState('');
@@ -240,7 +261,7 @@ export default function LoginPage() {
                       <Input
                         id="email"
                         type="email"
-                        placeholder="name@flower.com"
+                        placeholder={phLoginEmail}
                         required
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
@@ -359,7 +380,7 @@ export default function LoginPage() {
                       <Input
                         id="reg-email"
                         type="email"
-                        placeholder="master@flower.com"
+                        placeholder={phRegEmail}
                         required
                         value={regEmail}
                         onChange={(e) => setRegEmail(e.target.value)}
@@ -463,7 +484,7 @@ export default function LoginPage() {
                   <Input
                     id="reset-email"
                     type="email"
-                    placeholder="example@flower.com"
+                    placeholder={phResetEmail}
                     required
                     value={resetEmail}
                     onChange={(e) => setResetEmail(e.target.value)}

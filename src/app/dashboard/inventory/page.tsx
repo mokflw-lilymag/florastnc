@@ -41,6 +41,8 @@ import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { downloadTemplate, parseExcel, exportDataToExcel } from "@/utils/excel";
 import { useSettings, DEFAULT_MATERIAL_CATEGORIES } from "@/hooks/use-settings";
+
+const DEFAULT_MATERIAL_MAIN = DEFAULT_MATERIAL_CATEGORIES.main[0] ?? "";
 import { CategoryManagementDialog } from '@/components/inventory/category-management-dialog';
 import Link from 'next/link';
 import { toast } from 'sonner';
@@ -76,7 +78,7 @@ export default function InventoryPage() {
 
   const [formData, setFormData] = useState<Partial<Material>>({
     name: "",
-    main_category: CATEGORIES.main[0] || "생화",
+    main_category: CATEGORIES.main[0] || DEFAULT_MATERIAL_MAIN,
     mid_category: "",
     unit: "ea",
     spec: "",
@@ -88,6 +90,15 @@ export default function InventoryPage() {
     memo: ""
   });
 
+  const excelCell = (row: Record<string, unknown>, keys: string[]) => {
+    for (const k of keys) {
+      const v = row[k];
+      if (v !== undefined && v !== null && String(v).trim() !== "") return v;
+    }
+    return undefined;
+  };
+  const excelStr = (v: unknown) => (v === undefined || v === null ? "" : String(v));
+
   const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -97,17 +108,39 @@ export default function InventoryPage() {
       const data = await parseExcel(file);
       let successCount = 0;
       for (const row of data) {
+        const r = row as Record<string, unknown>;
         const payload: Partial<Material> = {
-          name: row['자재명']?.toString() || '',
-          main_category: row['대분류']?.toString() || '',
-          mid_category: row['중분류']?.toString() || '',
-          unit: row['단위']?.toString() || 'ea',
-          spec: row['규격']?.toString() || '',
-          price: Number(row['가격'] || row['단가']) || 0,
-          color: row['색상']?.toString() || '',
-          stock: Number(row['재고']) || 0,
-          supplier: row['공급업체'] || row['공급처'] || '',
-          memo: row['메모']?.toString() || '',
+          name: excelStr(
+            excelCell(r, [
+              "자재명",
+              "Material name",
+              "Material Name",
+              "Tên vật tư",
+              "name",
+              "Name",
+            ])
+          ),
+          main_category: excelStr(
+            excelCell(r, ["대분류", "Main category", "Main Category", "Nhóm lớn", "main_category"])
+          ),
+          mid_category: excelStr(
+            excelCell(r, ["중분류", "Sub category", "Sub Category", "Nhóm nhỏ", "mid_category"])
+          ),
+          unit: excelStr(excelCell(r, ["단위", "Unit", "Đơn vị", "unit"])) || "ea",
+          spec: excelStr(excelCell(r, ["규격", "Spec", "Quy cách", "spec"])),
+          price: Number(excelCell(r, ["가격", "단가", "Price", "Giá", "Unit price", "price"])) || 0,
+          color: excelStr(excelCell(r, ["색상", "Color", "Màu sắc", "color"])),
+          stock: Number(excelCell(r, ["재고", "Stock", "Tồn kho", "stock"])) || 0,
+          supplier: excelStr(
+            excelCell(r, [
+              "공급업체",
+              "공급처",
+              "Supplier",
+              "Nhà cung cấp",
+              "supplier",
+            ])
+          ),
+          memo: excelStr(excelCell(r, ["메모", "Memo", "Ghi chú", "memo"])),
         };
 
         if (payload.name) {
@@ -155,7 +188,7 @@ export default function InventoryPage() {
     setEditingMaterial(null);
     setFormData({
       name: "",
-      main_category: CATEGORIES.main[0] || "생화",
+      main_category: CATEGORIES.main[0] || DEFAULT_MATERIAL_MAIN,
       mid_category: "",
       unit: "ea",
       spec: "",
@@ -255,7 +288,7 @@ export default function InventoryPage() {
           <Button 
             variant="outline" 
             size="sm" 
-            onClick={() => exportDataToExcel('material', filteredMaterials)}
+            onClick={() => exportDataToExcel("material", filteredMaterials, locale)}
             className="border-slate-200 text-slate-900 font-medium"
           >
             <Download className="h-4 w-4 mr-2 text-green-600" />
@@ -265,7 +298,7 @@ export default function InventoryPage() {
           <Button 
             variant="outline" 
             size="sm" 
-            onClick={() => downloadTemplate('material')}
+            onClick={() => downloadTemplate("material", locale)}
             className="border-slate-200 text-slate-900 font-medium"
           >
             <Download className="h-4 w-4 mr-2 text-slate-500" />
@@ -294,7 +327,7 @@ export default function InventoryPage() {
             className="bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20 transition-all active:scale-95"
             onClick={() => {
               setEditingMaterial(null);
-              setFormData({ name: "", main_category: CATEGORIES.main[0] || "생화", mid_category: "", unit: "ea", spec: "", price: 0, color: "", stock: 0, supplier: "", supplier_id: "", memo: "" });
+              setFormData({ name: "", main_category: CATEGORIES.main[0] || DEFAULT_MATERIAL_MAIN, mid_category: "", unit: "ea", spec: "", price: 0, color: "", stock: 0, supplier: "", supplier_id: "", memo: "" });
               setIsAddDialogOpen(true);
             }}
           >
@@ -464,7 +497,7 @@ export default function InventoryPage() {
                               </Button>
                               <Button onClick={() => {
                                 setEditingMaterial(null);
-                                setFormData({ name: "", main_category: CATEGORIES.main[0] || "생화", mid_category: "", unit: "ea", spec: "", price: 0, color: "", stock: 0, supplier: "", supplier_id: "", memo: "" });
+                                setFormData({ name: "", main_category: CATEGORIES.main[0] || DEFAULT_MATERIAL_MAIN, mid_category: "", unit: "ea", spec: "", price: 0, color: "", stock: 0, supplier: "", supplier_id: "", memo: "" });
                                 setIsAddDialogOpen(true);
                               }} className="bg-primary hover:bg-primary/90 text-white font-bold">
                                 <Plus className="w-4 h-4 mr-2" />

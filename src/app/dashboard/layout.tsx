@@ -9,7 +9,8 @@ import { DashboardMain } from "@/components/layout/dashboard-main";
 import { AnnualRenewalReminder } from "@/components/layout/annual-renewal-reminder";
 import { AndroidAppChrome } from "@/components/layout/android-app-chrome";
 import { effectiveIsSuperAdmin } from "@/lib/auth-api-guards";
-import { LOCALE_COOKIE, resolveLocale } from "@/i18n/config";
+import { LOCALE_COOKIE, resolveLocale, toBaseLocale } from "@/i18n/config";
+import { pickUiText } from "@/i18n/pick-ui-text";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -115,8 +116,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
     tenantData?.plan || (isSuperAdmin ? "pro" : isOrgOnly ? "pro" : "free");
   const logoUrl = tenantData?.logo_url ?? undefined;
   const localeCookie = (await cookies()).get(LOCALE_COOKIE)?.value;
-  const isKo = resolveLocale(localeCookie).startsWith("ko");
-  const storeName = (hqMenuOnly ? (isKo ? "본사·다매장" : "HQ · Multi-store") : tenantData?.name) ?? undefined;
+  const baseLocale = toBaseLocale(resolveLocale(localeCookie));
+  const storeName =
+    (hqMenuOnly
+      ? pickUiText(baseLocale, "본사·다매장", "HQ · Multi-store", "Trụ sở · Đa cửa hàng")
+      : tenantData?.name) ?? undefined;
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">

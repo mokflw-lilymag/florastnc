@@ -34,6 +34,7 @@ import { toast } from "sonner";
 import type { HqRequestInput } from "@/lib/hq-material-request-consolidation";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
+import { pickUiText } from "@/i18n/pick-ui-text";
 
 type Line = HqRequestInput["lines"][number];
 
@@ -63,7 +64,9 @@ export function FulfillRequestDialog({ request, open, onOpenChange, onSuccess }:
   const [paymentMethod, setPaymentMethod] = useState("card");
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
-  const baseLocale = toBaseLocale(locale);  const branchTenantId = request?.tenant_id ?? "";
+  const baseLocale = toBaseLocale(locale);
+  const phUnitPrice = pickUiText(baseLocale, "0", "0", "0");
+  const branchTenantId = request?.tenant_id ?? "";
 
   useEffect(() => {
     if (!open || !request) return;
@@ -275,7 +278,7 @@ export function FulfillRequestDialog({ request, open, onOpenChange, onSuccess }:
                         min={0}
                         step="any"
                         disabled={r.exclude}
-                        placeholder="0"
+                        placeholder={phUnitPrice}
                         value={r.unitPrice}
                         onChange={(e) => updateRow(r.lineId, { unitPrice: e.target.value })}
                       />

@@ -15,7 +15,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
-import { toBaseLocale } from "@/i18n/config";
 
 // Remove OrderItem import from use-orders as it may not exist there
 // import { OrderItem } from "@/hooks/use-orders"; 
@@ -115,7 +114,7 @@ export function OrderSummarySide({
 }: OrderSummarySideProps) {
     const locale = usePreferredLocale();
     const tf = getMessages(locale).tenantFlows;
-    const isKo = toBaseLocale(locale) === "ko";    const updateQuantity = (index: number, delta: number) => {
+    const updateQuantity = (index: number, delta: number) => {
         const newItems = [...orderItems];
         newItems[index].quantity = Math.max(1, newItems[index].quantity + delta);
         setOrderItems(newItems);

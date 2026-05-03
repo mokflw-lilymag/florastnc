@@ -1,6 +1,6 @@
-import { getMessages } from "@/i18n/getMessages";
 'use client';
 
+import { getMessages } from "@/i18n/getMessages";
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -42,7 +42,6 @@ import {
   DialogTitle 
 } from "@/components/ui/dialog";
 import { usePreferredLocale } from '@/hooks/use-preferred-locale';
-import { toBaseLocale } from '@/i18n/config';
 
 interface Agent {
   id: string;
@@ -78,8 +77,6 @@ export default function MarketingStudio() {
   const supabase = createClient();
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
-  const baseLocale = toBaseLocale(locale);
-  const tr = (koText: string, enText: string) => (baseLocale === 'ko' ? koText : enText);
 
   const agents = useMemo((): Agent[] => [
     {

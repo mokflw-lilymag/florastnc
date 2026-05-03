@@ -1,6 +1,6 @@
-import { getMessages } from "@/i18n/getMessages";
 'use client';
 
+import { getMessages } from "@/i18n/getMessages";
 import React, { useState, useEffect } from 'react';
 import { 
   ShieldCheck, 
@@ -25,6 +25,7 @@ import { toast } from 'sonner';
 import { createClient } from '@/utils/supabase/client';
 import { usePreferredLocale } from '@/hooks/use-preferred-locale';
 import { toBaseLocale } from '@/i18n/config';
+import { pickUiText } from '@/i18n/pick-ui-text';
 
 export default function MarketingAdmin() {
   const [loading, setLoading] = useState(false);
@@ -33,7 +34,7 @@ export default function MarketingAdmin() {
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
   const baseLocale = toBaseLocale(locale);
-  const tr = (koText: string, enText: string) => (baseLocale === 'ko' ? koText : enText);
+  const L = (ko: string, en: string, vi?: string) => pickUiText(baseLocale, ko, en, vi);
 
   useEffect(() => {
     fetchConfig();
@@ -104,7 +105,7 @@ export default function MarketingAdmin() {
         <TabsContent value="sns">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <PlatformCard 
-              title="Meta (Facebook/Instagram)" 
+              title={L("Meta (페이스북/인스타그램)", "Meta (Facebook/Instagram)", "Meta (Facebook / Instagram)")}
               icon={<Instagram className="text-pink-500" />}
               description={tf.f02268}
               configKey="meta_api_config"
@@ -112,7 +113,7 @@ export default function MarketingAdmin() {
               onSave={(val: any) => handleSave('meta_api_config', val)}
             />
             <PlatformCard 
-              title="Naver Developers" 
+              title={L("네이버 개발자 센터", "Naver Developers", "Trung tâm nhà phát triển Naver")}
               icon={<Zap className="text-green-500" />}
               description={tf.f01038}
               configKey="naver_api_config"
@@ -120,7 +121,7 @@ export default function MarketingAdmin() {
               onSave={(val: any) => handleSave('naver_api_config', val)}
             />
             <PlatformCard 
-              title="YouTube / Google" 
+              title={L("YouTube / Google", "YouTube / Google")}
               icon={<Youtube className="text-red-500" />}
               description={tf.f02299}
               configKey="google_api_config"
@@ -128,7 +129,7 @@ export default function MarketingAdmin() {
               onSave={(val: any) => handleSave('google_api_config', val)}
             />
             <PlatformCard 
-              title="TikTok for Business" 
+              title={L("TikTok for Business", "TikTok for Business", "TikTok cho doanh nghiệp")}
               icon={<Video className="text-slate-900" />}
               description={tf.f02296}
               configKey="tiktok_api_config"
@@ -149,20 +150,24 @@ export default function MarketingAdmin() {
             <CardContent className="pt-8 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                 <div className="space-y-4">
-                  <Label className="font-bold">OpenAI API Master Key</Label>
+                  <Label className="font-bold">
+                    {L("OpenAI API 마스터 키", "OpenAI API Master Key", "Khóa API OpenAI chính")}
+                  </Label>
                   <Input 
                     type="password" 
-                    placeholder="sk-..." 
+                    placeholder={L("sk-...", "sk-...", "sk-...")}
                     value={config.openai_key || ''} 
                     onChange={(e) => setConfig({...config, openai_key: e.target.value})}
                   />
                   <Button size="sm" onClick={() => handleSave('openai_key', config.openai_key)}>{tf.f01771}</Button>
                 </div>
                 <div className="space-y-4">
-                  <Label className="font-bold">Anthropic (Claude) API Key</Label>
+                  <Label className="font-bold">
+                    {L("Anthropic (Claude) API 키", "Anthropic (Claude) API Key", "Khóa API Anthropic (Claude)")}
+                  </Label>
                   <Input 
                     type="password" 
-                    placeholder="sk-ant-..." 
+                    placeholder={L("sk-ant-...", "sk-ant-...", "sk-ant-...")}
                     value={config.anthropic_key || ''} 
                     onChange={(e) => setConfig({...config, anthropic_key: e.target.value})}
                   />
@@ -184,10 +189,16 @@ export default function MarketingAdmin() {
             <CardContent className="pt-8 space-y-6">
               <div className="grid grid-cols-1 gap-6">
                 <div className="space-y-4">
-                  <Label className="font-bold text-indigo-600">Global Master Webhook URL</Label>
+                  <Label className="font-bold text-indigo-600">
+                    {L("전역 마스터 웹훅 URL", "Global Master Webhook URL", "URL webhook tổng (n8n)")}
+                  </Label>
                   <div className="flex gap-2">
                     <Input 
-                      placeholder="https://n8n.your-domain.com/webhook/..." 
+                      placeholder={L(
+                        "https://n8n.your-domain.com/webhook/...",
+                        "https://n8n.your-domain.com/webhook/...",
+                        "https://n8n.your-domain.com/webhook/..."
+                      )}
                       className="flex-1 font-mono text-xs"
                       value={config.n8n_master_url || ''} 
                       onChange={(e) => setConfig({...config, n8n_master_url: e.target.value})}
@@ -209,7 +220,7 @@ function PlatformCard({ title, icon, description, data, onSave }: any) {
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
   const baseLocale = toBaseLocale(locale);
-  const tr = (koText: string, enText: string) => (baseLocale === 'ko' ? koText : enText);
+  const L = (ko: string, en: string, vi?: string) => pickUiText(baseLocale, ko, en, vi);
 
   return (
     <Card className="border-none shadow-lg ring-1 ring-slate-100 dark:ring-slate-800 overflow-hidden">
@@ -226,7 +237,9 @@ function PlatformCard({ title, icon, description, data, onSave }: any) {
       </CardHeader>
       <CardContent className="p-6 space-y-4">
         <div className="space-y-2">
-          <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Client ID / App ID</Label>
+          <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+            {L("클라이언트 ID / 앱 ID", "Client ID / App ID", "ID ứng dụng / Client ID")}
+          </Label>
           <Input 
             value={localData.appId || localData.clientId || localData.clientKey || localData.apiKey || ''} 
             onChange={(e) => setLocalData({ ...localData, appId: e.target.value, clientId: e.target.value, clientKey: e.target.value, apiKey: e.target.value })}
@@ -234,7 +247,9 @@ function PlatformCard({ title, icon, description, data, onSave }: any) {
           />
         </div>
         <div className="space-y-2">
-          <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Secret Key / Secret ID</Label>
+          <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+            {L("시크릿 키 / 시크릿 ID", "Secret Key / Secret ID", "Secret / Client Secret")}
+          </Label>
           <Input 
             type="password"
             value={localData.appSecret || localData.clientSecret || ''} 

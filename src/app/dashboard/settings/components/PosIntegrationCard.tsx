@@ -9,6 +9,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
+import { pickUiText } from "@/i18n/pick-ui-text";
 
 interface PosIntegrationCardProps {
   posIntegration?: any;
@@ -18,7 +19,9 @@ interface PosIntegrationCardProps {
 export function PosIntegrationCard({ posIntegration, isLoading }: PosIntegrationCardProps) {
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
-  const isKo = toBaseLocale(locale) === "ko";  const isEasyCheckActive = posIntegration?.pos_type === 'easycheck' && posIntegration?.is_active;
+  const baseLocale = toBaseLocale(locale);
+  const tr = (ko: string, en: string, vi?: string) => pickUiText(baseLocale, ko, en, vi);
+  const isEasyCheckActive = posIntegration?.pos_type === 'easycheck' && posIntegration?.is_active;
   const isTossActive = posIntegration?.pos_type === 'toss' && posIntegration?.is_active;
 
   return (
@@ -54,7 +57,7 @@ export function PosIntegrationCard({ posIntegration, isLoading }: PosIntegration
                   <CheckCircle2 className={cn("h-4 w-4", isEasyCheckActive ? "text-emerald-500" : "text-slate-300")} />
                 </div>
                 <div>
-                  <p className="text-xs font-bold">이지체크 (EasyCheck)</p>
+                  <p className="text-xs font-bold">{tr("이지체크 (EasyCheck)", "EasyCheck", "EasyCheck")}</p>
                   <p className="text-[10px] text-slate-400">{isEasyCheckActive ? tf.f01651 : tf.f01571}</p>
                 </div>
               </div>
@@ -74,7 +77,7 @@ export function PosIntegrationCard({ posIntegration, isLoading }: PosIntegration
                    <CheckCircle2 className={cn("h-4 w-4", isTossActive ? "text-emerald-500" : "text-slate-300")} />
                  </div>
                  <div>
-                   <p className="text-xs font-bold">토스 POS (Toss)</p>
+                   <p className="text-xs font-bold">{tr("토스 POS (Toss)", "Toss POS", "Toss POS")}</p>
                    <p className="text-[10px] text-slate-400">{isTossActive ? tf.f01574 : tf.f01571}</p>
                  </div>
                </div>

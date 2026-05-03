@@ -1,7 +1,7 @@
 "use client";
 import { getMessages } from "@/i18n/getMessages";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Printer } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 
@@ -17,7 +17,6 @@ import { useSettings } from "@/hooks/use-settings";
 import { FontSelector } from "./font-selector";
 import { LabelGridSelector } from "./label-grid-selector";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
-import { toBaseLocale } from "@/i18n/config";
 
 interface MessagePrintDialogProps {
   isOpen: boolean;
@@ -37,18 +36,20 @@ interface MessagePrintDialogProps {
   order: Order | null;
 }
 
-const labelTypes = [
-  { value: 'formtec-3107', label: '폼텍 3107 (6칸)', cells: 6 },
-  { value: 'formtec-3108', label: '폼텍 3108 (8칸)', cells: 8 },
-  { value: 'formtec-3109', label: '폼텍 3109 (12칸)', cells: 12 },
-];
-
 export function MessagePrintDialog({ isOpen, onOpenChange, onSubmit, order }: MessagePrintDialogProps) {
   const { settings } = useSettings();
   const searchParams = useSearchParams();
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
-  const isKo = toBaseLocale(locale) === "ko";  const STORAGE_KEY_MSG_FONT = 'msg_print_msg_font';
+  const labelTypes = useMemo(
+    () => [
+      { value: "formtec-3107" as const, label: tf.f02650, cells: 6 },
+      { value: "formtec-3108" as const, label: tf.f02651, cells: 8 },
+      { value: "formtec-3109" as const, label: tf.f02652, cells: 12 },
+    ],
+    [tf]
+  );
+  const STORAGE_KEY_MSG_FONT = 'msg_print_msg_font';
   const STORAGE_KEY_MSG_SIZE = 'msg_print_msg_size';
   const STORAGE_KEY_SENDER_FONT = 'msg_print_sender_font';
   const STORAGE_KEY_SENDER_SIZE = 'msg_print_sender_size';

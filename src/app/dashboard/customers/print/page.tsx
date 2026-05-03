@@ -1,13 +1,13 @@
 "use client";
 import { getMessages } from "@/i18n/getMessages";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { format } from "date-fns";
-import { ko } from "date-fns/locale";
 import { createClient } from "@/utils/supabase/client";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
+import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
 
 function PrintContent() {
   const searchParams = useSearchParams();
@@ -20,16 +20,23 @@ function PrintContent() {
   const [type, setType] = useState<string | null>("");
   const [loading, setLoading] = useState(true);
   const [useVat, setUseVat] = useState(false);
+  const locale = usePreferredLocale();
+  const m = getMessages(locale);
+  const tf = m.tenantFlows;
+  const dfLoc = dateFnsLocaleForBase(toBaseLocale(locale));
+  const issueDateLabel = useMemo(
+    () => format(new Date(), "PPP", { locale: dfLoc }),
+    [dfLoc]
+  );
+
   const [businessInfo, setBusinessInfo] = useState({
     name: "Floxync Florist Group",
-    representative: "김미화",
-    address: "서울특별시 서초구 꽃시장길 12",
+    representative: m.tenantFlows.f02625,
+    address: m.tenantFlows.f02626,
     contact: "02-1234-5678",
     businessNumber: "123-45-67890"
   });
-  const locale = usePreferredLocale();
-  const tf = getMessages(locale).tenantFlows;
-  const isKo = toBaseLocale(locale) === "ko";  useEffect(() => {
+  useEffect(() => {
     const ids = searchParams.get("ids")?.split(",") || [];
     const manualItemsBase64 = searchParams.get("manual_items");
     const recipientParam = searchParams.get("recipient") || "";
@@ -106,8 +113,8 @@ function PrintContent() {
            const d = settings.data;
            setBusinessInfo({
              name: tenant?.name || d.siteName || "Floxync Florist Group",
-             representative: d.representative || "김미화",
-             address: d.address || "서울특별시 서초구 꽃시장길 12",
+             representative: d.representative || tf.f02625,
+             address: d.address || tf.f02626,
              contact: d.contactPhone || "02-1234-5678",
              businessNumber: d.businessNumber || "123-45-67890"
            });
@@ -199,34 +206,44 @@ function PrintContent() {
           </h1>
         </div>
         <div className="text-right">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">발행일자</p>
-          <p className="text-sm font-black">{isKo ? format(new Date(), 'yyyy년 MM월 dd일') : format(new Date(), 'yyyy-MM-dd')}</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{tf.f02621}</p>
+          <p className="text-sm font-black">{issueDateLabel}</p>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-12 mb-10">
         <div className="space-y-4">
           <div className="space-y-1">
-            <span className="text-[10px] font-black uppercase text-slate-400 block">귀하 (수신)</span>
+            <span className="text-[10px] font-black uppercase text-slate-400 block">{tf.f02605}</span>
             <div className="text-xl font-black border-b-2 border-slate-200 pb-2 mb-2">
               {recipientCompany && <p className="mb-0.5">{recipientCompany}</p>}
               <div className="flex items-baseline gap-2">
-                 <span className="text-sm font-bold text-slate-500">담당자:</span>
-                 {recipient} <span className="text-xs font-medium text-slate-500">님 귀하</span>
+                 <span className="text-sm font-bold text-slate-500">{tf.f02607}</span>
+                 {recipient} <span className="text-xs font-medium text-slate-500">{tf.f02609}</span>
               </div>
             </div>
             {(recipientContact || recipientEmail) && (
               <div className="flex flex-col gap-0.5 text-[10px] font-medium text-slate-400">
-                {recipientContact && <p>연락처: {recipientContact}</p>}
-                {recipientEmail && <p>이메일: {recipientEmail}</p>}
+                {recipientContact && (
+                  <p>
+                    {tf.f00444}: {recipientContact}
+                  </p>
+                )}
+                {recipientEmail && (
+                  <p>
+                    {tf.f00504}: {recipientEmail}
+                  </p>
+                )}
               </div>
             )}
           </div>
           <p className="text-xs leading-relaxed text-slate-500 italic font-bold">
-            {type === 'estimate' 
+            {type === 'estimate'
               ? tf.f00429
-              : tf.f00428
-            }<br />
+              : type === 'receipt'
+                ? tf.f02637
+                : tf.f00428}
+            <br />
             {tf.f00766}
           </p>
         </div>
@@ -234,24 +251,24 @@ function PrintContent() {
         <div className="border-2 border-slate-900 p-4 rounded-sm relative overflow-hidden flex flex-col justify-between">
            {/* Mock Stamp */}
            <div className="absolute top-2 right-2 w-12 h-12 border-4 border-red-500/30 rounded-full flex items-center justify-center text-red-500/30 font-black text-[10px] rotate-12 -z-0">
-             (인)
+             {tf.f02610}
            </div>
            
            <div className="space-y-2 relative z-10 w-full">
-              <span className="text-[10px] font-black uppercase text-slate-400 block">공급자 (발행)</span>
+              <span className="text-[10px] font-black uppercase text-slate-400 block">{tf.f02611}</span>
               <p className="text-sm font-black">{businessInfo.name}</p>
               <p className="text-[10px] text-slate-600 flex gap-2">
-                <span className="text-slate-400 w-14 shrink-0">등록번호</span> {businessInfo.businessNumber}
+                <span className="text-slate-400 w-14 shrink-0">{tf.f02612}</span> {businessInfo.businessNumber}
               </p>
               <p className="text-[10px] text-slate-600 flex gap-2">
-                <span className="text-slate-400 w-14 shrink-0">대 표</span> {businessInfo.representative}
+                <span className="text-slate-400 w-14 shrink-0">{tf.f02613}</span> {businessInfo.representative}
               </p>
               <div className="text-[10px] text-slate-600 flex gap-2">
-                <span className="text-slate-400 w-14 shrink-0">사업장</span> 
+                <span className="text-slate-400 w-14 shrink-0">{tf.f02614}</span> 
                 <span className="leading-tight break-keep">{businessInfo.address}</span>
               </div>
               <p className="text-[10px] text-slate-600 flex gap-2">
-                <span className="text-slate-400 w-14 shrink-0">연락처</span> {businessInfo.contact}
+                <span className="text-slate-400 w-14 shrink-0">{tf.f00444}</span> {businessInfo.contact}
               </p>
            </div>
         </div>
@@ -260,11 +277,11 @@ function PrintContent() {
       <table className="w-full border-collapse mb-8">
         <thead>
           <tr className="bg-slate-900 text-white text-[11px] font-black uppercase tracking-wider">
-            <th className="p-3 text-left w-24">일자</th>
-            <th className="p-3 text-left">품명 및 규격</th>
-            <th className="p-3 text-center w-16">수량</th>
-            <th className="p-3 text-right w-32">단가</th>
-            <th className="p-3 text-right w-32">금액</th>
+            <th className="p-3 text-left w-24">{tf.f01717}</th>
+            <th className="p-3 text-left">{tf.f02618}</th>
+            <th className="p-3 text-center w-16">{tf.f00377}</th>
+            <th className="p-3 text-right w-32">{tf.f00148}</th>
+            <th className="p-3 text-right w-32">{tf.f00097}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-200">
@@ -285,18 +302,19 @@ function PrintContent() {
           {useVat && (
             <>
               <tr className="bg-slate-50 text-[11px] font-bold">
-                <td colSpan={3} className="p-2 text-center border-t border-slate-200">공 급 가 액</td>
+                <td colSpan={3} className="p-2 text-center border-t border-slate-200">{tf.f02615}</td>
                 <td colSpan={2} className="p-2 text-right border-t border-slate-200">₩{subtotal.toLocaleString()}</td>
               </tr>
               <tr className="bg-slate-50 text-[11px] font-bold">
-                <td colSpan={3} className="p-2 text-center border-t border-slate-200">부 가 세 (10%)</td>
+                <td colSpan={3} className="p-2 text-center border-t border-slate-200">{tf.f02616}</td>
                 <td colSpan={2} className="p-2 text-right border-t border-slate-200">₩{vat.toLocaleString()}</td>
               </tr>
             </>
           )}
           <tr className="bg-slate-50 font-black border-t-2 border-slate-900">
             <td colSpan={3} className="p-4 text-center text-lg uppercase tracking-widest">
-              합 계 금 액 {!useVat && <span className="text-[10px] font-medium text-slate-400 ml-2">(부가세 면세)</span>}
+              {tf.f02619}{' '}
+              {!useVat && <span className="text-[10px] font-medium text-slate-400 ml-2">{tf.f02620}</span>}
             </td>
             <td colSpan={2} className="p-4 text-right text-2xl italic tracking-tighter">
               ₩{totalAmount.toLocaleString()}
@@ -320,9 +338,15 @@ function PrintContent() {
   );
 }
 
+function PrintSuspenseFallback() {
+  const locale = usePreferredLocale();
+  const tf = getMessages(locale).tenantFlows;
+  return <div className="p-10 text-center">{tf.f00513}</div>;
+}
+
 export default function PrintPage() {
   return (
-    <Suspense fallback={<div className="p-10 text-center">Preparing print...</div>}>
+    <Suspense fallback={<PrintSuspenseFallback />}>
       <PrintContent />
     </Suspense>
   );

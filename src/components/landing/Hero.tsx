@@ -3,11 +3,19 @@
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { ArrowRight, Sparkles, Cpu } from 'lucide-react';
-import { AppLocale, localizePath } from '@/i18n/config';
+import { AppLocale, localizePath, toBaseLocale } from '@/i18n/config';
 import { getMessages } from '@/i18n/getMessages';
+import { pickUiText } from '@/i18n/pick-ui-text';
 
 export function Hero({ locale = 'ko' }: { locale?: AppLocale }) {
   const t = getMessages(locale).landing.hero;
+  const baseLocale = toBaseLocale(locale);
+  const liveSyncLabel = pickUiText(
+    baseLocale,
+    "실시간 동기화",
+    "Live sync",
+    "Đồng bộ trực tiếp"
+  );
   return (
     <section className="relative pt-32 pb-24 md:pt-48 md:pb-36 overflow-hidden bg-[#0A0F0D]">
       {/* Premium Background Visuals */}
@@ -118,7 +126,7 @@ export function Hero({ locale = 'ko' }: { locale?: AppLocale }) {
               />
               {/* Overlay UI elements */}
               <div className="absolute top-10 right-10 bg-[#0A0F0D]/40 backdrop-blur-[20px] p-4 rounded-lg border border-emerald-500/50 shadow-lg">
-                <p className="text-[12px] font-bold text-emerald-500 uppercase tracking-widest">LIVE SYNC</p>
+                <p className="text-[12px] font-bold text-emerald-500 uppercase tracking-widest">{liveSyncLabel}</p>
                 <p className="text-3xl font-black text-white mt-1">99.9%</p>
               </div>
             </div>

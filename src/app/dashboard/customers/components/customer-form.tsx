@@ -24,6 +24,8 @@ import { Label } from "@/components/ui/label";
 import Textarea from "@/components/ui/textarea";
 import { Customer, CustomerData } from "@/types/customer";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
+import { pickUiText } from "@/i18n/pick-ui-text";
 
 interface CustomerFormProps {
   isOpen: boolean;
@@ -35,6 +37,19 @@ interface CustomerFormProps {
 export function CustomerForm({ isOpen, onOpenChange, onSubmit, customer }: CustomerFormProps) {
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
+  const baseLocale = toBaseLocale(locale);
+  const phContact = pickUiText(
+    baseLocale,
+    "010-0000-0000",
+    "+1 555-000-0000",
+    "0909 000 000"
+  );
+  const phEmail = pickUiText(
+    baseLocale,
+    "example@email.com",
+    "you@example.com",
+    "email@company.com"
+  );
   const [formData, setFormData] = useState<CustomerData>({
     name: "",
     contact: "",
@@ -132,7 +147,7 @@ export function CustomerForm({ isOpen, onOpenChange, onSubmit, customer }: Custo
                   id="customer-contact"
                   value={formData.contact} 
                   onChange={e => setFormData(prev => ({ ...prev, contact: e.target.value }))}
-                  placeholder="010-0000-0000"
+                  placeholder={phContact}
                   required
                 />
               </div>
@@ -143,7 +158,7 @@ export function CustomerForm({ isOpen, onOpenChange, onSubmit, customer }: Custo
                   type="email"
                   value={formData.email || ""} 
                   onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                  placeholder="example@email.com"
+                  placeholder={phEmail}
                 />
               </div>
             </div>

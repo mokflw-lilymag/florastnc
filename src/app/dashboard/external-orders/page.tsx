@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
+import { pickUiText } from "@/i18n/pick-ui-text";
 
 const getGDriveId = (val: string) => {
     if (!val) return "";
@@ -69,9 +70,40 @@ const EXT_REGION_EN: Record<string, string> = {
     제주: "Jeju",
 };
 
+/** Khu vực Hàn Quốc — tên thường dùng tiếng Việt / quốc tế */
+const EXT_REGION_VI: Record<string, string> = {
+    서울: "Seoul",
+    경기: "Gyeonggi",
+    인천: "Incheon",
+    부산: "Busan",
+    대구: "Daegu",
+    광주: "Gwangju",
+    대전: "Daejeon",
+    울산: "Ulsan",
+    강원: "Gangwon",
+    충북: "Chungcheong Bắc",
+    충남: "Chungcheong Nam",
+    전북: "Jeolla Bắc",
+    전남: "Jeolla Nam",
+    경북: "Gyeongsang Bắc",
+    경남: "Gyeongsang Nam",
+    제주: "Jeju",
+};
+
+const EXT_CATEGORY_VI: Record<string, string> = {
+    전체: "Tất cả",
+    꽃다발: "Hoa bó",
+    꽃바구니: "Giỏ hoa",
+    축하화환: "Vòng hoa chúc mừng",
+    근조화환: "Vòng hoa chia buồn",
+    "동양란/서양란": "Lan (Đông/Tây phương)",
+    "식물/분재": "Cây cảnh / bonsai",
+};
+
 function extCategoryLabel(ko: string, baseLocale: string) {
     const t = ko.trim();
     if (baseLocale === "ko") return t;
+    if (baseLocale === "vi") return EXT_CATEGORY_VI[t] ?? EXT_CATEGORY_EN[t] ?? t;
     return EXT_CATEGORY_EN[t] ?? t;
 }
 
@@ -83,11 +115,18 @@ function extCategoriesLineDisplay(raw: string, baseLocale: string) {
         .join(", ");
 }
 
+function extRegionLabel(regionKo: string, baseLocale: string) {
+    const r = regionKo.trim();
+    if (baseLocale === "ko") return r;
+    if (baseLocale === "vi") return EXT_REGION_VI[r] ?? EXT_REGION_EN[r] ?? r;
+    return EXT_REGION_EN[r] ?? r;
+}
+
 function extRegionLineDisplay(s: string, baseLocale: string) {
     if (baseLocale === "ko") return s;
     return s
         .split(",")
-        .map((p) => EXT_REGION_EN[p.trim()] ?? p.trim())
+        .map((p) => extRegionLabel(p, baseLocale))
         .join(", ");
 }
 
@@ -96,7 +135,9 @@ export default function ExternalOrdersPage() {
     const { tenantId } = useAuth();
     const locale = usePreferredLocale();
     const tf = getMessages(locale).tenantFlows;
-    const baseLocale = toBaseLocale(locale);    const [loading, setLoading] = useState(true);
+    const baseLocale = toBaseLocale(locale);
+    const tr = (ko: string, en: string, vi?: string) => pickUiText(baseLocale, ko, en, vi);
+    const [loading, setLoading] = useState(true);
     const [partners, setPartners] = useState<any[]>([]);
     const [filterRegion, setFilterRegion] = useState("");
     const [filterCategory, setFilterCategory] = useState(EXT_CAT_ALL);
@@ -172,7 +213,9 @@ export default function ExternalOrdersPage() {
                     <div className="space-y-4">
                         <div className="flex items-center gap-2 text-indigo-400">
                             <Sparkles className="w-5 h-5 animate-pulse" />
-                            <span className="text-xs font-black uppercase tracking-[0.2em]">Partner Marketplace</span>
+                            <span className="text-xs font-black uppercase tracking-[0.2em]">
+                                {tr("파트너 마켓플레이스", "Partner marketplace", "Chợ đối tác")}
+                            </span>
                         </div>
                         <h1 className="text-4xl md:text-5xl font-black tracking-tight leading-tight">
                             {tf.f00547} <br/>
@@ -277,7 +320,10 @@ export default function ExternalOrdersPage() {
                                                  <div className="grid grid-cols-1 gap-3">
                                                      <div className="p-4 bg-white/5 border border-white/10 rounded-2xl flex items-center gap-4 group hover:bg-white/10 transition-all">
                                                          <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 font-black text-xs">01</div>
-                                                         <p className="text-[11px] font-light leading-relaxed"><span className="text-indigo-400 font-black">{tf.f00722}</span> {tf.f00723} <span className="bg-white/10 px-2 py-0.5 rounded font-bold text-indigo-300">[상품명] 가격.jpg</span> {tf.f00494}</p>
+                                                         <p className="text-[11px] font-light leading-relaxed"><span className="text-indigo-400 font-black">{tf.f00722}</span> {tf.f00723}{" "}
+                                                         <span className="bg-white/10 px-2 py-0.5 rounded font-bold text-indigo-300">
+                                                            {tr("[상품명] 가격.jpg", "[Product name] price.jpg", "[Tên sản phẩm] giá.jpg")}
+                                                         </span> {tf.f00494}</p>
                                                      </div>
                                                      <div className="p-4 bg-white/5 border border-white/10 rounded-2xl flex items-center gap-4 group hover:bg-white/10 transition-all">
                                                          <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 font-black text-xs">02</div>
@@ -322,7 +368,9 @@ export default function ExternalOrdersPage() {
             <Dialog open={showTerms} onOpenChange={setShowTerms}>
                 <DialogContent className="max-w-xl rounded-[3rem] p-0 overflow-hidden border-0 shadow-3xl bg-white">
                     <div className="bg-indigo-600 p-10 text-white">
-                        <Badge className="bg-white/20 text-white border-0 mb-4 px-4 py-1.5 rounded-full font-bold">Partner Policy</Badge>
+                        <Badge className="bg-white/20 text-white border-0 mb-4 px-4 py-1.5 rounded-full font-bold">
+                            {tr("파트너 정책", "Partner policy", "Chính sách đối tác")}
+                        </Badge>
                         <h3 className="text-3xl font-black leading-tight">{tf.f00548} <br/>{tf.f00673}</h3>
                     </div>
                     <div className="p-10 space-y-6 max-h-[50vh] overflow-y-auto bg-slate-50/50">
@@ -366,7 +414,7 @@ export default function ExternalOrdersPage() {
                             className={cn("rounded-full px-6 h-11 text-[11px] font-bold shrink-0 transition-all", filterRegion === r && "bg-slate-900 text-white shadow-xl shadow-slate-200")}
                             onClick={() => setFilterRegion(r)}
                         >
-                            {baseLocale === "ko" ? r : EXT_REGION_EN[r] ?? r}
+                            {extRegionLabel(r, baseLocale)}
                         </Button>
                     ))}
                 </div>
@@ -393,8 +441,20 @@ export default function ExternalOrdersPage() {
                             <Star fill="currentColor" className="w-6 h-6" />
                         </div>
                         <div>
-                            <h3 className="text-xl font-bold text-slate-800">프리미엄 추천 파트너</h3>
-                            <p className="text-xs text-slate-400 font-medium">관리자가 검증한 최우수 퀄리티의 파트너사입니다.</p>
+                            <h3 className="text-xl font-bold text-slate-800">
+                                {tr(
+                                    "프리미엄 추천 파트너",
+                                    "Premium partner picks",
+                                    "Đối tác cao cấp được đề xuất",
+                                )}
+                            </h3>
+                            <p className="text-xs text-slate-400 font-medium">
+                                {tr(
+                                    "관리자가 검증한 최우수 퀄리티의 파트너사입니다.",
+                                    "Partners verified by our team for top-tier quality.",
+                                    "Đối tác đã được quản trị viên xác minh với chất lượng hàng đầu.",
+                                )}
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -455,10 +515,16 @@ export default function ExternalOrdersPage() {
 function PremiumCard({ partner, isMyStore, activeTab, setTab }: any) {
     const locale = usePreferredLocale();
     const tf = getMessages(locale).tenantFlows;
-    const baseLocale = toBaseLocale(locale);    return (
+    const baseLocale = toBaseLocale(locale);
+    const tr = (ko: string, en: string, vi?: string) => pickUiText(baseLocale, ko, en, vi);
+    return (
         <Card className="relative overflow-hidden group border-0 shadow-xl hover:shadow-3xl transition-all duration-700 rounded-[3rem] bg-white flex flex-col h-full hover:-translate-y-2">
             <div className="absolute top-0 right-0 p-4 z-10">
-                {isMyStore && <Badge className="bg-indigo-600 text-white rounded-full px-3 py-1 font-black text-[9px] shadow-lg">MY STORE</Badge>}
+                {isMyStore && (
+                    <Badge className="bg-indigo-600 text-white rounded-full px-3 py-1 font-black text-[9px] shadow-lg">
+                        {tr("내 매장", "My store", "Cửa hàng của tôi")}
+                    </Badge>
+                )}
             </div>
             
             <div className="p-8 pb-4 flex-1 space-y-6">
@@ -467,7 +533,9 @@ function PremiumCard({ partner, isMyStore, activeTab, setTab }: any) {
                         {partner.logo_url ? <img src={partner.logo_url} alt={partner.name} className="w-full h-full object-contain p-3" /> : <Building2 className="w-8 h-8 text-slate-200" />}
                     </div>
                     <div className="flex flex-col items-end gap-1.5 pt-2">
-                        <Badge className="bg-amber-100 text-amber-700 border-0 font-black px-2.5 py-1 text-[9px] rounded-lg tracking-tight uppercase">Premium</Badge>
+                        <Badge className="bg-amber-100 text-amber-700 border-0 font-black px-2.5 py-1 text-[9px] rounded-lg tracking-tight uppercase">
+                            {tr("프리미엄", "Premium", "Cao cấp")}
+                        </Badge>
                         <div className="flex flex-col items-end gap-1 text-[10px] text-slate-400 font-bold">
                             <div className="flex items-center gap-1">
                                 <MapPin size={10} /> {partner.partner_region ? extRegionLineDisplay(partner.partner_region, baseLocale) : tf.f00546}
@@ -521,7 +589,9 @@ function PremiumCard({ partner, isMyStore, activeTab, setTab }: any) {
 function GeneralRow({ partner, isMyStore, activeTab, setTab }: any) {
     const locale = usePreferredLocale();
     const tf = getMessages(locale).tenantFlows;
-    const baseLocale = toBaseLocale(locale);    return (
+    const baseLocale = toBaseLocale(locale);
+    const tr = (ko: string, en: string, vi?: string) => pickUiText(baseLocale, ko, en, vi);
+    return (
         <tr className="group hover:bg-slate-50/80 transition-all duration-300">
             <td className="px-10 py-8">
                 <div className="flex items-center gap-5">
@@ -531,7 +601,11 @@ function GeneralRow({ partner, isMyStore, activeTab, setTab }: any) {
                     <div className="space-y-1">
                         <div className="flex items-center gap-2">
                             <span className="text-sm font-black text-slate-800">{partner.name}</span>
-                            {isMyStore && <Badge className="h-4 text-[8px] bg-indigo-100 text-indigo-600 border-0 font-black">MY</Badge>}
+                            {isMyStore && (
+                                <Badge className="h-4 text-[8px] bg-indigo-100 text-indigo-600 border-0 font-black">
+                                    {tr("내", "My", "Tôi")}
+                                </Badge>
+                            )}
                         </div>
                         <div className="flex items-center gap-3">
                             <p className="text-[11px] text-slate-400 font-light line-clamp-1 max-w-[200px] italic">{partner.partner_description || tf.f00364}</p>
@@ -574,7 +648,9 @@ function GeneralRow({ partner, isMyStore, activeTab, setTab }: any) {
 function AlbumDialog({ partner, activeTab, setTab, variant = "full" }: any) {
     const locale = usePreferredLocale();
     const tf = getMessages(locale).tenantFlows;
-    const baseLocale = toBaseLocale(locale);    const albumCategories = [EXT_CAT_ALL];
+    const baseLocale = toBaseLocale(locale);
+    const tr = (ko: string, en: string, vi?: string) => pickUiText(baseLocale, ko, en, vi);
+    const albumCategories = [EXT_CAT_ALL];
     if (partner.gdrive_bouquet_id) albumCategories.push('꽃다발');
     if (partner.gdrive_basket_id) albumCategories.push('꽃바구니');
     if (partner.gdrive_wreath_id) albumCategories.push('축하화환');
@@ -620,10 +696,15 @@ function AlbumDialog({ partner, activeTab, setTab, variant = "full" }: any) {
                         </div>
                         <div>
                             <div className="flex items-center gap-3 mb-1">
-                                <Badge className="bg-indigo-500 text-white border-0 font-black text-[9px] rounded-md tracking-widest uppercase">Certified Partner</Badge>
+                                <Badge className="bg-indigo-500 text-white border-0 font-black text-[9px] rounded-md tracking-widest uppercase">
+                                    {tr("인증 파트너", "Certified partner", "Đối tác đã xác minh")}
+                                </Badge>
                                 <span className="text-white/40 text-[10px] font-bold flex items-center gap-1"><MapPin size={10} /> {partner.partner_region ? extRegionLineDisplay(partner.partner_region, baseLocale) : tf.f00546}</span>
                             </div>
-                            <h3 className="text-3xl font-black tracking-tight">{partner.name} <span className="text-indigo-400 font-light">Gallery</span></h3>
+                            <h3 className="text-3xl font-black tracking-tight">
+                                {partner.name}{" "}
+                                <span className="text-indigo-400 font-light">{tr("갤러리", "Gallery", "Album")}</span>
+                            </h3>
                         </div>
                     </div>
                     <DialogClose render={<Button variant="ghost" className="text-white/40 hover:text-white bg-white/5 hover:bg-white/10 rounded-[2.5rem] h-16 w-16 p-0 group"><ChevronRight className="w-8 h-8 group-hover:translate-x-1 transition-transform" /></Button>} />
@@ -660,8 +741,16 @@ function AlbumDialog({ partner, activeTab, setTab, variant = "full" }: any) {
                                 <Info className="w-5 h-5" />
                              </div>
                              <div>
-                                <p className="text-[10px] font-black text-slate-800 uppercase tracking-tighter">Real-time Album Sync</p>
-                                <p className="text-[10px] text-slate-400 font-light">{tf.f00537} <span className="font-bold text-indigo-600">[상품명] 가격</span>{tf.f00499}</p>
+                                <p className="text-[10px] font-black text-slate-800 uppercase tracking-tighter">
+                                    {tr("실시간 앨범 동기화", "Real-time album sync", "Đồng bộ album thời gian thực")}
+                                </p>
+                                <p className="text-[10px] text-slate-400 font-light">
+                                    {tf.f00537}{" "}
+                                    <span className="font-bold text-indigo-600">
+                                        {tr("[상품명] 가격", "[Product name] price", "[Tên sản phẩm] giá")}
+                                    </span>
+                                    {tf.f00499}
+                                </p>
                              </div>
                         </div>
                     </div>

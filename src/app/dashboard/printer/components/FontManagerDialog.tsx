@@ -4,6 +4,8 @@ import { type CustomFontInfo, saveCustomFontToDB, getAllCustomFonts, deleteCusto
 import type { FontItem } from './App';
 import { usePreferredLocale } from '@/hooks/use-preferred-locale';
 import { getMessages } from '@/i18n/getMessages';
+import { toBaseLocale } from '@/i18n/config';
+import { pickUiText } from '@/i18n/pick-ui-text';
 
 function fillRibbonTemplate(template: string, vars: Record<string, string | number>): string {
   let s = template;
@@ -22,6 +24,19 @@ interface FontManagerDialogProps {
 
 export function FontManagerDialog({ isOpen, onClose, baseFonts, onSettingsChanged }: FontManagerDialogProps) {
   const locale = usePreferredLocale();
+  const baseLocale = toBaseLocale(locale);
+  const phWebFontCssUrl = pickUiText(
+    baseLocale,
+    "https://fonts.googleapis.com/css2?...",
+    "https://fonts.googleapis.com/css2?...",
+    "https://fonts.googleapis.com/css2?..."
+  );
+  const phCssFontFamily = pickUiText(
+    baseLocale,
+    "'Jua', sans-serif",
+    "'Jua', sans-serif",
+    "'Jua', sans-serif"
+  );
   const R = getMessages(locale).dashboard.ribbon;
   const [tab, setTab] = useState<'list' | 'add-system' | 'add-custom'>('list');
   const [customFonts, setCustomFonts] = useState<CustomFontInfo[]>([]);
@@ -427,7 +442,7 @@ export function FontManagerDialog({ isOpen, onClose, baseFonts, onSettingsChange
                            type="text" 
                            value={webUrl}
                            onChange={e => setWebUrl(e.target.value)}
-                           placeholder="https://fonts.googleapis.com/css2?..."
+                           placeholder={phWebFontCssUrl}
                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white outline-none focus:border-blue-500 text-sm"
                          />
                        </div>
@@ -437,7 +452,7 @@ export function FontManagerDialog({ isOpen, onClose, baseFonts, onSettingsChange
                            type="text" 
                            value={fontFamily}
                            onChange={e => setFontFamily(e.target.value)}
-                           placeholder="'Jua', sans-serif"
+                           placeholder={phCssFontFamily}
                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white outline-none focus:border-blue-500 text-sm"
                          />
                        </div>

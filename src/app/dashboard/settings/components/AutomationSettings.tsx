@@ -30,7 +30,6 @@ import { cn } from "@/lib/utils";
 import { SystemSettings } from "@/hooks/use-settings";
 import { PosIntegrationCard } from "./PosIntegrationCard";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
-import { toBaseLocale } from "@/i18n/config";
 
 interface AutomationSettingsProps {
   settings: SystemSettings;
@@ -49,7 +48,7 @@ export function AutomationSettings({
 }: AutomationSettingsProps) {
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
-  const isKo = toBaseLocale(locale) === "ko";  // 헬퍼 함수: 연동 상태 확인용
+  // 헬퍼 함수: 연동 상태 확인용
   const getStatus = (service: string) => {
     switch (service) {
       case 'pos':

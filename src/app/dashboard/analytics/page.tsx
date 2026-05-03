@@ -8,7 +8,7 @@ import {
   PieChart as PieChartIcon, Trophy, Wallet, ArrowUpRight, ArrowDownRight
 } from "lucide-react";
 import { format, subMonths, addMonths, startOfMonth, endOfMonth, subDays, startOfDay, endOfDay, eachMonthOfInterval, eachDayOfInterval, isSameMonth } from "date-fns";
-import { ko } from "date-fns/locale";
+import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -59,7 +59,13 @@ export default function AnalyticsPage() {
   const { suppliers, loading: suppliersLoading } = useSuppliers();
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
-  const baseLocale = toBaseLocale(locale);  const [viewMonth, setViewMonth] = useState(new Date());
+  const baseLocale = toBaseLocale(locale);
+  const dfLoc = dateFnsLocaleForBase(baseLocale);
+  const axisMoneyTick = (v: number) =>
+    baseLocale === "ko"
+      ? `${(v / 10000).toFixed(0)}${tf.f02653}`
+      : `${Math.round(v / 1000)}k`;
+  const [viewMonth, setViewMonth] = useState(new Date());
   const [rangeMode, setRangeMode] = useState<string>("month");
 
   const loading = expensesLoading || ordersLoading || suppliersLoading;
@@ -172,7 +178,7 @@ export default function AnalyticsPage() {
     const months = eachMonthOfInterval({ start: dateRange.start, end: dateRange.end });
     return months.map(monthStart => {
       const monthEnd = endOfMonth(monthStart);
-      const label = baseLocale === "ko" ? format(monthStart, "M월", { locale: ko }) : format(monthStart, "MMM");
+      const label = format(monthStart, "MMM", { locale: dfLoc });
 
       const expenseTotal = expenses
         .filter(e => { const d = new Date(e.expense_date); return d >= monthStart && d <= monthEnd; })
@@ -184,7 +190,7 @@ export default function AnalyticsPage() {
 
       return { name: label, sales: salesTotal, expense: expenseTotal, profit: salesTotal - expenseTotal };
     });
-  }, [expenses, orders, dateRange, baseLocale]);
+  }, [expenses, orders, dateRange, dfLoc]);
 
   // Daily trend (for single month view)
   const dailyTrend = useMemo(() => {
@@ -247,7 +253,7 @@ export default function AnalyticsPage() {
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <span className="text-sm font-medium text-slate-700 min-w-[100px] text-center">
-            {baseLocale === "ko" ? format(viewMonth, "yyyy년 M월", { locale: ko }) : format(viewMonth, "MMM yyyy")}
+            {format(viewMonth, "MMMM yyyy", { locale: dfLoc })}
           </span>
           <Button variant="outline" size="icon" className="h-9 w-9 rounded-xl" onClick={nextMonth}>
             <ChevronRight className="h-4 w-4" />
@@ -337,7 +343,8 @@ export default function AnalyticsPage() {
                   {rangeMode === "month" ? tf.f01713 : tf.f01648} {tf.f01178}
                 </CardTitle>
                 <CardDescription className="text-xs font-light">
-                  {format(dateRange.start, "yyyy.MM.dd")} ~ {format(dateRange.end, "yyyy.MM.dd")}
+                  {format(dateRange.start, "P", { locale: dfLoc })} ~{" "}
+                  {format(dateRange.end, "P", { locale: dfLoc })}
                 </CardDescription>
               </CardHeader>
               <CardContent className="h-[320px]">
@@ -346,7 +353,7 @@ export default function AnalyticsPage() {
                     <AreaChart data={trendData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                       <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#94a3b8" }} interval={rangeMode === "month" ? 1 : 0} />
-                      <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} tickFormatter={(v) => `${(v / 10000).toFixed(0)}만`} />
+                      <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} tickFormatter={axisMoneyTick} />
                       <Tooltip content={<CustomTooltip />} />
                       <Legend wrapperStyle={{ fontSize: 11 }} />
                       <Area type="monotone" dataKey="sales" name={tf.f01173} stroke="#6366f1" fill="#6366f1" fillOpacity={0.15} strokeWidth={2} />
@@ -356,7 +363,7 @@ export default function AnalyticsPage() {
                     <BarChart data={trendData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                       <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#94a3b8" }} />
-                      <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} tickFormatter={(v) => `${(v / 10000).toFixed(0)}만`} />
+                      <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} tickFormatter={axisMoneyTick} />
                       <Tooltip content={<CustomTooltip />} />
                       <Legend wrapperStyle={{ fontSize: 11 }} />
                       <Bar dataKey="sales" name={tf.f01173} fill="#6366f1" radius={[6, 6, 0, 0]} />
@@ -435,7 +442,7 @@ export default function AnalyticsPage() {
                   <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                     <BarChart data={supplierRanking} layout="vertical" margin={{ top: 0, right: 20, left: 10, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
-                      <XAxis type="number" tick={{ fontSize: 10, fill: "#94a3b8" }} tickFormatter={(v) => `${(v / 10000).toFixed(0)}만`} />
+                      <XAxis type="number" tick={{ fontSize: 10, fill: "#94a3b8" }} tickFormatter={axisMoneyTick} />
                       <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: "#475569" }} width={80} />
                       <Tooltip
                         content={({ active, payload }) => {

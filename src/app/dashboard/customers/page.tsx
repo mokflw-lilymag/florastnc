@@ -24,6 +24,7 @@ import { exportToExcel } from "@/lib/excel-export";
 import { format } from "date-fns";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
+import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
 
 export default function CustomersPage() {
   const supabase = createClient();
@@ -31,7 +32,7 @@ export default function CustomersPage() {
   const plan = profile?.tenants?.plan || (isSuperAdmin ? "pro" : "free");
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
-  const isKo = toBaseLocale(locale) === "ko";
+  const dfLoc = dateFnsLocaleForBase(toBaseLocale(locale));
   const { 
     customers, 
     loading, 
@@ -107,7 +108,9 @@ export default function CustomersPage() {
         [tf.f00146]: customer.total_spent || 0,
         [tf.f00649]: customer.order_count || 0,
         [tf.f00197]: customer.memo || '',
-        [tf.f00170]: customer.created_at ? format(new Date(customer.created_at), 'yyyy-MM-dd HH:mm') : '',
+        [tf.f00170]: customer.created_at
+          ? format(new Date(customer.created_at), "Pp", { locale: dfLoc })
+          : "",
     }));
     
     const today = format(new Date(), 'yyyy-MM-dd');

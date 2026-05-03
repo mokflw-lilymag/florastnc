@@ -19,7 +19,8 @@ interface SalesChartProps {
 export default function SalesChart({ chartData, height = 350 }: SalesChartProps) {
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
-  const baseLocale = toBaseLocale(locale);  const seriesName = tf.f01173;
+  const baseLocale = toBaseLocale(locale);
+  const seriesName = tf.f01173;
   const [isMounted, setIsMounted] = useState(false);
   const reactId = useId();
   const wrapperId = `sales-chart-${reactId.replace(/:/g, "")}`;
@@ -100,8 +101,10 @@ export default function SalesChart({ chartData, height = 350 }: SalesChartProps)
               tick={{ fontSize: 10, fill: '#94a3b8' }}
               tickFormatter={(v) =>
                 baseLocale === "ko"
-                  ? `₩${(v / 10000).toFixed(0)}만`
-                  : `₩${(v / 1_000_000).toFixed(1)}M`
+                  ? `₩${(v / 10000).toFixed(0)}${tf.f02653}`
+                  : baseLocale === "vi"
+                    ? `₩${(v / 1_000_000).toFixed(1)}${tf.f02655}`
+                    : `₩${(v / 1_000_000).toFixed(1)}${tf.f02654}`
               }
             />
             <Tooltip 

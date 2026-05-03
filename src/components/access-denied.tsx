@@ -2,6 +2,8 @@
 
 import { getMessages } from "@/i18n/getMessages";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
+import { pickUiText } from "@/i18n/pick-ui-text";
 import { ShieldAlert, ArrowLeft, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +17,15 @@ export function AccessDenied({ requiredTier }: AccessDeniedProps) {
   const router = useRouter();
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
+  const baseLocale = toBaseLocale(locale);
+  const tierLabel =
+    requiredTier === "Ribbon"
+      ? pickUiText(baseLocale, "리본", "Ribbon", "Ruy băng")
+      : requiredTier === "ERP"
+        ? pickUiText(baseLocale, "ERP", "ERP", "ERP")
+        : requiredTier === "Pro"
+          ? pickUiText(baseLocale, "PRO", "Pro", "Pro")
+          : pickUiText(baseLocale, "시스템 관리자", "System admin", "Quản trị hệ thống");
 
   return (
     <div className="flex items-center justify-center min-h-[60vh] p-4">
@@ -39,7 +50,7 @@ export function AccessDenied({ requiredTier }: AccessDeniedProps) {
                 <>
                   {before}
                   <span className="font-bold text-slate-900 dark:text-white underline decoration-red-500/30 decoration-2">
-                    {requiredTier}
+                    {tierLabel}
                   </span>
                   {after}
                 </>

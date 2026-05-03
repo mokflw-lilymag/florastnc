@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Search } from "lucide-react";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
+import { pickUiText } from "@/i18n/pick-ui-text";
 
 export interface Branch {
     id: string;
@@ -70,7 +71,14 @@ export function CustomerSection({
 }: CustomerSectionProps) {
     const locale = usePreferredLocale();
     const tf = getMessages(locale).tenantFlows;
-    const isKo = toBaseLocale(locale) === "ko";    return (
+    const baseLocale = toBaseLocale(locale);
+    const phContact = pickUiText(
+        baseLocale,
+        "010-0000-0000",
+        "+1 555-000-0000",
+        "0909 000 000"
+    );
+    return (
         <Card>
             <CardHeader className="pb-3">
                 <CardTitle className="text-lg font-semibold flex items-center justify-between">
@@ -163,7 +171,7 @@ export function CustomerSection({
                                 id="ordererContact"
                                 value={ordererContact}
                                 onChange={(e) => setOrdererContact(formatPhoneNumber(e.target.value))}
-                                placeholder="010-0000-0000"
+                                placeholder={phContact}
                                 maxLength={13}
                             />
                         </div>

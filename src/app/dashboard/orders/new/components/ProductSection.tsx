@@ -15,7 +15,6 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
-import { toBaseLocale } from "@/i18n/config";
 
 interface CategoryData {
     name: string;
@@ -41,7 +40,7 @@ export function ProductSection({
 }: ProductSectionProps) {
     const locale = usePreferredLocale();
     const tf = getMessages(locale).tenantFlows;
-    const isKo = toBaseLocale(locale) === "ko";    const [activeTab, setActiveTab] = useState(initialCategory || (categories[0]?.name || ""));
+    const [activeTab, setActiveTab] = useState(initialCategory || (categories[0]?.name || ""));
     const [searchTerm, setSearchTerm] = useState("");
 
     // Update active tab if categories change and current tab is invalid

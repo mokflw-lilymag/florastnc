@@ -11,12 +11,11 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
-import { toBaseLocale } from "@/i18n/config";
 
 export default function CategorySettingsPage() {
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
-  const isKo = toBaseLocale(locale) === "ko";  const { 
+  const { 
     productCategories, 
     materialCategories, 
     expenseCategories,

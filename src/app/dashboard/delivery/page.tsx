@@ -37,7 +37,6 @@ import { useSettings } from '@/hooks/use-settings';
 import { useOrders } from '@/hooks/use-orders';
 import { Badge } from '@/components/ui/badge';
 import { format, isToday, parseISO, addDays, isSameDay } from 'date-fns';
-import { ko } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { MessagePrintDialog } from '../orders/components/message-print-dialog';
@@ -52,6 +51,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { usePreferredLocale } from '@/hooks/use-preferred-locale';
 import { toBaseLocale } from '@/i18n/config';
+import { pickUiText } from "@/i18n/pick-ui-text";
+import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
 
 export default function DeliveryManagementPage() {
   const router = useRouter();
@@ -59,7 +60,15 @@ export default function DeliveryManagementPage() {
   const { settings, saveSettings } = useSettings();
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
-  const isKo = toBaseLocale(locale) === "ko";  const [searchTerm, setSearchTerm] = useState("");
+  const baseLocale = toBaseLocale(locale);
+  const dfLoc = dateFnsLocaleForBase(baseLocale);
+  const phDeliveryActualCost = pickUiText(
+    baseLocale,
+    "예: 3500",
+    "e.g. 3500",
+    "VD: 3500"
+  );
+  const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<"all" | "delivery" | "pickup">("all");
   const [newCarrier, setNewCarrier] = useState("");
   const [localOverrides, setLocalOverrides] = useState<Record<string, Partial<any>>>({});
@@ -335,11 +344,12 @@ export default function DeliveryManagementPage() {
                 dateFilterMode === "custom" ? "bg-primary text-white" : "text-gray-500"
               )}>
               <CalendarIcon className="w-4 h-4" />
-              {selectedDate ? format(selectedDate, 'yyyy-MM-dd') : tf.f00129}
+              {selectedDate ? format(selectedDate, "P", { locale: dfLoc }) : tf.f00129}
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="single"
+                locale={dfLoc}
                 selected={selectedDate}
                 onSelect={(date) => {
                   setSelectedDate(date);
@@ -499,7 +509,7 @@ export default function DeliveryManagementPage() {
                                         <Input 
                                           type="number" 
                                           className="pl-5 h-8 text-xs font-bold border-primary/30 focus:ring-1 focus:ring-primary/20 bg-white min-w-[80px]"
-                                          placeholder="0"
+                                          placeholder={phDeliveryActualCost}
                                           value={tempActualCost}
                                           onChange={(e) => setTempActualCost(e.target.value)}
                                           onKeyDown={(e) => {
@@ -555,7 +565,9 @@ export default function DeliveryManagementPage() {
                                          onClick={() => startEditing(order)}
                                        >
                                           <span className="text-[10px] font-bold text-gray-500 flex items-center justify-between">
-                                            {order.delivery_info?.driverAffiliation ? (isKo ? `수동: ${order.delivery_info.driverAffiliation}` : `Manual: ${order.delivery_info.driverAffiliation}`) : tf.f00376}
+                                            {order.delivery_info?.driverAffiliation
+                                              ? `${pickUiText(baseLocale, "수동", "Manual", "Thủ công")}: ${order.delivery_info.driverAffiliation}`
+                                              : tf.f00376}
                                           </span>
                                        </div>
                                      )

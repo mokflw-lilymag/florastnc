@@ -9,7 +9,6 @@ import { useAuth } from '@/hooks/use-auth';
 import { useSearchParams } from 'next/navigation';
 import { Order } from '@/types/order';
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
-import { toBaseLocale } from "@/i18n/config";
 
 export default function PrintMessagePage() {
     const { profile, isLoading: authLoading, tenantId } = useAuth();
@@ -20,7 +19,7 @@ export default function PrintMessagePage() {
     const [error, setError] = useState<string | null>(null);
     const locale = usePreferredLocale();
     const tf = getMessages(locale).tenantFlows;
-    const isKo = toBaseLocale(locale) === "ko";    const orderId = searchParams.get('orderId') || '';
+    const orderId = searchParams.get('orderId') || '';
     const labelType = searchParams.get('labelType') || 'formtec-3108';
     const startPosition = parseInt(searchParams.get('start') || '1');
     const messageFont = searchParams.get('messageFont') || 'Noto Sans KR';

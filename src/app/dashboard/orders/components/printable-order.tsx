@@ -37,18 +37,24 @@ interface PrintableOrderProps {
     locale?: string;
 }
 
-const paymentMethodMap = {
-    card: "카드",
-    cash: "현금",
-    transfer: "계좌이체",
-};
-
 export class PrintableOrder extends React.Component<PrintableOrderProps> {
     render() {
         const { data, locale = "ko" } = this.props;
         if (!data) return null;
-        const isKo = String(locale).toLowerCase().startsWith("ko");
-        const tf = getMessages(locale).tenantFlows;        const Checkbox = ({ checked }: { checked: boolean }) => (
+        const tf = getMessages(locale).tenantFlows;
+        const paymentMethodText = (() => {
+            const m = data.paymentMethod;
+            const map: Record<string, string> = {
+                card: tf.f00704,
+                cash: tf.f00769,
+                transfer: tf.f00057,
+                mainpay: tf.f00211,
+                shopping_mall: tf.f00368,
+                epay: tf.f02604,
+            };
+            return map[m] || m;
+        })();
+        const Checkbox = ({ checked }: { checked: boolean }) => (
             <span style={{ 
                 display: 'inline-block', 
                 width: '14px', 
@@ -61,8 +67,6 @@ export class PrintableOrder extends React.Component<PrintableOrderProps> {
                 {checked && <span style={{ position: 'absolute', top: '-3px', left: '2px', fontSize: '14px' }}>✔</span>}
             </span>
         );
-
-        const paymentMethodText = paymentMethodMap[data.paymentMethod as keyof typeof paymentMethodMap] || data.paymentMethod;
 
         const renderSection = (title: string, isReceipt: boolean) => (
             <div className="mb-4">
@@ -115,13 +119,13 @@ export class PrintableOrder extends React.Component<PrintableOrderProps> {
                         </tr>
                         {!isReceipt && (
                             <tr>
-                                <td className="border border-black p-1 font-bold text-center bg-slate-50/50">결제정보</td>
+                                <td className="border border-black p-1 font-bold text-center bg-slate-50/50">{tf.f02588}</td>
                                 <td className="border border-black p-1" colSpan={5}>
                                     <div className="flex items-center justify-between text-[12px]">
-                                        <span className="whitespace-nowrap overflow-hidden text-ellipsis">금액: ₩{(data.totalAmount || 0).toLocaleString()}</span>
-                                        <span className="whitespace-nowrap overflow-hidden text-ellipsis">배송비: ₩{(data.deliveryFee || 0).toLocaleString()}</span>
+                                        <span className="whitespace-nowrap overflow-hidden text-ellipsis">{tf.f02589} ₩{(data.totalAmount || 0).toLocaleString()}</span>
+                                        <span className="whitespace-nowrap overflow-hidden text-ellipsis">{tf.f02590} ₩{(data.deliveryFee || 0).toLocaleString()}</span>
                                         <div className="flex items-center gap-2">
-                                            <span className="whitespace-nowrap overflow-hidden text-ellipsis">결제수단: {paymentMethodText}</span>
+                                            <span className="whitespace-nowrap overflow-hidden text-ellipsis">{tf.f02591} {paymentMethodText}</span>
                                             <div className="flex items-center gap-2 pr-2">
                                                 <div className="flex items-center whitespace-nowrap"><Checkbox checked={data.paymentStatus === '미결' || data.paymentStatus === 'Pending'} /><span>{tf.f00217}</span></div>
                                                 <div className="flex items-center whitespace-nowrap"><Checkbox checked={data.paymentStatus === '완결' || data.paymentStatus === 'Paid'} /><span>{tf.f00470}</span></div>
@@ -140,7 +144,7 @@ export class PrintableOrder extends React.Component<PrintableOrderProps> {
                             <td className="border border-black p-1">
                                 <div className="whitespace-nowrap overflow-hidden text-ellipsis text-[12px]">{data.recipientName}</div>
                             </td>
-                            <td className="border border-black p-1 font-bold text-center bg-slate-50/50">연락처</td>
+                            <td className="border border-black p-1 font-bold text-center bg-slate-50/50">{tf.f00444}</td>
                             <td className="border border-black p-1">
                                 <div className="whitespace-nowrap overflow-hidden text-ellipsis text-[12px]">{data.recipientContact}</div>
                             </td>
@@ -157,10 +161,10 @@ export class PrintableOrder extends React.Component<PrintableOrderProps> {
                             <tr>
                                 <td className="border border-black p-1 font-bold align-middle text-center bg-slate-50/50 h-8">
                                     <div className="flex flex-col items-center justify-center leading-tight">
-                                        <span>메세지</span>
+                                        <span>{tf.f00198}</span>
                                         <div className="flex items-center gap-1 mt-0.5 text-[9px] font-normal">
-                                            <div className="flex items-center"><Checkbox checked={data.messageType === 'card'} /><span>카</span></div>
-                                            <div className="flex items-center"><Checkbox checked={data.messageType === 'ribbon'} /><span>리</span></div>
+                                            <div className="flex items-center"><Checkbox checked={data.messageType === 'card'} /><span>{tf.f00207}</span></div>
+                                            <div className="flex items-center"><Checkbox checked={data.messageType === 'ribbon'} /><span>{tf.f00179}</span></div>
                                         </div>
                                     </div>
                                 </td>
@@ -173,7 +177,7 @@ export class PrintableOrder extends React.Component<PrintableOrderProps> {
                         )}
                         {isReceipt && (
                             <tr>
-                                <td className="border border-black p-1 font-bold text-center">인수자성명</td>
+                                <td className="border border-black p-1 font-bold text-center">{tf.f02592}</td>
                                 <td colSpan={5} className="border border-black p-1 h-16"></td>
                             </tr>
                         )}
@@ -182,30 +186,30 @@ export class PrintableOrder extends React.Component<PrintableOrderProps> {
                 <div className="mt-4 text-xs border-t border-black pt-3">
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
                         <div className="flex flex-col">
-                            <span className="font-bold text-[10px] text-gray-600 uppercase tracking-tighter">상호명</span>
+                            <span className="font-bold text-[10px] text-gray-600 uppercase tracking-tighter">{tf.f01367}</span>
                             <span className="text-[14px] font-bold">{data.shopInfo.name}</span>
                         </div>
                         <div className="flex flex-col">
-                            <span className="font-bold text-[10px] text-gray-600 uppercase tracking-tighter">연락처</span>
-                            <span className="text-[14px] font-medium">{data.shopInfo.contact || "연락처 미등록"}</span>
+                            <span className="font-bold text-[10px] text-gray-600 uppercase tracking-tighter">{tf.f00444}</span>
+                            <span className="text-[14px] font-medium">{data.shopInfo.contact || tf.f02593}</span>
                         </div>
                         <div className="flex flex-col">
-                            <span className="font-bold text-[10px] text-gray-600 uppercase tracking-tighter">이메일</span>
+                            <span className="font-bold text-[10px] text-gray-600 uppercase tracking-tighter">{tf.f00504}</span>
                             <span className="text-[13px]">{data.shopInfo.email || "-"}</span>
                         </div>
                         <div className="flex flex-col">
-                            <span className="font-bold text-[10px] text-gray-600 uppercase tracking-tighter">웹사이트</span>
+                            <span className="font-bold text-[10px] text-gray-600 uppercase tracking-tighter">{tf.f02596}</span>
                             <span className="text-[13px] truncate">{data.shopInfo.website || "-"}</span>
                         </div>
                     </div>
                     <div className="mt-3 flex items-start justify-between">
                         <div className="flex flex-col flex-1 mr-4">
-                            <span className="font-bold text-[10px] text-gray-600 uppercase tracking-tighter">주소</span>
-                            <span className="text-[13px] leading-snug">{data.shopInfo.address || "주소 미등록"}</span>
+                            <span className="font-bold text-[10px] text-gray-600 uppercase tracking-tighter">{tf.f00650}</span>
+                            <span className="text-[13px] leading-snug">{data.shopInfo.address || tf.f02594}</span>
                         </div>
                         {data.shopInfo.account && (
                             <div className="text-right whitespace-nowrap">
-                                <span className="font-bold text-[10px] text-gray-600 uppercase mr-2">입금계좌:</span>
+                                <span className="font-bold text-[10px] text-gray-600 uppercase mr-2">{tf.f02595}</span>
                                 <span className="text-[13px] font-semibold">{data.shopInfo.account}</span>
                             </div>
                         )}

@@ -1,6 +1,9 @@
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { DEFAULT_LOCALE } from "@/i18n/config";
+import { LOCALE_COOKIE, resolveLocale } from "@/i18n/config";
 
-export default function TermsRedirectPage() {
-  redirect(`/${DEFAULT_LOCALE}/terms`);
+export default async function TermsRedirectPage() {
+  const cookieStore = await cookies();
+  const locale = resolveLocale(cookieStore.get(LOCALE_COOKIE)?.value ?? null);
+  redirect(`/${locale}/terms`);
 }

@@ -25,12 +25,13 @@ import {
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { format, addDays, isAfter } from "date-fns";
-import { ko } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { printDocument } from "@/lib/print-document";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
+import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
 
 interface DocumentLog {
   id: string;
@@ -55,6 +56,7 @@ export function DocumentRegistryDialog({ isOpen, onOpenChange, tenantId }: Docum
   const [searchTerm, setSearchTerm] = useState("");
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
+  const dfLoc = dateFnsLocaleForBase(toBaseLocale(locale));
   const fetchLogs = async () => {
     if (!tenantId) return;
     setLoading(true);
@@ -155,13 +157,13 @@ export function DocumentRegistryDialog({ isOpen, onOpenChange, tenantId }: Docum
 
           <div className="flex-1 bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
             <div className="grid grid-cols-[100px_120px_1fr_120px_140px_140px_120px] gap-4 p-4 bg-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-500 border-b border-slate-200">
-              <div className="pl-4">종류</div>
-              <div>수신인</div>
-              <div>내용 요약</div>
-              <div className="text-right">총 금액</div>
-              <div className="text-center">생성 일자</div>
-              <div className="text-center">폐기 예정</div>
-              <div className="text-center">관리</div>
+              <div className="pl-4">{tf.f02628}</div>
+              <div>{tf.f02629}</div>
+              <div>{tf.f02630}</div>
+              <div className="text-right">{tf.f02631}</div>
+              <div className="text-center">{tf.f02632}</div>
+              <div className="text-center">{tf.f02633}</div>
+              <div className="text-center">{tf.f02634}</div>
             </div>
 
             <ScrollArea className="flex-1">
@@ -205,13 +207,13 @@ export function DocumentRegistryDialog({ isOpen, onOpenChange, tenantId }: Docum
                         </div>
                         <div className="text-center text-[11px] font-bold text-slate-400 flex flex-col items-center">
                           <Calendar size={12} className="mb-1" />
-                          {format(createdAt, 'yyyy-MM-dd HH:mm')}
+                          {format(createdAt, "Pp", { locale: dfLoc })}
                         </div>
                         <div className={`text-center text-[11px] font-black flex flex-col items-center py-1.5 px-2 rounded-xl transition-colors ${
                           isExpiredSoon ? 'bg-red-50 text-red-600' : 'text-slate-500'
                         }`}>
                           <Clock size={12} className="mb-1" />
-                          {format(expiryDate, 'yyyy-MM-dd')}
+                          {format(expiryDate, "P", { locale: dfLoc })}
                           {isExpiredSoon && <span className="text-[8px] mt-0.5 animate-pulse">{tf.f00727}</span>}
                         </div>
                         <div className="flex items-center justify-center gap-2">
@@ -220,7 +222,7 @@ export function DocumentRegistryDialog({ isOpen, onOpenChange, tenantId }: Docum
                             size="icon" 
                             className="h-9 w-9 text-slate-400 hover:text-slate-900 hover:bg-slate-200 rounded-xl"
                             onClick={() => handlePrint(log)}
-                            title="다시 보고 인쇄하기"
+                            title={tf.f02635}
                           >
                             <ExternalLink size={18} />
                           </Button>
@@ -229,7 +231,7 @@ export function DocumentRegistryDialog({ isOpen, onOpenChange, tenantId }: Docum
                             size="icon" 
                             className="h-9 w-9 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl"
                             onClick={() => handleDelete(log.id)}
-                            title="로그 삭제"
+                            title={tf.f02636}
                           >
                             <Trash2 size={18} />
                           </Button>
@@ -246,13 +248,13 @@ export function DocumentRegistryDialog({ isOpen, onOpenChange, tenantId }: Docum
         <div className="p-6 bg-slate-900 border-t border-white/5 flex justify-between items-center shrink-0">
           <div className="flex items-center gap-4 text-slate-400 text-xs font-bold">
             <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-blue-500"></div> 견적서
+              <div className="w-2 h-2 rounded-full bg-blue-500"></div> {tf.f00041}
             </div>
             <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-amber-500"></div> 명세서
+              <div className="w-2 h-2 rounded-full bg-amber-500"></div> {tf.f00212}
             </div>
             <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-emerald-500"></div> 영수증
+              <div className="w-2 h-2 rounded-full bg-emerald-500"></div> {tf.f00448}
             </div>
           </div>
           <Button 

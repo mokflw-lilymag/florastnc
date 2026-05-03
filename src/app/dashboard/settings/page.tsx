@@ -70,6 +70,7 @@ import { MallIntegrationCard } from "./components/MallIntegrationCard";
 import { applyCountryPreset, getCountryPreset, getCountryPresetDiff } from "@/lib/country-preset";
 import { AppLocale, LOCALE_COOKIE, resolveLocale, toBaseLocale } from "@/i18n/config";
 import { getDashboardSettingsMessages } from "@/i18n/dashboard-settings-messages";
+import { pickUiText } from "@/i18n/pick-ui-text";
 
 const MAJOR_CURRENCIES = [
   { code: 'KRW', symbol: '₩', flag: '🇰🇷', nameKo: '대한민국 원', nameEn: 'Korean Won' },
@@ -93,27 +94,27 @@ const MAJOR_CURRENCIES = [
 ];
 
 const OPERATING_COUNTRIES = [
-  { code: "KR", nameKo: "대한민국", nameEn: "Korea", flag: "🇰🇷", defaultCurrency: "KRW" },
-  { code: "VN", nameKo: "베트남", nameEn: "Vietnam", flag: "🇻🇳", defaultCurrency: "VND" },
-  { code: "US", nameKo: "미국", nameEn: "United States", flag: "🇺🇸", defaultCurrency: "USD" },
-  { code: "JP", nameKo: "일본", nameEn: "Japan", flag: "🇯🇵", defaultCurrency: "JPY" },
-  { code: "CN", nameKo: "중국", nameEn: "China", flag: "🇨🇳", defaultCurrency: "CNY" },
-  { code: "ES", nameKo: "스페인", nameEn: "Spain", flag: "🇪🇸", defaultCurrency: "EUR" },
-  { code: "FR", nameKo: "프랑스", nameEn: "France", flag: "🇫🇷", defaultCurrency: "EUR" },
-  { code: "DE", nameKo: "독일", nameEn: "Germany", flag: "🇩🇪", defaultCurrency: "EUR" },
-  { code: "GB", nameKo: "영국", nameEn: "United Kingdom", flag: "🇬🇧", defaultCurrency: "GBP" },
-  { code: "AU", nameKo: "호주", nameEn: "Australia", flag: "🇦🇺", defaultCurrency: "AUD" },
-  { code: "CA", nameKo: "캐나다", nameEn: "Canada", flag: "🇨🇦", defaultCurrency: "CAD" },
-  { code: "SG", nameKo: "싱가포르", nameEn: "Singapore", flag: "🇸🇬", defaultCurrency: "SGD" },
-  { code: "BR", nameKo: "브라질", nameEn: "Brazil", flag: "🇧🇷", defaultCurrency: "BRL" },
-  { code: "MX", nameKo: "멕시코", nameEn: "Mexico", flag: "🇲🇽", defaultCurrency: "MXN" },
-  { code: "PT", nameKo: "포르투갈", nameEn: "Portugal", flag: "🇵🇹", defaultCurrency: "EUR" },
-  { code: "CH", nameKo: "스위스", nameEn: "Switzerland", flag: "🇨🇭", defaultCurrency: "CHF" },
-  { code: "AR", nameKo: "아르헨티나", nameEn: "Argentina", flag: "🇦🇷", defaultCurrency: "ARS" },
-  { code: "NZ", nameKo: "뉴질랜드", nameEn: "New Zealand", flag: "🇳🇿", defaultCurrency: "NZD" },
-  { code: "CL", nameKo: "칠레", nameEn: "Chile", flag: "🇨🇱", defaultCurrency: "CLP" },
-  { code: "MZ", nameKo: "모잠비크", nameEn: "Mozambique", flag: "🇲🇿", defaultCurrency: "MZN" },
-  { code: "RU", nameKo: "러시아", nameEn: "Russia", flag: "🇷🇺", defaultCurrency: "RUB" },
+  { code: "KR", nameKo: "대한민국", nameEn: "Korea", nameVi: "Hàn Quốc", flag: "🇰🇷", defaultCurrency: "KRW" },
+  { code: "VN", nameKo: "베트남", nameEn: "Vietnam", nameVi: "Việt Nam", flag: "🇻🇳", defaultCurrency: "VND" },
+  { code: "US", nameKo: "미국", nameEn: "United States", nameVi: "Hoa Kỳ", flag: "🇺🇸", defaultCurrency: "USD" },
+  { code: "JP", nameKo: "일본", nameEn: "Japan", nameVi: "Nhật Bản", flag: "🇯🇵", defaultCurrency: "JPY" },
+  { code: "CN", nameKo: "중국", nameEn: "China", nameVi: "Trung Quốc", flag: "🇨🇳", defaultCurrency: "CNY" },
+  { code: "ES", nameKo: "스페인", nameEn: "Spain", nameVi: "Tây Ban Nha", flag: "🇪🇸", defaultCurrency: "EUR" },
+  { code: "FR", nameKo: "프랑스", nameEn: "France", nameVi: "Pháp", flag: "🇫🇷", defaultCurrency: "EUR" },
+  { code: "DE", nameKo: "독일", nameEn: "Germany", nameVi: "Đức", flag: "🇩🇪", defaultCurrency: "EUR" },
+  { code: "GB", nameKo: "영국", nameEn: "United Kingdom", nameVi: "Vương quốc Anh", flag: "🇬🇧", defaultCurrency: "GBP" },
+  { code: "AU", nameKo: "호주", nameEn: "Australia", nameVi: "Úc", flag: "🇦🇺", defaultCurrency: "AUD" },
+  { code: "CA", nameKo: "캐나다", nameEn: "Canada", nameVi: "Canada", flag: "🇨🇦", defaultCurrency: "CAD" },
+  { code: "SG", nameKo: "싱가포르", nameEn: "Singapore", nameVi: "Singapore", flag: "🇸🇬", defaultCurrency: "SGD" },
+  { code: "BR", nameKo: "브라질", nameEn: "Brazil", nameVi: "Brazil", flag: "🇧🇷", defaultCurrency: "BRL" },
+  { code: "MX", nameKo: "멕시코", nameEn: "Mexico", nameVi: "Mexico", flag: "🇲🇽", defaultCurrency: "MXN" },
+  { code: "PT", nameKo: "포르투갈", nameEn: "Portugal", nameVi: "Bồ Đào Nha", flag: "🇵🇹", defaultCurrency: "EUR" },
+  { code: "CH", nameKo: "스위스", nameEn: "Switzerland", nameVi: "Thụy Sĩ", flag: "🇨🇭", defaultCurrency: "CHF" },
+  { code: "AR", nameKo: "아르헨티나", nameEn: "Argentina", nameVi: "Argentina", flag: "🇦🇷", defaultCurrency: "ARS" },
+  { code: "NZ", nameKo: "뉴질랜드", nameEn: "New Zealand", nameVi: "New Zealand", flag: "🇳🇿", defaultCurrency: "NZD" },
+  { code: "CL", nameKo: "칠레", nameEn: "Chile", nameVi: "Chile", flag: "🇨🇱", defaultCurrency: "CLP" },
+  { code: "MZ", nameKo: "모잠비크", nameEn: "Mozambique", nameVi: "Mozambique", flag: "🇲🇿", defaultCurrency: "MZN" },
+  { code: "RU", nameKo: "러시아", nameEn: "Russia", nameVi: "Nga", flag: "🇷🇺", defaultCurrency: "RUB" },
 ] as const;
 
 export default function SettingsPage() {
@@ -163,7 +164,7 @@ export default function SettingsPage() {
   const [logoUrl, setLogoUrl] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const t = useMemo(() => getDashboardSettingsMessages(uiLocale), [uiLocale]);
-  const isKo = useMemo(() => toBaseLocale(uiLocale) === "ko", [uiLocale]);
+  const baseLocale = useMemo(() => toBaseLocale(uiLocale), [uiLocale]);
   const tf = useMemo(() => getMessages(uiLocale).tenantFlows, [uiLocale]);
   const selectedCountryPreset = useMemo(() => getCountryPreset(localCountry), [localCountry]);
   const presetDiffItems = useMemo(() => {
@@ -194,7 +195,9 @@ export default function SettingsPage() {
       if (response.ok) {
         setBridgeStatus(true);
       } else {
-        throw new Error("Bridge response not OK");
+        throw new Error(
+          pickUiText(baseLocale, "브릿지 응답이 올바르지 않습니다.", "Bridge response not OK", "Phản hồi bridge không hợp lệ")
+        );
       }
     } catch (err) {
       setBridgeStatus(false);
@@ -362,7 +365,10 @@ export default function SettingsPage() {
       });
       
       const saved = await saveSettings(presetAppliedSettings);
-      if (!saved) throw new Error("Failed to save settings");
+      if (!saved)
+        throw new Error(
+          pickUiText(baseLocale, "설정 저장에 실패했습니다.", "Failed to save settings", "Lưu cài đặt thất bại")
+        );
 
       document.cookie = `preferred_country=${localCountry}; path=/; max-age=${60 * 60 * 24 * 365}`;
 
@@ -469,10 +475,26 @@ export default function SettingsPage() {
 
   const getPlanBadge = (planCode: string) => {
     switch (planCode) {
-      case "pro": return <Badge className="bg-gradient-to-r from-blue-600 to-indigo-600 border-0">{tf.f02284}</Badge>;
-      case "erp_only": return <Badge className="bg-emerald-600 border-0">ERP Only</Badge>;
-      case "ribbon_only": return <Badge className="bg-purple-600 border-0">Ribbon Only</Badge>;
-      default: return <Badge variant="outline" className="text-slate-500">Free / Trial</Badge>;
+      case "pro":
+        return <Badge className="bg-gradient-to-r from-blue-600 to-indigo-600 border-0">{tf.f02284}</Badge>;
+      case "erp_only":
+        return (
+          <Badge className="bg-emerald-600 border-0">
+            {pickUiText(baseLocale, "ERP 전용", "ERP only", "Chỉ ERP")}
+          </Badge>
+        );
+      case "ribbon_only":
+        return (
+          <Badge className="bg-purple-600 border-0">
+            {pickUiText(baseLocale, "리본 전용", "Ribbon only", "Chỉ ruy băng")}
+          </Badge>
+        );
+      default:
+        return (
+          <Badge variant="outline" className="text-slate-500">
+            {pickUiText(baseLocale, "무료 / 체험", "Free / trial", "Miễn phí / dùng thử")}
+          </Badge>
+        );
     }
   };
 
@@ -563,7 +585,9 @@ export default function SettingsPage() {
                     >
                       {OPERATING_COUNTRIES.map((country) => (
                         <option key={country.code} value={country.code}>
-                          {country.flag} {isKo ? country.nameKo : country.nameEn} ({country.code}) · {tf.f01003} {country.defaultCurrency}
+                          {country.flag}{" "}
+                          {pickUiText(baseLocale, country.nameKo, country.nameEn, country.nameVi)} ({country.code}) · {tf.f01003}{" "}
+                          {country.defaultCurrency}
                         </option>
                       ))}
                     </select>

@@ -4,7 +4,6 @@ import { getMessages } from "@/i18n/getMessages";
 import { useCallback, useEffect, useState } from "react";
 import { FulfillRequestDialog } from "./fulfill-request-dialog";
 import { format } from "date-fns";
-import { ko } from "date-fns/locale";
 import { ClipboardList, LayoutGrid, Loader2, ListTree } from "lucide-react";
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/client";
@@ -27,6 +26,7 @@ import { MaterialRequestsConsolidationPanel } from "./consolidation-panel";
 import type { HqRequestInput } from "@/lib/hq-material-request-consolidation";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
+import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
 
 type Line = {
   id: string;
@@ -53,7 +53,8 @@ export default function HqMaterialRequestsPage() {
   const [fulfillTarget, setFulfillTarget] = useState<Req | null>(null);
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
-  const baseLocale = toBaseLocale(locale);  const formatStatus = (status: string) => {
+  const dfLoc = dateFnsLocaleForBase(toBaseLocale(locale));
+  const formatStatus = (status: string) => {
     const map: Record<string, string> = {
       pending: tf.f01072,
       reviewing: tf.f00905,
@@ -189,9 +190,7 @@ export default function HqMaterialRequestsPage() {
                       </CardTitle>
                       <Badge variant="outline">{formatStatus(r.status)}</Badge>
                       <span className="text-xs text-muted-foreground tabular-nums">
-                        {baseLocale === "ko"
-                          ? format(new Date(r.created_at), "yyyy.M.d HH:mm", { locale: ko })
-                          : format(new Date(r.created_at), "yyyy-MM-dd HH:mm")}
+                        {format(new Date(r.created_at), "PPp", { locale: dfLoc })}
                       </span>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">

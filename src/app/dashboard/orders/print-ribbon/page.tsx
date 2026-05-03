@@ -10,7 +10,6 @@ import { useSearchParams } from 'next/navigation';
 import { Order } from '@/types/order';
 import { RibbonPrintLayout } from './components/ribbon-print-layout';
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
-import { toBaseLocale } from "@/i18n/config";
 
 const RedirectIfAndroidApp = dynamic(
   () =>
@@ -37,7 +36,7 @@ function PrintRibbonContent() {
     const [error, setError] = useState<string | null>(null);
     const locale = usePreferredLocale();
     const tf = getMessages(locale).tenantFlows;
-    const isKo = toBaseLocale(locale) === "ko";    const orderId = searchParams.get('orderId') || '';
+    const orderId = searchParams.get('orderId') || '';
     const messageContent = searchParams.get('messageContent') || '';
     const senderName = searchParams.get('senderName') || '';
 

@@ -3,7 +3,6 @@ import { getMessages } from "@/i18n/getMessages";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { format, startOfMonth } from "date-fns";
-import { ko } from "date-fns/locale";
 import { Loader2, PieChart, Receipt, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
@@ -24,6 +23,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
+import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
 
 type CategoryStat = {
   category: string;
@@ -80,7 +80,9 @@ export default function HqBranchExpensesPage() {
   const [toInput, setToInput] = useState("");
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
-  const baseLocale = toBaseLocale(locale);  const amountSuffix = tf.f00487;
+  const baseLocale = toBaseLocale(locale);
+  const dfLoc = dateFnsLocaleForBase(baseLocale);
+  const amountSuffix = tf.f00487;
   const formatPaymentMethod = (value: string) => {
     const map: Record<string, string> = {
       card: tf.f00704,
@@ -160,12 +162,12 @@ export default function HqBranchExpensesPage() {
       }
     }
     out.sort((a, b) => {
-      const nameCmp = a.branchName.localeCompare(b.branchName, "ko");
+      const nameCmp = a.branchName.localeCompare(b.branchName, baseLocale);
       if (nameCmp !== 0) return nameCmp;
       return b.amount - a.amount;
     });
     return out;
-  }, [branches, grandTotal]);
+  }, [branches, grandTotal, baseLocale]);
 
   if (authLoading) {
     return (
@@ -486,9 +488,7 @@ export default function HqBranchExpensesPage() {
                 {recentLines.map((r) => (
                   <TableRow key={r.id}>
                     <TableCell className="text-sm tabular-nums whitespace-nowrap">
-                      {baseLocale === "ko"
-                        ? format(new Date(r.expense_date), "M/d HH:mm", { locale: ko })
-                        : format(new Date(r.expense_date), "MM/dd HH:mm")}
+                      {format(new Date(r.expense_date), "PPp", { locale: dfLoc })}
                     </TableCell>
                     <TableCell className="text-sm">
                       <Link

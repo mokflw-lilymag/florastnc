@@ -2,6 +2,7 @@ import ko from "@/i18n/messages/ko.json";
 import en from "@/i18n/messages/en.json";
 import dashboardKo from "@/i18n/messages/dashboard-ko.json";
 import dashboardEn from "@/i18n/messages/dashboard-en.json";
+import dashboardVi from "@/i18n/messages/dashboard-vi.json";
 import vi from "@/i18n/messages/vi.json";
 import zh from "@/i18n/messages/zh.json";
 import ja from "@/i18n/messages/ja.json";
@@ -188,7 +189,9 @@ function deepMerge<T extends Record<string, any>>(base: T, override?: DeepPartia
 }
 
 function dashboardForLocale(baseLocale: string): DashboardMessages {
-  return (baseLocale === "ko" ? dashboardKo : dashboardEn) as DashboardMessages;
+  if (baseLocale === "ko") return dashboardKo as DashboardMessages;
+  if (baseLocale === "vi") return dashboardVi as DashboardMessages;
+  return dashboardEn as DashboardMessages;
 }
 
 export function getMessages(localeInput: AppLocale | string): AppMessages {

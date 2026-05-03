@@ -30,7 +30,6 @@ import { FulfillmentSection } from "./components/FulfillmentSection";
 import { OrderSummarySide } from "./components/OrderSummarySide";
 import { AiOrderConcierge } from "./components/AiOrderConcierge";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
-import { toBaseLocale } from "@/i18n/config";
 
 interface OrderItem {
   id: string;
@@ -61,7 +60,7 @@ export default function NewOrderPage() {
   const { settings } = useSettings();
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
-  const isKo = toBaseLocale(locale) === "ko";  const router = useRouter();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const orderId = searchParams.get('id');
   
@@ -79,7 +78,7 @@ export default function NewOrderPage() {
     if (tenantId && !selectedBranch && profile?.tenants) {
       setSelectedBranch({ 
         id: tenantId, 
-        name: profile.tenants.name || '본점' 
+        name: profile.tenants.name || tf.f00293
       });
     }
   }, [tenantId, profile, selectedBranch]);
@@ -573,10 +572,7 @@ export default function NewOrderPage() {
           ? tf.f00113 
           : (externalVendor
               ? tf.f00799.replace("{name}", externalVendor.name)
-              : tf.f00800.replace(
-                  "{shop}",
-                  profile?.tenants?.name || (isKo ? "새로운 화원" : "your flower shop")
-                ))}
+              : tf.f00800.replace("{shop}", profile?.tenants?.name || tf.f02587))}
       >
         <div className="mt-4 flex justify-end px-4 md:px-6">
           <AiOrderConcierge onApply={handleApplyAiData} />

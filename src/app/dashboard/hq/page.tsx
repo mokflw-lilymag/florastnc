@@ -66,7 +66,8 @@ export default function HqDashboardPage() {
   const [chartSwitchLoading, setChartSwitchLoading] = useState(false);
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
-  const baseLocale = toBaseLocale(locale);  const dailyChartCache = useRef<{
+  const baseLocale = toBaseLocale(locale);
+  const dailyChartCache = useRef<{
     chartRows: Record<string, string | number>[];
     branchChartKeys: { id: string; name: string }[];
   } | null>(null);
@@ -77,7 +78,10 @@ export default function HqDashboardPage() {
       setLoading(true);
       setForbidden(false);
       try {
-        const dRes = await fetch(`/api/hq/summary?period=daily`, { credentials: "include" });
+        const dRes = await fetch(
+          `/api/hq/summary?period=daily&locale=${encodeURIComponent(locale)}`,
+          { credentials: "include" }
+        );
         if (dRes.status === 403) {
           if (!cancelled) {
             setForbidden(true);
@@ -121,7 +125,7 @@ export default function HqDashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [locale]);
 
   const applyChartPeriod = useCallback(async (p: HqChartPeriod) => {
     if (forbidden || loading) return;
@@ -136,7 +140,10 @@ export default function HqDashboardPage() {
     }
     setChartSwitchLoading(true);
     try {
-      const res = await fetch(`/api/hq/summary?period=${p}`, { credentials: "include" });
+      const res = await fetch(
+        `/api/hq/summary?period=${p}&locale=${encodeURIComponent(locale)}`,
+        { credentials: "include" }
+      );
       if (!res.ok) return;
       const json = await res.json();
       setChartRows(json.chartRows ?? []);
@@ -145,7 +152,7 @@ export default function HqDashboardPage() {
     } finally {
       setChartSwitchLoading(false);
     }
-  }, [forbidden, loading]);
+  }, [forbidden, loading, locale]);
 
   if (isLoading) {
     return (

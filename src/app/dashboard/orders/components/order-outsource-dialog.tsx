@@ -25,7 +25,6 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/hooks/use-auth";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
-import { toBaseLocale } from "@/i18n/config";
 
 interface OrderOutsourceDialogProps {
     isOpen: boolean;
@@ -44,7 +43,7 @@ export function OrderOutsourceDialog({
     const { tenantId } = useAuth();
     const locale = usePreferredLocale();
     const tf = getMessages(locale).tenantFlows;
-    const isKo = toBaseLocale(locale) === "ko";    const [partnerId, setPartnerId] = useState("");
+    const [partnerId, setPartnerId] = useState("");
     const [partnerPrice, setPartnerPrice] = useState<number>(0);
     const [notes, setNotes] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);

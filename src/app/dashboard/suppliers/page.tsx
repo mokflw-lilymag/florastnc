@@ -28,6 +28,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from 'sonner';
 import { downloadTemplate, parseExcel, exportDataToExcel } from "@/utils/excel";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
+import { pickUiText } from "@/i18n/pick-ui-text";
 
 export default function SuppliersPage() {
   const { suppliers, loading, addSupplier, updateSupplier, deleteSupplier } = useSuppliers();
@@ -37,6 +39,25 @@ export default function SuppliersPage() {
   const [isImporting, setIsImporting] = useState(false);
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
+  const baseLocale = toBaseLocale(locale);
+  const phSupplierPhone = pickUiText(
+    baseLocale,
+    "02-000-0000",
+    "+82 2-0000-0000",
+    "028 0000 0000"
+  );
+  const phSupplierEmail = pickUiText(
+    baseLocale,
+    "supplier@example.com",
+    "supplier@example.com",
+    "nha_cung_cap@company.com"
+  );
+  const phSupplierBiz = pickUiText(
+    baseLocale,
+    "000-00-00000",
+    "Tax ID / registration no.",
+    "Mã số ĐKKD"
+  );
   const supplierSpecialtyLabel = useMemo(() => {
     const t = getMessages(locale).tenantFlows;
     const m: Record<string, string> = {
@@ -341,7 +362,7 @@ export default function SuppliersPage() {
               </Label>
               <Input
                 id="contact"
-                placeholder="02-000-0000"
+                placeholder={phSupplierPhone}
                 value={formData.contact || ""}
                 onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
                 className="col-span-3 border-gray-200"
@@ -354,7 +375,7 @@ export default function SuppliersPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="supplier@example.com"
+                placeholder={phSupplierEmail}
                 value={formData.email || ""}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 className="col-span-3 border-gray-200"
@@ -366,7 +387,7 @@ export default function SuppliersPage() {
               </Label>
               <Input
                 id="business"
-                placeholder="000-00-00000"
+                placeholder={phSupplierBiz}
                 value={formData.business_number || ""}
                 onChange={(e) => setFormData({ ...formData, business_number: e.target.value })}
                 className="col-span-3 border-gray-200"

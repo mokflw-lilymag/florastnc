@@ -13,7 +13,7 @@ import type { OrgRow } from "@/components/hq/org-announcement-compose-dialog";
 import { OrgAnnouncementThread } from "@/components/hq/org-announcement-thread";
 import { useAuth } from "@/hooks/use-auth";
 import { format } from "date-fns";
-import { ko } from "date-fns/locale";
+import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
 import { toast } from "sonner";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
@@ -35,7 +35,8 @@ export default function OrgBoardPage() {
   const { user, profile, isLoading: authLoading, isSuperAdmin } = useAuth();
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
-  const baseLocale = toBaseLocale(locale);  const [list, setList] = useState<Ann[]>([]);
+  const dfLoc = dateFnsLocaleForBase(toBaseLocale(locale));
+  const [list, setList] = useState<Ann[]>([]);
   const [loading, setLoading] = useState(true);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [composeOpen, setComposeOpen] = useState(false);
@@ -174,16 +175,12 @@ export default function OrgBoardPage() {
                     <span className="text-xs text-muted-foreground">
                       {a.organization_name ?? ""}
                       {a.organization_name ? " · " : ""}
-                      {baseLocale === "ko"
-                        ? format(new Date(a.created_at), "yyyy.M.d HH:mm", { locale: ko })
-                        : format(new Date(a.created_at), "yyyy-MM-dd HH:mm")}
+                      {format(new Date(a.created_at), "PPp", { locale: dfLoc })}
                     </span>
                     {a.expires_at ? (
                       <span className="text-[10px] text-muted-foreground tabular-nums">
                         {tf.f01142}{" "}
-                        {baseLocale === "ko"
-                          ? format(new Date(a.expires_at), "M/d HH:mm", { locale: ko })
-                          : format(new Date(a.expires_at), "M/d HH:mm")}
+                        {format(new Date(a.expires_at), "Pp", { locale: dfLoc })}
                       </span>
                     ) : null}
                   </div>
@@ -220,9 +217,7 @@ export default function OrgBoardPage() {
                         <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100/80 dark:bg-emerald-950/50 px-3 py-1 text-xs font-semibold text-emerald-800 dark:text-emerald-200">
                           <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
                           {tf.f01283} ·{" "}
-                          {baseLocale === "ko"
-                            ? format(new Date(a.confirmedAt), "M/d HH:mm", { locale: ko })
-                            : format(new Date(a.confirmedAt), "M/d HH:mm")}
+                          {format(new Date(a.confirmedAt), "Pp", { locale: dfLoc })}
                         </span>
                       ) : (
                         <Button

@@ -9,13 +9,13 @@ import { useRouter } from 'next/navigation';
 import { PrintableOrder, OrderPrintData } from '../../../components/printable-order';
 import { useAuth } from '@/hooks/use-auth';
 import { PageHeader } from '@/components/page-header';
-import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
+import { format } from "date-fns";
 import { createClient } from '@/utils/supabase/client';
 import { Order } from '@/types/order';
 import { useSettings } from '@/hooks/use-settings';
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
+import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
 
 interface PrintPreviewClientProps {
     orderId: string;
@@ -28,7 +28,9 @@ export function PrintPreviewClient({ orderId }: PrintPreviewClientProps) {
     const { settings } = useSettings();
     const locale = usePreferredLocale();
     const tf = getMessages(locale).tenantFlows;
-    const isKo = toBaseLocale(locale) === "ko";    const [order, setOrder] = useState<Order | null>(null);
+    const dfLoc = dateFnsLocaleForBase(toBaseLocale(locale));
+    const dateTimeWeekday = (d: Date) => format(d, "Pp (EEE)", { locale: dfLoc });
+    const [order, setOrder] = useState<Order | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -106,12 +108,12 @@ export function PrintPreviewClient({ orderId }: PrintPreviewClientProps) {
     try {
         if (order.receipt_type === 'delivery_reservation' && order.delivery_info?.date) {
             const dateStr = `${order.delivery_info.date} ${order.delivery_info.time || '00:00'}`;
-            formattedDeliveryDate = format(new Date(dateStr), "yyyy-MM-dd HH:mm (E)", { locale: ko });
+            formattedDeliveryDate = dateTimeWeekday(new Date(dateStr));
         } else if (order.receipt_type === 'pickup_reservation' && order.pickup_info?.date) {
             const dateStr = `${order.pickup_info.date} ${order.pickup_info.time || '00:00'}`;
-            formattedDeliveryDate = format(new Date(dateStr), "yyyy-MM-dd HH:mm (E)", { locale: ko });
+            formattedDeliveryDate = dateTimeWeekday(new Date(dateStr));
         } else {
-            formattedDeliveryDate = format(new Date(order.order_date), "yyyy-MM-dd HH:mm (E)", { locale: ko });
+            formattedDeliveryDate = dateTimeWeekday(new Date(order.order_date));
         }
     } catch (e) {
         console.error("Error formatting delivery date:", e);
@@ -119,7 +121,7 @@ export function PrintPreviewClient({ orderId }: PrintPreviewClientProps) {
 
     // Mapping SaaS order to PrintableOrder format
     const printData: OrderPrintData = {
-        orderDate: format(orderDateObject, "yyyy-MM-dd HH:mm (E)", { locale: ko }),
+        orderDate: dateTimeWeekday(orderDateObject),
         ordererName: order.orderer?.name || tf.f00224,
         ordererCompany: order.orderer?.company || '',
         ordererContact: order.orderer?.contact || '-',

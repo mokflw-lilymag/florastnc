@@ -13,13 +13,15 @@ import { Input } from "@/components/ui/input";
 import { useOrders } from "@/hooks/use-orders";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
+import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
 
 export default function DeliveryProfitPage() {
   const { orders, loading } = useOrders();
   const [searchTerm, setSearchTerm] = useState("");
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
-  const isKo = toBaseLocale(locale) === "ko";  const deliveryOrders = useMemo(() => {
+  const dfLoc = dateFnsLocaleForBase(toBaseLocale(locale));
+  const deliveryOrders = useMemo(() => {
     return orders.filter(
       (order) => 
         order.receipt_type === "delivery_reservation" &&
@@ -148,7 +150,9 @@ export default function DeliveryProfitPage() {
                         return (
                           <TableRow key={order.id} className="hover:bg-slate-50 transition-colors">
                              <TableCell>
-                                <div className="font-medium text-slate-900">{format(new Date(order.order_date), "yyyy-MM-dd")}</div>
+                                <div className="font-medium text-slate-900">
+                                  {format(new Date(order.order_date), "P", { locale: dfLoc })}
+                                </div>
                                 <div className="text-xs text-muted-foreground font-mono mt-0.5">#{order.order_number}</div>
                              </TableCell>
                              <TableCell className="font-bold text-slate-800">{order.orderer.name}</TableCell>

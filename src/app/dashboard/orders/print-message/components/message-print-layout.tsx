@@ -1,6 +1,7 @@
-"use client"
+"use client";
 import { getMessages } from "@/i18n/getMessages";
 
+import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
 import { Printer, ArrowLeft } from "lucide-react";
@@ -9,7 +10,7 @@ import { Order } from "@/types/order";
 import { cn } from "@/lib/utils";
 import { FONT_CATALOG } from "@/lib/font-catalog";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
-import { toBaseLocale } from "@/i18n/config";
+import { bcp47LangTag, toBaseLocale } from "@/i18n/config";
 
 interface MessagePrintLayoutProps {
   order: Order;
@@ -70,8 +71,15 @@ export function MessagePrintLayout({
 }: MessagePrintLayoutProps) {
   const router = useRouter();
   const locale = usePreferredLocale();
+  const htmlLang = bcp47LangTag(toBaseLocale(locale));
   const tf = getMessages(locale).tenantFlows;
-  const isKo = toBaseLocale(locale) === "ko";  const config = labelConfigs[labelType] || labelConfigs['formtec-3108'];
+  const labelTypeLabel = useMemo(() => {
+    if (labelType === "formtec-3107") return tf.f02650;
+    if (labelType === "formtec-3108") return tf.f02651;
+    if (labelType === "formtec-3109") return tf.f02652;
+    return labelType;
+  }, [labelType, tf]);
+  const config = labelConfigs[labelType] || labelConfigs['formtec-3108'];
   const labels = Array(config.cells).fill(null);
 
   let finalMessageContent = messageContent || order.message?.content || "";
@@ -86,7 +94,7 @@ export function MessagePrintLayout({
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto" lang={htmlLang}>
       <style jsx global>{`
           @media print {
             @page {
@@ -128,7 +136,7 @@ export function MessagePrintLayout({
       <div className="no-print p-4">
         <PageHeader
           title={tf.f00204}
-          description={`${tf.f00640}: ${order.orderer?.name || tf.f00511} / ${tf.f00174}: ${labelType}`}
+          description={`${tf.f00640}: ${order.orderer?.name || tf.f00511} / ${tf.f00174}: ${labelTypeLabel}`}
         >
           <div className="flex gap-2">
             <Button

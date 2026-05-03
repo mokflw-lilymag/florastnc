@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { differenceInCalendarDays, format } from "date-fns";
-import { enUS, ko } from "date-fns/locale";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,8 +14,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
-import { resolveLocale } from "@/i18n/config";
+import { resolveLocale, toBaseLocale } from "@/i18n/config";
 import { getMessages } from "@/i18n/getMessages";
+import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
 
 const STORAGE_KEY_PREFIX = "floxync_renewal_notice_dismissed";
 
@@ -50,7 +50,7 @@ export function AnnualRenewalReminder({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const preferredLocale = usePreferredLocale();
-  const isKo = resolveLocale(preferredLocale).startsWith("ko");
+  const baseLocale = toBaseLocale(resolveLocale(preferredLocale));
   const R = getMessages(preferredLocale).renewalReminder;
 
   useEffect(() => {
@@ -87,9 +87,7 @@ export function AnnualRenewalReminder({
   };
 
   const endLabel = subscriptionEnd
-    ? isKo
-      ? format(new Date(subscriptionEnd), "yyyy년 M월 d일", { locale: ko })
-      : format(new Date(subscriptionEnd), "MMM d, yyyy", { locale: enUS })
+    ? format(new Date(subscriptionEnd), "PPP", { locale: dateFnsLocaleForBase(baseLocale) })
     : "";
 
   return (

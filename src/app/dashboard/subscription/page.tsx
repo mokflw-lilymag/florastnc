@@ -40,14 +40,22 @@ import { isAfter } from "date-fns";
 import { toast } from "sonner";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
+import { pickUiText } from "@/i18n/pick-ui-text";
 
 type Period = "1m" | "3m" | "6m" | "12m";
+type PlanId = "free" | "erp_only" | "pro";
+type LocalizedString = [string, string, string];
 
-/** English discount lines (source of truth; Korean stays on `PLANS`). */
 const EN_PLAN_DISCOUNTS: Record<string, Record<Period, string>> = {
   free: { "1m": "", "3m": "5% off", "6m": "8% off", "12m": "17% off" },
   erp_only: { "1m": "", "3m": "6% off", "6m": "8% off", "12m": "17% off" },
   pro: { "1m": "", "3m": "7% off", "6m": "8% off", "12m": "23% off" },
+};
+
+const KO_PLAN_DISCOUNTS: Record<string, Record<Period, string>> = {
+  free: { "1m": "", "3m": "5% 할인", "6m": "8% 할인", "12m": "17% 할인" },
+  erp_only: { "1m": "", "3m": "6% 할인", "6m": "8% 할인", "12m": "17% 할인" },
+  pro: { "1m": "", "3m": "7% 할인", "6m": "8% 할인", "12m": "23% 특가" },
 };
 
 const EN_PERIOD_LABELS: Record<Period, string> = {
@@ -57,91 +65,195 @@ const EN_PERIOD_LABELS: Record<Period, string> = {
   "12m": "12 months",
 };
 
-const PLANS = [
+const KO_PERIOD_LABELS: Record<Period, string> = {
+  "1m": "1개월",
+  "3m": "3개월",
+  "6m": "6개월",
+  "12m": "12개월",
+};
+
+const VI_PLAN_DISCOUNTS: Record<string, Record<Period, string>> = {
+  free: { "1m": "", "3m": "Giảm 5%", "6m": "Giảm 8%", "12m": "Giảm 17%" },
+  erp_only: { "1m": "", "3m": "Giảm 6%", "6m": "Giảm 8%", "12m": "Giảm 17%" },
+  pro: { "1m": "", "3m": "Giảm 7%", "6m": "Giảm 8%", "12m": "Giảm 23%" },
+};
+
+const VI_PERIOD_LABELS: Record<Period, string> = {
+  "1m": "1 tháng",
+  "3m": "3 tháng",
+  "6m": "6 tháng",
+  "12m": "12 tháng",
+};
+
+const PLAN_TEXTS: Record<
+  PlanId,
+  { subName: LocalizedString; description: LocalizedString; features: LocalizedString[] }
+> = {
+  free: {
+    subName: ["화원 리본 출력 전용", "Focused on flower ribbon printing", "Tập trung in ruy băng hoa"],
+    description: [
+      "리본 프린터 출력을 위한 핵심 기능을 제공합니다. 안정적인 출력이 최우선인 사장님께 추천합니다.",
+      "Core features for stable ribbon printing and basic order tracking.",
+      "Tính năng cốt lõi cho in ruy băng ổn định và theo dõi đơn hàng cơ bản.",
+    ],
+    features: [
+      [
+        "무제한 리본 출력 (모든 규격 지원)",
+        "Unlimited ribbon printing (all sizes)",
+        "In ruy băng không giới hạn (mọi khổ)",
+      ],
+      [
+        "전문 출력 로그 및 이력 상세 관리",
+        "Detailed print logs and history",
+        "Nhật ký in & lịch sử chi tiết",
+      ],
+      [
+        "고급 폰트 및 디자인 템플릿 라이브러리",
+        "Premium font and template library",
+        "Thư viện phông & mẫu cao cấp",
+      ],
+      [
+        "로컬 프린터 브릿지 무상 연동 서비스",
+        "Local printer bridge integration",
+        "Tích hợp bridge máy in cục bộ",
+      ],
+      [
+        "기본적인 주문 내역 수동 기록 및 관리",
+        "Manual order record management",
+        "Ghi nhận đơn hàng thủ công",
+      ],
+    ],
+  },
+  erp_only: {
+    subName: ["효율적인 화원 운영의 정석", "Efficient flower shop operations", "Vận hành tiệm hoa hiệu quả"],
+    description: [
+      "정산 및 고객 관리를 위한 스마트 솔루션입니다. 데이터 기반의 성장을 원하는 사장님께 완벽합니다.",
+      "Smart operations suite for settlement and customer growth.",
+      "Bộ công cụ vận hành thông minh: quyết toán và phát triển khách hàng.",
+    ],
+    features: [
+      [
+        "고객 CRM + 포인트 마케팅 자동화",
+        "Customer CRM + point marketing",
+        "CRM khách hàng + marketing điểm thưởng",
+      ],
+      [
+        "실시간 배송 배차 및 위치 추적 시스템",
+        "Live delivery dispatch and tracking",
+        "Điều phối giao hàng & theo dõi vị trí",
+      ],
+      [
+        "AI 영수증 OCR 정산 및 지출 내역 자동화",
+        "AI receipt OCR for expense automation",
+        "OCR hóa đơn AI cho chi phí tự động",
+      ],
+      [
+        "매입 단가 추이분석 및 재고 관리",
+        "Purchase price trend and inventory",
+        "Xu hướng giá nhập & tồn kho",
+      ],
+      [
+        "자동 세무 설정 및 월간 손익 정산 보고서",
+        "Auto tax setup and monthly P&L report",
+        "Thiết lập thuế & báo cáo P&L hàng tháng",
+      ],
+    ],
+  },
+  pro: {
+    subName: ["완벽한 디지털 트랜스포메이션", "Complete digital transformation", "Chuyển đổi số toàn diện"],
+    description: [
+      "프린터와 ERP, 마케팅 기능이 하나로 통합된 완전체입니다. 모든 것을 한 번에 해결하고 싶은 성공한 사장님의 선택.",
+      "All-in-one printer, ERP, and marketing bundle for scaling teams.",
+      "Gói máy in + ERP + marketing trong một, phù hợp mở rộng quy mô.",
+    ],
+    features: [
+      [
+        "PRINT + ERP 모든 기능 무제한 언리미티드",
+        "Unlimited PRINT + ERP core features",
+        "PRINT + ERP không giới hạn",
+      ],
+      [
+        "AI 사장님 비서 및 마케팅 원클릭 자동 포스팅",
+        "AI assistant and one-click marketing posts",
+        "Trợ lý AI & đăng bài marketing một chạm",
+      ],
+      [
+        "SNS(인스타/블로그) 실시간 연동 및 분석",
+        "SNS integration and performance analysis",
+        "Tích hợp mạng xã hội & phân tích",
+      ],
+      [
+        "외부 쇼핑몰(파트너 갤러리) 주문 자동 스크래핑",
+        "External marketplace order sync",
+        "Đồng bộ đơn sàn thương mại bên ngoài",
+      ],
+      [
+        "VIP 고객 전용 멤버십 전용관 개설 지원",
+        "VIP membership storefront support",
+        "Hỗ trợ cửa hàng thành viên VIP",
+      ],
+    ],
+  },
+};
+
+const PLANS_BASE = [
   {
-    id: "free",
+    id: "free" as const,
     name: "PRINT CORE",
-    subName: "화원 리본 출력 전용",
-    description: "리본 프린터 출력을 위한 핵심 기능을 제공합니다. 안정적인 출력이 최우선인 사장님께 추천합니다.",
     price: "20,000",
     yearlyPrice: "200,000",
     monthlyEffective: "16,660",
     savePercent: "17%",
-    features: [
-      "무제한 리본 출력 (모든 규격 지원)",
-      "전문 출력 로그 및 이력 상세 관리",
-      "고급 폰트 및 디자인 템플릿 라이브러리",
-      "로컬 프린터 브릿지 무상 연동 서비스",
-      "기본적인 주문 내역 수동 기록 및 관리"
-    ],
-    pricing: { 
-      "1m": { label: "1개월", price: "20,000", total: "20,000", discount: "" }, 
-      "3m": { label: "3개월", price: "19,000", total: "57,000", discount: "5% 할인" }, 
-      "6m": { label: "6개월", price: "18,330", total: "110,000", discount: "8% 할인" }, 
-      "12m": { label: "12개월", price: "16,660", total: "200,000", discount: "17% 할인" } 
+    pricing: {
+      "1m": { price: "20,000", total: "20,000" },
+      "3m": { price: "19,000", total: "57,000" },
+      "6m": { price: "18,330", total: "110,000" },
+      "12m": { price: "16,660", total: "200,000" },
     },
     color: "slate",
     icon: Printer,
     popular: false,
     themeColor: "indigo",
-    accent: "bg-slate-500"
+    accent: "bg-slate-500",
   },
   {
-    id: "erp_only",
+    id: "erp_only" as const,
     name: "ERP SMART",
-    subName: "효율적인 화원 운영의 정석",
-    description: "정산 및 고객 관리를 위한 스마트 솔루션입니다. 데이터 기반의 성장을 원하는 사장님께 완벽합니다.",
     price: "30,000",
     yearlyPrice: "300,000",
     monthlyEffective: "25,000",
     savePercent: "17%",
-    features: [
-      "고객 CRM + 포인트 마케팅 자동화",
-      "실시간 배송 배차 및 위치 추적 시스템",
-      "AI 영수증 OCR 정산 및 지출 내역 자동화",
-      "매입 단가 추이분석 및 재고 관리",
-      "자동 세무 설정 및 월간 손익 정산 보고서"
-    ],
-    pricing: { 
-      "1m": { label: "1개월", price: "30,000", total: "30,000", discount: "" }, 
-      "3m": { label: "3개월", price: "28,330", total: "85,000", discount: "6% 할인" }, 
-      "6m": { label: "6개월", price: "27,500", total: "165,000", discount: "8% 할인" }, 
-      "12m": { label: "12개월", price: "25,000", total: "300,000", discount: "17% 할인" } 
+    pricing: {
+      "1m": { price: "30,000", total: "30,000" },
+      "3m": { price: "28,330", total: "85,000" },
+      "6m": { price: "27,500", total: "165,000" },
+      "12m": { price: "25,000", total: "300,000" },
     },
     color: "emerald",
     icon: TrendingUp,
     popular: false,
     themeColor: "emerald",
-    accent: "bg-emerald-500"
+    accent: "bg-emerald-500",
   },
   {
-    id: "pro",
+    id: "pro" as const,
     name: "FLORA PRO",
-    subName: "완벽한 디지털 트랜스포메이션",
-    description: "프린터와 ERP, 마케팅 기능이 하나로 통합된 완전체입니다. 모든 것을 한 번에 해결하고 싶은 성공한 사장님의 선택.",
     price: "50,000",
     yearlyPrice: "500,000",
     monthlyEffective: "38,460",
     savePercent: "23%",
-    features: [
-      "PRINT + ERP 모든 기능 무제한 언리미티드",
-      "AI 사장님 비서 및 마케팅 원클릭 자동 포스팅",
-      "SNS(인스타/블로그) 실시간 연동 및 분석",
-      "외부 쇼핑몰(파트너 갤러리) 주문 자동 스크래핑",
-      "VIP 고객 전용 멤버십 전용관 개설 지원"
-    ],
-    pricing: { 
-      "1m": { label: "1개월", price: "50,000", total: "50,000", discount: "" }, 
-      "3m": { label: "3개월", price: "46,660", total: "140,000", discount: "7% 할인" }, 
-      "6m": { label: "6개월", price: "45,830", total: "275,000", discount: "8% 할인" }, 
-      "12m": { label: "12개월", price: "38,460", total: "500,000", discount: "23% 특가" } 
+    pricing: {
+      "1m": { price: "50,000", total: "50,000" },
+      "3m": { price: "46,660", total: "140,000" },
+      "6m": { price: "45,830", total: "275,000" },
+      "12m": { price: "38,460", total: "500,000" },
     },
     color: "indigo",
     icon: Crown,
     popular: true,
     themeColor: "indigo",
-    accent: "bg-indigo-600"
-  }
+    accent: "bg-indigo-600",
+  },
 ];
 
 export default function SubscriptionPage() {
@@ -154,57 +266,32 @@ export default function SubscriptionPage() {
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
   const baseLocale = toBaseLocale(locale);
+  const perMonthLabel = pickUiText(baseLocale, "/월", "/ mo", "/ tháng");
   const localizedPlans = useMemo(() => {
-    if (baseLocale === "ko") return PLANS;
-    return PLANS.map((plan) => ({
-      ...plan,
-      subName:
-        plan.id === "free"
-          ? "Focused on flower ribbon printing"
-          : plan.id === "erp_only"
-            ? "Efficient flower shop operations"
-            : "Complete digital transformation",
-      description:
-        plan.id === "free"
-          ? "Core features for stable ribbon printing and basic order tracking."
-          : plan.id === "erp_only"
-            ? "Smart operations suite for settlement and customer growth."
-            : "All-in-one printer, ERP, and marketing bundle for scaling teams.",
-      features:
-        plan.id === "free"
-          ? [
-              "Unlimited ribbon printing (all sizes)",
-              "Detailed print logs and history",
-              "Premium font and template library",
-              "Local printer bridge integration",
-              "Manual order record management",
-            ]
-          : plan.id === "erp_only"
-            ? [
-                "Customer CRM + point marketing",
-                "Live delivery dispatch and tracking",
-                "AI receipt OCR for expense automation",
-                "Purchase price trend and inventory",
-                "Auto tax setup and monthly P&L report",
-              ]
-            : [
-                "Unlimited PRINT + ERP core features",
-                "AI assistant and one-click marketing posts",
-                "SNS integration and performance analysis",
-                "External marketplace order sync",
-                "VIP membership storefront support",
-              ],
-      pricing: Object.fromEntries(
-        (Object.keys(plan.pricing) as Period[]).map((k) => [
-          k,
-          {
-            ...plan.pricing[k],
-            label: EN_PERIOD_LABELS[k],
-            discount: EN_PLAN_DISCOUNTS[plan.id][k],
-          },
-        ])
-      ) as typeof plan.pricing,
-    }));
+    const T = (triple: LocalizedString) => pickUiText(baseLocale, triple[0], triple[1], triple[2]);
+    return PLANS_BASE.map((plan) => {
+      const copy = PLAN_TEXTS[plan.id];
+      return {
+        ...plan,
+        subName: T(copy.subName),
+        description: T(copy.description),
+        features: copy.features.map(T),
+        pricing: Object.fromEntries(
+          (Object.keys(plan.pricing) as Period[]).map((k) => [
+            k,
+            {
+              ...plan.pricing[k],
+              label: T([KO_PERIOD_LABELS[k], EN_PERIOD_LABELS[k], VI_PERIOD_LABELS[k]]),
+              discount: T([
+                KO_PLAN_DISCOUNTS[plan.id][k],
+                EN_PLAN_DISCOUNTS[plan.id][k],
+                VI_PLAN_DISCOUNTS[plan.id][k],
+              ]),
+            },
+          ]),
+        ) as (typeof PLANS_BASE)[number]["pricing"] & Record<Period, { label: string; discount: string }>,
+      };
+    });
   }, [baseLocale]);
 
   const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY || 'test_ck_D5akZmejPyb70ng83YXrb8zV7n9E';
@@ -408,6 +495,7 @@ export default function SubscriptionPage() {
                isProcessing={isProcessing}
                index={i}
                tf={tf}
+               perMonthLabel={perMonthLabel}
              />
            ))}
         </div>
@@ -493,7 +581,25 @@ function Stat({ text, value }: { text: string, value: number }) {
   );
 }
 
-function TiltCard({ plan, period, onSubscribe, isCurrent, isProcessing, index, tf }: any) {
+function TiltCard({
+  plan,
+  period,
+  onSubscribe,
+  isCurrent,
+  isProcessing,
+  index,
+  tf,
+  perMonthLabel,
+}: {
+  plan: any;
+  period: Period;
+  onSubscribe: (planId: string, period: Period) => void;
+  isCurrent: boolean;
+  isProcessing: boolean;
+  index: number;
+  tf: Record<string, string>;
+  perMonthLabel: string;
+}) {
   const x = useMotionValue(0);
   const y = useMotionValue(0);
   const mouseXSpring = useSpring(x);
@@ -553,7 +659,7 @@ function TiltCard({ plan, period, onSubscribe, isCurrent, isProcessing, index, t
              <div className="mb-12">
                 <div className="flex items-baseline gap-2">
                    <span className="text-6xl font-black tracking-tighter text-white">₩{pricing.price}</span>
-                   <span className="text-slate-500 font-bold uppercase text-xs">/ Mo</span>
+                   <span className="text-slate-500 font-bold uppercase text-xs">{perMonthLabel}</span>
                 </div>
                 {pricing.discount && (
                    <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full border border-white/10">

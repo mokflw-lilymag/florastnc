@@ -54,6 +54,8 @@ import { useIsCapacitorAndroid } from "@/hooks/use-capacitor-android";
 import { usePartnerTouchUi } from "@/hooks/use-partner-touch-ui";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
+import { pickUiText } from "@/i18n/pick-ui-text";
+import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
 
 export default function OrdersPage() {
   const isAndroidApp = useIsCapacitorAndroid();
@@ -66,7 +68,11 @@ export default function OrdersPage() {
   const { settings } = useSettings();
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
-  const isKo = toBaseLocale(locale) === "ko";
+  const baseLocale = toBaseLocale(locale);
+  const dfLoc = dateFnsLocaleForBase(baseLocale);
+  const tr = (ko: string, en: string, vi?: string) => pickUiText(baseLocale, ko, en, vi);
+  const formatStatCount = (n: number) =>
+    n === 1 ? tf.f00796.replace("{n}", String(n)) : tf.f00795.replace("{n}", String(n));
   const statusLabels: Record<string, string> = {
     all: tf.f00556,
     processing: tf.f00654,
@@ -200,7 +206,7 @@ export default function OrdersPage() {
 
       if (totalSynced > 0) {
         toast.success(tf.f00789.replace("{count}", String(totalSynced)), {
-          description: `${messages.join(", ")}${isKo ? " - 주문 목록이 갱신됩니다." : " - order list updated."}`,
+          description: `${messages.join(", ")}${tr(" - 주문 목록이 갱신됩니다.", " - Order list updated.", " - Danh sách đơn hàng đã được cập nhật.")}`,
           duration: 5000,
         });
         refreshOrders();
@@ -448,7 +454,7 @@ export default function OrdersPage() {
     
     setIsExporting(true);
     try {
-      const data = prepareOrdersForGoogleSheet(orders, exportStartDate, exportEndDate);
+      const data = prepareOrdersForGoogleSheet(orders, exportStartDate, exportEndDate, locale);
       const sheetId = settings?.googleSheetId;
       
       if (!sheetId) {
@@ -467,7 +473,7 @@ export default function OrdersPage() {
       if (result.success) {
         toast.success(tf.f00784);
       } else {
-        throw new Error(result.message || "Unknown error");
+        throw new Error(result.message || tr("알 수 없는 오류", "Unknown error", "Lỗi không xác định"));
       }
     } catch (error: any) {
       console.error(error);
@@ -475,9 +481,7 @@ export default function OrdersPage() {
         error && typeof error === "object" && "message" in error
           ? String((error as { message?: string }).message)
           : "";
-      const msg =
-        raw ||
-        (isKo ? "알 수 없는 오류" : "Unknown error");
+      const msg = raw || tr("알 수 없는 오류", "Unknown error", "Lỗi không xác định");
       toast.error(tf.f00794.replace("{message}", msg));
     } finally {
       setIsExporting(false);
@@ -510,7 +514,7 @@ export default function OrdersPage() {
           </Button>
           <Button 
             variant="outline" 
-            onClick={() => exportOrdersToExcel(orders)}
+            onClick={() => exportOrdersToExcel(orders, undefined, undefined, locale)}
             className="flex-1 lg:flex-none h-11 lg:h-12 px-6 rounded-2xl border-2 border-slate-100 bg-white hover:bg-slate-50 font-bold transition-all shadow-sm gap-2"
           >
             <Download className="h-4 w-4 text-slate-400" /> 
@@ -558,13 +562,7 @@ export default function OrdersPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-black text-slate-900">
-              {isKo
-                ? tf.f00795.replace("{n}", String(stats.todayCount))
-                : stats.todayCount === 1
-                  ? tf.f00796.replace("{n}", String(stats.todayCount))
-                  : tf.f00795.replace("{n}", String(stats.todayCount))}
-            </div>
+            <div className="text-3xl font-black text-slate-900">{formatStatCount(stats.todayCount)}</div>
             <p className="text-xs text-slate-400 mt-2 font-medium flex items-center gap-1">
               {tf.f00101}
             </p>
@@ -579,13 +577,7 @@ export default function OrdersPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-black text-slate-900">
-              {isKo
-                ? tf.f00795.replace("{n}", String(stats.processingCount))
-                : stats.processingCount === 1
-                  ? tf.f00796.replace("{n}", String(stats.processingCount))
-                  : tf.f00795.replace("{n}", String(stats.processingCount))}
-            </div>
+            <div className="text-3xl font-black text-slate-900">{formatStatCount(stats.processingCount)}</div>
             <p className="text-xs text-slate-400 mt-2 font-medium">
               {tf.f00090}
             </p>
@@ -602,13 +594,7 @@ export default function OrdersPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-black text-slate-900">
-              {isKo
-                ? tf.f00795.replace("{n}", String(stats.completedCount))
-                : stats.completedCount === 1
-                  ? tf.f00796.replace("{n}", String(stats.completedCount))
-                  : tf.f00795.replace("{n}", String(stats.completedCount))}
-            </div>
+            <div className="text-3xl font-black text-slate-900">{formatStatCount(stats.completedCount)}</div>
             <p className="text-xs text-slate-400 mt-2 font-medium font-bold text-emerald-500 flex items-center gap-1">
               <TrendingUp className="h-3 w-3" />{" "}
               {tf.f00797.replace(
@@ -806,16 +792,32 @@ export default function OrdersPage() {
                                     <Monitor className="w-2.5 h-2.5" /> POS
                                   </Badge>
                                 )}
-                                <span className="text-[10px] font-bold text-slate-400">{tf.f00638}: {format(parseISO(order.created_at || new Date().toISOString()), 'yyyy-MM-dd')}</span>
+                                <span className="text-[10px] font-bold text-slate-400">
+                                  {tf.f00638}:{" "}
+                                  {format(parseISO(order.created_at || new Date().toISOString()), "P", {
+                                    locale: dfLoc,
+                                  })}
+                                </span>
                               </div>
-                              <div className="font-bold text-slate-900 truncate max-w-[200px]">{order.items[0]?.name || tf.f00116} {order.items.length > 1 ? (isKo ? `외 ${order.items.length - 1}건` : `+${order.items.length - 1}`) : ""}</div>
+                              <div className="font-bold text-slate-900 truncate max-w-[200px]">
+                                {order.items[0]?.name || tf.f00116}{" "}
+                                {order.items.length > 1
+                                  ? tr(
+                                        `외 ${order.items.length - 1}건`,
+                                        `+${order.items.length - 1}`,
+                                        `+${order.items.length - 1}`
+                                    )
+                                  : ""}
+                              </div>
                             </div>
                           </TableCell>
                           <TableCell className="py-6 cursor-pointer" onClick={() => handleOrderClick(order)}>
                              <div className="space-y-1">
                                <div className="flex items-center gap-2">
                                  <span className="text-sm font-bold text-slate-900">{order.orderer.name}</span>
-                                 <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-bold">Sender</span>
+                                 <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-bold">
+                                   {tr("보내는 분", "Sender", "Người gửi")}
+                                 </span>
                                </div>
                                <div className="text-xs text-slate-400 font-medium">{order.delivery_info?.recipientName || order.pickup_info?.pickerName || "-"} {tf.f00002}</div>
                              </div>
@@ -824,7 +826,7 @@ export default function OrdersPage() {
                              <div className="space-y-1">
                                <div className="flex items-center gap-1.5 text-sm font-bold text-slate-900">
                                  <CalendarIcon className="h-3.5 w-3.5 text-slate-400" />
-                                 {format(parseISO(order.order_date), 'yyyy-MM-dd HH:mm')}
+                                 {format(parseISO(order.order_date), "Pp", { locale: dfLoc })}
                                </div>
                                <Badge variant="outline" className={cn(
                                  "text-[10px] border-none font-black px-0 uppercase tracking-tighter",
@@ -946,7 +948,9 @@ export default function OrdersPage() {
               <div className={cn("lg:hidden space-y-4 p-2 sm:p-4", isAndroidApp ? "pb-32" : "pb-24")}>
                 {filteredOrders.length > 0 && (
                   <div className="flex justify-between items-center px-2 mb-2">
-                    <span className="text-xs font-bold text-slate-400">{isKo ? `Total ${filteredOrders.length}건` : `Total ${filteredOrders.length}`}</span>
+                    <span className="text-xs font-bold text-slate-400">
+                        {tr(`Total ${filteredOrders.length}건`, `Total ${filteredOrders.length}`, `Tổng ${filteredOrders.length} đơn`)}
+                    </span>
                     <Button 
                       variant="ghost" 
                       size="sm" 
@@ -989,7 +993,16 @@ export default function OrdersPage() {
                               <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">{order.order_number}</span>
                               <span className="text-[9px] font-bold text-slate-400">{tf.f00638}: {format(parseISO(order.created_at || new Date().toISOString()), 'MM-dd')}</span>
                             </div>
-                            <div className="font-bold text-slate-900">{order.items[0]?.name || tf.f00116} {order.items.length > 1 ? (isKo ? `외 ${order.items.length - 1}건` : `+${order.items.length - 1}`) : ""}</div>
+                            <div className="font-bold text-slate-900">
+                              {order.items[0]?.name || tf.f00116}{" "}
+                              {order.items.length > 1
+                                ? tr(
+                                      `외 ${order.items.length - 1}건`,
+                                      `+${order.items.length - 1}`,
+                                      `+${order.items.length - 1}`
+                                  )
+                                : ""}
+                            </div>
                           </div>
                           <Badge className={cn(
                             "rounded-full px-3 py-0.5 font-bold text-[10px] border-none shadow-none",
@@ -1005,7 +1018,10 @@ export default function OrdersPage() {
                           <div className="space-y-1">
                             <div className="text-[10px] font-bold text-slate-400 uppercase">{tf.f00646}</div>
                             <div className="text-xs font-bold text-slate-900">{order.orderer.name}</div>
-                            <div className="text-[10px] text-slate-500">{order.delivery_info?.recipientName || order.pickup_info?.pickerName || "-"}{isKo ? "님" : ""}</div>
+                            <div className="text-[10px] text-slate-500">
+                              {order.delivery_info?.recipientName || order.pickup_info?.pickerName || "-"}
+                              {tr("님", "", "")}
+                            </div>
                           </div>
                           <div className="space-y-1">
                             <div className="text-[10px] font-bold text-slate-400 uppercase">{tf.f00097}</div>
@@ -1097,8 +1113,16 @@ export default function OrdersPage() {
                 )}>
                   <div className="bg-slate-900 text-white rounded-3xl shadow-2xl p-4 flex items-center justify-between border border-slate-800">
                     <div className="flex flex-col px-2">
-                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Selected</span>
-                       <span className="text-sm font-bold">{isKo ? `${selectedOrderIds.length}건 선택 중` : `${selectedOrderIds.length} selected`}</span>
+                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                         {tr("선택됨", "Selected", "Đã chọn")}
+                       </span>
+                       <span className="text-sm font-bold">
+                         {tr(
+                             `${selectedOrderIds.length}건 선택 중`,
+                             `${selectedOrderIds.length} selected`,
+                             `Đang chọn ${selectedOrderIds.length} đơn`
+                         )}
+                       </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Button 

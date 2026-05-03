@@ -1,7 +1,7 @@
 "use client";
 import { getMessages } from "@/i18n/getMessages";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { 
   FileText, 
   Plus, 
@@ -26,6 +26,9 @@ import { createClient } from "@/utils/supabase/client";
 import { printDocument } from "@/lib/print-document";
 import { toast } from "sonner";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { format } from "date-fns";
+import { toBaseLocale, bcp47LangTag } from "@/i18n/config";
+import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
 
 interface EstimateDialogProps {
   customer: Customer | null;
@@ -52,15 +55,23 @@ export function EstimateDialog({ customer, isOpen, onOpenChange }: EstimateDialo
   const [items, setItems] = useState<EstimateItem[]>([
     { id: Math.random().toString(36).substr(2, 9), name: "", quantity: 1, price: 0 }
   ]);
+  const locale = usePreferredLocale();
+  const m = getMessages(locale);
+  const tf = m.tenantFlows;
+  const baseLocale = toBaseLocale(locale);
+  const dfLoc = dateFnsLocaleForBase(baseLocale);
+  const issueDateLabel = useMemo(
+    () => format(new Date(), "PPP", { locale: dfLoc }),
+    [dfLoc]
+  );
+
   const [businessInfo, setBusinessInfo] = useState({
     name: "Floxync Florist Group",
-    representative: "김미화",
-    address: "서울특별시 서초구 꽃시장길 12",
+    representative: m.tenantFlows.f02625,
+    address: m.tenantFlows.f02626,
     contact: "02-1234-5678",
     businessNumber: "123-45-67890"
   });
-  const locale = usePreferredLocale();
-  const tf = getMessages(locale).tenantFlows;
   useEffect(() => {
     if (isOpen && customer) {
       if (viewMode === 'edit') {
@@ -104,8 +115,8 @@ export function EstimateDialog({ customer, isOpen, onOpenChange }: EstimateDialo
           const d = settings.data;
           setBusinessInfo({
             name: tenant?.name || d.siteName || "Floxync Florist Group",
-            representative: d.representative || "김미화",
-            address: d.address || "서울특별시 서초구 꽃시장길 12",
+            representative: d.representative || tf.f02625,
+            address: d.address || tf.f02626,
             contact: d.contactPhone || "02-1234-5678",
             businessNumber: d.businessNumber || "123-45-67890"
           });
@@ -220,41 +231,41 @@ export function EstimateDialog({ customer, isOpen, onOpenChange }: EstimateDialo
                 {/* Left: Recipient Details */}
                 <div className="space-y-4">
                     <div className="border-b-2 border-slate-200 pb-3 space-y-2">
-                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">귀하 (수신)</span>
+                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">{tf.f02605}</span>
                        <div className="flex flex-col gap-1.5">
                           <Input 
                             value={recipientCompany} 
                             onChange={e => setRecipientCompany(e.target.value)} 
                             className="text-xl font-black border-none p-0 focus-visible:ring-0 h-auto bg-transparent hover:bg-slate-50 transition-colors rounded-none placeholder:text-slate-300"
-                            placeholder="수신 회사명"
+                            placeholder={tf.f02606}
                           />
                           <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-slate-500 whitespace-nowrap">담당자:</span>
+                            <span className="text-xs font-bold text-slate-500 whitespace-nowrap">{tf.f02607}</span>
                             <Input 
                               value={recipientName} 
                               onChange={e => setRecipientName(e.target.value)} 
                               className="text-sm font-bold border-none p-0 focus-visible:ring-0 h-auto bg-transparent hover:bg-slate-50 transition-colors rounded-none placeholder:text-slate-300 w-full"
-                              placeholder="담당자 이름"
+                              placeholder={tf.f02608}
                             />
-                            <span className="text-xs font-bold text-slate-500">님 귀하</span>
+                            <span className="text-xs font-bold text-slate-500">{tf.f02609}</span>
                           </div>
                           <div className="flex items-center gap-4 text-[11px] font-medium text-slate-500">
                             <div className="flex gap-2 items-center">
-                               <span className="text-slate-400">연락처</span>
+                               <span className="text-slate-400">{tf.f00444}</span>
                                <Input 
                                  value={recipientContact} 
                                  onChange={e => setRecipientContact(e.target.value)} 
                                  className="border-none p-0 h-auto bg-transparent focus-visible:ring-0 w-32"
-                                 placeholder="연락처"
+                                 placeholder={tf.f02603}
                                />
                             </div>
                             <div className="flex gap-2 items-center">
-                               <span className="text-slate-400">이메일</span>
+                               <span className="text-slate-400">{tf.f00504}</span>
                                <Input 
                                  value={recipientEmail} 
                                  onChange={e => setRecipientEmail(e.target.value)} 
                                  className="border-none p-0 h-auto bg-transparent focus-visible:ring-0 w-40"
-                                 placeholder="이메일 주소"
+                                 placeholder={tf.f02627}
                                />
                             </div>
                           </div>
@@ -262,29 +273,29 @@ export function EstimateDialog({ customer, isOpen, onOpenChange }: EstimateDialo
                     </div>
                     <div className="bg-slate-50 p-3 rounded-lg border border-dashed border-slate-200">
                        <p className="text-[11px] text-slate-500 leading-relaxed font-bold italic">
-                          "아래와 같이 품목 및 규격에 따른 견적을 제출하오니 검토하여 주시기 바랍니다."
+                          {tf.f00429}
                        </p>
                     </div>
                 </div>
 
                 {/* Right: Provider (Our Info) */}
                 <div className="border-2 border-slate-900 p-4 rounded-sm bg-white relative">
-                   <div className="absolute top-2 right-2 w-10 h-10 border-2 border-red-500/20 rounded-full flex items-center justify-center text-red-500/20 font-black text-[8px] rotate-12"> (인) </div>
+                   <div className="absolute top-2 right-2 w-10 h-10 border-2 border-red-500/20 rounded-full flex items-center justify-center text-red-500/20 font-black text-[8px] rotate-12">{tf.f02610}</div>
                    <div className="space-y-1.5 relative z-10">
-                      <span className="text-[10px] font-black text-slate-400 uppercase block mb-1">공급자 (발행)</span>
+                      <span className="text-[10px] font-black text-slate-400 uppercase block mb-1">{tf.f02611}</span>
                       <p className="text-sm font-black text-slate-900">{businessInfo.name}</p>
                       <p className="text-[10px] font-medium text-slate-500 flex gap-2">
-                         <span className="text-slate-400 w-12 shrink-0">등록번호</span> <span>{businessInfo.businessNumber}</span>
+                         <span className="text-slate-400 w-12 shrink-0">{tf.f02612}</span> <span>{businessInfo.businessNumber}</span>
                       </p>
                       <p className="text-[10px] font-medium text-slate-500 flex gap-2">
-                         <span className="text-slate-400 w-12 shrink-0">대 표</span> <span>{businessInfo.representative}</span>
+                         <span className="text-slate-400 w-12 shrink-0">{tf.f02613}</span> <span>{businessInfo.representative}</span>
                       </p>
                       <p className="text-[10px] font-medium text-slate-500 flex gap-2">
-                         <span className="text-slate-400 w-12 shrink-0">사업장</span>
+                         <span className="text-slate-400 w-12 shrink-0">{tf.f02614}</span>
                          <span className="leading-tight break-keep">{businessInfo.address}</span>
                       </p>
                       <p className="text-[10px] font-medium text-slate-500 flex gap-2">
-                         <span className="text-slate-400 w-12 shrink-0">연락처</span> <span>{businessInfo.contact}</span>
+                         <span className="text-slate-400 w-12 shrink-0">{tf.f00444}</span> <span>{businessInfo.contact}</span>
                       </p>
                    </div>
                 </div>
@@ -311,17 +322,17 @@ export function EstimateDialog({ customer, isOpen, onOpenChange }: EstimateDialo
                        {useVat && (
                          <>
                            <div className="text-right">
-                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">공급가액</span>
+                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">{tf.f02615}</span>
                               <span className="text-sm font-bold text-slate-600">₩{subtotal.toLocaleString()}</span>
                            </div>
                            <div className="text-right">
-                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">부가세(10%)</span>
+                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">{tf.f02616}</span>
                               <span className="text-sm font-bold text-slate-600">₩{vat.toLocaleString()}</span>
                            </div>
                          </>
                        )}
                        <div className="text-right">
-                          <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest block mb-0.5">최종 견적합계</span>
+                          <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest block mb-0.5">{tf.f02617}</span>
                           <span className="text-3xl font-black text-slate-900 tracking-tighter">₩{total.toLocaleString()}</span>
                        </div>
                     </div>
@@ -330,10 +341,10 @@ export function EstimateDialog({ customer, isOpen, onOpenChange }: EstimateDialo
 
               <div className="flex-1 flex flex-col min-h-0 border rounded-xl overflow-hidden shadow-inner bg-slate-50/30">
                 <div className="p-3 bg-slate-100/50 border-b grid grid-cols-[1fr_80px_140px_140px_40px] gap-2 items-center text-[10px] font-black text-slate-500 uppercase tracking-widest px-4">
-                  <span>품명 및 규격</span>
-                  <span className="text-center">수량</span>
-                  <span className="text-right">단가</span>
-                  <span className="text-right">합계</span>
+                  <span>{tf.f02618}</span>
+                  <span className="text-center">{tf.f00377}</span>
+                  <span className="text-right">{tf.f00148}</span>
+                  <span className="text-right">{tf.f02164}</span>
                   <span></span>
                 </div>
                 
@@ -345,9 +356,9 @@ export function EstimateDialog({ customer, isOpen, onOpenChange }: EstimateDialo
                             id={`item-name-${index}`}
                             value={item.name}
                             onChange={e => updateItem(item.id, 'name', e.target.value)}
-                            placeholder="예: 계절꽃다발 (L사이즈)"
+                            placeholder={tf.f02624}
                             className="h-9 text-sm font-medium border-transparent focus:border-slate-200 focus:bg-white bg-slate-50/50"
-                            lang="ko"
+                            lang={bcp47LangTag(baseLocale)}
                             autoFocus={index === items.length - 1 && index > 0}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter') {
@@ -421,10 +432,10 @@ export function EstimateDialog({ customer, isOpen, onOpenChange }: EstimateDialo
                <div className="w-full max-w-[650px] bg-white shadow-2xl p-12 min-h-[800px] border border-slate-200 flex flex-col scale-[0.98] origin-top">
                   {/* Real Document Header */}
                   <div className="flex justify-between items-baseline border-b-2 border-slate-900 pb-6 mb-10">
-                     <h1 className="text-3xl font-black tracking-tighter">견 적 서</h1>
+                     <h1 className="text-3xl font-black tracking-tighter">{tf.f00041}</h1>
                      <div className="text-right">
-                        <p className="text-[10px] font-bold text-slate-400">발행일자</p>
-                        <p className="text-sm font-black">{new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                        <p className="text-[10px] font-bold text-slate-400">{tf.f02621}</p>
+                        <p className="text-sm font-black">{issueDateLabel}</p>
                      </div>
                   </div>
 
@@ -432,43 +443,43 @@ export function EstimateDialog({ customer, isOpen, onOpenChange }: EstimateDialo
                   <div className="grid grid-cols-2 gap-8 mb-10">
                      <div className="space-y-4 text-left">
                         <div className="space-y-1">
-                           <span className="text-[10px] font-bold text-slate-400">귀하 (수신)</span>
+                           <span className="text-[10px] font-bold text-slate-400">{tf.f02605}</span>
                            <div className="border-b border-slate-200 pb-2">
                               {recipientCompany && <p className="text-lg font-black mb-1">{recipientCompany}</p>}
                               <p className="text-base font-bold">
-                                 <span className="text-slate-400 text-xs mr-2">담당자:</span>
-                                 {recipientName} <span className="text-xs font-medium text-slate-500">님 귀하</span>
+                                 <span className="text-slate-400 text-xs mr-2">{tf.f02607}</span>
+                                 {recipientName} <span className="text-xs font-medium text-slate-500">{tf.f02609}</span>
                               </p>
                            </div>
                            {(recipientContact || recipientEmail) && (
                               <div className="text-[9px] text-slate-400 space-y-0.5 mt-2">
-                                 {recipientContact && <p>연락처: {recipientContact}</p>}
-                                 {recipientEmail && <p>이메일: {recipientEmail}</p>}
+                                 {recipientContact && <p>{tf.f02622} {recipientContact}</p>}
+                                 {recipientEmail && <p>{tf.f02623} {recipientEmail}</p>}
                               </div>
                            )}
                         </div>
                         <p className="text-[10px] text-slate-500 italic font-bold leading-relaxed pt-2 border-t border-dashed border-slate-100">
-                            "아래와 같이 품목 및 규격에 따른 견적을 제출하오니 검토하여 주시기 바랍니다."
+                            {tf.f00429}
                         </p>
                      </div>
 
                      <div className="border border-slate-900 p-4 rounded-sm relative overflow-hidden flex flex-col justify-between text-left">
-                        <div className="absolute top-2 right-2 w-10 h-10 border-2 border-red-500/30 rounded-full flex items-center justify-center text-red-500/30 font-black text-[10px] rotate-12 -z-0"> (인) </div>
+                        <div className="absolute top-2 right-2 w-10 h-10 border-2 border-red-500/30 rounded-full flex items-center justify-center text-red-500/30 font-black text-[10px] rotate-12 -z-0">{tf.f02610}</div>
                         <div className="space-y-1.5 relative z-10 w-full text-[10px]">
-                           <span className="text-slate-400 font-bold block mb-1">공급자 (발행)</span>
+                           <span className="text-slate-400 font-bold block mb-1">{tf.f02611}</span>
                            <p className="text-xs font-black">{businessInfo.name}</p>
                            <p className="text-slate-600 flex gap-2">
-                              <span className="text-slate-400 w-14 shrink-0">등록번호</span> <span>{businessInfo.businessNumber}</span>
+                              <span className="text-slate-400 w-14 shrink-0">{tf.f02612}</span> <span>{businessInfo.businessNumber}</span>
                            </p>
                            <p className="text-slate-600 flex gap-2">
-                              <span className="text-slate-400 w-14 shrink-0">대 표</span> <span>{businessInfo.representative}</span>
+                              <span className="text-slate-400 w-14 shrink-0">{tf.f02613}</span> <span>{businessInfo.representative}</span>
                            </p>
                            <div className="text-slate-600 flex gap-2">
-                              <span className="text-slate-400 w-14 shrink-0 font-medium">사업장</span> 
+                              <span className="text-slate-400 w-14 shrink-0 font-medium">{tf.f02614}</span> 
                               <span className="leading-tight break-keep">{businessInfo.address}</span>
                            </div>
                            <div className="text-slate-600 flex gap-2">
-                              <span className="text-slate-400 w-14 shrink-0 font-medium">연락처</span> 
+                              <span className="text-slate-400 w-14 shrink-0 font-medium">{tf.f00444}</span> 
                               <span className="font-medium">{businessInfo.contact}</span>
                            </div>
                         </div>
@@ -480,10 +491,10 @@ export function EstimateDialog({ customer, isOpen, onOpenChange }: EstimateDialo
                      <table className="w-full text-left">
                         <thead>
                            <tr className="bg-slate-900 text-white text-[9px] uppercase font-black tracking-widest">
-                              <th className="p-2 pl-4">품명 및 규격</th>
-                              <th className="p-2 text-center w-12">수량</th>
-                              <th className="p-2 text-right w-24">단가</th>
-                              <th className="p-2 text-right w-24 pr-4">금액</th>
+                              <th className="p-2 pl-4">{tf.f02618}</th>
+                              <th className="p-2 text-center w-12">{tf.f00377}</th>
+                              <th className="p-2 text-right w-24">{tf.f00148}</th>
+                              <th className="p-2 text-right w-24 pr-4">{tf.f00097}</th>
                            </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 border-b border-slate-200">
@@ -500,20 +511,20 @@ export function EstimateDialog({ customer, isOpen, onOpenChange }: EstimateDialo
                            {useVat && (
                               <>
                                  <tr className="text-[9px] font-bold text-slate-500">
-                                    <td colSpan={3} className="p-2 text-right">공급가액</td>
+                                    <td colSpan={3} className="p-2 text-right">{tf.f02615}</td>
                                     <td className="p-2 text-right pr-4">₩{subtotal.toLocaleString()}</td>
                                  </tr>
                                  <tr className="text-[9px] font-bold text-slate-500">
-                                    <td colSpan={3} className="p-2 pt-0 text-right">부가세(10%)</td>
+                                    <td colSpan={3} className="p-2 pt-0 text-right">{tf.f02616}</td>
                                     <td className="p-2 pt-0 text-right pr-4 border-b border-slate-200 pb-3">₩{vat.toLocaleString()}</td>
                                  </tr>
                               </>
                            )}
                            <tr className="bg-slate-100">
-                              <td colSpan={2} className="p-4 pl-6 text-sm font-black uppercase tracking-widest text-slate-600">합 계 금 액</td>
+                              <td colSpan={2} className="p-4 pl-6 text-sm font-black uppercase tracking-widest text-slate-600">{tf.f02619}</td>
                               <td colSpan={2} className="p-4 pr-6 text-right text-2xl font-black text-slate-900 italic tracking-tighter relative">
                                  ₩{total.toLocaleString()}
-                                 {!useVat && <span className="absolute -top-3 right-6 text-[8px] font-bold text-slate-300">(부가세 면세)</span>}
+                                 {!useVat && <span className="absolute -top-3 right-6 text-[8px] font-bold text-slate-300">{tf.f02620}</span>}
                               </td>
                            </tr>
                         </tfoot>

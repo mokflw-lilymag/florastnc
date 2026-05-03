@@ -9,7 +9,8 @@ type Props = { params: Promise<{ locale: string }> };
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
   if (!isSupportedLocale(locale)) {
-    return { title: "Floxync" };
+    const L = getMessages("en").login;
+    return { title: `${L.metaTitle} · Floxync` };
   }
   const L = getMessages(locale as AppLocale).login;
   return {

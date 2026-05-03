@@ -11,20 +11,23 @@ import { Loader2, Building, Store } from 'lucide-react';
 import Image from 'next/image';
 import { usePreferredLocale } from '@/hooks/use-preferred-locale';
 import { toBaseLocale } from '@/i18n/config';
+import { pickUiText } from '@/i18n/pick-ui-text';
 
 export default function OnboardingPage() {
   const router = useRouter();
   const supabase = createClient();
   const locale = usePreferredLocale();
-  const isKo = toBaseLocale(locale) === "ko";
-  const tr = (ko: string, en: string) => (isKo ? ko : en);
+  const baseLocale = toBaseLocale(locale);
+  const tr = (ko: string, en: string, vi?: string) => pickUiText(baseLocale, ko, en, vi);
   const [shopName, setShopName] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!shopName.trim()) {
-      toast.error(tr('매장명을 입력해주세요.', 'Please enter the shop name.'));
+      toast.error(
+        tr('매장명을 입력해주세요.', 'Please enter the shop name.', 'Vui lòng nhập tên cửa hàng.')
+      );
       return;
     }
 
@@ -37,8 +40,12 @@ export default function OnboardingPage() {
 
       if (error) throw error;
 
-      toast.success(tr('환영합니다!', 'Welcome!'), {
-        description: tr('매장 등록이 완료되었습니다. 대시보드로 이동합니다.', 'Shop registration is complete. Redirecting to dashboard.'),
+      toast.success(tr('환영합니다!', 'Welcome!', 'Chào mừng!'), {
+        description: tr(
+          '매장 등록이 완료되었습니다. 대시보드로 이동합니다.',
+          'Shop registration is complete. Redirecting to dashboard.',
+          'Đăng ký cửa hàng hoàn tất. Đang chuyển đến bảng điều khiển.'
+        ),
       });
       
       // Refresh the router to reload layout.tsx with new tenant info
@@ -48,8 +55,14 @@ export default function OnboardingPage() {
       
     } catch (error: any) {
       console.error('Onboarding Error:', error);
-      toast.error(tr('매장 등록 실패', 'Shop registration failed'), { 
-        description: error.message || tr('매장을 등록하는 중 문제가 발생했습니다. 관리자에게 문의해주세요.', 'A problem occurred while creating the shop. Please contact admin.') 
+      toast.error(tr('매장 등록 실패', 'Shop registration failed', 'Đăng ký cửa hàng thất bại'), {
+        description:
+          error.message ||
+          tr(
+            '매장을 등록하는 중 문제가 발생했습니다. 관리자에게 문의해주세요.',
+            'A problem occurred while creating the shop. Please contact admin.',
+            'Đã xảy ra lỗi khi tạo cửa hàng. Vui lòng liên hệ quản trị viên.'
+          ),
       });
     } finally {
       setLoading(false);
@@ -70,7 +83,7 @@ export default function OnboardingPage() {
             <div className="mx-auto flex h-16 w-full items-center justify-center p-2 mb-2">
               <Image
                 src="https://ecimg.cafe24img.com/pg1472b45444056090/lilymagflower/web/upload/category/logo/v2_d13ecd48bab61a0269fab4ecbe56ce07_lZMUZ1lORo_top.jpg"
-                alt="Logo"
+                alt={tr("로고", "Logo", "Logo")}
                 width={200}
                 height={50}
                 className="w-auto h-12 object-contain"
@@ -78,24 +91,36 @@ export default function OnboardingPage() {
               />
             </div>
             <CardTitle className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-              {tr("환영합니다! 🎉", "Welcome! 🎉")}
+              {tr("환영합니다! 🎉", "Welcome! 🎉", "Chào mừng! 🎉")}
             </CardTitle>
             <CardDescription className="text-sm text-slate-500">
-              {tr("안전하고 원활한 서비스 이용을 위해", "To use the service smoothly and securely,")}
-              <br/>
-              {tr("대표님의 ", "enter your ")}<b>{tr("화원 상호명", "flower shop name")}</b>{tr("을 입력해주세요.", ".")}
+              {tr(
+                "안전하고 원활한 서비스 이용을 위해",
+                "To use the service smoothly and securely,",
+                "Để sử dụng dịch vụ an toàn và thuận tiện,"
+              )}
+              <br />
+              {tr("대표님의 ", "enter your ", "vui lòng nhập ")}
+              <b>{tr("화원 상호명", "flower shop name", "tên cửa hàng hoa")}</b>
+              {tr("을 입력해주세요.", ".", " của bạn.")}
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-2">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="shop">{tr("화원 상호명 (매장명)", "Flower shop name (store name)")}</Label>
+                <Label htmlFor="shop">
+                  {tr(
+                    "화원 상호명 (매장명)",
+                    "Flower shop name (store name)",
+                    "Tên cửa hàng hoa (tên hiển thị)"
+                  )}
+                </Label>
                 <div className="relative">
                   <Store className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                   <Input
                     id="shop"
                     type="text"
-                    placeholder={tr("예: 강남플라워", "e.g. Gangnam Flower")}
+                    placeholder={tr("예: 강남플라워", "e.g. Gangnam Flower", "VD: Gangnam Flower")}
                     required
                     maxLength={50}
                     value={shopName}
@@ -108,15 +133,24 @@ export default function OnboardingPage() {
               <div className="pt-2">
                 <Button type="submit" className="w-full h-12 text-md font-medium" disabled={loading}>
                   {loading ? (
-                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {tr("설정 중...", "Setting up...")}</>
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />{' '}
+                      {tr('설정 중...', 'Setting up...', 'Đang thiết lập...')}
+                    </>
                   ) : (
-                    tr('플록싱크 시작하기', 'Start Floxync')
+                    tr('플록싱크 시작하기', 'Start Floxync', 'Bắt đầu với Floxync')
                   )}
                 </Button>
               </div>
               
               <p className="text-xs text-center text-slate-400">
-                {tr("입력하신 상호명은 나중에 ", "You can change this later in ")}<b>{tr("환경설정", "Settings")}</b>{tr("에서 변경하실 수 있습니다.", ".")}
+                {tr(
+                  "입력하신 상호명은 나중에 ",
+                  "You can change this later in ",
+                  "Bạn có thể đổi tên này sau trong "
+                )}
+                <b>{tr('환경설정', 'Settings', 'Cài đặt')}</b>
+                {tr('에서 변경하실 수 있습니다.', '.', '.')}
               </p>
             </form>
           </CardContent>

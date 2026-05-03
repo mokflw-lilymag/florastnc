@@ -3,7 +3,6 @@
 import * as React from "react";
 import { useCallback, useEffect, useState } from "react";
 import { format } from "date-fns";
-import { ko } from "date-fns/locale";
 import { Loader2, MessageSquare, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Textarea from "@/components/ui/textarea";
@@ -17,6 +16,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
+import { getMessages } from "@/i18n/getMessages";
+import { pickUiText } from "@/i18n/pick-ui-text";
+import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
 
 type Comment = {
   id: string;
@@ -43,17 +47,28 @@ export function OrgAnnouncementThread(props: {
   const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
   const [deleteAnnOpen, setDeleteAnnOpen] = useState(false);
   const [deletingAnn, setDeletingAnn] = useState(false);
+  const locale = usePreferredLocale();
+  const baseLocale = toBaseLocale(locale);
+  const tf = getMessages(locale).tenantFlows;
+  const L = (ko: string, en: string, vi?: string) => pickUiText(baseLocale, ko, en, vi);
+  const dfLoc = dateFnsLocaleForBase(baseLocale);
 
   const loadComments = useCallback(async () => {
+    const bl = toBaseLocale(locale);
+    const flows = getMessages(locale).tenantFlows;
     setLoading(true);
     try {
       const res = await fetch(`/api/hq/announcements/${announcementId}/comments`, { credentials: "include" });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
         if (res.status === 503) {
-          toast.error(typeof json?.error === "string" ? json.error : "댓글을 불러올 수 없습니다.");
+          toast.error(
+            typeof json?.error === "string"
+              ? json.error
+              : pickUiText(bl, "댓글을 불러올 수 없습니다.", "Could not load comments.", "Không thể tải bình luận."),
+          );
         } else if (res.status === 401) {
-          toast.error("로그인이 필요합니다.");
+          toast.error(flows.f00176);
         }
         setComments([]);
         return;
@@ -62,7 +77,7 @@ export function OrgAnnouncementThread(props: {
     } finally {
       setLoading(false);
     }
-  }, [announcementId]);
+  }, [announcementId, locale]);
 
   useEffect(() => {
     loadComments();
@@ -71,7 +86,7 @@ export function OrgAnnouncementThread(props: {
   const postComment = async () => {
     const t = draft.trim();
     if (!t) {
-      toast.error("댓글 내용을 입력하세요.");
+      toast.error(L("댓글 내용을 입력하세요.", "Please enter a comment.", "Vui lòng nhập nội dung bình luận."));
       return;
     }
     setPosting(true);
@@ -84,12 +99,14 @@ export function OrgAnnouncementThread(props: {
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(typeof json?.error === "string" ? json.error : "등록 실패");
+        toast.error(
+          typeof json?.error === "string" ? json.error : L("등록 실패", "Failed to post.", "Đăng thất bại."),
+        );
         return;
       }
       setDraft("");
       await loadComments();
-      toast.success("댓글이 등록되었습니다.");
+      toast.success(L("댓글이 등록되었습니다.", "Comment posted.", "Đã đăng bình luận."));
     } finally {
       setPosting(false);
     }
@@ -104,11 +121,13 @@ export function OrgAnnouncementThread(props: {
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(typeof json?.error === "string" ? json.error : "삭제 실패");
+        toast.error(
+          typeof json?.error === "string" ? json.error : L("삭제 실패", "Delete failed.", "Xóa thất bại."),
+        );
         return;
       }
       await loadComments();
-      toast.success("댓글을 삭제했습니다.");
+      toast.success(L("댓글을 삭제했습니다.", "Comment deleted.", "Đã xóa bình luận."));
     } finally {
       setDeletingCommentId(null);
     }
@@ -123,11 +142,13 @@ export function OrgAnnouncementThread(props: {
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(typeof json?.error === "string" ? json.error : "삭제 실패");
+        toast.error(
+          typeof json?.error === "string" ? json.error : L("삭제 실패", "Delete failed.", "Xóa thất bại."),
+        );
         return;
       }
       setDeleteAnnOpen(false);
-      toast.success("게시물을 삭제했습니다.");
+      toast.success(L("게시물을 삭제했습니다.", "Post deleted.", "Đã xóa bài viết."));
       onDeleted();
     } finally {
       setDeletingAnn(false);
@@ -150,7 +171,7 @@ export function OrgAnnouncementThread(props: {
               onClick={() => setDeleteAnnOpen(true)}
             >
               <Trash2 className="h-3.5 w-3.5 mr-1" aria-hidden />
-              게시물 삭제
+              {L("게시물 삭제", "Delete post", "Xóa bài viết")}
             </Button>
           </div>
         ) : null}
@@ -158,15 +179,17 @@ export function OrgAnnouncementThread(props: {
         <div className="space-y-2">
           <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
             <MessageSquare className="h-3.5 w-3.5" aria-hidden />
-            댓글
+            {L("댓글", "Comments", "Bình luận")}
           </div>
           {loading ? (
             <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
               <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
-              불러오는 중…
+              {tf.f01292}
             </div>
           ) : comments.length === 0 ? (
-            <p className="text-xs text-muted-foreground py-1">아직 댓글이 없습니다.</p>
+            <p className="text-xs text-muted-foreground py-1">
+              {L("아직 댓글이 없습니다.", "No comments yet.", "Chưa có bình luận.")}
+            </p>
           ) : (
             <ul className="space-y-2 max-h-48 overflow-y-auto">
               {comments.map((c) => (
@@ -181,7 +204,7 @@ export function OrgAnnouncementThread(props: {
                         className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
                         disabled={deletingCommentId === c.id}
                         onClick={() => removeComment(c.id)}
-                        aria-label="댓글 삭제"
+                        aria-label={L("댓글 삭제", "Delete comment", "Xóa bình luận")}
                       >
                         {deletingCommentId === c.id ? (
                           <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
@@ -192,7 +215,8 @@ export function OrgAnnouncementThread(props: {
                     ) : null}
                   </div>
                   <p className="text-[10px] text-muted-foreground mt-1 tabular-nums">
-                    {c.author_name ?? "이름 없음"} · {format(new Date(c.created_at), "M/d HH:mm", { locale: ko })}
+                    {c.author_name ?? tf.f00501} ·{" "}
+                    {format(new Date(c.created_at), "Pp", { locale: dfLoc })}
                   </p>
                 </li>
               ))}
@@ -201,7 +225,7 @@ export function OrgAnnouncementThread(props: {
           <Textarea
             value={draft}
             onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDraft(e.target.value)}
-            placeholder="댓글을 입력하세요"
+            placeholder={L("댓글을 입력하세요", "Enter a comment", "Nhập bình luận")}
             className="min-h-[72px] text-sm resize-y"
             disabled={posting}
           />
@@ -209,10 +233,10 @@ export function OrgAnnouncementThread(props: {
             {posting ? (
               <>
                 <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" aria-hidden />
-                등록 중…
+                {L("등록 중…", "Posting…", "Đang đăng…")}
               </>
             ) : (
-              "댓글 등록"
+              L("댓글 등록", "Post comment", "Đăng bình luận")
             )}
           </Button>
         </div>
@@ -221,13 +245,19 @@ export function OrgAnnouncementThread(props: {
       <AlertDialog open={deleteAnnOpen} onOpenChange={setDeleteAnnOpen}>
         <AlertDialogContent className="max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle>게시물을 삭제할까요?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {L("게시물을 삭제할까요?", "Delete this post?", "Xóa bài viết này?")}
+            </AlertDialogTitle>
             <AlertDialogDescription className="text-left">
-              「{title}」 항목과 첨부 이미지·댓글이 함께 삭제됩니다. 되돌릴 수 없습니다.
+              {L(
+                `「${title}」 항목과 첨부 이미지·댓글이 함께 삭제됩니다. 되돌릴 수 없습니다.`,
+                `「${title}」 and any attached images and comments will be removed. This cannot be undone.`,
+                `「${title}」 và mọi hình ảnh đính kèm, bình luận sẽ bị xóa. Không thể hoàn tác.`,
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex flex-row gap-2 justify-end sm:justify-end">
-            <AlertDialogCancel disabled={deletingAnn}>취소</AlertDialogCancel>
+            <AlertDialogCancel disabled={deletingAnn}>{tf.f00702}</AlertDialogCancel>
             <Button
               type="button"
               variant="destructive"
@@ -237,10 +267,10 @@ export function OrgAnnouncementThread(props: {
               {deletingAnn ? (
                 <>
                   <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" aria-hidden />
-                  삭제 중…
+                  {L("삭제 중…", "Deleting…", "Đang xóa…")}
                 </>
               ) : (
-                "삭제"
+                L("삭제", "Delete", "Xóa")
               )}
             </Button>
           </AlertDialogFooter>

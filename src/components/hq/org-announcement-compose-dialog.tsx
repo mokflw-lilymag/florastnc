@@ -20,15 +20,11 @@ import { compressImageFile } from "@/lib/compress-image";
 import { isRichTextBodyEmpty } from "@/lib/html-plain-text";
 import { toast } from "sonner";
 import { format, addDays, startOfToday } from "date-fns";
-import { enUS, ko } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
-
-const PRIORITY_LABEL: Record<string, string> = {
-  normal: "일반",
-  high: "중요 (배너 강조색)",
-};
+import { pickUiText } from "@/i18n/pick-ui-text";
+import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
 
 export type OrgRow = { id: string; name: string };
 
@@ -48,8 +44,9 @@ export function OrgAnnouncementComposeDialog({
   onPosted,
 }: OrgAnnouncementComposeDialogProps) {
   const locale = usePreferredLocale();
-  const isKo = toBaseLocale(locale) === "ko";
-  const tr = (koText: string, enText: string) => (isKo ? koText : enText);
+  const baseLocale = toBaseLocale(locale);
+  const dfLoc = dateFnsLocaleForBase(baseLocale);
+  const tr = (koText: string, enText: string, viText: string) => pickUiText(baseLocale, koText, enText, viText);
   const [editorResetKey, setEditorResetKey] = useState(0);
   const [postOrgId, setPostOrgId] = useState("");
   const [postTitle, setPostTitle] = useState("");
@@ -83,7 +80,13 @@ export function OrgAnnouncementComposeDialog({
     try {
       for (const file of Array.from(files)) {
         if (count >= 8) {
-          toast.message(tr("이미지는 최대 8장까지 첨부할 수 있습니다.", "You can attach up to 8 images."));
+          toast.message(
+            tr(
+              "이미지는 최대 8장까지 첨부할 수 있습니다.",
+              "You can attach up to 8 images.",
+              "Bạn chỉ có thể đính kèm tối đa 8 ảnh."
+            )
+          );
           break;
         }
         if (!file.type.startsWith("image/")) continue;
@@ -94,7 +97,11 @@ export function OrgAnnouncementComposeDialog({
         const res = await fetch("/api/hq/announcements/upload", { method: "POST", body: fd });
         const json = await res.json().catch(() => ({}));
         if (!res.ok) {
-          toast.error(typeof json?.error === "string" ? json.error : tr("이미지 업로드 실패", "Image upload failed"));
+          toast.error(
+            typeof json?.error === "string"
+              ? json.error
+              : tr("이미지 업로드 실패", "Image upload failed", "Tải ảnh lên thất bại")
+          );
           break;
         }
         if (typeof json.url === "string") {
@@ -109,17 +116,24 @@ export function OrgAnnouncementComposeDialog({
   };
 
   const selectedOrgLabel =
-    organizations.find((o) => o.id === postOrgId)?.name?.trim() || (postOrgId ? tr("(조직명 없음)", "(No organization name)") : "");
+    organizations.find((o) => o.id === postOrgId)?.name?.trim() ||
+    (postOrgId ? tr("(조직명 없음)", "(No organization name)", "(Không có tên tổ chức)") : "");
   const priorityLabel =
     postPriority === "normal"
-      ? tr("일반", "Normal")
+      ? tr("일반", "Normal", "Thường")
       : postPriority === "high"
-      ? tr("중요 (배너 강조색)", "Important (banner highlight)")
-      : postPriority;
+        ? tr("중요 (배너 강조색)", "Important (banner highlight)", "Quan trọng (màu nổi bật trên biển ngữ)")
+        : postPriority;
 
   const submitAnnouncement = async () => {
     if (!postOrgId || !postTitle.trim() || isRichTextBodyEmpty(postBodyHtml)) {
-      toast.error(tr("조직, 제목, 본문을 입력하세요.", "Please enter organization, title, and body."));
+      toast.error(
+        tr(
+          "조직, 제목, 본문을 입력하세요.",
+          "Please enter organization, title, and body.",
+          "Vui lòng nhập tổ chức, tiêu đề và nội dung."
+        )
+      );
       return;
     }
     setPosting(true);
@@ -139,10 +153,18 @@ export function OrgAnnouncementComposeDialog({
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(typeof json?.error === "string" ? json.error : tr("등록 실패", "Failed to publish"));
+        toast.error(
+          typeof json?.error === "string" ? json.error : tr("등록 실패", "Failed to publish", "Đăng thất bại")
+        );
         return;
       }
-      toast.success(tr("게시물을 등록했습니다. 지점 본사 게시판·배너에 반영됩니다.", "Announcement published. It is reflected in branch HQ board/banner."));
+      toast.success(
+        tr(
+          "게시물을 등록했습니다. 지점 본사 게시판·배너에 반영됩니다.",
+          "Announcement published. It is reflected in branch HQ board/banner.",
+          "Đã đăng bài. Nội dung được phản ánh trên bảng tin và biển ngữ chi nhánh trụ sở."
+        )
+      );
       onOpenChange(false);
       onPosted?.();
     } finally {
@@ -154,14 +176,16 @@ export function OrgAnnouncementComposeDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[92vh] overflow-y-auto gap-4">
         <DialogHeader>
-          <DialogTitle>{tr("본사 게시물 작성", "Write HQ announcement")}</DialogTitle>
+          <DialogTitle>{tr("본사 게시물 작성", "Write HQ announcement", "Soạn thông báo trụ sở")}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div className="grid gap-2">
-            <Label>{tr("조직", "Organization")}</Label>
+            <Label>{tr("조직", "Organization", "Tổ chức")}</Label>
             <Select value={postOrgId} onValueChange={(v) => v && setPostOrgId(v)} disabled={organizations.length === 0}>
               <SelectTrigger className="w-full min-w-0">
-                <SelectValue placeholder={tr("조직 선택", "Select organization")}>{selectedOrgLabel}</SelectValue>
+                <SelectValue placeholder={tr("조직 선택", "Select organization", "Chọn tổ chức")}>
+                  {selectedOrgLabel}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {organizations.map((o) => (
@@ -173,11 +197,15 @@ export function OrgAnnouncementComposeDialog({
             </Select>
           </div>
           <div className="grid gap-2">
-            <Label>{tr("제목", "Title")}</Label>
-            <Input value={postTitle} onChange={(e) => setPostTitle(e.target.value)} placeholder={tr("공지 제목", "Announcement title")} />
+            <Label>{tr("제목", "Title", "Tiêu đề")}</Label>
+            <Input
+              value={postTitle}
+              onChange={(e) => setPostTitle(e.target.value)}
+              placeholder={tr("공지 제목", "Announcement title", "Tiêu đề thông báo")}
+            />
           </div>
           <div className="grid gap-2">
-            <Label>{tr("본문", "Body")}</Label>
+            <Label>{tr("본문", "Body", "Nội dung")}</Label>
             <OrgAnnouncementRichEditor
               resetKey={editorResetKey}
               disabled={posting}
@@ -187,7 +215,11 @@ export function OrgAnnouncementComposeDialog({
           <div className="grid gap-2">
             <Label className="flex items-center gap-2">
               <ImagePlus className="h-4 w-4" aria-hidden />
-              {tr("이미지 첨부 (최대 8장, 업로드 전 자동 압축)", "Attach images (up to 8, auto-compressed before upload)")}
+              {tr(
+                "이미지 첨부 (최대 8장, 업로드 전 자동 압축)",
+                "Attach images (up to 8, auto-compressed before upload)",
+                "Đính kèm ảnh (tối đa 8, tự nén trước khi tải lên)"
+              )}
             </Label>
             <div className="flex flex-wrap items-center gap-2">
               <Input
@@ -201,7 +233,7 @@ export function OrgAnnouncementComposeDialog({
               {uploadBusy ? (
                 <span className="text-xs text-muted-foreground flex items-center gap-1">
                   <Loader2 className="h-3 w-3 animate-spin" />
-                  {tr("업로드 중…", "Uploading...")}
+                  {tr("업로드 중…", "Uploading...", "Đang tải lên…")}
                 </span>
               ) : null}
             </div>
@@ -215,7 +247,7 @@ export function OrgAnnouncementComposeDialog({
                       type="button"
                       className="absolute -top-1 -right-1 rounded-full bg-slate-900 text-white p-0.5 shadow"
                       onClick={() => setPostAttachmentUrls((prev) => prev.filter((u) => u !== url))}
-                      aria-label={tr("첨부 제거", "Remove attachment")}
+                      aria-label={tr("첨부 제거", "Remove attachment", "Gỡ đính kèm")}
                     >
                       <X className="h-3 w-3" />
                     </button>
@@ -226,19 +258,27 @@ export function OrgAnnouncementComposeDialog({
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
-              <Label>{tr("강조", "Priority")}</Label>
+              <Label>{tr("강조", "Priority", "Mức ưu tiên")}</Label>
               <Select value={postPriority} onValueChange={(v) => v && setPostPriority(v)}>
                 <SelectTrigger className="w-full min-w-0">
-                  <SelectValue placeholder={tr("강조 선택", "Select priority")}>{priorityLabel}</SelectValue>
+                  <SelectValue placeholder={tr("강조 선택", "Select priority", "Chọn mức ưu tiên")}>
+                    {priorityLabel}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="normal">{tr("일반", "Normal")}</SelectItem>
-                  <SelectItem value="high">{tr("중요 (배너 강조색)", "Important (banner highlight)")}</SelectItem>
+                  <SelectItem value="normal">{tr("일반", "Normal", "Thường")}</SelectItem>
+                  <SelectItem value="high">
+                    {tr(
+                      "중요 (배너 강조색)",
+                      "Important (banner highlight)",
+                      "Quan trọng (màu nổi bật trên biển ngữ)"
+                    )}
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="grid gap-2">
-              <Label>{tr("전광판 노출 만료일", "Banner expiry date")}</Label>
+              <Label>{tr("전광판 노출 만료일", "Banner expiry date", "Ngày hết hạn hiển thị biển ngữ")}</Label>
               <Popover>
                 <PopoverTrigger
                   render={
@@ -253,10 +293,8 @@ export function OrgAnnouncementComposeDialog({
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {postExpiresAt
-                    ? isKo
-                      ? format(postExpiresAt, "yyyy년 M월 d일", { locale: ko })
-                      : format(postExpiresAt, "MMM d, yyyy", { locale: enUS })
-                    : <span>{tr("날짜 선택", "Pick date")}</span>}
+                    ? format(postExpiresAt, "PPP", { locale: dfLoc })
+                    : <span>{tr("날짜 선택", "Pick date", "Chọn ngày")}</span>}
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
@@ -265,24 +303,30 @@ export function OrgAnnouncementComposeDialog({
                     onSelect={(date) => date && setPostExpiresAt(date)}
                     initialFocus
                     disabled={(date) => date < startOfToday() || date > addDays(new Date(), 60)}
-                    locale={isKo ? ko : enUS}
+                    locale={dfLoc}
                   />
                 </PopoverContent>
               </Popover>
             </div>
           </div>
           <p className="text-[11px] text-muted-foreground leading-snug">
-            {tr("선택한 ", "After ")}
-            <strong>{isKo ? format(postExpiresAt, "M월 d일") : format(postExpiresAt, "MMM d", { locale: enUS })}</strong>
-            {tr(" 이후 자동으로 전광판에서 사라지며 게시판에서 삭제됩니다. (최대 60일 후까지 선택 가능)", ", it disappears from the banner and is removed from the board automatically. (up to 60 days ahead)")}
+            {tr("선택한 ", "After ", "Sau ")}
+            <strong>
+              {format(postExpiresAt, "MMMM d", { locale: dfLoc })}
+            </strong>
+            {tr(
+              " 이후 자동으로 전광판에서 사라지며 게시판에서 삭제됩니다. (최대 60일 후까지 선택 가능)",
+              ", it disappears from the banner and is removed from the board automatically. (up to 60 days ahead)",
+              ", thông báo sẽ tự ẩn khỏi biển ngữ và bị xóa khỏi bảng tin. (Có thể chọn tối đa trong vòng 60 ngày.)"
+            )}
           </p>
         </div>
         <DialogFooter className="gap-2 sm:gap-0">
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            {tr("취소", "Cancel")}
+            {tr("취소", "Cancel", "Hủy")}
           </Button>
           <Button type="button" onClick={submitAnnouncement} disabled={posting || organizations.length === 0}>
-            {posting ? tr("등록 중…", "Publishing...") : tr("등록", "Publish")}
+            {posting ? tr("등록 중…", "Publishing...", "Đang đăng…") : tr("등록", "Publish", "Đăng")}
           </Button>
         </DialogFooter>
       </DialogContent>

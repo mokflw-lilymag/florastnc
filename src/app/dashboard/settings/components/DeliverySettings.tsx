@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
+import { pickUiText } from "@/i18n/pick-ui-text";
 
 interface DeliverySettingsProps {
   settings: any;
@@ -31,7 +32,14 @@ export function DeliverySettings({
 }: DeliverySettingsProps) {
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
-  const isKo = toBaseLocale(locale) === "ko";  const [newRegion, setNewRegion] = useState("");
+  const baseLocale = toBaseLocale(locale);
+  const phRegionFee = pickUiText(
+    baseLocale,
+    "예: 10000",
+    "e.g. 10000",
+    "VD: 10000"
+  );
+  const [newRegion, setNewRegion] = useState("");
   const [newFee, setNewFee] = useState("");
 
   return (
@@ -108,7 +116,7 @@ export function DeliverySettings({
                   <Label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{tf.f00259}</Label>
                   <Input 
                     type="number" 
-                    placeholder="10000" 
+                    placeholder={phRegionFee}
                     value={newFee}
                     onChange={e => setNewFee(e.target.value)}
                     className="h-9 bg-white"

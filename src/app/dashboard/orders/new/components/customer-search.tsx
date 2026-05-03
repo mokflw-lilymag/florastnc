@@ -8,7 +8,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useCustomers } from '@/hooks/use-customers';
 import { Customer } from "@/types/customer";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
-import { toBaseLocale } from "@/i18n/config";
 
 interface CustomerSearchProps {
   onSelect: (customer: Customer) => void;
@@ -18,7 +17,7 @@ export function CustomerSearch({ onSelect, selectedCustomer }: CustomerSearchPro
   const { customers, loading } = useCustomers();
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
-  const isKo = toBaseLocale(locale) === "ko";  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
   const [showResults, setShowResults] = useState(false);
   useEffect(() => {
