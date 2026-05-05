@@ -24,6 +24,9 @@ const TARGETS = [
   { code: "fr", file: "dashboard-fr.json" },
   { code: "de", file: "dashboard-de.json" },
   { code: "ru", file: "dashboard-ru.json" },
+  { code: "id", file: "dashboard-id.json" },
+  { code: "ms", file: "dashboard-ms.json" },
+  { code: "th", file: "dashboard-th.json" },
 ];
 
 const delay = (ms) => new Promise((r) => setTimeout(r, ms));

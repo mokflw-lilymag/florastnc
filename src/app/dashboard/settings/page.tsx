@@ -67,6 +67,7 @@ import { PosIntegrationCard } from "./components/PosIntegrationCard";
 import { OrderPolicySettings } from "./components/OrderPolicySettings";
 import { AutomationSettings } from "./components/AutomationSettings";
 import { MallIntegrationCard } from "./components/MallIntegrationCard";
+import { RegionalIntegrationPanel } from "./components/RegionalIntegrationPanel";
 import { applyCountryPreset, getCountryPreset, getCountryPresetDiff } from "@/lib/country-preset";
 import { AppLocale, LOCALE_COOKIE, resolveLocale, toBaseLocale } from "@/i18n/config";
 import { getDashboardSettingsMessages } from "@/i18n/dashboard-settings-messages";
@@ -91,6 +92,10 @@ const MAJOR_CURRENCIES = [
   { code: 'CLP', symbol: 'CLP$', flag: '🇨🇱', nameKo: '칠레 페소', nameEn: 'Chilean Peso' },
   { code: 'MZN', symbol: 'MT', flag: '🇲🇿', nameKo: '모잠비크 메티칼', nameEn: 'Mozambican Metical' },
   { code: 'RUB', symbol: '₽', flag: '🇷🇺', nameKo: '러시아 루블', nameEn: 'Russian Ruble' },
+  // 동남아 3개국
+  { code: 'IDR', symbol: 'Rp', flag: '🇮🇩', nameKo: '인도네시아 루피아', nameEn: 'Indonesian Rupiah' },
+  { code: 'MYR', symbol: 'RM', flag: '🇲🇾', nameKo: '말레이시아 링깃', nameEn: 'Malaysian Ringgit' },
+  { code: 'THB', symbol: '฿', flag: '🇹🇭', nameKo: '태국 바트', nameEn: 'Thai Baht' },
 ];
 
 const OPERATING_COUNTRIES = [
@@ -115,6 +120,10 @@ const OPERATING_COUNTRIES = [
   { code: "CL", nameKo: "칠레", nameEn: "Chile", nameVi: "Chile", flag: "🇨🇱", defaultCurrency: "CLP" },
   { code: "MZ", nameKo: "모잠비크", nameEn: "Mozambique", nameVi: "Mozambique", flag: "🇲🇿", defaultCurrency: "MZN" },
   { code: "RU", nameKo: "러시아", nameEn: "Russia", nameVi: "Nga", flag: "🇷🇺", defaultCurrency: "RUB" },
+  // 동남아 3개국
+  { code: "ID", nameKo: "인도네시아", nameEn: "Indonesia", nameVi: "Indonesia", flag: "🇮🇩", defaultCurrency: "IDR" },
+  { code: "MY", nameKo: "말레이시아", nameEn: "Malaysia", nameVi: "Malaysia", flag: "🇲🇾", defaultCurrency: "MYR" },
+  { code: "TH", nameKo: "태국", nameEn: "Thailand", nameVi: "Thái Lan", flag: "🇹🇭", defaultCurrency: "THB" },
 ] as const;
 
 type OperatingCountryRow = (typeof OPERATING_COUNTRIES)[number];
@@ -312,6 +321,34 @@ const OPERATING_COUNTRY_NAME_EXTRAS: Record<
     fr: "Russie",
     de: "Russland",
     ru: "Россия",
+  },
+  // 동남아 3개국
+  ID: {
+    ja: "インドネシア",
+    zh: "印度尼西亚",
+    es: "Indonesia",
+    pt: "Indonésia",
+    fr: "Indonésie",
+    de: "Indonesien",
+    ru: "Индонезия",
+  },
+  MY: {
+    ja: "マレーシア",
+    zh: "马来西亚",
+    es: "Malasia",
+    pt: "Malásia",
+    fr: "Malaisie",
+    de: "Malaysia",
+    ru: "Малайзия",
+  },
+  TH: {
+    ja: "タイ",
+    zh: "泰国",
+    es: "Tailandia",
+    pt: "Tailândia",
+    fr: "Thaïlande",
+    de: "Thailand",
+    ru: "Таиланд",
   },
 };
 
@@ -1245,6 +1282,11 @@ export default function SettingsPage() {
             </TabsContent>
 
             <TabsContent value="integrations" className="space-y-6">
+              {/* 국가별 연동 앱 패널 (국가 설정에 따라 자동 교체) */}
+              <RegionalIntegrationPanel
+                countryCode={localCountry}
+                tenantId={tenantId || ''}
+              />
               <MallIntegrationCard tenantId={tenantId || ''} />
               
               <AutomationSettings 

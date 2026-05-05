@@ -241,5 +241,57 @@
       "defaultTaxRate": 20,
       "deliveryCarriers": ["Yandex Go", "자체배송"]
     }
+  },
+  "ID": {
+    "countryCode": "ID",
+    "localeRecommendation": "id",
+    "recommendedStack": {
+      "chat": "WhatsApp",
+      "delivery": "GoSend (Gojek) + Ahamove",
+      "payment": "QRIS / GoPay / OVO / Bank Transfer",
+      "tax": "PPN 11%"
+    },
+    "settings": {
+      "currency": "IDR",
+      "isTaxExempt": false,
+      "defaultTaxRate": 11,
+      "autoDeliveryBooking": true,
+      "deliveryCarriers": ["GoSend", "Ahamove", "자체배송"]
+    }
+  },
+  "MY": {
+    "countryCode": "MY",
+    "localeRecommendation": "ms",
+    "recommendedStack": {
+      "chat": "WhatsApp",
+      "delivery": "Grab Express + Lalamove",
+      "payment": "DuitNow QR / FPX / Card",
+      "tax": "SST 6%"
+    },
+    "settings": {
+      "currency": "MYR",
+      "isTaxExempt": false,
+      "defaultTaxRate": 6,
+      "autoDeliveryBooking": true,
+      "deliveryCarriers": ["Grab Express", "Lalamove", "자체배송"]
+    }
+  },
+  "TH": {
+    "countryCode": "TH",
+    "localeRecommendation": "th",
+    "recommendedStack": {
+      "chat": "LINE",
+      "delivery": "LINE MAN + Grab + Lalamove",
+      "payment": "PromptPay QR / Card",
+      "tax": "VAT 7%"
+    },
+    "settings": {
+      "currency": "THB",
+      "isTaxExempt": false,
+      "defaultTaxRate": 7,
+      "autoDeliveryBooking": true,
+      "deliveryCarriers": ["LINE MAN", "Grab", "Lalamove", "자체배송"]
+    }
   }
 }
+

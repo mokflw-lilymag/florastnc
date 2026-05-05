@@ -46,6 +46,9 @@ const EU_TARGETS = [
 const EXTRA_TARGETS = [
   { code: "ja", file: "ja.json" },
   { code: "zh", file: "zh.json", translateTo: "zh-CN" },
+  { code: "id", file: "id.json" },
+  { code: "ms", file: "ms.json" },
+  { code: "th", file: "th.json" },
 ];
 
 const ALL_TARGETS = [...EU_TARGETS, ...EXTRA_TARGETS];
