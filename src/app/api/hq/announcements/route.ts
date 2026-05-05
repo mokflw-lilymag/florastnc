@@ -2,6 +2,18 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { normalizeAttachmentUrlList, publicUrlToOrgAnnouncementStoragePath } from "@/lib/org-announcement-assets";
+import { hqApiUiBase } from "@/lib/hq/hq-api-locale";
+import {
+  errAnnComposeFieldsRequired,
+  errAnnRlsDenied,
+  errAnnSchemaLegacy,
+  errAnnTableMissing,
+} from "@/lib/hq/hq-announcements-api-errors";
+import {
+  errAdminForbidden,
+  errAdminOperationFailed,
+  errAdminUnauthorized,
+} from "@/lib/admin/admin-api-errors";
 
 /** 테이블·스키마 미적용 등으로 공지 조회가 불가할 때 — 500 대신 빈 목록 */
 function shouldReturnEmptyAnnouncements(error: { code?: string; message?: string } | null): boolean {
@@ -108,18 +120,19 @@ async function purgeExpiredAnnouncementsAndAssets() {
 }
 
 export async function GET(req: Request) {
+  const sp = new URL(req.url).searchParams;
+  const bl = await hqApiUiBase(req, sp.get("uiLocale"));
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user) return NextResponse.json({ error: errAdminUnauthorized(bl) }, { status: 401 });
 
   let orgIds = await resolveOrganizationIdsForUser(supabase, user.id);
 
-  const url = new URL(req.url);
   const branchOnly =
-    url.searchParams.get("branchOnly") === "1" ||
-    url.searchParams.get("branchOnly") === "true";
+    sp.get("branchOnly") === "1" ||
+    sp.get("branchOnly") === "true";
 
   if (branchOnly) {
     const { data: profileBranch } = await supabase
@@ -190,7 +203,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ announcements: [] });
     }
     console.error("[hq/announcements GET]", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: errAdminOperationFailed(bl) }, { status: 500 });
   }
 
   const { data: orgRows } = await supabase.from("organizations").select("id,name").in("id", orgIds);
@@ -287,9 +300,9 @@ export async function POST(req: Request) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
   const body = await req.json().catch(() => null);
+  const bl = await hqApiUiBase(req, body?.uiLocale as string | undefined);
+  if (!user) return NextResponse.json({ error: errAdminUnauthorized(bl) }, { status: 401 });
   const organizationId = body?.organizationId as string | undefined;
   const title = (body?.title as string | undefined)?.trim();
   const content = (body?.body as string | undefined)?.trim();
@@ -298,7 +311,7 @@ export async function POST(req: Request) {
   const expiresAt = body?.expiresAt as string | undefined;
 
   if (!organizationId || !title || !content) {
-    return NextResponse.json({ error: "organizationId, title, body 필요" }, { status: 400 });
+    return NextResponse.json({ error: errAnnComposeFieldsRequired(bl) }, { status: 400 });
   }
 
   // 기본 만료일 설정 (30일 후)
@@ -317,7 +330,7 @@ export async function POST(req: Request) {
       .eq("organization_id", organizationId)
       .maybeSingle();
     if (!mem || mem.role !== "org_admin") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return NextResponse.json({ error: errAdminForbidden(bl) }, { status: 403 });
     }
   }
 
@@ -337,34 +350,16 @@ export async function POST(req: Request) {
 
   if (error) {
     if (shouldReturnEmptyAnnouncements(error)) {
-      return NextResponse.json(
-        {
-          error:
-            "organization_announcements 테이블이 없습니다. Supabase에서 organization_announcements_schema.sql 을 실행하세요.",
-        },
-        { status: 503 }
-      );
+      return NextResponse.json({ error: errAnnTableMissing(bl) }, { status: 503 });
     }
     if (isLegacyBoardSchemaError(error)) {
-      return NextResponse.json(
-        {
-          error:
-            "공지 테이블 스키마가 오래되었습니다. Supabase에서 organization_announcements_schema.sql(또는 organization_announcements_board_migration.sql)을 적용하세요.",
-        },
-        { status: 503 }
-      );
+      return NextResponse.json({ error: errAnnSchemaLegacy(bl) }, { status: 503 });
     }
     if (error.code === "42501" || /row-level security|rls/i.test(String(error.message ?? ""))) {
-      return NextResponse.json(
-        {
-          error:
-            "공지 등록 권한이 없습니다. super_admin 또는 해당 조직 org_admin 인지, organization_members 에 연결돼 있는지 확인하세요.",
-        },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: errAnnRlsDenied(bl) }, { status: 403 });
     }
     console.error("[hq/announcements POST]", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: errAdminOperationFailed(bl) }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true, id: inserted?.id });

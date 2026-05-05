@@ -48,8 +48,10 @@ export default function OrgBoardPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const q = isSuperAdmin ? "" : "?branchOnly=1";
-      const res = await fetch(`/api/hq/announcements${q}`, { credentials: "include" });
+      const params = new URLSearchParams();
+      if (!isSuperAdmin) params.set("branchOnly", "1");
+      params.set("uiLocale", locale);
+      const res = await fetch(`/api/hq/announcements?${params.toString()}`, { credentials: "include" });
       if (!res.ok) {
         setList([]);
         return;
@@ -59,7 +61,7 @@ export default function OrgBoardPage() {
     } finally {
       setLoading(false);
     }
-  }, [isSuperAdmin]);
+  }, [isSuperAdmin, locale]);
 
   useEffect(() => {
     if (!authLoading) load();
@@ -70,7 +72,10 @@ export default function OrgBoardPage() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch("/api/hq/compose-context", { credentials: "include" });
+        const res = await fetch(
+          `/api/hq/compose-context?uiLocale=${encodeURIComponent(locale)}`,
+          { credentials: "include" }
+        );
         if (!res.ok) return;
         const json = await res.json();
         if (!cancelled) {
@@ -86,14 +91,16 @@ export default function OrgBoardPage() {
     return () => {
       cancelled = true;
     };
-  }, [authLoading]);
+  }, [authLoading, locale]);
 
   const confirmRead = async (id: string) => {
     setConfirmingId(id);
     try {
       const res = await fetch(`/api/hq/announcements/${id}/read`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         credentials: "include",
+        body: JSON.stringify({ uiLocale: locale }),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {

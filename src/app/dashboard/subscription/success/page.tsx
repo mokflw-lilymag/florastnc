@@ -7,14 +7,13 @@ import { CheckCircle2, Loader2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
-import { toBaseLocale } from "@/i18n/config";
 
 export default function PaymentSuccessPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
-  const baseLocale = toBaseLocale(locale);  const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
+  const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [message, setMessage] = useState(tf.f00924);
   const confirmedRef = useRef(false);
 
@@ -43,6 +42,7 @@ export default function PaymentSuccessPage() {
             paymentKey,
             orderId,
             amount: Number(amount),
+            uiLocale: locale,
           }),
         });
 
@@ -65,7 +65,7 @@ export default function PaymentSuccessPage() {
     };
 
     confirmPayment();
-  }, [searchParams, router, baseLocale]);
+  }, [searchParams, router, locale]);
 
   return (
     <div className="min-h-screen bg-slate-50/50 flex items-center justify-center p-6">

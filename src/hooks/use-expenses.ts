@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useAuth } from './use-auth';
+import { useUiText } from '@/hooks/use-ui-text';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import type { Expense } from '@/types/expense';
@@ -19,6 +20,7 @@ function isManagedExpenseReceiptPath(path: string, tenantId: string): boolean {
 export function useExpenses() {
   const supabase = useMemo(() => createClient(), []);
   const { tenantId, isLoading: authLoading } = useAuth();
+  const { tr } = useUiText();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -63,10 +65,36 @@ export function useExpenses() {
 
       if (error) throw error;
       setExpenses(prev => [inserted, ...prev]);
-      toast.success('지출이 등록되었습니다.');
+      toast.success(
+        tr(
+          '지출이 등록되었습니다.',
+          'Expense recorded.',
+          'Đã ghi nhận chi phí.',
+          '支出を登録しました。',
+          '已登记支出。',
+          'Gasto registrado.',
+          'Despesa registrada.',
+          'Dépense enregistrée.',
+          'Ausgabe erfasst.',
+          'Расход записан.',
+        ),
+      );
       return inserted;
     } catch (e) {
-      toast.error('지출 등록에 실패했습니다.');
+      toast.error(
+        tr(
+          '지출 등록에 실패했습니다.',
+          'Failed to record expense.',
+          'Ghi nhận chi phí thất bại.',
+          '支出の登録に失敗しました。',
+          '登记支出失败。',
+          'No se pudo registrar el gasto.',
+          'Falha ao registrar despesa.',
+          'Échec de l’enregistrement de la dépense.',
+          'Ausgabe konnte nicht erfasst werden.',
+          'Не удалось записать расход.',
+        ),
+      );
       return null;
     }
   };
@@ -83,10 +111,36 @@ export function useExpenses() {
 
       if (error) throw error;
       setExpenses(prev => [...(inserted || []), ...prev]);
-      toast.success(`${inserted?.length}건의 지출이 등록되었습니다.`);
+      toast.success(
+        tr(
+          `${inserted?.length}건의 지출이 등록되었습니다.`,
+          `${inserted?.length} expenses recorded.`,
+          `Đã ghi nhận ${inserted?.length} khoản chi.`,
+          `支出を${inserted?.length}件登録しました。`,
+          `已登记 ${inserted?.length} 笔支出。`,
+          `Se registraron ${inserted?.length} gastos.`,
+          `Foram registradas ${inserted?.length} despesas.`,
+          `${inserted?.length} dépenses enregistrées.`,
+          `${inserted?.length} Ausgaben erfasst.`,
+          `Записано расходов: ${inserted?.length}.`,
+        ),
+      );
       return inserted;
     } catch (e) {
-      toast.error('지출 등록에 실패했습니다.');
+      toast.error(
+        tr(
+          '지출 등록에 실패했습니다.',
+          'Failed to record expenses.',
+          'Ghi nhận chi phí thất bại.',
+          '支出の登録に失敗しました。',
+          '登记支出失败。',
+          'No se pudieron registrar los gastos.',
+          'Falha ao registrar despesas.',
+          'Échec de l’enregistrement des dépenses.',
+          'Ausgaben konnten nicht erfasst werden.',
+          'Не удалось записать расходы.',
+        ),
+      );
       return null;
     }
   };
@@ -106,7 +160,7 @@ export function useExpenses() {
       const path = row?.receipt_file_id?.trim();
       if (path && isManagedExpenseReceiptPath(path, tenantId)) {
         const { error: rmErr } = await supabase.storage.from('receipts').remove([path]);
-        if (rmErr) console.warn('영수증 스토리지 삭제 실패:', rmErr);
+        if (rmErr) console.warn("[expenses] failed to delete receipt from storage:", rmErr);
       }
 
       const { error } = await supabase
@@ -117,10 +171,36 @@ export function useExpenses() {
 
       if (error) throw error;
       setExpenses(prev => prev.filter(e => e.id !== id));
-      toast.success('지출이 삭제되었습니다.');
+      toast.success(
+        tr(
+          '지출이 삭제되었습니다.',
+          'Expense deleted.',
+          'Đã xóa chi phí.',
+          '支出を削除しました。',
+          '已删除支出。',
+          'Gasto eliminado.',
+          'Despesa excluída.',
+          'Dépense supprimée.',
+          'Ausgabe gelöscht.',
+          'Расход удалён.',
+        ),
+      );
       return true;
     } catch (e) {
-      toast.error('지출 삭제에 실패했습니다.');
+      toast.error(
+        tr(
+          '지출 삭제에 실패했습니다.',
+          'Failed to delete expense.',
+          'Xóa chi phí thất bại.',
+          '支出の削除に失敗しました。',
+          '删除支出失败。',
+          'No se pudo eliminar el gasto.',
+          'Falha ao excluir despesa.',
+          'Échec de la suppression de la dépense.',
+          'Ausgabe konnte nicht gelöscht werden.',
+          'Не удалось удалить расход.',
+        ),
+      );
       return false;
     }
   };
@@ -152,7 +232,7 @@ export function useExpenses() {
 
       if (shouldRemoveOldFile) {
         const { error: rmErr } = await supabase.storage.from('receipts').remove([oldPath]);
-        if (rmErr) console.warn('기존 영수증 파일 삭제 실패:', rmErr);
+        if (rmErr) console.warn("[expenses] failed to delete previous receipt file:", rmErr);
       }
 
       const { data: updated, error } = await supabase
@@ -165,10 +245,36 @@ export function useExpenses() {
 
       if (error) throw error;
       setExpenses(prev => prev.map(e => e.id === id ? updated : e));
-      toast.success('지출이 수정되었습니다.');
+      toast.success(
+        tr(
+          '지출이 수정되었습니다.',
+          'Expense updated.',
+          'Đã cập nhật chi phí.',
+          '支出を更新しました。',
+          '支出已更新。',
+          'Gasto actualizado.',
+          'Despesa atualizada.',
+          'Dépense mise à jour.',
+          'Ausgabe aktualisiert.',
+          'Расход обновлён.',
+        ),
+      );
       return updated;
     } catch (e) {
-      toast.error('지출 수정에 실패했습니다.');
+      toast.error(
+        tr(
+          '지출 수정에 실패했습니다.',
+          'Failed to update expense.',
+          'Cập nhật chi phí thất bại.',
+          '支出の更新に失敗しました。',
+          '更新支出失败。',
+          'No se pudo actualizar el gasto.',
+          'Falha ao atualizar despesa.',
+          'Échec de la mise à jour de la dépense.',
+          'Ausgabe konnte nicht aktualisiert werden.',
+          'Не удалось обновить расход.',
+        ),
+      );
       return null;
     }
   };
@@ -249,6 +355,7 @@ export function useExpenses() {
 export function useExpenseStorage() {
   const supabase = createClient();
   const { tenantId } = useAuth();
+  const { tr } = useUiText();
 
   const uploadReceipt = async (file: File) => {
     if (!tenantId) return null;
@@ -280,12 +387,51 @@ export function useExpenseStorage() {
       console.error('Error uploading receipt:', e);
       const msg = e instanceof Error ? e.message : String(e);
       if (msg.includes('Bucket not found') || msg.includes('not found')) {
-        toast.error('스토리지 버킷이 없습니다.', {
-          description: 'Supabase에서 receipts 버킷을 만드세요. 저장소의 supabase/storage_buckets.sql 을 실행합니다.',
-          duration: 8000,
-        });
+        toast.error(
+          tr(
+            '스토리지 버킷이 없습니다.',
+            'Storage bucket missing.',
+            'Thiếu bucket lưu trữ.',
+            'ストレージバケットがありません。',
+            '缺少存储桶。',
+            'Falta el bucket de almacenamiento.',
+            'Bucket de armazenamento ausente.',
+            'Bucket de stockage introuvable.',
+            'Speicher-Bucket fehlt.',
+            'Отсутствует bucket хранилища.',
+          ),
+          {
+            description: tr(
+              'Supabase에서 receipts 버킷을 만드세요. 저장소의 supabase/storage_buckets.sql 을 실행합니다.',
+              'Create a receipts bucket in Supabase. Run supabase/storage_buckets.sql from the repo.',
+              'Hãy tạo bucket receipts trong Supabase. Chạy supabase/storage_buckets.sql trong repo.',
+              'Supabaseにreceiptsバケットを作成してください。リポジトリのsupabase/storage_buckets.sqlを実行します。',
+              '请在 Supabase 中创建 receipts 存储桶。运行仓库中的 supabase/storage_buckets.sql。',
+              'Cree el bucket receipts en Supabase. Ejecute supabase/storage_buckets.sql del repositorio.',
+              'Crie o bucket receipts no Supabase. Execute supabase/storage_buckets.sql do repositório.',
+              'Créez le bucket receipts dans Supabase. Exécutez supabase/storage_buckets.sql du dépôt.',
+              'Legen Sie den receipts-Bucket in Supabase an. Führen Sie supabase/storage_buckets.sql aus dem Repo aus.',
+              'Создайте bucket receipts в Supabase. Выполните supabase/storage_buckets.sql из репозитория.',
+            ),
+            duration: 8000,
+          },
+        );
       } else {
-        toast.error('영수증 업로드에 실패했습니다.', { description: msg });
+        toast.error(
+          tr(
+            '영수증 업로드에 실패했습니다.',
+            'Receipt upload failed.',
+            'Tải biên lai thất bại.',
+            '領収書のアップロードに失敗しました。',
+            '收据上传失败。',
+            'Error al subir el recibo.',
+            'Falha no upload do recibo.',
+            'Échec du téléversement du reçu.',
+            'Upload des Belegs fehlgeschlagen.',
+            'Не удалось загрузить чек.',
+          ),
+          { description: msg },
+        );
       }
       return null;
     }

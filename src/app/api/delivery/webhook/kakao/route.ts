@@ -1,6 +1,13 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { MessageService } from '@/services/message-service';
+import {
+  errAdminOperationFailed,
+  errApiMissingTrackingId,
+  errApiOrderNotFound,
+  errApiWebhookConfigMissing,
+} from '@/lib/admin/admin-api-errors';
+import { hqApiUiBase } from '@/lib/hq/hq-api-locale';
 
 // 관리자 권한의 Supabase 클라이언트 초기화 (Webhook에서는 인증된 세션이 없으므로)
 // 테스트 환경에서도 원인 파악이 쉽도록 누락 시 명확히 실패시킵니다.
@@ -9,10 +16,11 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 export async function POST(req: Request) {
   try {
+    const bl = await hqApiUiBase(req);
     if (!supabaseUrl || !supabaseServiceKey) {
       console.error('[KakaoT Webhook][CONFIG_MISSING] NEXT_PUBLIC_SUPABASE_URL 또는 SUPABASE_SERVICE_ROLE_KEY 누락');
       return NextResponse.json(
-        { error: 'Webhook 서버 설정이 누락되었습니다.', code: 'CONFIG_MISSING' },
+        { error: errApiWebhookConfigMissing(bl), code: 'CONFIG_MISSING' },
         { status: 503 }
       );
     }
@@ -35,7 +43,7 @@ export async function POST(req: Request) {
     } = payload;
 
     if (!trackingId) {
-      return NextResponse.json({ error: 'Missing trackingId' }, { status: 400 });
+      return NextResponse.json({ error: errApiMissingTrackingId(bl) }, { status: 400 });
     }
 
     // 1. 해당 trackingId를 가진 주문 찾기
@@ -47,7 +55,7 @@ export async function POST(req: Request) {
 
     if (orderError || !order) {
       console.error('❌ 일치하는 주문을 찾을 수 없습니다.', trackingId);
-      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+      return NextResponse.json({ error: errApiOrderNotFound(bl) }, { status: 404 });
     }
 
     const { id, tenant_id, delivery_info, orderer } = order;
@@ -96,8 +104,9 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, newStatus });
 
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('❌ [KakaoT Webhook] 에러 발생:', err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    const bl = await hqApiUiBase(req);
+    return NextResponse.json({ error: errAdminOperationFailed(bl) }, { status: 500 });
   }
 }

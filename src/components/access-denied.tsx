@@ -20,12 +20,36 @@ export function AccessDenied({ requiredTier }: AccessDeniedProps) {
   const baseLocale = toBaseLocale(locale);
   const tierLabel =
     requiredTier === "Ribbon"
-      ? pickUiText(baseLocale, "리본", "Ribbon", "Ruy băng")
+      ? pickUiText(
+          baseLocale,
+          "리본",
+          "Ribbon",
+          "Ruy băng",
+          "リボン",
+          "丝带打印",
+          "Cinta",
+          "Fita",
+          "Ruban",
+          "Band",
+          "Лента",
+        )
       : requiredTier === "ERP"
-        ? pickUiText(baseLocale, "ERP", "ERP", "ERP")
+        ? pickUiText(baseLocale, "ERP", "ERP", "ERP", "ERP", "ERP", "ERP", "ERP", "ERP", "ERP", "ERP")
         : requiredTier === "Pro"
-          ? pickUiText(baseLocale, "PRO", "Pro", "Pro")
-          : pickUiText(baseLocale, "시스템 관리자", "System admin", "Quản trị hệ thống");
+          ? pickUiText(baseLocale, "PRO", "Pro", "Pro", "Pro", "Pro", "Pro", "Pro", "Pro", "Pro", "Pro")
+          : pickUiText(
+              baseLocale,
+              "시스템 관리자",
+              "System admin",
+              "Quản trị hệ thống",
+              "システム管理者",
+              "系统管理员",
+              "Administrador del sistema",
+              "Administrador do sistema",
+              "Administrateur système",
+              "Systemadministrator",
+              "Системный администратор",
+            );
 
   return (
     <div className="flex items-center justify-center min-h-[60vh] p-4">

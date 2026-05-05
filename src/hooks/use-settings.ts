@@ -2,6 +2,8 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useAuth } from './use-auth';
+import { useUiText } from '@/hooks/use-ui-text';
+import { pickUiText } from '@/i18n/pick-ui-text';
 import { toast } from 'sonner';
 import {
   type CategoryData,
@@ -130,6 +132,7 @@ function mergeTenantGeneralSettings(raw: unknown): SystemSettings {
 export function useSettings() {
   const supabase = useMemo(() => createClient(), []);
   const { tenantId, user } = useAuth();
+  const { tr, baseLocale } = useUiText();
   const [settings, setSettings] = useState<SystemSettings>(defaultSettings);
   const [productCategories, setProductCategories] = useState<CategoryData | null>(null);
   const [materialCategories, setMaterialCategories] = useState<CategoryData | null>(null);
@@ -162,11 +165,25 @@ export function useSettings() {
 
     } catch (err) {
       console.error('Error fetching settings:', err);
-      setError('설정을 불러오는 중 오류가 발생했습니다.');
+      setError(
+        pickUiText(
+          baseLocale,
+          '설정을 불러오는 중 오류가 발생했습니다.',
+          'Failed to load settings.',
+          'Không thể tải cài đặt.',
+          '設定の読み込みに失敗しました。',
+          '加载设置失败。',
+          'No se pudieron cargar los ajustes.',
+          'Falha ao carregar as configurações.',
+          'Échec du chargement des paramètres.',
+          'Einstellungen konnten nicht geladen werden.',
+          'Не удалось загрузить настройки.',
+        ),
+      );
     } finally {
       setLoading(false);
     }
-  }, [tenantId, user?.tenant_id, supabase]);
+  }, [tenantId, user?.tenant_id, supabase, baseLocale]);
 
   const saveSettings = useCallback(async (newSettings: SystemSettings) => {
     const tid = tenantId || user?.tenant_id;
@@ -205,10 +222,36 @@ export function useSettings() {
 
       if (error) throw error;
       setProductCategories(newData);
-      toast.success('상품 카테고리가 저장되었습니다.');
+      toast.success(
+        tr(
+          '상품 카테고리가 저장되었습니다.',
+          'Product categories saved.',
+          'Đã lưu danh mục sản phẩm.',
+          '商品カテゴリを保存しました。',
+          '商品分类已保存。',
+          'Categorías de producto guardadas.',
+          'Categorias de produto salvas.',
+          'Catégories produits enregistrées.',
+          'Produktkategorien gespeichert.',
+          'Категории товаров сохранены.',
+        ),
+      );
     } catch (err) {
       console.error('Error updating product categories:', err);
-      toast.error('저장 실패');
+      toast.error(
+        tr(
+          '저장 실패',
+          'Save failed',
+          'Lưu thất bại',
+          '保存に失敗しました',
+          '保存失败',
+          'Error al guardar',
+          'Falha ao salvar',
+          'Échec de l’enregistrement',
+          'Speichern fehlgeschlagen',
+          'Не удалось сохранить',
+        ),
+      );
     } finally {
       setLoading(false);
     }
@@ -225,10 +268,36 @@ export function useSettings() {
 
       if (error) throw error;
       setMaterialCategories(newData);
-      toast.success('자재 카테고리가 저장되었습니다.');
+      toast.success(
+        tr(
+          '자재 카테고리가 저장되었습니다.',
+          'Material categories saved.',
+          'Đã lưu danh mục nguyên vật liệu.',
+          '資材カテゴリを保存しました。',
+          '物料分类已保存。',
+          'Categorías de materiales guardadas.',
+          'Categorias de materiais salvas.',
+          'Catégories matières enregistrées.',
+          'Materialkategorien gespeichert.',
+          'Категории материалов сохранены.',
+        ),
+      );
     } catch (err) {
       console.error('Error updating material categories:', err);
-      toast.error('저장 실패');
+      toast.error(
+        tr(
+          '저장 실패',
+          'Save failed',
+          'Lưu thất bại',
+          '保存に失敗しました',
+          '保存失败',
+          'Error al guardar',
+          'Falha ao salvar',
+          'Échec de l’enregistrement',
+          'Speichern fehlgeschlagen',
+          'Не удалось сохранить',
+        ),
+      );
     } finally {
       setLoading(false);
     }
@@ -245,10 +314,36 @@ export function useSettings() {
 
       if (error) throw error;
       setExpenseCategories(newData);
-      toast.success('지출 카테고리가 저장되었습니다.');
+      toast.success(
+        tr(
+          '지출 카테고리가 저장되었습니다.',
+          'Expense categories saved.',
+          'Đã lưu danh mục chi phí.',
+          '支出カテゴリを保存しました。',
+          '支出分类已保存。',
+          'Categorías de gastos guardadas.',
+          'Categorias de despesas salvas.',
+          'Catégories de dépenses enregistrées.',
+          'Ausgabenkategorien gespeichert.',
+          'Категории расходов сохранены.',
+        ),
+      );
     } catch (err) {
       console.error('Error updating expense categories:', err);
-      toast.error('저장 실패');
+      toast.error(
+        tr(
+          '저장 실패',
+          'Save failed',
+          'Lưu thất bại',
+          '保存に失敗しました',
+          '保存失败',
+          'Error al guardar',
+          'Falha ao salvar',
+          'Échec de l’enregistrement',
+          'Speichern fehlgeschlagen',
+          'Не удалось сохранить',
+        ),
+      );
     } finally {
       setLoading(false);
     }

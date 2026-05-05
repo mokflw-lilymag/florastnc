@@ -11,12 +11,20 @@ import { getMessages } from '@/i18n/getMessages';
 
 export function Features({ locale = 'ko' }: { locale?: AppLocale }) {
   const t = getMessages(locale).landing.features;
+  const cards = t.featureCards;
   const baseLocale = toBaseLocale(locale);
   const commerceBridgeLabel = pickUiText(
     baseLocale,
     "커머스 API 브릿지",
     "Commerce API bridge",
-    "Cầu nối API thương mại"
+    "Cầu nối API thương mại",
+    "コマースAPIブリッジ",
+    "商务 API 桥接",
+    "Puente API de comercio",
+    "Ponte API de comércio",
+    "Passerelle API commerce",
+    "Commerce-API-Brücke",
+    "Мост API коммерции",
   );
   return (
     <section id="technology" className="py-24 md:py-32 bg-[#0A0F0D] relative overflow-hidden">
@@ -79,14 +87,16 @@ export function Features({ locale = 'ko' }: { locale?: AppLocale }) {
                     />
                   </div>
                   <h3 className="text-2xl font-black text-white mb-4 group-hover:text-emerald-400 transition-colors tracking-tight">
-                    {feature.title}
+                    {cards[feature.slug as keyof typeof cards]?.title ?? feature.slug}
                   </h3>
                   {feature.comingSoon ? (
                     <span className="inline-flex items-center mb-4 px-3 py-1 rounded-full bg-indigo-500/15 text-indigo-300 text-[11px] font-black uppercase tracking-wider border border-indigo-400/30">
                       {t.comingSoon}
                     </span>
                   ) : null}
-                  <p className="text-slate-500 leading-relaxed font-medium flex-1">{feature.description}</p>
+                  <p className="text-slate-500 leading-relaxed font-medium flex-1">
+                    {cards[feature.slug as keyof typeof cards]?.description ?? ""}
+                  </p>
                   <p className="mt-8 text-sm font-black text-emerald-500/90 uppercase tracking-widest opacity-0 group-hover/card:opacity-100 transition-opacity">
                     {t.viewDetail} →
                   </p>

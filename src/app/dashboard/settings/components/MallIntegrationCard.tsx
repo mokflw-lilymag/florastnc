@@ -84,7 +84,7 @@ export function MallIntegrationCard({ tenantId }: { tenantId: string }) {
       const res = await fetch('/api/sync/cafe24', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tenant_id: tenantId })
+        body: JSON.stringify({ tenant_id: tenantId, uiLocale: locale })
       });
       const data = await res.json();
       if (data.success) {

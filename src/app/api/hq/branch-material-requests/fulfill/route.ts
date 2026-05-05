@@ -3,7 +3,26 @@ import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { PurchaseService } from "@/services/purchase-service";
 import { assertHqAccessToBranchTenant } from "@/lib/hq-branch-tenant-access";
+import { hqApiUiBase } from "@/lib/hq/hq-api-locale";
+import {
+  errFulfillAlreadyDone,
+  errFulfillCancelled,
+  errFulfillExpenseColumnMissing,
+  errFulfillGeneric,
+  errFulfillRequestIdItems,
+  errFulfillRequestNotFound,
+  errFulfillStatusUpdateFailed,
+  errFulfillSupplierNotOnBranch,
+  errFulfillUnknownLineId,
+  errFulfillUnitPriceNonNegative,
+} from "@/lib/hq/hq-branch-work-api-errors";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  errAdminForbidden,
+  errAdminOperationFailed,
+  errAdminServerMisconfigured,
+  errAdminUnauthorized,
+} from "@/lib/admin/admin-api-errors";
 
 async function incrementStockKeepPrice(admin: SupabaseClient, materialId: string, quantity: number) {
   const { data: material } = await admin
@@ -52,8 +71,10 @@ export async function POST(req: Request) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  const body = await req.json().catch(() => null);
+  const bl = await hqApiUiBase(req, body?.uiLocale as string | undefined);
   if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: errAdminUnauthorized(bl) }, { status: 401 });
   }
 
   const { data: profile } = await supabase
@@ -70,15 +91,14 @@ export async function POST(req: Request) {
   const orgIds = [...new Set((memberships ?? []).map((m) => m.organization_id as string))];
 
   if (!isSuper && orgIds.length === 0) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return NextResponse.json({ error: errAdminForbidden(bl) }, { status: 403 });
   }
 
   const admin = createAdminClient();
   if (!admin) {
-    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
+    return NextResponse.json({ error: errAdminServerMisconfigured(bl) }, { status: 500 });
   }
 
-  const body = await req.json().catch(() => null);
   const requestId = typeof body?.requestId === "string" ? body.requestId.trim() : "";
   const itemsRaw = Array.isArray(body?.items) ? body.items : [];
   const paymentMethod =
@@ -92,7 +112,7 @@ export async function POST(req: Request) {
   }
 
   if (!requestId || itemsRaw.length === 0) {
-    return NextResponse.json({ error: "requestId·items가 필요합니다." }, { status: 400 });
+    return NextResponse.json({ error: errFulfillRequestIdItems(bl) }, { status: 400 });
   }
 
   const { data: reqRow, error: reqErr } = await admin
@@ -103,23 +123,24 @@ export async function POST(req: Request) {
 
   if (reqErr) {
     console.error("[hq/fulfill] load request", reqErr);
-    return NextResponse.json({ error: reqErr.message }, { status: 500 });
+    return NextResponse.json({ error: errAdminOperationFailed(bl) }, { status: 500 });
   }
   if (!reqRow) {
-    return NextResponse.json({ error: "요청을 찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: errFulfillRequestNotFound(bl) }, { status: 404 });
   }
 
   if (reqRow.status === "fulfilled") {
-    return NextResponse.json({ error: "이미 처리완료된 요청입니다." }, { status: 409 });
+    return NextResponse.json({ error: errFulfillAlreadyDone(bl) }, { status: 409 });
   }
   if (reqRow.status === "cancelled") {
-    return NextResponse.json({ error: "취소된 요청은 처리할 수 없습니다." }, { status: 400 });
+    return NextResponse.json({ error: errFulfillCancelled(bl) }, { status: 400 });
   }
 
   const gate = await assertHqAccessToBranchTenant(admin, {
     branchTenantId: reqRow.tenant_id as string,
     isSuperAdmin: isSuper,
     orgIds,
+    uiBase: bl,
   });
   if (!gate.ok) {
     return NextResponse.json({ error: gate.message }, { status: gate.status });
@@ -127,7 +148,7 @@ export async function POST(req: Request) {
 
   if (reqRow.organization_id && orgIds.length > 0 && !isSuper) {
     if (!orgIds.includes(reqRow.organization_id as string)) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return NextResponse.json({ error: errAdminForbidden(bl) }, { status: 403 });
     }
   }
 
@@ -140,7 +161,7 @@ export async function POST(req: Request) {
 
   if (linesErr) {
     console.error("[hq/fulfill] lines", linesErr);
-    return NextResponse.json({ error: linesErr.message }, { status: 500 });
+    return NextResponse.json({ error: errAdminOperationFailed(bl) }, { status: 500 });
   }
 
   const lineById = new Map((lineRows ?? []).map((r) => [r.id as string, r as LineRow]));
@@ -164,10 +185,7 @@ export async function POST(req: Request) {
         .eq("tenant_id", reqRow.tenant_id)
         .maybeSingle();
       if (!sd) {
-        return NextResponse.json(
-          { error: "해당 지점에 등록되지 않은 거래처가 있습니다." },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: errFulfillSupplierNotOnBranch(bl) }, { status: 400 });
       }
     }
   }
@@ -179,14 +197,14 @@ export async function POST(req: Request) {
       if (!it.lineId || it.exclude) continue;
       const line = lineById.get(it.lineId);
       if (!line) {
-        return NextResponse.json({ error: `알 수 없는 품목 줄: ${it.lineId}` }, { status: 400 });
+        return NextResponse.json({ error: errFulfillUnknownLineId(bl, it.lineId) }, { status: 400 });
       }
 
       const qty = Number(it.actualQuantity);
       const unitPrice = Number(it.unitPrice);
       if (!Number.isFinite(qty) || qty <= 0) continue;
       if (!Number.isFinite(unitPrice) || unitPrice < 0) {
-        return NextResponse.json({ error: "단가는 0 이상이어야 합니다." }, { status: 400 });
+        return NextResponse.json({ error: errFulfillUnitPriceNonNegative(bl) }, { status: 400 });
       }
 
       const mid = line.material_id?.trim();
@@ -246,15 +264,13 @@ export async function POST(req: Request) {
         if (/related_branch_material_request|column/i.test(msg)) {
           return NextResponse.json(
             {
-              error:
-                "expenses 테이블에 related_branch_material_request_id 컬럼이 필요합니다. supabase/branch_material_request_fulfillment.sql 을 적용하세요.",
-              detail: msg,
+              error: errFulfillExpenseColumnMissing(bl),
             },
             { status: 503 }
           );
         }
         console.error("[hq/fulfill] expenses", expErr);
-        return NextResponse.json({ error: expErr.message }, { status: 500 });
+        return NextResponse.json({ error: errAdminOperationFailed(bl) }, { status: 500 });
       }
     }
 
@@ -269,13 +285,7 @@ export async function POST(req: Request) {
 
     if (updErr) {
       console.error("[hq/fulfill] status", updErr);
-      return NextResponse.json(
-        {
-          error: "지출·재고는 반영되었으나 요청 상태 갱신에 실패했습니다. 관리자에게 문의하세요.",
-          detail: updErr.message,
-        },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: errFulfillStatusUpdateFailed(bl) }, { status: 500 });
     }
 
     return NextResponse.json({
@@ -292,6 +302,6 @@ export async function POST(req: Request) {
       }
     }
     console.error("[hq/fulfill]", e);
-    return NextResponse.json({ error: "처리 중 오류가 발생했습니다." }, { status: 500 });
+    return NextResponse.json({ error: errFulfillGeneric(bl) }, { status: 500 });
   }
 }

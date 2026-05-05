@@ -3,6 +3,7 @@ import { supabase } from './lib/supabase';
 import { Save, FolderOpen, Trash2, X } from 'lucide-react';
 import { usePreferredLocale } from '@/hooks/use-preferred-locale';
 import { getMessages } from '@/i18n/getMessages';
+import { toast } from 'sonner';
 
 function fillRibbonTemplate(template: string, vars: Record<string, string | number>): string {
   let s = template;
@@ -49,14 +50,17 @@ export function TemplateManagerDialog({ isOpen, onClose, currentConfig, onLoad }
 
   const saveTemplate = async () => {
     if (!newTemplateName.trim()) {
-      alert(R.tmplAlertName);
+      toast.error(R.tmplAlertName);
       return;
     }
 
     try {
       setIsLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { alert(R.tmplLoginRequired); return; }
+      if (!user) {
+        toast.error(R.tmplLoginRequired);
+        return;
+      }
 
       const { error } = await supabase.from('templates').insert([
         {
@@ -69,11 +73,11 @@ export function TemplateManagerDialog({ isOpen, onClose, currentConfig, onLoad }
       if (error) throw error;
       
       setNewTemplateName('');
-      alert(R.tmplSaveOk);
+      toast.success(R.tmplSaveOk);
       fetchTemplates();
     } catch (err: any) {
       console.error(err);
-      alert(fillRibbonTemplate(R.tmplSaveFail, { msg: err.message ?? String(err) }));
+      toast.error(fillRibbonTemplate(R.tmplSaveFail, { msg: err.message ?? String(err) }));
     } finally {
       setIsLoading(false);
     }
@@ -85,7 +89,7 @@ export function TemplateManagerDialog({ isOpen, onClose, currentConfig, onLoad }
     setIsLoading(true);
     const { error } = await supabase.from('templates').delete().eq('id', id);
     if (error) {
-      alert(fillRibbonTemplate(R.tmplDelFail, { msg: error.message }));
+      toast.error(fillRibbonTemplate(R.tmplDelFail, { msg: error.message }));
     } else {
       fetchTemplates();
     }

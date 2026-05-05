@@ -43,7 +43,18 @@ export default function AdminMarketingSettings() {
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
   const baseLocale = toBaseLocale(locale);
-  const tr = (ko: string, en: string, vi?: string) => pickUiText(baseLocale, ko, en, vi);
+  const tr = (
+    ko: string,
+    en: string,
+    vi?: string,
+    ja?: string,
+    zh?: string,
+    es?: string,
+    pt?: string,
+    fr?: string,
+    de?: string,
+    ru?: string,
+  ) => pickUiText(baseLocale, ko, en, vi, ja, zh, es, pt, fr, de, ru);
 
   useEffect(() => {
     fetchSettings();
@@ -90,7 +101,18 @@ export default function AdminMarketingSettings() {
               <ShieldCheck className="w-6 h-6" />
             </div>
             <h1 className="text-3xl font-black tracking-tighter uppercase">
-              {tr("마케팅 마스터 키", "Marketing master keys", "Khóa marketing chính")}
+              {tr(
+                "마케팅 마스터 키",
+                "Marketing master keys",
+                "Khóa marketing chính",
+                "マーケティングマスターキー",
+                "营销主密钥",
+                "Claves maestras de marketing",
+                "Chaves mestras de marketing",
+                "Clés marketing principales",
+                "Marketing-Hauptschlüssel",
+                "Главные маркетинговые ключи",
+              )}
             </h1>
           </div>
           <p className="text-muted-foreground font-medium">{tf.f01800}</p>
@@ -112,19 +134,51 @@ export default function AdminMarketingSettings() {
           <TabsTrigger value="tiktok" className="rounded-xl font-bold gap-2"><Globe className="w-4 h-4" /> TikTok</TabsTrigger>
           <TabsTrigger value="google" className="rounded-xl font-bold gap-2"><Youtube className="w-4 h-4" /> Google</TabsTrigger>
           <TabsTrigger value="naver" className="rounded-xl font-bold gap-2">
-            <Zap className="w-4 h-4" /> {tr("네이버 / n8n", "Naver / n8n", "Naver / n8n")}
+            <Zap className="w-4 h-4" />{" "}
+            {tr("네이버 / n8n", "Naver / n8n", "Naver / n8n", "Naver / n8n", "Naver / n8n", "Naver / n8n", "Naver / n8n", "Naver / n8n", "Naver / n8n", "Naver / n8n")}
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="meta">
           <KeyCard 
-            title={tr("Meta (인스타·페이스북)", "Meta (Instagram & Facebook)", "Meta (Instagram & Facebook)")}
+            title={tr(
+              "Meta (인스타·페이스북)",
+              "Meta (Instagram & Facebook)",
+              "Meta (Instagram & Facebook)",
+              "Meta（Instagram・Facebook）",
+              "Meta（Instagram 和 Facebook）",
+              "Meta (Instagram y Facebook)",
+              "Meta (Instagram e Facebook)",
+              "Meta (Instagram et Facebook)",
+              "Meta (Instagram und Facebook)",
+              "Meta (Instagram и Facebook)",
+            )}
             desc={tf.f01185}
             icon={<Instagram className="w-8 h-8 text-pink-500" />}
           >
             <div className="space-y-4">
-              <InputGroup label={tr("Meta 앱 ID", "Meta App ID", "Meta App ID")} value={settings.meta_app_id} onChange={(v) => setSettings({...settings, meta_app_id: v})} />
-              <InputGroup label={tr("Meta 앱 시크릿", "Meta App Secret", "Meta App Secret")} value={settings.meta_app_secret} onChange={(v) => setSettings({...settings, meta_app_secret: v})} type="password" />
+              <InputGroup
+                label={tr("Meta 앱 ID", "Meta App ID", "Meta App ID", "Meta アプリID", "Meta 应用 ID", "ID de app Meta", "ID do app Meta", "ID d’app Meta", "Meta-App-ID", "ID приложения Meta")}
+                value={settings.meta_app_id}
+                onChange={(v) => setSettings({ ...settings, meta_app_id: v })}
+              />
+              <InputGroup
+                label={tr(
+                  "Meta 앱 시크릿",
+                  "Meta App Secret",
+                  "Meta App Secret",
+                  "Meta アプリシークレット",
+                  "Meta 应用密钥",
+                  "Secreto de app Meta",
+                  "Segredo do app Meta",
+                  "Secret d’app Meta",
+                  "Meta-App-Geheimnis",
+                  "Секрет приложения Meta",
+                )}
+                value={settings.meta_app_secret}
+                onChange={(v) => setSettings({ ...settings, meta_app_secret: v })}
+                type="password"
+              />
             </div>
           </KeyCard>
         </TabsContent>
@@ -144,35 +198,137 @@ export default function AdminMarketingSettings() {
 
         <TabsContent value="google">
           <KeyCard 
-            title={tr("Google Cloud (YouTube·Blogger)", "Google Cloud (YouTube & Blogger)", "Google Cloud (YouTube & Blogger)")}
+            title={tr(
+              "Google Cloud (YouTube·Blogger)",
+              "Google Cloud (YouTube & Blogger)",
+              "Google Cloud (YouTube & Blogger)",
+              "Google Cloud（YouTube・Blogger）",
+              "Google Cloud（YouTube 与 Blogger）",
+              "Google Cloud (YouTube y Blogger)",
+              "Google Cloud (YouTube e Blogger)",
+              "Google Cloud (YouTube et Blogger)",
+              "Google Cloud (YouTube und Blogger)",
+              "Google Cloud (YouTube и Blogger)",
+            )}
             desc={tf.f01660}
             icon={<Youtube className="w-8 h-8 text-red-600" />}
           >
             <div className="space-y-4">
-              <InputGroup label={tr("Google 클라이언트 ID", "Google Client ID", "Google Client ID")} value={settings.google_client_id} onChange={(v) => setSettings({...settings, google_client_id: v})} />
-              <InputGroup label={tr("Google 클라이언트 시크릿", "Google Client Secret", "Google Client Secret")} value={settings.google_client_secret} onChange={(v) => setSettings({...settings, google_client_secret: v})} type="password" />
+              <InputGroup
+                label={tr(
+                  "Google 클라이언트 ID",
+                  "Google Client ID",
+                  "Google Client ID",
+                  "Google クライアントID",
+                  "Google 客户端 ID",
+                  "ID de cliente de Google",
+                  "ID do cliente Google",
+                  "ID client Google",
+                  "Google-Client-ID",
+                  "Идентификатор клиента Google",
+                )}
+                value={settings.google_client_id}
+                onChange={(v) => setSettings({ ...settings, google_client_id: v })}
+              />
+              <InputGroup
+                label={tr(
+                  "Google 클라이언트 시크릿",
+                  "Google Client Secret",
+                  "Google Client Secret",
+                  "Google クライアントシークレット",
+                  "Google 客户端密钥",
+                  "Secreto de cliente de Google",
+                  "Segredo do cliente Google",
+                  "Secret client Google",
+                  "Google-Client-Geheimnis",
+                  "Секрет клиента Google",
+                )}
+                value={settings.google_client_secret}
+                onChange={(v) => setSettings({ ...settings, google_client_secret: v })}
+                type="password"
+              />
             </div>
           </KeyCard>
         </TabsContent>
 
         <TabsContent value="naver">
           <KeyCard 
-            title={tr("네이버·자동화 설정", "Naver & automation", "Naver & tự động hóa")}
+            title={tr(
+              "네이버·자동화 설정",
+              "Naver & automation",
+              "Naver & tự động hóa",
+              "Naver・自動化設定",
+              "Naver 与自动化设置",
+              "Naver y automatización",
+              "Naver e automação",
+              "Naver et automatisation",
+              "Naver & Automatisierung",
+              "Naver и автоматизация",
+            )}
             desc={tf.f01043}
             icon={<Zap className="w-8 h-8 text-green-600" />}
           >
             <div className="space-y-4">
-              <InputGroup label={tr("네이버 클라이언트 ID", "Naver Client ID", "Naver Client ID")} value={settings.naver_client_id} onChange={(v) => setSettings({...settings, naver_client_id: v})} />
-              <InputGroup label={tr("네이버 클라이언트 시크릿", "Naver Client Secret", "Naver Client Secret")} value={settings.naver_client_secret} onChange={(v) => setSettings({...settings, naver_client_secret: v})} type="password" />
+              <InputGroup
+                label={tr(
+                  "네이버 클라이언트 ID",
+                  "Naver Client ID",
+                  "Naver Client ID",
+                  "Naver クライアントID",
+                  "Naver 客户端 ID",
+                  "ID de cliente de Naver",
+                  "ID do cliente Naver",
+                  "ID client Naver",
+                  "Naver-Client-ID",
+                  "Идентификатор клиента Naver",
+                )}
+                value={settings.naver_client_id}
+                onChange={(v) => setSettings({ ...settings, naver_client_id: v })}
+              />
+              <InputGroup
+                label={tr(
+                  "네이버 클라이언트 시크릿",
+                  "Naver Client Secret",
+                  "Naver Client Secret",
+                  "Naver クライアントシークレット",
+                  "Naver 客户端密钥",
+                  "Secreto de cliente de Naver",
+                  "Segredo do cliente Naver",
+                  "Secret client Naver",
+                  "Naver-Client-Geheimnis",
+                  "Секрет клиента Naver",
+                )}
+                value={settings.naver_client_secret}
+                onChange={(v) => setSettings({ ...settings, naver_client_secret: v })}
+                type="password"
+              />
               <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
                 <InputGroup
-                  label={tr("n8n 마스터 Webhook URL", "n8n master webhook URL", "URL webhook n8n chính")}
+                  label={tr(
+                    "n8n 마스터 Webhook URL",
+                    "n8n master webhook URL",
+                    "URL webhook n8n chính",
+                    "n8n マスター Webhook URL",
+                    "n8n 主 Webhook URL",
+                    "URL de webhook maestro n8n",
+                    "URL do webhook mestre n8n",
+                    "URL webhook maître n8n",
+                    "n8n-Master-Webhook-URL",
+                    "URL основного вебхука n8n",
+                  )}
                   value={settings.n8n_webhook_url}
-                  onChange={(v) => setSettings({...settings, n8n_webhook_url: v})}
+                  onChange={(v) => setSettings({ ...settings, n8n_webhook_url: v })}
                   placeholder={tr(
                     "https://n8n.example.com/webhook/...",
                     "https://your-n8n-url/webhook/marketing-trigger",
-                    "https://n8n.example.com/webhook/..."
+                    "https://n8n.example.com/webhook/...",
+                    "https://n8n.example.com/webhook/...",
+                    "https://your-n8n-url/webhook/marketing-trigger",
+                    "https://tu-n8n/webhook/...",
+                    "https://seu-n8n/webhook/...",
+                    "https://votre-n8n/webhook/...",
+                    "https://ihre-n8n-url/webhook/...",
+                    "https://ваш-n8n/webhook/...",
                   )}
                 />
               </div>

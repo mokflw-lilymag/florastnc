@@ -51,7 +51,14 @@ export function OrderEditDialog({ isOpen, onOpenChange, order }: OrderEditDialog
     baseLocale,
     "삼가 故人의 冥福을 빕니다",
     "With deepest condolences",
-    "Kính viếng người đã khuất"
+    "Kính viếng người đã khuất",
+    "謹んでお悔やみ申し上げます",
+    "谨致哀悼",
+    "Nuestro más sentido pésame",
+    "Nossas condolências",
+    "Sincères condoléances",
+    "Aufrichtige Anteilnahme",
+    "Примите соболезнования",
   );
   const [isLoading, setIsLoading] = useState(false);
   
@@ -215,7 +222,14 @@ export function OrderEditDialog({ isOpen, onOpenChange, order }: OrderEditDialog
           baseLocale,
           "[배송비]",
           "[Delivery fee]",
-          "[Phí giao hàng]"
+          "[Phí giao hàng]",
+          "[送料]",
+          "[配送费]",
+          "[Gastos de envío]",
+          "[Taxa de entrega]",
+          "[Frais de livraison]",
+          "[Liefergebühr]",
+          "[Доставка]",
         );
         const expenseData = {
           category: "transportation",

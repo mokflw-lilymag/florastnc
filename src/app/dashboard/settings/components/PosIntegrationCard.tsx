@@ -20,7 +20,18 @@ export function PosIntegrationCard({ posIntegration, isLoading }: PosIntegration
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
   const baseLocale = toBaseLocale(locale);
-  const tr = (ko: string, en: string, vi?: string) => pickUiText(baseLocale, ko, en, vi);
+  const tr = (
+    ko: string,
+    en: string,
+    vi?: string,
+    ja?: string,
+    zh?: string,
+    es?: string,
+    pt?: string,
+    fr?: string,
+    de?: string,
+    ru?: string,
+  ) => pickUiText(baseLocale, ko, en, vi, ja, zh, es, pt, fr, de, ru);
   const isEasyCheckActive = posIntegration?.pos_type === 'easycheck' && posIntegration?.is_active;
   const isTossActive = posIntegration?.pos_type === 'toss' && posIntegration?.is_active;
 
@@ -57,7 +68,20 @@ export function PosIntegrationCard({ posIntegration, isLoading }: PosIntegration
                   <CheckCircle2 className={cn("h-4 w-4", isEasyCheckActive ? "text-emerald-500" : "text-slate-300")} />
                 </div>
                 <div>
-                  <p className="text-xs font-bold">{tr("이지체크 (EasyCheck)", "EasyCheck", "EasyCheck")}</p>
+                  <p className="text-xs font-bold">
+                    {tr(
+                      "이지체크 (EasyCheck)",
+                      "EasyCheck",
+                      "EasyCheck",
+                      "EasyCheck",
+                      "EasyCheck",
+                      "EasyCheck",
+                      "EasyCheck",
+                      "EasyCheck",
+                      "EasyCheck",
+                      "EasyCheck",
+                    )}
+                  </p>
                   <p className="text-[10px] text-slate-400">{isEasyCheckActive ? tf.f01651 : tf.f01571}</p>
                 </div>
               </div>
@@ -77,7 +101,20 @@ export function PosIntegrationCard({ posIntegration, isLoading }: PosIntegration
                    <CheckCircle2 className={cn("h-4 w-4", isTossActive ? "text-emerald-500" : "text-slate-300")} />
                  </div>
                  <div>
-                   <p className="text-xs font-bold">{tr("토스 POS (Toss)", "Toss POS", "Toss POS")}</p>
+                   <p className="text-xs font-bold">
+                     {tr(
+                       "토스 POS (Toss)",
+                       "Toss POS",
+                       "Toss POS",
+                       "Toss POS",
+                       "Toss POS",
+                       "Toss POS",
+                       "Toss POS",
+                       "Toss POS",
+                       "Toss POS",
+                       "Toss POS",
+                     )}
+                   </p>
                    <p className="text-[10px] text-slate-400">{isTossActive ? tf.f01574 : tf.f01571}</p>
                  </div>
                </div>

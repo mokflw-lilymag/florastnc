@@ -1,10 +1,18 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import {
+  errAdminOperationFailed,
+  errApiDbSaveFailed,
+  msgApiWebhookIgnored,
+  msgApiWebhookProcessed,
+} from '@/lib/admin/admin-api-errors';
+import { hqApiUiBase } from '@/lib/hq/hq-api-locale';
 
 // 이 엔드포인트는 카페24 앱에서 주문 생성(Order Create) 알림이 발생했을 때 호출됩니다.
 // 카페24 앱 등록 시 'Notification URL'로 설정합니다.
 export async function POST(request: Request) {
   try {
+    const bl = await hqApiUiBase(request);
     const payload = await request.json();
     console.log('--- [Cafe24] 새 알림 수신:', JSON.stringify(payload));
 
@@ -16,7 +24,7 @@ export async function POST(request: Request) {
     // 1. 카페24 주문 데이터 파싱 (Cafe24 Webhook Payload 구조 반영)
     // payload 안의 resource가 orders 인 경우
     if (payload.event_type !== 'orders.create') {
-        return NextResponse.json({ success: true, message: 'Not an order create event. Ignored.' });
+        return NextResponse.json({ success: true, message: msgApiWebhookIgnored(bl) });
     }
 
     const orderData = payload.resource || {};
@@ -54,14 +62,15 @@ export async function POST(request: Request) {
 
     if (error) {
       console.error('DB Insert Error [Cafe24]:', error);
-      return NextResponse.json({ error: 'DB Save Failed' }, { status: 500 });
+      return NextResponse.json({ error: errApiDbSaveFailed(bl) }, { status: 500 });
     }
 
     console.log('✅ 카페24 주문 수집 완료:', externalOrderId);
-    return NextResponse.json({ success: true, message: 'Cafe24 Webhook processed normally' });
+    return NextResponse.json({ success: true, message: msgApiWebhookProcessed(bl, "Cafe24") });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Cafe24 Webhook Error:', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    const bl = await hqApiUiBase(request);
+    return NextResponse.json({ success: false, error: errAdminOperationFailed(bl) }, { status: 500 });
   }
 }

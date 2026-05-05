@@ -117,6 +117,427 @@ const OPERATING_COUNTRIES = [
   { code: "RU", nameKo: "러시아", nameEn: "Russia", nameVi: "Nga", flag: "🇷🇺", defaultCurrency: "RUB" },
 ] as const;
 
+type OperatingCountryRow = (typeof OPERATING_COUNTRIES)[number];
+
+/** ko·en·vi 외 로케일용 국가 표기 (ISO 코드별) */
+const OPERATING_COUNTRY_NAME_EXTRAS: Record<
+  OperatingCountryRow["code"],
+  { ja: string; zh: string; es: string; pt: string; fr: string; de: string; ru: string }
+> = {
+  KR: {
+    ja: "韓国",
+    zh: "韩国",
+    es: "Corea del Sur",
+    pt: "Coreia do Sul",
+    fr: "Corée du Sud",
+    de: "Südkorea",
+    ru: "Республика Корея",
+  },
+  VN: {
+    ja: "ベトナム",
+    zh: "越南",
+    es: "Vietnam",
+    pt: "Vietnã",
+    fr: "Viêt Nam",
+    de: "Vietnam",
+    ru: "Вьетнам",
+  },
+  US: {
+    ja: "アメリカ",
+    zh: "美国",
+    es: "Estados Unidos",
+    pt: "Estados Unidos",
+    fr: "États-Unis",
+    de: "USA",
+    ru: "США",
+  },
+  JP: {
+    ja: "日本",
+    zh: "日本",
+    es: "Japón",
+    pt: "Japão",
+    fr: "Japon",
+    de: "Japan",
+    ru: "Япония",
+  },
+  CN: {
+    ja: "中国",
+    zh: "中国",
+    es: "China",
+    pt: "China",
+    fr: "Chine",
+    de: "China",
+    ru: "Китай",
+  },
+  ES: {
+    ja: "スペイン",
+    zh: "西班牙",
+    es: "España",
+    pt: "Espanha",
+    fr: "Espagne",
+    de: "Spanien",
+    ru: "Испания",
+  },
+  FR: {
+    ja: "フランス",
+    zh: "法国",
+    es: "Francia",
+    pt: "França",
+    fr: "France",
+    de: "Frankreich",
+    ru: "Франция",
+  },
+  DE: {
+    ja: "ドイツ",
+    zh: "德国",
+    es: "Alemania",
+    pt: "Alemanha",
+    fr: "Allemagne",
+    de: "Deutschland",
+    ru: "Германия",
+  },
+  GB: {
+    ja: "イギリス",
+    zh: "英国",
+    es: "Reino Unido",
+    pt: "Reino Unido",
+    fr: "Royaume-Uni",
+    de: "Vereinigtes Königreich",
+    ru: "Великобритания",
+  },
+  AU: {
+    ja: "オーストラリア",
+    zh: "澳大利亚",
+    es: "Australia",
+    pt: "Austrália",
+    fr: "Australie",
+    de: "Australien",
+    ru: "Австралия",
+  },
+  CA: {
+    ja: "カナダ",
+    zh: "加拿大",
+    es: "Canadá",
+    pt: "Canadá",
+    fr: "Canada",
+    de: "Kanada",
+    ru: "Канада",
+  },
+  SG: {
+    ja: "シンガポール",
+    zh: "新加坡",
+    es: "Singapur",
+    pt: "Singapura",
+    fr: "Singapour",
+    de: "Singapur",
+    ru: "Сингапур",
+  },
+  BR: {
+    ja: "ブラジル",
+    zh: "巴西",
+    es: "Brasil",
+    pt: "Brasil",
+    fr: "Brésil",
+    de: "Brasilien",
+    ru: "Бразилия",
+  },
+  MX: {
+    ja: "メキシコ",
+    zh: "墨西哥",
+    es: "México",
+    pt: "México",
+    fr: "Mexique",
+    de: "Mexiko",
+    ru: "Мексика",
+  },
+  PT: {
+    ja: "ポルトガル",
+    zh: "葡萄牙",
+    es: "Portugal",
+    pt: "Portugal",
+    fr: "Portugal",
+    de: "Portugal",
+    ru: "Португалия",
+  },
+  CH: {
+    ja: "スイス",
+    zh: "瑞士",
+    es: "Suiza",
+    pt: "Suíça",
+    fr: "Suisse",
+    de: "Schweiz",
+    ru: "Швейцария",
+  },
+  AR: {
+    ja: "アルゼンチン",
+    zh: "阿根廷",
+    es: "Argentina",
+    pt: "Argentina",
+    fr: "Argentine",
+    de: "Argentinien",
+    ru: "Аргентина",
+  },
+  NZ: {
+    ja: "ニュージーランド",
+    zh: "新西兰",
+    es: "Nueva Zelanda",
+    pt: "Nova Zelândia",
+    fr: "Nouvelle-Zélande",
+    de: "Neuseeland",
+    ru: "Новая Зеландия",
+  },
+  CL: {
+    ja: "チリ",
+    zh: "智利",
+    es: "Chile",
+    pt: "Chile",
+    fr: "Chili",
+    de: "Chile",
+    ru: "Чили",
+  },
+  MZ: {
+    ja: "モザンビーク",
+    zh: "莫桑比克",
+    es: "Mozambique",
+    pt: "Moçambique",
+    fr: "Mozambique",
+    de: "Mosambik",
+    ru: "Мозамбик",
+  },
+  RU: {
+    ja: "ロシア",
+    zh: "俄罗斯",
+    es: "Rusia",
+    pt: "Rússia",
+    fr: "Russie",
+    de: "Russland",
+    ru: "Россия",
+  },
+};
+
+function operatingCountryDisplayName(baseLocale: string, country: OperatingCountryRow): string {
+  const x = OPERATING_COUNTRY_NAME_EXTRAS[country.code];
+  return pickUiText(
+    baseLocale,
+    country.nameKo,
+    country.nameEn,
+    country.nameVi,
+    x.ja,
+    x.zh,
+    x.es,
+    x.pt,
+    x.fr,
+    x.de,
+    x.ru,
+  );
+}
+
+type MajorCurrencyRow = (typeof MAJOR_CURRENCIES)[number];
+
+/** vi·ja·zh·es·pt·fr·de·ru (ko·en은 MAJOR_CURRENCIES 행 사용) */
+const MAJOR_CURRENCY_NAME_PACKS: Record<
+  MajorCurrencyRow["code"],
+  { vi: string; ja: string; zh: string; es: string; pt: string; fr: string; de: string; ru: string }
+> = {
+  KRW: {
+    vi: "Won Hàn Quốc",
+    ja: "韓国ウォン",
+    zh: "韩元",
+    es: "Won surcoreano",
+    pt: "Won sul-coreano",
+    fr: "Won sud-coréen",
+    de: "Südkoreanischer Won",
+    ru: "Южнокорейская вона",
+  },
+  USD: {
+    vi: "Đô la Mỹ",
+    ja: "米ドル",
+    zh: "美元",
+    es: "Dólar estadounidense",
+    pt: "Dólar americano",
+    fr: "Dollar américain",
+    de: "US-Dollar",
+    ru: "Доллар США",
+  },
+  EUR: {
+    vi: "Euro",
+    ja: "ユーロ",
+    zh: "欧元",
+    es: "Euro",
+    pt: "Euro",
+    fr: "Euro",
+    de: "Euro",
+    ru: "Евро",
+  },
+  JPY: {
+    vi: "Yên Nhật",
+    ja: "日本円",
+    zh: "日元",
+    es: "Yen japonés",
+    pt: "Iene japonês",
+    fr: "Yen japonais",
+    de: "Japanischer Yen",
+    ru: "Японская иена",
+  },
+  CNY: {
+    vi: "Nhân dân tệ",
+    ja: "人民元",
+    zh: "人民币",
+    es: "Yuan chino",
+    pt: "Yuan chinês",
+    fr: "Yuan chinois",
+    de: "Renminbi-Yuan",
+    ru: "Китайский юань",
+  },
+  GBP: {
+    vi: "Bảng Anh",
+    ja: "英ポンド",
+    zh: "英镑",
+    es: "Libra esterlina",
+    pt: "Libra esterlina",
+    fr: "Livre sterling",
+    de: "Britisches Pfund",
+    ru: "Фунт стерлингов",
+  },
+  AUD: {
+    vi: "Đô la Úc",
+    ja: "オーストラリアドル",
+    zh: "澳元",
+    es: "Dólar australiano",
+    pt: "Dólar australiano",
+    fr: "Dollar australien",
+    de: "Australischer Dollar",
+    ru: "Австралийский доллар",
+  },
+  CAD: {
+    vi: "Đô la Canada",
+    ja: "カナダドル",
+    zh: "加元",
+    es: "Dólar canadiense",
+    pt: "Dólar canadense",
+    fr: "Dollar canadien",
+    de: "Kanadischer Dollar",
+    ru: "Канадский доллар",
+  },
+  SGD: {
+    vi: "Đô la Singapore",
+    ja: "シンガポールドル",
+    zh: "新加坡元",
+    es: "Dólar de Singapur",
+    pt: "Dólar de Singapura",
+    fr: "Dollar de Singapour",
+    de: "Singapur-Dollar",
+    ru: "Сингапурский доллар",
+  },
+  VND: {
+    vi: "Đồng Việt Nam",
+    ja: "ベトナムドン",
+    zh: "越南盾",
+    es: "Dong vietnamita",
+    pt: "Dong vietnamita",
+    fr: "Dong vietnamien",
+    de: "Vietnamesischer Dong",
+    ru: "Вьетнамский донг",
+  },
+  BRL: {
+    vi: "Real Brazil",
+    ja: "ブラジルレアル",
+    zh: "巴西雷亚尔",
+    es: "Real brasileño",
+    pt: "Real brasileiro",
+    fr: "Real brésilien",
+    de: "Brasilianischer Real",
+    ru: "Бразильский реал",
+  },
+  MXN: {
+    vi: "Peso Mexico",
+    ja: "メキシコペソ",
+    zh: "墨西哥比索",
+    es: "Peso mexicano",
+    pt: "Peso mexicano",
+    fr: "Peso mexicain",
+    de: "Mexikanischer Peso",
+    ru: "Мексиканское песо",
+  },
+  CHF: {
+    vi: "Franc Thụy Sĩ",
+    ja: "スイスフラン",
+    zh: "瑞士法郎",
+    es: "Franco suizo",
+    pt: "Franco suíço",
+    fr: "Franc suisse",
+    de: "Schweizer Franken",
+    ru: "Швейцарский франк",
+  },
+  ARS: {
+    vi: "Peso Argentina",
+    ja: "アルゼンチンペソ",
+    zh: "阿根廷比索",
+    es: "Peso argentino",
+    pt: "Peso argentino",
+    fr: "Peso argentin",
+    de: "Argentinischer Peso",
+    ru: "Аргентинское песо",
+  },
+  NZD: {
+    vi: "Đô la New Zealand",
+    ja: "ニュージーランドドル",
+    zh: "新西兰元",
+    es: "Dólar neozelandés",
+    pt: "Dólar neozelandês",
+    fr: "Dollar néo-zélandais",
+    de: "Neuseeland-Dollar",
+    ru: "Новозеландский доллар",
+  },
+  CLP: {
+    vi: "Peso Chile",
+    ja: "チリペソ",
+    zh: "智利比索",
+    es: "Peso chileno",
+    pt: "Peso chileno",
+    fr: "Peso chilien",
+    de: "Chilenischer Peso",
+    ru: "Чилийское песо",
+  },
+  MZN: {
+    vi: "Metical Mozambique",
+    ja: "モザンビーク・メティカル",
+    zh: "莫桑比克梅蒂卡尔",
+    es: "Metical mozambiqueño",
+    pt: "Metical moçambicano",
+    fr: "Metical mozambicain",
+    de: "Mosambikanischer Metical",
+    ru: "Мозамбикский метикал",
+  },
+  RUB: {
+    vi: "Rúp Nga",
+    ja: "ロシアルーブル",
+    zh: "俄罗斯卢布",
+    es: "Rublo ruso",
+    pt: "Rublo russo",
+    fr: "Rouble russe",
+    de: "Russischer Rubel",
+    ru: "Российский рубль",
+  },
+};
+
+function majorCurrencyDisplayName(baseLocale: string, currency: MajorCurrencyRow): string {
+  const p = MAJOR_CURRENCY_NAME_PACKS[currency.code];
+  return pickUiText(
+    baseLocale,
+    currency.nameKo,
+    currency.nameEn,
+    p.vi,
+    p.ja,
+    p.zh,
+    p.es,
+    p.pt,
+    p.fr,
+    p.de,
+    p.ru,
+  );
+}
+
 export default function SettingsPage() {
   const router = useRouter();
   const supabase = createClient();
@@ -196,7 +617,19 @@ export default function SettingsPage() {
         setBridgeStatus(true);
       } else {
         throw new Error(
-          pickUiText(baseLocale, "브릿지 응답이 올바르지 않습니다.", "Bridge response not OK", "Phản hồi bridge không hợp lệ")
+          pickUiText(
+            baseLocale,
+            "브릿지 응답이 올바르지 않습니다.",
+            "Bridge response not OK",
+            "Phản hồi bridge không hợp lệ",
+            "ブリッジの応答が正しくありません。",
+            "桥接响应异常。",
+            "La respuesta del bridge no es correcta.",
+            "A resposta da bridge não está correta.",
+            "Réponse bridge incorrecte.",
+            "Bridge-Antwort ungültig.",
+            "Некорректный ответ моста.",
+          )
         );
       }
     } catch (err) {
@@ -367,7 +800,19 @@ export default function SettingsPage() {
       const saved = await saveSettings(presetAppliedSettings);
       if (!saved)
         throw new Error(
-          pickUiText(baseLocale, "설정 저장에 실패했습니다.", "Failed to save settings", "Lưu cài đặt thất bại")
+          pickUiText(
+            baseLocale,
+            "설정 저장에 실패했습니다.",
+            "Failed to save settings",
+            "Lưu cài đặt thất bại",
+            "設定の保存に失敗しました。",
+            "保存设置失败。",
+            "No se pudieron guardar los ajustes.",
+            "Falha ao salvar as configurações.",
+            "Échec de l’enregistrement des paramètres.",
+            "Speichern der Einstellungen fehlgeschlagen.",
+            "Не удалось сохранить настройки.",
+          )
         );
 
       document.cookie = `preferred_country=${localCountry}; path=/; max-age=${60 * 60 * 24 * 365}`;
@@ -480,19 +925,55 @@ export default function SettingsPage() {
       case "erp_only":
         return (
           <Badge className="bg-emerald-600 border-0">
-            {pickUiText(baseLocale, "ERP 전용", "ERP only", "Chỉ ERP")}
+            {pickUiText(
+              baseLocale,
+              "ERP 전용",
+              "ERP only",
+              "Chỉ ERP",
+              "ERP専用",
+              "仅 ERP",
+              "Solo ERP",
+              "Somente ERP",
+              "ERP uniquement",
+              "Nur ERP",
+              "Только ERP",
+            )}
           </Badge>
         );
       case "ribbon_only":
         return (
           <Badge className="bg-purple-600 border-0">
-            {pickUiText(baseLocale, "리본 전용", "Ribbon only", "Chỉ ruy băng")}
+            {pickUiText(
+              baseLocale,
+              "리본 전용",
+              "Ribbon only",
+              "Chỉ ruy băng",
+              "リボンのみ",
+              "仅丝带",
+              "Solo cinta",
+              "Somente fita",
+              "Ruban uniquement",
+              "Nur Band",
+              "Только лента",
+            )}
           </Badge>
         );
       default:
         return (
           <Badge variant="outline" className="text-slate-500">
-            {pickUiText(baseLocale, "무료 / 체험", "Free / trial", "Miễn phí / dùng thử")}
+            {pickUiText(
+              baseLocale,
+              "무료 / 체험",
+              "Free / trial",
+              "Miễn phí / dùng thử",
+              "無料／トライアル",
+              "免费 / 试用",
+              "Gratis / prueba",
+              "Grátis / teste",
+              "Gratuit / essai",
+              "Kostenlos / Test",
+              "Бесплатно / пробный",
+            )}
           </Badge>
         );
     }
@@ -586,7 +1067,8 @@ export default function SettingsPage() {
                       {OPERATING_COUNTRIES.map((country) => (
                         <option key={country.code} value={country.code}>
                           {country.flag}{" "}
-                          {pickUiText(baseLocale, country.nameKo, country.nameEn, country.nameVi)} ({country.code}) · {tf.f01003}{" "}
+                          {operatingCountryDisplayName(baseLocale, country)}{" "}
+                          ({country.code}) · {tf.f01003}{" "}
                           {country.defaultCurrency}
                         </option>
                       ))}
@@ -701,18 +1183,32 @@ export default function SettingsPage() {
               <Card className="border-0 shadow-sm ring-1 ring-slate-200">
                 <CardHeader><CardTitle>{t.store.currencyTitle}</CardTitle></CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                    {MAJOR_CURRENCIES.map((currency) => (
+                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                    {MAJOR_CURRENCIES.map((currency) => {
+                      const curLabel = majorCurrencyDisplayName(baseLocale, currency);
+                      const selected = settings.currency === currency.code;
+                      return (
                       <Button
                         key={currency.code}
-                        variant={settings.currency === currency.code ? "default" : "outline"}
+                        variant={selected ? "default" : "outline"}
                         className="h-auto py-3 flex-col gap-1"
+                        title={`${currency.code} — ${curLabel}`}
+                        aria-label={`${currency.code}, ${curLabel}`}
                         onClick={() => saveSettings({ ...settings, currency: currency.code })}
                       >
                         <span className="text-xl">{currency.flag}</span>
                         <span className="font-bold text-xs">{currency.code}</span>
+                        <span
+                          className={cn(
+                            "text-[9px] leading-snug text-center line-clamp-2 max-w-[6.5rem] mx-auto font-medium",
+                            selected ? "text-white/85" : "text-slate-500",
+                          )}
+                        >
+                          {curLabel}
+                        </span>
                       </Button>
-                    ))}
+                      );
+                    })}
                   </div>
                 </CardContent>
               </Card>

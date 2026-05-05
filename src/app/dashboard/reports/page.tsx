@@ -95,7 +95,19 @@ export default function ReportsPage() {
     if (dateRange === "week") return tf.f02009;
     if (dateRange === "month") return format(new Date(), "MMM yyyy", { locale: dfLoc });
     const yStr = format(new Date(), "yyyy", { locale: dfLoc });
-    return pickUiText(baseLocale, `${yStr}년`, yStr, yStr);
+    return pickUiText(
+      baseLocale,
+      `${yStr}년`,
+      yStr,
+      yStr,
+      `${yStr}年`,
+      `${yStr}年`,
+      yStr,
+      yStr,
+      yStr,
+      yStr,
+      `${yStr} г.`,
+    );
   }, [dateRange, dfLoc, baseLocale, tf]);
 
   const loading = ordersLoading || expensesLoading;

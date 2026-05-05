@@ -26,7 +26,14 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from 'sonner';
-import { downloadTemplate, parseExcel, exportDataToExcel } from "@/utils/excel";
+import {
+  downloadTemplate,
+  parseExcel,
+  exportDataToExcel,
+  excelManagerMemoPrefix,
+  pickExcelString,
+  supplierImportHeaderAliases,
+} from "@/utils/excel";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
 import { pickUiText } from "@/i18n/pick-ui-text";
@@ -44,19 +51,40 @@ export default function SuppliersPage() {
     baseLocale,
     "02-000-0000",
     "+82 2-0000-0000",
-    "028 0000 0000"
+    "028 0000 0000",
+    "03-0000-0000",
+    "010-0000-0000",
+    "+34 900 000 000",
+    "+55 11 3000-0000",
+    "+33 1 23 45 67 89",
+    "+49 30 00000000",
+    "+7 495 000-00-00",
   );
   const phSupplierEmail = pickUiText(
     baseLocale,
     "supplier@example.com",
     "supplier@example.com",
-    "nha_cung_cap@company.com"
+    "nha_cung_cap@company.com",
+    "supplier@example.com",
+    "supplier@example.com",
+    "proveedor@ejemplo.com",
+    "fornecedor@exemplo.com",
+    "fournisseur@exemple.fr",
+    "lieferant@beispiel.de",
+    "postavshik@primer.ru",
   );
   const phSupplierBiz = pickUiText(
     baseLocale,
     "000-00-00000",
     "Tax ID / registration no.",
-    "Mã số ĐKKD"
+    "Mã số ĐKKD",
+    "法人番号",
+    "统一社会信用代码",
+    "NIF / CIF",
+    "CNPJ / IE",
+    "SIRET / TVA",
+    "Steuernummer",
+    "ИНН / ОГРН",
   );
   const supplierSpecialtyLabel = useMemo(() => {
     const t = getMessages(locale).tenantFlows;
@@ -88,21 +116,25 @@ export default function SuppliersPage() {
     setIsImporting(true);
     try {
       const data = await parseExcel(file);
+      const H = supplierImportHeaderAliases(locale);
       let successCount = 0;
       for (const row of data) {
+        const r = row as Record<string, unknown>;
         const payload: Partial<Supplier> = {
-          name: row['거래처명']?.toString() || row['업체명']?.toString() || row['상호']?.toString() || '',
-          contact: row['연락처']?.toString() || row['전화번호']?.toString() || '',
-          email: row['이메일']?.toString() || '',
-          address: row['주소']?.toString() || '',
-          business_number: row['사업자번호']?.toString() || '',
-          memo: row['메모']?.toString() || row['비고']?.toString() || '',
+          name: pickExcelString(r, H.name),
+          contact: pickExcelString(r, H.contact),
+          email: pickExcelString(r, H.email),
+          address: pickExcelString(r, H.address),
+          business_number: pickExcelString(r, H.business_number),
+          memo: pickExcelString(r, H.memo),
         };
 
-        let type = row['유형']?.toString() || '';
-        let manager = row['담당자']?.toString() || '';
+        const type = pickExcelString(r, H.supplier_type);
+        const manager = pickExcelString(r, H.account_manager);
         if (type) payload.supplier_type = type;
-        if (manager) payload.memo = (payload.memo ? payload.memo + ' / ' : '') + `담당자: ${manager}`;
+        if (manager) {
+          payload.memo = (payload.memo ? payload.memo + " / " : "") + excelManagerMemoPrefix(locale) + manager;
+        }
 
         if (payload.name) {
           await addSupplier(payload);
@@ -161,7 +193,7 @@ export default function SuppliersPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => exportDataToExcel('supplier', filteredSuppliers)}
+            onClick={() => exportDataToExcel("supplier", filteredSuppliers, locale)}
             className="border-slate-200 text-slate-900 font-medium"
           >
             <Download className="h-4 w-4 mr-2 text-green-600" />
@@ -171,7 +203,7 @@ export default function SuppliersPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => downloadTemplate('supplier')}
+            onClick={() => downloadTemplate("supplier", locale)}
             className="border-slate-200 text-slate-900 font-medium"
           >
             <Download className="h-4 w-4 mr-2 text-slate-500" />

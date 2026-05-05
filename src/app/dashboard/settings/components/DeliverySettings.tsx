@@ -37,7 +37,14 @@ export function DeliverySettings({
     baseLocale,
     "예: 10000",
     "e.g. 10000",
-    "VD: 10000"
+    "VD: 10000",
+    "例: 10000",
+    "例如：10000",
+    "Ej.: 10000",
+    "Ex.: 10000",
+    "Ex. : 10000",
+    "z. B. 10000",
+    "Напр.: 10000",
   );
   const [newRegion, setNewRegion] = useState("");
   const [newFee, setNewFee] = useState("");

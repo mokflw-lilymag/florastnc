@@ -22,18 +22,105 @@ type TickerItem = {
   emphasis?: "hq";
 };
 
-type TickerL = (ko: string, en: string, vi?: string) => string;
+type TickerL = (
+  ko: string,
+  en: string,
+  vi?: string,
+  ja?: string,
+  zh?: string,
+  es?: string,
+  pt?: string,
+  fr?: string,
+  de?: string,
+  ru?: string,
+) => string;
 
 function formatDeliveryTicker(o: Order, L: TickerL): string {
-  const t = o.delivery_info?.time?.trim() || L("시간미정", "Time TBD", "Chưa rõ giờ");
-  const name = o.delivery_info?.recipientName?.trim() || o.orderer?.name?.trim() || L("미입력", "Not set", "Chưa nhập");
-  return L(`${t} 수령 ${name}`, `${t} · To ${name}`, `${t} · Nhận ${name}`);
+  const t =
+    o.delivery_info?.time?.trim() ||
+    L(
+      "시간미정",
+      "Time TBD",
+      "Chưa rõ giờ",
+      "時間未定",
+      "时间待定",
+      "Hora por confirmar",
+      "Horário a definir",
+      "Heure à confirmer",
+      "Zeit offen",
+      "Время уточняется",
+    );
+  const name =
+    o.delivery_info?.recipientName?.trim() ||
+    o.orderer?.name?.trim() ||
+    L(
+      "미입력",
+      "Not set",
+      "Chưa nhập",
+      "未入力",
+      "未填写",
+      "Sin datos",
+      "Não informado",
+      "Non renseigné",
+      "Nicht angegeben",
+      "Не указано",
+    );
+  return L(
+    `${t} 수령 ${name}`,
+    `${t} · To ${name}`,
+    `${t} · Nhận ${name}`,
+    `${t} · ${name} 宛`,
+    `${t} · 送至 ${name}`,
+    `${t} · Para ${name}`,
+    `${t} · Para ${name}`,
+    `${t} · Pour ${name}`,
+    `${t} · An ${name}`,
+    `${t} · ${name}`,
+  );
 }
 
 function formatPickupTicker(o: Order, L: TickerL): string {
-  const t = o.pickup_info?.time?.trim() || L("시간미정", "Time TBD", "Chưa rõ giờ");
-  const name = o.pickup_info?.pickerName?.trim() || o.orderer?.name?.trim() || L("미입력", "Not set", "Chưa nhập");
-  return L(`${t} 픽업 ${name}`, `${t} · Pickup ${name}`, `${t} · Lấy hàng ${name}`);
+  const t =
+    o.pickup_info?.time?.trim() ||
+    L(
+      "시간미정",
+      "Time TBD",
+      "Chưa rõ giờ",
+      "時間未定",
+      "时间待定",
+      "Hora por confirmar",
+      "Horário a definir",
+      "Heure à confirmer",
+      "Zeit offen",
+      "Время уточняется",
+    );
+  const name =
+    o.pickup_info?.pickerName?.trim() ||
+    o.orderer?.name?.trim() ||
+    L(
+      "미입력",
+      "Not set",
+      "Chưa nhập",
+      "未入力",
+      "未填写",
+      "Sin datos",
+      "Não informado",
+      "Non renseigné",
+      "Nicht angegeben",
+      "Не указано",
+    );
+  return L(
+    `${t} 픽업 ${name}`,
+    `${t} · Pickup ${name}`,
+    `${t} · Lấy hàng ${name}`,
+    `${t} · ピックアップ ${name}`,
+    `${t} · 到店取 ${name}`,
+    `${t} · Recogida ${name}`,
+    `${t} · Retirada ${name}`,
+    `${t} · Retrait ${name}`,
+    `${t} · Abholung ${name}`,
+    `${t} · Самовывоз ${name}`,
+  );
 }
 
 function sortByScheduleTime(
@@ -48,12 +135,35 @@ function sortByScheduleTime(
 }
 
 function listWithCap(orders: Order[], fmt: (o: Order) => string, cap: number, L: TickerL): string {
-  if (orders.length === 0) return L("없음", "None", "Không có");
+  if (orders.length === 0)
+    return L(
+      "없음",
+      "None",
+      "Không có",
+      "なし",
+      "无",
+      "Ninguno",
+      "Nenhum",
+      "Aucun",
+      "Keine",
+      "Нет",
+    );
   const head = orders.slice(0, cap).map(fmt).join(" · ");
   const n = orders.length - cap;
   const more =
     orders.length > cap
-      ? L(` · 외 ${n}건`, ` · +${n} more`, ` · +${n}`)
+      ? L(
+          ` · 외 ${n}건`,
+          ` · +${n} more`,
+          ` · +${n}`,
+          ` · 他${n}件`,
+          ` · 另${n}笔`,
+          ` · +${n} más`,
+          ` · +${n} mais`,
+          ` · +${n} de plus`,
+          ` · +${n} weitere`,
+          ` · ещё ${n}`,
+        )
       : "";
   return head + more;
 }
@@ -68,13 +178,49 @@ export function DashboardTicker() {
   const baseLocale = toBaseLocale(locale);
   const dfLoc = dateFnsLocaleForBase(baseLocale);
   const [weatherLine, setWeatherLine] = useState(() =>
-    pickUiText(baseLocale, "🌤️ 날씨 불러오는 중…", "🌤️ Loading weather…", "🌤️ Đang tải thời tiết…")
+    pickUiText(
+      baseLocale,
+      "🌤️ 날씨 불러오는 중…",
+      "🌤️ Loading weather…",
+      "🌤️ Đang tải thời tiết…",
+      "🌤️ 天気を読み込み中…",
+      "🌤️ 正在加载天气…",
+      "🌤️ Cargando el tiempo…",
+      "🌤️ Carregando o clima…",
+      "🌤️ Chargement de la météo…",
+      "🌤️ Wetter wird geladen…",
+      "🌤️ Загрузка погоды…",
+    ),
   );
 
   useEffect(() => {
     const b = toBaseLocale(locale);
-    const loc = (ko: string, en: string, vi?: string) => pickUiText(b, ko, en, vi);
-    setWeatherLine(loc("🌤️ 날씨 불러오는 중…", "🌤️ Loading weather…", "🌤️ Đang tải thời tiết…"));
+    const loc = (
+      ko: string,
+      en: string,
+      vi?: string,
+      ja?: string,
+      zh?: string,
+      es?: string,
+      pt?: string,
+      fr?: string,
+      de?: string,
+      ru?: string,
+    ) => pickUiText(b, ko, en, vi, ja, zh, es, pt, fr, de, ru);
+    setWeatherLine(
+      loc(
+        "🌤️ 날씨 불러오는 중…",
+        "🌤️ Loading weather…",
+        "🌤️ Đang tải thời tiết…",
+        "🌤️ 天気を読み込み中…",
+        "🌤️ 正在加载天气…",
+        "🌤️ Cargando el tiempo…",
+        "🌤️ Carregando o clima…",
+        "🌤️ Chargement de la météo…",
+        "🌤️ Wetter wird geladen…",
+        "🌤️ Загрузка погоды…",
+      ),
+    );
     const run = (lat?: number, lon?: number) => {
       getWeatherInfo(lat, lon).then((w) => {
         if (w) {
@@ -83,11 +229,31 @@ export function DashboardTicker() {
             loc(
               `${emoji} ${w.description}, 최저 ${w.minTemperature}° / 최고 ${w.maxTemperature}°`,
               `${emoji} ${w.description}, low ${w.minTemperature}° / high ${w.maxTemperature}°`,
-              `${emoji} ${w.description}, thấp ${w.minTemperature}° / cao ${w.maxTemperature}°`
-            )
+              `${emoji} ${w.description}, thấp ${w.minTemperature}° / cao ${w.maxTemperature}°`,
+              `${emoji} ${w.description}、最低 ${w.minTemperature}° / 最高 ${w.maxTemperature}°`,
+              `${emoji} ${w.description}，最低 ${w.minTemperature}° / 最高 ${w.maxTemperature}°`,
+              `${emoji} ${w.description}, mín. ${w.minTemperature}° / máx. ${w.maxTemperature}°`,
+              `${emoji} ${w.description}, mín. ${w.minTemperature}° / máx. ${w.maxTemperature}°`,
+              `${emoji} ${w.description}, min. ${w.minTemperature}° / max. ${w.maxTemperature}°`,
+              `${emoji} ${w.description}, min. ${w.minTemperature}° / max. ${w.maxTemperature}°`,
+              `${emoji} ${w.description}, мин. ${w.minTemperature}° / макс. ${w.maxTemperature}°`,
+            ),
           );
         } else {
-          setWeatherLine(loc("날씨 정보를 가져올 수 없습니다", "Couldn’t load weather.", "Không tải được thời tiết."));
+          setWeatherLine(
+            loc(
+              "날씨 정보를 가져올 수 없습니다",
+              "Couldn’t load weather.",
+              "Không tải được thời tiết.",
+              "天気情報を取得できませんでした",
+              "无法加载天气信息",
+              "No se pudo cargar el tiempo.",
+              "Não foi possível carregar o clima.",
+              "Impossible de charger la météo.",
+              "Wetter konnte nicht geladen werden.",
+              "Не удалось загрузить погоду.",
+            ),
+          );
         }
       });
     };
@@ -102,7 +268,18 @@ export function DashboardTicker() {
   }, [locale]);
 
   const segments = useMemo((): TickerItem[] => {
-    const L = (ko: string, en: string, vi?: string) => pickUiText(baseLocale, ko, en, vi);
+    const L: TickerL = (
+      ko,
+      en,
+      vi,
+      ja,
+      zh,
+      es,
+      pt,
+      fr,
+      de,
+      ru,
+    ) => pickUiText(baseLocale, ko, en, vi, ja, zh, es, pt, fr, de, ru);
     const dateLine = format(new Date(), "PPPP", { locale: dfLoc });
     const base: TickerItem[] = [{ text: dateLine }, { text: weatherLine }];
 
@@ -164,7 +341,14 @@ export function DashboardTicker() {
       text: L(
         `배송 예약 오늘/내일 ${td}건/${tm}건 — 오늘: ${todayDelStr} | 내일: ${tomorrowDelStr}`,
         `Delivery (today/tomorrow) ${td}/${tm} — Today: ${todayDelStr} | Tomorrow: ${tomorrowDelStr}`,
-        `Giao (hôm nay/mai) ${td}/${tm} — Hôm nay: ${todayDelStr} | Mai: ${tomorrowDelStr}`
+        `Giao (hôm nay/mai) ${td}/${tm} — Hôm nay: ${todayDelStr} | Mai: ${tomorrowDelStr}`,
+        `配達予約 今日/明日 ${td}件/${tm}件 — 今日: ${todayDelStr} | 明日: ${tomorrowDelStr}`,
+        `配送预约 今/明 ${td}单/${tm}单 — 今日：${todayDelStr} | 明日：${tomorrowDelStr}`,
+        `Entregas (hoy/mañana) ${td}/${tm} — Hoy: ${todayDelStr} | Mañana: ${tomorrowDelStr}`,
+        `Entregas (hoje/amanhã) ${td}/${tm} — Hoje: ${todayDelStr} | Amanhã: ${tomorrowDelStr}`,
+        `Livraisons (auj./dem.) ${td}/${tm} — Auj.: ${todayDelStr} | Dem.: ${tomorrowDelStr}`,
+        `Lieferungen (heute/morgen) ${td}/${tm} — Heute: ${todayDelStr} | Morgen: ${tomorrowDelStr}`,
+        `Доставки (сегодня/завтра) ${td}/${tm} — Сегодня: ${todayDelStr} | Завтра: ${tomorrowDelStr}`,
       ),
     });
 
@@ -184,7 +368,14 @@ export function DashboardTicker() {
       text: L(
         `픽업·매장 오늘/내일 ${pd}건/${pm}건 — 오늘: ${todayPuStr} | 내일: ${tomorrowPuStr}`,
         `Pickup / in-store (today/tomorrow) ${pd}/${pm} — Today: ${todayPuStr} | Tomorrow: ${tomorrowPuStr}`,
-        `Lấy tại cửa (hôm nay/mai) ${pd}/${pm} — Hôm nay: ${todayPuStr} | Mai: ${tomorrowPuStr}`
+        `Lấy tại cửa (hôm nay/mai) ${pd}/${pm} — Hôm nay: ${todayPuStr} | Mai: ${tomorrowPuStr}`,
+        `ピックアップ・店頭 今日/明日 ${pd}件/${pm}件 — 今日: ${todayPuStr} | 明日: ${tomorrowPuStr}`,
+        `自提/到店 今/明 ${pd}单/${pm}单 — 今日：${todayPuStr} | 明日：${tomorrowPuStr}`,
+        `Recogida / tienda (hoy/mañana) ${pd}/${pm} — Hoy: ${todayPuStr} | Mañana: ${tomorrowPuStr}`,
+        `Retirada / loja (hoje/amanhã) ${pd}/${pm} — Hoje: ${todayPuStr} | Amanhã: ${tomorrowPuStr}`,
+        `Retrait / magasin (auj./dem.) ${pd}/${pm} — Auj.: ${todayPuStr} | Dem.: ${tomorrowPuStr}`,
+        `Abholung / im Laden (heute/morgen) ${pd}/${pm} — Heute: ${todayPuStr} | Morgen: ${tomorrowPuStr}`,
+        `Самовывоз / в магазине (сегодня/завтра) ${pd}/${pm} — Сегодня: ${todayPuStr} | Завтра: ${tomorrowPuStr}`,
       ),
     });
 
@@ -200,19 +391,59 @@ export function DashboardTicker() {
     let cancelled = false;
     (async () => {
       try {
-        const q = isSuperAdmin ? "" : "?branchOnly=1";
-        const res = await fetch(`/api/hq/announcements${q}`, { credentials: "include" });
+        const params = new URLSearchParams();
+        if (!isSuperAdmin) params.set("branchOnly", "1");
+        params.set("uiLocale", locale);
+        const res = await fetch(`/api/hq/announcements?${params.toString()}`, {
+          credentials: "include",
+        });
         if (!res.ok) return;
         const json = await res.json();
         const anns = (json.announcements ?? []) as { title: string; priority?: string }[];
         const b = toBaseLocale(locale);
-        const L = (ko: string, en: string, vi?: string) => pickUiText(b, ko, en, vi);
+        const L: TickerL = (ko, en, vi, ja, zh, es, pt, fr, de, ru) =>
+          pickUiText(b, ko, en, vi, ja, zh, es, pt, fr, de, ru);
         const items: TickerItem[] = anns.slice(0, 4).map((a) => {
           const urgent =
-            a.priority === "high" ? L(" · 중요", " · Important", " · Quan trọng") : "";
+            a.priority === "high"
+              ? L(
+                  " · 중요",
+                  " · Important",
+                  " · Quan trọng",
+                  " · 重要",
+                  " · 重要",
+                  " · Importante",
+                  " · Importante",
+                  " · Important",
+                  " · Wichtig",
+                  " · Важно",
+                )
+              : "";
           const prefix = isSuperAdmin
-            ? L("【본사 게시】", "[HQ post]", "[Bài HQ]")
-            : L("【새 공지】", "[New notice]", "[Thông báo mới]");
+            ? L(
+                "【본사 게시】",
+                "[HQ post]",
+                "[Bài HQ]",
+                "【本部投稿】",
+                "【总部发布】",
+                "[Publicación HQ]",
+                "[Post matriz]",
+                "[Publication siège]",
+                "[HQ-Beitrag]",
+                "[Пост головного офиса]",
+              )
+            : L(
+                "【새 공지】",
+                "[New notice]",
+                "[Thông báo mới]",
+                "【新着お知らせ】",
+                "【新公告】",
+                "[Nuevo aviso]",
+                "[Novo aviso]",
+                "[Nouvelle annonce]",
+                "[Neue Mitteilung]",
+                "[Новое объявление]",
+              );
           return {
             text: `${prefix} ${a.title}${urgent}`,
             emphasis: "hq",
@@ -226,7 +457,7 @@ export function DashboardTicker() {
     return () => {
       cancelled = true;
     };
-  }, [tenantId, tickerEnabled, isSuperAdmin]);
+  }, [tenantId, tickerEnabled, isSuperAdmin, locale]);
 
   /** 본사 공지를 앞쪽에 두어 전광판에서 먼저 지나가게 함 */
   const boardData = useMemo(() => [...hqItems, ...segments], [segments, hqItems]);
@@ -264,7 +495,19 @@ export function DashboardTicker() {
         "bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-700",
         touchUi ? "h-14" : "h-16"
       )}
-      aria-label={pickUiText(baseLocale, "대시보드 전광판", "Dashboard ticker")}
+      aria-label={pickUiText(
+        baseLocale,
+        "대시보드 전광판",
+        "Dashboard ticker",
+        "Bảng tin bảng điều khiển",
+        "ダッシュボードのティッカー",
+        "仪表盘滚动信息",
+        "Tira informativa del panel",
+        "Faixa do painel",
+        "Bandeau du tableau de bord",
+        "Dashboard-Ticker",
+        "Бегущая строка панели",
+      )}
     >
       <div className="absolute inset-0 bg-black/15 pointer-events-none z-[1]" />
       <div className="absolute inset-0 flex items-center overflow-hidden z-0">

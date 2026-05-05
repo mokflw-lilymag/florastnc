@@ -3,6 +3,7 @@ import { supabase } from './lib/supabase';
 import { Settings, Plus, Trash2, X } from 'lucide-react';
 import { usePreferredLocale } from '@/hooks/use-preferred-locale';
 import { getMessages } from '@/i18n/getMessages';
+import { toast } from 'sonner';
 
 interface PhraseManagerProps {
   isOpen: boolean;
@@ -38,10 +39,17 @@ export function PhraseManagerDialog({ isOpen, onClose, onChanged }: PhraseManage
   };
 
   const handeAdd = async () => {
-    if (!newCat.trim() || !newText.trim()) return alert(R.phraseAlertBoth);
+    if (!newCat.trim() || !newText.trim()) {
+      toast.error(R.phraseAlertBoth);
+      return;
+    }
     setIsLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { alert(R.phraseLoginRequired); setIsLoading(false); return; }
+    if (!user) {
+      toast.error(R.phraseLoginRequired);
+      setIsLoading(false);
+      return;
+    }
 
     const { error } = await supabase.from('custom_phrases').insert([{
       user_id: user.id,
@@ -49,7 +57,7 @@ export function PhraseManagerDialog({ isOpen, onClose, onChanged }: PhraseManage
       text: newText.trim(),
       description: newDesc.trim() || ''
     }]);
-    if (error) alert(error.message);
+    if (error) toast.error(error.message);
     else {
       setNewText('');
       setNewDesc('');

@@ -250,7 +250,14 @@ export default function ExpensesPage() {
     baseLocale,
     "https://…",
     "https://…",
-    "https://…"
+    "https://…",
+    "https://…",
+    "https://…",
+    "https://…",
+    "https://…",
+    "https://…",
+    "https://…",
+    "https://…",
   );
   const categoryLabels: Record<string, string> = {
     all: tf.f01798,
@@ -785,6 +792,7 @@ export default function ExpensesPage() {
             body: JSON.stringify({
               image: base64Data,
               mimeType: compressedFile.type || "image/jpeg",
+              uiLocale: locale,
             }),
             headers: { "Content-Type": "application/json" },
           });

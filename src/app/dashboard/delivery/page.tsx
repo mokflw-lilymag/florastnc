@@ -66,7 +66,14 @@ export default function DeliveryManagementPage() {
     baseLocale,
     "예: 3500",
     "e.g. 3500",
-    "VD: 3500"
+    "VD: 3500",
+    "例: 3500",
+    "例如：3500",
+    "Ej.: 3500",
+    "Ex.: 3500",
+    "Ex. : 3500",
+    "z. B. 3500",
+    "Напр.: 3500",
   );
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<"all" | "delivery" | "pickup">("all");
@@ -566,7 +573,19 @@ export default function DeliveryManagementPage() {
                                        >
                                           <span className="text-[10px] font-bold text-gray-500 flex items-center justify-between">
                                             {order.delivery_info?.driverAffiliation
-                                              ? `${pickUiText(baseLocale, "수동", "Manual", "Thủ công")}: ${order.delivery_info.driverAffiliation}`
+                                              ? `${pickUiText(
+                                                  baseLocale,
+                                                  "수동",
+                                                  "Manual",
+                                                  "Thủ công",
+                                                  "手動",
+                                                  "手动",
+                                                  "Manual",
+                                                  "Manual",
+                                                  "Manuel",
+                                                  "Manuell",
+                                                  "Вручную",
+                                                )}: ${order.delivery_info.driverAffiliation}`
                                               : tf.f00376}
                                           </span>
                                        </div>

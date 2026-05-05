@@ -1,15 +1,19 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
+import { hqApiUiBase } from "@/lib/hq/hq-api-locale";
+import { errAdminOperationFailed, errAdminUnauthorized } from "@/lib/admin/admin-api-errors";
 
 /**
  * 본사 게시판 작성 다이얼로그용: 조직 목록 + 작성 권한 (가벼운 응답)
  */
-export async function GET() {
+export async function GET(req: Request) {
+  const sp = new URL(req.url).searchParams;
+  const bl = await hqApiUiBase(req, sp.get("uiLocale"));
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user) return NextResponse.json({ error: errAdminUnauthorized(bl) }, { status: 401 });
 
   const { data: profileRow } = await supabase
     .from("profiles")
@@ -34,7 +38,7 @@ export async function GET() {
       .order("name");
     if (error) {
       console.error("[hq/compose-context]", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: errAdminOperationFailed(bl) }, { status: 500 });
     }
     return NextResponse.json({
       organizations: allOrgs ?? [],
@@ -54,7 +58,7 @@ export async function GET() {
 
   if (error) {
     console.error("[hq/compose-context]", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: errAdminOperationFailed(bl) }, { status: 500 });
   }
 
   return NextResponse.json({

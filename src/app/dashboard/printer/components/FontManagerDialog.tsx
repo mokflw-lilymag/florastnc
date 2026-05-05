@@ -6,6 +6,7 @@ import { usePreferredLocale } from '@/hooks/use-preferred-locale';
 import { getMessages } from '@/i18n/getMessages';
 import { toBaseLocale } from '@/i18n/config';
 import { pickUiText } from '@/i18n/pick-ui-text';
+import { toast } from 'sonner';
 
 function fillRibbonTemplate(template: string, vars: Record<string, string | number>): string {
   let s = template;
@@ -29,13 +30,27 @@ export function FontManagerDialog({ isOpen, onClose, baseFonts, onSettingsChange
     baseLocale,
     "https://fonts.googleapis.com/css2?...",
     "https://fonts.googleapis.com/css2?...",
-    "https://fonts.googleapis.com/css2?..."
+    "https://fonts.googleapis.com/css2?...",
+    "https://fonts.googleapis.com/css2?...",
+    "https://fonts.googleapis.com/css2?...",
+    "https://fonts.googleapis.com/css2?...",
+    "https://fonts.googleapis.com/css2?...",
+    "https://fonts.googleapis.com/css2?...",
+    "https://fonts.googleapis.com/css2?...",
+    "https://fonts.googleapis.com/css2?...",
   );
   const phCssFontFamily = pickUiText(
     baseLocale,
     "'Jua', sans-serif",
     "'Jua', sans-serif",
-    "'Jua', sans-serif"
+    "'Jua', sans-serif",
+    "'Jua', sans-serif",
+    "'Jua', sans-serif",
+    "'Jua', sans-serif",
+    "'Jua', sans-serif",
+    "'Jua', sans-serif",
+    "'Jua', sans-serif",
+    "'Jua', sans-serif",
   );
   const R = getMessages(locale).dashboard.ribbon;
   const [tab, setTab] = useState<'list' | 'add-system' | 'add-custom'>('list');
@@ -114,15 +129,15 @@ export function FontManagerDialog({ isOpen, onClose, baseFonts, onSettingsChange
       setTab('list');
       await loadFonts();
       onSettingsChanged();
-      alert(fillRibbonTemplate(R.fontMgrSystemAdded, { name: displayName }));
+      toast.success(fillRibbonTemplate(R.fontMgrSystemAdded, { name: displayName }));
     } catch (e: any) {
-      alert(fillRibbonTemplate(R.fontMgrAddError, { msg: e.message ?? String(e) }));
+      toast.error(fillRibbonTemplate(R.fontMgrAddError, { msg: e.message ?? String(e) }));
     }
   };
 
   const handleAddFont = async () => {
     if (!fontName) {
-      alert(R.fontMgrEnterName);
+      toast.error(R.fontMgrEnterName);
       return;
     }
     
@@ -135,20 +150,20 @@ export function FontManagerDialog({ isOpen, onClose, baseFonts, onSettingsChange
 
     if (addType === 'local') {
       if (!selectedFile) {
-        alert(R.fontMgrPickFile);
+        toast.error(R.fontMgrPickFile);
         return;
       }
       newFont.blob = selectedFile;
       newFont.fontFamily = fontName; 
     } else {
       if (!webUrl || !fontFamily) {
-        alert(R.fontMgrWebFields);
+        toast.error(R.fontMgrWebFields);
         return;
       }
       // 보안 및 제한 정책 적용
       const webFontCount = customFonts.filter(f => f.source === 'web').length;
       if (webFontCount >= 5) {
-        alert(R.fontMgrWebLimit);
+        toast.error(R.fontMgrWebLimit);
         return;
       }
       
@@ -161,7 +176,7 @@ export function FontManagerDialog({ isOpen, onClose, baseFonts, onSettingsChange
          webUrl.endsWith('.ttf'));
 
       if (!isValidWebFontUrl) {
-        alert(R.fontMgrWebInvalid);
+        toast.error(R.fontMgrWebInvalid);
         return;
       }
 
@@ -179,9 +194,9 @@ export function FontManagerDialog({ isOpen, onClose, baseFonts, onSettingsChange
       setTab('list');
       await loadFonts();
       onSettingsChanged();
-      alert(R.fontMgrCustomOk);
+      toast.success(R.fontMgrCustomOk);
     } catch (e) {
-      alert(R.fontMgrSaveErr);
+      toast.error(R.fontMgrSaveErr);
     }
   };
 
@@ -337,13 +352,13 @@ export function FontManagerDialog({ isOpen, onClose, baseFonts, onSettingsChange
                          if (!res.ok) throw new Error(`HTTP ${res.status}`);
                          const data = await res.json();
                          if (data.status !== 'success' || !data.fonts || data.fonts.length === 0) {
-                           alert(R.fontErrNoFonts);
+                           toast.error(R.fontErrNoFonts);
                            return;
                          }
                          setSystemFonts(data.fonts);
                        } catch (e: any) {
                          console.error("Font API error:", e);
-                         alert(fillRibbonTemplate(R.fontErrListLoad, { msg: e.message ?? String(e) }));
+                         toast.error(fillRibbonTemplate(R.fontErrListLoad, { msg: e.message ?? String(e) }));
                        } finally {
                          setIsRequestingFonts(false);
                        }

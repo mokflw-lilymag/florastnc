@@ -1,27 +1,27 @@
-import { NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+import { NextResponse } from "next/server";
+import {
+  errApiAiMessageEngineFallback,
+  msgApiAiCardTagline,
+  msgApiAiWarmFallback,
+} from "@/lib/admin/admin-api-errors";
+import { hqApiUiBase } from "@/lib/hq/hq-api-locale";
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const theme = body.theme || 'modern';
-    
-    // For now, return a simple AI-generated placeholder message or just success.
-    // The user mentioned "Don't create messages here, focus on image", 
-    // but the API should at least be functional without syntax errors.
+    const body = await request.json().catch(() => ({}));
+    const bl = await hqApiUiBase(request, typeof body?.uiLocale === "string" ? body.uiLocale : undefined);
+    const theme = typeof body.theme === "string" && body.theme.trim() ? body.theme.trim() : "modern";
 
     return NextResponse.json({
-      message: `A beautiful card for your ${theme} moment.`,
-      status: 'success'
+      message: msgApiAiCardTagline(bl, theme),
+      status: "success",
     });
-
-  } catch (error: any) {
-    console.error('AI Message API error:', error);
-    return NextResponse.json({ 
-      message: 'Warm wishes to you.',
-      error: 'Message engine fallback'
+  } catch (error: unknown) {
+    console.error("AI Message API error:", error);
+    const bl = await hqApiUiBase(request);
+    return NextResponse.json({
+      message: msgApiAiWarmFallback(bl),
+      error: errApiAiMessageEngineFallback(bl),
     });
   }
 }

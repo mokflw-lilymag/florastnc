@@ -72,7 +72,8 @@ export default function HqBranchDetailPage({
   const [catalogApplying, setCatalogApplying] = useState(false);
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
-  const baseLocale = toBaseLocale(locale);  const formatReceiptType = (value: string) => {
+  const baseLocale = toBaseLocale(locale);
+  const formatReceiptType = (value: string) => {
     const map: Record<string, string> = {
       delivery: tf.f00240,
       pickup: tf.f00752,
@@ -89,9 +90,12 @@ export default function HqBranchDetailPage({
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`/api/hq/branches/${tenantId}`, {
-          credentials: "include",
-        });
+        const res = await fetch(
+          `/api/hq/branches/${tenantId}?locale=${encodeURIComponent(locale)}&uiLocale=${encodeURIComponent(locale)}`,
+          {
+            credentials: "include",
+          }
+        );
         if (res.status === 401) {
           if (!cancelled) setError(tf.f00176);
           return;
@@ -120,7 +124,7 @@ export default function HqBranchDetailPage({
     return () => {
       cancelled = true;
     };
-  }, [tenantId]);
+  }, [tenantId, locale]);
 
   if (loading) {
     return (
@@ -161,7 +165,7 @@ export default function HqBranchDetailPage({
       const res = await fetch("/api/hq/work-context", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tenantId }),
+        body: JSON.stringify({ tenantId, uiLocale: locale }),
         credentials: "include",
       });
       const j = await res.json().catch(() => ({}));
@@ -185,7 +189,7 @@ export default function HqBranchDetailPage({
       const res = await fetch("/api/hq/catalog/apply", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tenantId }),
+        body: JSON.stringify({ tenantId, uiLocale: locale }),
         credentials: "include",
       });
       const j = await res.json().catch(() => ({}));

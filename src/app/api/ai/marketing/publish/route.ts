@@ -1,13 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 import { createClient } from '@/utils/supabase/server';
+import {
+  errApiN8nUrlMissing,
+  errApiPublishDispatchFailed,
+  errApiRequiredParamsMissing,
+} from '@/lib/admin/admin-api-errors';
+import { hqApiUiBase } from '@/lib/hq/hq-api-locale';
 
 export async function POST(req: NextRequest) {
   try {
-    const { platform, title, content, imageUrl, persona, topic } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const bl = await hqApiUiBase(req, typeof body?.uiLocale === 'string' ? body.uiLocale : undefined);
+    const { platform, title, content, imageUrl, persona, topic } = body as {
+      platform?: string;
+      title?: string;
+      content?: string;
+      imageUrl?: string;
+      persona?: string;
+      topic?: string;
+    };
 
     if (!platform || !content) {
-      return NextResponse.json({ error: '필수 파라미터가 누락되었습니다.' }, { status: 400 });
+      return NextResponse.json({ error: errApiRequiredParamsMissing(bl) }, { status: 400 });
     }
 
     // 현재 로그인한 사용자 ID 가져오기
@@ -21,7 +36,7 @@ export async function POST(req: NextRequest) {
     
     if (!n8nWebhookUrl) {
       console.error('N8N_MASTER_URL is not defined in environment variables');
-      return NextResponse.json({ error: 'n8n 워크플로우 주소가 설정되지 않았습니다.' }, { status: 500 });
+      return NextResponse.json({ error: errApiN8nUrlMissing(bl) }, { status: 500 });
     }
 
     console.log(`[Publish] Sending webhook to n8n for platform: ${platform}`);
@@ -50,11 +65,12 @@ export async function POST(req: NextRequest) {
       n8nResponse: response.data 
     });
 
-  } catch (error: any) {
-    console.error('Publish API Error:', error.response?.data || error.message);
+  } catch (error: unknown) {
+    console.error('Publish API Error:', (error as { response?: { data?: unknown }; message?: string })?.response?.data || (error as { message?: string })?.message);
+    const bl = await hqApiUiBase(req);
     return NextResponse.json({ 
-      error: '로봇에게 신호를 보내는 중 오류가 발생했습니다.', 
-      details: error.message,
+      error: errApiPublishDispatchFailed(bl), 
+      details: (error as { message?: string })?.message,
     }, { status: 500 });
   }
 }

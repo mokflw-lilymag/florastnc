@@ -331,7 +331,8 @@ export default function MarketingStudio() {
         body: JSON.stringify({
           topic: selectedTopic,
           persona: shopSettings.store_persona,
-          platform: targetPlatform
+          platform: targetPlatform,
+          uiLocale: locale,
         })
       });
       
@@ -360,7 +361,8 @@ export default function MarketingStudio() {
           platform: generatedBlog.platform,
           title: generatedBlog.title,
           content: generatedBlog.content,
-          imageUrl: 'https://images.unsplash.com/photo-1563241597-12a414531d5e?q=80&w=1000&auto=format&fit=crop'
+          imageUrl: 'https://images.unsplash.com/photo-1563241597-12a414531d5e?q=80&w=1000&auto=format&fit=crop',
+          uiLocale: locale,
         })
       });
       const data = await response.json();

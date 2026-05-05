@@ -6,13 +6,17 @@ import {
   effectiveIsSuperAdmin,
   isOrgAdminForOrganization,
 } from "@/lib/auth-api-guards";
+import { hqApiUiBase } from "@/lib/hq/hq-api-locale";
+import { errAnnDeleteForbidden, errAnnPostNotFound } from "@/lib/hq/hq-announcements-api-errors";
+import { errAdminOperationFailed } from "@/lib/admin/admin-api-errors";
 
 export async function DELETE(
-  _req: Request,
+  req: Request,
   context: { params: Promise<{ id: string }> }
 ) {
+  const bl = await hqApiUiBase(req, new URL(req.url).searchParams.get("uiLocale"));
   const { id } = await context.params;
-  const gate = await requireAuthenticated();
+  const gate = await requireAuthenticated(req);
   if (!gate.ok) return gate.response;
   const { supabase, userId, email, profile } = gate;
 
@@ -23,17 +27,14 @@ export async function DELETE(
     .maybeSingle();
 
   if (!row) {
-    return NextResponse.json({ error: "게시물을 찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: errAnnPostNotFound(bl) }, { status: 404 });
   }
 
   const orgId = row.organization_id as string;
   const superOk = effectiveIsSuperAdmin(profile, email);
   const orgAdminOk = await isOrgAdminForOrganization(supabase, userId, orgId);
   if (!superOk && !orgAdminOk) {
-    return NextResponse.json(
-      { error: "게시물을 삭제할 권한이 없습니다. 플랫폼 관리자 또는 해당 조직 org_admin 만 가능합니다." },
-      { status: 403 }
-    );
+    return NextResponse.json({ error: errAnnDeleteForbidden(bl) }, { status: 403 });
   }
 
   let delClient = supabase;
@@ -46,7 +47,7 @@ export async function DELETE(
 
   if (error) {
     console.error("[hq/announcements DELETE]", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: errAdminOperationFailed(bl) }, { status: 500 });
   }
 
   const raw = row?.attachment_urls;

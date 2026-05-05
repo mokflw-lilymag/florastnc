@@ -1,4 +1,13 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  errAdminOrganizationNotFound,
+  errAdminSeedBulkMaxBranches,
+  errAdminSeedBulkOrgOrBranchesRequired,
+  errAdminSeedBulkOrgTenantExclusive,
+  errAdminSeedBulkUnknownBranchIds,
+  errAdminSeedOrgHasNoBranches,
+  errAdminSeedOrgTooManyBranches,
+} from "@/lib/admin/admin-api-errors";
 import { TENANT_MASTER_SEED_BULK_MAX } from "./run-seed";
 
 export type ResolveBulkTenantsInput = {
@@ -23,7 +32,8 @@ export type ResolveBulkTenantsErr = {
  */
 export async function resolveTenantIdsForMasterSeedBulk(
   admin: SupabaseClient,
-  input: ResolveBulkTenantsInput
+  input: ResolveBulkTenantsInput,
+  uiBase: string
 ): Promise<ResolveBulkTenantsOk | ResolveBulkTenantsErr> {
   const orgRaw = typeof input.organizationId === "string" ? input.organizationId.trim() : "";
   const rawList = input.tenantIds;
@@ -34,13 +44,13 @@ export async function resolveTenantIdsForMasterSeedBulk(
   if (fromList.length > 0) {
     if (orgRaw) {
       return {
-        error: "organizationId 와 tenantIds 를 함께 보낼 수 없습니다. 한 가지만 지정하세요.",
+        error: errAdminSeedBulkOrgTenantExclusive(uiBase),
         status: 400,
       };
     }
     if (fromList.length > TENANT_MASTER_SEED_BULK_MAX) {
       return {
-        error: `한 번에 최대 ${TENANT_MASTER_SEED_BULK_MAX}곳까지 선택할 수 있습니다.`,
+        error: errAdminSeedBulkMaxBranches(uiBase, TENANT_MASTER_SEED_BULK_MAX),
         status: 400,
       };
     }
@@ -54,7 +64,7 @@ export async function resolveTenantIdsForMasterSeedBulk(
       const sample = missing.slice(0, 3).join(", ");
       const more = missing.length > 3 ? " …" : "";
       return {
-        error: `존재하지 않는 매장 ID가 있습니다: ${sample}${more}`,
+        error: errAdminSeedBulkUnknownBranchIds(uiBase, sample, more),
         status: 400,
       };
     }
@@ -63,7 +73,7 @@ export async function resolveTenantIdsForMasterSeedBulk(
 
   if (!orgRaw) {
     return {
-      error: "organizationId 또는 tenantIds(비어 있지 않은 배열)가 필요합니다.",
+      error: errAdminSeedBulkOrgOrBranchesRequired(uiBase),
       status: 400,
     };
   }
@@ -73,7 +83,7 @@ export async function resolveTenantIdsForMasterSeedBulk(
     return { error: orgErr.message, status: 500 };
   }
   if (!orgRow?.id) {
-    return { error: "조직을 찾을 수 없습니다.", status: 404 };
+    return { error: errAdminOrganizationNotFound(uiBase), status: 404 };
   }
 
   const { data: tenantRows, error: tErr } = await admin.from("tenants").select("id").eq("organization_id", orgRaw);
@@ -83,13 +93,13 @@ export async function resolveTenantIdsForMasterSeedBulk(
   const tenantIds = (tenantRows ?? []).map((r) => r.id as string).filter(Boolean);
   if (tenantIds.length === 0) {
     return {
-      error: "이 조직에 연결된 매장(tenants.organization_id)이 없습니다.",
+      error: errAdminSeedOrgHasNoBranches(uiBase),
       status: 400,
     };
   }
   if (tenantIds.length > TENANT_MASTER_SEED_BULK_MAX) {
     return {
-      error: `매장 수가 너무 많습니다. 관리자에게 문의하세요. (최대 ${TENANT_MASTER_SEED_BULK_MAX}곳)`,
+      error: errAdminSeedOrgTooManyBranches(uiBase, TENANT_MASTER_SEED_BULK_MAX),
       status: 400,
     };
   }

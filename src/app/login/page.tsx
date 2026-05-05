@@ -33,19 +33,40 @@ export default function LoginPage() {
     baseLocale,
     "name@flower.com",
     "you@example.com",
-    "email@company.com"
+    "email@company.com",
+    "info@yourshop.jp",
+    "kefu@yourshop.cn",
+    "hola@tutienda.com",
+    "contato@sualoja.com",
+    "contact@votreboutique.com",
+    "info@ihre-blumen.de",
+    "info@vash-magazin.ru",
   );
   const phRegEmail = pickUiText(
     baseLocale,
     "master@flower.com",
     "owner@example.com",
-    "chu@company.com"
+    "chu@company.com",
+    "master@yourshop.jp",
+    "dianzhu@yourshop.cn",
+    "dueno@tutienda.com",
+    "dono@sualoja.com",
+    "gerant@votreboutique.com",
+    "inhaber@beispiel.de",
+    "vladeliec@primer.ru",
   );
   const phResetEmail = pickUiText(
     baseLocale,
     "example@flower.com",
     "you@example.com",
-    "email@company.com"
+    "email@company.com",
+    "support@yourshop.jp",
+    "kefu@yourshop.cn",
+    "ayuda@tutienda.com",
+    "ajuda@sualoja.com",
+    "aide@votreboutique.com",
+    "hilfe@beispiel.de",
+    "help@primer.ru",
   );
   
   // Login State

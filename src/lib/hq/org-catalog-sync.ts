@@ -1,4 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { normalizeCatalogStatus } from "./catalog-status";
+
+export { normalizeCatalogStatus };
 
 /** 지점 products 반영용 (카탈로그 행과 동일 필드) */
 export type OrgCatalogProductShape = {
@@ -9,13 +12,6 @@ export type OrgCatalogProductShape = {
   code: string | null;
   status: string;
 };
-
-export function normalizeCatalogStatus(raw: string | null | undefined): "active" | "inactive" | "sold_out" {
-  const s = String(raw ?? "active").trim().toLowerCase();
-  if (s === "inactive" || s === "비활성" || s === "중지") return "inactive";
-  if (s === "sold_out" || s === "품절") return "sold_out";
-  return "active";
-}
 
 /**
  * 공유 카탈로그 행을 한 지점 products 에 반영합니다.

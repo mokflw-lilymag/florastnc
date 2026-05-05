@@ -67,7 +67,10 @@ export default function HqMaterialRequestsPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/branch/material-requests", { credentials: "include" });
+      const res = await fetch(
+        `/api/branch/material-requests?uiLocale=${encodeURIComponent(locale)}`,
+        { credentials: "include" }
+      );
       const j = await res.json().catch(() => ({}));
       if (!res.ok) return;
       setRequests((j.requests ?? []) as Req[]);
@@ -75,7 +78,7 @@ export default function HqMaterialRequestsPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [locale]);
 
   useEffect(() => {
     if (authLoading || !user) return;

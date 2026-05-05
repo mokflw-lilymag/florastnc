@@ -3,6 +3,29 @@ import { usePreferredLocale } from '@/hooks/use-preferred-locale';
 import { getMessages } from '@/i18n/getMessages';
 import { toBaseLocale } from '@/i18n/config';
 import RIBBON_PHRASE_DESC_EN from '@/i18n/messages/ribbon-phrase-desc-en.json';
+import RIBBON_PHRASE_DESC_JA from '@/i18n/messages/ribbon-phrase-desc-ja.json';
+import RIBBON_PHRASE_DESC_ZH from '@/i18n/messages/ribbon-phrase-desc-zh.json';
+import RIBBON_PHRASE_DESC_VI from '@/i18n/messages/ribbon-phrase-desc-vi.json';
+import RIBBON_PHRASE_DESC_ES from '@/i18n/messages/ribbon-phrase-desc-es.json';
+import RIBBON_PHRASE_DESC_PT from '@/i18n/messages/ribbon-phrase-desc-pt.json';
+import RIBBON_PHRASE_DESC_FR from '@/i18n/messages/ribbon-phrase-desc-fr.json';
+import RIBBON_PHRASE_DESC_DE from '@/i18n/messages/ribbon-phrase-desc-de.json';
+import RIBBON_PHRASE_DESC_RU from '@/i18n/messages/ribbon-phrase-desc-ru.json';
+
+type RibbonPhraseDescTable = Record<string, string[]>;
+
+/** Quick-phrase tooltip lines per category index; non-ko uses locale table with English fallback. */
+const RIBBON_PHRASE_DESC_BY_BASE: Record<string, RibbonPhraseDescTable> = {
+  en: RIBBON_PHRASE_DESC_EN,
+  ja: RIBBON_PHRASE_DESC_JA,
+  zh: RIBBON_PHRASE_DESC_ZH,
+  vi: RIBBON_PHRASE_DESC_VI,
+  es: RIBBON_PHRASE_DESC_ES,
+  pt: RIBBON_PHRASE_DESC_PT,
+  fr: RIBBON_PHRASE_DESC_FR,
+  de: RIBBON_PHRASE_DESC_DE,
+  ru: RIBBON_PHRASE_DESC_RU,
+};
 import { toPng } from 'html-to-image';
 import { 
   Printer, 
@@ -37,6 +60,7 @@ import { type CustomFontInfo, getAllCustomFonts, getHiddenFonts } from './lib/fo
 
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { toast } from 'sonner';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -958,7 +982,8 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
 
   const phraseDescForUi = (catIndex: number, phraseIndex: number, fallback: string) => {
     if (baseLocaleUi === 'ko') return fallback;
-    const arr = RIBBON_PHRASE_DESC_EN[String(catIndex) as keyof typeof RIBBON_PHRASE_DESC_EN];
+    const table = RIBBON_PHRASE_DESC_BY_BASE[baseLocaleUi] ?? RIBBON_PHRASE_DESC_EN;
+    const arr = table[String(catIndex)];
     return (arr && arr[phraseIndex]) || fallback;
   };
 
@@ -1012,7 +1037,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
 
   const checkSubscriptionAction = async (action: () => void) => {
     if (session?.user?.email === 'test@test.com') {
-      alert(R.signupRequired);
+      toast.warning(R.signupRequired);
       await supabase.auth.signOut();
       return;
     }
@@ -1359,10 +1384,10 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
 
       await Promise.all(updatePromises);
       
-      alert(R.logoUpdated);
+      toast.success(R.logoUpdated);
     } catch (err: any) {
       console.error('Logo upload error:', err);
-      alert(fillDashboardTemplate(R.logoUploadErr, { msg: err.message }));
+      toast.error(fillDashboardTemplate(R.logoUploadErr, { msg: err.message }));
     }
   };
 
@@ -1509,7 +1534,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
 
       if (printTarget === 'left') {
         await sendJob([{ref: separateLeftRef, label: R.congratText}], width, length, R.congratText);
-        alert(R.printDoneLeft);
+        toast.success(R.printDoneLeft);
       } else if (printTarget === 'right') {
         await sendJob([{ref: separateRightRef, label: R.senderLabel}], width, length, R.senderLabel);
       } else {
@@ -1525,7 +1550,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
         
         // 작업 추가 후 대기열 열기
         if (typeof setShowQueue === 'function') setShowQueue(true);
-        alert(R.printQueueAdded);
+        toast.success(R.printQueueAdded);
       }
     } catch (error: any) {
        console.error("[Print] Error:", error);
@@ -1536,7 +1561,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
          userMessage = R.printBridgeHint;
        }
        
-       alert("❌ " + userMessage);
+       toast.error(`❌ ${userMessage}`);
     } finally {
        setIsPrinting(false);
 
@@ -1576,7 +1601,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
       // 4. Force Reload Printer List
       loadPrinters();
       
-      alert(R.resetBridgeDone);
+      toast.success(R.resetBridgeDone);
       window.location.reload();
     }
   };
@@ -1959,7 +1984,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
                onChange={e => {
                  const v = e.target.value as 'roll' | 'cut';
                  if (v === 'roll') {
-                   alert(`🔧 ${R.rollRibbonAlert}`);
+                   toast.warning(`🔧 ${R.rollRibbonAlert}`);
                    setMediaType('cut');
                  } else {
                    setMediaType(v);
@@ -2127,7 +2152,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
                      setShopLogo(null);
                      setPrintLogo(false);
                      await supabase.auth.updateUser({ data: { shop_logo: "" } });
-                     alert(R.logoDeletedFromServer);
+                     toast.success(R.logoDeletedFromServer);
                    }} 
                    className="text-[10px] text-red-500 font-bold hover:text-red-400"
                  >
@@ -2608,9 +2633,9 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
             name,
             config: currentConfig
           });
-          if (error) alert(fillDashboardTemplate(R.saveFailed, { msg: error.message }));
+          if (error) toast.error(fillDashboardTemplate(R.saveFailed, { msg: error.message }));
           else {
-            alert(R.saveOk);
+            toast.success(R.saveOk);
             setIsSaveDialogOpen(false);
           }
         }}
@@ -2863,14 +2888,14 @@ function PrintQueueMonitor({ isOpen, onClose }: { isOpen: boolean; onClose: () =
     try {
       await fetch(`http://127.0.0.1:8002/api/queue/retry/${id}`, { method: 'POST' });
       fetchQueue();
-    } catch (e) { alert(Rq.retryFailed); }
+    } catch (e) { toast.error(Rq.retryFailed); }
   };
 
   const handleDelete = async (id: string) => {
     try {
       await fetch(`http://127.0.0.1:8002/api/queue/${id}`, { method: 'DELETE' });
       fetchQueue();
-    } catch (e) { alert(Rq.deleteFailed); }
+    } catch (e) { toast.error(Rq.deleteFailed); }
   };
 
   if (!isOpen) return (

@@ -95,6 +95,16 @@ export function speechRecognitionLangTag(baseLocale: string): string {
   return map[baseLocale] ?? "en-US";
 }
 
+/** 클라이언트에서 `preferred_locale` 쿠키 기준 UI 로케일. SSR·훅 밖(Zustand 등)에서는 `ko` 폴백. */
+export function readDocumentBaseLocale(): AppLocale {
+  if (typeof document === "undefined") return DEFAULT_LOCALE;
+  const cookieValue = document.cookie
+    .split("; ")
+    .find((row) => row.startsWith(`${LOCALE_COOKIE}=`))
+    ?.split("=")[1];
+  return toBaseLocale(resolveLocale(cookieValue));
+}
+
 export function localizePath(locale: AppLocale, path: string) {
   if (!path.startsWith("/")) return `/${locale}/${path}`;
   if (path === "/") return `/${locale}`;

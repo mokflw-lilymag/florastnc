@@ -96,10 +96,7 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
   const baseLocale = toBaseLocale(locale);
-  const voiceExample = useMemo(
-    () => pickUiText(baseLocale, tf.f02551, tf.f02552, tf.f02553),
-    [baseLocale, tf]
-  );
+  const voiceExample = useMemo(() => tf.f02551, [tf]);
   const deliveryTypes = useMemo(
     () =>
       [
@@ -113,13 +110,27 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
     baseLocale,
     "예: 2026-04-18",
     "e.g. 2026-04-18",
-    "VD: 2026-04-18"
+    "VD: 2026-04-18",
+    "例: 2026-04-18",
+    "例：2026-04-18",
+    "Ej.: 2026-04-18",
+    "Ex.: 2026-04-18",
+    "Ex. : 2026-04-18",
+    "z. B. 2026-04-18",
+    "Напр.: 2026-04-18",
   );
   const phDeliveryTime = pickUiText(
     baseLocale,
     "예: 15:00",
     "e.g. 15:00",
-    "VD: 15:00"
+    "VD: 15:00",
+    "例: 15:00",
+    "例：15:00",
+    "Ej.: 15:00",
+    "Ex.: 15:00",
+    "Ex. : 15:00",
+    "z. B. 15:00",
+    "Напр.: 15:00",
   );
   const [isOpen, setIsOpen] = useState(false);
   // UI State

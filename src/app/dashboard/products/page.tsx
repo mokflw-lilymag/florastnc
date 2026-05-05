@@ -15,7 +15,15 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { AccessDenied } from "@/components/access-denied";
 import { Skeleton } from "@/components/ui/skeleton";
-import { downloadTemplate, parseExcel, exportDataToExcel } from "@/utils/excel";
+import {
+  downloadTemplate,
+  parseExcel,
+  exportDataToExcel,
+  normalizeProductExcelStatus,
+  pickExcelCell,
+  pickExcelString,
+  productImportHeaderAliases,
+} from "@/utils/excel";
 import { useSettings } from "@/hooks/use-settings";
 import { Download, Upload, Settings2 } from "lucide-react";
 import Link from "next/link";
@@ -77,18 +85,19 @@ export default function ProductsPage() {
     setIsImporting(true);
     try {
       const data = await parseExcel(file);
+      const H = productImportHeaderAliases(locale);
       let successCount = 0;
       for (const row of data) {
-        // Map excel columns to database fields
+        const r = row as Record<string, unknown>;
         const payload: ProductData = {
-          code: row['상품코드']?.toString() || '',
-          name: row['상품명']?.toString() || '',
-          main_category: row['대분류']?.toString() || '',
-          mid_category: row['중분류']?.toString() || '',
-          price: Number(row['판매가']) || 0,
-          stock: Number(row['재고']) || 0,
-          supplier: row['공급처']?.toString() || '',
-          status: (row['상태(active/inactive)']?.toString().toLowerCase() === 'inactive' ? 'inactive' : 'active') as any,
+          code: pickExcelString(r, H.code),
+          name: pickExcelString(r, H.name),
+          main_category: pickExcelString(r, H.main_category),
+          mid_category: pickExcelString(r, H.mid_category),
+          price: Number(pickExcelCell(r, H.price)) || 0,
+          stock: Number(pickExcelCell(r, H.stock)) || 0,
+          supplier: pickExcelString(r, H.supplier),
+          status: normalizeProductExcelStatus(pickExcelString(r, H.status)) as ProductData["status"],
         };
 
         if (payload.name) {
@@ -175,7 +184,7 @@ export default function ProductsPage() {
           <Button 
             variant="outline" 
             size="sm" 
-            onClick={() => exportDataToExcel('product', filteredProducts)}
+            onClick={() => exportDataToExcel("product", filteredProducts, locale)}
             className="border-slate-200 text-slate-900 font-medium"
           >
             <Download className="h-4 w-4 mr-2 text-green-600" />
@@ -185,7 +194,7 @@ export default function ProductsPage() {
           <Button 
             variant="outline" 
             size="sm" 
-            onClick={() => downloadTemplate('product')}
+            onClick={() => downloadTemplate("product", locale)}
             className="border-slate-200 text-slate-900 font-medium"
           >
             <Download className="h-4 w-4 mr-2 text-slate-500" />

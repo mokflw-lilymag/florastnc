@@ -1,15 +1,29 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
+import { hqApiUiBase } from "@/lib/hq/hq-api-locale";
+import {
+  errCatalogCategoriesRequired,
+  errCatalogOrgIdNameRequired,
+  warnCatalogSchemaSql,
+} from "@/lib/hq/hq-catalog-api-errors";
+import {
+  errAdminForbidden,
+  errAdminOperationFailed,
+  errAdminServerMisconfigured,
+  errAdminUnauthorized,
+} from "@/lib/admin/admin-api-errors";
 
 /** 본사 공유 상품 목록 (조직 멤버 조회 / org_admin·super 작성) */
-export async function GET() {
+export async function GET(req: Request) {
+  const sp = new URL(req.url).searchParams;
+  const bl = await hqApiUiBase(req, sp.get("uiLocale"));
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: errAdminUnauthorized(bl) }, { status: 401 });
   }
 
   const { data: profile } = await supabase
@@ -26,7 +40,7 @@ export async function GET() {
   const orgIds = [...new Set((memberships ?? []).map((m) => m.organization_id))];
 
   if (profile?.role !== "super_admin" && orgIds.length === 0) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return NextResponse.json({ error: errAdminForbidden(bl) }, { status: 403 });
   }
 
   let query = supabase
@@ -43,12 +57,11 @@ export async function GET() {
     if (error.code === "42P01" || error.message?.includes("does not exist")) {
       return NextResponse.json({
         items: [],
-        warning:
-          "organization_catalog_schema.sql 을 Supabase에 적용하면 공유 상품 기능을 쓸 수 있습니다.",
+        warning: warnCatalogSchemaSql(bl),
       });
     }
     console.error("[hq/catalog GET]", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: errAdminOperationFailed(bl) }, { status: 500 });
   }
 
   return NextResponse.json({ items: data ?? [] });
@@ -59,24 +72,21 @@ export async function POST(req: Request) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   const body = await req.json().catch(() => ({}));
+  const bl = await hqApiUiBase(req, body?.uiLocale as string | undefined);
+  if (!user) {
+    return NextResponse.json({ error: errAdminUnauthorized(bl) }, { status: 401 });
+  }
   const organizationId = body?.organizationId as string | undefined;
   const name = (body?.name as string | undefined)?.trim();
   const main_category = (body?.main_category as string | undefined)?.trim() || "";
   const mid_category = (body?.mid_category as string | undefined)?.trim() || "";
   const price = Number(body?.price ?? 0);
   if (!organizationId || !name) {
-    return NextResponse.json({ error: "organizationId, name 은 필수입니다." }, { status: 400 });
+    return NextResponse.json({ error: errCatalogOrgIdNameRequired(bl) }, { status: 400 });
   }
   if (!main_category || !mid_category) {
-    return NextResponse.json(
-      { error: "대분류(1차)·중분류(2차 카테고리)는 필수입니다." },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: errCatalogCategoriesRequired(bl) }, { status: 400 });
   }
 
   const { data: profile } = await supabase
@@ -94,12 +104,12 @@ export async function POST(req: Request) {
 
   const canWrite = profile?.role === "super_admin" || mem?.role === "org_admin";
   if (!canWrite) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return NextResponse.json({ error: errAdminForbidden(bl) }, { status: 403 });
   }
 
   const admin = createAdminClient();
   if (!admin) {
-    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
+    return NextResponse.json({ error: errAdminServerMisconfigured(bl) }, { status: 500 });
   }
 
   const { data: row, error } = await admin
@@ -120,7 +130,7 @@ export async function POST(req: Request) {
 
   if (error) {
     console.error("[hq/catalog POST]", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: errAdminOperationFailed(bl) }, { status: 500 });
   }
 
   return NextResponse.json({ item: row });

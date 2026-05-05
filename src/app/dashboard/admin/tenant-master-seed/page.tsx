@@ -259,7 +259,7 @@ export default function TenantMasterSeedPage() {
     const messages = getMessages(locale).tenantFlows;
     try {
       setLoadingTenants(true);
-      const res = await fetch("/api/admin/tenants");
+      const res = await fetch(`/api/admin/tenants?uiLocale=${encodeURIComponent(locale)}`);
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
         throw new Error(typeof json?.error === "string" ? json.error : res.statusText);
@@ -284,7 +284,9 @@ export default function TenantMasterSeedPage() {
 
   const loadVersions = useCallback(async () => {
     try {
-      const res = await fetch("/api/admin/tenant-master-seed/versions");
+      const res = await fetch(
+        `/api/admin/tenant-master-seed/versions?uiLocale=${encodeURIComponent(locale)}`
+      );
       if (!res.ok) throw new Error(await res.text());
       const json = await res.json();
       setVersions(json.versions ?? []);
@@ -293,12 +295,12 @@ export default function TenantMasterSeedPage() {
       console.error(e);
       toast.error(tf.f01471);
     }
-  }, []);
+  }, [locale, tf]);
 
   const loadOrganizations = useCallback(async () => {
     try {
       setLoadingOrgs(true);
-      const res = await fetch("/api/admin/organizations");
+      const res = await fetch(`/api/admin/organizations?uiLocale=${encodeURIComponent(locale)}`);
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
         throw new Error(typeof json?.error === "string" ? json.error : res.statusText);
@@ -312,7 +314,7 @@ export default function TenantMasterSeedPage() {
     } finally {
       setLoadingOrgs(false);
     }
-  }, [baseLocale, tf]);
+  }, [baseLocale, locale, tf]);
 
   useEffect(() => {
     if (!isSuperAdmin) return;
@@ -375,7 +377,7 @@ export default function TenantMasterSeedPage() {
       setLoadingDetail(true);
       try {
         const res = await fetch(
-          `/api/admin/tenant-master-seed/detail?versionId=${encodeURIComponent(versionId)}`
+          `/api/admin/tenant-master-seed/detail?versionId=${encodeURIComponent(versionId)}&uiLocale=${encodeURIComponent(locale)}`
         );
         const json = await res.json().catch(() => ({}));
         if (!res.ok) {
@@ -392,7 +394,7 @@ export default function TenantMasterSeedPage() {
     return () => {
       cancelled = true;
     };
-  }, [isSuperAdmin, versionId]);
+  }, [isSuperAdmin, versionId, locale]);
 
   const handlePreview = async () => {
     if (!tenantId || !versionId) {
@@ -406,7 +408,7 @@ export default function TenantMasterSeedPage() {
       const res = await fetch("/api/admin/tenant-master-seed/preview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tenantId, versionId }),
+        body: JSON.stringify({ tenantId, versionId, uiLocale: locale }),
         signal: ac.signal,
       });
       const json = await res.json().catch(() => ({}));
@@ -441,13 +443,13 @@ export default function TenantMasterSeedPage() {
         toast.error(`${tf.f02163} ${TENANT_MASTER_SEED_BULK_MAX}${tf.f00947}`);
         return;
       }
-      body = { versionId, tenantIds: bulkSelectedTenantIds };
+      body = { versionId, tenantIds: bulkSelectedTenantIds, uiLocale: locale };
     } else {
       if (!organizationId) {
         toast.error(tf.f01847);
         return;
       }
-      body = { organizationId, versionId };
+      body = { organizationId, versionId, uiLocale: locale };
     }
     const ac = armSeedAbort();
     setBulkPreviewing(true);
@@ -499,13 +501,13 @@ export default function TenantMasterSeedPage() {
         toast.error(`${tf.f02163} ${TENANT_MASTER_SEED_BULK_MAX}${tf.f00947}`);
         return;
       }
-      body = { versionId, tenantIds: bulkSelectedTenantIds, confirm: true };
+      body = { versionId, tenantIds: bulkSelectedTenantIds, confirm: true, uiLocale: locale };
     } else {
       if (!organizationId) {
         toast.error(tf.f01847);
         return;
       }
-      body = { organizationId, versionId, confirm: true };
+      body = { organizationId, versionId, confirm: true, uiLocale: locale };
     }
     const ac = armSeedAbort();
     setBulkApplying(true);
@@ -551,7 +553,7 @@ export default function TenantMasterSeedPage() {
       const res = await fetch("/api/admin/tenant-master-seed/apply", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tenantId, versionId, confirm: true }),
+        body: JSON.stringify({ tenantId, versionId, confirm: true, uiLocale: locale }),
         signal: ac.signal,
       });
       const json = await res.json().catch(() => ({}));

@@ -5,17 +5,26 @@ import {
   effectiveIsSuperAdmin,
   isOrgAdminForOrganization,
 } from "@/lib/auth-api-guards";
+import { hqApiUiBase } from "@/lib/hq/hq-api-locale";
+import {
+  errAnnCommentDeleteForbidden,
+  errAnnCommentNotFound,
+  errAnnIdsRequired,
+  errAnnPostNotFound,
+} from "@/lib/hq/hq-announcements-api-errors";
+import { errAdminOperationFailed } from "@/lib/admin/admin-api-errors";
 
 export async function DELETE(
-  _req: Request,
+  req: Request,
   context: { params: Promise<{ id: string; commentId: string }> }
 ) {
+  const bl = await hqApiUiBase(req, new URL(req.url).searchParams.get("uiLocale"));
   const { id: announcementId, commentId } = await context.params;
   if (!announcementId || !commentId) {
-    return NextResponse.json({ error: "id 필요" }, { status: 400 });
+    return NextResponse.json({ error: errAnnIdsRequired(bl) }, { status: 400 });
   }
 
-  const gate = await requireAuthenticated();
+  const gate = await requireAuthenticated(req);
   if (!gate.ok) return gate.response;
   const { supabase, userId, email, profile } = gate;
 
@@ -27,7 +36,7 @@ export async function DELETE(
     .maybeSingle();
 
   if (!c) {
-    return NextResponse.json({ error: "댓글을 찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: errAnnCommentNotFound(bl) }, { status: 404 });
   }
 
   const { data: ann } = await supabase
@@ -36,7 +45,7 @@ export async function DELETE(
     .eq("id", announcementId)
     .maybeSingle();
   if (!ann) {
-    return NextResponse.json({ error: "게시물을 찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: errAnnPostNotFound(bl) }, { status: 404 });
   }
 
   const orgId = ann.organization_id as string;
@@ -45,7 +54,7 @@ export async function DELETE(
   const orgMod = await isOrgAdminForOrganization(supabase, userId, orgId);
 
   if (!isOwn && !superOk && !orgMod) {
-    return NextResponse.json({ error: "댓글을 삭제할 권한이 없습니다." }, { status: 403 });
+    return NextResponse.json({ error: errAnnCommentDeleteForbidden(bl) }, { status: 403 });
   }
 
   let client = supabase;
@@ -62,7 +71,7 @@ export async function DELETE(
 
   if (error) {
     console.error("[hq/announcements comments DELETE]", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: errAdminOperationFailed(bl) }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true });

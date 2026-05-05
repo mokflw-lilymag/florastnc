@@ -2,6 +2,14 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { applyOrgCatalogItemsToTenant, type OrgCatalogProductShape } from "@/lib/hq/org-catalog-sync";
+import { hqApiUiBase } from "@/lib/hq/hq-api-locale";
+import { errCatalogBranchNotFound, errCatalogTenantIdRequired } from "@/lib/hq/hq-catalog-api-errors";
+import {
+  errAdminForbidden,
+  errAdminOperationFailed,
+  errAdminServerMisconfigured,
+  errAdminUnauthorized,
+} from "@/lib/admin/admin-api-errors";
 
 /**
  * 공유 카탈로그 행을 지점 products 에 반영 (코드 있으면 갱신, 없으면 삽입)
@@ -11,16 +19,16 @@ export async function POST(req: Request) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   const body = await req.json().catch(() => ({}));
+  const bl = await hqApiUiBase(req, body?.uiLocale as string | undefined);
+  if (!user) {
+    return NextResponse.json({ error: errAdminUnauthorized(bl) }, { status: 401 });
+  }
   const tenantId = body?.tenantId as string | undefined;
   const itemIds = body?.itemIds as string[] | undefined;
 
   if (!tenantId) {
-    return NextResponse.json({ error: "tenantId 가 필요합니다." }, { status: 400 });
+    return NextResponse.json({ error: errCatalogTenantIdRequired(bl) }, { status: 400 });
   }
 
   const { data: profile } = await supabase
@@ -31,7 +39,7 @@ export async function POST(req: Request) {
 
   const admin = createAdminClient();
   if (!admin) {
-    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
+    return NextResponse.json({ error: errAdminServerMisconfigured(bl) }, { status: 500 });
   }
 
   const { data: memberships } = await supabase
@@ -50,14 +58,14 @@ export async function POST(req: Request) {
     .maybeSingle();
 
   if (!branch?.organization_id) {
-    return NextResponse.json({ error: "지점 또는 소속 조직을 찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: errCatalogBranchNotFound(bl) }, { status: 404 });
   }
 
   const allowed =
     profile?.role === "super_admin" || orgAdminOrgIds.has(branch.organization_id);
 
   if (!allowed) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return NextResponse.json({ error: errAdminForbidden(bl) }, { status: 403 });
   }
 
   let catQuery = admin
@@ -72,7 +80,7 @@ export async function POST(req: Request) {
   const { data: catalogRows, error: catErr } = await catQuery;
   if (catErr) {
     console.error("[hq/catalog/apply] catalog", catErr);
-    return NextResponse.json({ error: catErr.message }, { status: 500 });
+    return NextResponse.json({ error: errAdminOperationFailed(bl) }, { status: 500 });
   }
 
   const items: OrgCatalogProductShape[] = (catalogRows ?? []).map((item) => ({

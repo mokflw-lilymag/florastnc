@@ -34,7 +34,10 @@ export function DesignGalleryAdminPanel({ onBack, onCatalogChanged }: DesignGall
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/design-gallery', { credentials: 'include' });
+      const res = await fetch(
+        `/api/admin/design-gallery?uiLocale=${encodeURIComponent(locale)}`,
+        { credentials: 'include' }
+      );
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || D.galleryAdminLoadFail);
       const list = (json.themes ?? []) as AdminGalleryTheme[];
@@ -48,7 +51,7 @@ export function DesignGalleryAdminPanel({ onBack, onCatalogChanged }: DesignGall
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [locale, D.galleryAdminLoadFail, D.galleryAdminListFail]);
 
   useEffect(() => {
     load();
@@ -63,7 +66,7 @@ export function DesignGalleryAdminPanel({ onBack, onCatalogChanged }: DesignGall
         method: 'PATCH',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(patch),
+        body: JSON.stringify({ ...patch, uiLocale: locale }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || D.galleryAdminSaveFail);
@@ -88,6 +91,7 @@ export function DesignGalleryAdminPanel({ onBack, onCatalogChanged }: DesignGall
           slug: newThemeSlug.trim().toLowerCase(),
           label: newThemeLabel.trim(),
           sort_order: themes.length ? Math.max(...themes.map((t) => t.sort_order)) + 10 : 10,
+          uiLocale: locale,
         }),
       });
       const json = await res.json();
@@ -109,10 +113,13 @@ export function DesignGalleryAdminPanel({ onBack, onCatalogChanged }: DesignGall
     if (!confirm(D.galleryAdminDeleteThemeConfirm)) return;
     setSaving(true);
     try {
-      const res = await fetch(`/api/admin/design-gallery/themes/${id}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
+      const res = await fetch(
+        `/api/admin/design-gallery/themes/${id}?uiLocale=${encodeURIComponent(locale)}`,
+        {
+          method: 'DELETE',
+          credentials: 'include',
+        }
+      );
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || D.galleryAdminDeleteFail);
       toast.success(D.galleryAdminThemeDeleted);
@@ -134,7 +141,11 @@ export function DesignGalleryAdminPanel({ onBack, onCatalogChanged }: DesignGall
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ theme_id: selected.id, image_url: newAssetUrl.trim() }),
+        body: JSON.stringify({
+          theme_id: selected.id,
+          image_url: newAssetUrl.trim(),
+          uiLocale: locale,
+        }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || D.galleryAdminAddFail);
@@ -153,10 +164,13 @@ export function DesignGalleryAdminPanel({ onBack, onCatalogChanged }: DesignGall
     if (!confirm(D.galleryAdminDeleteDesignConfirm)) return;
     setSaving(true);
     try {
-      const res = await fetch(`/api/admin/design-gallery/assets/${assetId}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
+      const res = await fetch(
+        `/api/admin/design-gallery/assets/${assetId}?uiLocale=${encodeURIComponent(locale)}`,
+        {
+          method: 'DELETE',
+          credentials: 'include',
+        }
+      );
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || D.galleryAdminDeleteFail);
       toast.success(D.galleryAdminDeleted);

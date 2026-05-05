@@ -23,7 +23,9 @@ import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
+import { pickUiText } from "@/i18n/pick-ui-text";
 import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
+import { HQ_EXPENSE_CATEGORY_FALLBACK } from "@/lib/hq/expense-constants";
 
 type CategoryStat = {
   category: string;
@@ -55,11 +57,16 @@ type RecentLine = {
   payment_method: string;
 };
 
-function categorySummaryShort(rows: CategoryRow[], amountSuffix: string, maxParts = 3): string {
+function categorySummaryShort(
+  rows: CategoryRow[],
+  amountSuffix: string,
+  labelCategory: (c: string) => string,
+  maxParts = 3,
+): string {
   if (rows.length === 0) return "—";
   return rows
     .slice(0, maxParts)
-    .map((r) => `${r.category} ${r.amount.toLocaleString()}${amountSuffix}`)
+    .map((r) => `${labelCategory(r.category)} ${r.amount.toLocaleString()}${amountSuffix}`)
     .join(" · ");
 }
 
@@ -83,6 +90,28 @@ export default function HqBranchExpensesPage() {
   const baseLocale = toBaseLocale(locale);
   const dfLoc = dateFnsLocaleForBase(baseLocale);
   const amountSuffix = tf.f00487;
+  const expenseCategoryLabel = useCallback(
+    (cat: string) => {
+      const c = (cat || "").trim();
+      if (!c || c === HQ_EXPENSE_CATEGORY_FALLBACK || c === "기타") {
+        return pickUiText(
+          baseLocale,
+          "기타",
+          "Other",
+          "Khác",
+          "その他",
+          "其他",
+          "Otros",
+          "Outros",
+          "Autres",
+          "Sonstiges",
+          "Прочее",
+        );
+      }
+      return cat;
+    },
+    [baseLocale],
+  );
   const formatPaymentMethod = (value: string) => {
     const map: Record<string, string> = {
       card: tf.f00704,
@@ -98,7 +127,7 @@ export default function HqBranchExpensesPage() {
     setLoading(true);
     setForbidden(false);
     try {
-      const q = new URLSearchParams({ from, to });
+      const q = new URLSearchParams({ from, to, uiLocale: locale });
       const res = await fetch(`/api/hq/expenses-summary?${q}`, { credentials: "include" });
       if (res.status === 403) {
         setForbidden(true);
@@ -119,7 +148,7 @@ export default function HqBranchExpensesPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [locale]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -324,7 +353,7 @@ export default function HqBranchExpensesPage() {
               <TableBody>
                 {categoryStats.map((c) => (
                   <TableRow key={c.category}>
-                    <TableCell className="font-medium">{c.category}</TableCell>
+                    <TableCell className="font-medium">{expenseCategoryLabel(c.category)}</TableCell>
                     <TableCell className="text-right tabular-nums">{c.count.toLocaleString()}건</TableCell>
                     <TableCell className="text-right font-semibold tabular-nums">
                       {c.amount.toLocaleString()}원
@@ -392,7 +421,7 @@ export default function HqBranchExpensesPage() {
                       {b.totalAmount.toLocaleString()}{tf.f00487}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground max-w-[360px]">
-                      {categorySummaryShort(b.categoryRows, amountSuffix)}
+                      {categorySummaryShort(b.categoryRows, amountSuffix, expenseCategoryLabel)}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -440,7 +469,7 @@ export default function HqBranchExpensesPage() {
                           {row.branchName}
                         </Link>
                       </TableCell>
-                      <TableCell>{row.category}</TableCell>
+                      <TableCell>{expenseCategoryLabel(row.category)}</TableCell>
                       <TableCell className="text-right tabular-nums">{row.count.toLocaleString()}건</TableCell>
                       <TableCell className="text-right font-medium tabular-nums">
                         {row.amount.toLocaleString()}{tf.f00487}
@@ -498,7 +527,7 @@ export default function HqBranchExpensesPage() {
                         {r.tenant_name}
                       </Link>
                     </TableCell>
-                    <TableCell className="text-sm">{r.category}</TableCell>
+                    <TableCell className="text-sm">{expenseCategoryLabel(r.category)}</TableCell>
                     <TableCell className="text-sm max-w-[200px] truncate" title={r.description}>
                       {r.description}
                     </TableCell>

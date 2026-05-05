@@ -36,14 +36,28 @@ export function OrgAnnouncementBanner() {
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const locale = usePreferredLocale();
   const baseLocale = toBaseLocale(locale);
-  const tr = (ko: string, en: string, vi: string) => pickUiText(baseLocale, ko, en, vi);
+  const tr = (
+    ko: string,
+    en: string,
+    vi: string,
+    ja?: string,
+    zh?: string,
+    es?: string,
+    pt?: string,
+    fr?: string,
+    de?: string,
+    ru?: string,
+  ) => pickUiText(baseLocale, ko, en, vi, ja, zh, es, pt, fr, de, ru);
 
   useEffect(() => {
     if (isLoading || isSuperAdmin) return;
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch("/api/hq/announcements?branchOnly=1", { credentials: "include" });
+        const res = await fetch(
+          `/api/hq/announcements?branchOnly=1&uiLocale=${encodeURIComponent(locale)}`,
+          { credentials: "include" }
+        );
         if (!res.ok) return;
         const json = await res.json();
         if (!cancelled) setList(json.announcements ?? []);
@@ -54,11 +68,14 @@ export function OrgAnnouncementBanner() {
     return () => {
       cancelled = true;
     };
-  }, [isLoading, isSuperAdmin]);
+  }, [isLoading, isSuperAdmin, locale]);
 
   const refetchAnnouncements = async () => {
     try {
-      const res = await fetch("/api/hq/announcements?branchOnly=1", { credentials: "include" });
+      const res = await fetch(
+        `/api/hq/announcements?branchOnly=1&uiLocale=${encodeURIComponent(locale)}`,
+        { credentials: "include" }
+      );
       if (!res.ok) return;
       const json = await res.json();
       setList(json.announcements ?? []);
@@ -72,7 +89,9 @@ export function OrgAnnouncementBanner() {
     try {
       const res = await fetch(`/api/hq/announcements/${id}/read`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         credentials: "include",
+        body: JSON.stringify({ uiLocale: locale }),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -82,7 +101,14 @@ export function OrgAnnouncementBanner() {
             : tr(
                 "확인 기록에 실패했습니다.",
                 "Failed to save read confirmation.",
-                "Không thể lưu xác nhận đã đọc."
+                "Không thể lưu xác nhận đã đọc.",
+                "確認の保存に失敗しました。",
+                "保存阅读确认失败。",
+                "No se pudo guardar la confirmación de lectura.",
+                "Não foi possível salvar a confirmação de leitura.",
+                "Échec de l’enregistrement de la confirmation de lecture.",
+                "Speichern der Lesebestätigung fehlgeschlagen.",
+                "Не удалось сохранить подтверждение прочтения.",
               )
         );
         return;
@@ -144,7 +170,18 @@ export function OrgAnnouncementBanner() {
             <Megaphone className="h-4 w-4 shrink-0 mt-0.5 opacity-80" aria-hidden />
             <div className="min-w-0 space-y-1">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                {tr("본사 공지", "HQ announcement", "Thông báo trụ sở")}
+                {tr(
+                  "본사 공지",
+                  "HQ announcement",
+                  "Thông báo trụ sở",
+                  "本社お知らせ",
+                  "总部公告",
+                  "Anuncio de sede",
+                  "Aviso da matriz",
+                  "Annonce siège",
+                  "Zentrale Mitteilung",
+                  "Объявление головного офиса",
+                )}
                 {a.organization_name ? ` · ${a.organization_name}` : ""}
               </p>
               <p className="text-sm font-bold leading-snug">{a.title}</p>
@@ -171,7 +208,18 @@ export function OrgAnnouncementBanner() {
                 {a.confirmedAt ? (
                   <span className="inline-flex items-center gap-1 rounded-full bg-white/60 px-2 py-0.5 text-[10px] font-semibold text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200">
                     <CheckCircle2 className="h-3 w-3" aria-hidden />
-                    {tr("본사에 확인 기록됨", "Confirmed to HQ", "Đã xác nhận với trụ sở")}
+                    {tr(
+                      "본사에 확인 기록됨",
+                      "Confirmed to HQ",
+                      "Đã xác nhận với trụ sở",
+                      "本社に確認済み",
+                      "已向总部确认",
+                      "Confirmado con sede",
+                      "Confirmado com a matriz",
+                      "Confirmé auprès du siège",
+                      "Beim Hauptsitz bestätigt",
+                      "Подтверждено в головном офисе",
+                    )}
                   </span>
                 ) : (
                   <Button
@@ -185,13 +233,31 @@ export function OrgAnnouncementBanner() {
                     {confirmingId === a.id ? (
                       <>
                         <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                        {tr("처리 중…", "Processing...", "Đang xử lý…")}
+                        {tr(
+                          "처리 중…",
+                          "Processing...",
+                          "Đang xử lý…",
+                          "処理中…",
+                          "处理中…",
+                          "Procesando…",
+                          "Processando…",
+                          "Traitement…",
+                          "Wird verarbeitet…",
+                          "Обработка…",
+                        )}
                       </>
                     ) : (
                       tr(
                         "내용 확인(본사에 전달)",
                         "Confirm content (notify HQ)",
-                        "Xác nhận nội dung (thông báo trụ sở)"
+                        "Xác nhận nội dung (thông báo trụ sở)",
+                        "内容を確認（本社へ通知）",
+                        "确认内容（通知总部）",
+                        "Confirmar contenido (notificar sede)",
+                        "Confirmar conteúdo (notificar matriz)",
+                        "Confirmer le contenu (notifier le siège)",
+                        "Inhalt bestätigen (Zentrale informieren)",
+                        "Подтвердить содержание (уведомить головной офис)",
                       )
                     )}
                   </Button>
@@ -200,7 +266,18 @@ export function OrgAnnouncementBanner() {
                   href="/dashboard/org-board"
                   className="text-[10px] font-semibold underline underline-offset-2 opacity-90 hover:opacity-100"
                 >
-                  {tr("본사 게시판", "HQ board", "Bảng tin trụ sở")}
+                  {tr(
+                    "본사 게시판",
+                    "HQ board",
+                    "Bảng tin trụ sở",
+                    "本社掲示板",
+                    "总部公告板",
+                    "Tablón de sede",
+                    "Quadro da matriz",
+                    "Tableau siège",
+                    "Zentrale Pinnwand",
+                    "Доска головного офиса",
+                  )}
                 </Link>
               </div>
             </div>
@@ -211,7 +288,7 @@ export function OrgAnnouncementBanner() {
             size="icon"
             className="absolute right-1 top-1 h-8 w-8 text-current opacity-60 hover:opacity-100"
             onClick={() => dismiss(a.id)}
-            aria-label={tr("닫기", "Close", "Đóng")}
+            aria-label={tr("닫기", "Close", "Đóng", "閉じる", "关闭", "Cerrar", "Fechar", "Fermer", "Schließen", "Закрыть")}
           >
             <X className="h-4 w-4" />
           </Button>

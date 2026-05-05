@@ -119,7 +119,19 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const baseLocale = toBaseLocale(resolveLocale(localeCookie));
   const storeName =
     (hqMenuOnly
-      ? pickUiText(baseLocale, "본사·다매장", "HQ · Multi-store", "Trụ sở · Đa cửa hàng")
+      ? pickUiText(
+          baseLocale,
+          "본사·다매장",
+          "HQ · Multi-store",
+          "Trụ sở · Đa cửa hàng",
+          "本部・複数店舗",
+          "总部 · 多门店",
+          "Matriz · multi-tienda",
+          "Matriz · várias lojas",
+          "Siège · multi-magasins",
+          "Zentrale · mehrere Shops",
+          "Офис · сеть магазинов",
+        )
       : tenantData?.name) ?? undefined;
 
   return (

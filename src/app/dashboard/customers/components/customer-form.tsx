@@ -42,13 +42,27 @@ export function CustomerForm({ isOpen, onOpenChange, onSubmit, customer }: Custo
     baseLocale,
     "010-0000-0000",
     "+1 555-000-0000",
-    "0909 000 000"
+    "0909 000 000",
+    "090-0000-0000",
+    "138-0000-0000",
+    "+34 600 000 000",
+    "+55 11 90000-0000",
+    "+33 6 00 00 00 00",
+    "+49 151 00000000",
+    "+7 900 000-00-00",
   );
   const phEmail = pickUiText(
     baseLocale,
     "example@email.com",
     "you@example.com",
-    "email@company.com"
+    "email@company.com",
+    "info@yourshop.jp",
+    "lianxi@yourshop.cn",
+    "cliente@tutienda.com",
+    "cliente@sualoja.com",
+    "client@boutique.com",
+    "kunde@beispiel.de",
+    "klient@primer.ru",
   );
   const [formData, setFormData] = useState<CustomerData>({
     name: "",

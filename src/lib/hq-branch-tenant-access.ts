@@ -1,4 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { errAdminForbidden } from "@/lib/admin/admin-api-errors";
+import { errHqBranchNotFound, errHqBranchOrgRequired } from "@/lib/hq/hq-branch-work-api-errors";
 
 export type AccessResult =
   | { ok: true }
@@ -13,9 +15,11 @@ export async function assertHqAccessToBranchTenant(
     branchTenantId: string;
     isSuperAdmin: boolean;
     orgIds: string[];
+    /** `hqApiUiBase` 결과(베이스 로케일 문자열) */
+    uiBase: string;
   }
 ): Promise<AccessResult> {
-  const { branchTenantId, isSuperAdmin, orgIds } = params;
+  const { branchTenantId, isSuperAdmin, orgIds, uiBase } = params;
   const { data: t, error } = await admin
     .from("tenants")
     .select("id, organization_id")
@@ -23,14 +27,14 @@ export async function assertHqAccessToBranchTenant(
     .maybeSingle();
 
   if (error || !t) {
-    return { ok: false, status: 404, message: "지점을 찾을 수 없습니다." };
+    return { ok: false, status: 404, message: errHqBranchNotFound(uiBase) };
   }
   if (!t.organization_id) {
-    return { ok: false, status: 403, message: "조직에 연결된 지점만 처리할 수 있습니다." };
+    return { ok: false, status: 403, message: errHqBranchOrgRequired(uiBase) };
   }
   if (isSuperAdmin) return { ok: true };
   if (!orgIds.length || !orgIds.includes(t.organization_id as string)) {
-    return { ok: false, status: 403, message: "Forbidden" };
+    return { ok: false, status: 403, message: errAdminForbidden(uiBase) };
   }
   return { ok: true };
 }

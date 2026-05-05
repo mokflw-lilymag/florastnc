@@ -1,5 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from "next/server";
+import { errAdminOperationFailed, errApiAiOcrParseFailed, errApiNoImageProvided } from "@/lib/admin/admin-api-errors";
+import { hqApiUiBase } from "@/lib/hq/hq-api-locale";
 
 function readGeminiKey(): string {
   return (process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || "").trim();
@@ -42,10 +44,12 @@ export async function POST(req: Request) {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const { image, mimeType: rawMime } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const bl = await hqApiUiBase(req, typeof body?.uiLocale === "string" ? body.uiLocale : undefined);
+    const { image, mimeType: rawMime } = body as { image?: string; mimeType?: string; uiLocale?: string };
 
     if (!image) {
-      return NextResponse.json({ error: "No image provided" }, { status: 400 });
+      return NextResponse.json({ error: errApiNoImageProvided(bl) }, { status: 400 });
     }
 
     const mimeType =
@@ -111,12 +115,12 @@ export async function POST(req: Request) {
         return NextResponse.json({ data });
     } catch (parseError) {
         console.error("JSON Parse Error from AI response:", text);
-        return NextResponse.json({ error: "AI 응답 해석 실패" }, { status: 500 });
+        return NextResponse.json({ error: errApiAiOcrParseFailed(bl) }, { status: 500 });
     }
 
   } catch (error: unknown) {
     console.error("OCR API Error:", error);
-    const message = error instanceof Error ? error.message : "Gemini 요청 실패";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const bl = await hqApiUiBase(req);
+    return NextResponse.json({ error: errAdminOperationFailed(bl) }, { status: 500 });
   }
 }

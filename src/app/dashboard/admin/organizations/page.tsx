@@ -67,7 +67,14 @@ export default function OrganizationsAdminPage() {
     baseLocale,
     "user@example.com",
     "user@example.com",
-    "email@congty.com"
+    "email@congty.com",
+    "user@example.com",
+    "user@example.com",
+    "usuario@ejemplo.com",
+    "usuario@exemplo.com",
+    "utilisateur@exemple.fr",
+    "nutzer@beispiel.de",
+    "user@example.com",
   );
   const [loading, setLoading] = useState(true);
   const [orgs, setOrgs] = useState<Org[]>([]);
@@ -199,6 +206,7 @@ export default function OrganizationsAdminPage() {
         organizationId: memberOrgId,
         email: memberEmail.trim().toLowerCase(),
         action: "add",
+        uiLocale: locale,
       }),
     });
     const json = await res.json().catch(() => ({}));
@@ -219,6 +227,7 @@ export default function OrganizationsAdminPage() {
         organizationId: orgId,
         email: membersByOrg[orgId]?.find((m) => m.user_id === userId)?.email,
         action: "remove",
+        uiLocale: locale,
       }),
     });
     const json = await res.json().catch(() => ({}));

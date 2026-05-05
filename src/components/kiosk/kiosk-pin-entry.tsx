@@ -13,7 +13,18 @@ interface KioskPinEntryProps {
 export function KioskPinEntry({ onComplete }: KioskPinEntryProps) {
   const locale = usePreferredLocale();
   const baseLocale = toBaseLocale(locale);
-  const L = (ko: string, en: string, vi?: string) => pickUiText(baseLocale, ko, en, vi);
+  const L = (
+    ko: string,
+    en: string,
+    vi?: string,
+    ja?: string,
+    zh?: string,
+    es?: string,
+    pt?: string,
+    fr?: string,
+    de?: string,
+    ru?: string,
+  ) => pickUiText(baseLocale, ko, en, vi, ja, zh, es, pt, fr, de, ru);
 
   const [pin, setPin] = useState("");
   const [active, setActive] = useState<number | string | null>(null);
@@ -52,6 +63,13 @@ export function KioskPinEntry({ onComplete }: KioskPinEntryProps) {
             "직원 화면의 3자리 핀번호를 입력해주세요",
             "Enter the 3-digit PIN shown on the staff screen.",
             "Nhập mã PIN 3 chữ số hiển thị trên màn hình nhân viên.",
+            "スタッフ画面に表示されている3桁のPINを入力してください。",
+            "请输入员工屏幕上显示的3位PIN码。",
+            "Introduzca el PIN de 3 dígitos que aparece en la pantalla del personal.",
+            "Digite o PIN de 3 dígitos exibido na tela do funcionário.",
+            "Saisissez le code PIN à 3 chiffres affiché sur l’écran du personnel.",
+            "Geben Sie die 3-stellige PIN ein, die auf dem Mitarbeiterbildschirm angezeigt wird.",
+            "Введите 3-значный PIN, показанный на экране сотрудника.",
           )}
         </p>
       </div>

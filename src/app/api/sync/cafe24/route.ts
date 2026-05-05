@@ -1,5 +1,14 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import {
+  errAdminOperationFailed,
+  errApiTenantIdRequired,
+  msgApiSyncAuthNotCompleted,
+  msgApiSyncDisabled,
+  msgApiSyncIntegrationRequired,
+  msgApiSyncNoRecentOrders,
+} from '@/lib/admin/admin-api-errors';
+import { hqApiUiBase } from '@/lib/hq/hq-api-locale';
 
 // 이 라우트는 Cafe24 등 외부 쇼핑몰 서버에서 호출하거나 프론트에서 수동 동기화를 위해 호출합니다.
 export async function POST(req: Request) {
@@ -10,10 +19,12 @@ export async function POST(req: Request) {
     );
 
     // 프론트엔드에서 현재 유저의 토큰이나 세션을 넘겨주었다고 가정
-    const { tenant_id } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const bl = await hqApiUiBase(req, typeof body?.uiLocale === 'string' ? body.uiLocale : undefined);
+    const tenant_id = body?.tenant_id;
 
     if (!tenant_id) {
-      return NextResponse.json({ error: 'tenant_id is required' }, { status: 400 });
+      return NextResponse.json({ error: errApiTenantIdRequired(bl) }, { status: 400 });
     }
 
     // 1. 저장된 Cafe24 API 키 확인
@@ -27,7 +38,7 @@ export async function POST(req: Request) {
     if (integrationError || !integration || !integration.client_id) {
       return NextResponse.json({ 
         success: false, 
-        message: 'Cafe24 연동 설정이 필요합니다.',
+        message: msgApiSyncIntegrationRequired(bl, "Cafe24"),
         synced_count: 0 
       }, { status: 200 }); // 400 대신 200으로 반환하여 콘솔 에러 방지
     }
@@ -36,7 +47,7 @@ export async function POST(req: Request) {
     if (!integration.is_active) {
       return NextResponse.json({ 
         success: true, 
-        message: '카페24 동기화가 비활성화 상태입니다.',
+        message: msgApiSyncDisabled(bl, "Cafe24"),
         synced_count: 0 
       });
     }
@@ -46,7 +57,7 @@ export async function POST(req: Request) {
     if (!mall_id || !access_token) {
       return NextResponse.json({ 
         success: false, 
-        message: '카페24 인증(로그인)이 완료되지 않았습니다.',
+        message: msgApiSyncAuthNotCompleted(bl, "Cafe24"),
         synced_count: 0
       }, { status: 200 });
     }
@@ -134,7 +145,7 @@ export async function POST(req: Request) {
     if (cafe24Orders.length === 0) {
       return NextResponse.json({ 
         success: true, 
-        message: '동기화 완료 (최근 7일간의 새 주문이 없습니다.)',
+        message: msgApiSyncNoRecentOrders(bl, "7 days"),
         synced_count: 0
       });
     }
@@ -244,8 +255,9 @@ export async function POST(req: Request) {
       message: `Cafe24 주문 ${mappedOrders.length}건이 동기화되었습니다.`,
       synced_count: mappedOrders.length
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Cafe24 Sync Error:', error);
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+    const bl = await hqApiUiBase(req);
+    return NextResponse.json({ error: errAdminOperationFailed(bl) }, { status: 500 });
   }
 }

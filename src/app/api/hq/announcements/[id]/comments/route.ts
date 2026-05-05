@@ -1,5 +1,14 @@
 import { NextResponse } from "next/server";
 import { requireAuthenticated } from "@/lib/auth-api-guards";
+import { hqApiUiBase } from "@/lib/hq/hq-api-locale";
+import {
+  errAnnAnnouncementIdRequired,
+  errAnnCommentBodyRequired,
+  errAnnCommentTooLong,
+  errAnnCommentsTableMissing,
+  errAnnPostNotFound,
+} from "@/lib/hq/hq-announcements-api-errors";
+import { errAdminOperationFailed } from "@/lib/admin/admin-api-errors";
 
 function isMissingCommentsTable(error: { code?: string; message?: string } | null): boolean {
   if (!error) return false;
@@ -12,13 +21,14 @@ function isMissingCommentsTable(error: { code?: string; message?: string } | nul
   );
 }
 
-export async function GET(_req: Request, context: { params: Promise<{ id: string }> }) {
+export async function GET(req: Request, context: { params: Promise<{ id: string }> }) {
   const { id: announcementId } = await context.params;
+  const bl = await hqApiUiBase(req, new URL(req.url).searchParams.get("uiLocale"));
   if (!announcementId) {
-    return NextResponse.json({ error: "announcement id 필요" }, { status: 400 });
+    return NextResponse.json({ error: errAnnAnnouncementIdRequired(bl) }, { status: 400 });
   }
 
-  const gate = await requireAuthenticated();
+  const gate = await requireAuthenticated(req);
   if (!gate.ok) return gate.response;
   const { supabase } = gate;
 
@@ -28,7 +38,7 @@ export async function GET(_req: Request, context: { params: Promise<{ id: string
     .eq("id", announcementId)
     .maybeSingle();
   if (!ann) {
-    return NextResponse.json({ error: "게시물을 찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: errAnnPostNotFound(bl) }, { status: 404 });
   }
 
   const { data: rows, error } = await supabase
@@ -39,13 +49,10 @@ export async function GET(_req: Request, context: { params: Promise<{ id: string
 
   if (error) {
     if (isMissingCommentsTable(error)) {
-      return NextResponse.json(
-        { error: "댓글 테이블이 없습니다. organization_announcement_comments_schema.sql 을 실행하세요.", comments: [] },
-        { status: 503 }
-      );
+      return NextResponse.json({ error: errAnnCommentsTableMissing(bl), comments: [] }, { status: 503 });
     }
     console.error("[hq/announcements comments GET]", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: errAdminOperationFailed(bl) }, { status: 500 });
   }
 
   const authorIds = [...new Set((rows ?? []).map((r) => r.created_by).filter(Boolean))] as string[];
@@ -70,21 +77,22 @@ export async function GET(_req: Request, context: { params: Promise<{ id: string
 
 export async function POST(req: Request, context: { params: Promise<{ id: string }> }) {
   const { id: announcementId } = await context.params;
-  if (!announcementId) {
-    return NextResponse.json({ error: "announcement id 필요" }, { status: 400 });
-  }
-
-  const gate = await requireAuthenticated();
+  const gate = await requireAuthenticated(req);
   if (!gate.ok) return gate.response;
   const { supabase, userId } = gate;
 
   const json = await req.json().catch(() => null);
+  const bl = await hqApiUiBase(req, json?.uiLocale as string | undefined);
+  if (!announcementId) {
+    return NextResponse.json({ error: errAnnAnnouncementIdRequired(bl) }, { status: 400 });
+  }
+
   const body = String(json?.body ?? "").trim();
   if (!body) {
-    return NextResponse.json({ error: "댓글 내용을 입력하세요." }, { status: 400 });
+    return NextResponse.json({ error: errAnnCommentBodyRequired(bl) }, { status: 400 });
   }
   if (body.length > 8000) {
-    return NextResponse.json({ error: "댓글은 8000자 이하로 입력하세요." }, { status: 400 });
+    return NextResponse.json({ error: errAnnCommentTooLong(bl) }, { status: 400 });
   }
 
   const { data: ann } = await supabase
@@ -93,7 +101,7 @@ export async function POST(req: Request, context: { params: Promise<{ id: string
     .eq("id", announcementId)
     .maybeSingle();
   if (!ann) {
-    return NextResponse.json({ error: "게시물을 찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: errAnnPostNotFound(bl) }, { status: 404 });
   }
 
   const { data: inserted, error } = await supabase
@@ -108,13 +116,10 @@ export async function POST(req: Request, context: { params: Promise<{ id: string
 
   if (error) {
     if (isMissingCommentsTable(error)) {
-      return NextResponse.json(
-        { error: "댓글 테이블이 없습니다. organization_announcement_comments_schema.sql 을 실행하세요." },
-        { status: 503 }
-      );
+      return NextResponse.json({ error: errAnnCommentsTableMissing(bl) }, { status: 503 });
     }
     console.error("[hq/announcements comments POST]", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: errAdminOperationFailed(bl) }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true, comment: inserted });

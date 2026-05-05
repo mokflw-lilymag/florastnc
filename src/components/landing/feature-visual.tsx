@@ -30,17 +30,25 @@ const iconBySlug: Record<LandingFeatureDefinition['slug'], ComponentType<{ class
   'mobile-premium': Smartphone,
 };
 
-export function FeatureVisual({ feature }: { feature: LandingFeatureDefinition }) {
+export function FeatureVisual({
+  feature,
+  imageAlt,
+}: {
+  feature: LandingFeatureDefinition;
+  /** Localized hero caption for screen readers / SEO (card title). */
+  imageAlt?: string;
+}) {
   const Icon = iconBySlug[feature.slug];
   const gradient = accentClasses[feature.accent];
   const iconTint = featureAccentIconClass[feature.accent];
+  const alt = imageAlt?.trim() || `Floxync · ${feature.slug}`;
 
   if (feature.imageSrc) {
     return (
       <div className="relative w-full aspect-[16/10] rounded-[32px] overflow-hidden border border-white/10 bg-black/40 shadow-2xl">
         <Image
           src={feature.imageSrc}
-          alt={feature.title}
+          alt={alt}
           fill
           className="object-cover"
           sizes="(max-width: 768px) 100vw, 896px"

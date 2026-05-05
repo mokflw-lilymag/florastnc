@@ -54,3 +54,8 @@ android/.idea/
 
 # Supabase CLI local cache
 supabase/.temp/
+
+# i18n MT cache (machine-specific; safe to delete)
+scripts/data/tenant-flow-mt-cache.json
+scripts/data/dashboard-eu-mt-cache.json
+scripts/.dashboard-ja-lingva-cache.json

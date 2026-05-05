@@ -95,7 +95,7 @@ export default function TenantsPage() {
   const fetchTenants = async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/admin/tenants");
+      const res = await fetch(`/api/admin/tenants?uiLocale=${encodeURIComponent(locale)}`);
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
         throw new Error(typeof json?.error === "string" ? json.error : res.statusText);
@@ -116,7 +116,7 @@ export default function TenantsPage() {
     if (isSuperAdmin) {
       fetchTenants();
     }
-  }, [isSuperAdmin]);
+  }, [isSuperAdmin, locale]);
 
   const handleCreateTenant = async () => {
     if (!newName.trim()) {

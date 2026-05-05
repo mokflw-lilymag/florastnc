@@ -2,6 +2,15 @@ import { NextResponse } from "next/server";
 import { endOfDay, format, parseISO, startOfDay } from "date-fns";
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
+import { hqApiUiBase } from "@/lib/hq/hq-api-locale";
+import {
+  errExpenseDateOrder,
+  errExpenseTooManyRows,
+  warnExpenseServiceKeySkipped,
+  warnExpenseTableMissing,
+} from "@/lib/hq/hq-branch-work-api-errors";
+import { HQ_EXPENSE_CATEGORY_FALLBACK } from "@/lib/hq/expense-constants";
+import { errAdminDataLoadFailed, errAdminForbidden, errAdminUnauthorized } from "@/lib/admin/admin-api-errors";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -28,12 +37,15 @@ function parseYmd(s: string | null, fallback: Date): Date {
 }
 
 export async function GET(req: Request) {
+  const searchParams = new URL(req.url).searchParams;
+  const bl = await hqApiUiBase(req, searchParams.get("uiLocale"));
+
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: errAdminUnauthorized(bl) }, { status: 401 });
   }
 
   const { data: memberships } = await supabase
@@ -42,7 +54,7 @@ export async function GET(req: Request) {
     .eq("user_id", user.id);
 
   if (!memberships?.length) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return NextResponse.json({ error: errAdminForbidden(bl) }, { status: 403 });
   }
 
   const orgIds = [...new Set(memberships.map((m) => m.organization_id))];
@@ -58,14 +70,13 @@ export async function GET(req: Request) {
   const tenantIds = (tenants ?? []).map((t) => t.id);
   const tenantNameById = Object.fromEntries((tenants ?? []).map((t) => [t.id, t.name]));
 
-  const searchParams = new URL(req.url).searchParams;
   const now = new Date();
   const defaultFrom = startOfDay(new Date(now.getFullYear(), now.getMonth(), 1));
   const fromDate = startOfDay(parseYmd(searchParams.get("from"), defaultFrom));
   const toDate = endOfDay(parseYmd(searchParams.get("to"), now));
 
   if (fromDate > toDate) {
-    return NextResponse.json({ error: "from 은 to 보다 이전이어야 합니다." }, { status: 400 });
+    return NextResponse.json({ error: errExpenseDateOrder(bl) }, { status: 400 });
   }
 
   const fromIso = fromDate.toISOString();
@@ -108,9 +119,7 @@ export async function GET(req: Request) {
         description: string;
         payment_method: string;
       }>,
-      warning: !admin
-        ? "서버에 SUPABASE_SERVICE_ROLE_KEY가 없어 지출 집계를 건너뜁니다."
-        : null,
+      warning: !admin ? warnExpenseServiceKeySkipped(bl) : null,
     });
   }
 
@@ -142,11 +151,11 @@ export async function GET(req: Request) {
           grandCount: 0,
           categoryStats: [],
           recentLines: [],
-          warning: "expenses 테이블을 찾을 수 없습니다.",
+          warning: warnExpenseTableMissing(bl),
         });
       }
       console.error("[hq/expenses-summary]", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: errAdminDataLoadFailed(bl) }, { status: 500 });
     }
 
     const chunk = data ?? [];
@@ -154,7 +163,7 @@ export async function GET(req: Request) {
     if (chunk.length < pageSize) break;
     offset += pageSize;
     if (offset > 80_000) {
-      fetchError = { message: "조회 행 수가 너무 많습니다. 기간을 나누어 조회하세요." };
+      fetchError = { message: errExpenseTooManyRows(bl) };
       break;
     }
   }
@@ -173,7 +182,7 @@ export async function GET(req: Request) {
     const bucket = byTenant.get(tid);
     if (!bucket) continue;
     const amt = typeof r.amount === "number" && Number.isFinite(r.amount) ? r.amount : 0;
-    const cat = (r.category && String(r.category).trim()) || "기타";
+    const cat = (r.category && String(r.category).trim()) || HQ_EXPENSE_CATEGORY_FALLBACK;
     bucket.count += 1;
     bucket.total += amt;
     const tCat = bucket.byCategory.get(cat) ?? { amount: 0, count: 0 };
@@ -225,7 +234,7 @@ export async function GET(req: Request) {
     tenant_id: r.tenant_id,
     tenant_name: tenantNameById[r.tenant_id] ?? r.tenant_id.slice(0, 8),
     amount: typeof r.amount === "number" && Number.isFinite(r.amount) ? r.amount : 0,
-    category: (r.category && String(r.category).trim()) || "기타",
+    category: (r.category && String(r.category).trim()) || HQ_EXPENSE_CATEGORY_FALLBACK,
     expense_date: r.expense_date,
     description: (r.description && String(r.description).trim()) || "—",
     payment_method: (r.payment_method && String(r.payment_method).trim()) || "—",

@@ -2,6 +2,77 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { get as idbGet, set as idbSet, del as idbDel } from 'idb-keyval';
 import { createClient } from '@/utils/supabase/client';
+import { readDocumentBaseLocale } from '@/i18n/config';
+import { pickUiText } from '@/i18n/pick-ui-text';
+import { toast } from 'sonner';
+
+function pickRecipientCardFallback(): string {
+  const bl = readDocumentBaseLocale();
+  return pickUiText(
+    bl,
+    "수령인",
+    "Recipient",
+    "Người nhận",
+    "受取人",
+    "收件人",
+    "Destinatario",
+    "Destinatário",
+    "Destinataire",
+    "Empfänger",
+    "Получатель",
+  );
+}
+
+function pickSenderCardFallback(): string {
+  const bl = readDocumentBaseLocale();
+  return pickUiText(
+    bl,
+    "발신인",
+    "Sender",
+    "Người gửi",
+    "送信者",
+    "发件人",
+    "Remitente",
+    "Remetente",
+    "Expéditeur",
+    "Absender",
+    "Отправитель",
+  );
+}
+
+function defaultCardRecipientName(): string {
+  const bl = readDocumentBaseLocale();
+  return pickUiText(
+    bl,
+    "받는 분",
+    "Recipient",
+    "Người nhận",
+    "受取人",
+    "收件人",
+    "Destinatario",
+    "Destinatário",
+    "Destinataire",
+    "Empfänger",
+    "Получатель",
+  );
+}
+
+function defaultCardSenderName(): string {
+  const bl = readDocumentBaseLocale();
+  return pickUiText(
+    bl,
+    "보내는 분",
+    "Sender",
+    "Người gửi",
+    "差出人",
+    "发件人",
+    "Remitente",
+    "Remetente",
+    "Expéditeur",
+    "Absender",
+    "Отправитель",
+  );
+}
 
 // --- Smart Utility: Auto-fitting and Line Breaking ---
 export const smartFitText = (text: string, maxWidthMm: number, baseFontSize: number) => {
@@ -230,8 +301,8 @@ export const useEditorStore = create<EditorState>()(
       tenantId: null,
       showFoldingGuide: true,
 
-      recipientName: '받는 분',
-      senderName: '보내는 분',
+      recipientName: defaultCardRecipientName(),
+      senderName: defaultCardSenderName(),
       showToField: false,
       showFromField: false,
       toBlockId: null,
@@ -258,8 +329,8 @@ export const useEditorStore = create<EditorState>()(
         imageBlocks: [],
         selectedBlockId: null,
         selectedBlockIds: [],
-        recipientName: '받는 분',
-        senderName: '보내는 분',
+        recipientName: defaultCardRecipientName(),
+        senderName: defaultCardSenderName(),
         showToField: false,
         showFromField: false,
         pages: {
@@ -309,7 +380,7 @@ export const useEditorStore = create<EditorState>()(
           const y = margins.top + 10;
 
           const id = state.addTextBlock({
-            text: `To. ${state.recipientName || '수령인'}`,
+            text: `To. ${state.recipientName || pickRecipientCardFallback()}`,
             x, y,
             fontSize: 14,
             width: blockWidth,
@@ -340,7 +411,7 @@ export const useEditorStore = create<EditorState>()(
           const y = heightMm - margins.bottom - 20;
 
           const id = state.addTextBlock({
-            text: `From. ${state.senderName || '발신인'}`,
+            text: `From. ${state.senderName || pickSenderCardFallback()}`,
             x, y,
             fontSize: 12,
             width: blockWidth,
@@ -703,22 +774,79 @@ export const useEditorStore = create<EditorState>()(
           tenant_id: tenantIdForSave
         };
 
+        const bl = readDocumentBaseLocale();
         if (state.designId) {
           const { error } = await supabase.from('card_designs').update(data).eq('id', state.designId);
           if (error) {
             console.error('Save update error:', error);
-            alert('저장 실패: ' + error.message);
+            toast.error(
+              pickUiText(
+                bl,
+                `저장 실패: ${error.message}`,
+                `Save failed: ${error.message}`,
+                `Lưu thất bại: ${error.message}`,
+                `保存に失敗しました: ${error.message}`,
+                `保存失败：${error.message}`,
+                `Error al guardar: ${error.message}`,
+                `Falha ao salvar: ${error.message}`,
+                `Échec de l’enregistrement : ${error.message}`,
+                `Speichern fehlgeschlagen: ${error.message}`,
+                `Ошибка сохранения: ${error.message}`,
+              ),
+            );
           } else {
-            alert('성공적으로 업데이트되었습니다!');
+            toast.success(
+              pickUiText(
+                bl,
+                '성공적으로 업데이트되었습니다!',
+                'Updated successfully!',
+                'Cập nhật thành công!',
+                '更新しました！',
+                '更新成功！',
+                '¡Actualizado correctamente!',
+                'Atualizado com sucesso!',
+                'Mise à jour réussie !',
+                'Erfolgreich aktualisiert!',
+                'Успешно обновлено!',
+              ),
+            );
           }
         } else {
           const { data: inserted, error } = await supabase.from('card_designs').insert(data).select().single();
           if (error) {
             console.error('Save insert error:', error);
-            alert('신규 저장 실패: ' + error.message);
+            toast.error(
+              pickUiText(
+                bl,
+                `신규 저장 실패: ${error.message}`,
+                `Save failed: ${error.message}`,
+                `Lưu mới thất bại: ${error.message}`,
+                `新規保存に失敗しました: ${error.message}`,
+                `新建保存失败：${error.message}`,
+                `Error al guardar: ${error.message}`,
+                `Falha ao salvar: ${error.message}`,
+                `Échec de l’enregistrement : ${error.message}`,
+                `Speichern fehlgeschlagen: ${error.message}`,
+                `Ошибка сохранения: ${error.message}`,
+              ),
+            );
           } else if (inserted) {
             set({ designId: inserted.id });
-            alert('성공적으로 저장되었습니다!');
+            toast.success(
+              pickUiText(
+                bl,
+                '성공적으로 저장되었습니다!',
+                'Saved successfully!',
+                'Đã lưu thành công!',
+                '保存しました！',
+                '保存成功！',
+                '¡Guardado correctamente!',
+                'Salvo com sucesso!',
+                'Enregistrement réussi !',
+                'Erfolgreich gespeichert!',
+                'Успешно сохранено!',
+              ),
+            );
           }
         }
       },
@@ -750,7 +878,37 @@ export const useEditorStore = create<EditorState>()(
           .single();
 
         if (error || !data) {
-          alert('디자인을 불러올 수 없습니다: ' + (error?.message || '조회 실패'));
+          const bl = readDocumentBaseLocale();
+          const detail =
+            error?.message ||
+            pickUiText(
+              bl,
+              '조회 실패',
+              'Lookup failed',
+              'Truy vấn thất bại',
+              '取得に失敗',
+              '查询失败',
+              'Consulta fallida',
+              'Consulta falhou',
+              'Échec de la lecture',
+              'Abrufen fehlgeschlagen',
+              'Не удалось получить',
+            );
+          toast.error(
+            pickUiText(
+              bl,
+              `디자인을 불러올 수 없습니다: ${detail}`,
+              `Could not load design: ${detail}`,
+              `Không thể tải thiết kế: ${detail}`,
+              `デザインを読み込めません: ${detail}`,
+              `无法加载设计：${detail}`,
+              `No se pudo cargar el diseño: ${detail}`,
+              `Não foi possível carregar o design: ${detail}`,
+              `Impossible de charger le design : ${detail}`,
+              `Design konnte nicht geladen werden: ${detail}`,
+              `Не удалось загрузить макет: ${detail}`,
+            ),
+          );
           return;
         }
 

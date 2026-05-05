@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { usePreferredLocale } from '@/hooks/use-preferred-locale';
 import { getMessages } from '@/i18n/getMessages';
+import { toast } from 'sonner';
 
 function fillRibbonTemplate(template: string, vars: Record<string, string | number>): string {
   let s = template;
@@ -172,10 +173,10 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
     if (!confirm(fillRibbonTemplate(R.adminResetEmailConfirm, { email }))) return;
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email);
-      if (error) alert(fillRibbonTemplate(R.adminMailSendFail, { msg: error.message }));
-      else alert(R.adminMailSendOk);
+      if (error) toast.error(fillRibbonTemplate(R.adminMailSendFail, { msg: error.message }));
+      else toast.success(R.adminMailSendOk);
     } catch (e: any) {
-      alert(fillRibbonTemplate(R.adminError, { msg: e.message ?? String(e) }));
+      toast.error(fillRibbonTemplate(R.adminError, { msg: e.message ?? String(e) }));
     }
   };
 
@@ -184,7 +185,7 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
     if (!newPassword || newPassword.trim() === '') return;
 
     if (newPassword.length < 6) {
-      alert(R.adminPwMin6);
+      toast.error(R.adminPwMin6);
       return;
     }
 
@@ -196,10 +197,10 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
         new_password: newPassword
       });
 
-      if (error) alert(fillRibbonTemplate(R.adminForcePwFail, { msg: error.message }));
-      else alert(R.adminForcePwOk);
+      if (error) toast.error(fillRibbonTemplate(R.adminForcePwFail, { msg: error.message }));
+      else toast.success(R.adminForcePwOk);
     } catch (e: any) {
-      alert(fillRibbonTemplate(R.adminError, { msg: e.message ?? String(e) }));
+      toast.error(fillRibbonTemplate(R.adminError, { msg: e.message ?? String(e) }));
     }
   };
 
@@ -211,17 +212,17 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
     try {
       const { error } = await supabase.rpc('admin_delete_user', { target_uid: userId });
       if (error) throw error;
-      alert(R.adminDeleteOk);
+      toast.success(R.adminDeleteOk);
       loadData();
     } catch (err: any) {
-      alert(fillRibbonTemplate(R.adminDeleteFail, { msg: err.message ?? String(err) }));
+      toast.error(fillRibbonTemplate(R.adminDeleteFail, { msg: err.message ?? String(err) }));
     }
   };
 
   const handleExtend = async () => {
     if (!extendModal) return;
     if (!extendReason.trim()) {
-      alert(R.adminExtendReasonRequired);
+      toast.error(R.adminExtendReasonRequired);
       return;
     }
 
@@ -280,7 +281,7 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
         }]);
       }
 
-      alert(
+      toast.success(
         fillRibbonTemplate(R.adminExtendOk, {
           email: extendModal.email,
           date: newExpiry.toLocaleDateString(),
@@ -290,7 +291,7 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
       setExtendReason('');
       loadData();
     } catch (err: any) {
-      alert(fillRibbonTemplate(R.adminExtendFail, { msg: err.message ?? String(err) }));
+      toast.error(fillRibbonTemplate(R.adminExtendFail, { msg: err.message ?? String(err) }));
     }
   };
 

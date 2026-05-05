@@ -39,7 +39,14 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
-import { downloadTemplate, parseExcel, exportDataToExcel } from "@/utils/excel";
+import {
+  downloadTemplate,
+  parseExcel,
+  exportDataToExcel,
+  materialImportHeaderAliases,
+  pickExcelCell,
+  pickExcelString,
+} from "@/utils/excel";
 import { useSettings, DEFAULT_MATERIAL_CATEGORIES } from "@/hooks/use-settings";
 
 const DEFAULT_MATERIAL_MAIN = DEFAULT_MATERIAL_CATEGORIES.main[0] ?? "";
@@ -90,15 +97,6 @@ export default function InventoryPage() {
     memo: ""
   });
 
-  const excelCell = (row: Record<string, unknown>, keys: string[]) => {
-    for (const k of keys) {
-      const v = row[k];
-      if (v !== undefined && v !== null && String(v).trim() !== "") return v;
-    }
-    return undefined;
-  };
-  const excelStr = (v: unknown) => (v === undefined || v === null ? "" : String(v));
-
   const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -106,41 +104,21 @@ export default function InventoryPage() {
     setIsImporting(true);
     try {
       const data = await parseExcel(file);
+      const H = materialImportHeaderAliases(locale);
       let successCount = 0;
       for (const row of data) {
         const r = row as Record<string, unknown>;
         const payload: Partial<Material> = {
-          name: excelStr(
-            excelCell(r, [
-              "자재명",
-              "Material name",
-              "Material Name",
-              "Tên vật tư",
-              "name",
-              "Name",
-            ])
-          ),
-          main_category: excelStr(
-            excelCell(r, ["대분류", "Main category", "Main Category", "Nhóm lớn", "main_category"])
-          ),
-          mid_category: excelStr(
-            excelCell(r, ["중분류", "Sub category", "Sub Category", "Nhóm nhỏ", "mid_category"])
-          ),
-          unit: excelStr(excelCell(r, ["단위", "Unit", "Đơn vị", "unit"])) || "ea",
-          spec: excelStr(excelCell(r, ["규격", "Spec", "Quy cách", "spec"])),
-          price: Number(excelCell(r, ["가격", "단가", "Price", "Giá", "Unit price", "price"])) || 0,
-          color: excelStr(excelCell(r, ["색상", "Color", "Màu sắc", "color"])),
-          stock: Number(excelCell(r, ["재고", "Stock", "Tồn kho", "stock"])) || 0,
-          supplier: excelStr(
-            excelCell(r, [
-              "공급업체",
-              "공급처",
-              "Supplier",
-              "Nhà cung cấp",
-              "supplier",
-            ])
-          ),
-          memo: excelStr(excelCell(r, ["메모", "Memo", "Ghi chú", "memo"])),
+          name: pickExcelString(r, H.name),
+          main_category: pickExcelString(r, H.main_category),
+          mid_category: pickExcelString(r, H.mid_category),
+          unit: pickExcelString(r, H.unit) || "ea",
+          spec: pickExcelString(r, H.spec),
+          price: Number(pickExcelCell(r, H.price)) || 0,
+          color: pickExcelString(r, H.color),
+          stock: Number(pickExcelCell(r, H.stock)) || 0,
+          supplier: pickExcelString(r, H.supplier),
+          memo: pickExcelString(r, H.memo),
         };
 
         if (payload.name) {

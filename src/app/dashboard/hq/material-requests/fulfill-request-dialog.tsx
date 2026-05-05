@@ -65,7 +65,7 @@ export function FulfillRequestDialog({ request, open, onOpenChange, onSuccess }:
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
   const baseLocale = toBaseLocale(locale);
-  const phUnitPrice = pickUiText(baseLocale, "0", "0", "0");
+  const phUnitPrice = pickUiText(baseLocale, "0", "0", "0", "0", "0", "0", "0", "0", "0", "0");
   const branchTenantId = request?.tenant_id ?? "";
 
   useEffect(() => {
@@ -87,7 +87,7 @@ export function FulfillRequestDialog({ request, open, onOpenChange, onSuccess }:
     setLoadingSuppliers(true);
     try {
       const res = await fetch(
-        `/api/hq/branch-suppliers?tenantId=${encodeURIComponent(branchTenantId)}`,
+        `/api/hq/branch-suppliers?tenantId=${encodeURIComponent(branchTenantId)}&uiLocale=${encodeURIComponent(locale)}`,
         { credentials: "include" }
       );
       const j = await res.json().catch(() => ({}));
@@ -100,7 +100,7 @@ export function FulfillRequestDialog({ request, open, onOpenChange, onSuccess }:
     } finally {
       setLoadingSuppliers(false);
     }
-  }, [branchTenantId]);
+  }, [branchTenantId, locale]);
 
   useEffect(() => {
     if (open && branchTenantId) void loadSuppliers();
@@ -143,6 +143,7 @@ export function FulfillRequestDialog({ request, open, onOpenChange, onSuccess }:
           expenseDate,
           paymentMethod,
           items,
+          uiLocale: locale,
         }),
       });
       const j = await res.json().catch(() => ({}));

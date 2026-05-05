@@ -52,14 +52,19 @@ export class AIConnector {
   /**
    * AI 카드 배경 이미지를 생성합니다.
    */
-  static async generateBackground(theme: string, mode?: 'normal' | 'formtec', customPrompt?: string): Promise<AIGenerationResponse> {
+  static async generateBackground(
+    theme: string,
+    mode?: 'normal' | 'formtec',
+    customPrompt?: string,
+    uiLocale?: string,
+  ): Promise<AIGenerationResponse> {
     const prompt = customPrompt || this.getThemePrompt(theme);
     
     try {
       const response = await fetch('/api/ai/image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ theme, prompt, mode: mode || 'normal' }),
+        body: JSON.stringify({ theme, prompt, mode: mode || 'normal', uiLocale }),
       });
 
       if (!response.ok) throw new Error('AI generation failed');
@@ -81,6 +86,7 @@ export class AIConnector {
     recipientName?: string;
     tone?: string;
     customNote?: string;
+    uiLocale?: string;
   }): Promise<AIMessageResponse[]> {
     try {
       const response = await fetch('/api/ai/message', {
@@ -106,15 +112,17 @@ export class AIConnector {
     occasion?: string;
     message?: string;
     recipientName?: string;
+    uiLocale?: string;
   }): Promise<{ background: AIGenerationResponse; suggestedMessages: AIMessageResponse[] }> {
     // 배경과 메시지를 동시에 생성
     const [background, messages] = await Promise.allSettled([
-      this.generateBackground(options.occasion || 'calm', 'formtec'),
+      this.generateBackground(options.occasion || 'calm', 'formtec', undefined, options.uiLocale),
       options.message ? Promise.resolve([{ message: options.message, tone: 'warm' as const }]) :
         this.generateMessage({
           occasion: options.occasion,
           recipientName: options.recipientName,
-          tone: '따뜻하고 간결한'
+          tone: '따뜻하고 간결한',
+          uiLocale: options.uiLocale,
         })
     ]);
 

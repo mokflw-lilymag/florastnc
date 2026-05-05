@@ -79,7 +79,7 @@ export default function HqDashboardPage() {
       setForbidden(false);
       try {
         const dRes = await fetch(
-          `/api/hq/summary?period=daily&locale=${encodeURIComponent(locale)}`,
+          `/api/hq/summary?period=daily&locale=${encodeURIComponent(locale)}&uiLocale=${encodeURIComponent(locale)}`,
           { credentials: "include" }
         );
         if (dRes.status === 403) {
@@ -141,7 +141,7 @@ export default function HqDashboardPage() {
     setChartSwitchLoading(true);
     try {
       const res = await fetch(
-        `/api/hq/summary?period=${p}&locale=${encodeURIComponent(locale)}`,
+        `/api/hq/summary?period=${p}&locale=${encodeURIComponent(locale)}&uiLocale=${encodeURIComponent(locale)}`,
         { credentials: "include" }
       );
       if (!res.ok) return;

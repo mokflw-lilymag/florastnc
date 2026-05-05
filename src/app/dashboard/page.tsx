@@ -44,6 +44,7 @@ import { useExpenses } from "@/hooks/use-expenses";
 import { useSettings } from "@/hooks/use-settings";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format, isToday, isTomorrow, addDays, startOfToday, endOfToday, subDays, subMonths, subYears, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, isSameDay, isSameWeek, isSameMonth, isSameYear, getWeekOfMonth } from "date-fns";
+import { de, enUS, es, fr, ja, ko, pt, ru, vi, zhCN } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -115,9 +116,16 @@ function buildTenantSalesChartData(
       const weekNum = getWeekOfMonth(wStart);
       const label = pickUiText(
         baseLocale,
-        `${format(wStart, "M월", { locale: dfLoc })} ${weekNum}주`,
-        `W${weekNum} ${format(wStart, "MMM d", { locale: dfLoc })}`,
-        `W${weekNum} ${format(wStart, "d MMM", { locale: dfLoc })}`
+        `${format(wStart, "M월", { locale: ko })} ${weekNum}주`,
+        `W${weekNum} ${format(wStart, "MMM d", { locale: enUS })}`,
+        `W${weekNum} ${format(wStart, "d MMM", { locale: vi })}`,
+        `W${weekNum} ${format(wStart, "MMM d", { locale: ja })}`,
+        `W${weekNum} ${format(wStart, "MMM d", { locale: zhCN })}`,
+        `W${weekNum} ${format(wStart, "MMM d", { locale: es })}`,
+        `W${weekNum} ${format(wStart, "MMM d", { locale: pt })}`,
+        `W${weekNum} ${format(wStart, "MMM d", { locale: fr })}`,
+        `W${weekNum} ${format(wStart, "MMM d", { locale: de })}`,
+        `W${weekNum} ${format(wStart, "MMM d", { locale: ru })}`,
       );
 
       const rev = orders
@@ -155,7 +163,19 @@ function buildTenantSalesChartData(
       const yStart = startOfYear(year);
       const yEnd = endOfYear(year);
       const yStr = format(year, "yyyy", { locale: dfLoc });
-      const label = pickUiText(baseLocale, `${yStr}년`, yStr, yStr);
+      const label = pickUiText(
+        baseLocale,
+        `${yStr}년`,
+        yStr,
+        yStr,
+        `${yStr}年`,
+        `${yStr}年`,
+        yStr,
+        yStr,
+        yStr,
+        yStr,
+        `${yStr} г.`,
+      );
 
       const rev = orders
         .filter((o) => {

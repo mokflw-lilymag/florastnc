@@ -26,19 +26,74 @@ function buildMailtoBody(
     featureNotes: string;
   },
 ) {
-  const T = (ko: string, en: string, vi?: string) => pickUiText(baseLocale, ko, en, vi);
+  const T = (
+    ko: string,
+    en: string,
+    vi?: string,
+    ja?: string,
+    zh?: string,
+    es?: string,
+    pt?: string,
+    fr?: string,
+    de?: string,
+    ru?: string,
+  ) => pickUiText(baseLocale, ko, en, vi, ja, zh, es, pt, fr, de, ru);
   const lines = [
-    T("[Floxync 테스트 유저 신청]", "[Floxync] Test user application", "[Floxync] Đơn đăng ký dùng thử"),
+    T(
+      "[Floxync 테스트 유저 신청]",
+      "[Floxync] Test user application",
+      "[Floxync] Đơn đăng ký dùng thử",
+      "[Floxync] テストユーザー申請",
+      "[Floxync] 测试用户申请",
+      "[Floxync] Solicitud de usuario de prueba",
+      "[Floxync] Solicitação de usuário de teste",
+      "[Floxync] Demande d’utilisateur test",
+      "[Floxync] Testnutzer-Anfrage",
+      "[Floxync] Заявка тестового пользователя",
+    ),
     "",
-    `${T("이름", "Name", "Họ tên")}: ${values.fullName}`,
-    `${T("상호", "Business name", "Tên cửa hàng")}: ${values.businessName}`,
-    `${T("연락처", "Contact", "Liên hệ")}: ${values.contact}`,
-    `${T("이메일", "Email", "Email")}: ${values.email}`,
+    `${T("이름", "Name", "Họ tên", "氏名", "姓名", "Nombre", "Nome", "Nom", "Name", "Имя")}: ${values.fullName}`,
+    `${T(
+      "상호",
+      "Business name",
+      "Tên cửa hàng",
+      "店舗名",
+      "商号",
+      "Nombre comercial",
+      "Nome comercial",
+      "Nom commercial",
+      "Firmenname",
+      "Название компании",
+    )}: ${values.businessName}`,
+    `${T("연락처", "Contact", "Liên hệ", "連絡先", "联系方式", "Contacto", "Contato", "Contact", "Kontakt", "Контакт")}: ${values.contact}`,
+    `${T("이메일", "Email", "Email", "メール", "邮箱", "Correo", "E-mail", "E-mail", "E-Mail", "Email")}: ${values.email}`,
     "",
-    `${T("신청 사유", "Reason for applying", "Lý do đăng ký")}:\n${values.applyReason}`,
+    `${T(
+      "신청 사유",
+      "Reason for applying",
+      "Lý do đăng ký",
+      "申請理由",
+      "申请理由",
+      "Motivo",
+      "Motivo",
+      "Motif",
+      "Bewerbungsgrund",
+      "Причина заявки",
+    )}:\n${values.applyReason}`,
     "",
     values.featureNotes
-      ? `${T("추가로 남기는 말", "Additional notes", "Ghi chú thêm")}:\n${values.featureNotes}`
+      ? `${T(
+          "추가로 남기는 말",
+          "Additional notes",
+          "Ghi chú thêm",
+          "備考",
+          "补充说明",
+          "Notas adicionales",
+          "Observações",
+          "Notes complémentaires",
+          "Zusätzliche Hinweise",
+          "Дополнительные заметки",
+        )}:\n${values.featureNotes}`
       : "",
   ].filter(Boolean);
   return lines.join("\n");
@@ -47,7 +102,18 @@ function buildMailtoBody(
 export function TestUserApplySection({ locale = "ko" }: { locale?: AppLocale }) {
   const t = getMessages(locale).landing.testApply;
   const baseLocale = toBaseLocale(locale);
-  const L = (ko: string, en: string, vi?: string) => pickUiText(baseLocale, ko, en, vi);
+  const L = (
+    ko: string,
+    en: string,
+    vi?: string,
+    ja?: string,
+    zh?: string,
+    es?: string,
+    pt?: string,
+    fr?: string,
+    de?: string,
+    ru?: string,
+  ) => pickUiText(baseLocale, ko, en, vi, ja, zh, es, pt, fr, de, ru);
   const [fullName, setFullName] = useState("");
   const [businessName, setBusinessName] = useState("");
   const [contact, setContact] = useState("");
@@ -69,7 +135,18 @@ export function TestUserApplySection({ locale = "ko" }: { locale?: AppLocale }) 
       featureNotes,
     });
     const subject = encodeURIComponent(
-      L("[Floxync] 테스트 유저 신청", "[Floxync] Test user application", "[Floxync] Đăng ký dùng thử"),
+      L(
+        "[Floxync] 테스트 유저 신청",
+        "[Floxync] Test user application",
+        "[Floxync] Đăng ký dùng thử",
+        "[Floxync] テストユーザー申請",
+        "[Floxync] 测试用户申请",
+        "[Floxync] Solicitud de usuario de prueba",
+        "[Floxync] Solicitação de usuário de teste",
+        "[Floxync] Demande d’utilisateur test",
+        "[Floxync] Testnutzer-Anfrage",
+        "[Floxync] Заявка тестового пользователя",
+      ),
     );
     const q = encodeURIComponent(body);
     window.location.href = `mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${q}`;
@@ -92,6 +169,7 @@ export function TestUserApplySection({ locale = "ko" }: { locale?: AppLocale }) 
           applyReason,
           featureNotes,
           website,
+          uiLocale: locale,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -103,6 +181,13 @@ export function TestUserApplySection({ locale = "ko" }: { locale?: AppLocale }) 
             "신청이 접수되었습니다. 순차적으로 연락드릴게요.",
             "Application received. We’ll get back to you in order.",
             "Đã nhận đơn. Chúng tôi sẽ liên hệ theo thứ tự.",
+            "お申し込みを受け付けました。順次ご連絡します。",
+            "我们已收到申请，将按顺序与您联系。",
+            "Solicitud recibida. Nos pondremos en contacto en orden.",
+            "Recebemos sua solicitação. Entraremos em contato em ordem.",
+            "Demande reçue. Nous vous recontacterons dans l’ordre.",
+            "Antrag eingegangen. Wir melden uns nacheinander.",
+            "Заявка принята. Свяжемся с вами по очереди.",
           ),
         );
         setFullName("");
@@ -120,9 +205,16 @@ export function TestUserApplySection({ locale = "ko" }: { locale?: AppLocale }) 
         setMailFallbackHint(true);
         setMessage(
           L(
-            "온라인 접수 저장소가 아직 연결되지 않았습니다. 아래 버튼으로 메일을 보내 주시면 동일하게 접수됩니다.",
+            "온라인 접수 저장소가 아직 연결되지 않았습니다. 아래 버튼으로 메ール을 보내 주시면 동일하게 접수됩니다.",
             "Online intake isn’t connected yet. Use the email button below to apply the same way.",
             "Kho lưu trực tuyến chưa kết nối. Dùng nút email bên dưới để gửi đơn tương tự.",
+            "オンライン受付ストレージがまだ接続されていません。下のメールボタンから同様にお申し込みいただけます。",
+            "在线受理尚未连接。请使用下方邮件按钮以相同方式提交。",
+            "El almacenamiento de solicitudes en línea aún no está conectado. Use el botón de correo inferior para enviar igual.",
+            "O armazenamento de recebimento online ainda não está conectado. Use o botão de e-mail abaixo para enviar da mesma forma.",
+            "Le stockage des demandes en ligne n’est pas encore connecté. Utilisez le bouton e-mail ci-dessous pour postuler de la même façon.",
+            "Die Online-Eingabe ist noch nicht verbunden. Nutzen Sie die E-Mail-Schaltfläche unten, um gleich zu beantragen.",
+            "Онлайн-приём ещё не подключён. Отправьте заявку через кнопку e-mail ниже.",
           ),
         );
         return;
@@ -135,6 +227,13 @@ export function TestUserApplySection({ locale = "ko" }: { locale?: AppLocale }) 
             "전송에 실패했습니다. 잠시 후 다시 시도해 주세요.",
             "Could not send. Please try again shortly.",
             "Gửi thất bại. Vui lòng thử lại sau.",
+            "送信に失敗しました。しばらくしてから再度お試しください。",
+            "发送失败，请稍后重试。",
+            "No se pudo enviar. Inténtelo de nuevo en unos momentos.",
+            "Não foi possível enviar. Tente novamente em instantes.",
+            "Envoi impossible. Réessayez dans un instant.",
+            "Senden fehlgeschlagen. Bitte versuchen Sie es in Kürze erneut.",
+            "Не удалось отправить. Повторите попытку чуть позже.",
           ),
       );
     } catch {
@@ -144,6 +243,13 @@ export function TestUserApplySection({ locale = "ko" }: { locale?: AppLocale }) 
           "네트워크 오류입니다. 메일로 보내 주시거나 잠시 후 다시 시도해 주세요.",
           "Network error. Email us or try again shortly.",
           "Lỗi mạng. Gửi email hoặc thử lại sau.",
+          "ネットワークエラーです。メールで送るか、しばらくしてから再度お試しください。",
+          "网络错误。请发邮件或稍后重试。",
+          "Error de red. Envíenos un correo o vuelva a intentarlo en unos momentos.",
+          "Erro de rede. Envie um e-mail ou tente novamente em instantes.",
+          "Erreur réseau. Écrivez-nous ou réessayez dans un instant.",
+          "Netzwerkfehler. Schreiben Sie uns per E-Mail oder versuchen Sie es später erneut.",
+          "Ошибка сети. Напишите нам по почте или повторите попытку позже.",
         ),
       );
     }
@@ -213,7 +319,18 @@ export function TestUserApplySection({ locale = "ko" }: { locale?: AppLocale }) 
             <form onSubmit={onSubmit} className="space-y-6">
               <div className="hidden" aria-hidden="true">
                 <label htmlFor="tu-website">
-                  {L("웹사이트 (자동 입력 금지)", "Website (leave blank)", "Website (để trống)")}
+                  {L(
+                    "웹사이트 (자동 입력 금지)",
+                    "Website (leave blank)",
+                    "Website (để trống)",
+                    "ウェブサイト（空欄のまま）",
+                    "网站（请留空）",
+                    "Sitio web (déjelo en blanco)",
+                    "Site (deixe em branco)",
+                    "Site web (laissez vide)",
+                    "Website (leer lassen)",
+                    "Сайт (оставьте пустым)",
+                  )}
                 </label>
                 <input id="tu-website" value={website} onChange={(e) => setWebsite(e.target.value)} tabIndex={-1} autoComplete="off" />
               </div>
@@ -229,7 +346,7 @@ export function TestUserApplySection({ locale = "ko" }: { locale?: AppLocale }) 
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     className="w-full h-12 px-4 rounded-xl bg-black/45 border border-white/15 text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-                    placeholder={L("홍길동", "Jane Doe", "Nguyễn Văn A")}
+                    placeholder={L("홍길동", "Jane Doe", "Nguyễn Văn A", "山田太郎", "张三", "María López", "Maria Silva", "Marie Dupont", "Max Mustermann", "Иван Иванов")}
                   />
                 </div>
                 <div>
@@ -242,7 +359,18 @@ export function TestUserApplySection({ locale = "ko" }: { locale?: AppLocale }) 
                     value={businessName}
                     onChange={(e) => setBusinessName(e.target.value)}
                     className="w-full h-12 px-4 rounded-xl bg-black/45 border border-white/15 text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-                    placeholder={L("○○플라워", "Your Flower Shop", "Cửa hàng hoa của bạn")}
+                    placeholder={L(
+                      "○○플라워",
+                      "Your Flower Shop",
+                      "Cửa hàng hoa của bạn",
+                      "○○フラワー",
+                      "○○花店",
+                      "Tu floristería",
+                      "Sua floricultura",
+                      "Votre fleuriste",
+                      "Ihr Blumenladen",
+                      "Ваш цветочный магазин",
+                    )}
                   />
                 </div>
                 <div>
@@ -255,7 +383,18 @@ export function TestUserApplySection({ locale = "ko" }: { locale?: AppLocale }) 
                     value={contact}
                     onChange={(e) => setContact(e.target.value)}
                     className="w-full h-12 px-4 rounded-xl bg-black/45 border border-white/15 text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-                    placeholder={L("010-0000-0000", "+1 555-000-0000", "0909 000 000")}
+                    placeholder={L(
+                      "010-0000-0000",
+                      "+1 555-000-0000",
+                      "0909 000 000",
+                      "090-1234-5678",
+                      "138-0000-0000",
+                      "+34 600 000 000",
+                      "+55 11 90000-0000",
+                      "+33 6 12 34 56 78",
+                      "+49 170 0000000",
+                      "+7 900 000-00-00",
+                    )}
                   />
                 </div>
                 <div>
@@ -269,7 +408,18 @@ export function TestUserApplySection({ locale = "ko" }: { locale?: AppLocale }) 
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full h-12 px-4 rounded-xl bg-black/45 border border-white/15 text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-                    placeholder={L("email@example.com", "you@example.com", "email@company.com")}
+                    placeholder={L(
+                      "email@example.com",
+                      "you@example.com",
+                      "email@company.com",
+                      "you@example.com",
+                      "you@example.com",
+                      "tu@ejemplo.com",
+                      "voce@exemplo.com",
+                      "vous@exemple.com",
+                      "sie@beispiel.de",
+                      "vy@primer.ru",
+                    )}
                   />
                 </div>
               </div>
@@ -337,12 +487,19 @@ export function TestUserApplySection({ locale = "ko" }: { locale?: AppLocale }) 
 
               {status === "error" && mailFallbackHint ? (
                 <p className="text-center text-xs text-slate-300">
-                  {L("위 ", "Tap ", "Nhấn ")}
+                  {L("위 ", "Tap ", "Nhấn ", "「", "点击 ", "Toca ", "Toque em ", "Appuyez sur ", "Tippen Sie auf ", "Нажмите ")}
                   <strong className="text-slate-100">{t.mailSend}</strong>
                   {L(
                     "를 누르면 입력하신 내용이 메일 작성창에 채워집니다.",
                     " to open your mail app with the form pre-filled.",
                     " để mở ứng dụng thư với nội dung đã điền sẵn.",
+                    "」をタップすると、入力内容がメール作成画面に自動入力されます。",
+                    "即可在邮件应用中预填您填写的内容。",
+                    " para abrir el correo con el formulario rellenado.",
+                    " para abrir o e-mail com o formulário preenchido.",
+                    " pour ouvrir votre messagerie avec le formulaire prérempli.",
+                    ", um die E-Mail-App mit vorausgefülltem Formular zu öffnen.",
+                    ", чтобы открыть почту с уже заполненной формой.",
                   )}
                 </p>
               ) : null}

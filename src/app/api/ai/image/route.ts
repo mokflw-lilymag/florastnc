@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { errAdminOperationFailed } from '@/lib/admin/admin-api-errors';
+import { hqApiUiBase } from '@/lib/hq/hq-api-locale';
 
 export async function POST(req: NextRequest) {
   try {
@@ -66,10 +68,11 @@ export async function POST(req: NextRequest) {
       success: true
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('AI Multi-Route Error:', error);
+    const bl = await hqApiUiBase(req);
     return NextResponse.json(
-      { error: error.message || '시스템 오류가 발생했습니다.' },
+      { error: errAdminOperationFailed(bl) },
       { status: 500 }
     );
   }

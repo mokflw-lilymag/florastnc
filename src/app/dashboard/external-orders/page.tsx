@@ -136,7 +136,18 @@ export default function ExternalOrdersPage() {
     const locale = usePreferredLocale();
     const tf = getMessages(locale).tenantFlows;
     const baseLocale = toBaseLocale(locale);
-    const tr = (ko: string, en: string, vi?: string) => pickUiText(baseLocale, ko, en, vi);
+    const tr = (
+        ko: string,
+        en: string,
+        vi?: string,
+        ja?: string,
+        zh?: string,
+        es?: string,
+        pt?: string,
+        fr?: string,
+        de?: string,
+        ru?: string,
+    ) => pickUiText(baseLocale, ko, en, vi, ja, zh, es, pt, fr, de, ru);
     const [loading, setLoading] = useState(true);
     const [partners, setPartners] = useState<any[]>([]);
     const [filterRegion, setFilterRegion] = useState("");
@@ -214,7 +225,18 @@ export default function ExternalOrdersPage() {
                         <div className="flex items-center gap-2 text-indigo-400">
                             <Sparkles className="w-5 h-5 animate-pulse" />
                             <span className="text-xs font-black uppercase tracking-[0.2em]">
-                                {tr("파트너 마켓플레이스", "Partner marketplace", "Chợ đối tác")}
+                                {tr(
+                                    "파트너 마켓플레이스",
+                                    "Partner marketplace",
+                                    "Chợ đối tác",
+                                    "パートナーマーケットプレイス",
+                                    "合作伙伴市场",
+                                    "Mercado de socios",
+                                    "Marketplace de parceiros",
+                                    "Marketplace partenaires",
+                                    "Partner-Marktplatz",
+                                    "Партнёрский маркетплейс",
+                                )}
                             </span>
                         </div>
                         <h1 className="text-4xl md:text-5xl font-black tracking-tight leading-tight">
@@ -322,7 +344,18 @@ export default function ExternalOrdersPage() {
                                                          <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 font-black text-xs">01</div>
                                                          <p className="text-[11px] font-light leading-relaxed"><span className="text-indigo-400 font-black">{tf.f00722}</span> {tf.f00723}{" "}
                                                          <span className="bg-white/10 px-2 py-0.5 rounded font-bold text-indigo-300">
-                                                            {tr("[상품명] 가격.jpg", "[Product name] price.jpg", "[Tên sản phẩm] giá.jpg")}
+                                                            {tr(
+                                                                "[상품명] 가격.jpg",
+                                                                "[Product name] price.jpg",
+                                                                "[Tên sản phẩm] giá.jpg",
+                                                                "[商品名]価格.jpg",
+                                                                "[商品名]价格.jpg",
+                                                                "[nombre] precio.jpg",
+                                                                "[nome] preço.jpg",
+                                                                "[nom] prix.jpg",
+                                                                "[Produktname] Preis.jpg",
+                                                                "[название] цена.jpg",
+                                                            )}
                                                          </span> {tf.f00494}</p>
                                                      </div>
                                                      <div className="p-4 bg-white/5 border border-white/10 rounded-2xl flex items-center gap-4 group hover:bg-white/10 transition-all">
@@ -369,7 +402,18 @@ export default function ExternalOrdersPage() {
                 <DialogContent className="max-w-xl rounded-[3rem] p-0 overflow-hidden border-0 shadow-3xl bg-white">
                     <div className="bg-indigo-600 p-10 text-white">
                         <Badge className="bg-white/20 text-white border-0 mb-4 px-4 py-1.5 rounded-full font-bold">
-                            {tr("파트너 정책", "Partner policy", "Chính sách đối tác")}
+                            {tr(
+                                "파트너 정책",
+                                "Partner policy",
+                                "Chính sách đối tác",
+                                "パートナーポリシー",
+                                "合作伙伴政策",
+                                "Política de socios",
+                                "Política de parceiros",
+                                "Politique partenaires",
+                                "Partnerrichtlinie",
+                                "Политика для партнёров",
+                            )}
                         </Badge>
                         <h3 className="text-3xl font-black leading-tight">{tf.f00548} <br/>{tf.f00673}</h3>
                     </div>
@@ -446,6 +490,13 @@ export default function ExternalOrdersPage() {
                                     "프리미엄 추천 파트너",
                                     "Premium partner picks",
                                     "Đối tác cao cấp được đề xuất",
+                                    "プレミアムおすすめパートナー",
+                                    "优质推荐合作伙伴",
+                                    "Socios premium recomendados",
+                                    "Parceiros premium em destaque",
+                                    "Partenaires premium recommandés",
+                                    "Premium‑Partner‑Empfehlungen",
+                                    "Премиальные рекомендованные партнёры",
                                 )}
                             </h3>
                             <p className="text-xs text-slate-400 font-medium">
@@ -453,6 +504,13 @@ export default function ExternalOrdersPage() {
                                     "관리자가 검증한 최우수 퀄리티의 파트너사입니다.",
                                     "Partners verified by our team for top-tier quality.",
                                     "Đối tác đã được quản trị viên xác minh với chất lượng hàng đầu.",
+                                    "運営が審査した最高品質のパートナーです。",
+                                    "由团队审核、品质顶尖的合作伙伴。",
+                                    "Socios verificados por nuestro equipo con la máxima calidad.",
+                                    "Parceiros verificados pela equipe com qualidade de ponta.",
+                                    "Partenaires vérifiés par notre équipe pour une qualité maximale.",
+                                    "Von unserem Team geprüfte Partner in Top‑Qualität.",
+                                    "Партнёры, проверенные командой, высший уровень качества.",
                                 )}
                             </p>
                         </div>
@@ -516,13 +574,35 @@ function PremiumCard({ partner, isMyStore, activeTab, setTab }: any) {
     const locale = usePreferredLocale();
     const tf = getMessages(locale).tenantFlows;
     const baseLocale = toBaseLocale(locale);
-    const tr = (ko: string, en: string, vi?: string) => pickUiText(baseLocale, ko, en, vi);
+    const tr = (
+        ko: string,
+        en: string,
+        vi?: string,
+        ja?: string,
+        zh?: string,
+        es?: string,
+        pt?: string,
+        fr?: string,
+        de?: string,
+        ru?: string,
+    ) => pickUiText(baseLocale, ko, en, vi, ja, zh, es, pt, fr, de, ru);
     return (
         <Card className="relative overflow-hidden group border-0 shadow-xl hover:shadow-3xl transition-all duration-700 rounded-[3rem] bg-white flex flex-col h-full hover:-translate-y-2">
             <div className="absolute top-0 right-0 p-4 z-10">
                 {isMyStore && (
                     <Badge className="bg-indigo-600 text-white rounded-full px-3 py-1 font-black text-[9px] shadow-lg">
-                        {tr("내 매장", "My store", "Cửa hàng của tôi")}
+                        {tr(
+                            "내 매장",
+                            "My store",
+                            "Cửa hàng của tôi",
+                            "自店",
+                            "我的店铺",
+                            "Mi tienda",
+                            "Minha loja",
+                            "Ma boutique",
+                            "Mein Laden",
+                            "Мой магазин",
+                        )}
                     </Badge>
                 )}
             </div>
@@ -534,7 +614,7 @@ function PremiumCard({ partner, isMyStore, activeTab, setTab }: any) {
                     </div>
                     <div className="flex flex-col items-end gap-1.5 pt-2">
                         <Badge className="bg-amber-100 text-amber-700 border-0 font-black px-2.5 py-1 text-[9px] rounded-lg tracking-tight uppercase">
-                            {tr("프리미엄", "Premium", "Cao cấp")}
+                            {tr("프리미엄", "Premium", "Cao cấp", "プレミアム", "优质", "Premium", "Premium", "Premium", "Premium", "Премиум")}
                         </Badge>
                         <div className="flex flex-col items-end gap-1 text-[10px] text-slate-400 font-bold">
                             <div className="flex items-center gap-1">
@@ -590,7 +670,18 @@ function GeneralRow({ partner, isMyStore, activeTab, setTab }: any) {
     const locale = usePreferredLocale();
     const tf = getMessages(locale).tenantFlows;
     const baseLocale = toBaseLocale(locale);
-    const tr = (ko: string, en: string, vi?: string) => pickUiText(baseLocale, ko, en, vi);
+    const tr = (
+        ko: string,
+        en: string,
+        vi?: string,
+        ja?: string,
+        zh?: string,
+        es?: string,
+        pt?: string,
+        fr?: string,
+        de?: string,
+        ru?: string,
+    ) => pickUiText(baseLocale, ko, en, vi, ja, zh, es, pt, fr, de, ru);
     return (
         <tr className="group hover:bg-slate-50/80 transition-all duration-300">
             <td className="px-10 py-8">
@@ -603,7 +694,7 @@ function GeneralRow({ partner, isMyStore, activeTab, setTab }: any) {
                             <span className="text-sm font-black text-slate-800">{partner.name}</span>
                             {isMyStore && (
                                 <Badge className="h-4 text-[8px] bg-indigo-100 text-indigo-600 border-0 font-black">
-                                    {tr("내", "My", "Tôi")}
+                                    {tr("내", "My", "Tôi", "自", "我的", "Mi", "Eu", "Moi", "Mein", "Мой")}
                                 </Badge>
                             )}
                         </div>
@@ -649,7 +740,18 @@ function AlbumDialog({ partner, activeTab, setTab, variant = "full" }: any) {
     const locale = usePreferredLocale();
     const tf = getMessages(locale).tenantFlows;
     const baseLocale = toBaseLocale(locale);
-    const tr = (ko: string, en: string, vi?: string) => pickUiText(baseLocale, ko, en, vi);
+    const tr = (
+        ko: string,
+        en: string,
+        vi?: string,
+        ja?: string,
+        zh?: string,
+        es?: string,
+        pt?: string,
+        fr?: string,
+        de?: string,
+        ru?: string,
+    ) => pickUiText(baseLocale, ko, en, vi, ja, zh, es, pt, fr, de, ru);
     const albumCategories = [EXT_CAT_ALL];
     if (partner.gdrive_bouquet_id) albumCategories.push('꽃다발');
     if (partner.gdrive_basket_id) albumCategories.push('꽃바구니');
@@ -697,13 +799,26 @@ function AlbumDialog({ partner, activeTab, setTab, variant = "full" }: any) {
                         <div>
                             <div className="flex items-center gap-3 mb-1">
                                 <Badge className="bg-indigo-500 text-white border-0 font-black text-[9px] rounded-md tracking-widest uppercase">
-                                    {tr("인증 파트너", "Certified partner", "Đối tác đã xác minh")}
+                                    {tr(
+                                        "인증 파트너",
+                                        "Certified partner",
+                                        "Đối tác đã xác minh",
+                                        "認定パートナー",
+                                        "认证合作伙伴",
+                                        "Socio certificado",
+                                        "Parceiro certificado",
+                                        "Partenaire certifié",
+                                        "Zertifizierter Partner",
+                                        "Сертифицированный партнёр",
+                                    )}
                                 </Badge>
                                 <span className="text-white/40 text-[10px] font-bold flex items-center gap-1"><MapPin size={10} /> {partner.partner_region ? extRegionLineDisplay(partner.partner_region, baseLocale) : tf.f00546}</span>
                             </div>
                             <h3 className="text-3xl font-black tracking-tight">
                                 {partner.name}{" "}
-                                <span className="text-indigo-400 font-light">{tr("갤러리", "Gallery", "Album")}</span>
+                                <span className="text-indigo-400 font-light">
+                                    {tr("갤러리", "Gallery", "Album", "ギャラリー", "图库", "Galería", "Galeria", "Galerie", "Galerie", "Галерея")}
+                                </span>
                             </h3>
                         </div>
                     </div>
@@ -742,12 +857,34 @@ function AlbumDialog({ partner, activeTab, setTab, variant = "full" }: any) {
                              </div>
                              <div>
                                 <p className="text-[10px] font-black text-slate-800 uppercase tracking-tighter">
-                                    {tr("실시간 앨범 동기화", "Real-time album sync", "Đồng bộ album thời gian thực")}
+                                    {tr(
+                                        "실시간 앨범 동기화",
+                                        "Real-time album sync",
+                                        "Đồng bộ album thời gian thực",
+                                        "アルバムをリアルタイム同期",
+                                        "相册实时同步",
+                                        "Sincronización de álbum en tiempo real",
+                                        "Sincronização de álbum em tempo real",
+                                        "Synchronisation d’album en temps réel",
+                                        "Echtzeit‑Album‑Sync",
+                                        "Синхронизация альбома в реальном времени",
+                                    )}
                                 </p>
                                 <p className="text-[10px] text-slate-400 font-light">
                                     {tf.f00537}{" "}
                                     <span className="font-bold text-indigo-600">
-                                        {tr("[상품명] 가격", "[Product name] price", "[Tên sản phẩm] giá")}
+                                        {tr(
+                                            "[상품명] 가격",
+                                            "[Product name] price",
+                                            "[Tên sản phẩm] giá",
+                                            "[商品名]価格",
+                                            "[商品名]价格",
+                                            "[nombre] precio",
+                                            "[nome] preço",
+                                            "[nom] prix",
+                                            "[Produktname] Preis",
+                                            "[название] цена",
+                                        )}
                                     </span>
                                     {tf.f00499}
                                 </p>

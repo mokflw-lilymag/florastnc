@@ -99,11 +99,12 @@ export async function compositeWithBackground(
 /**
  * 기본 배경 색상 팔레트 (누끼 후 자동 합성용)
  */
+/** `label`은 디버그·로그용; UI 라벨은 PhotoEditModal에서 `tr`로 표시합니다. */
 export const QUICK_BG_COLORS = [
-  { label: '순백', value: '#FFFFFF' },
-  { label: '크림', value: '#FFF8F0' },
-  { label: '라벤더', value: '#F0E8FF' },
-  { label: '민트', value: '#E8FFF4' },
-  { label: '피치', value: '#FFE8E8' },
-  { label: '스카이', value: '#E8F4FF' },
+  { label: "Pure white", value: "#FFFFFF" },
+  { label: "Cream", value: "#FFF8F0" },
+  { label: "Lavender", value: "#F0E8FF" },
+  { label: "Mint", value: "#E8FFF4" },
+  { label: "Peach", value: "#FFE8E8" },
+  { label: "Sky", value: "#E8F4FF" },
 ];

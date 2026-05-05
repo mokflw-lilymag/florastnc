@@ -33,7 +33,18 @@ export default function ReceivedOrdersPage() {
     const locale = usePreferredLocale();
     const tf = getMessages(locale).tenantFlows;
     const baseLocale = toBaseLocale(locale);
-    const tr = (ko: string, en: string, vi?: string) => pickUiText(baseLocale, ko, en, vi);
+    const tr = (
+        ko: string,
+        en: string,
+        vi?: string,
+        ja?: string,
+        zh?: string,
+        es?: string,
+        pt?: string,
+        fr?: string,
+        de?: string,
+        ru?: string,
+    ) => pickUiText(baseLocale, ko, en, vi, ja, zh, es, pt, fr, de, ru);
     const [loading, setLoading] = useState(true);
     const [orders, setOrders] = useState<any[]>([]);
     const [search, setSearch] = useState("");
@@ -142,7 +153,18 @@ export default function ReceivedOrdersPage() {
                     <CardContent className="p-8 relative">
                          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-16 translate-x-16 blur-2xl group-hover:scale-150 transition-all duration-700" />
                          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-200 mb-2">
-                            {tr("신규 요청", "New requests", "Yêu cầu mới")}
+                            {tr(
+                                "신규 요청",
+                                "New requests",
+                                "Yêu cầu mới",
+                                "新規リクエスト",
+                                "新请求",
+                                "Nuevas solicitudes",
+                                "Novas solicitações",
+                                "Nouvelles demandes",
+                                "Neue Anfragen",
+                                "Новые запросы",
+                            )}
                          </div>
                          <div className="text-4xl font-black">{pendingCount} <span className="text-base font-light">{tf.f00033}</span></div>
                          <p className="text-xs text-indigo-100/60 mt-2">{tf.f00771}</p>
@@ -151,12 +173,34 @@ export default function ReceivedOrdersPage() {
                 <Card className="border-0 shadow-2xl bg-white rounded-[2.5rem] overflow-hidden group">
                     <CardContent className="p-8">
                          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">
-                            {tr("오늘 매출", "Today's earnings", "Doanh thu hôm nay")}
+                            {tr(
+                                "오늘 매출",
+                                "Today's earnings",
+                                "Doanh thu hôm nay",
+                                "本日の売上",
+                                "今日营收",
+                                "Ingresos de hoy",
+                                "Receita de hoje",
+                                "Chiffre du jour",
+                                "Umsatz heute",
+                                "Выручка за сегодня",
+                            )}
                          </div>
                          <div className="text-4xl font-black text-slate-900">₩{todayRevenue.toLocaleString()}</div>
                          <div className="flex items-center gap-2 mt-2">
                              <Badge className="bg-emerald-100 text-emerald-600 border-0 h-5 text-[9px]">
-                                {tr("정산 완료", "Settled", "Đã quyết toán")}
+                                {tr(
+                                    "정산 완료",
+                                    "Settled",
+                                    "Đã quyết toán",
+                                    "精算済み",
+                                    "已结算",
+                                    "Liquidado",
+                                    "Liquidado",
+                                    "Réglé",
+                                    "Abgerechnet",
+                                    "Рассчитано",
+                                )}
                              </Badge>
                              <span className="text-xs text-slate-400 font-light italic">{tf.f00461}</span>
                          </div>
@@ -165,7 +209,18 @@ export default function ReceivedOrdersPage() {
                 <Card className="border-0 shadow-2xl bg-slate-900 text-white rounded-[2.5rem] overflow-hidden group">
                     <CardContent className="p-8">
                          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">
-                            {tr("누적 수신", "Total received", "Tổng đã nhận")}
+                            {tr(
+                                "누적 수신",
+                                "Total received",
+                                "Tổng đã nhận",
+                                "累計受信",
+                                "累计接收",
+                                "Total recibido",
+                                "Total recebido",
+                                "Total reçu",
+                                "Gesamt empfangen",
+                                "Всего получено",
+                            )}
                          </div>
                          <div className="text-4xl font-black text-indigo-400">{orders.length} <span className="text-base font-light text-white">{tf.f00033}</span></div>
                          <p className="text-xs text-slate-500 mt-2 font-light">{tf.f00142}</p>
@@ -349,7 +404,18 @@ function OrderReceivedDetailDialog({ isOpen, onOpenChange, order, onUpdateStatus
     const locale = usePreferredLocale();
     const tf = getMessages(locale).tenantFlows;
     const baseLocale = toBaseLocale(locale);
-    const tr = (ko: string, en: string, vi?: string) => pickUiText(baseLocale, ko, en, vi);
+    const tr = (
+        ko: string,
+        en: string,
+        vi?: string,
+        ja?: string,
+        zh?: string,
+        es?: string,
+        pt?: string,
+        fr?: string,
+        de?: string,
+        ru?: string,
+    ) => pickUiText(baseLocale, ko, en, vi, ja, zh, es, pt, fr, de, ru);
     if (!order) return null;
     const orderData = order.order_data || {};
     const items = orderData.items || [];
@@ -373,7 +439,18 @@ function OrderReceivedDetailDialog({ isOpen, onOpenChange, order, onUpdateStatus
                             <div>
                                 <h3 className="text-2xl font-black">{tf.f00402}</h3>
                                 <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">
-                                    {tr("네트워크 주문 상세", "Network order details", "Chi tiết đơn liên kết")}
+                                    {tr(
+                                        "네트워크 주문 상세",
+                                        "Network order details",
+                                        "Chi tiết đơn liên kết",
+                                        "ネットワーク注文の詳細",
+                                        "网络订单详情",
+                                        "Detalle del pedido en red",
+                                        "Detalhes do pedido em rede",
+                                        "Détails de la commande réseau",
+                                        "Netzwerk-Bestelldetails",
+                                        "Сведения о сетевом заказе",
+                                    )}
                                 </p>
                             </div>
                         </div>
@@ -399,7 +476,7 @@ function OrderReceivedDetailDialog({ isOpen, onOpenChange, order, onUpdateStatus
                             </div>
                             <div>
                                 <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                                    {tr("상태", "Status", "Trạng thái")}
+                                    {tr("상태", "Status", "Trạng thái", "ステータス", "状态", "Estado", "Status", "Statut", "Status", "Статус")}
                                 </div>
                                 {getStatusBadge(order.status)}
                             </div>
@@ -455,7 +532,7 @@ function OrderReceivedDetailDialog({ isOpen, onOpenChange, order, onUpdateStatus
                                     </div>
                                     <Badge className="bg-indigo-500/20 text-indigo-300 border-indigo-500/30 text-[9px] font-black">
                                         {orderData.delivery_info?.itemSize || "S"}{" "}
-                                        {tr("사이즈", "SIZE", "Cỡ")}
+                                        {tr("사이즈", "SIZE", "Cỡ", "サイズ", "尺码", "Talla", "Tamanho", "Taille", "Größe", "Размер")}
                                     </Badge>
                                 </div>
                             </div>
@@ -467,9 +544,23 @@ function OrderReceivedDetailDialog({ isOpen, onOpenChange, order, onUpdateStatus
                         <div className="flex items-center gap-4 py-4 border-b border-slate-50">
                              <div className="w-14 h-14 rounded-full bg-slate-50 flex items-center justify-center p-2 border border-slate-100 italic font-black text-indigo-600 text-xs">
                                 {orderData.sender_branding?.logo_url ? (
-                                    <img src={orderData.sender_branding.logo_url} alt={tr("로고", "Logo", "Logo")} />
+                                    <img
+                                        src={orderData.sender_branding.logo_url}
+                                        alt={tr("로고", "Logo", "Logo", "ロゴ", "标志", "Logo", "Logotipo", "Logo", "Logo", "Логотип")}
+                                    />
                                 ) : (
-                                    tr("브랜드", "Brand", "Thương hiệu")
+                                    tr(
+                                        "브랜드",
+                                        "Brand",
+                                        "Thương hiệu",
+                                        "ブランド",
+                                        "品牌",
+                                        "Marca",
+                                        "Marca",
+                                        "Marque",
+                                        "Marke",
+                                        "Бренд",
+                                    )
                                 )}
                              </div>
                              <div>

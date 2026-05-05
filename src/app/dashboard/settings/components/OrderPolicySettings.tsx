@@ -34,7 +34,14 @@ export function OrderPolicySettings({ settings, saveSettings }: OrderPolicySetti
                 baseLocale,
                 "포인트·마케팅 정책",
                 "Loyalty & marketing policy",
-                "Chính sách điểm thưởng & marketing"
+                "Chính sách điểm thưởng & marketing",
+                "ポイント・マーケティング方針",
+                "积分与营销政策",
+                "Puntos y política de marketing",
+                "Pontos e política de marketing",
+                "Points et politique marketing",
+                "Punkte & Marketing-Richtlinie",
+                "Баллы и маркетинг",
               )}
             </span>
           </div>

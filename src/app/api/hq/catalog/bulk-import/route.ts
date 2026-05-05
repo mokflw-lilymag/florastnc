@@ -5,7 +5,21 @@ import {
   normalizeImportRowFromApi,
   type CatalogImportRow,
 } from "@/lib/hq/catalog-excel-map";
+import {
+  bulkImportMessageBase,
+  errBulkCatalogSaveFailed,
+  errBulkMaxRows,
+  errBulkMissingBody,
+  errBulkNoRows,
+  errBulkNoValidRows,
+} from "@/lib/hq/catalog-bulk-import-errors";
 import { normalizeCatalogStatus, syncOrgCatalogToAllBranches } from "@/lib/hq/org-catalog-sync";
+import {
+  errAdminForbidden,
+  errAdminOperationFailed,
+  errAdminServerMisconfigured,
+  errAdminUnauthorized,
+} from "@/lib/admin/admin-api-errors";
 
 const MAX_ROWS = 5000;
 
@@ -18,24 +32,24 @@ export async function POST(req: Request) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   const body = await req.json().catch(() => ({}));
   const organizationId = body?.organizationId as string | undefined;
   const rawItems = body?.items as unknown[] | undefined;
   const syncToBranches = body?.syncToBranches !== false;
+  const bl = bulkImportMessageBase(body?.uiLocale as string | undefined);
+  if (!user) {
+    return NextResponse.json({ error: errAdminUnauthorized(bl) }, { status: 401 });
+  }
 
   if (!organizationId || !Array.isArray(rawItems)) {
-    return NextResponse.json({ error: "organizationId, items 배열이 필요합니다." }, { status: 400 });
+    return NextResponse.json({ error: errBulkMissingBody(bl) }, { status: 400 });
   }
 
   if (rawItems.length === 0) {
-    return NextResponse.json({ error: "등록할 행이 없습니다." }, { status: 400 });
+    return NextResponse.json({ error: errBulkNoRows(bl) }, { status: 400 });
   }
   if (rawItems.length > MAX_ROWS) {
-    return NextResponse.json({ error: `한 번에 최대 ${MAX_ROWS}행까지 업로드할 수 있습니다.` }, { status: 400 });
+    return NextResponse.json({ error: errBulkMaxRows(bl, MAX_ROWS) }, { status: 400 });
   }
 
   const { data: profile } = await supabase
@@ -53,12 +67,12 @@ export async function POST(req: Request) {
 
   const canWrite = profile?.role === "super_admin" || mem?.role === "org_admin";
   if (!canWrite) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return NextResponse.json({ error: errAdminForbidden(bl) }, { status: 403 });
   }
 
   const admin = createAdminClient();
   if (!admin) {
-    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
+    return NextResponse.json({ error: errAdminServerMisconfigured(bl) }, { status: 500 });
   }
 
   const items: CatalogImportRow[] = [];
@@ -69,13 +83,7 @@ export async function POST(req: Request) {
   }
 
   if (items.length === 0) {
-    return NextResponse.json(
-      {
-        error:
-          "유효한 행이 없습니다. 상품명·대분류·중분류(2차 카테고리)를 모두 입력했는지 확인하세요.",
-      },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: errBulkNoValidRows(bl) }, { status: 400 });
   }
 
   let catalogWritten = 0;
@@ -154,7 +162,7 @@ export async function POST(req: Request) {
 
   if (catalogWritten === 0 && errors.length > 0) {
     return NextResponse.json(
-      { error: "카탈로그 저장에 실패했습니다.", details: errors.slice(0, 5) },
+      { error: errBulkCatalogSaveFailed(bl), details: errors.slice(0, 5) },
       { status: 500 }
     );
   }
@@ -164,14 +172,13 @@ export async function POST(req: Request) {
     try {
       sync = await syncOrgCatalogToAllBranches(admin, organizationId);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
       console.error("[hq/catalog/bulk-import] sync", e);
       return NextResponse.json(
         {
           ok: true,
           catalogWritten,
           sync: null,
-          syncError: msg,
+          syncError: errAdminOperationFailed(bl),
           importErrors: errors.length ? errors : undefined,
         },
         { status: 200 }

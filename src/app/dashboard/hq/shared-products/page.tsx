@@ -22,14 +22,18 @@ export default function HqSharedProductsPage() {
   const [canManage, setCanManage] = useState(false);
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
-  const baseLocale = toBaseLocale(locale);  useEffect(() => {
+  const baseLocale = toBaseLocale(locale);
+  useEffect(() => {
     if (authLoading) return;
     let cancelled = false;
     (async () => {
       setCtxLoading(true);
       setForbidden(false);
       try {
-        const res = await fetch("/api/hq/compose-context", { credentials: "include" });
+        const res = await fetch(
+          `/api/hq/compose-context?uiLocale=${encodeURIComponent(locale)}`,
+          { credentials: "include" }
+        );
         if (res.status === 401) {
           if (!cancelled) setForbidden(true);
           return;
@@ -52,7 +56,7 @@ export default function HqSharedProductsPage() {
     return () => {
       cancelled = true;
     };
-  }, [authLoading]);
+  }, [authLoading, locale]);
 
   if (authLoading) {
     return (

@@ -2985,7 +2985,33 @@
       "integratedDescription": "Floxync integrates with leading commerce platforms and automates order, inventory and catalog flow with realtime sync.",
       "integratedItem1": "Naver Commerce API integration",
       "integratedItem2": "Cafe24 API inventory/product sync",
-      "integratedItem3": "Seasonal peak demand modeling"
+      "integratedItem3": "Seasonal peak demand modeling",
+      "featureCards": {
+        "ai-order-concierge": {
+          "title": "AI Order Concierge",
+          "description": "KakaoTalk, SMS, and voice memos parsed in seconds. AI drafts recipient, delivery time, card copy, and amount hints so staff review instead of retyping."
+        },
+        "shop-sync": {
+          "title": "Shopping Mall All-in-One Sync",
+          "description": "Naver Smartstore and Cafe24 orders appear in your dashboard as they arrive. Keep inventory and fulfillment steps aligned without hopping between admin consoles."
+        },
+        "smart-print-bridge": {
+          "title": "Smart Print Bridge (XPrint Engine)",
+          "description": "Stretch everyday A4 hardware into long banner runs. Control thermal ribbon printers from the browser with preview-true output and unified device management."
+        },
+        "ai-expense-magic": {
+          "title": "AI Magic Expense Assistant",
+          "description": "Photograph a receipt—AI reads merchant, date, totals, and VAT splits, then posts structured lines to your expense ledger in one tap."
+        },
+        "settlement-engine": {
+          "title": "Finance-Grade Settlement Engine",
+          "description": "Model VAT, marketplace fees, and driver payouts together so every order resolves to the same margin math—ideal for month-end reconciliation."
+        },
+        "mobile-premium": {
+          "title": "Mobile Center Premium",
+          "description": "Android companion app in preparation. Join the test list to get the first beta invite when field-ready workflows ship."
+        }
+      }
     },
     "testApply": {
       "title": "Test User Signup (Free)",

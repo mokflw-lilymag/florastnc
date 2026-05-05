@@ -3,6 +3,8 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import fs from 'fs';
 import path from 'path';
 import { createClient } from '@supabase/supabase-js';
+import { errAdminOperationFailed, errApiContentRequired } from '@/lib/admin/admin-api-errors';
+import { hqApiUiBase } from '@/lib/hq/hq-api-locale';
 
 // 작동 확인된 패턴 그대로 사용 (order-parser.ts 기준)
 const genAI = new GoogleGenerativeAI(
@@ -12,10 +14,11 @@ const genAI = new GoogleGenerativeAI(
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    const bl = await hqApiUiBase(request, typeof body?.uiLocale === 'string' ? body.uiLocale : undefined);
     const { content, history = [], tenantId, userName } = body;
 
     if (!content) {
-      return NextResponse.json({ error: 'content is required' }, { status: 400 });
+      return NextResponse.json({ error: errApiContentRequired(bl) }, { status: 400 });
     }
 
     // 1. 지식베이스 로드
@@ -140,16 +143,17 @@ ${content}
       status: 'success',
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('--- AI Support Error ---');
-    console.error('Name:', error.name);
-    console.error('Message:', error.message);
-    if (error.stack) console.error('Stack:', error.stack);
+    console.error('Name:', (error as { name?: string })?.name);
+    console.error('Message:', (error as { message?: string })?.message);
+    if ((error as { stack?: string })?.stack) console.error('Stack:', (error as { stack?: string }).stack);
     console.error('------------------------');
+    const bl = await hqApiUiBase(request);
 
     return NextResponse.json({
       content: '죄송합니다 사장님, 현재 AI 비서가 잠시 준비 중입니다. 잠시 후 다시 말씀해 주시면 바로 도와드리겠습니다! 💐',
-      error: error.message,
+      error: errAdminOperationFailed(bl),
       status: 'error',
     }, { status: 500 });
   }

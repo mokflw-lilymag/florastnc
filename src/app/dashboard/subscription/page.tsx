@@ -41,160 +41,13 @@ import { toast } from "sonner";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
 import { pickUiText } from "@/i18n/pick-ui-text";
-
-type Period = "1m" | "3m" | "6m" | "12m";
-type PlanId = "free" | "erp_only" | "pro";
-type LocalizedString = [string, string, string];
-
-const EN_PLAN_DISCOUNTS: Record<string, Record<Period, string>> = {
-  free: { "1m": "", "3m": "5% off", "6m": "8% off", "12m": "17% off" },
-  erp_only: { "1m": "", "3m": "6% off", "6m": "8% off", "12m": "17% off" },
-  pro: { "1m": "", "3m": "7% off", "6m": "8% off", "12m": "23% off" },
-};
-
-const KO_PLAN_DISCOUNTS: Record<string, Record<Period, string>> = {
-  free: { "1m": "", "3m": "5% 할인", "6m": "8% 할인", "12m": "17% 할인" },
-  erp_only: { "1m": "", "3m": "6% 할인", "6m": "8% 할인", "12m": "17% 할인" },
-  pro: { "1m": "", "3m": "7% 할인", "6m": "8% 할인", "12m": "23% 특가" },
-};
-
-const EN_PERIOD_LABELS: Record<Period, string> = {
-  "1m": "1 month",
-  "3m": "3 months",
-  "6m": "6 months",
-  "12m": "12 months",
-};
-
-const KO_PERIOD_LABELS: Record<Period, string> = {
-  "1m": "1개월",
-  "3m": "3개월",
-  "6m": "6개월",
-  "12m": "12개월",
-};
-
-const VI_PLAN_DISCOUNTS: Record<string, Record<Period, string>> = {
-  free: { "1m": "", "3m": "Giảm 5%", "6m": "Giảm 8%", "12m": "Giảm 17%" },
-  erp_only: { "1m": "", "3m": "Giảm 6%", "6m": "Giảm 8%", "12m": "Giảm 17%" },
-  pro: { "1m": "", "3m": "Giảm 7%", "6m": "Giảm 8%", "12m": "Giảm 23%" },
-};
-
-const VI_PERIOD_LABELS: Record<Period, string> = {
-  "1m": "1 tháng",
-  "3m": "3 tháng",
-  "6m": "6 tháng",
-  "12m": "12 tháng",
-};
-
-const PLAN_TEXTS: Record<
-  PlanId,
-  { subName: LocalizedString; description: LocalizedString; features: LocalizedString[] }
-> = {
-  free: {
-    subName: ["화원 리본 출력 전용", "Focused on flower ribbon printing", "Tập trung in ruy băng hoa"],
-    description: [
-      "리본 프린터 출력을 위한 핵심 기능을 제공합니다. 안정적인 출력이 최우선인 사장님께 추천합니다.",
-      "Core features for stable ribbon printing and basic order tracking.",
-      "Tính năng cốt lõi cho in ruy băng ổn định và theo dõi đơn hàng cơ bản.",
-    ],
-    features: [
-      [
-        "무제한 리본 출력 (모든 규격 지원)",
-        "Unlimited ribbon printing (all sizes)",
-        "In ruy băng không giới hạn (mọi khổ)",
-      ],
-      [
-        "전문 출력 로그 및 이력 상세 관리",
-        "Detailed print logs and history",
-        "Nhật ký in & lịch sử chi tiết",
-      ],
-      [
-        "고급 폰트 및 디자인 템플릿 라이브러리",
-        "Premium font and template library",
-        "Thư viện phông & mẫu cao cấp",
-      ],
-      [
-        "로컬 프린터 브릿지 무상 연동 서비스",
-        "Local printer bridge integration",
-        "Tích hợp bridge máy in cục bộ",
-      ],
-      [
-        "기본적인 주문 내역 수동 기록 및 관리",
-        "Manual order record management",
-        "Ghi nhận đơn hàng thủ công",
-      ],
-    ],
-  },
-  erp_only: {
-    subName: ["효율적인 화원 운영의 정석", "Efficient flower shop operations", "Vận hành tiệm hoa hiệu quả"],
-    description: [
-      "정산 및 고객 관리를 위한 스마트 솔루션입니다. 데이터 기반의 성장을 원하는 사장님께 완벽합니다.",
-      "Smart operations suite for settlement and customer growth.",
-      "Bộ công cụ vận hành thông minh: quyết toán và phát triển khách hàng.",
-    ],
-    features: [
-      [
-        "고객 CRM + 포인트 마케팅 자동화",
-        "Customer CRM + point marketing",
-        "CRM khách hàng + marketing điểm thưởng",
-      ],
-      [
-        "실시간 배송 배차 및 위치 추적 시스템",
-        "Live delivery dispatch and tracking",
-        "Điều phối giao hàng & theo dõi vị trí",
-      ],
-      [
-        "AI 영수증 OCR 정산 및 지출 내역 자동화",
-        "AI receipt OCR for expense automation",
-        "OCR hóa đơn AI cho chi phí tự động",
-      ],
-      [
-        "매입 단가 추이분석 및 재고 관리",
-        "Purchase price trend and inventory",
-        "Xu hướng giá nhập & tồn kho",
-      ],
-      [
-        "자동 세무 설정 및 월간 손익 정산 보고서",
-        "Auto tax setup and monthly P&L report",
-        "Thiết lập thuế & báo cáo P&L hàng tháng",
-      ],
-    ],
-  },
-  pro: {
-    subName: ["완벽한 디지털 트랜스포메이션", "Complete digital transformation", "Chuyển đổi số toàn diện"],
-    description: [
-      "프린터와 ERP, 마케팅 기능이 하나로 통합된 완전체입니다. 모든 것을 한 번에 해결하고 싶은 성공한 사장님의 선택.",
-      "All-in-one printer, ERP, and marketing bundle for scaling teams.",
-      "Gói máy in + ERP + marketing trong một, phù hợp mở rộng quy mô.",
-    ],
-    features: [
-      [
-        "PRINT + ERP 모든 기능 무제한 언리미티드",
-        "Unlimited PRINT + ERP core features",
-        "PRINT + ERP không giới hạn",
-      ],
-      [
-        "AI 사장님 비서 및 마케팅 원클릭 자동 포스팅",
-        "AI assistant and one-click marketing posts",
-        "Trợ lý AI & đăng bài marketing một chạm",
-      ],
-      [
-        "SNS(인스타/블로그) 실시간 연동 및 분석",
-        "SNS integration and performance analysis",
-        "Tích hợp mạng xã hội & phân tích",
-      ],
-      [
-        "외부 쇼핑몰(파트너 갤러리) 주문 자동 스크래핑",
-        "External marketplace order sync",
-        "Đồng bộ đơn sàn thương mại bên ngoài",
-      ],
-      [
-        "VIP 고객 전용 멤버십 전용관 개설 지원",
-        "VIP membership storefront support",
-        "Hỗ trợ cửa hàng thành viên VIP",
-      ],
-    ],
-  },
-};
+import {
+  type Period,
+  type LocalizedString,
+  PERIOD_LABELS,
+  PLAN_DISCOUNTS,
+  PLAN_TEXTS,
+} from "./plan-localized";
 
 const PLANS_BASE = [
   {
@@ -266,9 +119,34 @@ export default function SubscriptionPage() {
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
   const baseLocale = toBaseLocale(locale);
-  const perMonthLabel = pickUiText(baseLocale, "/월", "/ mo", "/ tháng");
+  const perMonthLabel = pickUiText(
+    baseLocale,
+    "/월",
+    "/ mo",
+    "/ tháng",
+    "/月",
+    "/月",
+    "/mes",
+    "/mês",
+    "/mois",
+    "/Monat",
+    "/мес.",
+  );
   const localizedPlans = useMemo(() => {
-    const T = (triple: LocalizedString) => pickUiText(baseLocale, triple[0], triple[1], triple[2]);
+    const T = (row: LocalizedString) =>
+      pickUiText(
+        baseLocale,
+        row[0],
+        row[1],
+        row[2],
+        row[3],
+        row[4],
+        row[5],
+        row[6],
+        row[7],
+        row[8],
+        row[9],
+      );
     return PLANS_BASE.map((plan) => {
       const copy = PLAN_TEXTS[plan.id];
       return {
@@ -281,12 +159,8 @@ export default function SubscriptionPage() {
             k,
             {
               ...plan.pricing[k],
-              label: T([KO_PERIOD_LABELS[k], EN_PERIOD_LABELS[k], VI_PERIOD_LABELS[k]]),
-              discount: T([
-                KO_PLAN_DISCOUNTS[plan.id][k],
-                EN_PLAN_DISCOUNTS[plan.id][k],
-                VI_PLAN_DISCOUNTS[plan.id][k],
-              ]),
+              label: T(PERIOD_LABELS[k]),
+              discount: T(PLAN_DISCOUNTS[plan.id][k]),
             },
           ]),
         ) as (typeof PLANS_BASE)[number]["pricing"] & Record<Period, { label: string; discount: string }>,

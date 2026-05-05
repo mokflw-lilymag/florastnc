@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { errAdminOperationFailed, errApiDbSaveFailed, msgApiWebhookProcessed } from '@/lib/admin/admin-api-errors';
+import { hqApiUiBase } from '@/lib/hq/hq-api-locale';
 
 // 이 엔드포인트는 네이버 스마트스토어 API에서 주문 변경(결제완료 등) 알림이 발생했을 때 호출됩니다.
 // 네이버 커머스 알림 수신(Webhook) URL 설정에 이 주소를 입력하게 됩니다.
 export async function POST(request: Request) {
   try {
+    const bl = await hqApiUiBase(request);
     const payload = await request.json();
     console.log('--- [Naver Commerce] 새 알림 수신:', JSON.stringify(payload));
 
@@ -54,17 +57,18 @@ export async function POST(request: Request) {
 
       if (error) {
         console.error('DB Insert Error:', error);
-        return NextResponse.json({ error: 'DB Save Failed' }, { status: 500 });
+        return NextResponse.json({ error: errApiDbSaveFailed(bl) }, { status: 500 });
       }
 
       // Realtime을 통해 클라이언트로 새 주문 알람 트리거 가능
       console.log('✅ 네이버 스마트스토어 주문 수집 완료:', externalOrderId);
     }
 
-    return NextResponse.json({ success: true, message: 'Naver Webhook received normally' });
+    return NextResponse.json({ success: true, message: msgApiWebhookProcessed(bl, "Naver") });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Naver Webhook Error:', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    const bl = await hqApiUiBase(request);
+    return NextResponse.json({ success: false, error: errAdminOperationFailed(bl) }, { status: 500 });
   }
 }

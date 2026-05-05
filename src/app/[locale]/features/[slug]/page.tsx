@@ -17,12 +17,17 @@ export function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { slug } = await params;
+  const { slug, locale } = await params;
   const feature = getLandingFeatureBySlug(slug);
-  if (!feature) return { title: 'Feature' };
+  if (!feature || !isSupportedLocale(locale)) return { title: 'Feature' };
+  const l = locale as AppLocale;
+  const cards = getMessages(l).landing.features.featureCards;
+  const card = cards[feature.slug as keyof typeof cards];
+  const titleText = card?.title ?? "Floxync";
+  const descText = card?.description ?? "";
   return {
-    title: `${feature.title} · Floxync`,
-    description: feature.description,
+    title: `${titleText} · Floxync`,
+    description: descText,
   };
 }
 
@@ -30,9 +35,15 @@ export default async function FeatureDetailPage({ params }: Props) {
   const { slug, locale } = await params;
   if (!isSupportedLocale(locale)) notFound();
   const l = locale as AppLocale;
-  const t = getMessages(l).landing.featureDetail;
+  const landing = getMessages(l).landing;
+  const t = landing.featureDetail;
+  const cards = landing.features.featureCards;
+  const card = cards[slug as keyof typeof cards];
+  const detailPage = landing.featureDetailPages[slug as keyof typeof landing.featureDetailPages];
   const feature = getLandingFeatureBySlug(slug);
   if (!feature) notFound();
+  const displayTitle = card?.title ?? slug;
+  const displayDescription = card?.description ?? "";
 
   return (
     <main className="min-h-screen bg-[#0A0F0D] text-white overflow-x-hidden selection:bg-emerald-500/30 selection:text-emerald-200">
@@ -50,22 +61,22 @@ export default async function FeatureDetailPage({ params }: Props) {
           <header className="mb-12 md:mb-16">
             <p className="text-xs font-black text-emerald-500 uppercase tracking-[0.25em] mb-4">{t.capability}</p>
             <h1 className="text-4xl md:text-6xl font-black text-white tracking-tighter leading-tight mb-6">
-              {feature.title}
+              {displayTitle}
             </h1>
             {feature.comingSoon ? (
               <div className="mb-6 inline-flex items-center px-4 py-2 rounded-full bg-indigo-500/15 text-indigo-300 text-xs font-black uppercase tracking-[0.2em] border border-indigo-400/30">
                 {t.comingSoon}
               </div>
             ) : null}
-            <p className="text-lg md:text-xl text-slate-400 font-light leading-relaxed">{feature.description}</p>
+            <p className="text-lg md:text-xl text-slate-400 font-light leading-relaxed">{displayDescription}</p>
           </header>
 
           <div className="mb-16 md:mb-20">
-            <FeatureVisual feature={feature} />
+            <FeatureVisual feature={feature} imageAlt={displayTitle} />
           </div>
 
           <div className="space-y-12 md:space-y-14">
-            {feature.detailSections.map((section, i) => (
+            {detailPage.sections.map((section, i) => (
               <section key={i} className="border-t border-white/10 pt-10 md:pt-12 first:border-0 first:pt-0">
                 {section.heading ? (
                   <h2 className="text-xl md:text-2xl font-black text-white mb-4 tracking-tight">{section.heading}</h2>
@@ -75,9 +86,9 @@ export default async function FeatureDetailPage({ params }: Props) {
             ))}
           </div>
 
-          {feature.ctaLinks && feature.ctaLinks.length > 0 ? (
+          {detailPage.ctaLinks && detailPage.ctaLinks.length > 0 ? (
             <div className="mt-14 flex flex-col sm:flex-row flex-wrap gap-3">
-              {feature.ctaLinks.map((cta) => {
+              {detailPage.ctaLinks.map((cta) => {
                 const isMail = cta.href.startsWith('mailto:');
                 const isHashHome = cta.href.startsWith('/#');
                 const className = isMail

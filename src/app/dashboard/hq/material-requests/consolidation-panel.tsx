@@ -286,7 +286,7 @@ export function MaterialRequestsConsolidationPanel({ requests, onReload }: Props
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ requestIds, status }),
+        body: JSON.stringify({ requestIds, status, uiLocale: locale }),
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) {

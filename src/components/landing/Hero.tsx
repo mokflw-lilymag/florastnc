@@ -14,7 +14,14 @@ export function Hero({ locale = 'ko' }: { locale?: AppLocale }) {
     baseLocale,
     "실시간 동기화",
     "Live sync",
-    "Đồng bộ trực tiếp"
+    "Đồng bộ trực tiếp",
+    "リアルタイム同期",
+    "实时同步",
+    "Sincronización en vivo",
+    "Sincronização em tempo real",
+    "Synchronisation en direct",
+    "Echtzeit-Sync",
+    "Синхронизация в реальном времени",
   );
   return (
     <section className="relative pt-32 pb-24 md:pt-48 md:pb-36 overflow-hidden bg-[#0A0F0D]">

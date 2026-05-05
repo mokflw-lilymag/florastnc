@@ -144,7 +144,14 @@ export function ProductTable({
                           baseLocale,
                           `${product.name} 선택`,
                           `Select ${product.name}`,
-                          `Chọn ${product.name}`
+                          `Chọn ${product.name}`,
+                          `${product.name}を選択`,
+                          `选择 ${product.name}`,
+                          `Seleccionar ${product.name}`,
+                          `Selecionar ${product.name}`,
+                          `Sélectionner ${product.name}`,
+                          `${product.name} auswählen`,
+                          `Выбрать: ${product.name}`,
                         )}
                       />
                     </TableCell>

@@ -29,7 +29,18 @@ import { toBaseLocale } from "@/i18n/config";
 import { pickUiText } from "@/i18n/pick-ui-text";
 import type { ManualDrawerMessages } from "@/i18n/types";
 
-type Tr = (ko: string, en: string, vi?: string) => string;
+type Tr = (
+  ko: string,
+  en: string,
+  vi?: string,
+  ja?: string,
+  zh?: string,
+  es?: string,
+  pt?: string,
+  fr?: string,
+  de?: string,
+  ru?: string,
+) => string;
 
 type Section = {
   id: string;
@@ -66,7 +77,18 @@ function buildSections(M: ManualDrawerMessages, tr: Tr): Section[] {
                 <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
                   {M.step1.bridgeBefore}
                   <Badge variant="outline" className="text-[9px] h-4">
-                    {tr("v25.0 브릿지", "v25.0 Bridge", "v25.0 Bridge")}
+                    {tr(
+                      "v25.0 브릿지",
+                      "v25.0 Bridge",
+                      "v25.0 Bridge",
+                      "v25.0 ブリッジ",
+                      "v25.0 桥接",
+                      "Puente v25.0",
+                      "Ponte v25.0",
+                      "Pont v25.0",
+                      "v25.0 Bridge",
+                      "Мост v25.0",
+                    )}
                   </Badge>
                   {M.step1.bridgeAfter}
                 </p>
@@ -91,14 +113,25 @@ function buildSections(M: ManualDrawerMessages, tr: Tr): Section[] {
             <div className="grid grid-cols-2 gap-3">
               <div className="p-4 bg-white rounded-2xl border border-emerald-100">
                 <p className="text-[10px] font-black text-slate-400 uppercase mb-1">
-                  {tr("설정", "Config", "Cấu hình")}
+                  {tr("설정", "Config", "Cấu hình", "設定", "设置", "Ajustes", "Configuração", "Config", "Konfig.", "Настройки")}
                 </p>
                 <p className="text-xs font-bold text-slate-800">{M.step2.categoryTitle}</p>
                 <p className="text-[10px] text-slate-500 mt-1">{M.step2.categoryDesc}</p>
               </div>
               <div className="p-4 bg-white rounded-2xl border border-emerald-100">
                 <p className="text-[10px] font-black text-slate-400 uppercase mb-1">
-                  {tr("작업", "Action", "Thao tác")}
+                  {tr(
+                    "작업",
+                    "Action",
+                    "Thao tác",
+                    "作業",
+                    "操作",
+                    "Acción",
+                    "Ação",
+                    "Action",
+                    "Aktion",
+                    "Действие",
+                  )}
                 </p>
                 <p className="text-xs font-bold text-slate-800">{M.step2.expenseTitle}</p>
                 <p className="text-[10px] text-slate-500 mt-1">{M.step2.expenseDesc}</p>
@@ -122,7 +155,18 @@ function buildSections(M: ManualDrawerMessages, tr: Tr): Section[] {
               </div>
               <div className="flex-1 space-y-2">
                 <h4 className="text-xl font-black italic">
-                  {tr("엑셀 일괄 등록", "Excel bulk import", "Nhập Excel hàng loạt")}
+                  {tr(
+                    "엑셀 일괄 등록",
+                    "Excel bulk import",
+                    "Nhập Excel hàng loạt",
+                    "Excel一括取込",
+                    "Excel 批量导入",
+                    "Importación masiva Excel",
+                    "Importação em massa Excel",
+                    "Import Excel en masse",
+                    "Excel-Massenimport",
+                    "Массовый импорт из Excel",
+                  )}
                 </h4>
                 <p className="text-xs text-slate-400 font-medium">
                   {M.step3.excelLine1}
@@ -189,7 +233,18 @@ export function ManualDrawer() {
   const [searchQuery, setSearchQuery] = useState("");
   const locale = usePreferredLocale();
   const baseLocale = toBaseLocale(locale);
-  const tr = (ko: string, en: string, vi?: string) => pickUiText(baseLocale, ko, en, vi);
+  const tr = (
+    ko: string,
+    en: string,
+    vi?: string,
+    ja?: string,
+    zh?: string,
+    es?: string,
+    pt?: string,
+    fr?: string,
+    de?: string,
+    ru?: string,
+  ) => pickUiText(baseLocale, ko, en, vi, ja, zh, es, pt, fr, de, ru);
   const M = getMessages(locale).manualDrawer;
 
   const sections = useMemo(() => buildSections(getMessages(locale).manualDrawer, tr), [locale]);
@@ -220,16 +275,60 @@ export function ManualDrawer() {
             <div className="relative z-10">
               <div className="flex flex-wrap items-center gap-3 mb-4">
                 <Badge className="bg-emerald-600 border-0 px-3 py-1 font-black tracking-widest text-[10px] text-white">
-                  {tr("온보딩 패스", "Onboarding pass", "Lộ trình onboarding")}
+                  {tr(
+                    "온보딩 패스",
+                    "Onboarding pass",
+                    "Lộ trình onboarding",
+                    "オンボーディングパス",
+                    "入门通行证",
+                    "Pase de incorporación",
+                    "Passe de integração",
+                    "Pass d’intégration",
+                    "Onboarding-Pass",
+                    "Пропуск онбординга",
+                  )}
                 </Badge>
                 <Badge variant="outline" className="text-white/60 border-white/20 text-[10px]">
-                  {tr("마스터 매뉴얼", "Master manual", "Hướng dẫn tổng")}
+                  {tr(
+                    "마스터 매뉴얼",
+                    "Master manual",
+                    "Hướng dẫn tổng",
+                    "マスターマニュアル",
+                    "总览手册",
+                    "Manual maestro",
+                    "Manual mestre",
+                    "Manuel principal",
+                    "Master-Handbuch",
+                    "Главное руководство",
+                  )}
                 </Badge>
               </div>
               <DialogTitle className="text-4xl font-black text-white tracking-tighter leading-none mb-4 uppercase">
-                {tr("단계별", "Step by step", "Từng bước")}{" "}
+                {tr(
+                  "단계별",
+                  "Step by step",
+                  "Từng bước",
+                  "ステップごと",
+                  "分步",
+                  "Paso a paso",
+                  "Passo a passo",
+                  "Étape par étape",
+                  "Schritt für Schritt",
+                  "Пошагово",
+                )}{" "}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-emerald-400 italic">
-                  {tr("완전 정복", "Mastery", "Toàn diện")}
+                  {tr(
+                    "완전 정복",
+                    "Mastery",
+                    "Toàn diện",
+                    "完全攻略",
+                    "完全掌握",
+                    "Dominio total",
+                    "Domínio total",
+                    "Maîtrise totale",
+                    "Vollständige Beherrschung",
+                    "Полное освоение",
+                  )}
                 </span>
               </DialogTitle>
               <DialogDescription className="text-slate-400 font-medium text-base leading-relaxed max-w-2xl">
@@ -285,14 +384,32 @@ export function ManualDrawer() {
             <div className="flex items-center gap-3">
               <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
               <p className="text-xs text-slate-800">
-                {tr("고객센터: 1588-8888", "Support: 1588-8888", "Hỗ trợ: 1588-8888")}
+                {tr(
+                  "고객센터: 1588-8888",
+                  "Support: 1588-8888",
+                  "Hỗ trợ: 1588-8888",
+                  "サポート: 1588-8888",
+                  "客服：1588-8888",
+                  "Soporte: 1588-8888",
+                  "Suporte: 1588-8888",
+                  "Assistance : 1588-8888",
+                  "Support: 1588-8888",
+                  "Поддержка: 1588-8888",
+                )}
               </p>
             </div>
             <p className="text-[10px] text-slate-400 uppercase tracking-widest">
               {tr(
                 "© 2026 Mokflw-Lilymag Floxync Project",
                 "© 2026 Mokflw-Lilymag Floxync Project",
-                "© 2026 Dự án Floxync (Mokflw-Lilymag)"
+                "© 2026 Dự án Floxync (Mokflw-Lilymag)",
+                "© 2026 Mokflw-Lilymag Floxync Project",
+                "© 2026 Mokflw-Lilymag Floxync Project",
+                "© 2026 Proyecto Floxync (Mokflw-Lilymag)",
+                "© 2026 Projeto Floxync (Mokflw-Lilymag)",
+                "© 2026 Projet Floxync (Mokflw-Lilymag)",
+                "© 2026 Floxync-Projekt (Mokflw-Lilymag)",
+                "© 2026 Проект Floxync (Mokflw-Lilymag)",
               )}
             </p>
           </div>

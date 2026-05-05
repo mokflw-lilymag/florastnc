@@ -1,6 +1,15 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
+import {
+  errAdminOperationFailed,
+  errApiTenantIdRequired,
+  msgApiSyncApiKeysNotConfigured,
+  msgApiSyncDisabled,
+  msgApiSyncIntegrationRequired,
+  msgApiSyncNoRecentOrders,
+} from '@/lib/admin/admin-api-errors';
+import { hqApiUiBase } from '@/lib/hq/hq-api-locale';
 
 // 네이버 커머스 API HMAC 서명 생성 (API 호출용)
 function generateNaverSignature(clientId: string, clientSecret: string, timestamp: number, path: string): string {
@@ -21,10 +30,12 @@ export async function POST(req: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    const { tenant_id } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const bl = await hqApiUiBase(req, typeof body?.uiLocale === 'string' ? body.uiLocale : undefined);
+    const tenant_id = body?.tenant_id;
 
     if (!tenant_id) {
-      return NextResponse.json({ error: 'tenant_id is required' }, { status: 400 });
+      return NextResponse.json({ error: errApiTenantIdRequired(bl) }, { status: 400 });
     }
 
     // 1. 저장된 네이버 커머스 API 키 확인
@@ -38,7 +49,7 @@ export async function POST(req: Request) {
     if (integrationError || !integration || !integration.client_id) {
       return NextResponse.json({ 
         success: false, 
-        message: '네이버 커머스 연동 설정이 필요합니다.',
+        message: msgApiSyncIntegrationRequired(bl, "Naver Commerce"),
         synced_count: 0
       }, { status: 200 }); // 400 -> 200
     }
@@ -47,7 +58,7 @@ export async function POST(req: Request) {
     if (!integration.is_active) {
       return NextResponse.json({ 
         success: true, 
-        message: '네이버 동기화가 비활성화 상태입니다.',
+        message: msgApiSyncDisabled(bl, "Naver"),
         synced_count: 0 
       });
     }
@@ -57,7 +68,7 @@ export async function POST(req: Request) {
     if (!client_id || !client_secret) {
       return NextResponse.json({
         success: false,
-        message: '네이버 커머스 API 키 설정이 완료되지 않았습니다.',
+        message: msgApiSyncApiKeysNotConfigured(bl, "Naver Commerce"),
         synced_count: 0
       }, { status: 200 });
     }
@@ -123,7 +134,7 @@ export async function POST(req: Request) {
     if (productOrders.length === 0) {
       return NextResponse.json({
         success: true,
-        message: '동기화 완료 (최근 24시간 내 새 주문이 없습니다.)',
+        message: msgApiSyncNoRecentOrders(bl, "24 hours"),
         synced_count: 0
       });
     }
@@ -219,8 +230,9 @@ export async function POST(req: Request) {
       message: `네이버 주문 ${syncedCount}건이 동기화되었습니다.`,
       synced_count: syncedCount
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Naver Sync Error:', error);
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+    const bl = await hqApiUiBase(req);
+    return NextResponse.json({ error: errAdminOperationFailed(bl) }, { status: 500 });
   }
 }

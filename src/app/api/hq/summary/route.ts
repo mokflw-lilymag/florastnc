@@ -20,12 +20,51 @@ import { createAdminClient } from "@/utils/supabase/admin";
 import { resolveLocale, toBaseLocale } from "@/i18n/config";
 import { pickUiText } from "@/i18n/pick-ui-text";
 import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
+import { warnHqOrdersAggregateServiceKey } from "@/lib/hq/hq-service-role-warnings";
+import { hqApiUiBase } from "@/lib/hq/hq-api-locale";
+import { errAdminDataLoadFailed, errAdminForbidden, errAdminUnauthorized } from "@/lib/admin/admin-api-errors";
 
 function receiptMixLabelsFor(baseLocale: string): Record<string, string> {
   return {
-    delivery_reservation: pickUiText(baseLocale, "배송", "Delivery", "Giao hàng"),
-    pickup_reservation: pickUiText(baseLocale, "픽업·예약", "Pickup (reserved)", "Lấy hàng · đặt trước"),
-    store_pickup: pickUiText(baseLocale, "매장수령", "In-store pickup", "Lấy tại cửa hàng"),
+    delivery_reservation: pickUiText(
+      baseLocale,
+      "배송",
+      "Delivery",
+      "Giao hàng",
+      "配送",
+      "配送",
+      "Entrega",
+      "Entrega",
+      "Livraison",
+      "Lieferung",
+      "Доставка",
+    ),
+    pickup_reservation: pickUiText(
+      baseLocale,
+      "픽업·예약",
+      "Pickup (reserved)",
+      "Lấy hàng · đặt trước",
+      "ピックアップ・予約",
+      "自提·预约",
+      "Recogida (reservada)",
+      "Retirada (reservada)",
+      "Retrait (réservé)",
+      "Abholung (reserviert)",
+      "Самовывоз (по записи)",
+    ),
+    store_pickup: pickUiText(
+      baseLocale,
+      "매장수령",
+      "In-store pickup",
+      "Lấy tại cửa hàng",
+      "店頭受取",
+      "到店自取",
+      "Recogida en tienda",
+      "Retirada na loja",
+      "Retrait en magasin",
+      "Abholung im Laden",
+      "Самовывоз из магазина",
+    ),
   };
 }
 
@@ -59,11 +98,20 @@ function buildBuckets(period: HqChartPeriod, now: Date, baseLocale: string) {
     const meta = weeks.map((week) => {
       const wStart = startOfWeek(week);
       const weekNum = getWeekOfMonth(wStart);
+      const enWeek = `W${weekNum} ${format(wStart, "MMM d", { locale: dfLoc })}`;
+      const viWeek = `W${weekNum} ${format(wStart, "d MMM", { locale: dfLoc })}`;
       const label = pickUiText(
         baseLocale,
         `${format(wStart, "M월", { locale: dfLoc })} ${weekNum}주`,
-        `W${weekNum} ${format(wStart, "MMM d", { locale: dfLoc })}`,
-        `W${weekNum} ${format(wStart, "d MMM", { locale: dfLoc })}`
+        enWeek,
+        viWeek,
+        enWeek,
+        enWeek,
+        enWeek,
+        enWeek,
+        enWeek,
+        enWeek,
+        enWeek,
       );
       return {
         key: format(wStart, "yyyy-MM-dd"),
@@ -89,7 +137,19 @@ function buildBuckets(period: HqChartPeriod, now: Date, baseLocale: string) {
     const yStr = format(y, "yyyy", { locale: dfLoc });
     return {
       key: format(y, "yyyy"),
-      label: pickUiText(baseLocale, `${yStr}년`, yStr, yStr),
+      label: pickUiText(
+        baseLocale,
+        `${yStr}년`,
+        yStr,
+        yStr,
+        `${yStr}年`,
+        `${yStr}年`,
+        yStr,
+        yStr,
+        yStr,
+        yStr,
+        `${yStr} г.`,
+      ),
     };
   });
   return { fromStr, toStr, meta, period };
@@ -113,12 +173,15 @@ function inOrderRange(dayStr: string, fromStr: string, toStr: string): boolean {
 }
 
 export async function GET(req: Request) {
+  const spEarly = new URL(req.url).searchParams;
+  const bl = await hqApiUiBase(req, spEarly.get("uiLocale") ?? spEarly.get("locale"));
+
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: errAdminUnauthorized(bl) }, { status: 401 });
   }
 
   const { data: memberships } = await supabase
@@ -128,7 +191,7 @@ export async function GET(req: Request) {
 
   const hasOrgAccess = (memberships?.length ?? 0) > 0;
   if (!hasOrgAccess) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return NextResponse.json({ error: errAdminForbidden(bl) }, { status: 403 });
   }
 
   const { data: profileRow } = await supabase
@@ -153,7 +216,7 @@ export async function GET(req: Request) {
   const tenantNameById = Object.fromEntries((tenants ?? []).map((t) => [t.id, t.name]));
   const admin = createAdminClient();
 
-  const searchParams = new URL(req.url).searchParams;
+  const searchParams = spEarly;
   const period = normalizePeriod(searchParams.get("period"));
   const baseLocale = toBaseLocale(resolveLocale(searchParams.get("locale")));
   const receiptLabels = receiptMixLabelsFor(baseLocale);
@@ -178,9 +241,7 @@ export async function GET(req: Request) {
       ops: { canceledCount: 0, activeOrderCount: 0, cancelRate: 0 },
       chartRows: [] as Record<string, string | number>[],
       branchChartKeys: [] as { id: string; name: string }[],
-      warning: !admin
-        ? "서버에 SUPABASE_SERVICE_ROLE_KEY가 없어 주문 집계를 건너뜁니다. Vercel/로컬 .env에 설정하세요."
-        : null,
+      warning: !admin ? warnHqOrdersAggregateServiceKey(baseLocale) : null,
     });
   }
 
@@ -193,7 +254,7 @@ export async function GET(req: Request) {
 
   if (error) {
     console.error("[hq/summary] orders", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: errAdminDataLoadFailed(bl) }, { status: 500 });
   }
 
   const agg = new Map<string, { count: number; revenue: number }>();

@@ -51,31 +51,66 @@ export default function PosSettingsPage() {
     baseLocale,
     "기업용 기능",
     "Enterprise feature",
-    "Tính năng doanh nghiệp"
+    "Tính năng doanh nghiệp",
+    "エンタープライズ機能",
+    "企业版功能",
+    "Función enterprise",
+    "Recurso empresarial",
+    "Fonction entreprise",
+    "Enterprise-Funktion",
+    "Корпоративная функция",
   );
   const setupGuideLabel = pickUiText(
     baseLocale,
     "설정 가이드",
     "Setup guide",
-    "Hướng dẫn thiết lập"
+    "Hướng dẫn thiết lập",
+    "セットアップガイド",
+    "设置指南",
+    "Guía de configuración",
+    "Guia de configuração",
+    "Guide de configuration",
+    "Einrichtungsanleitung",
+    "Инструкция по настройке",
   );
   const labelWebhookSecret = pickUiText(
     baseLocale,
     "Webhook 시크릿 키",
     "Webhook secret key",
-    "Khóa bí mật Webhook"
+    "Khóa bí mật Webhook",
+    "Webhookシークレットキー",
+    "Webhook 密钥",
+    "Clave secreta de Webhook",
+    "Chave secreta do Webhook",
+    "Clé secrète Webhook",
+    "Webhook-Geheimnis",
+    "Секретный ключ Webhook",
   );
   const labelApiKeyToken = pickUiText(
     baseLocale,
     "API 키 / 액세스 토큰",
     "API key / Access token",
-    "API key / Access token"
+    "API key / Access token",
+    "APIキー / アクセストークン",
+    "API 密钥 / 访问令牌",
+    "Clave API / token de acceso",
+    "Chave de API / token de acesso",
+    "Clé API / jeton d’accès",
+    "API-Schlüssel / Zugriffstoken",
+    "Ключ API / токен доступа",
   );
   const labelApiSecret = pickUiText(
     baseLocale,
     "API 시크릿",
     "API secret",
-    "API secret"
+    "API secret",
+    "APIシークレット",
+    "API 密钥",
+    "Secreto de API",
+    "Segredo da API",
+    "Secret API",
+    "API-Geheimnis",
+    "Секрет API",
   );
   const { integration, loading, logs, logsLoading, fetchLogs, saveIntegration } = usePosSettings();
   const [activeTab, setActiveTab] = useState("general");
@@ -123,7 +158,19 @@ export default function PosSettingsPage() {
   const posProviders = [
     { 
       id: "easycheck", 
-      name: pickUiText(baseLocale, "이지체크 (EasyCheck)", "EasyCheck", "EasyCheck"),
+      name: pickUiText(
+        baseLocale,
+        "이지체크 (EasyCheck)",
+        "EasyCheck",
+        "EasyCheck",
+        "EasyCheck",
+        "EasyCheck",
+        "EasyCheck",
+        "EasyCheck",
+        "EasyCheck",
+        "EasyCheck",
+        "EasyCheck",
+      ),
       desc: tf.f01023, 
       icon: Monitor,
       color: "bg-blue-500",
@@ -131,7 +178,19 @@ export default function PosSettingsPage() {
     },
     { 
       id: "toss", 
-      name: pickUiText(baseLocale, "토스 POS (TossPlace)", "Toss POS (TossPlace)", "Toss POS (TossPlace)"),
+      name: pickUiText(
+        baseLocale,
+        "토스 POS (TossPlace)",
+        "Toss POS (TossPlace)",
+        "Toss POS (TossPlace)",
+        "Toss POS (TossPlace)",
+        "Toss POS (TossPlace)",
+        "Toss POS (TossPlace)",
+        "Toss POS (TossPlace)",
+        "Toss POS (TossPlace)",
+        "Toss POS (TossPlace)",
+        "Toss POS (TossPlace)",
+      ),
       desc: tf.f01427, 
       icon: Smartphone,
       color: "bg-blue-600",

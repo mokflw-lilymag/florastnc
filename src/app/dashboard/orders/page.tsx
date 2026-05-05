@@ -70,7 +70,18 @@ export default function OrdersPage() {
   const tf = getMessages(locale).tenantFlows;
   const baseLocale = toBaseLocale(locale);
   const dfLoc = dateFnsLocaleForBase(baseLocale);
-  const tr = (ko: string, en: string, vi?: string) => pickUiText(baseLocale, ko, en, vi);
+  const tr = (
+    ko: string,
+    en: string,
+    vi?: string,
+    ja?: string,
+    zh?: string,
+    es?: string,
+    pt?: string,
+    fr?: string,
+    de?: string,
+    ru?: string,
+  ) => pickUiText(baseLocale, ko, en, vi, ja, zh, es, pt, fr, de, ru);
   const formatStatCount = (n: number) =>
     n === 1 ? tf.f00796.replace("{n}", String(n)) : tf.f00795.replace("{n}", String(n));
   const statusLabels: Record<string, string> = {
@@ -176,12 +187,12 @@ export default function OrdersPage() {
         fetch('/api/sync/cafe24', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tenant_id: tenantId })
+          body: JSON.stringify({ tenant_id: tenantId, uiLocale: locale })
         }).then(r => r.json()),
         fetch('/api/sync/naver', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tenant_id: tenantId })
+          body: JSON.stringify({ tenant_id: tenantId, uiLocale: locale })
         }).then(r => r.json())
       ]);
 
@@ -206,7 +217,18 @@ export default function OrdersPage() {
 
       if (totalSynced > 0) {
         toast.success(tf.f00789.replace("{count}", String(totalSynced)), {
-          description: `${messages.join(", ")}${tr(" - 주문 목록이 갱신됩니다.", " - Order list updated.", " - Danh sách đơn hàng đã được cập nhật.")}`,
+          description: `${messages.join(", ")}${tr(
+            " - 주문 목록이 갱신됩니다.",
+            " - Order list updated.",
+            " - Danh sách đơn hàng đã được cập nhật.",
+            " - 注文一覧を更新しました。",
+            " - 订单列表已更新。",
+            " - Lista de pedidos actualizada.",
+            " - Lista de pedidos atualizada.",
+            " - Liste des commandes mise à jour.",
+            " - Bestellliste aktualisiert.",
+            " - Список заказов обновлён.",
+          )}`,
           duration: 5000,
         });
         refreshOrders();
@@ -464,16 +486,33 @@ export default function OrdersPage() {
       }
       
       const result = await exportToGoogleSheet(
-        'orders', 
-        data, 
-        exportStartDate, 
-        exportEndDate, 
-        sheetId
+        "orders",
+        data,
+        exportStartDate,
+        exportEndDate,
+        sheetId,
+        undefined,
+        undefined,
+        locale,
       );
       if (result.success) {
         toast.success(tf.f00784);
       } else {
-        throw new Error(result.message || tr("알 수 없는 오류", "Unknown error", "Lỗi không xác định"));
+        throw new Error(
+          result.message ||
+            tr(
+              "알 수 없는 오류",
+              "Unknown error",
+              "Lỗi không xác định",
+              "不明なエラー",
+              "未知错误",
+              "Error desconocido",
+              "Erro desconhecido",
+              "Erreur inconnue",
+              "Unbekannter Fehler",
+              "Неизвестная ошибка",
+            ),
+        );
       }
     } catch (error: any) {
       console.error(error);
@@ -481,7 +520,20 @@ export default function OrdersPage() {
         error && typeof error === "object" && "message" in error
           ? String((error as { message?: string }).message)
           : "";
-      const msg = raw || tr("알 수 없는 오류", "Unknown error", "Lỗi không xác định");
+      const msg =
+        raw ||
+        tr(
+          "알 수 없는 오류",
+          "Unknown error",
+          "Lỗi không xác định",
+          "不明なエラー",
+          "未知错误",
+          "Error desconocido",
+          "Erro desconhecido",
+          "Erreur inconnue",
+          "Unbekannter Fehler",
+          "Неизвестная ошибка",
+        );
       toast.error(tf.f00794.replace("{message}", msg));
     } finally {
       setIsExporting(false);
@@ -803,9 +855,16 @@ export default function OrdersPage() {
                                 {order.items[0]?.name || tf.f00116}{" "}
                                 {order.items.length > 1
                                   ? tr(
-                                        `외 ${order.items.length - 1}건`,
-                                        `+${order.items.length - 1}`,
-                                        `+${order.items.length - 1}`
+                                      `외 ${order.items.length - 1}건`,
+                                      `+${order.items.length - 1}`,
+                                      `+${order.items.length - 1}`,
+                                      `ほか${order.items.length - 1}件`,
+                                      `等${order.items.length - 1}项`,
+                                      `+${order.items.length - 1}`,
+                                      `+${order.items.length - 1}`,
+                                      `+${order.items.length - 1}`,
+                                      `+${order.items.length - 1}`,
+                                      `+${order.items.length - 1}`,
                                     )
                                   : ""}
                               </div>
@@ -816,7 +875,18 @@ export default function OrdersPage() {
                                <div className="flex items-center gap-2">
                                  <span className="text-sm font-bold text-slate-900">{order.orderer.name}</span>
                                  <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-bold">
-                                   {tr("보내는 분", "Sender", "Người gửi")}
+                                   {tr(
+                                     "보내는 분",
+                                     "Sender",
+                                     "Người gửi",
+                                     "送り主",
+                                     "下单人",
+                                     "Remitente",
+                                     "Remetente",
+                                     "Expéditeur",
+                                     "Absender",
+                                     "Отправитель",
+                                   )}
                                  </span>
                                </div>
                                <div className="text-xs text-slate-400 font-medium">{order.delivery_info?.recipientName || order.pickup_info?.pickerName || "-"} {tf.f00002}</div>
@@ -949,7 +1019,18 @@ export default function OrdersPage() {
                 {filteredOrders.length > 0 && (
                   <div className="flex justify-between items-center px-2 mb-2">
                     <span className="text-xs font-bold text-slate-400">
-                        {tr(`Total ${filteredOrders.length}건`, `Total ${filteredOrders.length}`, `Tổng ${filteredOrders.length} đơn`)}
+                        {tr(
+                          `Total ${filteredOrders.length}건`,
+                          `Total ${filteredOrders.length}`,
+                          `Tổng ${filteredOrders.length} đơn`,
+                          `計${filteredOrders.length}件`,
+                          `共 ${filteredOrders.length} 笔`,
+                          `Total: ${filteredOrders.length}`,
+                          `Total: ${filteredOrders.length}`,
+                          `Total : ${filteredOrders.length}`,
+                          `Gesamt: ${filteredOrders.length}`,
+                          `Всего: ${filteredOrders.length}`,
+                        )}
                     </span>
                     <Button 
                       variant="ghost" 
@@ -997,9 +1078,16 @@ export default function OrdersPage() {
                               {order.items[0]?.name || tf.f00116}{" "}
                               {order.items.length > 1
                                 ? tr(
-                                      `외 ${order.items.length - 1}건`,
-                                      `+${order.items.length - 1}`,
-                                      `+${order.items.length - 1}`
+                                    `외 ${order.items.length - 1}건`,
+                                    `+${order.items.length - 1}`,
+                                    `+${order.items.length - 1}`,
+                                    `ほか${order.items.length - 1}件`,
+                                    `等${order.items.length - 1}项`,
+                                    `+${order.items.length - 1}`,
+                                    `+${order.items.length - 1}`,
+                                    `+${order.items.length - 1}`,
+                                    `+${order.items.length - 1}`,
+                                    `+${order.items.length - 1}`,
                                   )
                                 : ""}
                             </div>
@@ -1020,7 +1108,7 @@ export default function OrdersPage() {
                             <div className="text-xs font-bold text-slate-900">{order.orderer.name}</div>
                             <div className="text-[10px] text-slate-500">
                               {order.delivery_info?.recipientName || order.pickup_info?.pickerName || "-"}
-                              {tr("님", "", "")}
+                              {tr("님", "", "", "様")}
                             </div>
                           </div>
                           <div className="space-y-1">
@@ -1114,13 +1202,31 @@ export default function OrdersPage() {
                   <div className="bg-slate-900 text-white rounded-3xl shadow-2xl p-4 flex items-center justify-between border border-slate-800">
                     <div className="flex flex-col px-2">
                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                         {tr("선택됨", "Selected", "Đã chọn")}
+                         {tr(
+                           "선택됨",
+                           "Selected",
+                           "Đã chọn",
+                           "選択済み",
+                           "已选",
+                           "Seleccionado",
+                           "Selecionado",
+                           "Sélectionné",
+                           "Ausgewählt",
+                           "Выбрано",
+                         )}
                        </span>
                        <span className="text-sm font-bold">
                          {tr(
-                             `${selectedOrderIds.length}건 선택 중`,
-                             `${selectedOrderIds.length} selected`,
-                             `Đang chọn ${selectedOrderIds.length} đơn`
+                           `${selectedOrderIds.length}건 선택 중`,
+                           `${selectedOrderIds.length} selected`,
+                           `Đang chọn ${selectedOrderIds.length} đơn`,
+                           `${selectedOrderIds.length}件を選択中`,
+                           `已选 ${selectedOrderIds.length} 笔`,
+                           `${selectedOrderIds.length} seleccionados`,
+                           `${selectedOrderIds.length} selecionados`,
+                           `${selectedOrderIds.length} sélectionné(s)`,
+                           `${selectedOrderIds.length} ausgewählt`,
+                           `Выбрано: ${selectedOrderIds.length}`,
                          )}
                        </span>
                     </div>

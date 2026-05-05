@@ -3,12 +3,14 @@
 import { useState, useCallback, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useAuth } from './use-auth';
+import { useUiText } from '@/hooks/use-ui-text';
 import { toast } from 'sonner';
 import { PosIntegration, PosType } from '@/services/pos/PosIntegrationService';
 
 export function usePosSettings() {
   const supabase = createClient();
   const { tenantId } = useAuth();
+  const { tr } = useUiText();
   const [integration, setIntegration] = useState<PosIntegration | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -70,11 +72,37 @@ export function usePosSettings() {
 
       if (error) throw error;
       setIntegration(data);
-      toast.success('POS 연동 설정이 저장되었습니다.');
+      toast.success(
+        tr(
+          'POS 연동 설정이 저장되었습니다.',
+          'POS integration settings saved.',
+          'Đã lưu cài đặt tích hợp POS.',
+          'POS連携設定を保存しました。',
+          'POS 对接设置已保存。',
+          'Ajustes de integración POS guardados.',
+          'Configurações de integração POS salvas.',
+          'Paramètres d’intégration POS enregistrés.',
+          'POS-Integration gespeichert.',
+          'Настройки интеграции POS сохранены.',
+        ),
+      );
       return true;
     } catch (err) {
       console.error('[usePosSettings] Save error:', err);
-      toast.error('설정 저장 중 오류가 발생했습니다.');
+      toast.error(
+        tr(
+          '설정 저장 중 오류가 발생했습니다.',
+          'Error while saving settings.',
+          'Lỗi khi lưu cài đặt.',
+          '設定の保存中にエラーが発生しました。',
+          '保存设置时出错。',
+          'Error al guardar los ajustes.',
+          'Erro ao salvar as configurações.',
+          'Erreur lors de l’enregistrement.',
+          'Fehler beim Speichern der Einstellungen.',
+          'Ошибка при сохранении настроек.',
+        ),
+      );
       return false;
     } finally {
       setLoading(false);

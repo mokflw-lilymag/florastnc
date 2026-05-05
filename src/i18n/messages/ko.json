@@ -2,7 +2,7 @@
   "localeLabel": "언어",
   "localeNames": {
     "ko": "한국어",
-    "en": "English",
+    "en": "영어",
     "vi": "Tiếng Việt",
     "zh": "中文",
     "ja": "日本語",
@@ -219,7 +219,7 @@
       "badgeHq": "본사",
       "badgePartner": "파트너",
       "support": "고객지원",
-      "membershipUpgrade": "Membership Upgrade",
+      "membershipUpgrade": "멤버십 업그레이드",
       "getBenefits": "최대 혜택 받기",
       "checkPlan": "플랜 확인하기",
       "groups": {
@@ -1070,7 +1070,7 @@
     "f00782": "AI 분석이 완료되었습니다. 내용을 확인·수정한 뒤 적용해 주세요.",
     "f00783": "Google Drive 폴더 ID 또는 URL",
     "f00784": "Google Sheets로 데이터가 성공적으로 전송되었습니다.",
-    "f00785": "Print (Ctrl+P)",
+    "f00785": "인쇄 (Ctrl+P)",
     "f00786": "VIP 고객",
     "f00787": "카페24 {count}건",
     "f00788": "네이버 {count}건",
@@ -1949,7 +1949,7 @@
     "f01661": "유효 주문",
     "f01662": "유효 주문 기준 평균",
     "f01663": "을 누르면 해당 지점 요약·최근 주문(읽기 전용)으로 이동합니다.",
-    "f01664": "의 업무 지침",
+    "f01664": "— 플레이북(운영 지침)",
     "f01665": "의 현황입니다.",
     "f01666": "이 기존과 같습니다. 다른 날·다른 금액만으로는 띄우지 않습니다. 거래처가 비어 있으면 URL이 같을 때만 알려 줍니다.",
     "f01667": "이 매장 요청 내역",
@@ -2573,14 +2573,14 @@
     "f02285": "PRO 플랜 등 유료 서비스 구독 결제 확인",
     "f02286": "PRO 플랜 이용",
     "f02287": "SaaS 시스템에 새로 합류한 파트너사 목록입니다",
-    "f02288": "Save all settings",
+    "f02288": "모든 설정 저장",
     "f02289": "SNS 계정 연결 관리",
     "f02290": "SNS 사용자 아이디 (ID)",
     "f02291": "SNS 연동",
     "f02292": "SNS 연동 관리",
     "f02293": "Solapi 연동 안내",
     "f02294": "super_admin 전용 · 서비스 롤로 테넌트에 씁니다.",
-    "f02295": "Sync failed",
+    "f02295": "동기화 실패",
     "f02296": "TikTok 비디오 업로드 및 트렌드 분석 API",
     "f02297": "URL이 클립보드에 복사되었습니다.",
     "f02298": "Webhook 수신 URL (복사하여 POS 설정에 입력)",
@@ -2698,7 +2698,7 @@
     "f02411": "구독하기",
     "f02412": "적용",
     "f02413": "엔터프라이즈 보안",
-    "f02414": "AI OCR",
+    "f02414": "AI 문자 인식(OCR)",
     "f02415": "클라우드",
     "f02416": "VIP 컨시어지",
     "f02417": "기능 전체 비교",
@@ -2836,7 +2836,7 @@
     "f02549": "AI 비서가 분석 중입니다...",
     "f02550": "마이크로 말할 때 예시",
     "f02551": "000님 주문, 0만 원 꽃다발, 0월 0일 0시 픽업 또는 배송.\n\n주소: 도로명주소, 수령인 이름, 연락처.\n\n카드/리본 메시지 — 메시지 블라블라 등 원하시는 문구.",
-    "f02552": "Order for [name], bouquet ₩00,000, pickup or delivery on YYYY-MM-DD at HH:mm.\n\nAddress: street address, recipient name, phone.\n\nCard/ribbon message — the wording you want.",
+    "f02552": "[name]님 주문, 꽃다발 ₩00,000, YYYY-MM-DD HH:mm 픽업 또는 배달.\n\n주소: 상세 주소, 받는 분 성함, 연락처.\n\n카드·리본 문구 — 원하시는 문구를 적어주세요.",
     "f02553": "Đơn cho [tên], bó hoa x triệu VND, lấy tại cửa hoặc giao vào ngày DD/MM lúc HH:mm.\n\nĐịa chỉ: đường, tên người nhận, số điện thoại.\n\nThiệp/ruy băng — nội dung bạn muốn.",
     "f02554": "배송 예약",
     "f02555": "픽업 예약",
@@ -2911,7 +2911,7 @@
     "f02624": "예: 계절꽃다발 (L사이즈)",
     "f02625": "김미화",
     "f02626": "서울특별시 서초구 꽃시장길 12",
-    "f02627": "name@example.com",
+    "f02627": "shop@example.com",
     "f02628": "종류",
     "f02629": "수신인",
     "f02630": "내용 요약",
@@ -2957,7 +2957,7 @@
       "logoAlt": "Floxync 로고"
     },
     "hero": {
-      "status": "SYSTEM STATUS: OPTIMIZED",
+      "status": "시스템 상태: 최적화됨",
       "line1": "꽃집 사장님, 아직도",
       "line2": "수기장부와 엑셀로",
       "line3": "시간 쓰고 계신가요?",
@@ -2979,13 +2979,39 @@
       "subtitle2": "사장님은 오직 주문제작과 판매에 집중하세요.",
       "viewDetail": "자세히 보기",
       "comingSoon": "준비중",
-      "integratedBadge": "Integrated Intelligence",
+      "integratedBadge": "통합 인텔리전스",
       "integratedTitleLeft": "통합",
       "integratedTitleHighlight": "커머스 인공지능 망",
       "integratedDescription": "Floxync는 국내 최고의 커머스 플랫폼들과 완벽하게 연동됩니다. 네이버 커머스 API와 카페24 개발자 API를 통한 실시간 양방향 데이터 동기화로 주문, 재고, 상품 관리를 자동화하여 최상의 비즈니스 결정을 내리도록 돕습니다.",
       "integratedItem1": "네이버 커머스 API 연동 (스마트스토어 주문/배송 실시간 처리)",
       "integratedItem2": "카페24(Cafe24) 개발자 API를 통한 자사몰 상품/재고 동기화",
-      "integratedItem3": "시즌별 피크 수요를 예측하는 통합 데이터 모델링"
+      "integratedItem3": "시즌별 피크 수요를 예측하는 통합 데이터 모델링",
+      "featureCards": {
+        "ai-order-concierge": {
+          "title": "AI 오더 컨시어지",
+          "description": "카톡, 문자, 음성 주문을 AI가 1초 만에 분석하여 빈칸을 채웁니다. 이제 복사하고 붙여넣는 수고조차 필요 없습니다."
+        },
+        "shop-sync": {
+          "title": "쇼핑몰 올인원 동기화",
+          "description": "네이버 스마트스토어, 카페24 주문이 들어오는 즉시 대시보드에 꽂힙니다. 재고 차감부터 배송 처리까지 자동으로 끝내세요."
+        },
+        "smart-print-bridge": {
+          "title": "스마트 프린트브릿지 (XPrint Engine)",
+          "description": "일반 A4 프린터를 수 미터의 초장축 배너 프린터로 변신시키는 혁신. 감열식 리본 프린터부터 XPrint 통합 제어까지, 하드웨어의 한계를 넘는 압도적 기술력을 경험하세요."
+        },
+        "ai-expense-magic": {
+          "title": "AI 매직 지출 비서",
+          "description": "영수증, 이제 찍기만 하세요. AI가 상호·금액·품목을 1초 만에 분석하여 지출 장부에 마법처럼 기록합니다."
+        },
+        "settlement-engine": {
+          "title": "금융권 수준의 정산 엔진",
+          "description": "부가세, 입점 마진율, 기사님 배송 수수료까지. 복잡한 꽃집의 수익 구조를 소수점 단위까지 정확하게 계산해 드립니다."
+        },
+        "mobile-premium": {
+          "title": "모바일 센터 프리미엄",
+          "description": "안드로이드 앱 준비중입니다. 베타 공개 시 가장 먼저 안내해 드리겠습니다."
+        }
+      }
     },
     "testApply": {
       "title": "테스트 유저 신청 (무료)",
@@ -3019,27 +3045,27 @@
       "contactSales": "영업 문의",
       "contactLabel": "연락처",
       "printBridge": "프린트 브리지",
-      "supportLine": "Support Line",
-      "officialMail": "Official Mail",
-      "architecture": "Architecture",
-      "ecosystem": "Ecosystem",
-      "legal": "Legal & Privacy",
-      "coreEngine": "Core Engine",
-      "aiModules": "AI Modules",
-      "cloudPrinting": "Cloud Printing",
-      "ribbonSupply": "Ribbon Supply",
-      "inkToners": "Ink & Toners",
-      "hardwarePartner": "Hardware Partner",
-      "terms": "Terms of Service",
-      "privacy": "Privacy Policy",
-      "rights": "All rights reserved.",
-      "securityStatus": "Security Status",
-      "apiStatus": "API Status"
+      "supportLine": "지원 연락처",
+      "officialMail": "공식 메일",
+      "architecture": "아키텍처",
+      "ecosystem": "에코시스템",
+      "legal": "법무 및 개인정보",
+      "coreEngine": "코어 엔진",
+      "aiModules": "AI 모듈",
+      "cloudPrinting": "클라우드 인쇄",
+      "ribbonSupply": "리본 소모품",
+      "inkToners": "잉크·토너",
+      "hardwarePartner": "하드웨어 파트너",
+      "terms": "이용약관",
+      "privacy": "개인정보 처리방침",
+      "rights": "모든 권리 보유.",
+      "securityStatus": "보안 상태",
+      "apiStatus": "API 상태"
     },
     "featureDetail": {
       "back": "기능 목록으로",
-      "capability": "Floxync capability",
-      "comingSoon": "Coming Soon",
+      "capability": "Floxync 기능",
+      "comingSoon": "곧 제공",
       "startFree": "무료로 시작하기",
       "viewOthers": "다른 기능 보기"
     }

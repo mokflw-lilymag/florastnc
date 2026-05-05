@@ -35,9 +35,42 @@ export function CategoryManagerCard({
 }: CategoryManagerCardProps) {
   const locale = usePreferredLocale();
   const baseLocale = toBaseLocale(locale);
-  const tr = (ko: string, en: string, vi?: string) => pickUiText(baseLocale, ko, en, vi);
-  const phNewMain = tr("추가하실 대분류", "New main category", "Thêm nhóm chính");
-  const phNewMid = tr("새 하위 분류 입력", "New subcategory", "Nhập nhóm con");
+  const tr = (
+    ko: string,
+    en: string,
+    vi?: string,
+    ja?: string,
+    zh?: string,
+    es?: string,
+    pt?: string,
+    fr?: string,
+    de?: string,
+    ru?: string,
+  ) => pickUiText(baseLocale, ko, en, vi, ja, zh, es, pt, fr, de, ru);
+  const phNewMain = tr(
+    "추가하실 대분류",
+    "New main category",
+    "Thêm nhóm chính",
+    "追加する大分類",
+    "新增主分类",
+    "Nueva categoría principal",
+    "Nova categoria principal",
+    "Nouvelle catégorie principale",
+    "Neue Hauptkategorie",
+    "Новая основная категория",
+  );
+  const phNewMid = tr(
+    "새 하위 분류 입력",
+    "New subcategory",
+    "Nhập nhóm con",
+    "新しいサブカテゴリ",
+    "输入新的子分类",
+    "Nueva subcategoría",
+    "Nova subcategoria",
+    "Nouvelle sous-catégorie",
+    "Neue Unterkategorie",
+    "Новая подкатегория",
+  );
   const [data, setData] = useState<CategoryData>(initialData || defaultData);
   const [selectedMain, setSelectedMain] = useState<string>("");
   const [newMain, setNewMain] = useState("");
@@ -80,7 +113,20 @@ export function CategoryManagerCard({
   const handleAddMain = () => {
     if (!newMain) return;
     if (data.main.includes(newMain))
-      return toast.error(tr("이미 존재하는 카테고리입니다.", "This category already exists.", "Danh mục này đã tồn tại."));
+      return toast.error(
+        tr(
+          "이미 존재하는 카테고리입니다.",
+          "This category already exists.",
+          "Danh mục này đã tồn tại.",
+          "このカテゴリは既に存在します。",
+          "该分类已存在。",
+          "Esta categoría ya existe.",
+          "Esta categoria já existe.",
+          "Cette catégorie existe déjà.",
+          "Diese Kategorie existiert bereits.",
+          "Такая категория уже существует.",
+        ),
+      );
     
     setData({
       main: [...data.main, newMain],
@@ -94,7 +140,20 @@ export function CategoryManagerCard({
     if (!newMid || !selectedMain) return;
     const list = data.mid[selectedMain] || [];
     if (list.includes(newMid))
-      return toast.error(tr("이미 존재하는 소분류입니다.", "This subcategory already exists.", "Nhóm con này đã tồn tại."));
+      return toast.error(
+        tr(
+          "이미 존재하는 소분류입니다.",
+          "This subcategory already exists.",
+          "Nhóm con này đã tồn tại.",
+          "このサブカテゴリは既に存在します。",
+          "该子分类已存在。",
+          "Esta subcategoría ya existe.",
+          "Esta subcategoria já existe.",
+          "Cette sous-catégorie existe déjà.",
+          "Diese Unterkategorie existiert bereits.",
+          "Такая подкатегория уже существует.",
+        ),
+      );
     
     setData({
       ...data,
@@ -109,7 +168,14 @@ export function CategoryManagerCard({
         tr(
           "'{name}' 대분류를 삭제하시겠습니까?\n하위 분류도 모두 삭제됩니다.",
           "Delete main category \"{name}\"? All subcategories will be removed.",
-          "Xóa nhóm chính \"{name}\"? Mọi nhóm con cũng sẽ bị xóa."
+          "Xóa nhóm chính \"{name}\"? Mọi nhóm con cũng sẽ bị xóa.",
+          "大分類「{name}」を削除しますか？\nサブカテゴリもすべて削除されます。",
+          "要删除主分类「{name}」吗？\n其下所有子分类也将被删除。",
+          "¿Eliminar la categoría principal «{name}»?\nSe quitarán todas las subcategorías.",
+          "Excluir a categoria principal «{name}»?\nTodas as subcategorias serão removidas.",
+          "Supprimer la catégorie principale « {name} » ?\nToutes les sous-catégories seront supprimées.",
+          "Hauptkategorie „{name}“ löschen?\nAlle Unterkategorien werden entfernt.",
+          "Удалить основную категорию «{name}»?\nВсе подкатегории будут удалены.",
         ).replace("{name}", cat)
       )
     ) {
@@ -135,7 +201,14 @@ export function CategoryManagerCard({
         tr(
           "초기 기본값으로 복원하시겠습니까? (저장 전까지는 실제 반영되지 않습니다)",
           "Restore factory defaults? Changes are not saved until you click Save.",
-          "Khôi phục mặc định gốc? Thay đổi chỉ được lưu khi bạn nhấn Lưu."
+          "Khôi phục mặc định gốc? Thay đổi chỉ được lưu khi bạn nhấn Lưu.",
+          "初期の既定値に戻しますか？（保存するまで反映されません）",
+          "要恢复为出厂默认吗？（在点击保存前不会真正生效）",
+          "¿Restaurar valores de fábrica? Los cambios no se guardan hasta pulsar Guardar.",
+          "Restaurar padrões de fábrica? As alterações só serão salvas ao clicar em Salvar.",
+          "Restaurer les valeurs d’usine ? Les changements ne sont enregistrés qu’après Enregistrer.",
+          "Werkseinstellungen wiederherstellen? Änderungen werden erst nach Speichern übernommen.",
+          "Восстановить заводские значения? Изменения не сохранятся, пока не нажмёте «Сохранить».",
         )
       )
     ) {
@@ -145,7 +218,14 @@ export function CategoryManagerCard({
         tr(
           "기본값으로 설정되었습니다. 저장을 눌러야 반영됩니다.",
           "Defaults applied. Click Save to persist.",
-          "Đã áp dụng mặc định. Nhấn Lưu để ghi lại."
+          "Đã áp dụng mặc định. Nhấn Lưu để ghi lại.",
+          "既定値を適用しました。保存すると反映されます。",
+          "已应用默认值，请点击保存以生效。",
+          "Valores predeterminados aplicados. Pulse Guardar para guardar.",
+          "Padrões aplicados. Clique em Salvar para persistir.",
+          "Valeurs par défaut appliquées. Cliquez sur Enregistrer pour enregistrer.",
+          "Standardwerte angewendet. Zum Speichern auf Speichern klicken.",
+          "Значения по умолчанию применены. Нажмите «Сохранить».",
         )
       );
     }
@@ -176,7 +256,18 @@ export function CategoryManagerCard({
             className="bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
           >
             <RotateCcw className="h-4 w-4 mr-2" />
-            {tr("기본값 복원", "Restore defaults", "Khôi phục mặc định")}
+            {tr(
+              "기본값 복원",
+              "Restore defaults",
+              "Khôi phục mặc định",
+              "既定値に戻す",
+              "恢复默认",
+              "Restaurar valores",
+              "Restaurar padrões",
+              "Restaurer les défauts",
+              "Standard wiederherstellen",
+              "Сбросить к умолчанию",
+            )}
           </Button>
           <Button 
             size="sm"
@@ -185,7 +276,18 @@ export function CategoryManagerCard({
             className={`${scheme.button} text-white shadow-lg ${scheme.shadow}`}
           >
             <Save className="h-4 w-4 mr-2" />
-            {tr("변경사항 저장", "Save changes", "Lưu thay đổi")}
+            {tr(
+              "변경사항 저장",
+              "Save changes",
+              "Lưu thay đổi",
+              "変更を保存",
+              "保存更改",
+              "Guardar cambios",
+              "Salvar alterações",
+              "Enregistrer les modifications",
+              "Änderungen speichern",
+              "Сохранить изменения",
+            )}
           </Button>
         </div>
       </div>
@@ -194,9 +296,21 @@ export function CategoryManagerCard({
         <Card className="md:col-span-5 border-none shadow-sm bg-slate-50/50">
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-semibold flex items-center justify-between">
-              {tr("대분류 (Main)", "Main categories", "Nhóm chính")}
+              {tr(
+                "대분류 (Main)",
+                "Main categories",
+                "Nhóm chính",
+                "大分類",
+                "主分类",
+                "Categorías principales",
+                "Categorias principais",
+                "Catégories principales",
+                "Hauptkategorien",
+                "Основные категории",
+              )}
               <Badge variant="outline" className="font-normal text-[10px]">
-                {tr("합계", "Total", "Tổng")} {data.main.length}
+                {tr("합계", "Total", "Tổng", "合計", "合计", "Total", "Total", "Total", "Gesamt", "Итого")}{" "}
+                {data.main.length}
               </Badge>
             </CardTitle>
           </CardHeader>
@@ -242,10 +356,32 @@ export function CategoryManagerCard({
               {selectedMain ? (
                 <div className="flex items-center gap-2">
                   <span className={`${scheme.text}`}>[{selectedMain}]</span>{" "}
-                  {tr("하위 분류", "Subcategories", "Nhóm con")}
+                  {tr(
+                    "하위 분류",
+                    "Subcategories",
+                    "Nhóm con",
+                    "サブカテゴリ",
+                    "子分类",
+                    "Subcategorías",
+                    "Subcategorias",
+                    "Sous-catégories",
+                    "Unterkategorien",
+                    "Подкатегории",
+                  )}
                 </div>
               ) : (
-                tr("분류를 선택하세요", "Select a category", "Chọn một nhóm")
+                tr(
+                  "분류를 선택하세요",
+                  "Select a category",
+                  "Chọn một nhóm",
+                  "分類を選択してください",
+                  "请选择一个分类",
+                  "Seleccione una categoría",
+                  "Selecione uma categoria",
+                  "Sélectionnez une catégorie",
+                  "Kategorie auswählen",
+                  "Выберите категорию",
+                )
               )}
             </CardTitle>
           </CardHeader>
@@ -274,7 +410,18 @@ export function CategoryManagerCard({
                   ))}
                   {(!data.mid[selectedMain] || data.mid[selectedMain].length === 0) && (
                     <div className="col-span-2 py-12 text-center text-slate-400 text-sm border-2 border-dashed border-slate-100 rounded-2xl">
-                      {tr("등록된 하위 분류가 없습니다.", "No subcategories yet.", "Chưa có nhóm con.")}
+                      {tr(
+                        "등록된 하위 분류가 없습니다.",
+                        "No subcategories yet.",
+                        "Chưa có nhóm con.",
+                        "サブカテゴリはまだありません。",
+                        "尚无子分类。",
+                        "Aún no hay subcategorías.",
+                        "Ainda não há subcategorias.",
+                        "Aucune sous-catégorie pour le moment.",
+                        "Noch keine Unterkategorien.",
+                        "Подкатегорий пока нет.",
+                      )}
                     </div>
                   )}
                 </div>
@@ -285,7 +432,18 @@ export function CategoryManagerCard({
                   <Icon className="h-10 w-10 opacity-20" />
                 </div>
                 <p className="text-sm">
-                  {tr("관리할 대분류를 선택해주세요.", "Select a main category to manage.", "Chọn nhóm chính để quản lý.")}
+                  {tr(
+                    "관리할 대분류를 선택해주세요.",
+                    "Select a main category to manage.",
+                    "Chọn nhóm chính để quản lý.",
+                    "管理する大分類を選択してください。",
+                    "请选择要管理的主分类。",
+                    "Seleccione una categoría principal para administrar.",
+                    "Selecione uma categoria principal para gerenciar.",
+                    "Sélectionnez une catégorie principale à gérer.",
+                    "Wählen Sie eine Hauptkategorie zur Bearbeitung.",
+                    "Выберите основную категорию для управления.",
+                  )}
                 </p>
               </div>
             )}

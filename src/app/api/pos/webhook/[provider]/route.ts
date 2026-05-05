@@ -10,6 +10,18 @@ import { createClient } from '@supabase/supabase-js';
 import { PosIntegrationService } from '@/services/pos/PosIntegrationService';
 import { parseEasyCheckPayload } from '@/services/pos/parsers/EasyCheckParser';
 import { parseTossPosPayload } from '@/services/pos/parsers/TossPosParser';
+import {
+  errApiInvalidJson,
+  errApiMethodNotAllowed,
+  errApiPosParseFailed,
+  errApiPosProcessingFailed,
+  errApiSignatureVerificationFailed,
+  errApiStoreCodeMissing,
+  errApiUnsupportedPosProvider,
+  errApiWebhookConfigMissing,
+  msgApiUnregisteredStoreIgnored,
+} from '@/lib/admin/admin-api-errors';
+import { hqApiUiBase } from '@/lib/hq/hq-api-locale';
 
 // Service-role 클라이언트 (RLS 우회 - Webhook은 인증 없이 도달)
 function createServiceClient() {
@@ -32,10 +44,11 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ provider: string }> }
 ) {
+  const bl = await hqApiUiBase(request);
   const { provider } = await params;
 
   if (!['easycheck', 'toss'].includes(provider)) {
-    return NextResponse.json({ error: '지원하지 않는 POS 유형입니다.' }, { status: 400 });
+    return NextResponse.json({ error: errApiUnsupportedPosProvider(bl) }, { status: 400 });
   }
 
   // ── 원본 Body 읽기 (서명 검증용) ────────────────────────────────────────────
@@ -44,13 +57,13 @@ export async function POST(
   try {
     parsedBody = JSON.parse(rawBody);
   } catch {
-    return NextResponse.json({ error: '잘못된 JSON 형식입니다.' }, { status: 400 });
+    return NextResponse.json({ error: errApiInvalidJson(bl) }, { status: 400 });
   }
 
   const supabase = createServiceClient();
   if (!supabase) {
     return NextResponse.json(
-      { error: 'Webhook 서버 설정이 누락되었습니다.', code: 'CONFIG_MISSING' },
+      { error: errApiWebhookConfigMissing(bl), code: 'CONFIG_MISSING' },
       { status: 503 }
     );
   }
@@ -64,7 +77,7 @@ export async function POST(
 
   if (!storeCode) {
     console.warn(`[POS Webhook] store_code를 찾을 수 없습니다. payload:`, parsedBody);
-    return NextResponse.json({ error: 'store_code가 없습니다.' }, { status: 400 });
+    return NextResponse.json({ error: errApiStoreCodeMissing(bl) }, { status: 400 });
   }
 
   // store_code로 tenant 조회
@@ -83,7 +96,10 @@ export async function POST(
   if (!integration) {
     console.warn(`[POS Webhook] 등록되지 않은 상점 코드입니다: ${storeCode} (provider: ${provider})`);
     // 미등록 store_code는 조용히 무시 (보안상 상세 에러 노출 금지)
-    return NextResponse.json({ received: true, note: 'unregistered_store' }, { status: 200 });
+    return NextResponse.json(
+      { received: true, note: 'unregistered_store', message: msgApiUnregisteredStoreIgnored(bl) },
+      { status: 200 }
+    );
   }
 
   // ── HMAC 서명 검증 ───────────────────────────────────────────────────────────
@@ -100,7 +116,7 @@ export async function POST(
     );
     if (!isValid) {
       console.warn(`[POS Webhook] 서명 검증 실패 - store: ${storeCode}`);
-      return NextResponse.json({ error: '서명 검증 실패' }, { status: 401 });
+      return NextResponse.json({ error: errApiSignatureVerificationFailed(bl) }, { status: 401 });
     }
   }
 
@@ -114,9 +130,12 @@ export async function POST(
     } else {
       throw new Error('알 수 없는 POS 유형');
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error(`[POS Webhook] 파싱 오류:`, err);
-    return NextResponse.json({ error: '결제 데이터 파싱 실패: ' + err.message }, { status: 422 });
+    return NextResponse.json(
+      { error: errApiPosParseFailed(bl, (err as { message?: string })?.message) },
+      { status: 422 }
+    );
   }
 
   // ── 핵심 처리: 주문 생성 + 고객 매칭 + 포인트 적립 ────────────────────────────
@@ -129,7 +148,7 @@ export async function POST(
 
   if (!result.success && result.isNewTransaction) {
     console.error(`[POS Webhook] 처리 실패:`, result.errorMessage);
-    return NextResponse.json({ error: result.errorMessage }, { status: 500 });
+    return NextResponse.json({ error: errApiPosProcessingFailed(bl) }, { status: 500 });
   }
 
   console.log(`[POS Webhook] ✅ 처리 완료 - orderId: ${result.orderId}, new: ${result.isNewTransaction}`);
@@ -142,6 +161,7 @@ export async function POST(
 }
 
 // Webhook은 GET 허용 안 함
-export async function GET() {
-  return NextResponse.json({ error: 'Method not allowed' }, { status: 405 });
+export async function GET(req: Request) {
+  const bl = await hqApiUiBase(req);
+  return NextResponse.json({ error: errApiMethodNotAllowed(bl) }, { status: 405 });
 }

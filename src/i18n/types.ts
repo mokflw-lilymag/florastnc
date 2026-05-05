@@ -1,3 +1,5 @@
+import type { LandingFeatureDetailPagesMap } from "@/i18n/detail-bundles/types";
+
 export type LandingMessages = {
   navbar: {
     solutions: string;
@@ -43,6 +45,16 @@ export type LandingMessages = {
     integratedItem1: string;
     integratedItem2: string;
     integratedItem3: string;
+    /** Home “technology” grid: card title + blurb per feature slug (see `LANDING_FEATURE_SLUGS`). */
+    featureCards: Record<
+      | "ai-order-concierge"
+      | "shop-sync"
+      | "smart-print-bridge"
+      | "ai-expense-magic"
+      | "settlement-engine"
+      | "mobile-premium",
+      { title: string; description: string }
+    >;
   };
   testApply: {
     title: string;
@@ -100,6 +112,8 @@ export type LandingMessages = {
     startFree: string;
     viewOthers: string;
   };
+  /** Injected in `getMessages` from `detail-bundles` (not stored in locale JSON). */
+  featureDetailPages: LandingFeatureDetailPagesMap;
 };
 
 export type LegalDocMessages = {
@@ -394,7 +408,7 @@ export type ManualDrawerMessages = {
   step4: ManualDrawerStep4;
 };
 
-/** Ribbon printer + card design studio (ko/en bundles; other locales use English bundle in getMessages). */
+/** Ribbon printer + card design studio; phrase quick-pick tooltips use `ribbon-phrase-desc-*.json` for ja/zh/vi. */
 export type DashboardMessages = {
   ribbon: Record<string, string>;
   designStudio: Record<string, string>;

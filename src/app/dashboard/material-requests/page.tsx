@@ -91,7 +91,10 @@ export default function BranchMaterialRequestsPage() {
   const loadHistory = useCallback(async () => {
     setHistoryLoading(true);
     try {
-      const res = await fetch("/api/branch/material-requests", { credentials: "include" });
+      const res = await fetch(
+        `/api/branch/material-requests?uiLocale=${encodeURIComponent(locale)}`,
+        { credentials: "include" }
+      );
       const j = await res.json().catch(() => ({}));
       if (typeof j.organizationLinked === "boolean") {
         setLinkedOrg(j.organizationLinked);
@@ -106,7 +109,7 @@ export default function BranchMaterialRequestsPage() {
     } finally {
       setHistoryLoading(false);
     }
-  }, [tenantId]);
+  }, [tenantId, locale]);
 
   useEffect(() => {
     if (!tenantId) {
@@ -214,7 +217,7 @@ export default function BranchMaterialRequestsPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ lines: payload, branch_note: branchNote }),
+        body: JSON.stringify({ lines: payload, branch_note: branchNote, uiLocale: locale }),
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) {
