@@ -10,6 +10,12 @@ import dashboardPt from "@/i18n/messages/dashboard-pt.json";
 import dashboardFr from "@/i18n/messages/dashboard-fr.json";
 import dashboardDe from "@/i18n/messages/dashboard-de.json";
 import dashboardRu from "@/i18n/messages/dashboard-ru.json";
+import dashboardId from "@/i18n/messages/dashboard-id.json";
+import dashboardMs from "@/i18n/messages/dashboard-ms.json";
+import dashboardTh from "@/i18n/messages/dashboard-th.json";
+import id from "@/i18n/messages/id.json";
+import ms from "@/i18n/messages/ms.json";
+import th from "@/i18n/messages/th.json";
 import vi from "@/i18n/messages/vi.json";
 import zh from "@/i18n/messages/zh.json";
 import ja from "@/i18n/messages/ja.json";
@@ -31,7 +37,7 @@ type CoreMessages = Omit<AppMessages, "dashboard" | "landing"> & {
   landing: Omit<LandingMessages, "featureDetailPages">;
 };
 
-const BASE_MESSAGES: Record<"ko" | "en" | "vi" | "zh" | "ja" | "es" | "pt" | "fr" | "de" | "ru", CoreMessages> = {
+const BASE_MESSAGES: Record<"ko" | "en" | "vi" | "zh" | "ja" | "es" | "pt" | "fr" | "de" | "ru" | "id" | "ms" | "th", CoreMessages> = {
   ko: ko as CoreMessages,
   en: en as CoreMessages,
   vi: vi as CoreMessages,
@@ -42,6 +48,9 @@ const BASE_MESSAGES: Record<"ko" | "en" | "vi" | "zh" | "ja" | "es" | "pt" | "fr
   fr: fr as CoreMessages,
   de: de as CoreMessages,
   ru: ru as CoreMessages,
+  id: id as CoreMessages,
+  ms: ms as CoreMessages,
+  th: th as CoreMessages,
 };
 
 const LOCALE_OVERRIDES: Partial<Record<AppLocale, DeepPartial<CoreMessages>>> = {
@@ -173,6 +182,10 @@ const LOCALE_OVERRIDES: Partial<Record<AppLocale, DeepPartial<CoreMessages>>> = 
     },
   },
   "ru-RU": { localeLabel: "Русский (Россия)" },
+  // SEA overrides
+  "id": { localeLabel: "Bahasa Indonesia" },
+  "ms": { localeLabel: "Bahasa Melayu" },
+  "th": { localeLabel: "ภาษาไทย" },
 };
 
 function deepMerge<T extends Record<string, any>>(base: T, override?: DeepPartial<T>): T {
@@ -209,14 +222,27 @@ function dashboardForLocale(baseLocale: string): DashboardMessages {
   if (baseLocale === "fr") return dashboardFr as DashboardMessages;
   if (baseLocale === "de") return dashboardDe as DashboardMessages;
   if (baseLocale === "ru") return dashboardRu as DashboardMessages;
+  if (baseLocale === "id") return dashboardId as DashboardMessages;
+  if (baseLocale === "ms") return dashboardMs as DashboardMessages;
+  if (baseLocale === "th") return dashboardTh as DashboardMessages;
   return dashboardEn as DashboardMessages;
 }
 
 export function getMessages(localeInput: AppLocale | string): AppMessages {
   const locale = resolveLocale(localeInput);
   const baseLocale = toBaseLocale(locale) as keyof typeof BASE_MESSAGES;
-  const base = BASE_MESSAGES[baseLocale];
-  const merged = deepMerge(base, LOCALE_OVERRIDES[locale] as DeepPartial<CoreMessages> | undefined);
+  const enBase = BASE_MESSAGES.en;
+  const actualBase = BASE_MESSAGES[baseLocale];
+
+  // Merge English fallback with the actual locale base
+  // This prevents runtime crashes if a translation file is missing keys
+  const mergedBase = baseLocale === "en" ? actualBase : deepMerge(enBase, actualBase as any);
+
+  const merged = deepMerge(
+    mergedBase,
+    LOCALE_OVERRIDES[locale] as DeepPartial<CoreMessages> | undefined
+  );
+
   const landing = merged.landing as AppMessages["landing"];
   return {
     ...merged,

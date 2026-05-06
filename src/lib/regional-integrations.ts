@@ -435,6 +435,107 @@ const INTEGRATIONS: Record<string, RegionalIntegrationConfig> = {
     ],
   },
 
+  // ── 🇧🇷 브라질 ──────────────────────────────────────────
+  BR: {
+    delivery: [
+      {
+        platform: "ifood_br",
+        label: "iFood",
+        description: "iFood Partner API",
+        iconBg: "#EA1D2C",
+        iconText: "iF",
+        ringColor: "ring-red-500",
+        status: "coming_soon",
+      },
+      {
+        platform: "loggi_br",
+        label: "Loggi",
+        description: "Loggi Delivery API",
+        iconBg: "#00A1E4",
+        iconText: "L",
+        ringColor: "ring-cyan-500",
+        status: "coming_soon",
+      },
+    ],
+    messaging: [
+      {
+        platform: "whatsapp_business",
+        label: "WhatsApp Business",
+        description: "Meta WhatsApp Business API",
+        iconBg: "#25D366",
+        iconText: "W",
+        ringColor: "ring-green-400",
+        status: "coming_soon",
+      },
+    ],
+    ecommerce: [
+      {
+        platform: "mercadolivre_br",
+        label: "Mercado Livre",
+        description: "Mercado Livre API",
+        iconBg: "#FFE600",
+        iconText: "ML",
+        ringColor: "ring-yellow-400",
+        status: "coming_soon",
+      },
+      {
+        platform: "nuvemshop_br",
+        label: "Nuvemshop",
+        description: "Nuvemshop API 연동",
+        iconBg: "#2D3436",
+        iconText: "N",
+        ringColor: "ring-gray-800",
+        status: "coming_soon",
+      },
+    ],
+  },
+
+  // ── 🇵🇹 포르투갈 ────────────────────────────────────────
+  PT: {
+    delivery: [
+      {
+        platform: "glovo_pt",
+        label: "Glovo",
+        description: "Glovo Delivery API",
+        iconBg: "#FFC244",
+        iconText: "G",
+        ringColor: "ring-yellow-400",
+        status: "coming_soon",
+      },
+      {
+        platform: "uber_direct_pt",
+        label: "Uber Direct",
+        description: "Uber Direct Portugal API",
+        iconBg: "#000000",
+        iconText: "U",
+        ringColor: "ring-slate-800",
+        status: "coming_soon",
+      },
+    ],
+    messaging: [
+      {
+        platform: "whatsapp_business",
+        label: "WhatsApp Business",
+        description: "Meta WhatsApp Business API",
+        iconBg: "#25D366",
+        iconText: "W",
+        ringColor: "ring-green-400",
+        status: "coming_soon",
+      },
+    ],
+    ecommerce: [
+      {
+        platform: "shopify_pt",
+        label: "Shopify",
+        description: "Shopify Admin REST API",
+        iconBg: "#96BF48",
+        iconText: "S",
+        ringColor: "ring-lime-500",
+        status: "coming_soon",
+      },
+    ],
+  },
+
   // ── 글로벌 기본 (그 외 나라) ─────────────────────────
   DEFAULT: {
     delivery: [

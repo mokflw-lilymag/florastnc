@@ -10,7 +10,10 @@
     "pt": "Portuguese",
     "fr": "French",
     "de": "German",
-    "ru": "Russian"
+    "ru": "Russian",
+    "id": "Indonesian",
+    "ms": "Malay",
+    "th": "Thai"
   },
   "legalDoc": {
     "backHome": "Back to home",

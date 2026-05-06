@@ -15,6 +15,9 @@ import {
   Receipt,
   ClipboardList,
   Database,
+  Globe,
+  Languages,
+  Key,
 } from "lucide-react";
 import Image from "next/image";
 import { createClient } from "@/utils/supabase/client";
@@ -148,6 +151,17 @@ export function Sidebar({
       links: [
         { name: t.sidebar.links.globalSettings, href: "/dashboard/system-settings", icon: Settings },
         { name: t.sidebar.links.storeSettings, href: "/dashboard/settings", icon: Settings },
+      ],
+    },
+    {
+      id: "admin-global",
+      label: "🌏 글로벌 관리",
+      links: [
+        { name: "연동 수요 분석", href: "/dashboard/admin/regional-demand", icon: BarChart3 },
+        { name: "국가별 API 키", href: "/dashboard/admin/regional-keys", icon: Key },
+        { name: "테넌트 현황", href: "/dashboard/admin/tenants", icon: Globe },
+        { name: "구독/결제", href: "/dashboard/admin/billing", icon: CreditCard },
+        { name: "번역 관리", href: "/dashboard/admin/translations", icon: Languages },
       ],
     },
   ];

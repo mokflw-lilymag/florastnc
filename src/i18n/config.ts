@@ -9,6 +9,9 @@ export const SUPPORTED_LOCALES = [
   "fr",
   "de",
   "ru",
+  "id",
+  "ms",
+  "th",
   "en-US",
   "en-GB",
   "en-AU",
@@ -74,6 +77,9 @@ export function bcp47LangTag(baseLocale: string): string {
     fr: "fr",
     de: "de",
     ru: "ru",
+    id: "id",
+    ms: "ms",
+    th: "th",
   };
   return map[baseLocale] ?? "en";
 }
@@ -91,6 +97,9 @@ export function speechRecognitionLangTag(baseLocale: string): string {
     fr: "fr-FR",
     de: "de-DE",
     ru: "ru-RU",
+    id: "id-ID",
+    ms: "ms-MY",
+    th: "th-TH",
   };
   return map[baseLocale] ?? "en-US";
 }

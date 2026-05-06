@@ -13,6 +13,9 @@ export const LANDING_LOCALE_SELECT_OPTIONS: Array<{ value: AppLocale; label: str
   { value: "fr", label: "Français" },
   { value: "de", label: "Deutsch" },
   { value: "ru", label: "Русский" },
+  { value: "id", label: "Bahasa Indonesia" },
+  { value: "ms", label: "Bahasa Melayu" },
+  { value: "th", label: "ภาษาไทย" },
 ];
 
 /** 랜딩 셀렉트 값: 기본 언어 태그만 사용 (`en-US` → `en`) */
@@ -55,6 +58,9 @@ export const DASHBOARD_LOCALE_SELECT_OPTIONS: Array<{ value: AppLocale; label: s
   { value: "de-CH", label: "Deutsch (Schweiz)" },
   { value: "ru", label: "Русский" },
   { value: "ru-RU", label: "Русский (Россия)" },
+  { value: "id", label: "Bahasa Indonesia" },
+  { value: "ms", label: "Bahasa Melayu" },
+  { value: "th", label: "ภาษาไทย" },
 ];
 
 const DASHBOARD_OPTION_VALUES = new Set(

@@ -130,6 +130,22 @@
       "deliveryCarriers": ["Stuart/Chronopost", "자체배송"]
     }
   },
+  "PT": {
+    "countryCode": "PT",
+    "localeRecommendation": "pt-PT",
+    "recommendedStack": {
+      "chat": "WhatsApp",
+      "delivery": "Glovo/Uber Direct + 자체배송",
+      "payment": "MB WAY / Multibanco / Card",
+      "tax": "IVA 체계"
+    },
+    "settings": {
+      "currency": "EUR",
+      "isTaxExempt": false,
+      "defaultTaxRate": 23,
+      "deliveryCarriers": ["Glovo/Uber Direct", "자체배송"]
+    }
+  },
   "DE": {
     "countryCode": "DE",
     "localeRecommendation": "de-DE",
