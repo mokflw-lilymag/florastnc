@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import Textarea from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Loader2, Search, Languages, CheckCircle2, Save, AlertCircle, RefreshCw } from "lucide-react";
 
@@ -18,6 +18,7 @@ const LOCALES = [
   { code: "vi", label: "🇻🇳 Tiếng Việt", file: "vi.json" },
   { code: "ja", label: "🇯🇵 日本語", file: "ja.json" },
   { code: "zh", label: "🇨🇳 中文", file: "zh.json" },
+  { code: "zh-TW", label: "🇹🇼 繁體中文", file: "zh-TW.json" },
   { code: "es", label: "🇪🇸 Español", file: "es.json" },
   { code: "pt", label: "🇧🇷 Português", file: "pt.json" },
   { code: "fr", label: "🇫🇷 Français", file: "fr.json" },
@@ -26,6 +27,10 @@ const LOCALES = [
   { code: "id", label: "🇮🇩 Bahasa Indonesia", file: null },
   { code: "ms", label: "🇲🇾 Bahasa Melayu", file: null },
   { code: "th", label: "🇹🇭 ภาษาไทย", file: null },
+  { code: "nl", label: "🇳🇱 Nederlands", file: null },
+  { code: "it", label: "🇮🇹 Italiano", file: null },
+  { code: "hi", label: "🇮🇳 हिन्दी", file: null },
+  { code: "ar", label: "🇸🇦 العربية", file: null },
 ];
 
 type TranslationEntry = {

@@ -1086,7 +1086,7 @@ export default function ExpensesPage() {
           >
             <Sparkles className="h-4 w-4 text-violet-600" />
             {tf.f02240}
-            <span className="hidden text-[10px] font-normal text-violet-600/80 sm:inline">{tf.f00793}</span>
+            <span className="hidden text-[10px] font-normal text-violet-600/80 sm:inline">{tf.f02248}</span>
           </Button>
           <Button
             type="button"

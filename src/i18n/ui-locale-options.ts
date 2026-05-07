@@ -7,15 +7,19 @@ export const LANDING_LOCALE_SELECT_OPTIONS: Array<{ value: AppLocale; label: str
   { value: "en", label: "English" },
   { value: "ja", label: "日本語" },
   { value: "zh", label: "中文" },
+  { value: "zh-TW", label: "繁體中文" },
   { value: "vi", label: "Tiếng Việt" },
   { value: "es", label: "Español" },
   { value: "pt", label: "Português" },
   { value: "fr", label: "Français" },
   { value: "de", label: "Deutsch" },
-  { value: "ru", label: "Русский" },
   { value: "id", label: "Bahasa Indonesia" },
   { value: "ms", label: "Bahasa Melayu" },
   { value: "th", label: "ภาษาไทย" },
+  { value: "nl", label: "Nederlands" },
+  { value: "it", label: "Italiano" },
+  { value: "hi", label: "हिन्दी" },
+  { value: "ar", label: "العربية" },
 ];
 
 /** 랜딩 셀렉트 값: 기본 언어 태그만 사용 (`en-US` → `en`) */
@@ -40,6 +44,7 @@ export const DASHBOARD_LOCALE_SELECT_OPTIONS: Array<{ value: AppLocale; label: s
   { value: "en-NZ", label: "English (New Zealand)" },
   { value: "ja", label: "日本語" },
   { value: "zh", label: "中文" },
+  { value: "zh-TW", label: "繁體中文" },
   { value: "vi", label: "Tiếng Việt" },
   { value: "es", label: "Español" },
   { value: "es-ES", label: "Español (España)" },
@@ -61,6 +66,10 @@ export const DASHBOARD_LOCALE_SELECT_OPTIONS: Array<{ value: AppLocale; label: s
   { value: "id", label: "Bahasa Indonesia" },
   { value: "ms", label: "Bahasa Melayu" },
   { value: "th", label: "ภาษาไทย" },
+  { value: "nl", label: "Nederlands" },
+  { value: "it", label: "Italiano" },
+  { value: "hi", label: "हिन्दी" },
+  { value: "ar", label: "العربية" },
 ];
 
 const DASHBOARD_OPTION_VALUES = new Set(

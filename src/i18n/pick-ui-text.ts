@@ -10,6 +10,7 @@ export function pickUiText(
   vi?: string,
   ja?: string,
   zh?: string,
+  zhTW?: string,
   es?: string,
   pt?: string,
   fr?: string,
@@ -25,6 +26,8 @@ export function pickUiText(
       return ja ?? en;
     case "zh":
       return zh ?? en;
+    case "zh-TW":
+      return zhTW ?? zh ?? en;
     case "es":
       return es ?? en;
     case "pt":

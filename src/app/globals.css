@@ -27,9 +27,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-sans: 'Pretendard', var(--font-inter), sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --font-heading: 'GmarketSansBold', var(--font-inter), sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -215,27 +215,27 @@ input[type="text"], input[type="number"], textarea, select {
 }
 
 /* Typography Helpers */
-.font-noto-serif { font-family: 'Noto Serif KR', serif; }
-.font-noto-sans { font-family: 'Noto Sans KR', sans-serif; }
-.font-nanum-myeongjo { font-family: 'Nanum Myeongjo', serif; }
-.font-nanum-gothic { font-family: 'Nanum Gothic', sans-serif; }
-.font-brush { font-family: 'Nanum Brush Script', cursive; }
+.font-noto-serif { font-family: 'Noto Serif KR', var(--font-inter), serif; }
+.font-noto-sans { font-family: 'Noto Sans KR', var(--font-inter), sans-serif; }
+.font-nanum-myeongjo { font-family: 'Nanum Myeongjo', var(--font-inter), serif; }
+.font-nanum-gothic { font-family: 'Nanum Gothic', var(--font-inter), sans-serif; }
+.font-brush { font-family: 'Nanum Brush Script', var(--font-inter), cursive; }
 /* .font-bold 클래스는 Tailwind의 font-weight 속성을 덮어씌워 레이아웃을 크게 훼손하므로 고유 클래스로 변경 (Black Han Sans) */
-.font-black-han { font-family: 'Black Han Sans', sans-serif; }
-.font-dokdo { font-family: 'East Sea Dokdo', cursive; }
-.font-song { font-family: 'Song Myung', serif; }
-.font-gowun { font-family: 'Gowun Batang', serif; }
-.font-gungsuh { font-family: 'Gungsuh', '궁서', serif; }
-.font-chosun { font-family: 'JoseonPalace', serif; }
-.font-hj-uoq { font-family: 'UoqMunThenKhung', serif; }
-.font-hj-lxgw { font-family: 'LXGW WenKai TC', serif; }
-.font-hj-klee { font-family: 'Klee One', cursive; font-weight: 600; }
-.font-hj-iansui { font-family: 'Iansui', cursive; }
-.font-hj-syuku { font-family: 'Yuji Syuku', serif; }
-.font-hj-boku { font-family: 'Yuji Boku', serif; }
-.font-hj-mai { font-family: 'Yuji Mai', serif; }
-.font-hj-kaisei { font-family: 'Kaisei HarunoUmi', serif; }
-.font-hj-zen { font-family: 'Zen Antique Soft', serif; }
+.font-black-han { font-family: 'Black Han Sans', var(--font-inter), sans-serif; }
+.font-dokdo { font-family: 'East Sea Dokdo', var(--font-inter), cursive; }
+.font-song { font-family: 'Song Myung', var(--font-inter), serif; }
+.font-gowun { font-family: 'Gowun Batang', var(--font-inter), serif; }
+.font-gungsuh { font-family: 'Gungsuh', '궁서', var(--font-inter), serif; }
+.font-chosun { font-family: 'JoseonPalace', var(--font-inter), serif; }
+.font-hj-uoq { font-family: 'UoqMunThenKhung', var(--font-inter), serif; }
+.font-hj-lxgw { font-family: 'LXGW WenKai TC', var(--font-inter), serif; }
+.font-hj-klee { font-family: 'Klee One', var(--font-inter), cursive; font-weight: 600; }
+.font-hj-iansui { font-family: 'Iansui', var(--font-inter), cursive; }
+.font-hj-syuku { font-family: 'Yuji Syuku', var(--font-inter), serif; }
+.font-hj-boku { font-family: 'Yuji Boku', var(--font-inter), serif; }
+.font-hj-mai { font-family: 'Yuji Mai', var(--font-inter), serif; }
+.font-hj-kaisei { font-family: 'Kaisei HarunoUmi', var(--font-inter), serif; }
+.font-hj-zen { font-family: 'Zen Antique Soft', var(--font-inter), serif; }
 
 /* 시니어 사용자/노안 배려: 미세 폰트 및 UI 텍스트 가독성 강제 적용 */
 @layer utilities {
@@ -264,7 +264,7 @@ input[type="text"], input[type="number"], textarea, select {
   }
   /* 페이지 제목용 최적화 폰트 (시인성, 디자인 동시 충족) */
   .font-title {
-    font-family: 'GmarketSansBold', sans-serif !important;
+    font-family: 'GmarketSansBold', var(--font-inter), sans-serif !important;
     letter-spacing: -0.02em;
   }
 
@@ -277,6 +277,51 @@ input[type="text"], input[type="number"], textarea, select {
 /* 글로벌 입력 요소 자동 번역 방지 기본값 (Shadow DOM 등 대비) */
 input[translate="no"], textarea[translate="no"] {
   unicode-bidi: isolate;
+}
+
+/* ============================================================
+   GLOBAL FONT OPTIMIZATION FOR NON-KOREAN LANGUAGES
+   ============================================================
+   문제: GmarketSansBold, Pretendard 등 한국어 특화 웹폰트는
+   베트남어(ặ, ở, ừ), 프랑스어(é, è, ê, ç), 스페인어(ñ, á, ü) 등
+   확장 라틴 문자(Latin Extended / latin-ext)를 지원하지 않아
+   "랜섬노트(ransom note)" 현상이 발생합니다.
+   
+   해결: html:lang 셀렉터로 한국어가 아닌 경우 CSS 변수와 클래스를 모두
+   Inter(latin + latin-ext + vietnamese 서브셋 포함)로 강제 대체합니다.
+*/
+
+/* 1) CSS 변수 자체를 재정의 — Tailwind font-heading 등 var() 참조 경로도 차단 */
+html:not(:lang(ko)) {
+  --font-heading: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* 2) 클래스 직접 지정 경로도 차단 */
+html:not(:lang(ko)) body,
+html:not(:lang(ko)) .font-pretendard {
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+}
+
+html:not(:lang(ko)) .font-title,
+html:not(:lang(ko)) .font-heading {
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em;
+}
+
+/* 3) 기타 한국어 전용 디스플레이 폰트 클래스 정리 */
+html:not(:lang(ko)) .font-noto-serif,
+html:not(:lang(ko)) .font-bagel,
+html:not(:lang(ko)) .font-black-han,
+html:not(:lang(ko)) .font-do-hyeon,
+html:not(:lang(ko)) .font-gowun,
+html:not(:lang(ko)) .font-yeon-sung,
+html:not(:lang(ko)) .font-nanum-pen,
+html:not(:lang(ko)) .font-gaegu,
+html:not(:lang(ko)) .font-jua,
+html:not(:lang(ko)) .font-chosun {
+  font-family: var(--font-inter), sans-serif !important;
 }
 
 /* 대시보드 전광판: 동일 트랙 2개 나란히 → -50% 이동으로 끊김 없이 반복 */

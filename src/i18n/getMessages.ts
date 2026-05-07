@@ -5,6 +5,7 @@ import dashboardEn from "@/i18n/messages/dashboard-en.json";
 import dashboardVi from "@/i18n/messages/dashboard-vi.json";
 import dashboardJa from "@/i18n/messages/dashboard-ja.json";
 import dashboardZh from "@/i18n/messages/dashboard-zh.json";
+import dashboardZhTW from "@/i18n/messages/dashboard-zh-TW.json";
 import dashboardEs from "@/i18n/messages/dashboard-es.json";
 import dashboardPt from "@/i18n/messages/dashboard-pt.json";
 import dashboardFr from "@/i18n/messages/dashboard-fr.json";
@@ -13,17 +14,26 @@ import dashboardRu from "@/i18n/messages/dashboard-ru.json";
 import dashboardId from "@/i18n/messages/dashboard-id.json";
 import dashboardMs from "@/i18n/messages/dashboard-ms.json";
 import dashboardTh from "@/i18n/messages/dashboard-th.json";
+import dashboardNl from "@/i18n/messages/dashboard-nl.json";
+import dashboardIt from "@/i18n/messages/dashboard-it.json";
+import dashboardHi from "@/i18n/messages/dashboard-hi.json";
+import dashboardAr from "@/i18n/messages/dashboard-ar.json";
 import id from "@/i18n/messages/id.json";
 import ms from "@/i18n/messages/ms.json";
 import th from "@/i18n/messages/th.json";
 import vi from "@/i18n/messages/vi.json";
 import zh from "@/i18n/messages/zh.json";
+import zhTW from "@/i18n/messages/zh-TW.json";
 import ja from "@/i18n/messages/ja.json";
 import es from "@/i18n/messages/es.json";
 import pt from "@/i18n/messages/pt.json";
 import fr from "@/i18n/messages/fr.json";
 import de from "@/i18n/messages/de.json";
 import ru from "@/i18n/messages/ru.json";
+import nl from "@/i18n/messages/nl.json";
+import it from "@/i18n/messages/it.json";
+import hi from "@/i18n/messages/hi.json";
+import ar from "@/i18n/messages/ar.json";
 import { AppLocale, resolveLocale, toBaseLocale } from "@/i18n/config";
 import type { AppMessages, DashboardMessages, LandingMessages } from "@/i18n/types";
 import { getLandingFeatureDetailPages } from "@/i18n/detail-bundles";
@@ -37,11 +47,12 @@ type CoreMessages = Omit<AppMessages, "dashboard" | "landing"> & {
   landing: Omit<LandingMessages, "featureDetailPages">;
 };
 
-const BASE_MESSAGES: Record<"ko" | "en" | "vi" | "zh" | "ja" | "es" | "pt" | "fr" | "de" | "ru" | "id" | "ms" | "th", CoreMessages> = {
+const BASE_MESSAGES: Record<"ko" | "en" | "vi" | "zh" | "zh-TW" | "ja" | "es" | "pt" | "fr" | "de" | "ru" | "id" | "ms" | "th" | "nl" | "it" | "hi" | "ar", CoreMessages> = {
   ko: ko as CoreMessages,
   en: en as CoreMessages,
   vi: vi as CoreMessages,
   zh: zh as CoreMessages,
+  "zh-TW": zhTW as CoreMessages,
   ja: ja as CoreMessages,
   es: es as CoreMessages,
   pt: pt as CoreMessages,
@@ -51,6 +62,10 @@ const BASE_MESSAGES: Record<"ko" | "en" | "vi" | "zh" | "ja" | "es" | "pt" | "fr
   id: id as CoreMessages,
   ms: ms as CoreMessages,
   th: th as CoreMessages,
+  nl: nl as CoreMessages,
+  it: it as CoreMessages,
+  hi: hi as CoreMessages,
+  ar: ar as CoreMessages,
 };
 
 const LOCALE_OVERRIDES: Partial<Record<AppLocale, DeepPartial<CoreMessages>>> = {
@@ -186,6 +201,10 @@ const LOCALE_OVERRIDES: Partial<Record<AppLocale, DeepPartial<CoreMessages>>> = 
   "id": { localeLabel: "Bahasa Indonesia" },
   "ms": { localeLabel: "Bahasa Melayu" },
   "th": { localeLabel: "ภาษาไทย" },
+  "nl": { localeLabel: "Nederlands" },
+  "it": { localeLabel: "Italiano" },
+  "hi": { localeLabel: "हिन्दी" },
+  "ar": { localeLabel: "العربية" },
 };
 
 function deepMerge<T extends Record<string, any>>(base: T, override?: DeepPartial<T>): T {
@@ -217,6 +236,7 @@ function dashboardForLocale(baseLocale: string): DashboardMessages {
   if (baseLocale === "vi") return dashboardVi as DashboardMessages;
   if (baseLocale === "ja") return dashboardJa as DashboardMessages;
   if (baseLocale === "zh") return dashboardZh as DashboardMessages;
+  if (baseLocale === "zh-TW") return dashboardZhTW as DashboardMessages;
   if (baseLocale === "es") return dashboardEs as DashboardMessages;
   if (baseLocale === "pt") return dashboardPt as DashboardMessages;
   if (baseLocale === "fr") return dashboardFr as DashboardMessages;
@@ -225,6 +245,10 @@ function dashboardForLocale(baseLocale: string): DashboardMessages {
   if (baseLocale === "id") return dashboardId as DashboardMessages;
   if (baseLocale === "ms") return dashboardMs as DashboardMessages;
   if (baseLocale === "th") return dashboardTh as DashboardMessages;
+  if (baseLocale === "nl") return dashboardNl as DashboardMessages;
+  if (baseLocale === "it") return dashboardIt as DashboardMessages;
+  if (baseLocale === "hi") return dashboardHi as DashboardMessages;
+  if (baseLocale === "ar") return dashboardAr as DashboardMessages;
   return dashboardEn as DashboardMessages;
 }
 

@@ -308,6 +308,86 @@
       "autoDeliveryBooking": true,
       "deliveryCarriers": ["LINE MAN", "Grab", "Lalamove", "자체배송"]
     }
+  },
+  "NL": {
+    "countryCode": "NL",
+    "localeRecommendation": "nl",
+    "recommendedStack": {
+      "chat": "WhatsApp",
+      "delivery": "Uber Direct + 자체배송",
+      "payment": "iDEAL / Card",
+      "tax": "BTW 21%"
+    },
+    "settings": {
+      "currency": "EUR",
+      "isTaxExempt": false,
+      "defaultTaxRate": 21,
+      "deliveryCarriers": ["Uber Direct", "자체배송"]
+    }
+  },
+  "IT": {
+    "countryCode": "IT",
+    "localeRecommendation": "it",
+    "recommendedStack": {
+      "chat": "WhatsApp",
+      "delivery": "Glovo/Uber + 자체배송",
+      "payment": "Card/Satispay",
+      "tax": "IVA 22%"
+    },
+    "settings": {
+      "currency": "EUR",
+      "isTaxExempt": false,
+      "defaultTaxRate": 22,
+      "deliveryCarriers": ["Glovo/Uber", "자체배송"]
+    }
+  },
+  "IN": {
+    "countryCode": "IN",
+    "localeRecommendation": "hi",
+    "recommendedStack": {
+      "chat": "WhatsApp",
+      "delivery": "Dunzo/Swiggy + 자체배송",
+      "payment": "UPI / Paytm / Card",
+      "tax": "GST 18%"
+    },
+    "settings": {
+      "currency": "INR",
+      "isTaxExempt": false,
+      "defaultTaxRate": 18,
+      "deliveryCarriers": ["Dunzo/Swiggy", "자체배송"]
+    }
+  },
+  "AE": {
+    "countryCode": "AE",
+    "localeRecommendation": "ar",
+    "recommendedStack": {
+      "chat": "WhatsApp",
+      "delivery": "Careem/Talabat + 자체배송",
+      "payment": "Card / Apple Pay",
+      "tax": "VAT 5%"
+    },
+    "settings": {
+      "currency": "AED",
+      "isTaxExempt": false,
+      "defaultTaxRate": 5,
+      "deliveryCarriers": ["Careem/Talabat", "자체배송"]
+    }
+  },
+  "SA": {
+    "countryCode": "SA",
+    "localeRecommendation": "ar",
+    "recommendedStack": {
+      "chat": "WhatsApp",
+      "delivery": "Jahez/HungerStation + 자체배송",
+      "payment": "Mada / STC Pay / Card",
+      "tax": "VAT 15%"
+    },
+    "settings": {
+      "currency": "SAR",
+      "isTaxExempt": false,
+      "defaultTaxRate": 15,
+      "deliveryCarriers": ["Jahez/HungerStation", "자체배송"]
+    }
   }
 }
 

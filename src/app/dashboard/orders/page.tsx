@@ -341,13 +341,35 @@ export default function OrdersPage() {
           .in('id', ids);
         
         if (!error) {
-          console.log(`Auto-closed ${ids.length} orders`);
+          // 사용자에게 알림 표시 (조용한 info 토스트)
+          toast.info(
+            tr(
+              `${ids.length}건의 오래된 주문이 자동 완료 처리되었습니다.`,
+              `${ids.length} old order(s) were automatically completed.`,
+              `${ids.length} đơn hàng cũ đã được hoàn thành tự động.`,
+              `${ids.length}件の古い注文が自動的に完了しました。`,
+              `${ids.length}个旧订单已自动完成。`,
+              `${ids.length} pedido(s) antiguo(s) completado(s) automáticamente.`,
+              `${ids.length} pedido(s) antigo(s) concluído(s) automaticamente.`,
+              `${ids.length} ancienne(s) commande(s) terminée(s) automatiquement.`,
+              `${ids.length} alte Bestellung(en) automatisch abgeschlossen.`,
+              `${ids.length} старый(е) заказ(ы) автоматически завершён(ы).`,
+            ),
+            { duration: 4000, id: 'auto-close-orders' }
+          );
+          // 주문 목록 갱신
+          if (currentPeriod === '2months') fetchOrdersByRange(subDays(new Date(), 60), new Date(), filterBasis);
+          else if (currentPeriod === '3months') fetchOrdersByRange(subDays(new Date(), 90), new Date(), filterBasis);
+          else if (currentPeriod === '6months') fetchOrdersByRange(subDays(new Date(), 180), new Date(), filterBasis);
+          else if (currentPeriod === '1year') fetchOrdersByRange(subDays(new Date(), 365), new Date(), filterBasis);
+          else fetchOrdersByRange(new Date(2000, 0, 1), new Date(), filterBasis);
         }
       }
     };
     
     autoClose();
   }, [loading, orders, supabase]);
+
 
   const filteredOrders = useMemo(() => {
     return orders.filter(order => {

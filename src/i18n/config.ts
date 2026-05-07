@@ -3,6 +3,7 @@ export const SUPPORTED_LOCALES = [
   "en",
   "vi",
   "zh",
+  "zh-TW",
   "ja",
   "es",
   "pt",
@@ -12,6 +13,10 @@ export const SUPPORTED_LOCALES = [
   "id",
   "ms",
   "th",
+  "nl",
+  "it",
+  "hi",
+  "ar",
   "en-US",
   "en-GB",
   "en-AU",
@@ -60,6 +65,7 @@ export function normalizeLocale(input?: string | null): AppLocale {
 }
 
 export function toBaseLocale(locale: AppLocale): AppLocale {
+  if (locale.toLowerCase() === "zh-tw") return resolveLocale("zh-TW");
   const base = locale.split("-")[0];
   return resolveLocale(base);
 }
@@ -71,6 +77,7 @@ export function bcp47LangTag(baseLocale: string): string {
     vi: "vi",
     en: "en",
     zh: "zh",
+    "zh-TW": "zh-TW",
     ja: "ja",
     es: "es",
     pt: "pt",
@@ -80,6 +87,10 @@ export function bcp47LangTag(baseLocale: string): string {
     id: "id",
     ms: "ms",
     th: "th",
+    nl: "nl",
+    it: "it",
+    hi: "hi",
+    ar: "ar",
   };
   return map[baseLocale] ?? "en";
 }
@@ -91,6 +102,7 @@ export function speechRecognitionLangTag(baseLocale: string): string {
     vi: "vi-VN",
     en: "en-US",
     zh: "zh-CN",
+    "zh-TW": "zh-TW",
     ja: "ja-JP",
     es: "es-ES",
     pt: "pt-BR",
@@ -100,6 +112,10 @@ export function speechRecognitionLangTag(baseLocale: string): string {
     id: "id-ID",
     ms: "ms-MY",
     th: "th-TH",
+    nl: "nl-NL",
+    it: "it-IT",
+    hi: "hi-IN",
+    ar: "ar-SA",
   };
   return map[baseLocale] ?? "en-US";
 }

@@ -13,7 +13,7 @@ export type UiStringBundle = {
   en: string;
 } & Partial<
   Record<
-    "ja" | "vi" | "zh" | "es" | "pt" | "fr" | "de" | "ru",
+    "ja" | "vi" | "zh" | "zh-TW" | "es" | "pt" | "fr" | "de" | "ru",
     string
   >
 >;

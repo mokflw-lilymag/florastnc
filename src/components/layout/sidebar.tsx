@@ -275,35 +275,35 @@ export function Sidebar({
     <aside className={cn("flex w-64 flex-col bg-white border-r border-slate-100 h-full z-20 shadow-sm", className)}>
       <div className="p-6 pb-2">
         {logoUrl ? (
-          <Image
-            src={logoUrl}
-            alt={t.sidebar.altStoreLogo}
-            width={180}
-            height={40}
-            priority={true}
-            style={{ width: 'auto', height: 'auto', maxHeight: '40px' }}
-            className="h-10 w-auto object-contain mx-auto mix-blend-multiply dark:mix-blend-normal dark:invert"
-          />
-        ) : (
-          <div className="flex items-center justify-center py-1">
             <Image
-              src="/images/floxync-logo-dark.png"
-              alt={t.sidebar.altBrandLogo}
-              width={160}
-              height={36}
+              src={logoUrl}
+              alt={t.sidebar.altStoreLogo}
+              width={180}
+              height={40}
               priority={true}
-              style={{ width: 'auto', height: 'auto', maxHeight: '36px' }}
-              className="h-9 w-auto object-contain mx-auto dark:hidden"
+              style={{ width: 'auto', maxHeight: '40px', height: '40px', objectFit: 'contain' }}
+              className="mx-auto mix-blend-multiply dark:mix-blend-normal dark:invert"
             />
-            <Image
-              src="/images/floxync-logo-white.png"
-              alt={t.sidebar.altBrandLogo}
-              width={160}
-              height={36}
-              priority={true}
-              style={{ width: 'auto', height: 'auto', maxHeight: '36px' }}
-              className="h-9 w-auto object-contain mx-auto hidden dark:block"
-            />
+          ) : (
+            <div className="flex items-center justify-center py-1">
+              <Image
+                src="/images/floxync-logo-dark.png"
+                alt={t.sidebar.altBrandLogo}
+                width={160}
+                height={36}
+                priority={true}
+                style={{ width: 'auto', height: '36px', objectFit: 'contain' }}
+                className="mx-auto dark:hidden"
+              />
+              <Image
+                src="/images/floxync-logo-white.png"
+                alt={t.sidebar.altBrandLogo}
+                width={160}
+                height={36}
+                priority={true}
+                style={{ width: 'auto', height: '36px', objectFit: 'contain' }}
+                className="mx-auto hidden dark:block"
+              />
           </div>
         )}
         <div className="mt-3 text-center">

@@ -48,7 +48,7 @@ export function downloadTemplate(type: "product" | "material" | "supplier", uiLo
       ];
       sample = [["P01", "祝い花輪3段", "慶弔", "祝花", 100000, 10, "自社制作", "active"]];
       filename = "shohin_toroku_template.xlsx";
-    } else if (base === "zh") {
+    } else if (base === "zh" || base === "zh-TW") {
       headers = [
         "商品编码",
         "商品名称",
@@ -157,7 +157,7 @@ export function downloadTemplate(type: "product" | "material" | "supplier", uiLo
         ["株式会社フラワー卸", "生花", "02-123-4567", "担当者", "contact@flower.com", "ソウル", "午前配送"],
       ];
       filename = "torihikisaki_toroku_template.xlsx";
-    } else if (base === "zh") {
+    } else if (base === "zh" || base === "zh-TW") {
       headers = ["伙伴名称", "类型", "联系方式", "负责人", "邮箱", "地址", "备注"];
       sample = [
         ["ABC鲜花批发", "鲜切花", "02-123-4567", "王经理", "contact@flower.com", "首尔", "上午配送"],
@@ -239,7 +239,7 @@ export function downloadTemplate(type: "product" | "material" | "supplier", uiLo
       ];
       sample = [["1", "", "大きなリボン(ピンク)", "副資材", "リボン", "ロール", "10cm*50m", 5000, "ピンク", 20, "ABC商事", ""]];
       filename = "zaizai_toroku_template.xlsx";
-    } else if (base === "zh") {
+    } else if (base === "zh" || base === "zh-TW") {
       headers = [
         "编号",
         "物料ID",
@@ -370,6 +370,7 @@ export function downloadTemplate(type: "product" | "material" | "supplier", uiLo
     "Mẫu",
     "テンプレート",
     "模板",
+    "模板",
     "Plantilla",
     "Modelo",
     "Modèle",
@@ -414,7 +415,7 @@ export function exportDataToExcel(type: "product" | "material" | "supplier", lis
     } else if (base === "ja") {
       headers = ["商品コード", "商品名", "大分類", "中分類", "販売価格", "在庫", "仕入先", "状態"];
       filename = `shohin_ichiran_${dateStamp}.xlsx`;
-    } else if (base === "zh") {
+    } else if (base === "zh" || base === "zh-TW") {
       headers = ["商品编码", "商品名称", "大类", "中类", "售价", "库存", "供应商", "状态"];
       filename = `product_list_zh_${dateStamp}.xlsx`;
     } else if (base === "es") {
@@ -517,7 +518,7 @@ export function exportDataToExcel(type: "product" | "material" | "supplier", lis
     } else if (base === "ja") {
       headers = ["取引先名", "連絡先", "メール", "事業者番号", "住所", "メモ"];
       filename = `torihikisaki_ichiran_${dateStamp}.xlsx`;
-    } else if (base === "zh") {
+    } else if (base === "zh" || base === "zh-TW") {
       headers = ["伙伴名称", "联系方式", "邮箱", "税号", "地址", "备注"];
       filename = `supplier_list_zh_${dateStamp}.xlsx`;
     } else if (base === "es") {
@@ -583,7 +584,7 @@ export function exportDataToExcel(type: "product" | "material" | "supplier", lis
         "メモ",
       ];
       filename = `zaizai_ichiran_${dateStamp}.xlsx`;
-    } else if (base === "zh") {
+    } else if (base === "zh" || base === "zh-TW") {
       headers = [
         "编号",
         "物料ID",
@@ -721,6 +722,7 @@ export function exportDataToExcel(type: "product" | "material" | "supplier", lis
     "Dữ liệu",
     "データ",
     "数据",
+    "資料",
     "Datos",
     "Dados",
     "Données",
@@ -774,6 +776,7 @@ export function excelManagerMemoPrefix(uiLocale?: string): string {
       "Người phụ trách",
       "担当",
       "负责人",
+      "負責人",
       "Responsable",
       "Responsável",
       "Responsable",
@@ -822,6 +825,7 @@ export function productImportHeaderAliases(uiLocale?: string) {
         status: X(["状態(active/inactive)", "状態"]),
       };
     case "zh":
+    case "zh-TW":
       return {
         code: X(["商品编码"]),
         name: X(["商品名称"]),
@@ -940,6 +944,7 @@ export function supplierImportHeaderAliases(uiLocale?: string) {
         memo: X(["メモ"]),
       };
     case "zh":
+    case "zh-TW":
       return {
         name: X(["伙伴名称"]),
         supplier_type: X(["类型"]),
@@ -1064,6 +1069,7 @@ export function materialImportHeaderAliases(uiLocale?: string) {
         memo: X(["メモ"]),
       };
     case "zh":
+    case "zh-TW":
       return {
         name: X(["物料名称"]),
         main_category: X(["大类"]),
