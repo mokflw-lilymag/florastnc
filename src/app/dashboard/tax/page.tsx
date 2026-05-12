@@ -26,6 +26,8 @@ import {
 import { useSettings } from "@/hooks/use-settings";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
+import { pickUiText } from "@/i18n/pick-ui-text";
+import { KoreaTaxAssistPanel } from "./components/korea-tax-assist-panel";
 
 type TaxLine = "materials" | "labor" | "rent" | "utility" | "transportation" | "marketing" | "etc";
 
@@ -314,6 +316,17 @@ export default function TaxPage() {
         </div>
       </div>
 
+      <section className="space-y-3" aria-labelledby="kr-tax-assist-heading">
+        <h2 id="kr-tax-assist-heading" className="text-sm font-semibold text-slate-800 tracking-tight">
+          {pickUiText(
+            baseLocale,
+            "한국 소규모 사업장 세무·장부 도우미",
+            "Korea small-business tax & bookkeeping helper",
+          )}
+        </h2>
+        <KoreaTaxAssistPanel viewYear={viewYear} />
+      </section>
+
       {loading ? (
         <div className="grid gap-4 md:grid-cols-4">
           {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-28 rounded-2xl" />)}
@@ -450,9 +463,9 @@ export default function TaxPage() {
                   {tf.f02433.replace("{year}", String(viewYear))}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="h-[320px] w-full mt-4">
-                <div className="w-full h-full min-h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%" debounce={50}>
+              <CardContent className="mt-4 min-h-[320px] min-w-0 w-full">
+                <div className="h-[300px] w-full min-w-0">
+                  <ResponsiveContainer width="100%" height={300} debounce={50}>
                     <BarChart data={monthlyData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                       <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#94a3b8" }} />

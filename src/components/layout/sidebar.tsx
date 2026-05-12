@@ -281,8 +281,8 @@ export function Sidebar({
               width={180}
               height={40}
               priority={true}
-              style={{ width: 'auto', maxHeight: '40px', height: '40px', objectFit: 'contain' }}
               className="mx-auto mix-blend-multiply dark:mix-blend-normal dark:invert"
+              style={{ width: "auto", height: "auto", maxHeight: "40px", objectFit: "contain" }}
             />
           ) : (
             <div className="flex items-center justify-center py-1">
@@ -292,7 +292,7 @@ export function Sidebar({
                 width={160}
                 height={36}
                 priority={true}
-                style={{ width: 'auto', height: '36px', objectFit: 'contain' }}
+                style={{ width: "auto", height: "auto", maxHeight: "36px", objectFit: "contain" }}
                 className="mx-auto dark:hidden"
               />
               <Image
@@ -301,7 +301,7 @@ export function Sidebar({
                 width={160}
                 height={36}
                 priority={true}
-                style={{ width: 'auto', height: '36px', objectFit: 'contain' }}
+                style={{ width: "auto", height: "auto", maxHeight: "36px", objectFit: "contain" }}
                 className="mx-auto hidden dark:block"
               />
           </div>
