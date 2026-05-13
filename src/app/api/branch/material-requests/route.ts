@@ -14,7 +14,6 @@ import {
   errBranchMatLineDupName,
   errBranchMatLineMaterialNotFound,
   errBranchMatLineRequiredFields,
-  errBranchMatLineSimilar,
   errBranchMatLinesTableMissing,
   errBranchMatMaxLines,
   errBranchMatNeedOneLine,
@@ -27,7 +26,6 @@ import {
 } from "@/lib/branch/branch-material-request-api-errors";
 import {
   compactMaterialName,
-  findBlockingSimilarMaterialNames,
 } from "@/lib/material-request-name-similarity";
 
 type LineInput = {
@@ -221,13 +219,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: errBranchMatStoreNotLinkedToOrg(bl) }, { status: 403 });
   }
 
-  const { data: materialRows } = await admin
-    .from("materials")
-    .select("id, name")
-    .eq("tenant_id", effectiveTenant);
-
-  const materialsPool = (materialRows ?? []).map((m) => ({ name: String(m.name) }));
-
   const normalized: Array<{
     material_id: string | null;
     name: string;
@@ -268,16 +259,6 @@ export async function POST(req: Request) {
       if (!mat) {
         return NextResponse.json({ error: errBranchMatLineMaterialNotFound(bl, i + 1) }, { status: 400 });
       }
-    }
-
-    const similar = findBlockingSimilarMaterialNames(name, materialsPool, namesSoFar);
-    if (similar.length > 0) {
-      return NextResponse.json(
-        {
-          error: errBranchMatLineSimilar(bl, i + 1, name, similar.slice(0, 5).join(", ")),
-        },
-        { status: 400 }
-      );
     }
 
     if (namesSoFar.some((x) => compactMaterialName(x) === compactMaterialName(name))) {

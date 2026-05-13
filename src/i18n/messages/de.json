@@ -103,7 +103,9 @@
       "designStudio": "Kartendesign",
       "pos": "POS",
       "settings": "Einstellungen",
-      "subscription": "Abonnement"
+      "subscription": "Abonnement",
+      "purchases": "Purchases",
+      "suppliers": "Suppliers"
     },
     "admin": {
       "newOrder": "Neue Bestellung",
@@ -117,6 +119,24 @@
       "designTemplates": "Designvorlagen",
       "globalSettings": "Globale Einstellungen",
       "storeSettings": "Laden-Einstellungen"
+    },
+    "hub": {
+      "pageTitle": "Work hub",
+      "groupOrder": "Orders",
+      "groupManage": "Catalog & stock",
+      "groupSpend": "Purchasing & expenses",
+      "emptyTitle": "No shortcuts on this hub",
+      "emptyBody": "Your current plan hides order, inventory, and purchase shortcuts here. Open Subscription to check Pro or ERP plans, or use ribbon-only features on desktop web.",
+      "emptyCta": "View plans"
+    },
+    "contextNav": {
+      "ariaLabel": "Jump within this menu group",
+      "mainHome": "Home hub"
+    },
+    "superAdminBlock": {
+      "title": "Admin accounts",
+      "body": "Platform admin and system tools are for desktop web only. This app is for store day-to-day work.",
+      "logout": "Log out"
     }
   },
   "dashboardHeader": {
@@ -2033,7 +2053,7 @@
     "f01742": "Material-ID",
     "f01743": "Klassifizierungssystem für die Verwaltung von Materialien (Blumen, Pflanzen, Verpackungen usw.).",
     "f01744": "Materialien/Blumen",
-    "f01745": "Wählen Sie vorhandene Materialien aus oder geben Sie den Artikel/die Kategorie manuell ein, um den Hauptsitz anzufordern. Ähnliche Namen werden blockiert, um Duplikate zu verhindern.",
+    "f01745": "Wählen Sie vorhandene Materialien aus oder geben Sie den Artikel/die Kategorie manuell ein, um den Hauptsitz anzufordern.",
     "f01746": "Material",
     "f01747": "Suchmaterial, Mittelkategorie, Lieferant...",
     "f01748": "Wählen Sie aus Materialien (optional)",

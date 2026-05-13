@@ -16,17 +16,14 @@ import {
   Share2,
   Sparkles,
   Layout,
-  Monitor,
-  Settings,
-  Gem,
-  ShieldCheck,
-  Store,
   FileText,
   Megaphone,
+  ShoppingCart,
+  Store,
+  ClipboardList,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsCapacitorAndroid } from "@/hooks/use-capacitor-android";
-import { useAuth } from "@/hooks/use-auth";
 import {
   Sheet,
   SheetContent,
@@ -39,12 +36,16 @@ import { getMessages } from "@/i18n/getMessages";
 
 type MoreItem = { href: string; label: string; icon: typeof BarChart3 };
 
-export function AndroidAppChrome() {
+type AndroidAppChromeProps = {
+  /** 서버 레이아웃에서 전달 — 슈퍼관리자는 앱 하단 메뉴 비노출 */
+  serverIsSuperAdmin?: boolean;
+};
+
+export function AndroidAppChrome({ serverIsSuperAdmin = false }: AndroidAppChromeProps) {
   const locale = usePreferredLocale();
   const A = getMessages(locale).androidChrome;
   const isAndroidApp = useIsCapacitorAndroid();
   const pathname = usePathname() || "";
-  const { profile, isLoading } = useAuth();
   const [moreOpen, setMoreOpen] = useState(false);
 
   const primaryNav = [
@@ -70,43 +71,29 @@ export function AndroidAppChrome() {
   ];
 
   const T = A.tenant;
-  const Ad = A.admin;
+  const L = getMessages(locale).dashboardCommon.sidebar.links;
 
   const tenantMoreLinks: MoreItem[] = [
     { href: "/dashboard/org-board", label: T.orgBoard, icon: Megaphone },
+    { href: "/dashboard/material-requests", label: L.branchMaterials, icon: ClipboardList },
     { href: "/dashboard/orders/new", label: T.newOrder, icon: Plus },
     { href: "/dashboard/reports", label: T.reports, icon: BarChart3 },
     { href: "/dashboard/analytics", label: T.analytics, icon: BarChart3 },
-    { href: "/dashboard/expenses", label: T.expenses, icon: CreditCard },
     { href: "/dashboard/tax", label: T.tax, icon: FileText },
+    { href: "/dashboard/purchases", label: T.purchases, icon: ShoppingCart },
+    { href: "/dashboard/expenses", label: T.expenses, icon: CreditCard },
+    { href: "/dashboard/suppliers", label: T.suppliers, icon: Store },
     { href: "/dashboard/inventory", label: T.inventory, icon: Boxes },
     { href: "/dashboard/products", label: T.products, icon: Boxes },
     { href: "/dashboard/external-orders", label: T.externalOrders, icon: Share2 },
     { href: "/dashboard/marketing", label: T.marketing, icon: Sparkles },
     { href: "/dashboard/design-studio", label: T.designStudio, icon: Layout },
-    { href: "/dashboard/settings/pos", label: T.pos, icon: Monitor },
-    { href: "/dashboard/settings", label: T.settings, icon: Settings },
-    { href: "/dashboard/subscription", label: T.subscription, icon: Gem },
-  ];
-
-  const adminMoreLinks: MoreItem[] = [
-    { href: "/dashboard/orders/new", label: Ad.newOrder, icon: Plus },
-    { href: "/dashboard/admin/staff", label: Ad.staff, icon: Users },
-    { href: "/dashboard/admin/checklist", label: Ad.checklist, icon: ShieldCheck },
-    { href: "/dashboard/tenants", label: Ad.tenants, icon: Store },
-    { href: "/dashboard/billing-admin", label: Ad.billing, icon: CreditCard },
-    { href: "/dashboard/announcements", label: Ad.announcements, icon: FileText },
-    { href: "/dashboard/admin/faq", label: Ad.faqAi, icon: FileText },
-    { href: "/dashboard/marketing/admin", label: Ad.platformMarketing, icon: Sparkles },
-    { href: "/dashboard/admin/design-templates", label: Ad.designTemplates, icon: Layout },
-    { href: "/dashboard/system-settings", label: Ad.globalSettings, icon: Settings },
-    { href: "/dashboard/settings", label: Ad.storeSettings, icon: Settings },
   ];
 
   if (!isAndroidApp) return null;
+  if (serverIsSuperAdmin) return null;
 
-  const isSuperAdmin = profile?.role === "super_admin";
-  const moreItems = isSuperAdmin ? adminMoreLinks : tenantMoreLinks;
+  const moreItems = tenantMoreLinks;
 
   const moreActive = moreItems.some(
     (item) => pathname === item.href || pathname.startsWith(`${item.href}/`)
@@ -175,11 +162,6 @@ export function AndroidAppChrome() {
             <SheetTitle>{A.sheetTitle}</SheetTitle>
             <SheetDescription className="sr-only">{A.sheetDescriptionSr}</SheetDescription>
           </SheetHeader>
-          {!isLoading && isSuperAdmin ? (
-            <p className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900 dark:bg-amber-950/50 dark:text-amber-100">
-              {A.adminDesktopHint}
-            </p>
-          ) : null}
           <ul className="mt-4 max-h-[60vh] space-y-0.5 overflow-y-auto pb-8">
             {moreItems.map((item) => {
               const Icon = item.icon;

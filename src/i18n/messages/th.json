@@ -103,7 +103,9 @@
       "designStudio": "การออกแบบการ์ด",
       "pos": "POS",
       "settings": "การตั้งค่า",
-      "subscription": "การสมัครสมาชิก"
+      "subscription": "การสมัครสมาชิก",
+      "purchases": "Purchases",
+      "suppliers": "Suppliers"
     },
     "admin": {
       "newOrder": "คำสั่งซื้อใหม่",
@@ -117,6 +119,24 @@
       "designTemplates": "เทมเพลตการออกแบบ",
       "globalSettings": "การตั้งค่าทั่วโลก",
       "storeSettings": "การตั้งค่าร้านค้า"
+    },
+    "hub": {
+      "pageTitle": "Work hub",
+      "groupOrder": "Orders",
+      "groupManage": "Catalog & stock",
+      "groupSpend": "Purchasing & expenses",
+      "emptyTitle": "No shortcuts on this hub",
+      "emptyBody": "Your current plan hides order, inventory, and purchase shortcuts here. Open Subscription to check Pro or ERP plans, or use ribbon-only features on desktop web.",
+      "emptyCta": "View plans"
+    },
+    "contextNav": {
+      "ariaLabel": "Jump within this menu group",
+      "mainHome": "Home hub"
+    },
+    "superAdminBlock": {
+      "title": "Admin accounts",
+      "body": "Platform admin and system tools are for desktop web only. This app is for store day-to-day work.",
+      "logout": "Log out"
     }
   },
   "dashboardHeader": {

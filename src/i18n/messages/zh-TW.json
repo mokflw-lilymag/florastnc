@@ -92,7 +92,9 @@
       "designStudio": "卡片設計",
       "pos": "POS",
       "settings": "設定",
-      "subscription": "訂閱"
+      "subscription": "訂閱",
+      "purchases": "Purchases",
+      "suppliers": "Suppliers"
     },
     "admin": {
       "newOrder": "新訂單",
@@ -116,7 +118,25 @@
     "fabNewOrderAria": "新訂單",
     "sheetTitle": "所有選單項目",
     "sheetDescriptionSr": "色帶印表機在 Android 應用程式中不可用。 請使用桌面瀏覽器。",
-    "adminDesktopHint": "某些管理功能在桌面網路上效果最佳。"
+    "adminDesktopHint": "某些管理功能在桌面網路上效果最佳。",
+    "hub": {
+      "pageTitle": "Work hub",
+      "groupOrder": "Orders",
+      "groupManage": "Catalog & stock",
+      "groupSpend": "Purchasing & expenses",
+      "emptyTitle": "No shortcuts on this hub",
+      "emptyBody": "Your current plan hides order, inventory, and purchase shortcuts here. Open Subscription to check Pro or ERP plans, or use ribbon-only features on desktop web.",
+      "emptyCta": "View plans"
+    },
+    "contextNav": {
+      "ariaLabel": "Jump within this menu group",
+      "mainHome": "Home hub"
+    },
+    "superAdminBlock": {
+      "title": "Admin accounts",
+      "body": "Platform admin and system tools are for desktop web only. This app is for store day-to-day work.",
+      "logout": "Log out"
+    }
   },
   "dashboardHeader": {
     "displayLanguageAria": "顯示語言",
@@ -2032,7 +2052,7 @@
     "f01742": "材料編號",
     "f01743": "用於管理材料（花卉、植物、包裝等）的分類系統。",
     "f01744": "材料/鮮花",
-    "f01745": "选择现有材料或手动输入项目/类别以请求总部。 相似的名稱會被屏蔽以防止重複。",
+    "f01745": "选择现有材料或手动输入项目/类别以请求总部。",
     "f01746": "材料",
     "f01747": "搜尋資料、中類、供應商...",
     "f01748": "從材料中選擇（可選）",

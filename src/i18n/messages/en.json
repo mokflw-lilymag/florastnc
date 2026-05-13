@@ -89,6 +89,24 @@
     "sheetTitle": "All menu items",
     "sheetDescriptionSr": "Ribbon printer is not available in the Android app. Please use a desktop browser.",
     "adminDesktopHint": "Some admin features work best on desktop web.",
+    "hub": {
+      "pageTitle": "Work hub",
+      "groupOrder": "Orders",
+      "groupManage": "Catalog & stock",
+      "groupSpend": "Purchasing & expenses",
+      "emptyTitle": "No shortcuts on this hub",
+      "emptyBody": "Your current plan hides order, inventory, and purchase shortcuts here. Open Subscription to check Pro or ERP plans, or use ribbon-only features on desktop web.",
+      "emptyCta": "View plans"
+    },
+    "contextNav": {
+      "ariaLabel": "Jump within this menu group",
+      "mainHome": "Home hub"
+    },
+    "superAdminBlock": {
+      "title": "Admin accounts",
+      "body": "Platform admin and system tools are for desktop web only. This app is for store day-to-day work.",
+      "logout": "Log out"
+    },
     "tenant": {
       "orgBoard": "HQ board",
       "newOrder": "New order",
@@ -98,6 +116,8 @@
       "tax": "Tax",
       "inventory": "Inventory",
       "products": "Products",
+      "purchases": "Purchases",
+      "suppliers": "Suppliers",
       "externalOrders": "Partner orders",
       "marketing": "AI Marketing",
       "designStudio": "Card design",
@@ -2033,7 +2053,7 @@
     "f01742": "Material ID",
     "f01743": "Classification system for managing materials (flowers, plants, packaging, etc.).",
     "f01744": "Materials/Flowers",
-    "f01745": "Select existing materials or enter item/category manually to request HQ. Similar names are blocked to prevent duplicates.",
+    "f01745": "Select existing materials or enter item/category manually to request from HQ.",
     "f01746": "Material",
     "f01747": "Search material, middle category, supplier...",
     "f01748": "Select from Materials (optional)",

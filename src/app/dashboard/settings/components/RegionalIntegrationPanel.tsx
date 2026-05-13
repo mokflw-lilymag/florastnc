@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Bell, CheckCircle2, Clock, ExternalLink } from "lucide-react";
+import Link from "next/link";
+import { Bell, CheckCircle2, Clock, ExternalLink, BookOpen } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -208,6 +209,17 @@ export function RegionalIntegrationPanel({
       </CardHeader>
 
       <CardContent className="p-6 space-y-8">
+        <div className="flex flex-col gap-2 rounded-xl border border-violet-200/80 bg-white/95 p-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs leading-relaxed text-slate-600">
+            <span className="font-semibold text-slate-800">연동·알림 장애 시</span> 공급사 콘솔에서 키를 발급하는 위치와 점검 순서는 가이드에 정리되어 있습니다. (키 값 저장은 슈퍼관리자 전용)
+          </p>
+          <Button size="sm" variant="secondary" className="shrink-0 gap-1.5 border-violet-200 bg-violet-50 text-violet-900 hover:bg-violet-100" asChild>
+            <Link href="/dashboard/admin/regional-keys/guide">
+              <BookOpen className="h-3.5 w-3.5" />
+              키 발급 가이드
+            </Link>
+          </Button>
+        </div>
         {sections.map((section) => (
           <div key={section} className="space-y-3">
             <h4 className="font-bold text-sm text-slate-700">

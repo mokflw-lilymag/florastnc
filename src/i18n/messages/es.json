@@ -103,7 +103,9 @@
       "designStudio": "Diseño de tarjetas",
       "pos": "POS",
       "settings": "Ajustes",
-      "subscription": "Suscripción"
+      "subscription": "Suscripción",
+      "purchases": "Purchases",
+      "suppliers": "Suppliers"
     },
     "admin": {
       "newOrder": "Nuevo pedido",
@@ -117,6 +119,24 @@
       "designTemplates": "Plantillas de diseño",
       "globalSettings": "Ajustes globales",
       "storeSettings": "Ajustes de tienda"
+    },
+    "hub": {
+      "pageTitle": "Work hub",
+      "groupOrder": "Orders",
+      "groupManage": "Catalog & stock",
+      "groupSpend": "Purchasing & expenses",
+      "emptyTitle": "No shortcuts on this hub",
+      "emptyBody": "Your current plan hides order, inventory, and purchase shortcuts here. Open Subscription to check Pro or ERP plans, or use ribbon-only features on desktop web.",
+      "emptyCta": "View plans"
+    },
+    "contextNav": {
+      "ariaLabel": "Jump within this menu group",
+      "mainHome": "Home hub"
+    },
+    "superAdminBlock": {
+      "title": "Admin accounts",
+      "body": "Platform admin and system tools are for desktop web only. This app is for store day-to-day work.",
+      "logout": "Log out"
     }
   },
   "dashboardHeader": {
@@ -2033,7 +2053,7 @@
     "f01742": "ID de material",
     "f01743": "Sistema de clasificación para gestionar materiales (flores, plantas, embalaje, etc.).",
     "f01744": "Materiales/Flores",
-    "f01745": "Seleccione materiales existentes o introduzca artículo/categoría manualmente para solicitar a la sede. Los nombres similares se bloquean para evitar duplicados.",
+    "f01745": "Seleccione materiales existentes o introduzca artículo/categoría manualmente para solicitar a la sede.",
     "f01746": "Material",
     "f01747": "Buscar material, categoría media, proveedor...",
     "f01748": "Seleccionar de materiales (opcional)",

@@ -127,6 +127,15 @@ const INTEGRATIONS: Record<string, RegionalIntegrationConfig> = {
         ringColor: "ring-orange-400",
         status: "coming_soon",
       },
+      {
+        platform: "be_vn",
+        label: "Be",
+        description: "Be Group 배달·퀵 B2B / 파트너 API (베트남)",
+        iconBg: "#00C853",
+        iconText: "B",
+        ringColor: "ring-emerald-500",
+        status: "coming_soon",
+      },
     ],
     messaging: [
       {

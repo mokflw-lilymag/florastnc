@@ -5,13 +5,15 @@ import { useAuth } from "@/hooks/use-auth";
 import { AccessDenied } from "@/components/access-denied";
 import { createClient } from "@/utils/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Loader2, Save, Key, Eye, EyeOff, CheckCircle2, ShieldCheck } from "lucide-react";
+import Link from "next/link";
+import { Loader2, Save, Key, Eye, EyeOff, CheckCircle2, ShieldCheck, BookOpen, ClipboardList, Globe2, ExternalLink } from "lucide-react";
 
 // ─── 국가별 API 키 정의 ──────────────────────────────────
 type KeyField = {
@@ -110,6 +112,70 @@ const COUNTRY_KEY_CONFIGS: CountryKeyConfig[] = [
           { id: "zalo_zns_app_id", label: "App ID", placeholder: "Zalo Developers에서 발급", helpUrl: "https://developers.zalo.me" },
           { id: "zalo_zns_secret_key", label: "Secret Key", placeholder: "App Secret Key", isSecret: true },
           { id: "zalo_zns_oa_id", label: "OA ID (Official Account ID)", placeholder: "Zalo 공식 채널 ID" },
+        ],
+      },
+      {
+        platform: "grab_express_vn",
+        platformLabel: "GrabExpress (베트남)",
+        iconBg: "#00B14F",
+        iconText: "G",
+        fields: [
+          {
+            id: "grab_vn_client_id",
+            label: "Client ID",
+            placeholder: "Grab for Developers / GrabMart API",
+            helpUrl: "https://developer.grab.com/",
+          },
+          { id: "grab_vn_client_secret", label: "Client Secret", placeholder: "Client Secret", isSecret: true },
+          { id: "grab_vn_merchant_id", label: "Merchant ID", placeholder: "Grab 파트너 가맹점 ID" },
+        ],
+      },
+      {
+        platform: "ahamove_vn",
+        platformLabel: "Ahamove (파트너 API)",
+        iconBg: "#F97316",
+        iconText: "A",
+        fields: [
+          {
+            id: "ahamove_vn_api_token",
+            label: "API Token / Partner Token",
+            placeholder: "Ahamove 파트너 콘솔에서 발급",
+            isSecret: true,
+            helpUrl: "https://ahamove.com/",
+          },
+          { id: "ahamove_vn_partner_id", label: "Partner ID (있을 경우)", placeholder: "가맹점·파트너 식별자" },
+        ],
+      },
+      {
+        platform: "be_vn",
+        platformLabel: "Be (Be Group · 베트남)",
+        iconBg: "#00C853",
+        iconText: "B",
+        fields: [
+          {
+            id: "be_vn_api_key",
+            label: "API Key / Access Key",
+            placeholder: "Be for Business·파트너 포털에서 계약 후 발급",
+            isSecret: true,
+            helpUrl: "https://be.com.vn/",
+          },
+          { id: "be_vn_client_id", label: "Client ID (OAuth·B2B)", placeholder: "콘솔에 표시되는 Client ID" },
+          { id: "be_vn_client_secret", label: "Client Secret", placeholder: "Client Secret", isSecret: true },
+        ],
+      },
+      {
+        platform: "shopee_vn",
+        platformLabel: "Shopee Vietnam",
+        iconBg: "#EE4D2D",
+        iconText: "S",
+        fields: [
+          {
+            id: "shopee_vn_partner_id",
+            label: "Partner ID",
+            placeholder: "Shopee Open Platform에서 발급",
+            helpUrl: "https://open.shopee.com/",
+          },
+          { id: "shopee_vn_partner_key", label: "Partner Key", placeholder: "Partner Key", isSecret: true },
         ],
       },
     ],
@@ -287,7 +353,8 @@ export default function RegionalKeysPage() {
   const [keyValues, setKeyValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [activeCountry, setActiveCountry] = useState("KR");
+  /** GLOBAL = 공통(Meta·Google 등) 안내 탭 — 저장 대상 국가 코드 아님 */
+  const [activeCountry, setActiveCountry] = useState<string>("GLOBAL");
 
   const loadKeys = useCallback(async () => {
     setLoading(true);
@@ -313,9 +380,13 @@ export default function RegionalKeysPage() {
   }, [authLoading, isSuperAdmin, loadKeys]);
 
   const handleSave = async (countryCode: string) => {
+    if (countryCode === "GLOBAL") return;
     setSaving(true);
     const config = COUNTRY_KEY_CONFIGS.find((c) => c.countryCode === countryCode);
-    if (!config) { setSaving(false); return; }
+    if (!config) {
+      setSaving(false);
+      return;
+    }
 
     try {
       const allFields = config.sections.flatMap((s) => s.fields);
@@ -348,19 +419,58 @@ export default function RegionalKeysPage() {
   return (
     <div className="container max-w-5xl mx-auto p-6 space-y-8">
       {/* 헤더 */}
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center shadow">
-          <ShieldCheck className="w-5 h-5 text-white" />
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center shadow shrink-0">
+            <ShieldCheck className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-black tracking-tight">국가별 API 키 관리</h1>
+            <p className="text-slate-500 text-sm">
+              <strong className="text-slate-700">국가별</strong> 공급사 키는 <code className="rounded bg-slate-100 px-1 text-xs">regional_key_*</code>로{" "}
+              <code className="rounded bg-slate-100 px-1 text-xs">platform_config</code>에 저장됩니다.{" "}
+              <strong className="text-slate-700">Meta·Google 등 공통 OAuth</strong>는 아래「공통」탭 안내에 따라{" "}
+              <strong>별 화면</strong>에서 저장합니다. 슈퍼관리자만 편집 가능합니다.
+            </p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-black tracking-tight">국가별 API 키 관리</h1>
-          <p className="text-slate-500 text-sm">국가별 연동 앱 API 키를 안전하게 관리합니다. 슈퍼관리자만 접근 가능합니다.</p>
-        </div>
+        <Link
+          href="/dashboard/admin/regional-keys/guide"
+          className={cn(
+            buttonVariants({ variant: "outline", size: "sm" }),
+            "inline-flex gap-1.5 shrink-0 border-indigo-200 bg-indigo-50/50 text-indigo-900 hover:bg-indigo-100",
+          )}
+        >
+          <BookOpen className="h-4 w-4" />
+          키 발급 가이드 (전체)
+        </Link>
       </div>
 
-      {/* 국가 탭 */}
+      {/* 슈퍼관리자 준비 체크리스트 */}
+      <Card className="border-0 shadow-sm ring-1 ring-amber-200/80 bg-amber-50/30 overflow-hidden">
+        <CardHeader className="py-3 px-4 flex-row items-center gap-2 border-b border-amber-100/80 bg-amber-50/50">
+          <ClipboardList className="h-4 w-4 text-amber-700 shrink-0" />
+          <CardTitle className="text-sm font-bold text-amber-950">저장 전에 준비할 것</CardTitle>
+        </CardHeader>
+        <CardContent className="p-4 text-xs text-amber-950/90 leading-relaxed space-y-2">
+          <ul className="list-disc pl-4 space-y-1 marker:text-amber-600">
+            <li>각 공급사 <strong>개발자/비즈니스 콘솔</strong>에서 앱·채널을 생성하고 심사(필요 시)까지 완료합니다.</li>
+            <li>이 화면의 <strong>필드 ID</strong>와 콘솔에서 복사한 값이 같은 종류인지 확인합니다 (REST 키 vs Client Secret 혼동 주의).</li>
+            <li>프로덕션·샌드박스 키를 섞지 않았는지, <strong>IP 제한·웹훅 URL</strong>이 있다면 FloXync 서버 환경에 맞게 콘솔에 반영합니다.</li>
+            <li>키 회전 시에는 <strong>다운타임</strong>을 고려해 새 키를 먼저 저장한 뒤 구 키를 폐기합니다.</li>
+            <li>가이드는 매장 관리자에게도 공유해, 장애 시 &quot;키 만료 vs 앱 버그&quot;를 빨리 가릴 수 있게 합니다.</li>
+          </ul>
+        </CardContent>
+      </Card>
+
+      {/* 공통 vs 국가별 탭 */}
       <Tabs value={activeCountry} onValueChange={setActiveCountry}>
         <TabsList className="flex flex-wrap gap-1 h-auto bg-slate-100 p-1.5 rounded-xl">
+          <TabsTrigger value="GLOBAL" className="rounded-lg gap-1.5 px-3 py-2 data-[state=active]:ring-2 data-[state=active]:ring-indigo-300">
+            <Globe2 className="h-3.5 w-3.5 shrink-0 text-indigo-600" />
+            <span className="font-bold text-xs">공통</span>
+            <span className="text-[10px] text-slate-500 font-normal hidden sm:inline">Meta·Google…</span>
+          </TabsTrigger>
           {COUNTRY_KEY_CONFIGS.map((c) => {
             const fieldCount = c.sections.flatMap((s) => s.fields).length;
             const filledCount = c.sections.flatMap((s) => s.fields).filter((f) => !!keyValues[f.id]).length;
@@ -377,6 +487,62 @@ export default function RegionalKeysPage() {
             );
           })}
         </TabsList>
+
+        <TabsContent value="GLOBAL" className="space-y-4 mt-4">
+          <Card className="border-0 shadow-sm ring-1 ring-indigo-200/80 bg-indigo-50/20 overflow-hidden">
+            <CardHeader className="py-4 px-5 border-b border-indigo-100/80 bg-indigo-50/40">
+              <CardTitle className="text-sm font-bold flex items-center gap-2">
+                <Globe2 className="h-4 w-4 text-indigo-600" />
+                공통(글로벌) 자격증명 — Meta, Google, TikTok, N8N 등
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-5 space-y-4 text-sm text-slate-700 leading-relaxed">
+              <p>
+                이 탭에서는 값을 저장하지 않습니다. <strong>여러 국가·여러 매장이 공유하는 앱 수준</strong> OAuth/웹훅은{" "}
+                <code className="rounded bg-white px-1 text-xs ring-1 ring-slate-200">platform_config</code>에{" "}
+                <strong className="text-slate-900">regional_key_ 접두사 없이</strong> 다른 키 이름으로 들어갑니다.
+              </p>
+              <ul className="list-disc pl-5 space-y-1.5 text-xs text-slate-600">
+                <li>
+                  <strong className="text-slate-800">관리자(플랫폼)</strong>: Meta 앱 ID/시크릿, Google 클라이언트, TikTok, Naver 개발자 앱, n8n 웹훅 URL →{" "}
+                  <strong>마케팅 연동 설정</strong> 화면에서 입력하세요.
+                </li>
+                <li>
+                  <strong className="text-slate-800">국가별 SNS·배달·몰 API</strong>(LINE JP, Zalo, Grab, Shopee 국가별 파트너 키 등): 오른쪽{" "}
+                  <strong>국가 탭</strong>에서 <code className="rounded bg-white px-0.5 text-[11px]">regional_key_*</code>로 저장합니다.
+                </li>
+                <li>
+                  <strong className="text-slate-800">매장(사용자)</strong>가 자기 스마트스토어·카페24에 연결할 <strong>클라이언트 ID/시크릿</strong>은{" "}
+                  <strong>설정 → 연동</strong>에서 <code className="rounded bg-white px-0.5 text-[11px]">shop_integrations</code> 테이블에 저장됩니다. 플랫폼 마스터 키와 역할이 다릅니다.
+                </li>
+              </ul>
+              <div className="flex flex-wrap gap-2 pt-1">
+                <Link
+                  href="/dashboard/admin/marketing"
+                  className={cn(
+                    buttonVariants({ variant: "default" }),
+                    "inline-flex gap-1.5 bg-indigo-600 text-white hover:bg-indigo-700",
+                  )}
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  마케팅 연동 설정 (Meta·Google…)
+                </Link>
+                <Link
+                  href="/dashboard/marketing/admin"
+                  className={cn(buttonVariants({ variant: "outline" }), "inline-flex gap-1.5")}
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  프로모션 마스터 (동일 DB, 다른 UI)
+                </Link>
+              </div>
+              <p className="text-[11px] text-slate-500 border-t border-indigo-100/80 pt-3">
+                국가 탭이 6개국만 있는 이유: 화면 필드가 <code className="text-[10px]">regional-keys/page.tsx</code>의{" "}
+                <code className="text-[10px]">COUNTRY_KEY_CONFIGS</code>에 정의된 국가만 노출됩니다. 다른 나라는 개발에서 배열·
+                <code className="text-[10px]">regional-integrations.ts</code>를 추가해야 합니다.
+              </p>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         {COUNTRY_KEY_CONFIGS.map((countryConfig) => (
           <TabsContent key={countryConfig.countryCode} value={countryConfig.countryCode} className="space-y-4 mt-4">

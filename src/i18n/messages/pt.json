@@ -103,7 +103,9 @@
       "designStudio": "Design de cartões",
       "pos": "POS",
       "settings": "Configurações",
-      "subscription": "Assinatura"
+      "subscription": "Assinatura",
+      "purchases": "Purchases",
+      "suppliers": "Suppliers"
     },
     "admin": {
       "newOrder": "Novo pedido",
@@ -117,6 +119,24 @@
       "designTemplates": "Modelos de design",
       "globalSettings": "Configurações globais",
       "storeSettings": "Configurações da loja"
+    },
+    "hub": {
+      "pageTitle": "Work hub",
+      "groupOrder": "Orders",
+      "groupManage": "Catalog & stock",
+      "groupSpend": "Purchasing & expenses",
+      "emptyTitle": "No shortcuts on this hub",
+      "emptyBody": "Your current plan hides order, inventory, and purchase shortcuts here. Open Subscription to check Pro or ERP plans, or use ribbon-only features on desktop web.",
+      "emptyCta": "View plans"
+    },
+    "contextNav": {
+      "ariaLabel": "Jump within this menu group",
+      "mainHome": "Home hub"
+    },
+    "superAdminBlock": {
+      "title": "Admin accounts",
+      "body": "Platform admin and system tools are for desktop web only. This app is for store day-to-day work.",
+      "logout": "Log out"
     }
   },
   "dashboardHeader": {
@@ -2033,7 +2053,7 @@
     "f01742": "ID do Material",
     "f01743": "Sistema de classificação para gestão de materiais (flores, plantas, embalagens, etc.).",
     "f01744": "Materiais/Flores",
-    "f01745": "Selecione materiais existentes ou insira item/categoria manualmente para solicitar ao QG. Nomes semelhantes são bloqueados para evitar duplicatas.",
+    "f01745": "Selecione materiais existentes ou insira item/categoria manualmente para solicitar ao QG.",
     "f01746": "Material",
     "f01747": "Pesquisar material, categoria intermediária, fornecedor...",
     "f01748": "Selecionar dos Materiais (opcional)",

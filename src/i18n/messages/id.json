@@ -103,7 +103,9 @@
       "designStudio": "Desain Kartu",
       "pos": "POS",
       "settings": "Pengaturan",
-      "subscription": "Langganan"
+      "subscription": "Langganan",
+      "purchases": "Purchases",
+      "suppliers": "Suppliers"
     },
     "admin": {
       "newOrder": "Pesanan baru",
@@ -117,6 +119,24 @@
       "designTemplates": "Templat desain",
       "globalSettings": "Pengaturan global",
       "storeSettings": "Pengaturan toko"
+    },
+    "hub": {
+      "pageTitle": "Work hub",
+      "groupOrder": "Orders",
+      "groupManage": "Catalog & stock",
+      "groupSpend": "Purchasing & expenses",
+      "emptyTitle": "No shortcuts on this hub",
+      "emptyBody": "Your current plan hides order, inventory, and purchase shortcuts here. Open Subscription to check Pro or ERP plans, or use ribbon-only features on desktop web.",
+      "emptyCta": "View plans"
+    },
+    "contextNav": {
+      "ariaLabel": "Jump within this menu group",
+      "mainHome": "Home hub"
+    },
+    "superAdminBlock": {
+      "title": "Admin accounts",
+      "body": "Platform admin and system tools are for desktop web only. This app is for store day-to-day work.",
+      "logout": "Log out"
     }
   },
   "dashboardHeader": {

@@ -179,12 +179,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
           plan={effectivePlan}
         />
         
-        <DashboardMain>
+        <DashboardMain serverIsSuperAdmin={isSuperAdmin}>
           {children}
         </DashboardMain>
 
         <QuickChat />
-        <AndroidAppChrome />
+        <AndroidAppChrome serverIsSuperAdmin={isSuperAdmin} />
       </div>
     </div>
   );

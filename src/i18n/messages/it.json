@@ -92,7 +92,9 @@
       "designStudio": "Progettazione della carta",
       "pos": "POS",
       "settings": "Impostazioni",
-      "subscription": "Sottoscrizione"
+      "subscription": "Sottoscrizione",
+      "purchases": "Purchases",
+      "suppliers": "Suppliers"
     },
     "admin": {
       "newOrder": "Nuovo ordine",
@@ -116,7 +118,25 @@
     "fabNewOrderAria": "Nuovo ordine",
     "sheetTitle": "Tutte le voci del menu",
     "sheetDescriptionSr": "La stampante a nastro non è disponibile nell'app Android. Si prega di utilizzare un browser desktop.",
-    "adminDesktopHint": "Alcune funzionalità di amministrazione funzionano meglio sul Web desktop."
+    "adminDesktopHint": "Alcune funzionalità di amministrazione funzionano meglio sul Web desktop.",
+    "hub": {
+      "pageTitle": "Work hub",
+      "groupOrder": "Orders",
+      "groupManage": "Catalog & stock",
+      "groupSpend": "Purchasing & expenses",
+      "emptyTitle": "No shortcuts on this hub",
+      "emptyBody": "Your current plan hides order, inventory, and purchase shortcuts here. Open Subscription to check Pro or ERP plans, or use ribbon-only features on desktop web.",
+      "emptyCta": "View plans"
+    },
+    "contextNav": {
+      "ariaLabel": "Jump within this menu group",
+      "mainHome": "Home hub"
+    },
+    "superAdminBlock": {
+      "title": "Admin accounts",
+      "body": "Platform admin and system tools are for desktop web only. This app is for store day-to-day work.",
+      "logout": "Log out"
+    }
   },
   "dashboardHeader": {
     "displayLanguageAria": "Lingua di visualizzazione",
@@ -2032,7 +2052,7 @@
     "f01742": "Identificativo del materiale",
     "f01743": "Sistema di classificazione per la gestione dei materiali (fiori, piante, imballaggi, ecc.).",
     "f01744": "Materiali/Fiori",
-    "f01745": "Seleziona i materiali esistenti o inserisci manualmente l'articolo/categoria per richiedere HQ. I nomi simili vengono bloccati per evitare duplicati.",
+    "f01745": "Seleziona i materiali esistenti o inserisci manualmente l'articolo/categoria per richiedere HQ.",
     "f01746": "Materiale",
     "f01747": "Cerca materiale, categoria media, fornitore...",
     "f01748": "Seleziona dai materiali (facoltativo)",

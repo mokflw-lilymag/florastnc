@@ -103,7 +103,9 @@
       "designStudio": "Conception de cartes",
       "pos": "POS",
       "settings": "Paramètres",
-      "subscription": "Abonnement"
+      "subscription": "Abonnement",
+      "purchases": "Purchases",
+      "suppliers": "Suppliers"
     },
     "admin": {
       "newOrder": "Nouvelle commande",
@@ -117,6 +119,24 @@
       "designTemplates": "Modèles de design",
       "globalSettings": "Paramètres globaux",
       "storeSettings": "Paramètres du magasin"
+    },
+    "hub": {
+      "pageTitle": "Work hub",
+      "groupOrder": "Orders",
+      "groupManage": "Catalog & stock",
+      "groupSpend": "Purchasing & expenses",
+      "emptyTitle": "No shortcuts on this hub",
+      "emptyBody": "Your current plan hides order, inventory, and purchase shortcuts here. Open Subscription to check Pro or ERP plans, or use ribbon-only features on desktop web.",
+      "emptyCta": "View plans"
+    },
+    "contextNav": {
+      "ariaLabel": "Jump within this menu group",
+      "mainHome": "Home hub"
+    },
+    "superAdminBlock": {
+      "title": "Admin accounts",
+      "body": "Platform admin and system tools are for desktop web only. This app is for store day-to-day work.",
+      "logout": "Log out"
     }
   },
   "dashboardHeader": {
@@ -2033,7 +2053,7 @@
     "f01742": "ID du matériau",
     "f01743": "Système de classification pour la gestion des matériaux (fleurs, plantes, emballages, etc.).",
     "f01744": "Matériaux/Fleurs",
-    "f01745": "Sélectionnez les matériaux existants ou entrez manuellement l'article/la catégorie pour demander le QG. Les noms similaires sont bloqués pour éviter les doublons.",
+    "f01745": "Sélectionnez les matériaux existants ou entrez manuellement l'article/la catégorie pour demander le QG.",
     "f01746": "Matérielle",
     "f01747": "Recherche matériel, catégorie intermédiaire, fournisseur...",
     "f01748": "Sélectionnez parmi les matériaux (facultatif)",

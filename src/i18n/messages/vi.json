@@ -103,7 +103,9 @@
       "designStudio": "Thiết kế thiệp",
       "pos": "POS",
       "settings": "Cài đặt",
-      "subscription": "Gói đăng ký"
+      "subscription": "Gói đăng ký",
+      "purchases": "Purchases",
+      "suppliers": "Suppliers"
     },
     "admin": {
       "newOrder": "Đơn mới",
@@ -117,6 +119,24 @@
       "designTemplates": "Mẫu thiết kế",
       "globalSettings": "Cài đặt toàn cục",
       "storeSettings": "Cài đặt cửa hàng"
+    },
+    "hub": {
+      "pageTitle": "Work hub",
+      "groupOrder": "Orders",
+      "groupManage": "Catalog & stock",
+      "groupSpend": "Purchasing & expenses",
+      "emptyTitle": "No shortcuts on this hub",
+      "emptyBody": "Your current plan hides order, inventory, and purchase shortcuts here. Open Subscription to check Pro or ERP plans, or use ribbon-only features on desktop web.",
+      "emptyCta": "View plans"
+    },
+    "contextNav": {
+      "ariaLabel": "Jump within this menu group",
+      "mainHome": "Home hub"
+    },
+    "superAdminBlock": {
+      "title": "Admin accounts",
+      "body": "Platform admin and system tools are for desktop web only. This app is for store day-to-day work.",
+      "logout": "Log out"
     }
   },
   "dashboardHeader": {
@@ -2033,7 +2053,7 @@
     "f01742": "ID vật liệu",
     "f01743": "Hệ thống phân loại quản lý vật liệu (hoa, cây, bao bì v.v.).",
     "f01744": "Vật liệu/Hoa",
-    "f01745": "Chọn vật liệu có sẵn hoặc nhập mặt hàng/danh mục thủ công để yêu cầu HQ. Tên tương tự bị chặn tránh trùng.",
+    "f01745": "Chọn vật liệu có sẵn hoặc nhập mặt hàng/danh mục thủ công để yêu cầu HQ.",
     "f01746": "Vật liệu",
     "f01747": "Tìm vật liệu, danh mục trung, NCC...",
     "f01748": "Chọn từ vật liệu (tùy chọn)",

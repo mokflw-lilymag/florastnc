@@ -51,6 +51,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { cn } from "@/lib/utils";
 import { DashboardTicker } from "@/components/dashboard/dashboard-ticker";
+import { DashboardAndroidHub } from "@/components/layout/dashboard-android-hub";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
 import { pickUiText } from "@/i18n/pick-ui-text";
@@ -408,6 +409,15 @@ export default function DashboardPage() {
     );
   }
 
+  if (isAndroidApp && !isSuperAdmin && !hqOnlyNoWorkContext) {
+    return (
+      <div className="space-y-6 pb-28 max-w-lg mx-auto animate-in fade-in duration-500">
+        <DashboardTicker />
+        <DashboardAndroidHub />
+      </div>
+    );
+  }
+
   // --- SUPER ADMIN VIEW ---
   if (isSuperAdmin) {
     return (
@@ -527,8 +537,7 @@ export default function DashboardPage() {
   return (
     <div className={cn(
       "space-y-6 max-w-7xl mx-auto animate-in fade-in duration-700 font-light",
-      touchUi ? "p-4 pb-8 sm:p-6" : "p-6 pb-12",
-      isAndroidApp && "pb-28"
+      touchUi ? "p-4 pb-8 sm:p-6" : "p-6 pb-12"
     )}>
       <DashboardTicker />
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

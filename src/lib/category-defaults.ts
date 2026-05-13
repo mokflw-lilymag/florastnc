@@ -27,7 +27,18 @@ export const DEFAULT_PRODUCT_CATEGORIES: CategoryData = {
 };
 
 export const DEFAULT_MATERIAL_CATEGORIES: CategoryData = {
-  main: ["생화", "식물", "부자재", "바구니 / 화기", "소모품 및 부자재", "조화", "프리저브드", "포장재", "리본", "기타"],
+  main: [
+    "생화",
+    "조화",
+    "프리저브드",
+    "식물",
+    "바구니 / 화기",
+    "소모품 및 부자재",
+    "부자재",
+    "포장재",
+    "리본",
+    "기타",
+  ],
   mid: {
     "생화": ["장미류", "거베라류", "리시안서스류", "튤립류", "카네이션류", "국화류", "필러플라워", "라인플라워", "폼플라워", "소재(그린)", "절지류", "기타"],
     "식물": ["선인장", "관엽소품", "관엽소형", "관엽중품", "관엽중형", "관엽대품", "관엽대형", "서양란", "동양란", "기타식물"],
@@ -41,6 +52,39 @@ export const DEFAULT_MATERIAL_CATEGORIES: CategoryData = {
     "기타": ["원예자재", "배송장비", "기타"]
   }
 };
+
+const MATERIAL_MAIN_NORMALIZE = (s: string) =>
+  s.replace(/\s+/g, " ").replace(/\s*\/\s*/g, " / ").trim();
+
+function materialMainCanonicalIndex(name: string): number {
+  const canonical = DEFAULT_MATERIAL_CATEGORIES.main;
+  const direct = canonical.indexOf(name);
+  if (direct >= 0) return direct;
+  const n = MATERIAL_MAIN_NORMALIZE(name);
+  for (let i = 0; i < canonical.length; i++) {
+    if (MATERIAL_MAIN_NORMALIZE(canonical[i]!) === n) return i;
+  }
+  const compact = (s: string) => s.replace(/[\s/]/g, "").toLowerCase();
+  const nc = compact(name);
+  for (let i = 0; i < canonical.length; i++) {
+    if (compact(canonical[i]!) === nc) return i;
+  }
+  return 9999;
+}
+
+/**
+ * 자재 대분류 탭·셀렉트 표시 순서.
+ * 테넌트 설정에 저장된 순서와 무관하게 `DEFAULT_MATERIAL_CATEGORIES.main` 기준으로 정렬하고,
+ * 기본 목록에 없는 대분류는 뒤에 가나다순으로 붙입니다.
+ */
+export function sortMaterialMainCategoriesForDisplay(mains: string[]): string[] {
+  return [...mains].sort((a, b) => {
+    const ia = materialMainCanonicalIndex(a);
+    const ib = materialMainCanonicalIndex(b);
+    if (ia !== ib) return ia - ib;
+    return a.localeCompare(b, "ko");
+  });
+}
 
 /**
  * 지출 카테고리 — 릴리맥 ERP 간편 지출관리 10대분류·세부 정렬 기준

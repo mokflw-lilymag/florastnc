@@ -193,6 +193,25 @@ export type AndroidChromeMessages = {
   sheetTitle: string;
   sheetDescriptionSr: string;
   adminDesktopHint: string;
+  hub: {
+    pageTitle: string;
+    groupOrder: string;
+    groupManage: string;
+    groupSpend: string;
+    /** 허브 카드가 플랜 필터로 모두 숨겨질 때 */
+    emptyTitle: string;
+    emptyBody: string;
+    emptyCta: string;
+  };
+  contextNav: {
+    ariaLabel: string;
+    mainHome: string;
+  };
+  superAdminBlock: {
+    title: string;
+    body: string;
+    logout: string;
+  };
   tenant: {
     orgBoard: string;
     newOrder: string;
@@ -202,6 +221,8 @@ export type AndroidChromeMessages = {
     tax: string;
     inventory: string;
     products: string;
+    purchases: string;
+    suppliers: string;
     externalOrders: string;
     marketing: string;
     designStudio: string;

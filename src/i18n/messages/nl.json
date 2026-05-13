@@ -92,7 +92,9 @@
       "designStudio": "Kaart ontwerp",
       "pos": "POS",
       "settings": "Instellingen",
-      "subscription": "Abonnement"
+      "subscription": "Abonnement",
+      "purchases": "Purchases",
+      "suppliers": "Suppliers"
     },
     "admin": {
       "newOrder": "Nieuwe bestelling",
@@ -116,7 +118,25 @@
     "fabNewOrderAria": "Nieuwe bestelling",
     "sheetTitle": "Alle menu-items",
     "sheetDescriptionSr": "Lintprinter is niet beschikbaar in de Android-app. Gebruik een desktopbrowser.",
-    "adminDesktopHint": "Sommige beheerdersfuncties werken het beste op desktopweb."
+    "adminDesktopHint": "Sommige beheerdersfuncties werken het beste op desktopweb.",
+    "hub": {
+      "pageTitle": "Work hub",
+      "groupOrder": "Orders",
+      "groupManage": "Catalog & stock",
+      "groupSpend": "Purchasing & expenses",
+      "emptyTitle": "No shortcuts on this hub",
+      "emptyBody": "Your current plan hides order, inventory, and purchase shortcuts here. Open Subscription to check Pro or ERP plans, or use ribbon-only features on desktop web.",
+      "emptyCta": "View plans"
+    },
+    "contextNav": {
+      "ariaLabel": "Jump within this menu group",
+      "mainHome": "Home hub"
+    },
+    "superAdminBlock": {
+      "title": "Admin accounts",
+      "body": "Platform admin and system tools are for desktop web only. This app is for store day-to-day work.",
+      "logout": "Log out"
+    }
   },
   "dashboardHeader": {
     "displayLanguageAria": "Weergavetaal",
@@ -2032,7 +2052,7 @@
     "f01742": "Materiaal-ID",
     "f01743": "Classificatiesysteem voor het beheren van materialen (bloemen, planten, verpakkingen, etc.).",
     "f01744": "Materialen/Bloemen",
-    "f01745": "Selecteer bestaande materialen of voer het artikel/categorie handmatig in om het hoofdkantoor aan te vragen. Gelijksoortige namen worden geblokkeerd om duplicaten te voorkomen.",
+    "f01745": "Selecteer bestaande materialen of voer het artikel/categorie handmatig in om het hoofdkantoor aan te vragen.",
     "f01746": "Materiaal",
     "f01747": "Zoek materiaal, middencategorie, leverancier...",
     "f01748": "Kies uit materialen (optioneel)",

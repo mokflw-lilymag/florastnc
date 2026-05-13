@@ -1,7 +1,7 @@
 "use client";
 import { getMessages } from "@/i18n/getMessages";
 
-import React, { useState, useMemo, useCallback, useDeferredValue, memo, Fragment } from "react";
+import React, { useState, useMemo, useCallback, useDeferredValue, useEffect, memo, Fragment } from "react";
 import {
   Package,
   Search,
@@ -57,7 +57,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { cn } from "@/lib/utils";
 import { usePurchases, Purchase } from "@/hooks/use-purchases";
 import { useSuppliers } from "@/hooks/use-suppliers";
-import { useMaterials } from "@/hooks/use-materials";
+import { useMaterials, type Material } from "@/hooks/use-materials";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSettings, DEFAULT_MATERIAL_CATEGORIES } from "@/hooks/use-settings";
@@ -65,6 +65,7 @@ import { toast } from 'sonner';
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
 import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
+import { sortMaterialMainCategoriesForDisplay } from "@/lib/category-defaults";
 
 // --- Types & Defaults ---
 const DATE_FORMAT = "yyyy-MM-dd";
@@ -106,6 +107,8 @@ const isRedundantName = (newName: string, existingList: { name: string }[]) => {
   });
 };
 
+const ALL_MATERIAL_MAIN = "__ALL__";
+
 const defaultFormData: PurchaseFormData = {
   supplier_id: "none",
   material_id: "none",
@@ -140,11 +143,38 @@ const MemoizedBatchItemRow = memo(({
   const [localNotes, setLocalNotes] = useState(item.notes || "");
   const [matSearch, setMatSearch] = useState("");
   const [supSearch, setSupSearch] = useState("");
+  const [activeMatMain, setActiveMatMain] = useState(ALL_MATERIAL_MAIN);
+
+  useEffect(() => {
+    if (openMaterialRow !== index) setActiveMatMain(ALL_MATERIAL_MAIN);
+  }, [openMaterialRow, index]);
+
+  const materialMainOrder = useMemo(
+    () => sortMaterialMainCategoriesForDisplay(categories.main),
+    [categories.main]
+  );
 
   const filteredMaterials = useMemo(() => {
-    const term = matSearch.toLowerCase();
-    return materials.filter((m: any) => m.name.toLowerCase().includes(term));
-  }, [materials, matSearch]);
+    let list = materials as any[];
+    if (activeMatMain !== ALL_MATERIAL_MAIN) {
+      list = list.filter((m) => (m.main_category || "") === activeMatMain);
+    }
+    const term = matSearch.trim().toLowerCase();
+    if (!term) return list;
+    return list.filter(
+      (m: any) =>
+        m.name.toLowerCase().includes(term) ||
+        String(m.spec || "")
+          .toLowerCase()
+          .includes(term) ||
+        String(m.mid_category || "")
+          .toLowerCase()
+          .includes(term) ||
+        String(m.main_category || "")
+          .toLowerCase()
+          .includes(term)
+    );
+  }, [materials, activeMatMain, matSearch]);
 
   const filteredSuppliers = useMemo(() => {
     const term = supSearch.toLowerCase();
@@ -161,12 +191,24 @@ const MemoizedBatchItemRow = memo(({
   }, [suppliers, item.supplier_id]);
 
   return (
-    <TableRow className="hover:bg-slate-50/50 transition-colors">
-      <TableCell className="border-r py-3">
+    <TableRow
+      className={cn(
+        "hover:bg-slate-50/50 transition-colors",
+        "max-md:relative max-md:flex max-md:flex-col max-md:gap-2.5 max-md:w-full max-md:rounded-xl max-md:border max-md:border-slate-200 max-md:bg-white max-md:p-3 max-md:pr-12 max-md:pb-4 max-md:shadow-sm max-md:mb-3 max-md:last:mb-0"
+      )}
+    >
+      <TableCell
+        data-line-label={tf.f02126}
+        className={cn(
+          "min-w-0 border-r py-3 align-top max-md:block max-md:w-full max-md:min-w-0 max-md:border-0 max-md:p-0",
+          "max-md:before:mb-1 max-md:before:block max-md:before:text-[10px] max-md:before:font-black max-md:before:uppercase max-md:before:tracking-wide max-md:before:text-slate-400 max-md:before:content-[attr(data-line-label)]"
+        )}
+      >
         <Popover open={openMaterialRow === index} onOpenChange={(open) => setOpenMaterialRow(open ? index : null)}>
           <PopoverTrigger
             className={cn(
               "inline-flex items-center justify-between rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 h-10 w-full pr-1 shadow-sm",
+              "max-md:h-auto max-md:min-h-10 max-md:items-start max-md:py-2.5",
               item.material_id === "new" && "border-blue-200 bg-blue-50/30"
             )}
           >
@@ -205,8 +247,8 @@ const MemoizedBatchItemRow = memo(({
                 </div>
               </div>
             ) : (
-              <div className="flex flex-col items-start gap-0.5 overflow-hidden w-full group">
-                <span className="text-sm font-bold text-slate-700 group-hover:text-indigo-600 transition-colors">
+              <div className="flex flex-col items-start gap-0.5 overflow-hidden w-full group max-md:overflow-visible">
+                <span className="text-sm font-bold text-slate-700 group-hover:text-indigo-600 transition-colors max-md:whitespace-normal max-md:break-words">
                   {currentMaterial?.name || item.name || <span className="text-slate-300">{tf.f02127}</span>}
                 </span>
                 {currentMaterial && (
@@ -222,80 +264,136 @@ const MemoizedBatchItemRow = memo(({
             )}
             {item.material_id !== "new" && <ChevronsUpDown className="h-3.5 w-3.5 opacity-40 shrink-0" />}
           </PopoverTrigger>
-          <PopoverContent className="w-[340px] p-0 shadow-2xl border-blue-100" align="start">
-            <div className="p-2 border-b bg-slate-50/80">
+          <PopoverContent className="w-[min(94vw,460px)] overflow-hidden border-slate-200 p-0 shadow-2xl dark:border-slate-800" align="start">
+            <div className="border-b bg-muted/30 p-2.5">
               <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   lang="ko"
                   autoFocus
                   placeholder={tf.f02125}
-                  className="pl-9 h-9 text-sm bg-white"
+                  className="h-9 bg-background pl-9 text-sm"
                   value={matSearch}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMatSearch(e.target.value)}
                 />
               </div>
             </div>
-            <div className="max-h-[280px] overflow-y-auto p-1.5 font-sans">
-              {filteredMaterials.map((m: any) => {
-                return (
-                  <Button
-                    key={m.id}
-                    variant="ghost"
-                    className="w-full justify-start font-normal h-11 mb-0.5 hover:bg-blue-50 hover:text-blue-700"
-                    onClick={() => {
-                      const unitPrice = Number(m.price) || 0;
-                      const qty = item.quantity || 1;
-                      const totalPrice = Math.round(unitPrice * qty);
-
-                      const lastSupplierId = latestSupplierMap.get(m.id);
-                      const newSupplierId = (item.supplier_id === "none" && lastSupplierId) ? lastSupplierId : item.supplier_id;
-
-                      updateItemInBatch(index, {
-                        material_id: m.id,
-                        name: m.name,
-                        total_price: totalPrice,
-                        quantity: qty,
-                        supplier_id: newSupplierId
-                      });
-                      setOpenMaterialRow(null);
-                    }}
+            <div className="max-h-[120px] overflow-auto border-b bg-muted/15 px-2 py-2">
+              <Tabs value={activeMatMain} onValueChange={setActiveMatMain}>
+                <TabsList className="h-auto w-full min-w-0 max-w-full flex-nowrap justify-start gap-1 overflow-x-auto overflow-y-visible rounded-xl bg-muted/60 p-1.5 shadow-inner [scrollbar-width:thin]">
+                  <TabsTrigger
+                    value={ALL_MATERIAL_MAIN}
+                    className="shrink-0 grow-0 basis-auto rounded-full px-2.5 py-2 text-[11px] leading-snug data-active:shadow-sm whitespace-nowrap"
                   >
-                    <div className="flex flex-col items-start overflow-hidden">
-                      <span className="text-sm font-medium text-slate-700 truncate w-full">{m.name}</span>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className="text-[10px] text-slate-400">
-                          {tf.f00148}: {Math.round(Number(m.price)).toLocaleString()}{tf.f00487} | {m.main_category}
-                          {m.mid_category ? ` > ${m.mid_category}` : ''}
+                    {tf.f00553}
+                  </TabsTrigger>
+                  {materialMainOrder.map((cat: string) => (
+                    <TabsTrigger
+                      key={cat}
+                      value={cat}
+                      className="shrink-0 grow-0 basis-auto max-w-none rounded-full px-2.5 py-2 text-[11px] leading-snug data-active:shadow-sm whitespace-nowrap"
+                    >
+                      {cat}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
+            </div>
+            <div className="max-h-[min(48vh,320px)] overflow-y-auto p-2">
+              {filteredMaterials.length === 0 ? (
+                <p className="py-8 text-center text-sm text-muted-foreground">{tf.f01829}</p>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  {filteredMaterials.map((m: any) => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      className={cn(
+                        "flex flex-col rounded-xl border border-border/60 bg-card p-2 text-left shadow-sm transition-all",
+                        "hover:border-primary/35 hover:shadow-md active:scale-[0.98]"
+                      )}
+                      onClick={() => {
+                        const unitPrice = Number(m.price) || 0;
+                        const lastSupplierId = latestSupplierMap.get(m.id);
+                        const newSupplierId =
+                          item.supplier_id === "none" && lastSupplierId ? lastSupplierId : item.supplier_id;
+
+                        if (
+                          item.material_id === m.id &&
+                          item.material_id !== "none" &&
+                          item.material_id !== "new"
+                        ) {
+                          const implied =
+                            item.quantity > 0 ? item.total_price / item.quantity : unitPrice;
+                          const nq = item.quantity + 1;
+                          updateItemInBatch(index, {
+                            quantity: nq,
+                            total_price: Math.round(implied * nq),
+                            supplier_id: newSupplierId,
+                          });
+                        } else {
+                          const qty = item.quantity || 1;
+                          const totalPrice = Math.round(unitPrice * qty);
+                          updateItemInBatch(index, {
+                            material_id: m.id,
+                            name: m.name,
+                            total_price: totalPrice,
+                            quantity: qty,
+                            supplier_id: newSupplierId,
+                          });
+                        }
+                        setOpenMaterialRow(null);
+                      }}
+                    >
+                      <Badge
+                        variant="secondary"
+                        className="mb-1 h-4 max-w-full truncate border-0 bg-muted/90 px-1.5 text-[9px] font-medium leading-none text-muted-foreground"
+                      >
+                        {m.mid_category || m.main_category || "—"}
+                      </Badge>
+                      <span className="line-clamp-2 text-[11px] font-semibold leading-tight text-foreground">{m.name}</span>
+                      <div className="mt-1.5 flex flex-wrap items-baseline justify-between gap-1 border-t border-border/40 pt-1 leading-none">
+                        <span className="text-[10px] text-muted-foreground">
+                          {tf.f00148} {Math.round(Number(m.price) || 0).toLocaleString()}
+                          {tf.f00487}
                         </span>
                       </div>
-                    </div>
-                  </Button>
-                );
-              })}
+                    </button>
+                  ))}
+                </div>
+              )}
               {matSearch.length > 0 && !isRedundantName(matSearch, materials) && (
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start text-blue-600 h-12 border-t mt-1.5 hover:bg-blue-50"
+                <button
+                  type="button"
+                  className="mt-2 flex w-full items-center gap-2 rounded-xl border border-dashed border-primary/40 bg-primary/5 px-3 py-2.5 text-left text-sm font-medium text-primary transition-colors hover:bg-primary/10"
                   onClick={() => {
                     updateItemInBatch(index, { material_id: "new", name: matSearch });
                     setOpenMaterialRow(null);
                   }}
                 >
-                  <Plus className="mr-2 h-4 w-4" /> &quot;{matSearch}&quot; ({tf.f01738})
-                </Button>
+                  <Plus className="h-4 w-4 shrink-0" />
+                  <span className="truncate">
+                    &quot;{matSearch}&quot; ({tf.f01738})
+                  </span>
+                </button>
               )}
             </div>
           </PopoverContent>
         </Popover>
       </TableCell>
 
-      <TableCell className="border-r py-3">
+      <TableCell
+        data-line-label={tf.f00987}
+        className={cn(
+          "min-w-0 border-r py-3 align-top max-md:block max-md:w-full max-md:min-w-0 max-md:border-0 max-md:p-0",
+          "max-md:before:mb-1 max-md:before:block max-md:before:text-[10px] max-md:before:font-black max-md:before:uppercase max-md:before:tracking-wide max-md:before:text-slate-400 max-md:before:content-[attr(data-line-label)]"
+        )}
+      >
         <Popover open={openSupplierRow === index} onOpenChange={(open) => setOpenSupplierRow(open ? index : null)}>
           <PopoverTrigger
-            className="inline-flex items-center justify-between rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-normal transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 h-10 w-full pr-1 shadow-sm"
+            className="inline-flex items-center justify-between rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-normal transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 h-10 w-full pr-1 shadow-sm max-md:h-auto max-md:min-h-10 max-md:items-start max-md:py-2.5"
           >
-            <span className="truncate">
+            <span className="truncate max-md:whitespace-normal max-md:break-words max-md:text-left">
               {item.supplier_id === "new" ?
                 <span className="text-indigo-600 font-bold">[{tf.f00415}] {item.supplier_name}</span> :
                 (currentSupplier?.name || <span className="text-slate-300">{tf.f00877}</span>)
@@ -303,59 +401,78 @@ const MemoizedBatchItemRow = memo(({
             </span>
             <ChevronsUpDown className="h-3.5 w-3.5 opacity-40 shrink-0" />
           </PopoverTrigger>
-          <PopoverContent className="w-[240px] p-0" align="start">
-            <div className="p-2 border-b">
+          <PopoverContent className="w-[min(92vw,360px)] overflow-hidden p-0 shadow-2xl dark:border-slate-800" align="start">
+            <div className="border-b bg-muted/30 p-2">
               <Input
                 lang="ko"
                 placeholder={tf.f00873}
-                className="h-9 text-sm"
+                className="h-9 text-sm bg-background"
                 value={supSearch}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSupSearch(e.target.value)}
               />
             </div>
-            <div className="max-h-[220px] overflow-y-auto p-1.5">
-              <Button
-                variant="ghost"
-                className="w-full justify-start text-sm h-9 mb-1"
-                onClick={() => {
-                  updateItemInBatch(index, { supplier_id: "none" });
-                  setOpenSupplierRow(null);
-                }}
-              >{tf.f01928}</Button>
-              {filteredSuppliers.map((s: any) => (
-                <Button
-                  key={s.id}
-                  variant="ghost"
-                  className="w-full justify-start text-sm h-9 mb-0.5 px-3 hover:bg-slate-50"
+            <div className="max-h-[min(42vh,280px)] overflow-y-auto p-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <button
+                  type="button"
+                  className={cn(
+                    "rounded-xl border border-dashed border-border/70 bg-muted/20 px-3 py-2.5 text-left text-xs font-medium text-muted-foreground transition-colors",
+                    "hover:border-muted-foreground/40 hover:bg-muted/40"
+                  )}
                   onClick={() => {
-                    updateItemInBatch(index, { supplier_id: s.id });
+                    updateItemInBatch(index, { supplier_id: "none" });
                     setOpenSupplierRow(null);
                   }}
                 >
-                  <span className="truncate font-medium">{s.name}</span>
-                </Button>
-              ))}
+                  {tf.f01928}
+                </button>
+                {filteredSuppliers.map((s: any) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    className={cn(
+                      "rounded-xl border border-border/60 bg-card px-3 py-2.5 text-left text-sm font-medium shadow-sm transition-all",
+                      "hover:border-primary/35 hover:shadow-md active:scale-[0.98]"
+                    )}
+                    onClick={() => {
+                      updateItemInBatch(index, { supplier_id: s.id });
+                      setOpenSupplierRow(null);
+                    }}
+                  >
+                    <span className="line-clamp-2">{s.name}</span>
+                  </button>
+                ))}
+              </div>
               {supSearch.length > 0 && !isRedundantName(supSearch, suppliers) && (
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start text-indigo-600 h-10 border-t mt-1 hover:bg-indigo-50"
+                <button
+                  type="button"
+                  className="mt-2 flex w-full items-center gap-2 rounded-xl border border-dashed border-indigo-300/60 bg-indigo-50/50 px-3 py-2.5 text-left text-sm font-medium text-indigo-700 transition-colors hover:bg-indigo-50 dark:border-indigo-800 dark:bg-indigo-950/30 dark:text-indigo-200"
                   onClick={() => {
                     updateItemInBatch(index, { supplier_id: "new", supplier_name: supSearch });
                     setOpenSupplierRow(null);
                   }}
                 >
-                  <Plus className="mr-2 h-4 w-4" /> &quot;{supSearch}&quot; ({tf.f00881})
-                </Button>
+                  <Plus className="h-4 w-4 shrink-0" />
+                  <span className="truncate">
+                    &quot;{supSearch}&quot; ({tf.f00881})
+                  </span>
+                </button>
               )}
             </div>
           </PopoverContent>
         </Popover>
       </TableCell>
 
-      <TableCell className="border-r py-3 w-[100px]">
+      <TableCell
+        data-line-label={tf.f00377}
+        className={cn(
+          "min-w-0 border-r py-3 align-top max-md:block max-md:w-full max-md:min-w-0 max-md:border-0 max-md:p-0",
+          "max-md:before:mb-1 max-md:before:block max-md:before:text-[10px] max-md:before:font-black max-md:before:uppercase max-md:before:tracking-wide max-md:before:text-slate-400 max-md:before:content-[attr(data-line-label)]"
+        )}
+      >
         <Input
           type="number"
-          className="h-10 text-right font-black bg-slate-500/10 border-slate-300 focus:bg-white transition-all pr-3"
+          className="h-10 min-w-0 w-full text-right font-black bg-slate-500/10 border-slate-300 focus:bg-white transition-all pr-3 max-md:text-base"
           value={item.quantity}
           onChange={e => {
             const qty = Number(e.target.value);
@@ -374,11 +491,17 @@ const MemoizedBatchItemRow = memo(({
         />
       </TableCell>
 
-      <TableCell className="border-r py-3 w-[120px]">
-        <div className="relative">
+      <TableCell
+        data-line-label={tf.f00148}
+        className={cn(
+          "min-w-0 border-r py-3 align-top max-md:block max-md:w-full max-md:min-w-0 max-md:border-0 max-md:p-0",
+          "max-md:before:mb-1 max-md:before:block max-md:before:text-[10px] max-md:before:font-black max-md:before:uppercase max-md:before:tracking-wide max-md:before:text-slate-400 max-md:before:content-[attr(data-line-label)]"
+        )}
+      >
+        <div className="relative min-w-0">
           <Input
             type="number"
-            className="h-10 text-right font-bold bg-white border-slate-300 focus:ring-2 focus:ring-indigo-100 transition-all pr-3"
+            className="h-10 min-w-0 w-full pl-6 text-right font-bold bg-white border-slate-300 focus:ring-2 focus:ring-indigo-100 transition-all pr-3 max-md:text-base"
             placeholder={tf.f01063}
             value={item.quantity > 0 ? Math.round(item.total_price / item.quantity) : 0}
             onChange={e => {
@@ -392,11 +515,17 @@ const MemoizedBatchItemRow = memo(({
         </div>
       </TableCell>
 
-      <TableCell className="border-r py-3 w-[140px] bg-indigo-50/20">
-        <div className="relative">
+      <TableCell
+        data-line-label={tf.f01993}
+        className={cn(
+          "min-w-0 border-r bg-indigo-50/20 py-3 align-top max-md:block max-md:w-full max-md:min-w-0 max-md:border-0 max-md:bg-transparent max-md:p-0",
+          "max-md:before:mb-1 max-md:before:block max-md:before:text-[10px] max-md:before:font-black max-md:before:uppercase max-md:before:tracking-wide max-md:before:text-slate-400 max-md:before:content-[attr(data-line-label)]"
+        )}
+      >
+        <div className="relative min-w-0 max-md:rounded-lg max-md:border max-md:border-indigo-100 max-md:bg-indigo-50/30 max-md:p-0.5">
           <Input
             type="number"
-            className="h-10 text-right font-black bg-white border-indigo-200 focus:ring-2 focus:ring-indigo-200 transition-all pr-3 text-indigo-700"
+            className="h-10 min-w-0 w-full pl-6 text-right font-black bg-white border-indigo-200 focus:ring-2 focus:ring-indigo-200 transition-all pr-3 text-indigo-700 max-md:text-base"
             value={item.total_price}
             onChange={e => updateItemInBatch(index, { total_price: Number(e.target.value) })}
           />
@@ -412,10 +541,16 @@ const MemoizedBatchItemRow = memo(({
         )}
       </TableCell>
 
-      <TableCell className="border-r py-3 px-2">
+      <TableCell
+        data-line-label={tf.f00197}
+        className={cn(
+          "min-w-0 border-r px-2 py-3 align-top max-md:block max-md:w-full max-md:min-w-0 max-md:border-0 max-md:p-0 max-md:px-0",
+          "max-md:before:mb-1 max-md:before:block max-md:before:text-[10px] max-md:before:font-black max-md:before:uppercase max-md:before:tracking-wide max-md:before:text-slate-400 max-md:before:content-[attr(data-line-label)]"
+        )}
+      >
         <Input
           lang="ko"
-          className="h-10 border-slate-200 bg-white text-sm"
+          className="h-10 min-w-0 w-full border-slate-200 bg-white text-sm max-md:text-base"
           value={localNotes}
           onChange={e => setLocalNotes(e.target.value)}
           onBlur={() => updateItemInBatch(index, { notes: localNotes })}
@@ -423,11 +558,11 @@ const MemoizedBatchItemRow = memo(({
         />
       </TableCell>
 
-      <TableCell className="text-center py-3">
+      <TableCell className="text-center py-3 max-md:absolute max-md:right-2 max-md:top-2 max-md:z-10 max-md:border-0 max-md:p-0 max-md:pt-0">
         <Button
           variant="ghost"
           size="icon"
-          className="text-slate-300 hover:text-red-500 hover:bg-red-50 h-10 w-10 transition-colors"
+          className="text-slate-300 hover:text-red-500 hover:bg-red-50 h-10 w-10 transition-colors max-md:bg-white/90 max-md:shadow-sm"
           onClick={() => removeItemFromBatch(index)}
         >
           <Trash2 className="h-4 w-4" />
@@ -576,6 +711,11 @@ export default function PurchasesPage() {
     return FALLBACK_CATEGORIES;
   }, [settingsCategories]);
 
+  const materialMainOrderPicker = useMemo(
+    () => sortMaterialMainCategoriesForDisplay(categories.main),
+    [categories.main]
+  );
+
   const [isManualOpen, setIsManualOpen] = useState(false);
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
@@ -622,6 +762,30 @@ export default function PurchasesPage() {
 
   const [openMaterialRow, setOpenMaterialRow] = useState<number | null>(null);
   const [openSupplierRow, setOpenSupplierRow] = useState<number | null>(null);
+  const [pickCatalogSearch, setPickCatalogSearch] = useState("");
+  const [pickCatalogMain, setPickCatalogMain] = useState(ALL_MATERIAL_MAIN);
+
+  const pickCatalogMaterials = useMemo(() => {
+    let list = materials as Material[];
+    if (pickCatalogMain !== ALL_MATERIAL_MAIN) {
+      list = list.filter((m) => (m.main_category || "") === pickCatalogMain);
+    }
+    const term = pickCatalogSearch.trim().toLowerCase();
+    if (!term) return list;
+    return list.filter(
+      (m) =>
+        m.name.toLowerCase().includes(term) ||
+        String(m.spec || "")
+          .toLowerCase()
+          .includes(term) ||
+        String(m.mid_category || "")
+          .toLowerCase()
+          .includes(term) ||
+        String(m.main_category || "")
+          .toLowerCase()
+          .includes(term)
+    );
+  }, [materials, pickCatalogMain, pickCatalogSearch]);
 
   // --- O(1) Lookups ---
   const materialMap = useMemo(() => {
@@ -761,6 +925,69 @@ export default function PurchasesPage() {
     }
     return map;
   }, [purchases]);
+
+  const appendMaterialFromCatalog = useCallback(
+    (m: Material) => {
+      const unitPrice = Number(m.price) || 0;
+      const lastSup = latestSupplierMap.get(m.id);
+      setItemsToAdd((prev) => {
+        const sameIdx = prev.findIndex(
+          (row) =>
+            row.material_id === m.id &&
+            row.material_id !== "none" &&
+            row.material_id !== "new"
+        );
+        if (sameIdx >= 0) {
+          return prev.map((row, i) => {
+            if (i !== sameIdx) return row;
+            const impliedUnit =
+              row.quantity > 0 ? row.total_price / row.quantity : unitPrice;
+            const nq = row.quantity + 1;
+            return {
+              ...row,
+              quantity: nq,
+              total_price: Math.round(impliedUnit * nq),
+            };
+          });
+        }
+
+        const isRowEmpty = (row: PurchaseFormData) =>
+          (row.material_id === "none" || !row.material_id) && !String(row.name || "").trim();
+        const idx = prev.findIndex(isRowEmpty);
+        const qty = 1;
+        const totalPrice = Math.round(unitPrice * qty);
+        const patch = {
+          material_id: m.id,
+          name: m.name,
+          total_price: totalPrice,
+          quantity: qty,
+          main_category: m.main_category || defaultFormData.main_category,
+          mid_category: m.mid_category || "",
+        };
+        if (idx >= 0) {
+          return prev.map((row, i) => {
+            if (i !== idx) return row;
+            const supplierId =
+              row.supplier_id === "none" && lastSup ? lastSup : row.supplier_id;
+            return { ...row, ...patch, supplier_id: supplierId };
+          });
+        }
+        return [
+          ...prev,
+          {
+            ...defaultFormData,
+            ...patch,
+            scheduled_date: formData.scheduled_date,
+            payment_method: formData.payment_method,
+            status: formData.status,
+            supplier_id: lastSup || "none",
+            notes: "",
+          },
+        ];
+      });
+    },
+    [formData.scheduled_date, formData.payment_method, formData.status, latestSupplierMap]
+  );
 
   const filteredPurchases = useMemo(() => {
     const term = deferredSearchTerm.toLowerCase();
@@ -964,6 +1191,13 @@ export default function PurchasesPage() {
       return filtered;
     });
   };
+
+  useEffect(() => {
+    if (isDialogOpen && !editingPurchase) {
+      setPickCatalogSearch("");
+      setPickCatalogMain(ALL_MATERIAL_MAIN);
+    }
+  }, [isDialogOpen, editingPurchase]);
 
   if (loading) {
     return <div className="p-8 flex justify-center items-center font-bold text-slate-400">{tf.f00157}</div>;
@@ -1422,24 +1656,24 @@ export default function PurchasesPage() {
           setEditingPurchase(null);
         }
       }}>
-        <DialogContent className="max-w-[1100px] w-[95vw] h-[90vh] flex flex-col p-0 gap-0 border-none shadow-2xl overflow-hidden rounded-2xl">
-          <div className="bg-slate-900 text-white p-6 shrink-0 flex items-center justify-between">
-            <div className="flex items-center gap-3">
+        <DialogContent showCloseButton={false} className="max-w-[1100px] w-[95vw] h-[90dvh] max-h-[90dvh] flex flex-col p-0 gap-0 border-none shadow-2xl overflow-hidden rounded-2xl sm:h-[90vh] sm:max-h-[90vh]">
+          <div className="bg-slate-900 text-white p-4 shrink-0 flex items-center justify-between sm:p-6">
+            <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
               <div className={cn(
-                "p-2.5 rounded-xl shadow-inner",
+                "p-2 rounded-xl shadow-inner shrink-0 sm:p-2.5",
                 dialogMode === 'create' ? "bg-indigo-50" : dialogMode === 'edit' ? "bg-amber-50" : "bg-emerald-50"
               )}>
-                {dialogMode === 'create' ? <PlusCircle className="size-6 text-indigo-600" /> :
-                  dialogMode === 'edit' ? <Pencil className="size-6 text-amber-600" /> :
-                    <CheckCircle2 className="size-6 text-emerald-600" />}
+                {dialogMode === 'create' ? <PlusCircle className="size-5 text-indigo-600 sm:size-6" /> :
+                  dialogMode === 'edit' ? <Pencil className="size-5 text-amber-600 sm:size-6" /> :
+                    <CheckCircle2 className="size-5 text-emerald-600 sm:size-6" />}
               </div>
-              <div className="flex flex-col gap-0.5">
-                <DialogTitle className="text-2xl font-black text-white tracking-tighter">
+              <div className="min-w-0 flex flex-col gap-0.5">
+                <DialogTitle className="text-lg font-black text-white tracking-tighter sm:text-2xl">
                   {dialogMode === 'create' ? tf.f01494 :
                     dialogMode === 'edit' ? tf.f01158 :
                       tf.f02023}
                 </DialogTitle>
-                <DialogDescription className="text-sm font-medium text-slate-400">
+                <DialogDescription className="text-xs font-medium text-slate-400 sm:text-sm line-clamp-2">
                   {dialogMode === 'create' ? tf.f01603 :
                     dialogMode === 'edit' ? tf.f01010 :
                       tf.f01035}
@@ -1451,145 +1685,227 @@ export default function PurchasesPage() {
             </Button>
           </div>
 
-          <div className="flex-1 overflow-hidden flex flex-col bg-slate-50">
-            {/* Global settings */}
-            <div className="p-6 bg-white border-b border-slate-200 shadow-sm shrink-0 grid grid-cols-1 md:grid-cols-4 gap-6">
-              <div className="space-y-1.5">
-                <Label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">{tf.f01243}</Label>
-                <Input
-                  lang="ko"
-                  autoFocus
-                  placeholder={tf.f01584}
-                  className="h-10 text-sm font-bold bg-slate-50 border-slate-200 focus:bg-white focus:ring-2 focus:ring-indigo-100"
-                  value={formData.name}
-                  onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">{tf.f01599}</Label>
-                <div className="relative">
-                  <CalendarIcon className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                  <Input
-                    type="date"
-                    className="h-10 pl-9 text-sm font-bold bg-slate-50 border-slate-200"
-                    value={formData.scheduled_date}
-                    onChange={e => setFormData(prev => ({ ...prev, scheduled_date: e.target.value }))}
-                  />
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">{tf.f00913}</Label>
-                <Select
-                  value={formData.payment_method}
-                  onValueChange={(v: string | null) => v && setFormData(prev => ({ ...prev, payment_method: v }))}
-                >
-                  <SelectTrigger className="h-10 text-sm font-bold bg-slate-50 border-slate-200">
-                    <SelectValue>
-                      {formData.payment_method === 'card' ? tf.f01502 :
-                        formData.payment_method === 'transfer' ? tf.f00057 :
-                          formData.payment_method === 'cash' ? tf.f00769 :
-                            formData.payment_method === 'deferred' ? tf.f01621 : tf.f00912}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="card">{tf.f01502}</SelectItem>
-                    <SelectItem value="transfer">{tf.f00057}</SelectItem>
-                    <SelectItem value="cash">{tf.f00769}</SelectItem>
-                    <SelectItem value="deferred">{tf.f01621}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">{tf.f01966}</Label>
-                <Select
-                  value={formData.status}
-                  onValueChange={(v: string | null) => v && setFormData(prev => ({ ...prev, status: v as "planned" | "completed" }))}
-                >
-                  <SelectTrigger className="h-10 text-sm font-bold bg-slate-50 border-slate-200">
-                    <SelectValue>
-                      {formData.status === 'planned' ? tf.f01943 : tf.f01945}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="planned">{tf.f01943}</SelectItem>
-                    <SelectItem value="completed">{tf.f01945}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Grid Table */}
-            <div className="flex-1 overflow-auto p-6">
-              {!editingPurchase && (
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-4">
-                  <Table>
-                    <TableHeader className="bg-slate-50 border-b">
-                      <TableRow className="hover:bg-transparent">
-                        <TableHead className="text-[10px] font-black uppercase text-slate-400 py-3">{tf.f02126}</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase text-slate-400 py-3 w-[220px]">{tf.f00987}</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase text-slate-400 py-3 w-[100px] text-right">{tf.f00377}</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase text-slate-400 py-3 w-[120px] text-right">{tf.f00148}</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase text-slate-400 py-3 w-[140px] text-right">{tf.f01993}</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase text-slate-400 py-3">{tf.f00197}</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase text-slate-400 py-3 w-[60px] text-center"></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {itemsToAdd.map((p, idx) => (
-                        <MemoizedBatchItemRow
-                          key={idx}
-                          index={idx}
-                          item={p}
-                          materials={materials}
-                          suppliers={suppliers}
-                          latestSupplierMap={latestSupplierMap}
-                          openMaterialRow={openMaterialRow}
-                          setOpenMaterialRow={setOpenMaterialRow}
-                          openSupplierRow={openSupplierRow}
-                          setOpenSupplierRow={setOpenSupplierRow}
-                          updateItemInBatch={updateItemInBatch}
-                          removeItemFromBatch={removeItemFromBatch}
-                          categories={categories}
-                          tf={tf}
-                        />
-                      ))}
-                    </TableBody>
-                  </Table>
-                  <div className="p-4 bg-slate-50/50 border-t border-dotted flex justify-center">
-                    <Button
-                      variant="ghost"
-                      className="text-indigo-600 font-bold hover:bg-indigo-50 border border-indigo-100 rounded-lg px-8 transition-all active:scale-95"
-                      onClick={() => setItemsToAdd(prev => [...prev, { ...defaultFormData, quantity: 1 }])}
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-50">
+            {!editingPurchase ? (
+              <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden [scrollbar-gutter:stable]">
+                <div className="grid grid-cols-1 gap-4 border-b border-slate-200 bg-white p-4 shadow-sm md:grid-cols-4 md:gap-6 md:p-6">
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">{tf.f01243}</Label>
+                    <Input
+                      lang="ko"
+                      autoFocus
+                      placeholder={tf.f01584}
+                      className="h-10 text-sm font-bold bg-slate-50 border-slate-200 focus:bg-white focus:ring-2 focus:ring-indigo-100"
+                      value={formData.name}
+                      onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">{tf.f01599}</Label>
+                    <div className="relative">
+                      <CalendarIcon className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                      <Input
+                        type="date"
+                        className="h-10 pl-9 text-sm font-bold bg-slate-50 border-slate-200"
+                        value={formData.scheduled_date}
+                        onChange={e => setFormData(prev => ({ ...prev, scheduled_date: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">{tf.f00913}</Label>
+                    <Select
+                      value={formData.payment_method}
+                      onValueChange={(v: string | null) => v && setFormData(prev => ({ ...prev, payment_method: v }))}
                     >
-                      <Plus className="w-4 h-4 mr-2" /> {tf.f02130}
-                    </Button>
+                      <SelectTrigger className="h-10 text-sm font-bold bg-slate-50 border-slate-200">
+                        <SelectValue>
+                          {formData.payment_method === 'card' ? tf.f01502 :
+                            formData.payment_method === 'transfer' ? tf.f00057 :
+                              formData.payment_method === 'cash' ? tf.f00769 :
+                                formData.payment_method === 'deferred' ? tf.f01621 : tf.f00912}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="card">{tf.f01502}</SelectItem>
+                        <SelectItem value="transfer">{tf.f00057}</SelectItem>
+                        <SelectItem value="cash">{tf.f00769}</SelectItem>
+                        <SelectItem value="deferred">{tf.f01621}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">{tf.f01966}</Label>
+                    <Select
+                      value={formData.status}
+                      onValueChange={(v: string | null) => v && setFormData(prev => ({ ...prev, status: v as "planned" | "completed" }))}
+                    >
+                      <SelectTrigger className="h-10 text-sm font-bold bg-slate-50 border-slate-200">
+                        <SelectValue>
+                          {formData.status === 'planned' ? tf.f01943 : tf.f01945}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="planned">{tf.f01943}</SelectItem>
+                        <SelectItem value="completed">{tf.f01945}</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
-              )}
 
-              {/* Single edit mode fallback */}
-              {editingPurchase && (
-                <Card className="max-w-md mx-auto">
-                  <CardHeader><CardTitle>{tf.f00864}</CardTitle></CardHeader>
+                <aside className="flex w-full shrink-0 flex-col border-b border-slate-200 bg-slate-50/95">
+                  <div className="shrink-0 space-y-2 border-b border-slate-200 bg-white p-3">
+                    <div>
+                      <h3 className="text-xs font-black uppercase tracking-wider text-slate-500">{tf.f02127}</h3>
+                      <p className="mt-0.5 text-[11px] leading-snug text-slate-500">{tf.f01603}</p>
+                    </div>
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        lang="ko"
+                        placeholder={tf.f02125}
+                        className="h-9 bg-slate-50 pl-9 text-sm"
+                        value={pickCatalogSearch}
+                        onChange={(e) => setPickCatalogSearch(e.target.value)}
+                      />
+                    </div>
+                    <div className="overflow-x-auto overflow-y-visible py-0.5 [scrollbar-width:thin]">
+                      <Tabs value={pickCatalogMain} onValueChange={setPickCatalogMain}>
+                        <TabsList className="h-auto w-full min-w-0 max-w-full flex-nowrap justify-start gap-1 overflow-x-auto overflow-y-visible rounded-xl bg-muted/60 p-1.5 shadow-inner [scrollbar-width:thin]">
+                          <TabsTrigger
+                            value={ALL_MATERIAL_MAIN}
+                            className="shrink-0 grow-0 basis-auto rounded-full px-2.5 py-2 text-[11px] leading-snug data-active:shadow-sm whitespace-nowrap"
+                          >
+                            {tf.f00553}
+                          </TabsTrigger>
+                          {materialMainOrderPicker.map((cat: string) => (
+                            <TabsTrigger
+                              key={cat}
+                              value={cat}
+                              className="shrink-0 grow-0 basis-auto max-w-none rounded-full px-2.5 py-2 text-[11px] leading-snug data-active:shadow-sm whitespace-nowrap"
+                            >
+                              {cat}
+                            </TabsTrigger>
+                          ))}
+                        </TabsList>
+                      </Tabs>
+                    </div>
+                  </div>
+                  <div className="min-w-0 p-2 pb-4">
+                    {pickCatalogMaterials.length === 0 ? (
+                      <p className="py-8 text-center text-sm text-muted-foreground">{tf.f01829}</p>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+                        {pickCatalogMaterials.map((m) => (
+                          <button
+                            key={m.id}
+                            type="button"
+                            className={cn(
+                              "flex flex-col rounded-xl border border-border/60 bg-card p-2 text-left shadow-sm transition-all",
+                              "hover:border-primary/40 hover:shadow-md active:scale-[0.98]"
+                            )}
+                            onClick={() => appendMaterialFromCatalog(m)}
+                          >
+                            <Badge
+                              variant="secondary"
+                              className="mb-1 h-4 max-w-full truncate border-0 bg-muted/90 px-1.5 text-[9px] font-medium leading-none text-muted-foreground"
+                            >
+                              {m.mid_category || m.main_category || "—"}
+                            </Badge>
+                            <span className="line-clamp-2 text-[11px] font-semibold leading-tight text-foreground">
+                              {m.name}
+                            </span>
+                            <span className="mt-1 border-t border-border/40 pt-1 text-[10px] text-muted-foreground">
+                              {tf.f00148} {Math.round(Number(m.price) || 0).toLocaleString()}
+                              {tf.f00487}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </aside>
+
+                <div className="min-w-0 p-4 pb-6 lg:p-6 lg:pb-8">
+                  <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm max-md:overflow-visible max-md:border-0 max-md:bg-transparent max-md:shadow-none max-md:p-0">
+                    <Table className="w-full max-md:min-w-0 md:table-fixed md:min-w-[720px]">
+                      <TableHeader className="border-b bg-slate-50 max-md:hidden">
+                        <TableRow className="hover:bg-transparent">
+                          <TableHead className="w-[18%] py-3 text-[10px] font-black uppercase text-slate-400">{tf.f02126}</TableHead>
+                          <TableHead className="w-[18%] py-3 text-[10px] font-black uppercase text-slate-400">{tf.f00987}</TableHead>
+                          <TableHead className="w-[10%] py-3 text-right text-[10px] font-black uppercase text-slate-400">{tf.f00377}</TableHead>
+                          <TableHead className="w-[12%] py-3 text-right text-[10px] font-black uppercase text-slate-400">{tf.f00148}</TableHead>
+                          <TableHead className="w-[14%] py-3 text-right text-[10px] font-black uppercase text-slate-400">{tf.f01993}</TableHead>
+                          <TableHead className="min-w-0 py-3 text-[10px] font-black uppercase text-slate-400">{tf.f00197}</TableHead>
+                          <TableHead className="w-14 py-3 text-center text-[10px] font-black uppercase text-slate-400"></TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody className="max-md:block max-md:w-full">
+                        {itemsToAdd.map((p, idx) => (
+                          <MemoizedBatchItemRow
+                            key={idx}
+                            index={idx}
+                            item={p}
+                            materials={materials}
+                            suppliers={suppliers}
+                            latestSupplierMap={latestSupplierMap}
+                            openMaterialRow={openMaterialRow}
+                            setOpenMaterialRow={setOpenMaterialRow}
+                            openSupplierRow={openSupplierRow}
+                            setOpenSupplierRow={setOpenSupplierRow}
+                            updateItemInBatch={updateItemInBatch}
+                            removeItemFromBatch={removeItemFromBatch}
+                            categories={categories}
+                            tf={tf}
+                          />
+                        ))}
+                      </TableBody>
+                    </Table>
+                    <div className="flex flex-col items-center gap-1 border-t border-dotted bg-slate-50/50 p-4">
+                      <Button
+                        variant="ghost"
+                        className="rounded-lg border border-indigo-100 px-8 font-bold text-indigo-600 transition-all hover:bg-indigo-50 active:scale-95"
+                        onClick={() => setItemsToAdd((prev) => [...prev, { ...defaultFormData, quantity: 1 }])}
+                      >
+                        <Plus className="mr-2 h-4 w-4" /> {tf.f02130}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
+                <Card className="mx-auto max-w-md">
+                  <CardHeader>
+                    <CardTitle>{tf.f00864}</CardTitle>
+                  </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="space-y-1.5">
                       <Label>{tf.f00377}</Label>
-                      <Input type="number" value={formData.quantity} onChange={e => setFormData(prev => ({ ...prev, quantity: Number(e.target.value) }))} />
+                      <Input
+                        type="number"
+                        value={formData.quantity}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, quantity: Number(e.target.value) }))}
+                      />
                     </div>
                     <div className="space-y-1.5">
                       <Label>{tf.f02165}</Label>
-                      <Input type="number" value={formData.total_price} onChange={e => setFormData(prev => ({ ...prev, total_price: Number(e.target.value) }))} />
+                      <Input
+                        type="number"
+                        value={formData.total_price}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, total_price: Number(e.target.value) }))}
+                      />
                     </div>
                     <div className="space-y-1.5">
                       <Label>{tf.f01972}</Label>
-                      <Textarea value={formData.notes} onChange={e => setFormData(prev => ({ ...prev, notes: e.target.value }))} />
+                      <Textarea value={formData.notes} onChange={(e) => setFormData((prev) => ({ ...prev, notes: e.target.value }))} />
                     </div>
                   </CardContent>
                 </Card>
-              )}
-            </div>
+              </div>
+            )}
 
-            <div className="p-6 bg-white border-t border-slate-200 shrink-0 flex items-center justify-between shadow-[0_-10px_20px_rgba(0,0,0,0.02)]">
+            <div className="flex shrink-0 items-center justify-between gap-3 border-t border-slate-200 bg-white p-4 shadow-[0_-10px_20px_rgba(0,0,0,0.02)] sm:p-6">
               <div className="flex flex-col">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{tf.f01241}</span>
                 <span className="text-2xl font-black text-slate-800 tracking-tighter">

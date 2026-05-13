@@ -92,7 +92,9 @@
       "designStudio": "कार्ड डिज़ाइन",
       "pos": "पीओ",
       "settings": "सेटिंग्स",
-      "subscription": "सदस्यता"
+      "subscription": "सदस्यता",
+      "purchases": "Purchases",
+      "suppliers": "Suppliers"
     },
     "admin": {
       "newOrder": "नए आदेश",
@@ -116,7 +118,25 @@
     "fabNewOrderAria": "नए आदेश",
     "sheetTitle": "सभी मेनू आइटम",
     "sheetDescriptionSr": "रिबन प्रिंटर एंड्रॉइड ऐप में उपलब्ध नहीं है। कृपया डेस्कटॉप ब्राउज़र का उपयोग करें.",
-    "adminDesktopHint": "कुछ व्यवस्थापक सुविधाएँ डेस्कटॉप वेब पर सबसे अच्छा काम करती हैं।"
+    "adminDesktopHint": "कुछ व्यवस्थापक सुविधाएँ डेस्कटॉप वेब पर सबसे अच्छा काम करती हैं।",
+    "hub": {
+      "pageTitle": "Work hub",
+      "groupOrder": "Orders",
+      "groupManage": "Catalog & stock",
+      "groupSpend": "Purchasing & expenses",
+      "emptyTitle": "No shortcuts on this hub",
+      "emptyBody": "Your current plan hides order, inventory, and purchase shortcuts here. Open Subscription to check Pro or ERP plans, or use ribbon-only features on desktop web.",
+      "emptyCta": "View plans"
+    },
+    "contextNav": {
+      "ariaLabel": "Jump within this menu group",
+      "mainHome": "Home hub"
+    },
+    "superAdminBlock": {
+      "title": "Admin accounts",
+      "body": "Platform admin and system tools are for desktop web only. This app is for store day-to-day work.",
+      "logout": "Log out"
+    }
   },
   "dashboardHeader": {
     "displayLanguageAria": "भाषा प्रदर्शित करें",
@@ -2032,7 +2052,7 @@
     "f01742": "सामग्री आईडी",
     "f01743": "सामग्री (फूल, पौधे, पैकेजिंग, आदि) के प्रबंधन के लिए वर्गीकरण प्रणाली।",
     "f01744": "सामग्री/फूल",
-    "f01745": "मुख्यालय से अनुरोध करने के लिए मौजूदा सामग्रियों का चयन करें या मैन्युअल रूप से आइटम/श्रेणी दर्ज करें। डुप्लिकेट को रोकने के लिए मिलते-जुलते नामों को ब्लॉक कर दिया गया है।",
+    "f01745": "मुख्यालय से अनुरोध करने के लिए मौजूदा सामग्रियों का चयन करें या मैन्युअल रूप से आइटम/श्रेणी दर्ज करें।",
     "f01746": "सामग्री",
     "f01747": "खोज सामग्री, मध्य श्रेणी, आपूर्तिकर्ता...",
     "f01748": "सामग्री से चयन करें (वैकल्पिक)",

@@ -103,7 +103,9 @@
       "designStudio": "カードデザイン",
       "pos": "POS",
       "settings": "設定",
-      "subscription": "プラン"
+      "subscription": "プラン",
+      "purchases": "Purchases",
+      "suppliers": "Suppliers"
     },
     "admin": {
       "newOrder": "新規注文",
@@ -117,6 +119,24 @@
       "designTemplates": "デザインテンプレート",
       "globalSettings": "全体設定",
       "storeSettings": "店舗設定"
+    },
+    "hub": {
+      "pageTitle": "Work hub",
+      "groupOrder": "Orders",
+      "groupManage": "Catalog & stock",
+      "groupSpend": "Purchasing & expenses",
+      "emptyTitle": "No shortcuts on this hub",
+      "emptyBody": "Your current plan hides order, inventory, and purchase shortcuts here. Open Subscription to check Pro or ERP plans, or use ribbon-only features on desktop web.",
+      "emptyCta": "View plans"
+    },
+    "contextNav": {
+      "ariaLabel": "Jump within this menu group",
+      "mainHome": "Home hub"
+    },
+    "superAdminBlock": {
+      "title": "Admin accounts",
+      "body": "Platform admin and system tools are for desktop web only. This app is for store day-to-day work.",
+      "logout": "Log out"
     }
   },
   "dashboardHeader": {
@@ -2033,7 +2053,7 @@
     "f01742": "材料 ID",
     "f01743": "材料（花、植物、包装など）を管理するための分類システム。",
     "f01744": "材料/花",
-    "f01745": "既存の材料を選択するか、アイテム/カテゴリを手動で入力して本部にリクエストします。重複を防ぐため、類似した名前はブロックされます。",
+    "f01745": "既存の材料を選択するか、アイテム/カテゴリを手動で入力して本部にリクエストします。",
     "f01746": "材料",
     "f01747": "材料、ミドルカテゴリ、サプライヤーを検索...",
     "f01748": "材料から選択（任意）",

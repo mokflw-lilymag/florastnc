@@ -10,8 +10,9 @@ import { Input } from "@/components/ui/input";
 import Textarea from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Loader2, Search, Languages, CheckCircle2, Save, AlertCircle, RefreshCw } from "lucide-react";
+import { ADMIN_UI_LOCALE_COVERAGE } from "@/lib/admin-translation-coverage";
 
-// ─── 지원 언어 목록 ──────────────────────────────────────
+// ─── 지원 언어 목록 (file: 저장 시 참조용 JSON 파일명) ──────────────────────────────────────
 const LOCALES = [
   { code: "ko", label: "🇰🇷 한국어", file: "ko.json" },
   { code: "en", label: "🇺🇸 English", file: "en.json" },
@@ -24,13 +25,13 @@ const LOCALES = [
   { code: "fr", label: "🇫🇷 Français", file: "fr.json" },
   { code: "de", label: "🇩🇪 Deutsch", file: "de.json" },
   { code: "ru", label: "🇷🇺 Русский", file: "ru.json" },
-  { code: "id", label: "🇮🇩 Bahasa Indonesia", file: null },
-  { code: "ms", label: "🇲🇾 Bahasa Melayu", file: null },
-  { code: "th", label: "🇹🇭 ภาษาไทย", file: null },
-  { code: "nl", label: "🇳🇱 Nederlands", file: null },
-  { code: "it", label: "🇮🇹 Italiano", file: null },
-  { code: "hi", label: "🇮🇳 हिन्दी", file: null },
-  { code: "ar", label: "🇸🇦 العربية", file: null },
+  { code: "id", label: "🇮🇩 Bahasa Indonesia", file: "id.json" },
+  { code: "ms", label: "🇲🇾 Bahasa Melayu", file: "ms.json" },
+  { code: "th", label: "🇹🇭 ภาษาไทย", file: "th.json" },
+  { code: "nl", label: "🇳🇱 Nederlands", file: "nl.json" },
+  { code: "it", label: "🇮🇹 Italiano", file: "it.json" },
+  { code: "hi", label: "🇮🇳 हिन्दी", file: "hi.json" },
+  { code: "ar", label: "🇸🇦 العربية", file: "ar.json" },
 ];
 
 type TranslationEntry = {
@@ -48,22 +49,21 @@ export default function TranslationsAdminPage() {
   const [filterMode, setFilterMode] = useState<"all" | "suspect">("all");
   const [editMap, setEditMap] = useState<Record<string, Record<string, string>>>({});
   const [saving, setSaving] = useState<string | null>(null);
-  const [coverage, setCoverage] = useState<Record<string, number>>({});
+  const [coverage, setCoverage] = useState<Record<string, number>>(() => ({ ...ADMIN_UI_LOCALE_COVERAGE }));
 
   const loadData = async () => {
     setLoading(true);
+    let apiCoverage: Record<string, number> | undefined;
     try {
-      // ko.json을 기준으로 키 목록 로드 (API 라우트 활용)
       const res = await fetch("/api/admin/translations?action=list");
       if (!res.ok) throw new Error("API 응답 오류");
       const data = await res.json();
       setEntries(data.entries ?? []);
-      setCoverage(data.coverage ?? {});
-    } catch (e) {
-      // API가 아직 없으면 빈 상태로 안내
+      apiCoverage = data.coverage;
+    } catch {
       setEntries([]);
-      setCoverage({});
     } finally {
+      setCoverage({ ...ADMIN_UI_LOCALE_COVERAGE, ...(apiCoverage ?? {}) });
       setLoading(false);
     }
   };
@@ -118,8 +118,7 @@ export default function TranslationsAdminPage() {
   }
   if (!isSuperAdmin) return <AccessDenied requiredTier="System Admin" />;
 
-  // 지원 언어 중 파일이 있는 것만 커버리지 표시
-  const availableLocales = LOCALES.filter((l) => l.file !== null);
+  const availableLocales = LOCALES;
 
   return (
     <div className="container max-w-7xl mx-auto p-6 space-y-8">
@@ -141,27 +140,35 @@ export default function TranslationsAdminPage() {
 
       {/* 언어별 커버리지 */}
       <Card className="border-0 shadow-sm ring-1 ring-slate-100">
-        <CardHeader><CardTitle className="text-sm">언어별 번역 커버리지</CardTitle></CardHeader>
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-sm">언어별 번역 커버리지</CardTitle>
+          <p className="text-[11px] font-medium leading-relaxed text-muted-foreground">
+            코어·대시보드 JSON 기준, 영어(en)와 문장이 다른 비율입니다. 높을수록 영어와 구분되는 번역이 많습니다.
+            API가 <code className="rounded bg-muted px-1">coverage</code>를 주면 그 값으로 덮어씁니다.
+          </p>
+        </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             {LOCALES.map((l) => {
-              const pct = coverage[l.code] ?? (l.file ? 100 : 0);
-              const isNew = !l.file;
+              const pct = coverage[l.code] ?? 0;
+              const barClass =
+                pct >= 92 ? "bg-emerald-500" : pct >= 75 ? "bg-amber-400" : "bg-red-400";
+              const textClass =
+                pct >= 92 ? "text-emerald-600" : pct >= 75 ? "text-amber-600" : "text-red-500";
               return (
                 <div key={l.code} className="space-y-1">
                   <div className="flex items-center justify-between text-xs">
                     <span>{l.label}</span>
-                    <span className={`font-bold ${pct === 100 ? "text-emerald-600" : pct > 70 ? "text-amber-600" : "text-red-500"}`}>
+                    <span className={`font-bold tabular-nums ${textClass}`}>
                       {pct}%
                     </span>
                   </div>
                   <div className="h-1.5 bg-slate-100 rounded-full">
                     <div
-                      className={`h-1.5 rounded-full ${pct === 100 ? "bg-emerald-500" : pct > 70 ? "bg-amber-400" : "bg-red-400"}`}
+                      className={`h-1.5 rounded-full ${barClass}`}
                       style={{ width: `${pct}%` }}
                     />
                   </div>
-                  {isNew && <Badge className="text-[9px] h-3.5 px-1 bg-violet-100 text-violet-700 border-0">SEA 신규</Badge>}
                 </div>
               );
             })}

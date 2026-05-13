@@ -18,6 +18,7 @@ import {
   Globe,
   Languages,
   Key,
+  BookOpen,
 } from "lucide-react";
 import Image from "next/image";
 import { createClient } from "@/utils/supabase/client";
@@ -159,6 +160,7 @@ export function Sidebar({
       links: [
         { name: "연동 수요 분석", href: "/dashboard/admin/regional-demand", icon: BarChart3 },
         { name: "국가별 API 키", href: "/dashboard/admin/regional-keys", icon: Key },
+        { name: "API 키 발급 가이드", href: "/dashboard/admin/regional-keys/guide", icon: BookOpen },
         { name: "테넌트 현황", href: "/dashboard/admin/tenants", icon: Globe },
         { name: "구독/결제", href: "/dashboard/admin/billing", icon: CreditCard },
         { name: "번역 관리", href: "/dashboard/admin/translations", icon: Languages },
@@ -275,35 +277,38 @@ export function Sidebar({
     <aside className={cn("flex w-64 flex-col bg-white border-r border-slate-100 h-full z-20 shadow-sm", className)}>
       <div className="p-6 pb-2">
         {logoUrl ? (
-            <Image
-              src={logoUrl}
-              alt={t.sidebar.altStoreLogo}
-              width={180}
-              height={40}
-              priority={true}
-              className="mx-auto mix-blend-multiply dark:mix-blend-normal dark:invert"
-              style={{ width: "auto", height: "auto", maxHeight: "40px", objectFit: "contain" }}
-            />
+            <div className="relative mx-auto h-10 w-44 max-w-full">
+              <Image
+                src={logoUrl}
+                alt={t.sidebar.altStoreLogo}
+                fill
+                priority
+                sizes="176px"
+                className="object-contain mix-blend-multiply dark:mix-blend-normal dark:invert"
+              />
+            </div>
           ) : (
-            <div className="flex items-center justify-center py-1">
-              <Image
-                src="/images/floxync-logo-dark.png"
-                alt={t.sidebar.altBrandLogo}
-                width={160}
-                height={36}
-                priority={true}
-                style={{ width: "auto", height: "auto", maxHeight: "36px", objectFit: "contain" }}
-                className="mx-auto dark:hidden"
-              />
-              <Image
-                src="/images/floxync-logo-white.png"
-                alt={t.sidebar.altBrandLogo}
-                width={160}
-                height={36}
-                priority={true}
-                style={{ width: "auto", height: "auto", maxHeight: "36px", objectFit: "contain" }}
-                className="mx-auto hidden dark:block"
-              />
+            <div className="flex flex-col items-center justify-center gap-1 py-1">
+              <div className="relative mx-auto h-9 w-40 max-w-full dark:hidden">
+                <Image
+                  src="/images/floxync-logo-dark.png"
+                  alt={t.sidebar.altBrandLogo}
+                  fill
+                  priority
+                  sizes="160px"
+                  className="object-contain"
+                />
+              </div>
+              <div className="relative mx-auto hidden h-9 w-40 max-w-full dark:block">
+                <Image
+                  src="/images/floxync-logo-white.png"
+                  alt={t.sidebar.altBrandLogo}
+                  fill
+                  priority
+                  sizes="160px"
+                  className="object-contain"
+                />
+              </div>
           </div>
         )}
         <div className="mt-3 text-center">
