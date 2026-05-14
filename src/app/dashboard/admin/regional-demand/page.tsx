@@ -282,7 +282,7 @@ export default function RegionalDemandPage() {
                   국가 × 앱 요청 히트맵
                 </CardTitle>
                 <div className="flex gap-2">
-                  <Select value={filterCountry} onValueChange={setFilterCountry}>
+                  <Select value={filterCountry} onValueChange={(v) => setFilterCountry(v ?? "ALL")}>
                     <SelectTrigger className="h-8 text-xs w-36">
                       <SelectValue placeholder="국가 전체" />
                     </SelectTrigger>
@@ -295,7 +295,7 @@ export default function RegionalDemandPage() {
                       ))}
                     </SelectContent>
                   </Select>
-                  <Select value={filterCategory} onValueChange={setFilterCategory}>
+                  <Select value={filterCategory} onValueChange={(v) => setFilterCategory(v ?? "ALL")}>
                     <SelectTrigger className="h-8 text-xs w-32">
                       <SelectValue placeholder="카테고리" />
                     </SelectTrigger>

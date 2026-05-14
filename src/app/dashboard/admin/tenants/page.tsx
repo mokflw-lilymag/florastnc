@@ -359,7 +359,7 @@ export default function TenantsAdminPage() {
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
-              <Select value={filterCountry} onValueChange={setFilterCountry}>
+              <Select value={filterCountry} onValueChange={(v) => setFilterCountry(v ?? "ALL")}>
                 <SelectTrigger className="h-8 text-xs w-36">
                   <SelectValue placeholder="국가 전체" />
                 </SelectTrigger>
@@ -372,7 +372,7 @@ export default function TenantsAdminPage() {
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={filterPlan} onValueChange={setFilterPlan}>
+              <Select value={filterPlan} onValueChange={(v) => setFilterPlan(v ?? "ALL")}>
                 <SelectTrigger className="h-8 text-xs w-28">
                   <SelectValue placeholder="플랜" />
                 </SelectTrigger>
@@ -466,7 +466,7 @@ export default function TenantsAdminPage() {
           </DialogHeader>
           <div className="space-y-3 py-2">
             <p className="text-sm text-slate-500">현재 플랜: <PlanBadge plan={selectedTenant?.plan ?? null} /></p>
-            <Select value={newPlan} onValueChange={setNewPlan}>
+            <Select value={newPlan} onValueChange={(v) => setNewPlan(v ?? "")}>
               <SelectTrigger>
                 <SelectValue placeholder="새 플랜 선택" />
               </SelectTrigger>

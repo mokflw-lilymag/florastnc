@@ -572,7 +572,10 @@ export default function BranchMaterialRequestsPage() {
                 <div className="grid gap-2 sm:grid-cols-2 pt-1">
                   <Select
                     value={line.material_id ?? "__manual__"}
-                    onValueChange={(v) => applyMaterial(line.key, v)}
+                    onValueChange={(v) => {
+                      if (v == null) return;
+                      applyMaterial(line.key, v);
+                    }}
                   >
                     <SelectTrigger className="h-9 sm:col-span-2">
                       <SelectValue placeholder={tf.f01958} />
@@ -595,7 +598,7 @@ export default function BranchMaterialRequestsPage() {
                   <Select
                     value={line.main_category || "__none__"}
                     onValueChange={(v) => {
-                      if (v === "__none__") return;
+                      if (v == null || v === "__none__") return;
                       updateLine(line.key, { main_category: v, mid_category: "", material_id: null });
                     }}
                   >
@@ -818,7 +821,7 @@ export default function BranchMaterialRequestsPage() {
                       >
                         {q}
                       </PopoverTrigger>
-                      <PopoverContent className="w-44 rounded-xl border-border/60 p-3 shadow-lg" align="end" onOpenAutoFocus={(e) => e.preventDefault()}>
+                      <PopoverContent className="w-44 rounded-xl border-border/60 p-3 shadow-lg" align="end" initialFocus={false}>
                         <div className="space-y-2">
                           <Label htmlFor={`qty-${m.id}`} className="text-xs">
                             {ui.qtyLabel}
@@ -934,7 +937,13 @@ export default function BranchMaterialRequestsPage() {
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
-                  <Select value={line.material_id ?? "__manual__"} onValueChange={(v) => applyMaterial(line.key, v)}>
+                  <Select
+                    value={line.material_id ?? "__manual__"}
+                    onValueChange={(v) => {
+                      if (v == null) return;
+                      applyMaterial(line.key, v);
+                    }}
+                  >
                     <SelectTrigger className="h-9">
                       <SelectValue placeholder={tf.f01958} />
                     </SelectTrigger>
@@ -956,7 +965,7 @@ export default function BranchMaterialRequestsPage() {
                     <Select
                       value={line.main_category || "__none__"}
                       onValueChange={(v) => {
-                        if (v === "__none__") return;
+                        if (v == null || v === "__none__") return;
                         updateLine(line.key, { main_category: v, mid_category: "", material_id: null });
                       }}
                     >

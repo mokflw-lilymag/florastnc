@@ -154,11 +154,14 @@ export default async function RegionalApiKeyGuidePage() {
             </p>
           </div>
         </div>
-        <Button variant="outline" size="sm" className="gap-1.5" asChild>
-          <Link href="/dashboard/admin/regional-keys">
-            <ArrowLeft className="h-4 w-4" />
-            API 키 관리로
-          </Link>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1.5"
+          render={<Link href="/dashboard/admin/regional-keys" />}
+        >
+          <ArrowLeft className="h-4 w-4" />
+          API 키 관리로
         </Button>
       </div>
 

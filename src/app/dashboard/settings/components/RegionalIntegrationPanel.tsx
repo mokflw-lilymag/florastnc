@@ -213,11 +213,14 @@ export function RegionalIntegrationPanel({
           <p className="text-xs leading-relaxed text-slate-600">
             <span className="font-semibold text-slate-800">연동·알림 장애 시</span> 공급사 콘솔에서 키를 발급하는 위치와 점검 순서는 가이드에 정리되어 있습니다. (키 값 저장은 슈퍼관리자 전용)
           </p>
-          <Button size="sm" variant="secondary" className="shrink-0 gap-1.5 border-violet-200 bg-violet-50 text-violet-900 hover:bg-violet-100" asChild>
-            <Link href="/dashboard/admin/regional-keys/guide">
-              <BookOpen className="h-3.5 w-3.5" />
-              키 발급 가이드
-            </Link>
+          <Button
+            size="sm"
+            variant="secondary"
+            className="shrink-0 gap-1.5 border-violet-200 bg-violet-50 text-violet-900 hover:bg-violet-100"
+            render={<Link href="/dashboard/admin/regional-keys/guide" />}
+          >
+            <BookOpen className="h-3.5 w-3.5" />
+            키 발급 가이드
           </Button>
         </div>
         {sections.map((section) => (
