@@ -6,7 +6,7 @@ import { AccessDenied } from "@/components/access-denied";
 import { createClient } from "@/utils/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -30,6 +30,13 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { toast } from "sonner";
 import {
   Loader2,
@@ -42,8 +49,14 @@ import {
   TrendingUp,
   CreditCard,
   ExternalLink,
+  Calendar as CalendarIcon,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  Infinity as InfinityIcon,
 } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, addDays, addMonths, isAfter } from "date-fns";
+import { cn } from "@/lib/utils";
 
 // ─── 타입 ────────────────────────────────────────────────
 type TenantRow = {
@@ -115,11 +128,32 @@ export default function TenantsAdminPage() {
   const [filterCountry, setFilterCountry] = useState("ALL");
   const [filterPlan, setFilterPlan] = useState("ALL");
 
-  // 플랜 변경 다이얼로그
+  // 구독 관리 다이얼로그
   const [planDialogOpen, setPlanDialogOpen] = useState(false);
   const [selectedTenant, setSelectedTenant] = useState<TenantRow | null>(null);
   const [newPlan, setNewPlan] = useState("");
+  const [newStatus, setNewStatus] = useState<"active" | "suspended">("active");
+  const [newEnd, setNewEnd] = useState<Date | undefined>(undefined);
   const [changingPlan, setChangingPlan] = useState(false);
+
+  // 만료일 단축 버튼 — 현재 만료일 기준 연장(과거면 오늘 기준)
+  const extendBy = (months: number | "test" | "expire" | "lifetime") => {
+    if (months === "expire") {
+      setNewEnd(new Date());
+      return;
+    }
+    if (months === "lifetime") {
+      setNewEnd(new Date(2099, 11, 31, 23, 59, 59));
+      return;
+    }
+    if (months === "test") {
+      setNewEnd(addDays(new Date(), 7));
+      return;
+    }
+    const cur = newEnd ?? null;
+    const base = cur && !isAfter(new Date(), cur) ? cur : new Date();
+    setNewEnd(addMonths(base, months));
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -168,20 +202,28 @@ export default function TenantsAdminPage() {
     else if (!authLoading && !isSuperAdmin) setLoading(false);
   }, [authLoading, isSuperAdmin, load]);
 
-  const handleChangePlan = async () => {
+  const handleSaveSubscription = async () => {
     if (!selectedTenant || !newPlan) return;
     setChangingPlan(true);
     try {
       const { error } = await supabase
         .from("tenants")
-        .update({ plan: newPlan, is_premium: newPlan === "premium" || newPlan === "enterprise" })
+        .update({
+          plan: newPlan,
+          is_premium: newPlan === "premium" || newPlan === "enterprise",
+          status: newStatus,
+          subscription_end: newEnd ? newEnd.toISOString() : null,
+        })
         .eq("id", selectedTenant.id);
       if (error) throw error;
-      toast.success(`✅ ${selectedTenant.name}의 플랜이 ${PLAN_LABELS[newPlan] ?? newPlan}으로 변경되었습니다.`);
+      const endLabel = newEnd
+        ? (newEnd.getFullYear() >= 2099 ? "평생" : format(newEnd, "yyyy.MM.dd"))
+        : "무제한";
+      toast.success(`✅ ${selectedTenant.name} 저장 완료 · ${PLAN_LABELS[newPlan] ?? newPlan} · ${endLabel}`);
       setPlanDialogOpen(false);
       load();
     } catch (e: any) {
-      toast.error("플랜 변경 실패: " + e.message);
+      toast.error("저장 실패: " + e.message);
     } finally {
       setChangingPlan(false);
     }
@@ -441,11 +483,13 @@ export default function TenantsAdminPage() {
                             onClick={() => {
                               setSelectedTenant(t);
                               setNewPlan(t.plan ?? "free");
+                              setNewStatus((t.status as "active" | "suspended") ?? "active");
+                              setNewEnd(t.subscription_end ? new Date(t.subscription_end) : undefined);
                               setPlanDialogOpen(true);
                             }}
                           >
                             <ExternalLink className="w-3 h-3" />
-                            플랜 변경
+                            구독 관리
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -458,34 +502,163 @@ export default function TenantsAdminPage() {
         </CardContent>
       </Card>
 
-      {/* 플랜 변경 다이얼로그 */}
+      {/* 구독 관리 다이얼로그 */}
       <Dialog open={planDialogOpen} onOpenChange={setPlanDialogOpen}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>플랜 변경 — {selectedTenant?.name}</DialogTitle>
+            <DialogTitle>구독 관리 — {selectedTenant?.name}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3 py-2">
-            <p className="text-sm text-slate-500">현재 플랜: <PlanBadge plan={selectedTenant?.plan ?? null} /></p>
-            <Select value={newPlan} onValueChange={(v) => setNewPlan(v ?? "")}>
-              <SelectTrigger>
-                <SelectValue placeholder="새 플랜 선택" />
-              </SelectTrigger>
-              <SelectContent>
-                {PLANS.map((p) => (
-                  <SelectItem key={p} value={p}>{PLAN_LABELS[p]}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="space-y-5 py-2">
+            <p className="text-sm text-slate-500">
+              현재 플랜: <PlanBadge plan={selectedTenant?.plan ?? null} />
+              {selectedTenant?.subscription_end && (
+                <span className="ml-2 text-xs text-slate-400">
+                  · 기존 만료일 {format(parseISO(selectedTenant.subscription_end), "yyyy.MM.dd")}
+                </span>
+              )}
+            </p>
+
+            {/* 플랜 + 상태 */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs text-slate-500">플랜</Label>
+                <Select value={newPlan} onValueChange={(v) => setNewPlan(v ?? "free")}>
+                  <SelectTrigger className="h-10">
+                    <SelectValue placeholder="새 플랜 선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PLANS.map((p) => (
+                      <SelectItem key={p} value={p}>{PLAN_LABELS[p]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-slate-500">상태</Label>
+                <Select
+                  value={newStatus}
+                  onValueChange={(v) => setNewStatus((v as "active" | "suspended") ?? "active")}
+                >
+                  <SelectTrigger className="h-10">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">활성</SelectItem>
+                    <SelectItem value="suspended">정지</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* 만료일 빠른 연장 */}
+            <div className="space-y-2">
+              <Label className="text-xs text-slate-500">기간 빠른 연장(현재 만료일 기준)</Label>
+              <div className="grid grid-cols-4 gap-2">
+                <Button type="button" variant="outline" className="h-9 text-xs" onClick={() => extendBy(1)}>1개월</Button>
+                <Button type="button" variant="outline" className="h-9 text-xs" onClick={() => extendBy(3)}>3개월</Button>
+                <Button type="button" variant="outline" className="h-9 text-xs" onClick={() => extendBy(6)}>6개월</Button>
+                <Button type="button" variant="outline" className="h-9 text-xs" onClick={() => extendBy(12)}>12개월</Button>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-9 text-xs border-blue-200 text-blue-700 bg-blue-50/40 hover:bg-blue-50"
+                  onClick={() => extendBy("test")}
+                >
+                  테스트 7일
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-9 text-xs border-rose-200 text-rose-700 bg-rose-50/40 hover:bg-rose-50"
+                  onClick={() => extendBy("expire")}
+                >
+                  즉시 만료
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-9 text-xs border-emerald-200 text-emerald-700 bg-emerald-50/40 hover:bg-emerald-50 gap-1"
+                  onClick={() => extendBy("lifetime")}
+                >
+                  <InfinityIcon className="w-3.5 h-3.5" /> 평생
+                </Button>
+              </div>
+            </div>
+
+            {/* 정확한 만료일 픽커 */}
+            <div className="space-y-1.5">
+              <Label className="text-xs text-slate-500">만료일 직접 선택</Label>
+              <div className="relative">
+                <Popover>
+                  <PopoverTrigger
+                    className={cn(
+                      buttonVariants({ variant: "outline" }),
+                      "w-full justify-start text-left h-10 px-3",
+                      newEnd ? "text-slate-900 font-semibold" : "text-slate-400"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4 text-slate-400" />
+                    {newEnd
+                      ? newEnd.getFullYear() >= 2099
+                        ? "평생 (2099-12-31)"
+                        : format(newEnd, "yyyy년 MM월 dd일")
+                      : "무제한 (만료일 없음)"}
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start" initialFocus={false}>
+                    <Calendar
+                      mode="single"
+                      selected={newEnd}
+                      onSelect={setNewEnd}
+                    />
+                  </PopoverContent>
+                </Popover>
+                {newEnd && (
+                  <button
+                    type="button"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500"
+                    onClick={() => setNewEnd(undefined)}
+                    aria-label="만료일 지우기"
+                  >
+                    <XCircle className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* 요약 패널 */}
+            {newEnd ? (
+              <div className="bg-emerald-50/50 p-3 rounded-xl border border-emerald-100 flex items-center justify-between">
+                <span className="text-emerald-700 text-xs font-medium">변경 후 만료일</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-emerald-900 font-bold text-sm">
+                    {newEnd.getFullYear() >= 2099
+                      ? "평생"
+                      : format(newEnd, "yyyy.MM.dd")}
+                  </span>
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                </div>
+              </div>
+            ) : (
+              <div className="bg-amber-50/50 p-3 rounded-xl border border-amber-100 flex items-center justify-between">
+                <span className="text-amber-700 text-xs font-medium">변경 후 만료일</span>
+                <div className="flex items-center gap-2 text-amber-800 font-bold text-sm">
+                  <span>무제한</span>
+                  <AlertCircle className="h-4 w-4" />
+                </div>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setPlanDialogOpen(false)}>취소</Button>
             <Button
               className="bg-blue-600 hover:bg-blue-700 text-white"
-              onClick={handleChangePlan}
-              disabled={changingPlan || newPlan === (selectedTenant?.plan ?? "free")}
+              onClick={handleSaveSubscription}
+              disabled={changingPlan || !newPlan}
             >
-              {changingPlan ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-              플랜 변경 확정
+              {changingPlan ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+              저장
             </Button>
           </DialogFooter>
         </DialogContent>
