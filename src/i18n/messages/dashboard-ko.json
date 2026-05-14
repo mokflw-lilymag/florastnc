@@ -845,6 +845,24 @@
     "galleryAdminDesignImageUrl": "디자인 이미지 URL",
     "galleryAdminImagePlaceholder": "https://… 이미지 주소",
     "galleryAdminAdd": "추가",
-    "galleryAdminDeleteAria": "삭제"
+    "galleryAdminDeleteAria": "삭제",
+    "galleryAdminUploadTitle": "파일로 디자인 추가",
+    "galleryAdminUploadHint": "이미지 파일을 끌어 놓거나 클릭해서 선택하세요. (가로/세로 자동 인식, 인쇄용 원본 + 목록 썸네일 자동 생성)",
+    "galleryAdminUploadButton": "파일 선택",
+    "galleryAdminUploadDrop": "여기에 놓으면 업로드됩니다",
+    "galleryAdminUploadCompressing": "이미지 압축 중…",
+    "galleryAdminUploadUploading": "Supabase 업로드 중…",
+    "galleryAdminUploadSaving": "DB 등록 중…",
+    "galleryAdminUploadProgress": "{done}/{total} 완료",
+    "galleryAdminUploadSuccess": "{count}장 추가됨",
+    "galleryAdminUploadError": "{name}: {message}",
+    "galleryAdminUploadNotImage": "이미지 파일이 아닙니다",
+    "galleryAdminOrUrl": "또는 외부 URL로 추가",
+    "galleryAdminSlugAutoHint": "표시 이름에서 자동 생성됩니다 (직접 수정 가능)",
+    "galleryAdminSlugInvalidShort": "영문 소문자/숫자/하이픈(-)/밑줄(_)만 가능합니다",
+    "galleryAdminLabelHint": "예: 🌷 플라워, 💒 웨딩",
+    "galleryAdminWhyDisabledLabel": "표시 이름을 입력하세요",
+    "galleryAdminWhyDisabledSlug": "영문 slug를 입력하세요",
+    "galleryAdminWhyDisabledFix": "slug 형식을 확인하세요"
   }
 }

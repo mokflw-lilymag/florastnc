@@ -21,8 +21,15 @@ type RemoteTheme = {
   label: string;
   sort_order: number;
   is_active: boolean;
-  design_gallery_assets?: { id: string; image_url: string; sort_order: number }[];
+  design_gallery_assets?: {
+    id: string;
+    image_url: string;
+    thumb_url: string | null;
+    sort_order: number;
+  }[];
 };
+
+type TemplatePair = { thumb: string; full: string };
 
 export const GalleryModal: React.FC<GalleryModalProps> = ({ isOpen, onClose }) => {
   const locale = usePreferredLocale();
@@ -112,13 +119,16 @@ export const GalleryModal: React.FC<GalleryModalProps> = ({ isOpen, onClose }) =
   const remoteThemeTabs = remoteThemes.map((t) => ({ id: t.slug, label: t.label }));
   const themeTabs = catalogSource === 'remote' ? remoteThemeTabs : legacyThemeTabs;
 
-  const getTemplateUrls = (tabSlug: string): string[] => {
+  const getTemplatePairs = (tabSlug: string): TemplatePair[] => {
     if (tabSlug === 'my_designs') return [];
     if (catalogSource === 'remote') {
       const t = remoteThemes.find((x) => x.slug === tabSlug);
-      return (t?.design_gallery_assets ?? []).map((a) => a.image_url);
+      return (t?.design_gallery_assets ?? []).map((a) => ({
+        thumb: a.thumb_url ?? a.image_url,
+        full: a.image_url,
+      }));
     }
-    return FREE_TEMPLATES[tabSlug] ?? [];
+    return (FREE_TEMPLATES[tabSlug] ?? []).map((u) => ({ thumb: u, full: u }));
   };
 
   const loadTemplate = (imageUrl: string) => {
@@ -153,7 +163,7 @@ export const GalleryModal: React.FC<GalleryModalProps> = ({ isOpen, onClose }) =
     onClose();
   };
 
-  const templateUrls = getTemplateUrls(activeGalleryTab);
+  const templatePairs = getTemplatePairs(activeGalleryTab);
 
   return (
     <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[1000] flex items-center justify-center p-4 animate-in fade-in duration-300">
@@ -301,30 +311,30 @@ export const GalleryModal: React.FC<GalleryModalProps> = ({ isOpen, onClose }) =
                     ))
                   )}
                 </div>
-              ) : templateUrls.length === 0 ? (
+              ) : templatePairs.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-24 text-slate-400 gap-2">
                   <Search size={40} className="opacity-20" />
                   <p className="text-sm font-black">{D.galleryEmptyTheme}</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 animate-in zoom-in-95 duration-300">
-                  {templateUrls.map((url, index) => (
+                  {templatePairs.map(({ thumb, full }, index) => (
                     <div
-                      key={`${url}-${index}`}
+                      key={`${full}-${index}`}
                       role="button"
                       tabIndex={0}
                       className="group bg-white border border-gray-100 rounded-[2rem] overflow-hidden hover:border-emerald-500 hover:shadow-2xl transition-all cursor-pointer relative"
-                      onClick={() => loadTemplate(url)}
+                      onClick={() => loadTemplate(full)}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' || e.key === ' ') {
                           e.preventDefault();
-                          loadTemplate(url);
+                          loadTemplate(full);
                         }
                       }}
                     >
                       <div className="aspect-[3/4.2] bg-gray-50 flex items-center justify-center overflow-hidden relative">
                         <img
-                          src={url}
+                          src={thumb}
                           alt={`${D.galleryImagePreviewAlt} ${index + 1}`}
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
                           loading="lazy"

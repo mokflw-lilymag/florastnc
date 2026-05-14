@@ -28,7 +28,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: errAdminForbidden(blGate) }, { status: 403 });
   }
 
-  let body: { theme_id?: string; image_url?: string; sort_order?: number; uiLocale?: string };
+  let body: {
+    theme_id?: string;
+    image_url?: string;
+    thumb_url?: string | null;
+    sort_order?: number;
+    uiLocale?: string;
+  };
   try {
     body = await req.json();
   } catch {
@@ -41,6 +47,15 @@ export async function POST(req: Request) {
   if (!theme_id) return NextResponse.json({ error: errAdminGalleryThemeIdRequired(bl) }, { status: 400 });
   if (!image_url || !isHttpUrl(image_url)) {
     return NextResponse.json({ error: errAdminGalleryImageUrlRequired(bl) }, { status: 400 });
+  }
+  // thumb_url 은 선택 — 비어 있으면 NULL 저장하고 클라이언트가 image_url 로 폴백 표시
+  let thumb_url: string | null = null;
+  if (typeof body.thumb_url === "string" && body.thumb_url.trim()) {
+    const t = body.thumb_url.trim();
+    if (!isHttpUrl(t)) {
+      return NextResponse.json({ error: errAdminGalleryImageUrlRequired(bl) }, { status: 400 });
+    }
+    thumb_url = t;
   }
 
   const admin = createAdminClient();
@@ -62,9 +77,12 @@ export async function POST(req: Request) {
     sort_order = (maxRow?.sort_order ?? -1) + 1;
   }
 
+  const insertRow: Record<string, unknown> = { theme_id, image_url, sort_order };
+  if (thumb_url) insertRow.thumb_url = thumb_url;
+
   const { data, error } = await admin
     .from("design_gallery_assets")
-    .insert({ theme_id, image_url, sort_order })
+    .insert(insertRow)
     .select("*")
     .single();
 

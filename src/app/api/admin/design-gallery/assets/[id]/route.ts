@@ -31,7 +31,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     return NextResponse.json({ error: errAdminForbidden(blGate) }, { status: 403 });
   }
 
-  let body: Partial<{ image_url: string; sort_order: number; uiLocale?: string }>;
+  let body: Partial<{ image_url: string; thumb_url: string | null; sort_order: number; uiLocale?: string }>;
   try {
     body = await req.json();
   } catch {
@@ -46,6 +46,17 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       return NextResponse.json({ error: errAdminGalleryHttpUrlRequired(bl) }, { status: 400 });
     }
     patch.image_url = image_url;
+  }
+  if (body.thumb_url !== undefined) {
+    if (body.thumb_url === null || String(body.thumb_url).trim() === "") {
+      patch.thumb_url = null;
+    } else {
+      const t = String(body.thumb_url).trim();
+      if (!isHttpUrl(t)) {
+        return NextResponse.json({ error: errAdminGalleryHttpUrlRequired(bl) }, { status: 400 });
+      }
+      patch.thumb_url = t;
+    }
   }
   if (body.sort_order !== undefined) {
     const n = Number(body.sort_order);

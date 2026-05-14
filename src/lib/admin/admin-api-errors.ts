@@ -144,6 +144,87 @@ export function errAdminGalleryHttpUrlRequired(bl: string) {
   );
 }
 
+export function errAdminGalleryUploadFileRequired(bl: string) {
+  return pickUiText(
+    bl,
+    "업로드할 파일(file, thumb) 둘 다 필요합니다.",
+    "Both 'file' and 'thumb' upload parts are required.",
+    "Cần cả 'file' và 'thumb' khi tải lên.",
+    "アップロードには file と thumb の両方が必要です。",
+    "上传需要同时包含 file 与 thumb。",
+    "Se requieren ambos: 'file' y 'thumb'.",
+    "São necessárias 'file' e 'thumb' no upload.",
+    "Les champs 'file' et 'thumb' sont requis.",
+    "'file' und 'thumb' sind beide erforderlich.",
+    "Нужны и 'file', и 'thumb'.",
+  );
+}
+
+export function errAdminGalleryUploadOnlyImage(bl: string) {
+  return pickUiText(
+    bl,
+    "이미지 파일만 업로드할 수 있습니다.",
+    "Only image files can be uploaded.",
+    "Chỉ chấp nhận tệp ảnh.",
+    "画像ファイルのみアップロードできます。",
+    "仅可上传图片文件。",
+    "Solo se pueden subir archivos de imagen.",
+    "Apenas arquivos de imagem podem ser enviados.",
+    "Seuls les fichiers image peuvent être téléversés.",
+    "Es können nur Bilddateien hochgeladen werden.",
+    "Можно загружать только изображения.",
+  );
+}
+
+export function errAdminGalleryUploadTooLarge(bl: string) {
+  return pickUiText(
+    bl,
+    "파일 크기가 너무 큽니다. (최대 10MB)",
+    "File is too large. (max 10MB)",
+    "Tệp quá lớn. (tối đa 10MB)",
+    "ファイルが大きすぎます (最大 10MB)。",
+    "文件过大（最大 10MB）。",
+    "Archivo demasiado grande. (máx. 10MB)",
+    "Arquivo muito grande. (máx. 10MB)",
+    "Fichier trop volumineux. (max. 10 Mo)",
+    "Datei zu groß. (max. 10 MB)",
+    "Файл слишком большой. (макс. 10 МБ)",
+  );
+}
+
+export function errAdminGalleryUploadFailed(bl: string, hint?: string) {
+  const base = pickUiText(
+    bl,
+    "이미지 업로드에 실패했습니다.",
+    "Image upload failed.",
+    "Tải ảnh lên thất bại.",
+    "画像のアップロードに失敗しました。",
+    "图片上传失败。",
+    "Falló la carga de la imagen.",
+    "Falha no upload da imagem.",
+    "Échec du téléversement de l'image.",
+    "Bild-Upload fehlgeschlagen.",
+    "Не удалось загрузить изображение.",
+  );
+  return hint ? `${base} ${hint}` : base;
+}
+
+export function errAdminGalleryUploadBucketHint(bl: string) {
+  return pickUiText(
+    bl,
+    "Supabase Storage 에 'design_gallery' 버킷이 없습니다. supabase/design_studio_gallery_add_upload.sql 을 적용하세요.",
+    "Storage bucket 'design_gallery' is missing. Apply supabase/design_studio_gallery_add_upload.sql.",
+    "Thiếu bucket 'design_gallery' trong Supabase Storage. Hãy chạy SQL bổ sung.",
+    "Storage バケット 'design_gallery' がありません。SQL を適用してください。",
+    "缺少 Storage 桶 'design_gallery'。请执行附加 SQL。",
+    "Falta el bucket 'design_gallery' en Storage. Aplique el SQL adicional.",
+    "Falta o bucket 'design_gallery'. Aplique o SQL adicional.",
+    "Le bucket 'design_gallery' est manquant. Appliquez le SQL.",
+    "Storage-Bucket 'design_gallery' fehlt. SQL anwenden.",
+    "Отсутствует бакет 'design_gallery'. Примените дополнительный SQL.",
+  );
+}
+
 export function errAdminSeedConfirmRequired(bl: string) {
   return pickUiText(
     bl,
