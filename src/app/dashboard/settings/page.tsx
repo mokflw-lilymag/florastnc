@@ -99,7 +99,7 @@ const MAJOR_CURRENCIES = [
   { code: 'INR', symbol: '₹', flag: '🇮🇳', nameKo: '인도 루피', nameEn: 'Indian Rupee' },
   { code: 'AED', symbol: 'د.إ', flag: '🇦🇪', nameKo: 'UAE 디르함', nameEn: 'UAE Dirham' },
   { code: 'SAR', symbol: '﷼', flag: '🇸🇦', nameKo: '사우디 리얄', nameEn: 'Saudi Riyal' },
-];
+] as const;
 
 const OPERATING_COUNTRIES = [
   { code: "KR", nameKo: "대한민국", nameEn: "Korea", nameVi: "Hàn Quốc", flag: "🇰🇷", defaultCurrency: "KRW" },
@@ -406,7 +406,11 @@ const OPERATING_COUNTRY_NAME_EXTRAS: Record<
 };
 
 function operatingCountryDisplayName(baseLocale: string, country: OperatingCountryRow): string {
+  // pack 누락 시(데이터 추가 누락 등) 런타임 크래시 대신 ko/en 폴백을 사용한다.
   const x = OPERATING_COUNTRY_NAME_EXTRAS[country.code];
+  if (!x) {
+    return pickUiText(baseLocale, country.nameKo, country.nameEn, country.nameVi);
+  }
   return pickUiText(
     baseLocale,
     country.nameKo,
@@ -672,7 +676,11 @@ const MAJOR_CURRENCY_NAME_PACKS: Record<
 };
 
 function majorCurrencyDisplayName(baseLocale: string, currency: MajorCurrencyRow): string {
+  // pack 누락 시(데이터 추가 누락 등) 런타임 크래시 대신 ko/en 폴백을 사용한다.
   const p = MAJOR_CURRENCY_NAME_PACKS[currency.code];
+  if (!p) {
+    return pickUiText(baseLocale, currency.nameKo, currency.nameEn);
+  }
   return pickUiText(
     baseLocale,
     currency.nameKo,
