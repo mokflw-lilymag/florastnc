@@ -25,6 +25,7 @@ export function DesignGalleryAdminPanel({ onBack, onCatalogChanged }: DesignGall
   const D = getMessages(locale).dashboard.designStudio;
   const [themes, setThemes] = useState<AdminGalleryTheme[]>([]);
   const [loading, setLoading] = useState(true);
+  const [schemaMissing, setSchemaMissing] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [newThemeSlug, setNewThemeSlug] = useState('');
   const [newThemeLabel, setNewThemeLabel] = useState('');
@@ -41,6 +42,7 @@ export function DesignGalleryAdminPanel({ onBack, onCatalogChanged }: DesignGall
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || D.galleryAdminLoadFail);
       const list = (json.themes ?? []) as AdminGalleryTheme[];
+      setSchemaMissing(Boolean(json.schemaMissing));
       setThemes(list);
       setSelectedId((prev) => {
         if (prev && list.some((t) => t.id === prev)) return prev;
@@ -198,6 +200,20 @@ export function DesignGalleryAdminPanel({ onBack, onCatalogChanged }: DesignGall
         <h4 className="text-sm font-black text-slate-800">{D.galleryAdminTitle}</h4>
         {saving && <Loader2 className="ml-auto animate-spin text-emerald-600" size={20} />}
       </div>
+
+      {schemaMissing && (
+        <div className="mx-6 mt-4 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-xs text-amber-900">
+          <p className="font-black text-sm mb-1">⚠️ Supabase 스키마가 적용되지 않았습니다</p>
+          <p className="leading-relaxed mb-2">
+            <code className="rounded bg-white px-1 py-0.5 font-mono text-[11px]">design_gallery_themes</code> /
+            <code className="ml-1 rounded bg-white px-1 py-0.5 font-mono text-[11px]">design_gallery_assets</code>{" "}
+            테이블이 없습니다. Supabase SQL Editor에서 아래 파일을 실행해 주세요:
+          </p>
+          <code className="block rounded bg-white px-2 py-1.5 font-mono text-[11px]">
+            supabase/design_studio_gallery_templates.sql
+          </code>
+        </div>
+      )}
 
       <div className="flex flex-1 min-h-0 overflow-hidden">
         <div className="w-72 shrink-0 border-r border-slate-200 bg-white overflow-y-auto p-4 space-y-3">
