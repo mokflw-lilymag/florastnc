@@ -231,7 +231,7 @@ function deepMerge<T extends Record<string, any>>(base: T, override?: DeepPartia
   return merged;
 }
 
-function dashboardForLocale(baseLocale: string): DashboardMessages {
+function pickDashboardRaw(baseLocale: string): DashboardMessages {
   if (baseLocale === "ko") return dashboardKo as DashboardMessages;
   if (baseLocale === "vi") return dashboardVi as DashboardMessages;
   if (baseLocale === "ja") return dashboardJa as DashboardMessages;
@@ -250,6 +250,14 @@ function dashboardForLocale(baseLocale: string): DashboardMessages {
   if (baseLocale === "hi") return dashboardHi as DashboardMessages;
   if (baseLocale === "ar") return dashboardAr as DashboardMessages;
   return dashboardEn as DashboardMessages;
+}
+
+function dashboardForLocale(baseLocale: string): DashboardMessages {
+  // 영어를 폴백 베이스로 사용해 다른 locale 의 누락 키를 자동 보강 — 빈 라벨로 화면이 깨지는 것 방지
+  const enDash = dashboardEn as DashboardMessages;
+  if (baseLocale === "en") return enDash;
+  const localized = pickDashboardRaw(baseLocale);
+  return deepMerge(enDash, localized as DeepPartial<DashboardMessages>);
 }
 
 export function getMessages(localeInput: AppLocale | string): AppMessages {
