@@ -37,9 +37,11 @@ interface OrderEditDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   order: Order | null;
+  /** 무료 ERP 체험 — 저장 불가 */
+  trialMode?: boolean;
 }
 
-export function OrderEditDialog({ isOpen, onOpenChange, order }: OrderEditDialogProps) {
+export function OrderEditDialog({ isOpen, onOpenChange, order, trialMode }: OrderEditDialogProps) {
   const { updateOrder } = useOrders();
   const { settings } = useSettings();
   const { updateExpenseByOrderId, addExpense, deleteExpenseByOrderId, updateExpense, deleteExpense } = useExpenses();
@@ -172,6 +174,24 @@ export function OrderEditDialog({ isOpen, onOpenChange, order }: OrderEditDialog
   };
 
   const handleSave = async () => {
+    if (trialMode) {
+      toast.info(
+        pickUiText(
+          baseLocale,
+          "체험 모드에서는 저장되지 않습니다.",
+          "Not saved in trial mode.",
+          "Chế độ thử không lưu.",
+          "体験モードでは保存されません。",
+          "体验模式不会保存。",
+          "No se guarda en modo prueba.",
+          "Não salva no modo teste.",
+          "Non enregistré en mode essai.",
+          "Im Testmodus wird nicht gespeichert.",
+          "В пробном режиме не сохраняется.",
+        ),
+      );
+      return;
+    }
     if (!order) return;
     setIsLoading(true);
     try {

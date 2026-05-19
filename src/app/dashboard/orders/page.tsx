@@ -56,13 +56,17 @@ import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
 import { pickUiText } from "@/i18n/pick-ui-text";
 import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
+import { useTenantPlanAccess } from "@/hooks/use-tenant-plan-access";
+import { ErpTrialBanner } from "@/components/subscription/erp-trial-banner";
+import { getErpTrialOrders } from "@/lib/subscription/erp-trial-sample-data";
+import { erpTrialAppliedMessage, requireErpPersist } from "@/lib/subscription/erp-trial";
 
 export default function OrdersPage() {
   const isAndroidApp = useIsCapacitorAndroid();
   const touchUi = usePartnerTouchUi();
   const { profile, isLoading: authLoading, tenantId } = useAuth();
+  const { hasErpViewAccess, isErpTrial, ctx: planCtx } = useTenantPlanAccess();
   const pathname = usePathname();
-  const plan = profile?.tenants?.plan || "free";
   const isSuperAdmin = profile?.role === 'super_admin';
   const supabase = createClient();
   const { settings } = useSettings();
@@ -121,7 +125,8 @@ export default function OrdersPage() {
     cancelOrder 
   } = useOrders();
 
-  const hasAccess = authLoading || isSuperAdmin || ['pro', 'erp_only'].includes(plan);
+  const hasAccess = authLoading || isSuperAdmin || hasErpViewAccess;
+  const [trialOrders, setTrialOrders] = useState<Order[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedReceiptType, setSelectedReceiptType] = useState("all");
@@ -137,6 +142,23 @@ export default function OrdersPage() {
   const [isPrintTargetModalOpen, setIsPrintTargetModalOpen] = useState(false);
   const [pendingPrintOrder, setPendingPrintOrder] = useState<Order | null>(null);
 
+  useEffect(() => {
+    if (isErpTrial && tenantId) {
+      setTrialOrders(getErpTrialOrders(tenantId));
+    }
+  }, [isErpTrial, tenantId]);
+
+  const sourceOrders = isErpTrial ? trialOrders : orders;
+  const listLoading = isErpTrial ? false : loading;
+
+  const patchTrialOrder = (id: string, patch: Partial<Order>) => {
+    setTrialOrders((prev) => prev.map((o) => (o.id === id ? { ...o, ...patch } : o)));
+    if (selectedOrder?.id === id) {
+      setSelectedOrder((prev) => (prev ? { ...prev, ...patch } : prev));
+    }
+    toast.info(erpTrialAppliedMessage(locale));
+  };
+
   // Google Sheets export date range
   const [exportStartDate, setExportStartDate] = useState(() => format(startOfMonth(new Date()), 'yyyy-MM-dd'));
   const [exportEndDate, setExportEndDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
@@ -149,6 +171,7 @@ export default function OrdersPage() {
   const [filterBasis, setFilterBasis] = useState<'order_date' | 'created_at'>((searchParams.get('basis') as any) || 'order_date');
 
   useEffect(() => {
+    if (isErpTrial) return;
     const periodFromUrl = searchParams.get('period') || '2months';
     const basisFromUrl = searchParams.get('basis') || 'order_date';
     
@@ -166,10 +189,11 @@ export default function OrdersPage() {
     else if (currentPeriod === '6months') fetchOrdersByRange(subDays(new Date(), 180), new Date(), filterBasis);
     else if (currentPeriod === '1year') fetchOrdersByRange(subDays(new Date(), 365), new Date(), filterBasis);
     else if (currentPeriod === 'all') fetchOrdersByRange(new Date(2000, 0, 1), new Date(), filterBasis);
-  }, [currentPeriod, filterBasis, searchParams, pathname, router, fetchOrdersByRange]);
+  }, [currentPeriod, filterBasis, searchParams, pathname, router, fetchOrdersByRange, isErpTrial]);
 
   // 쇼핑몰 통합 동기화 (카페24 + 네이버)
   const syncShopOrders = async (silent = false) => {
+    if (isErpTrial) return;
     if (!tenantId) return;
     if (!silent) setIsCafe24Syncing(true);
 
@@ -243,7 +267,7 @@ export default function OrdersPage() {
   };
 
   useEffect(() => {
-    if (!tenantId) return;
+    if (isErpTrial || !tenantId) return;
     // 페이지 진입 시 1회 동기화 (조용히)
     const initialTimer = setTimeout(() => syncShopOrders(true), 3000);
     // 5분마다 자동 폴링
@@ -252,7 +276,7 @@ export default function OrdersPage() {
       clearTimeout(initialTimer);
       clearInterval(interval);
     };
-  }, [tenantId]);
+  }, [tenantId, isErpTrial]);
 
 
   const handleToggleSelectAll = () => {
@@ -265,6 +289,7 @@ export default function OrdersPage() {
 
   // Keep selectedOrder in sync with the orders list from useOrders (Reactive update)
   useEffect(() => {
+    if (isErpTrial) return;
     if (selectedOrder && orders.length > 0) {
       const updated = orders.find(o => o.id === selectedOrder.id);
       if (updated && updated.completionPhotoUrl !== selectedOrder.completionPhotoUrl) {
@@ -282,6 +307,15 @@ export default function OrdersPage() {
 
   const handleBulkStatusChange = async (status: 'completed' | 'processing') => {
     if (selectedOrderIds.length === 0) return;
+    if (isErpTrial) {
+      setTrialOrders((prev) =>
+        prev.map((o) => (selectedOrderIds.includes(o.id) ? { ...o, status } : o)),
+      );
+      toast.info(erpTrialAppliedMessage(locale));
+      setSelectedOrderIds([]);
+      return;
+    }
+    if (!requireErpPersist(planCtx, locale)) return;
     try {
       const { error } = await supabase
         .from('orders')
@@ -306,6 +340,14 @@ export default function OrdersPage() {
 
   const handleBulkDelete = async () => {
     if (selectedOrderIds.length === 0) return;
+    if (isErpTrial) {
+      setTrialOrders((prev) => prev.filter((o) => !selectedOrderIds.includes(o.id)));
+      toast.info(erpTrialAppliedMessage(locale));
+      setSelectedOrderIds([]);
+      setIsBulkDeleteDialogOpen(false);
+      return;
+    }
+    if (!requireErpPersist(planCtx, locale)) return;
     try {
       for (const id of selectedOrderIds) {
         await deleteOrder(id);
@@ -323,6 +365,7 @@ export default function OrdersPage() {
 
   const autoCloseRanRef = useRef(false);
   useEffect(() => {
+    if (isErpTrial) return;
     const autoClose = async () => {
       if (autoCloseRanRef.current || loading || orders.length === 0) return;
       autoCloseRanRef.current = true;
@@ -368,11 +411,11 @@ export default function OrdersPage() {
     };
     
     autoClose();
-  }, [loading, orders, supabase]);
+  }, [loading, orders, supabase, isErpTrial]);
 
 
   const filteredOrders = useMemo(() => {
-    return orders.filter(order => {
+    return sourceOrders.filter(order => {
       const searchStr = searchTerm.toLowerCase();
       const matchesSearch = 
         order.order_number.toLowerCase().includes(searchStr) ||
@@ -387,20 +430,20 @@ export default function OrdersPage() {
 
       return matchesSearch && matchesStatus && matchesReceipt;
     });
-  }, [orders, searchTerm, selectedStatus, selectedReceiptType]);
+  }, [sourceOrders, searchTerm, selectedStatus, selectedReceiptType]);
 
   const stats = useMemo(() => {
-    const totalCount = orders.length;
-    const processingCount = orders.filter(o => o.status === 'processing').length;
-    const completedCount = orders.filter(o => o.status === 'completed').length;
-    const totalAmount = orders.filter(o => o.status !== 'canceled').reduce((sum, o) => sum + (o.summary?.total || 0), 0);
+    const totalCount = sourceOrders.length;
+    const processingCount = sourceOrders.filter(o => o.status === 'processing').length;
+    const completedCount = sourceOrders.filter(o => o.status === 'completed').length;
+    const totalAmount = sourceOrders.filter(o => o.status !== 'canceled').reduce((sum, o) => sum + (o.summary?.total || 0), 0);
     
-    const todayOrders = orders.filter(o => isToday(parseISO(o.order_date)));
+    const todayOrders = sourceOrders.filter(o => isToday(parseISO(o.order_date)));
     const todayAmount = todayOrders.reduce((sum, o) => sum + (o.summary?.total || 0), 0);
     const todayCount = todayOrders.length;
 
     return { totalCount, processingCount, completedCount, totalAmount, todayCount, todayAmount };
-  }, [orders]);
+  }, [sourceOrders]);
 
   const handleOrderClick = (order: Order) => {
     setSelectedOrder(order);
@@ -420,6 +463,23 @@ export default function OrdersPage() {
 
   const handleCardPrint = (order: Order, e?: React.MouseEvent) => {
     e?.stopPropagation();
+    if (isErpTrial) {
+      toast.info(
+        tr(
+          "체험 주문은 카드 디자인 연동 미리보기만 가능합니다. 리본 인쇄는 이용해 보세요.",
+          "Trial orders: try ribbon print; card design link needs a paid plan.",
+          "Đơn thử: in ruy băng; thiết kế thẻ cần gói trả phí.",
+          "体験注文はリボン印刷をお試しください。",
+          "体验订单可试丝带打印；卡片设计需付费方案。",
+          "Pedido de prueba: prueba cinta; diseño de tarjeta requiere plan de pago.",
+          "Pedido teste: fita; design de cartão exige plano pago.",
+          "Commande essai : ruban ; carte = offre payante.",
+          "Testbestellung: Banddruck; Kartendesign mit Paid-Plan.",
+          "Пробный заказ: лента; карточка — платный тариф.",
+        ),
+      );
+      return;
+    }
     setPendingPrintOrder(order);
     setIsPrintTargetModalOpen(true);
   };
@@ -458,6 +518,10 @@ export default function OrdersPage() {
   };
 
   const handleStatusUpdate = async (id: string, status: Order['status']) => {
+    if (isErpTrial) {
+      patchTrialOrder(id, { status });
+      return;
+    }
     const success = await updateOrderStatus(id, status);
     if (success) {
       toast.success(
@@ -469,6 +533,10 @@ export default function OrdersPage() {
   };
 
   const handlePaymentUpdate = async (id: string, status: Order['payment']['status']) => {
+    if (isErpTrial) {
+      patchTrialOrder(id, { payment: { ...sourceOrders.find((o) => o.id === id)!.payment, status } });
+      return;
+    }
     const success = await updatePaymentStatus(id, status);
     if (success) {
       const payLabel = status === "paid" ? tf.f00470 : tf.f00217;
@@ -480,6 +548,14 @@ export default function OrdersPage() {
 
   const confirmDelete = async () => {
     if (!orderToDelete) return;
+    if (isErpTrial) {
+      setTrialOrders((prev) => prev.filter((o) => o.id !== orderToDelete));
+      toast.info(erpTrialAppliedMessage(locale));
+      setIsDeleteDialogOpen(false);
+      setOrderToDelete(null);
+      return;
+    }
+    if (!requireErpPersist(planCtx, locale)) return;
     const success = await deleteOrder(orderToDelete);
     if (success) {
       toast.success(tf.f00636);
@@ -491,6 +567,7 @@ export default function OrdersPage() {
   };
 
   const handleGoogleSheetExport = async () => {
+    if (!requireErpPersist(planCtx, locale)) return;
     if (!exportStartDate || !exportEndDate) {
       toast.error(tf.f00389);
       return;
@@ -568,6 +645,7 @@ export default function OrdersPage() {
 
   return (
     <div className={cn("space-y-8 bg-[#F8FAFC]", touchUi ? "p-4 pb-6 sm:p-6 sm:pb-8" : "p-8")}>
+      {isErpTrial ? <ErpTrialBanner /> : null}
       <PageHeader 
         title={tf.f00588} 
         description={
@@ -588,7 +666,10 @@ export default function OrdersPage() {
           </Button>
           <Button 
             variant="outline" 
-            onClick={() => exportOrdersToExcel(orders, undefined, undefined, locale)}
+            onClick={() => {
+              if (!requireErpPersist(planCtx, locale)) return;
+              exportOrdersToExcel(sourceOrders, undefined, undefined, locale);
+            }}
             className="flex-1 lg:flex-none h-11 lg:h-12 px-6 rounded-2xl border-2 border-slate-100 bg-white hover:bg-slate-50 font-bold transition-all shadow-sm gap-2"
           >
             <Download className="h-4 w-4 text-slate-400" /> 
@@ -617,7 +698,10 @@ export default function OrdersPage() {
           {!isAndroidApp && (
           <Button 
             className="w-full lg:w-auto h-11 lg:h-12 px-8 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl shadow-lg shadow-slate-200 transition-all gap-2"
-            onClick={() => router.push('/dashboard/orders/new')}
+            onClick={() => {
+              if (!requireErpPersist(planCtx, locale)) return;
+              router.push('/dashboard/orders/new');
+            }}
           >
             <PlusCircle className="h-4 w-4" /> 
             <span>{tf.f00346}</span>
@@ -797,7 +881,7 @@ export default function OrdersPage() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          {loading ? (
+          {listLoading ? (
             <div className="p-8 space-y-4">
               {[...Array(5)].map((_, i) => (
                 <Skeleton key={i} className="h-24 w-full rounded-2xl bg-slate-50/50" />
@@ -1307,6 +1391,7 @@ export default function OrdersPage() {
         isOpen={isOrderEditOpen}
         onOpenChange={setIsOrderEditOpen}
         order={selectedOrder}
+        trialMode={isErpTrial}
       />
       <OrderOutsourceDialog
         isOpen={isOutsourceOpen}

@@ -39,9 +39,13 @@ type MoreItem = { href: string; label: string; icon: typeof BarChart3 };
 type AndroidAppChromeProps = {
   /** 서버 레이아웃에서 전달 — 슈퍼관리자는 앱 하단 메뉴 비노출 */
   serverIsSuperAdmin?: boolean;
+  partnerOrdersEnabled?: boolean;
 };
 
-export function AndroidAppChrome({ serverIsSuperAdmin = false }: AndroidAppChromeProps) {
+export function AndroidAppChrome({
+  serverIsSuperAdmin = false,
+  partnerOrdersEnabled = false,
+}: AndroidAppChromeProps) {
   const locale = usePreferredLocale();
   const A = getMessages(locale).androidChrome;
   const isAndroidApp = useIsCapacitorAndroid();
@@ -85,7 +89,9 @@ export function AndroidAppChrome({ serverIsSuperAdmin = false }: AndroidAppChrom
     { href: "/dashboard/suppliers", label: T.suppliers, icon: Store },
     { href: "/dashboard/inventory", label: T.inventory, icon: Boxes },
     { href: "/dashboard/products", label: T.products, icon: Boxes },
-    { href: "/dashboard/external-orders", label: T.externalOrders, icon: Share2 },
+    ...(partnerOrdersEnabled
+      ? [{ href: "/dashboard/external-orders", label: T.externalOrders, icon: Share2 }]
+      : []),
     { href: "/dashboard/marketing", label: T.marketing, icon: Sparkles },
     { href: "/dashboard/design-studio", label: T.designStudio, icon: Layout },
   ];

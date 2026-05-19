@@ -13,12 +13,14 @@ import { useAuth } from "@/hooks/use-auth";
 import { AccessDenied } from "@/components/access-denied";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
+import { PartnerOrdersFeatureSwitch } from "./components/partner-orders-feature-switch";
 
 export default function SystemSettingsPage() {
-  const { profile, isSuperAdmin, isLoading } = useAuth();
+  const { isSuperAdmin, isLoading } = useAuth();
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
-  const baseLocale = toBaseLocale(locale);  if (isLoading) return null;
+  const baseLocale = toBaseLocale(locale);
+  if (isLoading) return null;
 
   if (!isSuperAdmin) {
     return <AccessDenied requiredTier="System Admin" />;
@@ -53,6 +55,7 @@ export default function SystemSettingsPage() {
         </TabsList>
 
         <TabsContent value="general" className="space-y-4">
+          <PartnerOrdersFeatureSwitch />
           <Card>
             <CardHeader>
               <CardTitle>{tf.f01400}</CardTitle>

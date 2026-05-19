@@ -2,6 +2,14 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { usePreferredLocale } from '@/hooks/use-preferred-locale';
 import { getMessages } from '@/i18n/getMessages';
 import { toBaseLocale } from '@/i18n/config';
+import { canUseFreeRibbonPrint, recordFreeRibbonPrint } from '@/lib/subscription/plan-access';
+import {
+  markRibbonDailyWelcomeSeen,
+  shouldShowRibbonDailyWelcome,
+} from '@/lib/subscription/ribbon-trial-session';
+import { RibbonFreeWelcomeModal } from '@/components/subscription/ribbon-free-welcome-modal';
+import { RibbonFreeLimitModal } from '@/components/subscription/ribbon-free-limit-modal';
+import { BrowseOnlyPrintModal } from '@/components/subscription/browse-only-print-modal';
 import RIBBON_PHRASE_DESC_EN from '@/i18n/messages/ribbon-phrase-desc-en.json';
 import RIBBON_PHRASE_DESC_JA from '@/i18n/messages/ribbon-phrase-desc-ja.json';
 import RIBBON_PHRASE_DESC_ZH from '@/i18n/messages/ribbon-phrase-desc-zh.json';
@@ -938,7 +946,7 @@ function fontRibbonSlug(fontValue: string) {
   return fontValue.replace(/^font-/, '').replace(/-/g, '_');
 }
 
-export default function App({ session, isAdmin, onShowAdmin, initialLeftText, initialRightText, userPlan, tenantLogo }: { session?: any; isAdmin?: boolean; onShowAdmin?: () => void, initialLeftText?: string, initialRightText?: string, userPlan?: string, tenantLogo?: string | null }) {
+export default function App({ session, isAdmin, onShowAdmin, initialLeftText, initialRightText, userPlan, tenantId, tenantLogo, canPrint = true }: { session?: any; isAdmin?: boolean; onShowAdmin?: () => void, initialLeftText?: string, initialRightText?: string, userPlan?: string, tenantId?: string, tenantLogo?: string | null, canPrint?: boolean }) {
   const locale = usePreferredLocale();
   const baseLocaleUi = toBaseLocale(locale);
   const R = getMessages(locale).dashboard.ribbon;
@@ -991,8 +999,24 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
   const printAreaRef = useRef<HTMLDivElement>(null);
 
   // Subscription State
-  const hasAccess = isAdmin || ['pro', 'ribbon_only'].includes(userPlan || 'free');
+  const isFreeTier = !isAdmin && (userPlan || 'free') === 'free';
+  const hasAccess = isAdmin || ['pro', 'ribbon_only', 'free'].includes(userPlan || 'free');
   const [showPaywall, setShowPaywall] = useState(false);
+  const [showFreeWelcome, setShowFreeWelcome] = useState(false);
+  const [showFreeLimit, setShowFreeLimit] = useState(false);
+  const [showBrowseBlocked, setShowBrowseBlocked] = useState(false);
+
+  useEffect(() => {
+    if (!canPrint || !isFreeTier || !tenantId) return;
+    if (shouldShowRibbonDailyWelcome(tenantId)) {
+      setShowFreeWelcome(true);
+    }
+  }, [canPrint, isFreeTier, tenantId]);
+
+  const dismissFreeWelcome = () => {
+    if (tenantId) markRibbonDailyWelcomeSeen(tenantId);
+    setShowFreeWelcome(false);
+  };
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
 
@@ -1413,6 +1437,19 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
     if (!hasAccess) {
        setShowPaywall(true);
        return;
+    }
+
+    if (!canPrint) {
+      setShowBrowseBlocked(true);
+      return;
+    }
+
+    if (isFreeTier) {
+      if (!tenantId || !canUseFreeRibbonPrint(tenantId)) {
+        setShowFreeLimit(true);
+        return;
+      }
+      recordFreeRibbonPrint(tenantId);
     }
 
     try {
@@ -2589,7 +2626,11 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
           </div>
         </div>
       )}
-      {showPaywall && (
+      <RibbonFreeWelcomeModal open={showFreeWelcome} onClose={dismissFreeWelcome} />
+      <RibbonFreeLimitModal open={showFreeLimit} onClose={() => setShowFreeLimit(false)} />
+      <BrowseOnlyPrintModal open={showBrowseBlocked} onClose={() => setShowBrowseBlocked(false)} />
+
+      {showPaywall && !isFreeTier && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[200]">
           <div className="bg-slate-800 rounded-2xl border border-slate-700 shadow-2xl w-full max-w-md p-8 text-center">
             <div className="text-6xl mb-4">🔒</div>

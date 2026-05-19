@@ -1,5 +1,7 @@
 /** Android 앱(일반 매장 사용자) 허브·컨텍스트 내비용 — PC 레이아웃과 독립. */
 
+import { ERP_NAV_TIERS, navTierAllows } from "@/lib/subscription/plan-access";
+
 export type AndroidNavTierCtx = {
   plan: string;
   isExpired?: boolean;
@@ -11,9 +13,12 @@ type Tiered = { tier?: string[] };
 
 export function androidNavAllowedForPlan(link: Tiered, ctx: AndroidNavTierCtx): boolean {
   if (ctx.isSuperAdmin) return false;
-  if (ctx.isExpired || ctx.isSuspended) return !link.tier;
-  if (!link.tier) return true;
-  return link.tier.includes(ctx.plan);
+  return navTierAllows(link.tier, {
+    plan: ctx.plan,
+    isExpired: ctx.isExpired,
+    isSuspended: ctx.isSuspended,
+    isSuperAdmin: ctx.isSuperAdmin,
+  });
 }
 
 export type AndroidHubGroupId = "order" | "manage" | "spend";
@@ -37,22 +42,22 @@ export const ANDROID_HUB_GROUPS: Record<
 > = {
   order: {
     cards: [
-      { href: "/dashboard/orders/new", tier: ["pro", "erp_only"] },
-      { href: "/dashboard/orders", tier: ["pro", "erp_only"] },
-      { href: "/dashboard/delivery", tier: ["pro", "erp_only"] },
+      { href: "/dashboard/orders/new", tier: [...ERP_NAV_TIERS] },
+      { href: "/dashboard/orders", tier: [...ERP_NAV_TIERS] },
+      { href: "/dashboard/delivery", tier: [...ERP_NAV_TIERS] },
     ],
   },
   manage: {
     cards: [
-      { href: "/dashboard/products", tier: ["pro", "erp_only"] },
-      { href: "/dashboard/inventory", tier: ["pro", "erp_only"] },
+      { href: "/dashboard/products", tier: [...ERP_NAV_TIERS] },
+      { href: "/dashboard/inventory", tier: [...ERP_NAV_TIERS] },
     ],
   },
   spend: {
     cards: [
-      { href: "/dashboard/purchases", tier: ["pro", "erp_only"] },
-      { href: "/dashboard/expenses", tier: ["pro", "erp_only"] },
-      { href: "/dashboard/material-requests", tier: ["pro", "erp_only"] },
+      { href: "/dashboard/purchases", tier: [...ERP_NAV_TIERS] },
+      { href: "/dashboard/expenses", tier: [...ERP_NAV_TIERS] },
+      { href: "/dashboard/material-requests", tier: [...ERP_NAV_TIERS] },
     ],
   },
 };

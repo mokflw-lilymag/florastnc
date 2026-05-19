@@ -3,6 +3,8 @@ import { createClient } from "@/utils/supabase/server";
 import { pickUiText } from "@/i18n/pick-ui-text";
 import { errAdminOperationFailed } from "@/lib/admin/admin-api-errors";
 import { hqApiUiBase } from "@/lib/hq/hq-api-locale";
+import { applySubscriptionToTenant } from "@/lib/subscription/apply-subscription";
+import { parseSubscriptionOrderId } from "@/lib/subscription/order-id";
 
 const inFlightPayments = new Set<string>();
 
@@ -122,10 +124,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 4. Update Database
-    // Parse planId from orderId (Expected format: tenantId_planId_period_timestamp)
-    const orderParts = orderId.split("_");
-    if (orderParts.length < 3) {
+    const parsed = parseSubscriptionOrderId(orderId);
+    if (!parsed) {
       return NextResponse.json(
         {
           message: tr(
@@ -136,33 +136,19 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    const planId = orderParts[1];
-    const period = orderParts[2];
-    
-    // Calculate new subscription_end date
-    const months = period === "12m" ? 12 : period === "6m" ? 6 : period === "3m" ? 3 : 1;
-    const now = new Date();
-    const expiry = new Date(now.setMonth(now.getMonth() + months));
 
-    const { error: updateError } = await supabase
-      .from("tenants")
-      .update({
-        plan: planId,
-        status: "active",
-        subscription_start: new Date().toISOString(),
-        subscription_end: expiry.toISOString(),
-      })
-      .eq("id", profile.tenant_id);
+    const result = await applySubscriptionToTenant(
+      supabase,
+      profile.tenant_id,
+      parsed.planId,
+      parsed.period,
+    );
 
-    if (updateError) {
-      throw updateError;
-    }
-
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       message: tr("결제가 성공적으로 처리되었습니다.", "Payment was processed successfully."),
-      plan: planId,
-      expiry: expiry.toISOString()
+      plan: result.planId,
+      expiry: result.expiry,
     });
 
   } catch (error: unknown) {

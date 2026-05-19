@@ -22,22 +22,41 @@ export default function PaymentSuccessPage() {
       if (confirmedRef.current) return;
       confirmedRef.current = true;
 
-      const paymentKey = searchParams.get("paymentKey");
-      const orderId = searchParams.get("orderId");
-      const amount = searchParams.get("amount");
-
-      if (!paymentKey || !orderId || !amount) {
-        setStatus("error");
-        setMessage(tf.f00919);
-        return;
-      }
+      const provider = searchParams.get("provider");
+      const sessionId = searchParams.get("session_id");
 
       try {
+        if (provider === "stripe" && sessionId) {
+          const response = await fetch("/api/payments/stripe/confirm", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sessionId, uiLocale: locale }),
+          });
+          const data = await response.json();
+          if (response.ok) {
+            setStatus("success");
+            setMessage(tf.f00978);
+            setTimeout(() => router.push("/dashboard"), 1500);
+          } else {
+            setStatus("error");
+            setMessage(data.message || tf.f00916);
+          }
+          return;
+        }
+
+        const paymentKey = searchParams.get("paymentKey");
+        const orderId = searchParams.get("orderId");
+        const amount = searchParams.get("amount");
+
+        if (!paymentKey || !orderId || !amount) {
+          setStatus("error");
+          setMessage(tf.f00919);
+          return;
+        }
+
         const response = await fetch("/api/payments/confirm", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             paymentKey,
             orderId,
@@ -51,21 +70,19 @@ export default function PaymentSuccessPage() {
         if (response.ok) {
           setStatus("success");
           setMessage(tf.f00978);
-          setTimeout(() => {
-            router.push("/dashboard");
-          }, 1500);
+          setTimeout(() => router.push("/dashboard"), 1500);
         } else {
           setStatus("error");
           setMessage(data.message || tf.f00916);
         }
-      } catch (err) {
+      } catch {
         setStatus("error");
         setMessage(tf.f01397);
       }
     };
 
     confirmPayment();
-  }, [searchParams, router, locale]);
+  }, [searchParams, router, locale, tf.f00919, tf.f00978, tf.f00916, tf.f01397]);
 
   return (
     <div className="min-h-screen bg-slate-50/50 flex items-center justify-center p-6">

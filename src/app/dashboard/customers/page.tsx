@@ -19,6 +19,9 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { createClient } from "@/utils/supabase/client";
 import { AccessDenied } from "@/components/access-denied";
+import { useTenantPlanAccess } from "@/hooks/use-tenant-plan-access";
+import { ErpTrialBanner } from "@/components/subscription/erp-trial-banner";
+import { requireErpPersist } from "@/lib/subscription/erp-trial";
 import { Skeleton } from "@/components/ui/skeleton";
 import { exportToExcel } from "@/lib/excel-export";
 import { format } from "date-fns";
@@ -43,7 +46,8 @@ export default function CustomersPage() {
     deleteCustomer 
   } = useCustomers();
 
-  const hasAccess = authLoading || isSuperAdmin || ['pro', 'erp_only'].includes(plan);
+  const { hasErpViewAccess, isErpTrial, ctx: planCtx } = useTenantPlanAccess();
+  const hasAccess = authLoading || isSuperAdmin || hasErpViewAccess;
   const [searchTerm, setSearchTerm] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
@@ -184,6 +188,7 @@ export default function CustomersPage() {
   };
 
   const handleFormSubmit = async (data: CustomerData) => {
+    if (!requireErpPersist(planCtx, locale)) return;
     try {
       if (editingCustomer) {
         const success = await updateCustomer(editingCustomer.id, data);
@@ -199,6 +204,7 @@ export default function CustomersPage() {
   };
 
   const handleDelete = async (id: string) => {
+    if (!requireErpPersist(planCtx, locale)) return;
     try {
       const success = await deleteCustomer(id);
       if (success) toast.success(tf.f00071);
@@ -213,6 +219,7 @@ export default function CustomersPage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
+      {isErpTrial ? <ErpTrialBanner /> : null}
       <PageHeader
         title={tf.f00061}
         description={tf.f00080}

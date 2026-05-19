@@ -3,6 +3,10 @@
 import dynamic from 'next/dynamic';
 import { useAuth } from '@/hooks/use-auth';
 import { AccessDenied } from '@/components/access-denied';
+import { hasRibbonAccess, isFreeAccessTier, resolveAccessPlan } from '@/lib/subscription/plan-access';
+import { FreePlanUpsell } from '@/components/subscription/free-plan-upsell';
+import { BrowseOnlyBanner } from '@/components/subscription/browse-only-banner';
+import { useBrowseOnly } from '@/hooks/use-browse-only';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
@@ -22,12 +26,17 @@ const RibbonCanvasApp = dynamic(
 
 function PrinterContent() {
   const { user, profile, isLoading: authLoading } = useAuth();
+  const { isBrowseOnly, canPrint, needsOnboarding } = useBrowseOnly();
   const searchParams = useSearchParams();
   
   const plan = profile?.tenants?.plan || "free";
+  const subEnd = profile?.tenants?.subscription_end as string | null | undefined;
+  const isExpired = !subEnd || new Date(subEnd) < new Date();
   const isSuperAdmin = profile?.role === 'super_admin';
-
-  const hasAccess = authLoading || isSuperAdmin || ['pro', 'ribbon_only'].includes(plan);
+  const accessCtx = { plan, isExpired, isSuperAdmin };
+  const accessPlan = resolveAccessPlan(plan, { isExpired });
+  const hasAccess = authLoading || hasRibbonAccess(accessCtx);
+  const isFreeTier = !authLoading && isFreeAccessTier(accessCtx);
   
   // 관리자 권한 확인 (치트키 포함)
   const isAdmin = user?.email === 'lilymag0301@gmail.com' || isSuperAdmin;
@@ -42,13 +51,24 @@ function PrinterContent() {
 
   return (
     <div className="w-full h-full min-h-[calc(100vh-4rem)]">
-      <RibbonCanvasApp 
-        session={{ user: user } as any} 
+      {isBrowseOnly ? (
+        <div className="mx-auto max-w-[1600px] px-4 pt-2">
+          <BrowseOnlyBanner needsOnboarding={needsOnboarding} className="mb-2" />
+        </div>
+      ) : isFreeTier && profile?.tenant_id ? (
+        <div className="mx-auto max-w-[1600px] px-4 pt-2">
+          <FreePlanUpsell tenantId={profile.tenant_id} variant="ribbon" className="mb-2" />
+        </div>
+      ) : null}
+      <RibbonCanvasApp
+        session={{ user: user } as any}
         isAdmin={isAdmin}
         initialLeftText={initialLeftText}
         initialRightText={initialRightText}
-        userPlan={plan}
+        userPlan={accessPlan}
+        tenantId={profile?.tenant_id ?? undefined}
         tenantLogo={profile?.tenants?.logo_url}
+        canPrint={canPrint}
       />
     </div>
   );

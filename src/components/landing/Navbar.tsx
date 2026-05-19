@@ -56,7 +56,7 @@ export function Navbar({ locale }: { locale?: AppLocale }) {
     { name: nav.solutions, href: '#solutions' },
     { name: nav.technology, href: '#technology' },
     { name: nav.network, href: '#network' },
-    { name: nav.documentation, href: '#documentation' },
+    { name: nav.documentation, href: '/docs/manual' },
   ];
 
   const selectLocale = resolveLandingSelectLocale(uiLocale);

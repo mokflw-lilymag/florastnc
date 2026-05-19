@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { Loader2, Eye, EyeOff, Lock, Mail, Building, Info, Shield } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { usePreferredLocale } from '@/hooks/use-preferred-locale';
 import { getMessages } from '@/i18n/getMessages';
 import { toBaseLocale } from "@/i18n/config";
@@ -331,6 +332,25 @@ export default function LoginPage() {
                   </Button>
                 </form>
 
+                <Link
+                  href="/try"
+                  className="mt-3 flex w-full items-center justify-center rounded-md border border-dashed border-slate-300 bg-slate-50/80 px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800"
+                >
+                  {pickUiText(
+                    baseLocale,
+                    "회원가입 없이 메뉴만 둘러보기",
+                    "Browse menus without signing up",
+                    "Xem menu không cần đăng ký",
+                    "登録せずメニューを見る",
+                    "不注册，仅浏览菜单",
+                    "Explorar menús sin registrarse",
+                    "Ver menus sem cadastro",
+                    "Parcourir sans inscription",
+                    "Menüs ohne Anmeldung ansehen",
+                    "Смотреть меню без регистрации",
+                  )}
+                </Link>
+
                 <div className="relative my-4">
                   <div className="absolute inset-0 flex items-center">
                     <div className="w-full border-t border-slate-200 dark:border-slate-800"></div>
@@ -440,6 +460,25 @@ export default function LoginPage() {
                     {regLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {L.creatingAccount}</> : L.registerSubmit}
                   </Button>
                 </form>
+
+                <Link
+                  href="/try"
+                  className="mt-3 flex w-full items-center justify-center rounded-md border border-dashed border-slate-300 bg-slate-50/80 px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800"
+                >
+                  {pickUiText(
+                    baseLocale,
+                    "회원가입 없이 메뉴만 둘러보기",
+                    "Browse menus without signing up",
+                    "Xem menu không cần đăng ký",
+                    "登録せずメニューを見る",
+                    "不注册，仅浏览菜单",
+                    "Explorar menús sin registrarse",
+                    "Ver menus sem cadastro",
+                    "Parcourir sans inscription",
+                    "Menüs ohne Anmeldung ansehen",
+                    "Смотреть меню без регистрации",
+                  )}
+                </Link>
 
                 <div className="relative my-4">
                   <div className="absolute inset-0 flex items-center">

@@ -1,6 +1,7 @@
 /** Billing period keys */
 export type Period = "1m" | "3m" | "6m" | "12m";
-export type PlanId = "free" | "erp_only" | "pro";
+/** 유료 구독 플랜 (`free`는 미구독·체험 — 결제 대상 아님) */
+export type PlanId = "ribbon_only" | "erp_only" | "pro";
 
 /** [ko, en, vi, ja, zh, es, pt, fr, de, ru] — `pickUiText`와 동일 순서 */
 export type LocalizedString = readonly [
@@ -39,7 +40,7 @@ export const PERIOD_LABELS: Record<Period, LocalizedString> = {
 };
 
 export const PLAN_DISCOUNTS: Record<PlanId, Record<Period, LocalizedString>> = {
-  free: {
+  ribbon_only: {
     "1m": E,
     "3m": L("5% 할인", "5% off", "Giảm 5%", "5%オフ", "减 5%", "5% dto.", "5% off", "5% de réduction", "5% Rabatt", "−5%"),
     "6m": L("8% 할인", "8% off", "Giảm 8%", "8%オフ", "减 8%", "8% dto.", "8% off", "8% de réduction", "8% Rabatt", "−8%"),
@@ -74,7 +75,7 @@ export const PLAN_TEXTS: Record<
   PlanId,
   { subName: LocalizedString; description: LocalizedString; features: LocalizedString[] }
 > = {
-  free: {
+  ribbon_only: {
     subName: L(
       "화원 리본 출력 전용",
       "Focused on flower ribbon printing",

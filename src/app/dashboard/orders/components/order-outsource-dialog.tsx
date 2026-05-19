@@ -25,6 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/hooks/use-auth";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { usePartnerOrdersEnabled } from "@/components/providers/partner-orders-feature-provider";
 
 interface OrderOutsourceDialogProps {
     isOpen: boolean;
@@ -41,6 +42,7 @@ export function OrderOutsourceDialog({
 }: OrderOutsourceDialogProps) {
     const supabase = createClient();
     const { tenantId } = useAuth();
+    const partnerOrdersEnabled = usePartnerOrdersEnabled();
     const locale = usePreferredLocale();
     const tf = getMessages(locale).tenantFlows;
     const [partnerId, setPartnerId] = useState("");
@@ -150,6 +152,11 @@ export function OrderOutsourceDialog({
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (!partnerOrdersEnabled) {
+            toast.error(tf.f00585);
+            return;
+        }
 
         if (!order || !partnerId || partnerPrice <= 0) {
             toast.error(tf.f00725);

@@ -110,12 +110,12 @@ export function Hero({ locale = 'ko' }: { locale?: AppLocale }) {
               transition={{ duration: 0.5, delay: 0.85 }}
               className="text-center sm:text-left pt-1"
             >
-              <a
+              <Link
                 href="/docs/manual"
                 className="text-sm font-bold text-emerald-400/95 hover:text-emerald-300 underline underline-offset-[6px] decoration-emerald-500/40 hover:decoration-emerald-400"
               >
                 {t.manual}
-              </a>
+              </Link>
             </motion.p>
           </div>
 

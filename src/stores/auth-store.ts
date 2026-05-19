@@ -3,6 +3,11 @@
 import { create } from 'zustand';
 import { createClient } from '@/utils/supabase/client';
 import { isPlatformSuperEmail } from '@/lib/platform-super-emails';
+import {
+  clearGuestBrowseCookie,
+  GUEST_TRIAL_TENANT_ID,
+  readGuestBrowseCookie,
+} from '@/lib/subscription/guest-trial';
 
 interface AuthState {
   user: any;
@@ -13,9 +18,13 @@ interface AuthState {
   isLoading: boolean;
   _initialized: boolean;
   _fetchPromise: Promise<void> | null;
+  _guestTrial: boolean;
   initialize: (force?: boolean) => Promise<void>;
   /** DB profiles 반영 후 화면 테넌트·헤더 갱신 (업무 컨텍스트 전환 등) */
   refreshAuth: () => Promise<void>;
+  /** /try — 회원가입 없이 무료 체험 */
+  enterGuestTrial: () => void;
+  leaveGuestTrial: () => void;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -27,13 +36,53 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isLoading: true,
   _initialized: false,
   _fetchPromise: null,
+  _guestTrial: false,
+
+  enterGuestTrial: () => {
+    set({
+      user: null,
+      profile: {
+        role: "guest",
+        tenant_id: GUEST_TRIAL_TENANT_ID,
+        tenants: {
+          plan: "free",
+          name: "FloXync Trial",
+          status: "active",
+        },
+      },
+      tenantId: GUEST_TRIAL_TENANT_ID,
+      isSuperAdmin: false,
+      isOrphaned: false,
+      isLoading: false,
+      _initialized: true,
+      _fetchPromise: null,
+      _guestTrial: true,
+    });
+  },
+
+  leaveGuestTrial: () => {
+    clearGuestBrowseCookie();
+    set({
+      _guestTrial: false,
+      _initialized: false,
+      _fetchPromise: null,
+      user: null,
+      profile: null,
+      tenantId: null,
+      isSuperAdmin: false,
+      isOrphaned: false,
+      isLoading: true,
+    });
+  },
 
   refreshAuth: async () => {
+    if (get()._guestTrial) return;
     set({ _initialized: false, _fetchPromise: null });
     await get().initialize();
   },
 
   initialize: async (force = false) => {
+    if (get()._guestTrial && !force) return;
     // 이미 초기화 완료 → 스킵 (강제 갱신 제외)
     if (get()._initialized && !force) return;
     
@@ -50,8 +99,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         const { data: { user }, error } = await supabase.auth.getUser();
         
         if (error || !user) {
+          if (readGuestBrowseCookie()) {
+            get().enterGuestTrial();
+            return;
+          }
           set({ isLoading: false, _initialized: true, _fetchPromise: null, isSuperAdmin: false });
           return;
+        }
+
+        if (get()._guestTrial) {
+          clearGuestBrowseCookie();
+          set({ _guestTrial: false });
         }
 
         const isMasterEmail = isPlatformSuperEmail(user.email);

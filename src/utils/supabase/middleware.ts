@@ -1,5 +1,9 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import {
+  GUEST_BROWSE_COOKIE,
+  isGuestBrowseCookieValue,
+} from "@/lib/subscription/guest-trial";
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -31,8 +35,19 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  const pathname = request.nextUrl.pathname;
+  const isGuestTryRoute =
+    pathname === "/try" || pathname.startsWith("/try/");
+  const isGuestBrowse =
+    isGuestBrowseCookieValue(request.cookies.get(GUEST_BROWSE_COOKIE)?.value);
+
   // Redirect users to login if they are not authenticated and try to access /dashboard
-  if (!user && request.nextUrl.pathname.startsWith('/dashboard')) {
+  if (
+    !user &&
+    request.nextUrl.pathname.startsWith("/dashboard") &&
+    !isGuestTryRoute &&
+    !isGuestBrowse
+  ) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);

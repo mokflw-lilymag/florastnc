@@ -92,6 +92,12 @@ export function AccessDenied({ requiredTier }: AccessDeniedProps) {
           </div>
         </CardContent>
         <CardFooter className="flex flex-col gap-2 pt-2">
+          <Button
+            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
+            onClick={() => router.push("/dashboard/subscription")}
+          >
+            {tf.f00977}
+          </Button>
           <Button 
             className="w-full bg-slate-900 hover:bg-slate-800 text-white"
             onClick={() => router.push("/dashboard/settings")}

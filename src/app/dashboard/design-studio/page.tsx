@@ -35,6 +35,12 @@ import { GalleryModal } from '@/components/design-studio/GalleryModal';
 import { FormtecModal } from '@/components/design-studio/FormtecModal';
 import { useEditorStore, smartFitText } from '@/stores/design-store';
 import { useAuth } from '@/hooks/use-auth';
+import { useTenantPlanAccess } from '@/hooks/use-tenant-plan-access';
+import { AccessDenied } from '@/components/access-denied';
+import { FreePlanUpsell } from '@/components/subscription/free-plan-upsell';
+import { useRouter } from 'next/navigation';
+import { toBaseLocale } from '@/i18n/config';
+import { pickUiText } from '@/i18n/pick-ui-text';
 import { toast } from 'sonner';
 import { PrintCommander } from '@/lib/print-commander';
 import { LABEL_CONFIGS, PAPER_PRESETS } from '@/lib/constants/templates';
@@ -84,6 +90,12 @@ function DesignStudioContent() {
     setFormtecSelectedCells
   } = useEditorStore();
   const { tenantId } = useAuth();
+  const router = useRouter();
+  const {
+    hasRibbonAccess: canUseStudio,
+    isFreeTier,
+    isLoading: planAccessLoading,
+  } = useTenantPlanAccess();
   const touchUi = usePartnerTouchUi();
   const isAndroidApp = useIsCapacitorAndroid();
   const locale = usePreferredLocale();
@@ -172,7 +184,30 @@ function DesignStudioContent() {
     return () => window.removeEventListener('request-print', handleRequestPrint);
   }, [selectedPresetId, zoom, textBlocks, imageBlocks, activePage]);
 
+  const requirePaidExport = (): boolean => {
+    if (!isFreeTier) return true;
+    const base = toBaseLocale(locale);
+    toast.error(
+      pickUiText(
+        base,
+        'PDF·인쇄는 PRINT CORE 이상 플랜에서 이용할 수 있습니다.',
+        'PDF and print require PRINT CORE or higher.',
+        'PDF/in cần gói PRINT CORE trở lên.',
+        'PDF・印刷はPRINT CORE以上でご利用ください。',
+        '导出 PDF/打印需 PRINT CORE 及以上。',
+        'PDF e impresión requieren PRINT CORE o superior.',
+        'PDF e impressão exigem PRINT CORE ou superior.',
+        'PDF et impression nécessitent PRINT CORE ou plus.',
+        'PDF und Druck ab PRINT CORE.',
+        'PDF и печать — с PRINT CORE.',
+      ),
+    );
+    router.push('/dashboard/subscription');
+    return false;
+  };
+
   const handlePrintRequest = async () => {
+    if (!requirePaidExport()) return;
     if (selectedPresetId?.startsWith('formtec-')) {
       setSelectedBlockId(null);
       setIsFormtecModalOpen(true);
@@ -212,6 +247,7 @@ function DesignStudioContent() {
   };
 
   const handleSave = async () => {
+    if (!requirePaidExport()) return;
     setIsGenerating(true);
     const state = useEditorStore.getState();
     try {
@@ -336,8 +372,17 @@ function DesignStudioContent() {
     sz(z);
   }, [isAndroidApp]);
 
+  if (!planAccessLoading && !canUseStudio) {
+    return <AccessDenied requiredTier="Ribbon" />;
+  }
+
   return (
     <div className="flex flex-col h-full min-h-0 flex-1 bg-white overflow-hidden relative">
+      {isFreeTier && tenantId ? (
+        <div className="shrink-0 border-b border-indigo-100 px-3 py-2">
+          <FreePlanUpsell tenantId={tenantId} variant="design" className="mb-0" />
+        </div>
+      ) : null}
       
       {/* Top Professional Header */}
       <header className={cn(

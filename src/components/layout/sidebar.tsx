@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { useIsCapacitorAndroid } from "@/hooks/use-capacitor-android";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { getMessages } from "@/i18n/getMessages";
+import { ERP_NAV_TIERS, navTierAllows } from "@/lib/subscription/plan-access";
 
 interface SidebarProps {
   isSuperAdmin: boolean;
@@ -46,6 +47,8 @@ interface SidebarProps {
   showOrgBoardLink?: boolean;
   /** 조직 연결 매장 → 본사 자재 요청 */
   showBranchMaterialRequestLink?: boolean;
+  /** platform_config.partner_orders_enabled */
+  partnerOrdersEnabled?: boolean;
 }
 
 type Tiered = { tier?: string[] };
@@ -83,9 +86,14 @@ function isNavActive(pathname: string, href: string, activeExcludePrefix?: strin
 
 function filterTenantLink(link: NavLinkItem, ctx: { isSuperAdmin: boolean; isExpired?: boolean; isSuspended?: boolean; plan: string }) {
   if (ctx.isSuperAdmin) return true;
-  if (ctx.isExpired || ctx.isSuspended) return !link.tier;
+  if (ctx.isSuspended) return !link.tier;
   if (!link.tier) return true;
-  return link.tier.includes(ctx.plan);
+  return navTierAllows(link.tier, {
+    plan: ctx.plan,
+    isExpired: ctx.isExpired,
+    isSuspended: ctx.isSuspended,
+    isSuperAdmin: ctx.isSuperAdmin,
+  });
 }
 
 export function Sidebar({
@@ -100,6 +108,7 @@ export function Sidebar({
   hqMenuOnly,
   showOrgBoardLink = false,
   showBranchMaterialRequestLink = false,
+  partnerOrdersEnabled = false,
 }: SidebarProps) {
   const sidebarHqOnly = hqMenuOnly ?? isOrgOnly;
   const pathname = usePathname();
@@ -198,35 +207,44 @@ export function Sidebar({
       label: t.sidebar.groups.tenantOps,
       hint: t.sidebar.hints.tenantOps,
       links: [
-        { name: t.sidebar.links.newOrder, href: "/dashboard/orders/new", icon: PlusCircle, tier: ["pro", "erp_only"] },
+        { name: t.sidebar.links.newOrder, href: "/dashboard/orders/new", icon: PlusCircle, tier: [...ERP_NAV_TIERS] },
         {
           name: t.sidebar.links.orders,
           href: "/dashboard/orders",
           icon: ScrollText,
-          tier: ["pro", "erp_only"],
+          tier: [...ERP_NAV_TIERS],
           activeExcludePrefix: "/dashboard/orders/new",
         },
-        { name: t.sidebar.links.delivery, href: "/dashboard/delivery", icon: Truck, tier: ["pro", "erp_only"] },
-        { name: t.sidebar.links.crm, href: "/dashboard/customers", icon: Users, tier: ["pro", "erp_only"] },
-        { name: t.sidebar.links.externalOrders, href: "/dashboard/external-orders", icon: Share2, tier: ["pro", "erp_only"] },
-        { name: t.sidebar.links.products, href: "/dashboard/products", icon: Boxes, tier: ["pro", "erp_only"] },
-        { name: t.sidebar.links.inventory, href: "/dashboard/inventory", icon: Boxes, tier: ["pro", "erp_only"] },
+        { name: t.sidebar.links.delivery, href: "/dashboard/delivery", icon: Truck, tier: [...ERP_NAV_TIERS] },
+        { name: t.sidebar.links.crm, href: "/dashboard/customers", icon: Users, tier: [...ERP_NAV_TIERS] },
+        ...(partnerOrdersEnabled || isSuperAdmin
+          ? ([
+              {
+                name: t.sidebar.links.externalOrders,
+                href: "/dashboard/external-orders",
+                icon: Share2,
+                tier: [...ERP_NAV_TIERS],
+              },
+            ] as NavLinkItem[])
+          : []),
+        { name: t.sidebar.links.products, href: "/dashboard/products", icon: Boxes, tier: [...ERP_NAV_TIERS] },
+        { name: t.sidebar.links.inventory, href: "/dashboard/inventory", icon: Boxes, tier: [...ERP_NAV_TIERS] },
         ...(showBranchMaterialRequestLink && !sidebarHqOnly
           ? ([
               {
                 name: t.sidebar.links.branchMaterials,
                 href: "/dashboard/material-requests",
                 icon: ClipboardList,
-                tier: ["pro", "erp_only"],
+                tier: [...ERP_NAV_TIERS],
               },
             ] as NavLinkItem[])
           : []),
-        { name: t.sidebar.links.suppliers, href: "/dashboard/suppliers", icon: Store, tier: ["pro", "erp_only"] },
-        { name: t.sidebar.links.purchases, href: "/dashboard/purchases", icon: ShoppingCart, tier: ["pro", "erp_only"] },
-        { name: t.sidebar.links.reports, href: "/dashboard/reports", icon: BarChart3, tier: ["pro", "erp_only"] },
-        { name: t.sidebar.links.analytics, href: "/dashboard/analytics", icon: BarChart3, tier: ["pro", "erp_only"] },
-        { name: t.sidebar.links.expenses, href: "/dashboard/expenses", icon: CreditCard, tier: ["pro", "erp_only"] },
-        { name: t.sidebar.links.tax, href: "/dashboard/tax", icon: FileText, tier: ["pro", "erp_only"] },
+        { name: t.sidebar.links.suppliers, href: "/dashboard/suppliers", icon: Store, tier: [...ERP_NAV_TIERS] },
+        { name: t.sidebar.links.purchases, href: "/dashboard/purchases", icon: ShoppingCart, tier: [...ERP_NAV_TIERS] },
+        { name: t.sidebar.links.reports, href: "/dashboard/reports", icon: BarChart3, tier: [...ERP_NAV_TIERS] },
+        { name: t.sidebar.links.analytics, href: "/dashboard/analytics", icon: BarChart3, tier: [...ERP_NAV_TIERS] },
+        { name: t.sidebar.links.expenses, href: "/dashboard/expenses", icon: CreditCard, tier: [...ERP_NAV_TIERS] },
+        { name: t.sidebar.links.tax, href: "/dashboard/tax", icon: FileText, tier: [...ERP_NAV_TIERS] },
       ],
     },
     {
@@ -234,8 +252,8 @@ export function Sidebar({
       label: t.sidebar.groups.tenantMake,
       hint: t.sidebar.hints.tenantMake,
       links: [
-        { name: t.sidebar.links.printer, href: "/dashboard/printer", icon: Printer, tier: ["pro", "ribbon_only"] },
-        { name: t.sidebar.links.designStudio, href: "/dashboard/design-studio", icon: Layout, tier: ["pro", "ribbon_only"] },
+        { name: t.sidebar.links.printer, href: "/dashboard/printer", icon: Printer, tier: ["pro", "ribbon_only", "free"] },
+        { name: t.sidebar.links.designStudio, href: "/dashboard/design-studio", icon: Layout, tier: ["pro", "ribbon_only", "free"] },
       ],
     },
     {

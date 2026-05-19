@@ -1,4 +1,4 @@
-import { createClient } from "@/utils/supabase/server";
+﻿import { createClient } from "@/utils/supabase/server";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { redirect } from "next/navigation";
@@ -11,10 +11,90 @@ import { AndroidAppChrome } from "@/components/layout/android-app-chrome";
 import { effectiveIsSuperAdmin } from "@/lib/auth-api-guards";
 import { LOCALE_COOKIE, resolveLocale, toBaseLocale } from "@/i18n/config";
 import { pickUiText } from "@/i18n/pick-ui-text";
+import {
+  GUEST_BROWSE_COOKIE,
+  isGuestBrowseCookieValue,
+} from "@/lib/subscription/guest-trial";
+import { GuestBrowseBootstrap } from "@/components/layout/guest-browse-bootstrap";
+import { getPartnerOrdersEnabled } from "@/lib/platform-config-server";
+import { PartnerOrdersFeatureProvider } from "@/components/providers/partner-orders-feature-provider";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+  const partnerOrdersEnabled = await getPartnerOrdersEnabled();
+  const cookieStore = await cookies();
+  const isGuestBrowse = isGuestBrowseCookieValue(
+    cookieStore.get(GUEST_BROWSE_COOKIE)?.value,
+  );
+
+  if (!user && !isGuestBrowse) {
+    redirect("/login");
+  }
+
+  if (!user && isGuestBrowse) {
+    const localeCookie = cookieStore.get(LOCALE_COOKIE)?.value;
+    const baseLocale = toBaseLocale(resolveLocale(localeCookie));
+    const guestEmail = pickUiText(
+      baseLocale,
+      "구경 모드 (미가입)",
+      "Browse mode (not signed in)",
+      "Chế độ xem (chưa đăng ký)",
+      "閲覧モード（未登録）",
+      "浏览模式（未注册）",
+      "Modo exploración (sin cuenta)",
+      "Modo visita (sem cadastro)",
+      "Mode visite (non inscrit)",
+      "Browse-Modus (nicht angemeldet)",
+      "Режим просмотра (без входа)",
+    );
+    const storeName = pickUiText(
+      baseLocale,
+      "FloXync 체험",
+      "FloXync trial",
+      "FloXync dùng thử",
+      "FloXync 体験",
+      "FloXync 体验",
+      "FloXync prueba",
+      "FloXync teste",
+      "FloXync essai",
+      "FloXync Test",
+      "FloXync проба",
+    );
+
+    return (
+      <PartnerOrdersFeatureProvider enabled={partnerOrdersEnabled}>
+        <GuestBrowseBootstrap />
+        <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">
+          <Sidebar
+            isSuperAdmin={false}
+            plan="free"
+            isExpired={false}
+            isSuspended={false}
+            storeName={storeName}
+            partnerOrdersEnabled={partnerOrdersEnabled}
+            className="hidden lg:flex"
+          />
+          <div className="flex flex-col flex-1 min-w-0 overflow-hidden relative">
+            <Header
+              userEmail={guestEmail}
+              isSuperAdmin={false}
+              plan="free"
+              isExpired={false}
+              isSuspended={false}
+              storeName={storeName}
+              subscriptionEnd={null}
+            />
+            <DashboardMain serverIsSuperAdmin={false}>{children}</DashboardMain>
+            <AndroidAppChrome
+              serverIsSuperAdmin={false}
+              partnerOrdersEnabled={partnerOrdersEnabled}
+            />
+          </div>
+        </div>
+      </PartnerOrdersFeatureProvider>
+    );
+  }
 
   if (!user) {
     redirect("/login");
@@ -135,6 +215,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       : tenantData?.name) ?? undefined;
 
   return (
+    <PartnerOrdersFeatureProvider enabled={partnerOrdersEnabled}>
     <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">
       {/* Sidebar is fixed on the left */}
       <Sidebar 
@@ -149,6 +230,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         hqMenuOnly={hqMenuOnly}
         showOrgBoardLink={showOrgBoardLink}
         showBranchMaterialRequestLink={showBranchMaterialRequestLink}
+        partnerOrdersEnabled={partnerOrdersEnabled}
         className="hidden lg:flex" 
       />
       
@@ -184,8 +266,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </DashboardMain>
 
         <QuickChat />
-        <AndroidAppChrome serverIsSuperAdmin={isSuperAdmin} />
+        <AndroidAppChrome
+          serverIsSuperAdmin={isSuperAdmin}
+          partnerOrdersEnabled={partnerOrdersEnabled}
+        />
       </div>
     </div>
+    </PartnerOrdersFeatureProvider>
   );
 }

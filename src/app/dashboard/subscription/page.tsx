@@ -43,15 +43,19 @@ import { toBaseLocale } from "@/i18n/config";
 import { pickUiText } from "@/i18n/pick-ui-text";
 import {
   type Period,
+  type PlanId,
   type LocalizedString,
   PERIOD_LABELS,
   PLAN_DISCOUNTS,
   PLAN_TEXTS,
 } from "./plan-localized";
+import { resolveBillingProvider, type SubscriptionBillingProvider } from "@/lib/subscription/billing-provider";
+import { PLAN_KRW_TOTAL, PLAN_USD_TOTAL_CENTS, formatUsdTotal } from "@/lib/subscription/pricing";
+import { buildSubscriptionOrderId } from "@/lib/subscription/order-id";
 
 const PLANS_BASE = [
   {
-    id: "free" as const,
+    id: "ribbon_only" as const,
     name: "PRINT CORE",
     price: "20,000",
     yearlyPrice: "200,000",
@@ -116,6 +120,8 @@ export default function SubscriptionPage() {
   const [usageData, setUsageData] = useState<any>(null);
   const [selectedPeriod, setSelectedPeriod] = useState<Period>("12m");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [operatingCountry, setOperatingCountry] = useState("KR");
+  const [billingProvider, setBillingProvider] = useState<SubscriptionBillingProvider>("toss");
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
   const baseLocale = toBaseLocale(locale);
@@ -132,6 +138,19 @@ export default function SubscriptionPage() {
     "/Monat",
     "/мес.",
   );
+  const billingHint = pickUiText(
+    baseLocale,
+    "한국: 토스페이먼츠 · 해외: Stripe(Visa/Master 등)",
+    "Korea: Toss Payments · International: Stripe (Visa/Mastercard, etc.)",
+    "Hàn Quốc: Toss · Quốc tế: Stripe",
+    "韓国: トス · 海外: Stripe",
+    "韩国：Toss · 海外：Stripe",
+  );
+  const payWithStripeLabel = pickUiText(
+    baseLocale,
+    "해외 카드로 결제 (Stripe)",
+    "Pay with international card (Stripe)",
+  );
   const localizedPlans = useMemo(() => {
     const T = (row: LocalizedString) =>
       pickUiText(
@@ -147,26 +166,64 @@ export default function SubscriptionPage() {
         row[8],
         row[9],
       );
+    const useUsd = billingProvider === "stripe";
     return PLANS_BASE.map((plan) => {
       const copy = PLAN_TEXTS[plan.id];
+      const planId = plan.id as PlanId;
       return {
         ...plan,
         subName: T(copy.subName),
         description: T(copy.description),
         features: copy.features.map(T),
         pricing: Object.fromEntries(
-          (Object.keys(plan.pricing) as Period[]).map((k) => [
-            k,
-            {
-              ...plan.pricing[k],
-              label: T(PERIOD_LABELS[k]),
-              discount: T(PLAN_DISCOUNTS[plan.id][k]),
-            },
-          ]),
-        ) as (typeof PLANS_BASE)[number]["pricing"] & Record<Period, { label: string; discount: string }>,
+          (Object.keys(plan.pricing) as Period[]).map((k) => {
+            const period = k as Period;
+            if (useUsd) {
+              const totalCents = PLAN_USD_TOTAL_CENTS[planId][period];
+              const months = period === "12m" ? 12 : period === "6m" ? 6 : period === "3m" ? 3 : 1;
+              const perMonthCents = Math.round(totalCents / months);
+              return [
+                k,
+                {
+                  price: formatUsdTotal(perMonthCents).replace(/^\$/, ""),
+                  total: formatUsdTotal(totalCents),
+                  totalRaw: totalCents,
+                  label: T(PERIOD_LABELS[k]),
+                  discount: T(PLAN_DISCOUNTS[plan.id][k]),
+                  currencyPrefix: "$",
+                },
+              ];
+            }
+            const totalKrw = PLAN_KRW_TOTAL[planId][period];
+            const months = period === "12m" ? 12 : period === "6m" ? 6 : period === "3m" ? 3 : 1;
+            const perMonthKrw = Math.round(totalKrw / months);
+            return [
+              k,
+              {
+                ...plan.pricing[k],
+                price: perMonthKrw.toLocaleString("en-US"),
+                total: totalKrw.toLocaleString("en-US"),
+                totalRaw: totalKrw,
+                label: T(PERIOD_LABELS[k]),
+                discount: T(PLAN_DISCOUNTS[plan.id][k]),
+                currencyPrefix: "₩",
+              },
+            ];
+          }),
+        ) as Record<
+          Period,
+          {
+            price: string;
+            total: string;
+            totalRaw: number;
+            label: string;
+            discount: string;
+            currencyPrefix: string;
+          }
+        >,
       };
     });
-  }, [baseLocale]);
+  }, [baseLocale, billingProvider]);
 
   const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY || 'test_ck_D5akZmejPyb70ng83YXrb8zV7n9E';
 
@@ -177,8 +234,16 @@ export default function SubscriptionPage() {
   useEffect(() => {
     async function loadTenant() {
       if (!tenantId) return;
-      const { data } = await supabase.from('tenants').select('*').eq('id', tenantId).maybeSingle();
+      const [{ data }, settingsRes] = await Promise.all([
+        supabase.from("tenants").select("*").eq("id", tenantId).maybeSingle(),
+        supabase.from("system_settings").select("data").eq("tenant_id", tenantId).maybeSingle(),
+      ]);
       setTenantData(data);
+
+      const country =
+        (settingsRes.data?.data as { country?: string } | null)?.country || "KR";
+      setOperatingCountry(country);
+      setBillingProvider(resolveBillingProvider(country));
 
       const [orderCount, customerCount, expenseCount] = await Promise.all([
         supabase.from('orders').select('*', { count: 'exact', head: true }).eq('tenant_id', tenantId),
@@ -195,23 +260,45 @@ export default function SubscriptionPage() {
     loadTenant();
   }, [tenantId, supabase]);
 
-  const handleSubscribe = async (planId: string, period: Period) => {
+  const handleSubscribe = async (planId: PlanId, period: Period) => {
     if (!tenantId) {
       toast.error(tf.f00176);
       return;
     }
 
     setIsProcessing(true);
-    const plan = localizedPlans.find(p => p.id === planId);
-    if (!plan) return;
+    const plan = localizedPlans.find((p) => p.id === planId);
+    if (!plan) {
+      setIsProcessing(false);
+      return;
+    }
 
     const pricing = plan.pricing[period];
-    const amount = Number(pricing.total.replace(/,/g, ''));
-    
+
     try {
+      if (billingProvider === "stripe") {
+        const res = await fetch("/api/payments/stripe/checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ planId, period, uiLocale: locale }),
+        });
+        const json = await res.json();
+        if (!res.ok) {
+          throw new Error(json.message || tf.f00922);
+        }
+        if (json.url) {
+          window.location.href = json.url as string;
+          return;
+        }
+        throw new Error(tf.f00922);
+      }
+
+      const amount = pricing.totalRaw;
       const tossPayments = await loadTossPayments(clientKey);
-      const orderId = `${tenantId.substring(0, 8)}_${planId}_${period}_${Date.now()}`;
-      const { data: { user } } = await supabase.auth.getUser();
+      const orderId = buildSubscriptionOrderId(tenantId, planId, period);
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
       await tossPayments.requestPayment(tf.f02482 as "카드" | "CARD", {
         amount,
@@ -222,8 +309,9 @@ export default function SubscriptionPage() {
         customerEmail: user?.email || "",
         customerName: tenantData?.name || tf.f02266,
       });
-    } catch (error: any) {
-      toast.error(tf.f00922, { description: error.message });
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      toast.error(tf.f00922, { description: msg });
       setIsProcessing(false);
     }
   };
@@ -325,6 +413,15 @@ export default function SubscriptionPage() {
              {tf.f01779} <br />
              {tf.f01260}
           </motion.p>
+
+          <p className="text-center text-xs font-bold text-slate-500 max-w-xl mx-auto">
+            {billingHint}
+            {operatingCountry !== "KR" && (
+              <span className="block mt-1 text-indigo-400/90">
+                {payWithStripeLabel} · {operatingCountry}
+              </span>
+            )}
+          </p>
           
           <div className="flex justify-center pt-8">
             <div className="inline-flex flex-wrap items-center justify-center p-2 bg-white/5 backdrop-blur-3xl rounded-[32px] border border-white/10 shadow-3xl">
@@ -370,6 +467,7 @@ export default function SubscriptionPage() {
                index={i}
                tf={tf}
                perMonthLabel={perMonthLabel}
+               currencyPrefix={plan.pricing[selectedPeriod]?.currencyPrefix ?? "₩"}
              />
            ))}
         </div>
@@ -464,10 +562,12 @@ function TiltCard({
   index,
   tf,
   perMonthLabel,
+  currencyPrefix,
 }: {
   plan: any;
   period: Period;
-  onSubscribe: (planId: string, period: Period) => void;
+  onSubscribe: (planId: PlanId, period: Period) => void;
+  currencyPrefix: string;
   isCurrent: boolean;
   isProcessing: boolean;
   index: number;
@@ -532,7 +632,10 @@ function TiltCard({
           <CardContent className="p-12 pt-0 flex-1">
              <div className="mb-12">
                 <div className="flex items-baseline gap-2">
-                   <span className="text-6xl font-black tracking-tighter text-white">₩{pricing.price}</span>
+                   <span className="text-6xl font-black tracking-tighter text-white">
+                     {currencyPrefix}
+                     {pricing.price}
+                   </span>
                    <span className="text-slate-500 font-bold uppercase text-xs">{perMonthLabel}</span>
                 </div>
                 {pricing.discount && (
