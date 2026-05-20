@@ -11,18 +11,10 @@ import { Order } from '@/types/order';
 import { RibbonPrintLayout } from './components/ribbon-print-layout';
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 
-const RedirectIfAndroidApp = dynamic(
-  () =>
-    import("@/components/capacitor/redirect-if-android-app").then((m) => m.RedirectIfAndroidApp),
-  { ssr: false, loading: () => <div className="max-w-4xl mx-auto p-6"><Skeleton className="h-96 w-full" /></div> }
-);
-
 export default function PrintRibbonPage() {
     return (
         <Suspense fallback={<div className="max-w-4xl mx-auto p-6"><Skeleton className="h-96 w-full" /></div>}>
-            <RedirectIfAndroidApp>
-                <PrintRibbonContent />
-            </RedirectIfAndroidApp>
+            <PrintRibbonContent />
         </Suspense>
     );
 }

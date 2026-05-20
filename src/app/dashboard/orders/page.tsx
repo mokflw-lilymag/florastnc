@@ -50,7 +50,6 @@ import {
   DropdownMenuPortal 
 } from "@/components/ui/dropdown-menu";
 import { printDocument } from "@/lib/print-document";
-import { useIsCapacitorAndroid } from "@/hooks/use-capacitor-android";
 import { usePartnerTouchUi } from "@/hooks/use-partner-touch-ui";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
@@ -62,7 +61,6 @@ import { getErpTrialOrders } from "@/lib/subscription/erp-trial-sample-data";
 import { erpTrialAppliedMessage, requireErpPersist } from "@/lib/subscription/erp-trial";
 
 export default function OrdersPage() {
-  const isAndroidApp = useIsCapacitorAndroid();
   const touchUi = usePartnerTouchUi();
   const { profile, isLoading: authLoading, tenantId } = useAuth();
   const { hasErpViewAccess, isErpTrial, ctx: planCtx } = useTenantPlanAccess();
@@ -684,8 +682,7 @@ export default function OrdersPage() {
             {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />} 
             <span>{tf.f00091}</span>
           </Button>
-          {!isAndroidApp && (
-          <Button 
+          <Button
             variant="outline"
             onClick={() => syncShopOrders(false)}
             disabled={isCafe24Syncing}
@@ -694,8 +691,6 @@ export default function OrdersPage() {
             {isCafe24Syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <CloudDownload className="h-4 w-4" />}
             <span>{tf.f00369}</span>
           </Button>
-          )}
-          {!isAndroidApp && (
           <Button 
             className="w-full lg:w-auto h-11 lg:h-12 px-8 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl shadow-lg shadow-slate-200 transition-all gap-2"
             onClick={() => {
@@ -706,7 +701,6 @@ export default function OrdersPage() {
             <PlusCircle className="h-4 w-4" /> 
             <span>{tf.f00346}</span>
           </Button>
-          )}
         </div>
       </PageHeader>
 
@@ -1053,11 +1047,9 @@ export default function OrdersPage() {
                                    <DropdownMenuItem className="rounded-xl gap-2 font-bold py-3 px-4 focus:bg-slate-50" onClick={(e) => handleCardPrint(order, e)}>
                                      <Printer className="h-4 w-4" /> {tf.f00706}
                                    </DropdownMenuItem>
-                                   {!isAndroidApp && (
                                    <DropdownMenuItem className="rounded-xl gap-2 font-bold py-3 px-4 focus:bg-slate-50" onClick={(e) => handleRibbonPrint(order, e)}>
                                      <Printer className="h-4 w-4 text-indigo-500" /> {tf.f00181}
                                    </DropdownMenuItem>
-                                   )}
                                 </DropdownMenuGroup>
 
                                 <DropdownMenuSeparator className="mx-1 bg-gray-50" />
@@ -1121,7 +1113,7 @@ export default function OrdersPage() {
               </div>
 
               {/* Mobile Card List View */}
-              <div className={cn("lg:hidden space-y-4 p-2 sm:p-4", isAndroidApp ? "pb-32" : "pb-24")}>
+              <div className="space-y-4 p-2 pb-24 sm:p-4 lg:hidden">
                 {filteredOrders.length > 0 && (
                   <div className="flex justify-between items-center px-2 mb-2">
                     <span className="text-xs font-bold text-slate-400">
@@ -1256,11 +1248,9 @@ export default function OrdersPage() {
                                  <DropdownMenuItem className="rounded-xl gap-2 font-bold py-2.5 px-3 focus:bg-slate-50" onClick={(e) => { e.stopPropagation(); handleCardPrint(order, e as any); }}>
                                    <Printer className="h-4 w-4" /> {tf.f00706}
                                  </DropdownMenuItem>
-                                 {!isAndroidApp && (
                                  <DropdownMenuItem className="rounded-xl gap-2 font-bold py-2.5 px-3 focus:bg-slate-50" onClick={(e) => { e.stopPropagation(); handleRibbonPrint(order, e as any); }}>
                                    <Printer className="h-4 w-4 text-indigo-500" /> {tf.f00181}
                                  </DropdownMenuItem>
-                                 )}
  
                                 <DropdownMenuSeparator className="mx-1 bg-gray-50" />
                                 <DropdownMenuSub>
@@ -1303,7 +1293,7 @@ export default function OrdersPage() {
               {selectedOrderIds.length > 0 && (
                 <div className={cn(
                   "lg:hidden fixed left-4 right-4 z-[102] animate-in fade-in slide-in-from-bottom-8 duration-300",
-                  isAndroidApp ? "bottom-[calc(6.25rem+env(safe-area-inset-bottom))]" : "bottom-6"
+                  "bottom-6"
                 )}>
                   <div className="bg-slate-900 text-white rounded-3xl shadow-2xl p-4 flex items-center justify-between border border-slate-800">
                     <div className="flex flex-col px-2">
@@ -1376,7 +1366,7 @@ export default function OrdersPage() {
         onOpenChange={setIsOrderDetailOpen} 
         order={selectedOrder} 
         onPrintMessage={handleCardPrint}
-        onPrintRibbon={isAndroidApp ? undefined : handleRibbonPrint}
+        onPrintRibbon={handleRibbonPrint}
         onUpdate={() => {
           // Trigger a silent refresh of the orders
           const period = searchParams.get('period') || '2months';

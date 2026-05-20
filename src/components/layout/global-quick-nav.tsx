@@ -2,7 +2,6 @@
 import React, { useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useIsCapacitorAndroid } from '@/hooks/use-capacitor-android';
 import { usePreferredLocale } from '@/hooks/use-preferred-locale';
 import { getMessages } from '@/i18n/getMessages';
 import { 
@@ -19,12 +18,11 @@ import { cn } from '@/lib/utils';
 
 export function GlobalQuickNav() {
   const pathname = usePathname();
-  const isAndroidApp = useIsCapacitorAndroid();
   const locale = usePreferredLocale();
 
   const navItems = useMemo(() => {
     const q = getMessages(locale).dashboardCommon.quickNav;
-    const all = [
+    return [
       { icon: LayoutDashboard, label: q.home, href: '/dashboard' },
       { icon: Plus, label: q.newOrder, href: '/dashboard/orders/new' },
       { icon: ClipboardList, label: q.orders, href: '/dashboard/orders' },
@@ -34,9 +32,7 @@ export function GlobalQuickNav() {
       { icon: CreditCard, label: q.expenses, href: '/dashboard/expenses' },
       { icon: Boxes, label: q.inventory, href: '/dashboard/inventory' },
     ];
-    if (isAndroidApp) return all.filter((i) => i.href !== '/dashboard/printer');
-    return all;
-  }, [isAndroidApp, locale]);
+  }, [locale]);
 
   return (
     <>

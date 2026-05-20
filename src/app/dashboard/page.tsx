@@ -37,7 +37,6 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
 import { useAuth } from "@/hooks/use-auth";
 import { usePartnerTouchUi } from "@/hooks/use-partner-touch-ui";
-import { useIsCapacitorAndroid } from "@/hooks/use-capacitor-android";
 import { useOrders } from "@/hooks/use-orders";
 import { useProducts } from "@/hooks/use-products";
 import { useExpenses } from "@/hooks/use-expenses";
@@ -51,7 +50,6 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { cn } from "@/lib/utils";
 import { DashboardTicker } from "@/components/dashboard/dashboard-ticker";
-import { DashboardAndroidHub } from "@/components/layout/dashboard-android-hub";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
 import { pickUiText } from "@/i18n/pick-ui-text";
@@ -200,7 +198,6 @@ export default function DashboardPage() {
   const { profile, isLoading: authLoading, isSuperAdmin } = useAuth();
   const [showOrgBoard, setShowOrgBoard] = useState(false);
   const touchUi = usePartnerTouchUi();
-  const isAndroidApp = useIsCapacitorAndroid();
   const { settings, loading: settingsLoading } = useSettings();
   
   // Data for Tenants/Admin
@@ -405,15 +402,6 @@ export default function DashboardPage() {
           <Skeleton className="col-span-2 h-[400px] rounded-2xl" />
           <Skeleton className="col-span-1 h-[400px] rounded-2xl" />
         </div>
-      </div>
-    );
-  }
-
-  if (isAndroidApp && !isSuperAdmin && !hqOnlyNoWorkContext) {
-    return (
-      <div className="space-y-6 pb-28 max-w-lg mx-auto animate-in fade-in duration-500">
-        <DashboardTicker />
-        <DashboardAndroidHub />
       </div>
     );
   }
@@ -761,11 +749,8 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent className={cn("grid grid-cols-2 gap-3 pt-2", touchUi && "gap-4")}>
                  <DashboardIconButton icon={ShoppingCart} label={tf.f01874} href="/dashboard/orders/new" color="bg-primary" largeTouch={touchUi} />
-                 {isAndroidApp ? (
-                   <DashboardIconButton icon={ScrollText} label={tf.f01875} href="/dashboard/orders" color="bg-indigo-500" largeTouch={touchUi} />
-                 ) : (
-                   <DashboardIconButton icon={Printer} label={tf.f01134} href="/dashboard/orders" color="bg-indigo-500" largeTouch={touchUi} />
-                 )}
+                 <DashboardIconButton icon={ScrollText} label={tf.f01875} href="/dashboard/orders" color="bg-indigo-500" largeTouch={touchUi} />
+                 <DashboardIconButton icon={Store} label="모바일 매장" href="/dashboard/mobile/pickup" color="bg-violet-600" largeTouch={touchUi} />
                  <DashboardIconButton icon={Truck} label={tf.f01237} href="/dashboard/delivery" color="bg-blue-500" largeTouch={touchUi} />
                  <DashboardIconButton icon={Boxes} label={tf.f01763} href="/dashboard/inventory" color="bg-amber-500" largeTouch={touchUi} />
                  {showOrgBoard ? (

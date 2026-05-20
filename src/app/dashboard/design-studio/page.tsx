@@ -46,7 +46,6 @@ import { PrintCommander } from '@/lib/print-commander';
 import { LABEL_CONFIGS, PAPER_PRESETS } from '@/lib/constants/templates';
 import { createClient } from '@/utils/supabase/client';
 import { usePartnerTouchUi } from '@/hooks/use-partner-touch-ui';
-import { useIsCapacitorAndroid } from '@/hooks/use-capacitor-android';
 import { cn } from '@/lib/utils';
 import { usePreferredLocale } from '@/hooks/use-preferred-locale';
 import { getMessages } from '@/i18n/getMessages';
@@ -97,7 +96,6 @@ function DesignStudioContent() {
     isLoading: planAccessLoading,
   } = useTenantPlanAccess();
   const touchUi = usePartnerTouchUi();
-  const isAndroidApp = useIsCapacitorAndroid();
   const locale = usePreferredLocale();
   const D = getMessages(locale).dashboard.designStudio;
   const [mobileStudioTab, setMobileStudioTab] = useState<'tools' | 'canvas'>('canvas');
@@ -110,7 +108,7 @@ function DesignStudioContent() {
       // 데스크톱 사이드바(340px) 고려하여 가용한 넓이 계산
       const sidebarWidth = window.innerWidth >= 1024 ? 340 : 0;
       const vw = window.innerWidth - sidebarWidth - (touchUi ? 20 : 60);
-      const vh = window.innerHeight - (touchUi ? (isAndroidApp ? 240 : 200) : 160);
+      const vh = window.innerHeight - (touchUi ? 200 : 160);
       
       const zByW = (vw * 0.95) / dim.widthMm;
       const zByH = (vh * 0.92) / dim.heightMm;
@@ -127,7 +125,7 @@ function DesignStudioContent() {
       cancelAnimationFrame(id);
       window.removeEventListener('resize', onResize);
     };
-  }, [currentDimension.widthMm, currentDimension.heightMm, touchUi, isAndroidApp, mobileStudioTab]);
+  }, [currentDimension.widthMm, currentDimension.heightMm, touchUi, mobileStudioTab]);
 
   const showToolsPanel = !touchUi || mobileStudioTab === 'tools';
   const showCanvasPanel = !touchUi || mobileStudioTab === 'canvas';
@@ -365,12 +363,12 @@ function DesignStudioContent() {
   const fitZoomToScreen = React.useCallback(() => {
     const { currentDimension: dim, setZoom: sz } = useEditorStore.getState();
     const vw = window.innerWidth - 20;
-    const vh = window.innerHeight - (isAndroidApp ? 220 : 180);
+    const vh = window.innerHeight - (touchUi ? 200 : 180);
     const zByW = (vw * 0.96) / dim.widthMm;
     const zByH = (vh * 0.92) / dim.heightMm;
     const z = Math.max(0.65, Math.min(8, Math.min(zByW, zByH)));
     sz(z);
-  }, [isAndroidApp]);
+  }, [touchUi]);
 
   if (!planAccessLoading && !canUseStudio) {
     return <AccessDenied requiredTier="Ribbon" />;
@@ -525,11 +523,9 @@ function DesignStudioContent() {
             <div
               className={cn(
                 "fixed left-1/2 -translate-x-1/2 flex items-center gap-1 sm:gap-2 bg-white/95 backdrop-blur-xl px-3 sm:px-4 py-2 sm:py-2.5 rounded-[2rem] shadow-2xl border border-white z-40 max-w-[calc(100vw-1rem)]",
-                touchUi && isAndroidApp
-                  ? "bottom-[calc(5.5rem+env(safe-area-inset-bottom))]"
-                  : touchUi
-                    ? "bottom-[calc(4.5rem+env(safe-area-inset-bottom))]"
-                    : "bottom-10"
+                touchUi
+                  ? "bottom-[calc(4.5rem+env(safe-area-inset-bottom))]"
+                  : "bottom-10"
               )}
             >
               <button type="button" onClick={() => setZoom(Math.max(1, zoom - 0.5))} className="p-2 hover:bg-gray-100 rounded-xl text-gray-400 transition-colors touch-manipulation"><ZoomOut size={18} /></button>

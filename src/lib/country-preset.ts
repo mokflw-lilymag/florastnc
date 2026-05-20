@@ -22,6 +22,12 @@ type ApplyOptions = {
   forceKeys?: Array<keyof SystemSettings>;
 };
 
+/** smart-merge 시 사용자가 직접 관리하는 설정 — 국가 프리셋으로 덮어쓰지 않음 */
+const SMART_MERGE_PRESERVE_KEYS = new Set<keyof SystemSettings>([
+  "isTaxExempt",
+  "defaultTaxRate",
+]);
+
 export type CountryPresetDiffItem = {
   key: keyof SystemSettings;
   before: SystemSettings[keyof SystemSettings];
@@ -65,6 +71,9 @@ export function applyCountryPreset(
     }
     if (mode === "force-replace") {
       assignSetting(key, presetValue as SystemSettings[typeof key]);
+      continue;
+    }
+    if (SMART_MERGE_PRESERVE_KEYS.has(key)) {
       continue;
     }
     const currentValue = current[key];

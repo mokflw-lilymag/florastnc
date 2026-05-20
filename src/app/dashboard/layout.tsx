@@ -5,9 +5,8 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 
 import { QuickChat } from "@/components/chat/quick-chat";
-import { DashboardMain } from "@/components/layout/dashboard-main";
+import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { AnnualRenewalReminder } from "@/components/layout/annual-renewal-reminder";
-import { AndroidAppChrome } from "@/components/layout/android-app-chrome";
 import { effectiveIsSuperAdmin } from "@/lib/auth-api-guards";
 import { LOCALE_COOKIE, resolveLocale, toBaseLocale } from "@/i18n/config";
 import { pickUiText } from "@/i18n/pick-ui-text";
@@ -65,17 +64,20 @@ export default async function DashboardLayout({ children }: { children: React.Re
     return (
       <PartnerOrdersFeatureProvider enabled={partnerOrdersEnabled}>
         <GuestBrowseBootstrap />
-        <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">
-          <Sidebar
-            isSuperAdmin={false}
-            plan="free"
-            isExpired={false}
-            isSuspended={false}
-            storeName={storeName}
-            partnerOrdersEnabled={partnerOrdersEnabled}
-            className="hidden lg:flex"
-          />
-          <div className="flex flex-col flex-1 min-w-0 overflow-hidden relative">
+        <DashboardShell
+          serverIsSuperAdmin={false}
+          sidebar={
+            <Sidebar
+              isSuperAdmin={false}
+              plan="free"
+              isExpired={false}
+              isSuspended={false}
+              storeName={storeName}
+              partnerOrdersEnabled={partnerOrdersEnabled}
+              className="hidden lg:flex"
+            />
+          }
+          header={
             <Header
               userEmail={guestEmail}
               isSuperAdmin={false}
@@ -85,13 +87,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
               storeName={storeName}
               subscriptionEnd={null}
             />
-            <DashboardMain serverIsSuperAdmin={false}>{children}</DashboardMain>
-            <AndroidAppChrome
-              serverIsSuperAdmin={false}
-              partnerOrdersEnabled={partnerOrdersEnabled}
-            />
-          </div>
-        </div>
+          }
+        >
+          {children}
+        </DashboardShell>
       </PartnerOrdersFeatureProvider>
     );
   }
@@ -216,29 +215,30 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <PartnerOrdersFeatureProvider enabled={partnerOrdersEnabled}>
-    <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">
-      {/* Sidebar is fixed on the left */}
-      <Sidebar 
-        isSuperAdmin={isSuperAdmin} 
-        plan={effectivePlan} 
-        isExpired={isExpired}
-        isSuspended={isSuspended}
-        logoUrl={logoUrl}
-        storeName={storeName}
-        isOrgUser={isOrgUser}
-        isOrgOnly={isOrgOnly}
-        hqMenuOnly={hqMenuOnly}
-        showOrgBoardLink={showOrgBoardLink}
-        showBranchMaterialRequestLink={showBranchMaterialRequestLink}
-        partnerOrdersEnabled={partnerOrdersEnabled}
-        className="hidden lg:flex" 
-      />
-      
-      {/* Main content area */}
-      <div className="flex flex-col flex-1 min-w-0 overflow-hidden relative">
-        <Header 
-            userEmail={user.email ?? "Unknown"} 
-            isSuperAdmin={isSuperAdmin} 
+    <DashboardShell
+      serverIsSuperAdmin={isSuperAdmin}
+      sidebar={
+        <Sidebar
+          isSuperAdmin={isSuperAdmin}
+          plan={effectivePlan}
+          isExpired={isExpired}
+          isSuspended={isSuspended}
+          logoUrl={logoUrl}
+          storeName={storeName}
+          isOrgUser={isOrgUser}
+          isOrgOnly={isOrgOnly}
+          hqMenuOnly={hqMenuOnly}
+          showOrgBoardLink={showOrgBoardLink}
+          showBranchMaterialRequestLink={showBranchMaterialRequestLink}
+          partnerOrdersEnabled={partnerOrdersEnabled}
+          className="hidden lg:flex"
+        />
+      }
+      header={
+        <>
+          <Header
+            userEmail={user.email ?? "Unknown"}
+            isSuperAdmin={isSuperAdmin}
             plan={effectivePlan}
             isExpired={isExpired}
             isSuspended={isSuspended}
@@ -250,28 +250,21 @@ export default async function DashboardLayout({ children }: { children: React.Re
             isOrgUser={isOrgUser}
             showOrgBoardLink={showOrgBoardLink}
             showBranchMaterialRequestLink={showBranchMaterialRequestLink}
-        />
-
-        <AnnualRenewalReminder
-          userId={user.id}
-          subscriptionStart={tenantData?.subscription_start ?? null}
-          subscriptionEnd={tenantData?.subscription_end ?? null}
-          isSuperAdmin={isSuperAdmin}
-          isExpired={isExpired}
-          plan={effectivePlan}
-        />
-        
-        <DashboardMain serverIsSuperAdmin={isSuperAdmin}>
-          {children}
-        </DashboardMain>
-
-        <QuickChat />
-        <AndroidAppChrome
-          serverIsSuperAdmin={isSuperAdmin}
-          partnerOrdersEnabled={partnerOrdersEnabled}
-        />
-      </div>
-    </div>
+          />
+          <AnnualRenewalReminder
+            userId={user.id}
+            subscriptionStart={tenantData?.subscription_start ?? null}
+            subscriptionEnd={tenantData?.subscription_end ?? null}
+            isSuperAdmin={isSuperAdmin}
+            isExpired={isExpired}
+            plan={effectivePlan}
+          />
+        </>
+      }
+      footer={<QuickChat />}
+    >
+      {children}
+    </DashboardShell>
     </PartnerOrdersFeatureProvider>
   );
 }

@@ -19,14 +19,16 @@ import {
   Languages,
   Key,
   BookOpen,
+  Smartphone,
 } from "lucide-react";
 import Image from "next/image";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { useIsCapacitorAndroid } from "@/hooks/use-capacitor-android";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { getMessages } from "@/i18n/getMessages";
+import { toBaseLocale } from "@/i18n/config";
+import { pickUiText } from "@/i18n/pick-ui-text";
 import { ERP_NAV_TIERS, navTierAllows } from "@/lib/subscription/plan-access";
 
 interface SidebarProps {
@@ -114,9 +116,22 @@ export function Sidebar({
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
-  const isAndroidApp = useIsCapacitorAndroid();
   const locale = usePreferredLocale();
+  const baseLocale = toBaseLocale(locale);
   const t = getMessages(locale).dashboardCommon;
+  const mobileStoreLabel = pickUiText(
+    baseLocale,
+    "모바일 매장",
+    "Mobile store",
+    "Cửa hàng di động",
+    "モバイル店舗",
+    "移动门店",
+    "Tienda móvil",
+    "Loja móvel",
+    "Magasin mobile",
+    "Mobiler Shop",
+    "Мобильный магазин",
+  );
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -207,6 +222,12 @@ export function Sidebar({
       label: t.sidebar.groups.tenantOps,
       hint: t.sidebar.hints.tenantOps,
       links: [
+        {
+          name: mobileStoreLabel,
+          href: "/dashboard/mobile/pickup",
+          icon: Smartphone,
+          tier: [...ERP_NAV_TIERS],
+        },
         { name: t.sidebar.links.newOrder, href: "/dashboard/orders/new", icon: PlusCircle, tier: [...ERP_NAV_TIERS] },
         {
           name: t.sidebar.links.orders,
@@ -277,7 +298,6 @@ export function Sidebar({
     .map((g) => ({
       ...g,
       links: g.links.filter((l) => {
-        if (isAndroidApp && l.href === "/dashboard/printer") return false;
         return filterTenantLink(l, filterCtx);
       }),
     }))

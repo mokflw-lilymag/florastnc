@@ -21,8 +21,6 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { useIsCapacitorAndroid } from "@/hooks/use-capacitor-android";
-import { isCapacitorAndroid } from "@/lib/client-platform";
 import { AppLocale, LOCALE_COOKIE, resolveLocale, toBaseLocale } from "@/i18n/config";
 import {
   DASHBOARD_LOCALE_SELECT_OPTIONS,
@@ -80,7 +78,6 @@ export function Header({
   const router = useRouter();
   const supabase = createClient();
   const [isBridgeOnline, setIsBridgeOnline] = useState(false);
-  const isAndroidApp = useIsCapacitorAndroid();
   const preferredLocale = usePreferredLocale();
   const messages = getMessages(preferredLocale);
   const t = messages.dashboardCommon;
@@ -105,7 +102,6 @@ export function Header({
   };
 
   useEffect(() => {
-    if (typeof window !== "undefined" && isCapacitorAndroid()) return;
     const checkBridge = async () => {
       try {
         // PNA (Private Network Access) handling: 
@@ -228,8 +224,7 @@ export function Header({
           </select>
         </div>
 
-        {/* Bridge Status Indicator (v25.0) — Android 앱에서는 리본 브릿지 미사용 */}
-        {!isAndroidApp && (
+        {/* Bridge Status Indicator (v25.0) */}
         <div 
           onClick={() => router.push('/dashboard/printer')}
           className={cn(
@@ -255,7 +250,6 @@ export function Header({
             {isSuperAdmin ? 'HQ ADMIN' : plan.toUpperCase()}
           </span>
         </div>
-        )}
 
         {/* Quick Manual Link */}
         <Link

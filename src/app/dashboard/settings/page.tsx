@@ -1300,7 +1300,46 @@ export default function SettingsPage() {
                       </div>
                       <Switch 
                         checked={settings.isTaxExempt} 
-                        onCheckedChange={(c) => saveSettings({...settings, isTaxExempt: c})} 
+                        onCheckedChange={async (checked) => {
+                          const isTaxExempt = checked === true;
+                          const saved = await saveSettings({
+                            ...settings,
+                            isTaxExempt,
+                          });
+                          if (saved) {
+                            toast.success(
+                              isTaxExempt
+                                ? pickUiText(
+                                    baseLocale,
+                                    "부가세 면세 사업장으로 저장되었습니다.",
+                                    "Saved as VAT-exempt business.",
+                                    "Đã lưu doanh nghiệp miễn thuế.",
+                                    "免税事業として保存しました。",
+                                    "已保存为免税业务。",
+                                    "Guardado como negocio exento de IVA.",
+                                    "Salvo como negócio isento de IVA.",
+                                    "Enregistré comme entreprise exonérée de TVA.",
+                                    "Als umsatzsteuerbefreites Unternehmen gespeichert.",
+                                    "Сохранено как освобождённое от НДС предприятие."
+                                  )
+                                : pickUiText(
+                                    baseLocale,
+                                    "과세 사업장 설정으로 저장되었습니다.",
+                                    "Saved as taxable business.",
+                                    "Đã lưu doanh nghiệp chịu thuế.",
+                                    "課税事業として保存しました。",
+                                    "已保存为应税业务。",
+                                    "Guardado como negocio sujeto a impuestos.",
+                                    "Salvo como negócio tributável.",
+                                    "Enregistré comme entreprise imposable.",
+                                    "Als steuerpflichtiges Unternehmen gespeichert.",
+                                    "Сохранено как облагаемое налогом предприятие."
+                                  )
+                            );
+                          } else {
+                            toast.error(tf.f00540);
+                          }
+                        }}
                       />
                     </div>
 
