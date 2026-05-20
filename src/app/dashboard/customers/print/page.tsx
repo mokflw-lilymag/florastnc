@@ -8,6 +8,11 @@ import { createClient } from "@/utils/supabase/client";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
 import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
+import {
+  buildDocumentLineItemsFromOrders,
+  computeDocumentTotal,
+  formatCustomerDocumentDate,
+} from "@/lib/customer-document-lines";
 
 function PrintContent() {
   const searchParams = useSearchParams();
@@ -158,42 +163,18 @@ function PrintContent() {
 
   if (loading) return <div className="p-10 text-center">{tf.f00513}</div>;
 
-  const flattenedItems = items.flatMap(order => {
-    const products = (order.items || []).map((item: any) => ({
-      date: order.order_date,
-      name: item.name,
-      quantity: item.quantity,
-      price: item.price,
-      amount: item.price * item.quantity,
-      order_number: order.order_number
-    }));
+  const documentType = (type === "statement" || type === "receipt" || type === "estimate"
+    ? type
+    : "statement") as "statement" | "receipt" | "estimate";
+  const documentLabels = { deliveryFee: tf.f00259, discount: tf.f00759 };
+  const baseLocale = toBaseLocale(locale);
+  const flattenedItems = buildDocumentLineItemsFromOrders(
+    items,
+    documentType,
+    documentLabels
+  );
 
-    if (order.summary?.deliveryFee > 0) {
-      products.push({
-        date: order.order_date,
-        name: tf.f00259,
-        quantity: 1,
-        price: order.summary.deliveryFee,
-        amount: order.summary.deliveryFee,
-        order_number: order.order_number
-      });
-    }
-
-    if (order.summary?.discountAmount > 0) {
-      products.push({
-        date: order.order_date,
-        name: tf.f00759,
-        quantity: 1,
-        price: -order.summary.discountAmount,
-        amount: -order.summary.discountAmount,
-        order_number: order.order_number
-      });
-    }
-
-    return products;
-  });
-
-  const subtotal = flattenedItems.reduce((sum, item) => sum + item.amount, 0);
+  const subtotal = computeDocumentTotal(items, documentType, flattenedItems);
   const vat = useVat ? Math.floor(subtotal * 0.1) : 0;
   const totalAmount = subtotal + vat;
 
@@ -287,7 +268,7 @@ function PrintContent() {
         <tbody className="divide-y divide-slate-200">
           {flattenedItems.map((item, idx) => (
             <tr key={idx} className="text-xs font-medium">
-              <td className="p-3 text-slate-500">{format(new Date(item.date), 'MM-dd')}</td>
+              <td className="p-3 text-slate-500">{formatCustomerDocumentDate(item.date, baseLocale)}</td>
               <td className="p-3">
                 <div className="font-bold text-slate-900">{item.name}</div>
                 {item.order_number && <div className="text-[10px] text-slate-400 mt-0.5 font-mono">#{item.order_number}</div>}

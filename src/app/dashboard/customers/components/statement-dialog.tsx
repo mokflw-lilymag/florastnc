@@ -38,6 +38,13 @@ import { Badge } from "@/components/ui/badge";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
 import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
+import {
+  buildDocumentLineItemsFromOrders,
+  computeDocumentTotal,
+  formatCustomerDocumentDate,
+  isExcludedOrderForDocument,
+  orderBelongsToCustomer,
+} from "@/lib/customer-document-lines";
 
 interface StatementDialogProps {
   customer: Customer | null;
@@ -91,7 +98,7 @@ export function StatementDialog({ customer, isOpen, onOpenChange, type }: Statem
     } else {
       setTimeout(() => setViewMode('edit'), 300);
     }
-  }, [isOpen, customer, startDate, endDate]);
+  }, [isOpen, customer, startDate, endDate, type]);
 
   const fetchBusinessInfo = async () => {
     try {
@@ -140,21 +147,53 @@ export function StatementDialog({ customer, isOpen, onOpenChange, type }: Statem
     if (!customer || !startDate || !endDate) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('tenant_id', customer.tenant_id)
-        .eq('orderer->>contact', customer.contact)
-        .gte('order_date', startDate.toISOString())
-        .lte('order_date', new Date(endDate.getTime() + 86400000).toISOString())
-        .order('order_date', { ascending: false });
+      const rangeStart = startDate.toISOString();
+      const rangeEnd = new Date(
+        endDate.getFullYear(),
+        endDate.getMonth(),
+        endDate.getDate(),
+        23,
+        59,
+        59
+      ).toISOString();
 
-      if (error) throw error;
-      setOrders(data || []);
-      // Default select all
-      setSelectedOrderIds((data || []).map(o => o.id));
+      const baseQuery = () =>
+        supabase
+          .from("orders")
+          .select("*")
+          .eq("tenant_id", customer.tenant_id)
+          .neq("status", "canceled")
+          .gte("order_date", rangeStart)
+          .lte("order_date", rangeEnd);
+
+      const [{ data: byCustomerId, error: idError }, contactResult] =
+        await Promise.all([
+          baseQuery().eq("orderer->>id", customer.id),
+          customer.contact
+            ? baseQuery().eq("orderer->>contact", customer.contact)
+            : Promise.resolve({ data: [], error: null }),
+        ]);
+
+      if (idError) throw idError;
+      if (contactResult.error) throw contactResult.error;
+
+      const uniqueOrders = new Map<string, (typeof byCustomerId)[number]>();
+      [...(byCustomerId || []), ...(contactResult.data || [])].forEach((order) => {
+        if (orderBelongsToCustomer(order, customer) && !isExcludedOrderForDocument(order)) {
+          uniqueOrders.set(order.id, order);
+        }
+      });
+
+      const mergedOrders = Array.from(uniqueOrders.values()).sort(
+        (a, b) => new Date(b.order_date).getTime() - new Date(a.order_date).getTime()
+      );
+
+      setOrders(mergedOrders);
+      setSelectedOrderIds(
+        type === "receipt" ? [] : mergedOrders.map((order) => order.id)
+      );
     } catch (err) {
-      console.error('Error fetching orders for statement:', err);
+      console.error("Error fetching orders for statement:", err);
     } finally {
       setLoading(false);
     }
@@ -175,9 +214,12 @@ export function StatementDialog({ customer, isOpen, onOpenChange, type }: Statem
       const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user?.id).single();
       
       if (profile?.tenant_id) {
-        const selectedOrders = orders.filter(o => selectedOrderIds.includes(o.id));
-        const totalAmount = selectedOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
-        
+        const selectedOrders = orders.filter((o) => selectedOrderIds.includes(o.id));
+        const totalAmount = selectedOrders.reduce(
+          (sum, o) => sum + (o.summary?.total ?? 0),
+          0
+        );
+
         await supabase.from('document_logs').insert({
           tenant_id: profile.tenant_id,
           type: type,
@@ -187,11 +229,11 @@ export function StatementDialog({ customer, isOpen, onOpenChange, type }: Statem
             contact: recipientContact,
             email: recipientEmail
           },
-          items: selectedOrders.map(o => ({ 
-            id: o.id, 
-            name: o.product_name, 
-            price: o.total_amount,
-            date: o.order_date 
+          items: selectedOrders.map((o) => ({
+            id: o.id,
+            name: (o.items || []).map((item: { name: string }) => item.name).join(", "),
+            price: o.summary?.total ?? 0,
+            date: o.order_date
           })),
           total_amount: totalAmount
         });
@@ -218,8 +260,15 @@ export function StatementDialog({ customer, isOpen, onOpenChange, type }: Statem
     onOpenChange(false);
   };
 
-  const selectedOrdersData = orders.filter(o => selectedOrderIds.includes(o.id));
-  const subtotal = selectedOrdersData.reduce((sum, o) => sum + (o.summary?.total || 0), 0);
+  const selectedOrdersData = orders.filter((order) => selectedOrderIds.includes(order.id));
+  const baseLocale = toBaseLocale(locale);
+  const documentLabels = { deliveryFee: tf.f00259, discount: tf.f00759 };
+  const previewLineItems = buildDocumentLineItemsFromOrders(
+    selectedOrdersData,
+    type,
+    documentLabels
+  );
+  const subtotal = computeDocumentTotal(selectedOrdersData, type, previewLineItems);
 
   if (!customer) return null;
 
@@ -455,43 +504,10 @@ export function StatementDialog({ customer, isOpen, onOpenChange, type }: Statem
                            </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 border-b border-slate-200">
-                           {selectedOrdersData.flatMap(order => {
-                             const products = (order.items || []).map((item: any) => ({
-                               date: order.order_date,
-                               name: item.name,
-                               quantity: item.quantity,
-                               price: item.price,
-                               amount: item.price * item.quantity,
-                               order_number: order.order_number
-                             }));
-
-                             if (order.summary?.deliveryFee > 0) {
-                               products.push({
-                                 date: order.order_date,
-                                 name: tf.f00259,
-                                 quantity: 1,
-                                 price: order.summary.deliveryFee,
-                                 amount: order.summary.deliveryFee,
-                                 order_number: order.order_number
-                               });
-                             }
-
-                             if (order.summary?.discountAmount > 0) {
-                               products.push({
-                                 date: order.order_date,
-                                 name: tf.f00759,
-                                 quantity: 1,
-                                 price: -order.summary.discountAmount,
-                                 amount: -order.summary.discountAmount,
-                                 order_number: order.order_number
-                               });
-                             }
-
-                             return products;
-                           }).map((item, idx) => (
+                           {previewLineItems.map((item, idx) => (
                               <tr key={idx} className="text-[11px] font-medium border-b border-slate-50">
                                  <td className="p-3 pl-4 text-slate-400 font-bold whitespace-nowrap">
-                                   {format(new Date(item.date), "d MMM yy", { locale: dfLoc })}
+                                   {formatCustomerDocumentDate(item.date, baseLocale)}
                                  </td>
                                  <td className="p-3 font-bold">{item.name}</td>
                                  <td className="p-3 text-center">{item.quantity}</td>
