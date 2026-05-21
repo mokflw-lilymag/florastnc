@@ -88,6 +88,7 @@ export default function DeliveryManagementPage() {
   // New states for inline editing
   const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
   const [tempActualCost, setTempActualCost] = useState<string>("");
+  const [tempCashCost, setTempCashCost] = useState<string>("");
   const [tempCarrier, setTempCarrier] = useState<string>("");
 
   const filteredOrders = useMemo(() => {
@@ -110,7 +111,9 @@ export default function DeliveryManagementPage() {
       if (!dateMatch) return false;
 
       // Type Filter
-      const isPickup = order.receipt_type === "pickup_reservation" || order.receipt_type === "store_pickup";
+      if (order.receipt_type === "store_pickup" || (order.receipt_type as string) === "walk_in") return false;
+      
+      const isPickup = order.receipt_type === "pickup_reservation";
       
       if (filterType === "delivery" && !isDelivery) return false;
       if (filterType === "pickup" && !isPickup) return false;
@@ -150,17 +153,20 @@ export default function DeliveryManagementPage() {
   const startEditing = (order: any) => {
     setEditingOrderId(order.id);
     setTempActualCost(order.actual_delivery_cost?.toString() || "");
+    setTempCashCost(order.actual_delivery_cost_cash?.toString() || "");
     setTempCarrier(order.delivery_info?.driverAffiliation || "");
   };
 
   const cancelEditing = () => {
     setEditingOrderId(null);
     setTempActualCost("");
+    setTempCashCost("");
     setTempCarrier("");
   };
 
   const saveDeliveryInfo = async (orderId: string) => {
     const costValue = tempActualCost === "" ? null : parseInt(tempActualCost);
+    const cashCostValue = tempCashCost === "" ? null : parseInt(tempCashCost);
     const order = orders.find(o => o.id === orderId);
     
     if (!order) return;
@@ -170,6 +176,7 @@ export default function DeliveryManagementPage() {
       ...prev,
       [orderId]: {
         actual_delivery_cost: costValue,
+        actual_delivery_cost_cash: cashCostValue,
         delivery_info: {
           ...order.delivery_info,
           driverAffiliation: tempCarrier || order.delivery_info?.driverAffiliation
@@ -181,6 +188,7 @@ export default function DeliveryManagementPage() {
     try {
       const updates: any = {
         actual_delivery_cost: costValue,
+        actual_delivery_cost_cash: cashCostValue,
         delivery_info: {
           ...order.delivery_info,
           driverAffiliation: tempCarrier || order.delivery_info?.driverAffiliation
@@ -427,8 +435,12 @@ export default function DeliveryManagementPage() {
                       <TableHead className="font-bold text-gray-700">{tf.f00069}</TableHead>
                       <TableHead className="font-bold text-gray-700">{tf.f00333}</TableHead>
                       <TableHead className="font-bold text-gray-700">{tf.f00381}</TableHead>
-                      <TableHead className="font-bold text-gray-700">{tf.f00424}</TableHead>
-                      <TableHead className="font-bold text-gray-700 w-44">{tf.f00267}</TableHead>
+                      {filterType !== "pickup" && (
+                        <>
+                          <TableHead className="font-bold text-gray-700">{tf.f00424}</TableHead>
+                          <TableHead className="font-bold text-gray-700 w-44">{tf.f00267}</TableHead>
+                        </>
+                      )}
                       <TableHead className="font-bold text-gray-700 text-center">{tf.f00319}</TableHead>
                       <TableHead className="pr-6 text-right font-bold text-gray-700">{tf.f00087}</TableHead>
                    </TableRow>
@@ -436,7 +448,7 @@ export default function DeliveryManagementPage() {
                 <TableBody>
                    {filteredOrders.length === 0 ? (
                      <TableRow>
-                        <TableCell colSpan={6} className="h-96 text-center">
+                        <TableCell colSpan={filterType === "pickup" ? 6 : 8} className="h-96 text-center">
                            <div className="flex flex-col items-center justify-center space-y-3 opacity-40">
                               <Truck className="w-20 h-20" />
                               <p className="text-xl font-bold">{tf.f00670}</p>
@@ -514,15 +526,16 @@ export default function DeliveryManagementPage() {
                                  </div>
                                )}
                             </TableCell>
-                            <TableCell>
+                            {filterType !== "pickup" && (
+                              <TableCell>
                                {isDelivery ? (
                                  editingOrderId === order.id ? (
-                                   <div className="flex flex-col gap-1">
+                                   <div className="flex flex-col gap-1 min-w-[90px]">
                                       <div className="relative">
-                                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-[10px] font-bold">₩</span>
+                                        <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-gray-400 font-medium text-[10px]">💳</span>
                                         <Input 
                                           type="number" 
-                                          className="pl-5 h-8 text-xs font-bold border-primary/30 focus:ring-1 focus:ring-primary/20 bg-white min-w-[80px]"
+                                          className="pl-5 h-7 text-xs font-bold border-primary/30 focus:ring-1 focus:ring-primary/20 bg-white min-w-[70px]"
                                           placeholder={phDeliveryActualCost}
                                           value={tempActualCost}
                                           onChange={(e) => setTempActualCost(e.target.value)}
@@ -533,27 +546,62 @@ export default function DeliveryManagementPage() {
                                           autoFocus
                                         />
                                       </div>
+                                      <div className="relative">
+                                        <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-gray-400 font-medium text-[10px]">💵</span>
+                                        <Input 
+                                          type="number" 
+                                          className="pl-5 h-7 text-xs font-bold border-primary/30 focus:ring-1 focus:ring-primary/20 bg-white min-w-[70px]"
+                                          placeholder={tf.f00223}
+                                          value={tempCashCost}
+                                          onChange={(e) => setTempCashCost(e.target.value)}
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter') saveDeliveryInfo(order.id);
+                                            if (e.key === 'Escape') cancelEditing();
+                                          }}
+                                        />
+                                      </div>
                                       <div className="flex gap-1 mt-1">
-                                        <Button size="sm" className="h-6 text-[10px] px-2 bg-primary hover:bg-primary/90" onClick={() => saveDeliveryInfo(order.id)}>{tf.f00539}</Button>
-                                        <Button size="sm" variant="ghost" className="h-6 text-[10px] px-2 text-gray-500 hover:bg-gray-100" onClick={cancelEditing}>{tf.f00702}</Button>
+                                        <Button size="sm" onClick={() => saveDeliveryInfo(order.id)} className="h-6 flex-1 text-[10px] px-1 bg-primary text-primary-foreground hover:bg-primary/90">
+                                          {pickUiText(baseLocale, "저장", "Save", "Lưu", "保存", "保存", "Guardar", "Salvar", "Enregistrer", "Speichern", "Сохр.")}
+                                        </Button>
+                                        <Button size="sm" variant="outline" onClick={cancelEditing} className="h-6 flex-1 text-[10px] px-1 bg-white hover:bg-gray-100 border-gray-200">
+                                          {pickUiText(baseLocale, "취소", "Cancel", "Hủy", "Cxl", "取消", "Cancel", "Canc", "Annul", "Abbr", "Отм.")}
+                                        </Button>
                                       </div>
                                    </div>
                                  ) : (
                                    <div 
-                                     className="flex flex-col cursor-pointer group/cost hover:bg-blue-50 p-1.5 rounded-lg border border-transparent hover:border-blue-100 transition-all"
+                                     className="flex flex-col cursor-pointer group/cost hover:bg-blue-50 p-1.5 rounded-lg border border-transparent hover:border-blue-100 transition-all gap-1"
                                      onClick={() => startEditing(order)}
                                    >
-                                      <span className={cn("font-black text-sm", displayOrder.actual_delivery_cost ? "text-rose-600" : "text-gray-300 italic")}>
-                                        {displayOrder.actual_delivery_cost ? `₩${displayOrder.actual_delivery_cost.toLocaleString()}` : tf.f00223}
-                                      </span>
+                                      {(displayOrder.actual_delivery_cost || displayOrder.actual_delivery_cost_cash) ? (
+                                        <>
+                                          {(displayOrder.actual_delivery_cost ?? 0) > 0 && (
+                                            <span className="font-black text-xs text-rose-600 flex items-center gap-1">
+                                              <span className="text-[10px] text-gray-400 font-normal">💳</span>
+                                              {displayOrder.actual_delivery_cost?.toLocaleString()}
+                                            </span>
+                                          )}
+                                          {(displayOrder.actual_delivery_cost_cash ?? 0) > 0 && (
+                                            <span className="font-black text-xs text-emerald-600 flex items-center gap-1">
+                                              <span className="text-[10px] text-gray-400 font-normal">💵</span>
+                                              {displayOrder.actual_delivery_cost_cash?.toLocaleString()}
+                                            </span>
+                                          )}
+                                        </>
+                                      ) : (
+                                        <span className="font-black text-sm text-gray-300 italic">{tf.f00223}</span>
+                                      )}
                                       <span className="text-[10px] text-gray-400 font-medium group-hover/cost:text-blue-500 underline decoration-dotted decoration-blue-200 underline-offset-2">{tf.f00261}</span>
                                    </div>
                                  )
                                ) : (
                                  <span className="text-gray-300 text-xs">-</span>
                                )}
-                            </TableCell>
-                            <TableCell className="align-top pt-5">
+                              </TableCell>
+                            )}
+                            {filterType !== "pickup" && (
+                              <TableCell className="align-top pt-5">
                                {isDelivery ? (
                                  <div className="flex flex-col gap-3 min-w-[140px]">
                                    {/* 자동 배달앱(카카오T) 연동 UI 영역 */}
@@ -602,7 +650,8 @@ export default function DeliveryManagementPage() {
                                ) : (
                                  <span className="text-gray-300 text-xs">-</span>
                                )}
-                            </TableCell>
+                              </TableCell>
+                            )}
                             <TableCell className="text-center">
                                <Badge 
                                  variant="outline" 

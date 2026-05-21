@@ -1,7 +1,7 @@
 "use client";
 import { getMessages } from "@/i18n/getMessages";
 
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { 
   PlusCircle, Search, MoreHorizontal, MessageSquare, 
@@ -27,6 +27,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Skeleton } from "@/components/ui/skeleton";
 
 import { useOrders } from "@/hooks/use-orders";
+import { useDebounce } from "@/hooks/use-debounce";
 import { Order } from "@/types/order";
 import { parseDate } from "@/lib/date-utils";
 import { smartSplitRibbonMessage } from "@/lib/order-utils";
@@ -115,13 +116,17 @@ export default function OrdersPage() {
 
   const { 
     orders, 
+    paginatedOrders,
+    totalCount,
     loading, 
-    fetchOrdersByRange, 
+    fetchOrdersByRange,
+    fetchPaginatedList,
+    fetchStatsOnly,
     updateOrderStatus, 
     updatePaymentStatus,
     deleteOrder, 
     cancelOrder 
-  } = useOrders();
+  } = useOrders(false);
 
   const hasAccess = authLoading || isSuperAdmin || hasErpViewAccess;
   const [trialOrders, setTrialOrders] = useState<Order[]>([]);
@@ -140,14 +145,18 @@ export default function OrdersPage() {
   const [isPrintTargetModalOpen, setIsPrintTargetModalOpen] = useState(false);
   const [pendingPrintOrder, setPendingPrintOrder] = useState<Order | null>(null);
 
+  const [page, setPage] = useState(1);
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
+  const [statsData, setStatsData] = useState<any[]>([]);
+
   useEffect(() => {
     if (isErpTrial && tenantId) {
       setTrialOrders(getErpTrialOrders(tenantId));
     }
   }, [isErpTrial, tenantId]);
 
-  const sourceOrders = isErpTrial ? trialOrders : orders;
-  const listLoading = isErpTrial ? false : loading;
+  const sourceOrders = isErpTrial ? trialOrders : paginatedOrders;
+  const listLoading = isErpTrial ? false : loading && page === 1;
 
   const patchTrialOrder = (id: string, patch: Partial<Order>) => {
     setTrialOrders((prev) => prev.map((o) => (o.id === id ? { ...o, ...patch } : o)));
@@ -173,6 +182,7 @@ export default function OrdersPage() {
     const periodFromUrl = searchParams.get('period') || '2months';
     const basisFromUrl = searchParams.get('basis') || 'order_date';
     
+    // Only URL update logic
     if (currentPeriod !== periodFromUrl || filterBasis !== basisFromUrl) {
       const current = new URLSearchParams(searchParams.toString());
       current.set('period', currentPeriod || '2months');
@@ -180,28 +190,56 @@ export default function OrdersPage() {
       const target = (pathname || "") + "?" + current.toString();
       (router.push as any)(target);
     }
-    
-    // Fetch data based on period AND basis
-    if (currentPeriod === '2months') fetchOrdersByRange(subDays(new Date(), 60), new Date(), filterBasis);
-    else if (currentPeriod === '3months') fetchOrdersByRange(subDays(new Date(), 90), new Date(), filterBasis);
-    else if (currentPeriod === '6months') fetchOrdersByRange(subDays(new Date(), 180), new Date(), filterBasis);
-    else if (currentPeriod === '1year') fetchOrdersByRange(subDays(new Date(), 365), new Date(), filterBasis);
-    else if (currentPeriod === 'all') fetchOrdersByRange(new Date(2000, 0, 1), new Date(), filterBasis);
-  }, [currentPeriod, filterBasis, searchParams, pathname, router, fetchOrdersByRange, isErpTrial]);
+  }, [currentPeriod, filterBasis, searchParams, pathname, router, isErpTrial]);
+
+  const getFetchDates = useCallback(() => {
+    let start = subDays(new Date(), 60);
+    if (currentPeriod === '3months') start = subDays(new Date(), 90);
+    else if (currentPeriod === '6months') start = subDays(new Date(), 180);
+    else if (currentPeriod === '1year') start = subDays(new Date(), 365);
+    else if (currentPeriod === 'all') start = new Date(2000, 0, 1);
+    return { start, end: new Date() };
+  }, [currentPeriod]);
+
+  // Fetch Stats Data whenever period changes
+  useEffect(() => {
+    if (isErpTrial) return;
+    const { start, end } = getFetchDates();
+    fetchStatsOnly(start, end, filterBasis).then(setStatsData);
+  }, [getFetchDates, filterBasis, fetchStatsOnly, isErpTrial]);
+
+  // Fetch Paginated List whenever filters change
+  useEffect(() => {
+    if (isErpTrial) return;
+    const { start, end } = getFetchDates();
+    fetchPaginatedList(
+      start, end, page, 50, 
+      { status: selectedStatus, receiptType: selectedReceiptType, searchTerm: debouncedSearchTerm }, 
+      filterBasis
+    );
+  }, [getFetchDates, page, selectedStatus, selectedReceiptType, debouncedSearchTerm, filterBasis, fetchPaginatedList, isErpTrial]);
+
+  // Reset page to 1 when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [selectedStatus, selectedReceiptType, debouncedSearchTerm, currentPeriod, filterBasis]);
+
+  const refreshOrders = useCallback(() => {
+    const { start, end } = getFetchDates();
+    fetchStatsOnly(start, end, filterBasis).then(setStatsData);
+    setPage(1);
+    fetchPaginatedList(
+      start, end, 1, 50, 
+      { status: selectedStatus, receiptType: selectedReceiptType, searchTerm: debouncedSearchTerm }, 
+      filterBasis
+    );
+  }, [getFetchDates, fetchStatsOnly, filterBasis, fetchPaginatedList, selectedStatus, selectedReceiptType, debouncedSearchTerm]);
 
   // 쇼핑몰 통합 동기화 (카페24 + 네이버)
   const syncShopOrders = async (silent = false) => {
     if (isErpTrial) return;
     if (!tenantId) return;
     if (!silent) setIsCafe24Syncing(true);
-
-    const refreshOrders = () => {
-      if (currentPeriod === '2months') fetchOrdersByRange(subDays(new Date(), 60), new Date(), filterBasis);
-      else if (currentPeriod === '3months') fetchOrdersByRange(subDays(new Date(), 90), new Date(), filterBasis);
-      else if (currentPeriod === '6months') fetchOrdersByRange(subDays(new Date(), 180), new Date(), filterBasis);
-      else if (currentPeriod === '1year') fetchOrdersByRange(subDays(new Date(), 365), new Date(), filterBasis);
-      else if (currentPeriod === 'all') fetchOrdersByRange(new Date(2000, 0, 1), new Date(), filterBasis);
-    };
 
     try {
       // Cafe24 + Naver parallel sync
@@ -412,7 +450,10 @@ export default function OrdersPage() {
   }, [loading, orders, supabase, isErpTrial]);
 
 
+
   const filteredOrders = useMemo(() => {
+    if (!isErpTrial) return sourceOrders; // Server handles filtering for real data
+    
     return sourceOrders.filter(order => {
       const searchStr = searchTerm.toLowerCase();
       const matchesSearch = 
@@ -428,20 +469,33 @@ export default function OrdersPage() {
 
       return matchesSearch && matchesStatus && matchesReceipt;
     });
-  }, [sourceOrders, searchTerm, selectedStatus, selectedReceiptType]);
+  }, [sourceOrders, searchTerm, selectedStatus, selectedReceiptType, isErpTrial]);
 
   const stats = useMemo(() => {
-    const totalCount = sourceOrders.length;
-    const processingCount = sourceOrders.filter(o => o.status === 'processing').length;
-    const completedCount = sourceOrders.filter(o => o.status === 'completed').length;
-    const totalAmount = sourceOrders.filter(o => o.status !== 'canceled').reduce((sum, o) => sum + (o.summary?.total || 0), 0);
+    if (isErpTrial) {
+      const totalCount = trialOrders.length;
+      const processingCount = trialOrders.filter(o => o.status === 'processing').length;
+      const completedCount = trialOrders.filter(o => o.status === 'completed').length;
+      const totalAmount = trialOrders.filter(o => o.status !== 'canceled').reduce((sum, o) => sum + (o.summary?.total || 0), 0);
+      
+      const todayOrders = trialOrders.filter(o => isToday(parseISO(o.order_date)));
+      const todayAmount = todayOrders.reduce((sum, o) => sum + (o.summary?.total || 0), 0);
+      const todayCount = todayOrders.length;
+
+      return { totalCount, processingCount, completedCount, totalAmount, todayCount, todayAmount };
+    }
+
+    const totalCount = statsData.length;
+    const processingCount = statsData.filter(o => o.status === 'processing').length;
+    const completedCount = statsData.filter(o => o.status === 'completed').length;
+    const totalAmount = statsData.filter(o => o.status !== 'canceled').reduce((sum, o) => sum + (o.summary?.total || 0), 0);
     
-    const todayOrders = sourceOrders.filter(o => isToday(parseISO(o.order_date)));
+    const todayOrders = statsData.filter(o => isToday(parseISO(o.order_date)));
     const todayAmount = todayOrders.reduce((sum, o) => sum + (o.summary?.total || 0), 0);
     const todayCount = todayOrders.length;
 
     return { totalCount, processingCount, completedCount, totalAmount, todayCount, todayAmount };
-  }, [sourceOrders]);
+  }, [statsData, isErpTrial, trialOrders]);
 
   const handleOrderClick = (order: Order) => {
     setSelectedOrder(order);
@@ -1358,6 +1412,29 @@ export default function OrdersPage() {
               )}
             </>
           )}
+
+          {/* Load More Button */}
+          {!isErpTrial && filteredOrders.length > 0 && filteredOrders.length < stats.totalCount && (
+            <div className="p-6 flex justify-center mt-4">
+              <Button 
+                variant="outline" 
+                className="w-full sm:w-auto min-w-[200px] h-12 rounded-2xl text-slate-600 hover:text-emerald-600 border-slate-200 shadow-sm"
+                onClick={() => setPage(p => p + 1)} 
+                disabled={loading}
+              >
+                {loading ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    불러오는 중...
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    더보기 ({filteredOrders.length} / {stats.totalCount})
+                  </span>
+                )}
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -1369,12 +1446,7 @@ export default function OrdersPage() {
         onPrintRibbon={handleRibbonPrint}
         onUpdate={() => {
           // Trigger a silent refresh of the orders
-          const period = searchParams.get('period') || '2months';
-          if (period === '2months') fetchOrdersByRange(subDays(new Date(), 60), new Date());
-          else if (period === '3months') fetchOrdersByRange(subDays(new Date(), 90), new Date());
-          else if (period === '6months') fetchOrdersByRange(subDays(new Date(), 180), new Date());
-          else if (period === '1year') fetchOrdersByRange(subDays(new Date(), 365), new Date());
-          else if (period === 'all') fetchOrdersByRange(new Date(2020, 0, 1), new Date());
+          refreshOrders();
         }}
       />
       <OrderEditDialog
@@ -1387,7 +1459,7 @@ export default function OrdersPage() {
         isOpen={isOutsourceOpen}
         onOpenChange={setIsOutsourceOpen}
         order={selectedOrder}
-        onSuccess={() => fetchOrdersByRange(startOfMonth(new Date()), endOfMonth(new Date()))}
+        onSuccess={refreshOrders}
       />
       <MessagePrintDialog
         isOpen={isMessagePrintOpen}

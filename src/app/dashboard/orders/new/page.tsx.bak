@@ -10,10 +10,10 @@ import { createClient } from '@/utils/supabase/client';
 
 import { useOrders } from '@/hooks/use-orders';
 import { Order, OrderData } from "@/types/order";
+import { useProducts } from '@/hooks/use-products';
 import { Product } from "@/types/product";
+import { useCustomers } from '@/hooks/use-customers';
 import { Customer } from "@/types/customer";
-import { useCustomerSearch } from "@/hooks/use-customer-search";
-import { useDebounce } from "@/hooks/use-debounce";
 import { useAuth } from "@/hooks/use-auth";
 import { useDeliveryFees } from "@/hooks/use-delivery-fees";
 import { useSettings } from "@/hooks/use-settings";
@@ -60,9 +60,10 @@ declare global {
 }
 
 export default function NewOrderPage() {
-  const supabase = useMemo(() => createClient(), []);
   const { profile, tenantId, isLoading: authLoading } = useAuth();
+  const { products: allProducts, loading: productsLoading, fetchProducts } = useProducts(true, true, true);
   const { orders, loading: ordersLoading, addOrder, updateOrder } = useOrders();
+  const { customers, addCustomer, updateCustomer } = useCustomers();
   const { fees: regionFees } = useDeliveryFees();
   const { settings } = useSettings();
   const locale = usePreferredLocale();
@@ -91,8 +92,10 @@ export default function NewOrderPage() {
   }, [tenantId, profile, selectedBranch]);
 
   useEffect(() => {
-    // Products and customers are no longer pre-fetched entirely to improve performance.
-  }, [selectedBranch?.id]);
+    if (selectedBranch?.id) {
+      fetchProducts();
+    }
+  }, [selectedBranch?.id, fetchProducts]);
 
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
 
@@ -120,37 +123,29 @@ export default function NewOrderPage() {
   const [registerAnniversaryFromOrder, setRegisterAnniversaryFromOrder] = useState(false);
   const lastHasInfoRef = useRef(false);
   const [customerSearchQuery, setCustomerSearchQuery] = useState("");
-  const debouncedCustomerSearch = useDebounce(customerSearchQuery, 300);
-  const { results: customerSearchResults, loading: customerSearchLoading, searchCustomers } = useCustomerSearch();
+  const [customerSearchResults, setCustomerSearchResults] = useState<Customer[]>([]);
+  const [customerSearchLoading, setCustomerSearchLoading] = useState(false);
   const [isCustomerSearchOpen, setIsCustomerSearchOpen] = useState(false);
-
-  useEffect(() => {
-    if (isCustomerSearchOpen && debouncedCustomerSearch) {
-      searchCustomers(debouncedCustomerSearch);
-    }
-  }, [debouncedCustomerSearch, isCustomerSearchOpen, searchCustomers]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
 
   useEffect(() => {
     const customerId = searchParams.get('customerId');
-    if (customerId && tenantId) {
-      supabase.from('customers').select('*').eq('id', customerId).eq('tenant_id', tenantId).maybeSingle()
-        .then(({ data: customer }) => {
-          if (customer) {
-            setSelectedCustomer(customer);
-            setOrdererName(customer.name);
-            setOrdererContact(customer.contact || "");
-            setOrdererCompany(customer.company_name || "");
-            setOrdererEmail(customer.email || "");
-            const checks = orderFormChecksForExistingCustomer();
-            setRegisterCustomer(checks.registerCustomer);
-            setMarketingConsent(checks.marketingConsent);
-            setRegisterAnniversaryFromOrder(checks.registerAnniversaryFromOrder);
-            lastHasInfoRef.current = true;
-          }
-        });
+    if (customerId && customers.length > 0) {
+      const customer = customers.find(c => String(c.id) === customerId);
+      if (customer) {
+        setSelectedCustomer(customer);
+        setOrdererName(customer.name);
+        setOrdererContact(customer.contact || "");
+        setOrdererCompany(customer.company_name || "");
+        setOrdererEmail(customer.email || "");
+        const checks = orderFormChecksForExistingCustomer();
+        setRegisterCustomer(checks.registerCustomer);
+        setMarketingConsent(checks.marketingConsent);
+        setRegisterAnniversaryFromOrder(checks.registerAnniversaryFromOrder);
+        lastHasInfoRef.current = true;
+      }
     }
-  }, [searchParams, tenantId, supabase]);
+  }, [searchParams, customers]);
 
   useEffect(() => {
     const hasInfo = (ordererName || "").trim() !== "" || 
@@ -271,6 +266,7 @@ export default function NewOrderPage() {
   };
 
   // --- AUTO-FILL LOGIC FROM URL ---
+  const supabase = createClient();
   const [initialCategory, setInitialCategory] = useState<string | null>(null);
 
   useEffect(() => {
@@ -290,23 +286,21 @@ export default function NewOrderPage() {
       setInitialCategory(category);
     }
 
-    if (productId && tenantId) {
-      supabase.from('products').select('*').eq('id', productId).eq('tenant_id', tenantId).maybeSingle()
-        .then(({ data: targetProduct }) => {
-          if (targetProduct) {
-            setOrderItems([{
-              id: targetProduct.id,
-              name: targetProduct.name,
-              price: targetProduct.price,
-              stock: targetProduct.stock || 999,
-              quantity: 1
-            }]);
-            // Set other product-specific defaults
-            if (targetProduct.extra_data?.item_size) setItemSize(targetProduct.extra_data.item_size as any);
-          }
-        });
+    if (productId && allProducts.length > 0) {
+      const targetProduct = allProducts.find(p => p.id === productId);
+      if (targetProduct) {
+        setOrderItems([{
+          id: targetProduct.id,
+          name: targetProduct.name,
+          price: targetProduct.price,
+          stock: targetProduct.stock || 999,
+          quantity: 1
+        }]);
+        // Set other product-specific defaults
+        if (targetProduct.extra_data?.item_size) setItemSize(targetProduct.extra_data.item_size as any);
+      }
     }
-  }, [searchParams, tenantId, supabase]);
+  }, [searchParams, allProducts, supabase]);
 
   const timeOptions = useMemo(() => {
     const options = [];
@@ -320,7 +314,56 @@ export default function NewOrderPage() {
     return options;
   }, []);
 
-  // dynamicCategories has been removed since ProductSection handles it internally
+  const calculateTopProducts = useCallback((category: string, limit: number, isMidCategory = false) => {
+    if (!allProducts.length) return [];
+    
+    let targetProducts = allProducts;
+    if (isMidCategory) {
+      targetProducts = targetProducts.filter(p => {
+        const mCat = p.main_category || "";
+        const midCat = p.mid_category || "";
+        const name = p.name || "";
+        if (category === '경조화환') return mCat.includes('화환') || midCat.includes('화환') || name.includes('화환') || name.includes('축하') || name.includes('근조');
+        if (category === '동양란/서양란' || category === '동서양란') return mCat.includes('란') || midCat.includes('란') || name.includes('란') || mCat.includes('난') || midCat.includes('난') || name.includes('난');
+        if (category === '동양란') return mCat.includes('동양란') || midCat.includes('동양란') || name.includes('동양란');
+        if (category === '서양란') return mCat.includes('서양란') || midCat.includes('서양란') || name.includes('서양란') || mCat.includes('호접란') || midCat.includes('호접란') || name.includes('호접란');
+        if (category === '플랜트' || category === '관엽식물') return mCat.includes('관엽') || mCat.includes('식물') || mCat.includes('공기정화') || mCat.includes('플랜트');
+        return mCat.includes(category) || midCat.includes(category) || name.includes(category);
+      });
+    } else {
+      targetProducts = targetProducts.filter(p => p.main_category === category);
+    }
+
+    return targetProducts.slice(0, limit);
+  }, [allProducts]);
+
+  const dynamicCategories = useMemo(() => {
+    if (!allProducts.length) return [];
+    
+    // 1. Define common priority categories (removed '동양란/서양란', '조화' as requested)
+    const priority = [
+      '꽃다발', '꽃바구니', '센터피스', '경조화환', '플랜트', '동양란', '서양란'
+    ];
+    
+    // 2. Discover other categories actually used in products
+    // (excluding categories explicitly requested to be hidden)
+    const excludeCategories = ['기프트상품', '플라워', '동양란/서양란', '웨딩상품', '조화', '동서양란', '근조화환', '축하화환', '꽃상자', '다육/선인장', '관엽식물', '돈꽃다발', '부자재'];
+    const existingCats = Array.from(new Set(allProducts.map(p => p.main_category).filter(Boolean))) as string[];
+    const filteredExistingCats = existingCats.filter(cat => !excludeCategories.includes(cat));
+    
+    // 3. Combine them, keeping priority first
+    const combined = [...new Set([...priority, ...filteredExistingCats])]
+      .filter(cat => !excludeCategories.includes(cat));
+    
+    // 4. Map to CategoryData
+    return combined
+      .map(cat => ({
+        name: cat,
+        products: calculateTopProducts(cat, 10, true)
+      }))
+      .filter(c => priority.includes(c.name) || c.products.length > 0)
+      .slice(0, 10); // Show only top 10 categories in a single row logic
+  }, [allProducts, calculateTopProducts]);
 
   const deliveryFee = useMemo(() => {
     if (receipt_type === 'store_pickup' || receipt_type === 'pickup_reservation') return 0;
@@ -411,40 +454,23 @@ export default function NewOrderPage() {
 
     // 고객 정보 자동 등록 (연락처 중복 시 기존 고객 연결)
     if (registerCustomer && !finalCustomerId) {
-      // Check for existing customer by contact directly from DB since we don't load all customers anymore
-      let existingCustomerId = null;
-      if (ordererContact) {
-        const { data: existingData } = await supabase
-          .from('customers')
-          .select('id')
-          .eq('tenant_id', tenantId)
-          .eq('contact', ordererContact)
-          .eq('is_deleted', false)
-          .maybeSingle();
-        if (existingData) existingCustomerId = existingData.id;
-      }
-
-      if (existingCustomerId) {
-        finalCustomerId = existingCustomerId;
+      const existingByContact = findCustomerByContact(customers, ordererContact);
+      if (existingByContact) {
+        finalCustomerId = existingByContact.id;
       } else {
         try {
-          const { data: newCust, error: newCustError } = await supabase
-            .from('customers')
-            .insert([{
-              tenant_id: tenantId,
-              name: ordererName,
-              contact: ordererContact,
-              company_name: ordererCompany,
-              email: ordererEmail,
-              type: ordererCompany ? 'company' : 'individual',
-              grade: tf.f00415,
-              points: 0,
-              marketing_consent: marketingConsent,
-            }])
-            .select()
-            .single();
-          if (!newCustError && newCust) {
-            finalCustomerId = newCust.id;
+          const newCustomerId = await addCustomer({
+            name: ordererName,
+            contact: ordererContact,
+            company_name: ordererCompany,
+            email: ordererEmail,
+            type: ordererCompany ? 'company' : 'individual',
+            grade: tf.f00415,
+            points: 0,
+            marketing_consent: marketingConsent,
+          });
+          if (newCustomerId) {
+            finalCustomerId = newCustomerId;
           }
         } catch (e) {
           console.error(tf.f00068, e);
@@ -454,7 +480,7 @@ export default function NewOrderPage() {
 
     if (finalCustomerId && marketingConsent) {
       try {
-        await supabase.from('customers').update({ marketing_consent: true }).eq('id', finalCustomerId);
+        await updateCustomer(finalCustomerId, { marketing_consent: true });
       } catch (e) {
         console.error("marketing_consent sync", e);
       }
@@ -682,6 +708,8 @@ export default function NewOrderPage() {
           />
 
           <ProductSection
+            allProducts={allProducts}
+            categories={dynamicCategories}
             initialCategory={initialCategory || undefined}
             onAddProduct={(p: Product) => {
               // 1. Add/Update order items

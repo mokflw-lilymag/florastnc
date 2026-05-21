@@ -23,6 +23,9 @@ export type PickupListItem = {
   productionCompleted?: boolean;
   completedAt?: string;
   orderDate?: string;
+  actualDeliveryCost?: number;
+  actualDeliveryCostCash?: number;
+  originalOrder: Order;
 };
 
 export function mapOrderToPickupItem(o: Order): PickupListItem {
@@ -64,8 +67,11 @@ export function mapOrderToPickupItem(o: Order): PickupListItem {
     paymentStatus: o.payment?.status,
     paymentMethod: o.payment?.method,
     productionCompleted: !!o.extra_data?.production_completed,
-    completedAt: o.completed_at || o.payment?.completedAt,
+    completedAt: o.completed_at,
     orderDate: o.order_date,
+    actualDeliveryCost: o.actual_delivery_cost,
+    actualDeliveryCostCash: o.actual_delivery_cost_cash,
+    originalOrder: o,
   };
 }
 

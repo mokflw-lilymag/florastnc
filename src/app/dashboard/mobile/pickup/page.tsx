@@ -47,7 +47,7 @@ export default function MobilePickupPage() {
     return orders
       .filter((o) => o.status !== "canceled")
       .filter((o) =>
-        ["pickup_reservation", "delivery_reservation", "store_pickup"].includes(o.receipt_type)
+        ["pickup_reservation", "delivery_reservation"].includes(o.receipt_type)
       )
       .map(mapOrderToPickupItem);
   }, [orders]);
@@ -127,11 +127,11 @@ export default function MobilePickupPage() {
             ...(row?.payment || {}),
             status: "paid" as const,
             method,
-            completedAt,
+            completedAt, // 픽업 결제(현장결제): 결제일을 오늘(수령일)로 업데이트
           }
         : {
             ...(row?.payment || {}),
-            completedAt,
+            // 선결제: 기존 결제일(payment.completedAt)을 유지해야 일일마감이 틀어지지 않음
           };
 
       const ok = await updateOrder(orderId, {
@@ -147,6 +147,15 @@ export default function MobilePickupPage() {
     } finally {
       setCompletingId(null);
     }
+  };
+
+  const handleUpdateDeliveryCost = async (orderId: string, cardCost: number, cashCost: number) => {
+    const ok = await updateOrder(orderId, {
+      actual_delivery_cost: cardCost,
+      actual_delivery_cost_cash: cashCost,
+    } as Partial<Order>);
+    if (ok) toast.success("배송비가 저장되었습니다.");
+    else toast.error("배송비 저장에 실패했습니다.");
   };
 
   if (!tenantId) {
@@ -245,6 +254,7 @@ export default function MobilePickupPage() {
               completingId={completingId}
               onToggleProduction={handleToggleProduction}
               onComplete={handleComplete}
+              onUpdateDeliveryCost={handleUpdateDeliveryCost}
             />
           ))
         )}
@@ -258,12 +268,24 @@ function PickupOrderCard({
   completingId,
   onToggleProduction,
   onComplete,
+  onUpdateDeliveryCost,
 }: {
   order: PickupListItem;
   completingId: string | null;
   onToggleProduction: (id: string, current: boolean) => void;
   onComplete: (id: string, method: Order["payment"]["method"] | null, amount: number) => void;
+  onUpdateDeliveryCost: (id: string, cardCost: number, cashCost: number) => void;
 }) {
+  const [expanded, setExpanded] = useState(false);
+  const [cardCost, setCardCost] = useState(order.actualDeliveryCost || 0);
+  const [cashCost, setCashCost] = useState(order.actualDeliveryCostCash || 0);
+
+  // Sync state if order changes externally
+  useMemo(() => {
+    setCardCost(order.actualDeliveryCost || 0);
+    setCashCost(order.actualDeliveryCostCash || 0);
+  }, [order.actualDeliveryCost, order.actualDeliveryCostCash]);
+
   const isPickup =
     order.receiptType === "pickup_reservation" || order.receiptType === "store_pickup";
   const isCompleted = order.status === "completed";
@@ -369,11 +391,77 @@ function PickupOrderCard({
           {scheduleLabel && (
             <p className="mt-1 text-[10px] font-bold text-emerald-700">🕐 {scheduleLabel}</p>
           )}
-          <p className="mt-2 text-sm font-black text-gray-900">
-            {order.total.toLocaleString()}원
-          </p>
+          <div className="mt-2 flex items-center justify-between">
+            <p className="text-sm font-black text-gray-900">
+              {order.total.toLocaleString()}원
+            </p>
+            <button
+              onClick={() => setExpanded(!expanded)}
+              className="text-[10px] font-bold text-emerald-600 underline"
+            >
+              {expanded ? "접기" : "상세보기"}
+            </button>
+          </div>
         </div>
       </div>
+      
+      {/* Expanded Details */}
+      {expanded && (
+        <div className="mt-3 rounded-xl border border-gray-100 bg-gray-50/50 p-3">
+          <div className="mb-3 border-b border-gray-100 pb-2">
+            <p className="text-[10px] font-bold text-gray-500">주문 상품</p>
+            {order.rawItems.map((item, idx) => (
+              <div key={idx} className="mt-1 flex items-center justify-between text-xs">
+                <span className="text-gray-700">{item.name}</span>
+                <span className="font-bold text-gray-900">{item.quantity}개</span>
+              </div>
+            ))}
+          </div>
+
+          {order.memo && (
+            <div className="mb-3 border-b border-gray-100 pb-2">
+              <p className="text-[10px] font-bold text-gray-500">메모</p>
+              <p className="mt-1 whitespace-pre-wrap text-xs text-rose-600">{order.memo}</p>
+            </div>
+          )}
+
+          {order.receiptType === "delivery_reservation" && (
+            <div className="rounded-lg border border-gray-200 bg-white p-2">
+              <p className="mb-2 text-[11px] font-bold text-gray-700">🚚 실제 배송비 입력</p>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <label className="mb-1 block text-[9px] text-gray-500">기본(카드) 배송비</label>
+                  <input
+                    type="number"
+                    value={cardCost || ""}
+                    onChange={(e) => setCardCost(Number(e.target.value))}
+                    className="w-full rounded border bg-gray-50 px-2 py-1 text-xs outline-none focus:border-emerald-400 focus:bg-white"
+                    placeholder="0"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="mb-1 block text-[9px] text-gray-500">기사 현금지급</label>
+                  <input
+                    type="number"
+                    value={cashCost || ""}
+                    onChange={(e) => setCashCost(Number(e.target.value))}
+                    className="w-full rounded border bg-gray-50 px-2 py-1 text-xs outline-none focus:border-emerald-400 focus:bg-white"
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+              <div className="mt-2 text-right">
+                <button
+                  onClick={() => onUpdateDeliveryCost(order.id, cardCost, cashCost)}
+                  className="rounded bg-gray-800 px-3 py-1 text-[10px] font-bold text-white hover:bg-gray-700"
+                >
+                  저장
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

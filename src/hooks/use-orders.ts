@@ -10,6 +10,8 @@ export function useOrders(initialFetch = true) {
   const { tenantId, isLoading: authLoading } = useAuth();
   const { settings } = useSettings();
   const [orders, setOrders] = useState<Order[]>([]);
+  const [paginatedOrders, setPaginatedOrders] = useState<Order[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(initialFetch);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -52,6 +54,43 @@ export function useOrders(initialFetch = true) {
       console.error('Error fetching orders by range:', error);
     } finally {
       setLoading(false);
+    }
+  }, [tenantId, supabase]);
+
+  const fetchPaginatedList = useCallback(async (
+    start: Date, 
+    end: Date, 
+    page: number = 1, 
+    limit: number = 50,
+    filters: { status?: string; receiptType?: string; searchTerm?: string } = {},
+    dateField: 'order_date' | 'created_at' = 'order_date'
+  ) => {
+    if (!tenantId) return;
+    try {
+      setLoading(true);
+      const { orders: newOrders, count } = await OrderService.fetchOrdersPaginated(
+        supabase, tenantId, start, end, dateField, page, limit, filters
+      );
+      if (page === 1) {
+        setPaginatedOrders(newOrders);
+      } else {
+        setPaginatedOrders(prev => [...prev, ...newOrders]);
+      }
+      setTotalCount(count);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  }, [tenantId, supabase]);
+
+  const fetchStatsOnly = useCallback(async (start: Date, end: Date, dateField: 'order_date' | 'created_at' = 'order_date') => {
+    if (!tenantId) return [];
+    try {
+      return await OrderService.fetchOrderStats(supabase, tenantId, start, end, dateField);
+    } catch (e) {
+      console.error(e);
+      return [];
     }
   }, [tenantId, supabase]);
 
@@ -205,10 +244,15 @@ export function useOrders(initialFetch = true) {
 
   return {
     orders,
+    paginatedOrders,
+    totalCount,
+    setOrders,
     loading: loading || authLoading,
     isRefreshing,
     fetchOrders,
     fetchOrdersByRange,
+    fetchPaginatedList,
+    fetchStatsOnly,
     addOrder,
     updateOrder,
     updateOrderStatus,

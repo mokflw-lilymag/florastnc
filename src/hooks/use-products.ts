@@ -58,7 +58,7 @@ async function loadProductGlobalStats(
   };
 }
 
-export function useProducts(initialFetch = true, fetchAll = false) {
+export function useProducts(initialFetch = true, fetchAll = false, skipStats = false) {
   const supabase = useMemo(() => createClient(), []);
   const { tenantId, isLoading: authLoading } = useAuth();
   const { tr } = useUiText();
@@ -124,7 +124,7 @@ export function useProducts(initialFetch = true, fetchAll = false) {
   );
 
   const fetchProductStats = useCallback(async () => {
-    if (!tenantId) return;
+    if (!tenantId || skipStats) return;
     try {
       const stats = await loadProductGlobalStats(supabase, tenantId);
       setProductStats(stats);
@@ -167,12 +167,12 @@ export function useProducts(initialFetch = true, fetchAll = false) {
     if (!tenantId) return;
     setIsRefreshing(true);
     try {
-      await fetchProductStats();
+      if (!skipStats) await fetchProductStats();
       await fetchProductsPage(listPageRef.current);
     } finally {
       setIsRefreshing(false);
     }
-  }, [tenantId, fetchProductStats, fetchProductsPage]);
+  }, [tenantId, fetchProductStats, fetchProductsPage, skipStats]);
 
   const setListPageAndFetch = useCallback(
     async (page: number) => {
@@ -188,9 +188,9 @@ export function useProducts(initialFetch = true, fetchAll = false) {
 
   const reloadAfterMutation = useCallback(async () => {
     if (!tenantId) return;
-    await fetchProductStats();
+    if (!skipStats) await fetchProductStats();
     await fetchProductsPage(listPageRef.current);
-  }, [tenantId, fetchProductStats, fetchProductsPage]);
+  }, [tenantId, fetchProductStats, fetchProductsPage, skipStats]);
 
   const addProduct = async (productData: ProductData): Promise<string | null> => {
     if (!tenantId) return null;
@@ -308,9 +308,11 @@ export function useProducts(initialFetch = true, fetchAll = false) {
     (async () => {
       setLoading(true);
       try {
-        const stats = await loadProductGlobalStats(supabase, tenantId);
-        if (cancelled) return;
-        setProductStats(stats);
+        if (!skipStats) {
+          const stats = await loadProductGlobalStats(supabase, tenantId);
+          if (cancelled) return;
+          setProductStats(stats);
+        }
 
         let query = supabase
           .from("products")
@@ -338,7 +340,7 @@ export function useProducts(initialFetch = true, fetchAll = false) {
     })();
 
     const onChange = () => {
-      void fetchProductStats();
+      if (!skipStats) void fetchProductStats();
       void fetchProductsPage(listPageRef.current);
     };
 

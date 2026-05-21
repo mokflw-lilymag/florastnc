@@ -240,7 +240,8 @@ export default function DashboardPage() {
   const { products, loading: productsLoading } = useProducts();
   const { expenses, loading: expensesLoading } = useExpenses();
 
-  const isLoading = authLoading || ordersLoading || productsLoading || expensesLoading || adminLoading || settingsLoading;
+  const isDataLoading = ordersLoading || productsLoading || expensesLoading;
+  const isLoading = authLoading || adminLoading || settingsLoading;
 
   const isOrgOnlyUser = profile?.role === "org_admin" && !profile?.tenant_id;
   const hqOnlyNoWorkContext = isOrgOnlyUser && !profile?.org_work_tenant_id;
@@ -560,7 +561,9 @@ export default function DashboardPage() {
             <CardTitle className="text-xs font-medium text-blue-600 uppercase tracking-widest">{tf.f01606}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-medium text-slate-900">{stats?.todayCount} <span className="text-lg font-light">{tf.f00033}</span></div>
+            <div className="text-3xl font-medium text-slate-900">
+              {isDataLoading ? <Skeleton className="h-8 w-16" /> : <>{stats?.todayCount} <span className="text-lg font-light">{tf.f00033}</span></>}
+            </div>
             <div className="flex items-center gap-1 text-[11px] text-blue-600 font-light mt-2 bg-blue-100/50 w-fit px-2 py-0.5 rounded-full">
                <ArrowUpRight className="w-3 h-3" /> {tf.f01510}
             </div>
@@ -575,7 +578,9 @@ export default function DashboardPage() {
             <CardTitle className="text-xs font-medium text-emerald-600 uppercase tracking-widest">{tf.f01604}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-medium text-slate-900">₩{stats?.todayRevenue.toLocaleString()}</div>
+            <div className="text-3xl font-medium text-slate-900">
+              {isDataLoading ? <Skeleton className="h-8 w-32" /> : `₩${stats?.todayRevenue?.toLocaleString() || 0}`}
+            </div>
             <div className="text-[11px] text-slate-700 font-medium mt-1.5">{tf.f02034}</div>
           </CardContent>
         </Card>
@@ -593,20 +598,20 @@ export default function DashboardPage() {
                   <div className="text-[10px] font-bold text-indigo-300 uppercase tracking-tighter">{tf.f01605}</div>
                   <div className="flex flex-col">
                     <span className="text-lg font-black leading-none">
-                      {((stats?.todayPickup || 0) + (stats?.todayDelivery || 0))} 
-                      <span className="text-[10px] font-medium ml-1">{tf.f00033}</span>
+                      {isDataLoading ? <Skeleton className="h-5 w-10 inline-block bg-indigo-500/50" /> : <>{((stats?.todayPickup || 0) + (stats?.todayDelivery || 0))} 
+                      <span className="text-[10px] font-medium ml-1">{tf.f00033}</span></>}
                     </span>
-                    <span className="text-[9px] text-indigo-200 mt-1">{tf.f00752} {stats?.todayPickup} / {tf.f00240} {stats?.todayDelivery}</span>
+                    <span className="text-[9px] text-indigo-200 mt-1">{tf.f00752} {isDataLoading ? '-' : stats?.todayPickup} / {tf.f00240} {isDataLoading ? '-' : stats?.todayDelivery}</span>
                   </div>
                </div>
                <div className="space-y-1 border-l border-indigo-800 pl-4">
                   <div className="text-[10px] font-bold text-indigo-300 uppercase tracking-tighter">{tf.f01036}</div>
                   <div className="flex flex-col">
                     <span className="text-lg font-black leading-none text-amber-300">
-                      {((stats?.tomorrowPickup || 0) + (stats?.tomorrowDelivery || 0))} 
-                      <span className="text-[10px] font-medium ml-1 text-white">{tf.f00033}</span>
+                      {isDataLoading ? <Skeleton className="h-5 w-10 inline-block bg-indigo-500/50" /> : <>{((stats?.tomorrowPickup || 0) + (stats?.tomorrowDelivery || 0))} 
+                      <span className="text-[10px] font-medium ml-1 text-white">{tf.f00033}</span></>}
                     </span>
-                    <span className="text-[9px] text-indigo-200 mt-1">{tf.f00752} {stats?.tomorrowPickup} / {tf.f00240} {stats?.tomorrowDelivery}</span>
+                    <span className="text-[9px] text-indigo-200 mt-1">{tf.f00752} {isDataLoading ? '-' : stats?.tomorrowPickup} / {tf.f00240} {isDataLoading ? '-' : stats?.tomorrowDelivery}</span>
                   </div>
                </div>
             </div>

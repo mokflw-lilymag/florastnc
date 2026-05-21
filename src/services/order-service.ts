@@ -86,6 +86,73 @@ export const OrderService = {
     return (data || []).map(this.mapRowToOrder);
   },
 
+  async fetchOrdersPaginated(
+    supabase: SupabaseClient, 
+    tenantId: string, 
+    start: Date, 
+    end: Date, 
+    dateField: 'order_date' | 'created_at' = 'order_date',
+    page: number = 1,
+    limit: number = 50,
+    filters: { status?: string; receiptType?: string; searchTerm?: string } = {}
+  ): Promise<{ orders: Order[], count: number }> {
+    let query = supabase
+      .from('orders')
+      .select(`
+        id, tenant_id, order_number, status, receipt_type, order_date, 
+        orderer, summary, payment, items, message, pickup_info, delivery_info, 
+        delivery_provider, delivery_tracking_id, delivery_tracking_url, delivery_provider_status, delivery_provider_fee,
+        memo, actual_delivery_cost, actual_delivery_cost_cash, 
+        actual_delivery_payment_method, actual_delivery_payment_status,
+        outsource_info, created_at, completionphotourl
+      `, { count: 'exact' })
+      .eq('tenant_id', tenantId)
+      .gte(dateField, start.toISOString())
+      .lte(dateField, end.toISOString());
+
+    if (filters.status && filters.status !== 'all') {
+      query = query.eq('status', filters.status);
+    }
+    if (filters.receiptType && filters.receiptType !== 'all') {
+      query = query.eq('receipt_type', filters.receiptType);
+    }
+    if (filters.searchTerm) {
+      const term = filters.searchTerm;
+      query = query.or(`order_number.ilike.%${term}%,orderer->>name.ilike.%${term}%,orderer->>contact.ilike.%${term}%,delivery_info->>recipientName.ilike.%${term}%,delivery_info->>address.ilike.%${term}%`);
+    }
+
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
+    const { data, error, count } = await query
+      .order(dateField, { ascending: false })
+      .range(from, to);
+
+    if (error) throw error;
+    return { 
+      orders: (data || []).map(this.mapRowToOrder),
+      count: count || 0
+    };
+  },
+
+  async fetchOrderStats(
+    supabase: SupabaseClient, 
+    tenantId: string, 
+    start: Date, 
+    end: Date, 
+    dateField: 'order_date' | 'created_at' = 'order_date'
+  ) {
+    const { data, error } = await supabase
+      .from('orders')
+      .select('status, summary, order_date')
+      .eq('tenant_id', tenantId)
+      .gte(dateField, start.toISOString())
+      .lte(dateField, end.toISOString());
+
+    if (error) throw error;
+    return data || [];
+  },
+
   async createOrder(supabase: SupabaseClient, tenantId: string, orderData: OrderData): Promise<string> {
     const orderPayload = {
       ...orderData,
@@ -170,64 +237,50 @@ export const OrderService = {
     if (updateError) throw updateError;
 
     // --- Side Effect: Sync Expense with actual delivery cost ---
-    const actualCost = updates.actual_delivery_cost;
-    const deliveryFee = updates.summary?.deliveryFee;
+    // We handle two separate expenses: Card (actual_delivery_cost) and Cash (actual_delivery_cost_cash)
+    const { data: currentOrder } = await supabase.from('orders').select('order_number, receipt_type, delivery_info, order_date, actual_delivery_cost, actual_delivery_cost_cash').eq('id', id).single();
     
-    if (updates.hasOwnProperty('actual_delivery_cost') && (actualCost === 0 || actualCost === null)) {
-      // Cost removed, delete the expense
-      const { data: existingExpenses } = await supabase
-        .from('expenses')
-        .select('id')
-        .eq('related_order_id', id)
-        .eq('sub_category', '배송비');
-      
-      if (existingExpenses && existingExpenses.length > 0) {
-        await supabase.from('expenses').delete().eq('id', existingExpenses[0].id);
-      }
-    } else if ((actualCost !== undefined && actualCost > 0) || (deliveryFee !== undefined && deliveryFee > 0)) {
-      const { data: existingExpenses } = await supabase
-        .from('expenses')
-        .select('id, amount')
-        .eq('related_order_id', id)
-        .eq('sub_category', '배송비')
-        .limit(1);
+    const orderNumber = updates.order_number || currentOrder?.order_number || '알수없음';
+    const receiptType = updates.receipt_type || currentOrder?.receipt_type;
+    
+    if (receiptType === 'delivery_reservation') {
+      const carrier = updates.delivery_info?.driverAffiliation || currentOrder?.delivery_info?.driverAffiliation || '기사';
+      const expenseDate = updates.order_date || currentOrder?.order_date || new Date().toISOString();
 
-      const expenseAmount = actualCost || deliveryFee || 0;
+      // 1. Sync Card Cost
+      const cardCost = updates.hasOwnProperty('actual_delivery_cost') ? updates.actual_delivery_cost : currentOrder?.actual_delivery_cost;
       
-      const { data: currentOrder } = await supabase.from('orders').select('order_number, receipt_type, delivery_info, order_date, actual_delivery_payment_method').eq('id', id).single();
-      
-      const orderNumber = updates.order_number || currentOrder?.order_number || '주문';
-      const receiptType = updates.receipt_type || currentOrder?.receipt_type;
-
-      if (receiptType === 'delivery_reservation') {
-        const carrier = updates.delivery_info?.driverAffiliation || currentOrder?.delivery_info?.driverAffiliation || '자체';
-        
-        if (expenseAmount > 0) {
-          if (existingExpenses && existingExpenses.length > 0) {
-            await supabase.from('expenses')
-              .update({ 
-                amount: expenseAmount,
-                description: `[배송비] ${orderNumber} (${carrier})`
-              })
-              .eq('id', existingExpenses[0].id);
-          } else {
-            await supabase.from('expenses').insert([{
-              tenant_id: tenantId,
-              category: 'transportation',
-              sub_category: '배송비',
-              amount: expenseAmount,
-              description: `[배송비] ${orderNumber} (${carrier})`,
-              expense_date: updates.order_date || currentOrder?.order_date || new Date().toISOString(),
-              payment_method: updates.actual_delivery_payment_method || currentOrder?.actual_delivery_payment_method || 'cash',
-              related_order_id: id
-            }]);
-          }
-        } else if (existingExpenses && existingExpenses.length > 0) {
-          await supabase.from('expenses')
-            .delete()
-            .eq('id', existingExpenses[0].id);
+      if (cardCost && cardCost > 0) {
+        const { data: existingCard } = await supabase.from('expenses').select('id').eq('related_order_id', id).eq('sub_category', '배송비(카드)').limit(1);
+        if (existingCard && existingCard.length > 0) {
+          await supabase.from('expenses').update({ amount: cardCost, description: `[배송비-카드] ${orderNumber} (${carrier})` }).eq('id', existingCard[0].id);
+        } else {
+          await supabase.from('expenses').insert([{
+            tenant_id: tenantId, category: 'transportation', sub_category: '배송비(카드)', amount: cardCost, description: `[배송비-카드] ${orderNumber} (${carrier})`, expense_date: expenseDate, payment_method: 'card', related_order_id: id
+          }]);
         }
+      } else {
+        await supabase.from('expenses').delete().eq('related_order_id', id).eq('sub_category', '배송비(카드)');
       }
+
+      // 2. Sync Cash Cost
+      const cashCost = updates.hasOwnProperty('actual_delivery_cost_cash') ? updates.actual_delivery_cost_cash : currentOrder?.actual_delivery_cost_cash;
+
+      if (cashCost && cashCost > 0) {
+        const { data: existingCash } = await supabase.from('expenses').select('id').eq('related_order_id', id).eq('sub_category', '배송비(기사현금)').limit(1);
+        if (existingCash && existingCash.length > 0) {
+          await supabase.from('expenses').update({ amount: cashCost, description: `[배송비-기사현금] ${orderNumber} (${carrier})` }).eq('id', existingCash[0].id);
+        } else {
+          await supabase.from('expenses').insert([{
+            tenant_id: tenantId, category: 'transportation', sub_category: '배송비(기사현금)', amount: cashCost, description: `[배송비-기사현금] ${orderNumber} (${carrier})`, expense_date: expenseDate, payment_method: 'cash', related_order_id: id
+          }]);
+        }
+      } else {
+        await supabase.from('expenses').delete().eq('related_order_id', id).eq('sub_category', '배송비(기사현금)');
+      }
+      
+      // Cleanup old '배송비' just in case to migrate properly
+      await supabase.from('expenses').delete().eq('related_order_id', id).eq('sub_category', '배송비');
     }
   },
 
