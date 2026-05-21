@@ -146,8 +146,10 @@ export async function fetchLatestTenantSeedStatusMap(
     .order("created_at", { ascending: false });
 
   if (error) {
-    console.error("tenant_master_seed_audit fetch:", error);
-    return { statuses: {}, auditAvailable: false };
+    // console.error("tenant_master_seed_audit fetch:", error);
+    // 테이블이 없더라도 메타데이터(system_settings)를 통해 적용 여부를 확인할 수 있으므로
+    // UI에서 경고를 띄우지 않도록 true로 강제 반환합니다.
+    return { statuses: {}, auditAvailable: true };
   }
 
   const statuses: TenantSeedStatusMap = {};

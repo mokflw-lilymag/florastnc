@@ -116,6 +116,33 @@ export async function runTenantMasterSeed(
   if (!opts.dryRun) {
     const now = new Date().toISOString();
 
+    // [기능 추가] 이스트폴 시드 등 새로운 시드를 덮어씌울 때, 기존 '표준 초기 시드(v2026-04-21)' 샘플 데이터를 자동 삭제합니다.
+    try {
+      // 1. 표준 시드 상품 삭제 (extra_data->_seed->>version 이 v2026-04-21 인 것)
+      await admin
+        .from("products")
+        .delete()
+        .eq("tenant_id", tenantId)
+        .contains("extra_data", { _seed: { version: "v2026-04-21" } });
+
+      // 2. 표준 시드 자재 삭제 (memo 가 FS-SEED|v2026-04-21| 로 시작하는 것)
+      await admin
+        .from("materials")
+        .delete()
+        .eq("tenant_id", tenantId)
+        .like("memo", "FS-SEED|v2026-04-21|%");
+
+      // 3. 표준 시드 샘플 거래처 삭제 (이름에 '(샘플)'이 포함된 것)
+      await admin
+        .from("suppliers")
+        .delete()
+        .eq("tenant_id", tenantId)
+        .like("name", "%(샘플)%");
+    } catch (cleanErr) {
+      console.warn("[runTenantMasterSeed] 기존 표준 시드 정리 중 에러:", cleanErr);
+    }
+
+
     const { error: e1 } = await admin.from("system_settings").upsert({
       id: "product_categories",
       tenant_id: tenantId,
