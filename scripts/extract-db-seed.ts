@@ -103,7 +103,7 @@ export const TENANT_MASTER_SEED_V2026_05_21_YEOUIDO: TenantMasterSeed = {
   label: "릴리맥여의도점 시트 스냅샷 (상품·자재·거래처)",
   productCategories: ${prodCat ? emitCategoryData(prodCat) : "{\n  main: [],\n  mid: {}\n}"},
   materialCategories: ${matCat ? emitCategoryData(matCat) : "{\n  main: [],\n  mid: {}\n}"},
-  expenseCategories: DEFAULT_EXPENSE_CATEGORIES,
+  expenseCategories: ${expCat ? emitCategoryData(expCat) : "DEFAULT_EXPENSE_CATEGORIES"},
   suppliers: [
 ${suppliersTs}
   ],
