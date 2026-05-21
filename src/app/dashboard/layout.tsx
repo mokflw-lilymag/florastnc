@@ -1,10 +1,9 @@
-﻿import { createClient } from "@/utils/supabase/server";
+import { createClient } from "@/utils/supabase/server";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 
-import { QuickChat } from "@/components/chat/quick-chat";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { AnnualRenewalReminder } from "@/components/layout/annual-renewal-reminder";
 import { effectiveIsSuperAdmin } from "@/lib/auth-api-guards";
@@ -268,7 +267,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
           />
         </>
       }
-      footer={<QuickChat />}
     >
       {children}
     </DashboardShell>
