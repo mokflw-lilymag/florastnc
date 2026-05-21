@@ -152,6 +152,32 @@ export default function AdminManualPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* 고객센터 (카카오채널) 영역 */}
+      <Card className="bg-gradient-to-br from-indigo-50 to-blue-50 border-blue-100 rounded-[2rem] overflow-hidden">
+        <CardHeader className="p-8 pb-4">
+          <div className="flex items-center gap-3 mb-2">
+            <MessageSquare className="w-5 h-5 text-blue-500" />
+            <span className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em]">Contact Support</span>
+          </div>
+          <CardTitle className="text-2xl font-black text-slate-900">도움이 필요하신가요?</CardTitle>
+          <CardDescription className="text-slate-600 font-medium">
+            매뉴얼에 없는 내용이거나 추가 문의사항이 있으시다면 카카오톡 채널로 언제든 문의해주세요.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-8 pt-4">
+          <Button 
+            className="bg-[#FEE500] hover:bg-[#FDD800] text-[#371D1E] font-black border border-yellow-400/50 shadow-sm rounded-xl px-6 py-6 h-auto flex items-center gap-3 transition-transform hover:scale-[1.02]"
+            onClick={() => window.open('https://pf.kakao.com/', '_blank')}
+          >
+            <MessageSquare className="w-5 h-5 fill-[#371D1E]" />
+            <div className="text-left">
+              <div className="text-sm">카카오톡 비즈니스 채널</div>
+              <div className="text-lg">1:1 문의하기</div>
+            </div>
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 }
