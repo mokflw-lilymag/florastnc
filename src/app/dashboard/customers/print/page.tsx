@@ -9,10 +9,14 @@ import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
 import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
 import {
+  applyLineDateOverrides,
   buildDocumentLineItemsFromOrders,
   computeDocumentTotal,
+  decodeLineDateOverrides,
   formatCustomerDocumentDate,
+  parseDocumentDateParam,
 } from "@/lib/customer-document-lines";
+import { signalPrintDocumentReady } from "@/lib/print-routes";
 
 function PrintContent() {
   const searchParams = useSearchParams();
@@ -23,6 +27,10 @@ function PrintContent() {
   const [recipientContact, setRecipientContact] = useState("");
   const [recipientEmail, setRecipientEmail] = useState("");
   const [type, setType] = useState<string | null>("");
+  const [issueDate, setIssueDate] = useState<Date>(new Date());
+  const [periodStart, setPeriodStart] = useState<Date | null>(null);
+  const [periodEnd, setPeriodEnd] = useState<Date | null>(null);
+  const [lineDateOverrides, setLineDateOverrides] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [useVat, setUseVat] = useState(false);
   const locale = usePreferredLocale();
@@ -30,9 +38,13 @@ function PrintContent() {
   const tf = m.tenantFlows;
   const dfLoc = dateFnsLocaleForBase(toBaseLocale(locale));
   const issueDateLabel = useMemo(
-    () => format(new Date(), "PPP", { locale: dfLoc }),
-    [dfLoc]
+    () => format(issueDate, "PPP", { locale: dfLoc }),
+    [issueDate, dfLoc]
   );
+  const periodLabel = useMemo(() => {
+    if (!periodStart || !periodEnd) return "";
+    return `${format(periodStart, "PPP", { locale: dfLoc })} ~ ${format(periodEnd, "PPP", { locale: dfLoc })}`;
+  }, [periodStart, periodEnd, dfLoc]);
 
   const [businessInfo, setBusinessInfo] = useState({
     name: "Floxync Florist Group",
@@ -50,6 +62,10 @@ function PrintContent() {
     const emailParam = searchParams.get("email") || "";
     const typeParam = searchParams.get("type");
     const vatParam = searchParams.get("use_vat") === "true";
+    const issueDateParam = searchParams.get("issue_date");
+    const periodStartParam = searchParams.get("period_start");
+    const periodEndParam = searchParams.get("period_end");
+    const lineDatesParam = searchParams.get("line_dates");
     
     setRecipient(recipientParam);
     setRecipientCompany(companyParam);
@@ -57,28 +73,29 @@ function PrintContent() {
     setRecipientEmail(emailParam);
     setType(typeParam);
     setUseVat(vatParam);
+    setIssueDate(parseDocumentDateParam(issueDateParam) ?? new Date());
+    setPeriodStart(parseDocumentDateParam(periodStartParam));
+    setPeriodEnd(parseDocumentDateParam(periodEndParam));
+    setLineDateOverrides(decodeLineDateOverrides(lineDatesParam));
 
     const init = async () => {
       try {
-        if (manualItemsBase64) {
-             const decoded = JSON.parse(decodeURIComponent(atob(manualItemsBase64)));
-             setItems(decoded.map((item: any) => ({
-                 order_date: new Date().toISOString(),
-                 items: [{ name: item.name, quantity: item.quantity, price: item.price }],
-                 summary: { total: item.quantity * item.price }
-             })));
-        } else if (ids.length > 0) {
-          await fetchOrders(ids);
-        }
-        
-        await fetchBusinessInfo();
+        const tasks: Promise<void>[] = [fetchBusinessInfo()];
 
-        // Auto-trigger print IF NOT in an iframe (direct access)
-        if (window.self === window.top) {
-          setTimeout(() => {
-            window.print();
-          }, 1000);
+        if (manualItemsBase64) {
+          const decoded = JSON.parse(decodeURIComponent(atob(manualItemsBase64)));
+          setItems(
+            decoded.map((item: any) => ({
+              order_date: new Date().toISOString(),
+              items: [{ name: item.name, quantity: item.quantity, price: item.price }],
+              summary: { total: item.quantity * item.price },
+            })),
+          );
+        } else if (ids.length > 0) {
+          tasks.push(fetchOrders(ids, recipientParam));
         }
+
+        await Promise.all(tasks);
       } catch (err) {
         console.error("Print init error:", err);
       } finally {
@@ -88,6 +105,36 @@ function PrintContent() {
 
     init();
   }, [searchParams]);
+
+  useEffect(() => {
+    if (loading) return;
+
+    let cancelled = false;
+
+    const notifyReady = async () => {
+      try {
+        await document.fonts?.ready;
+      } catch {
+        /* ignore */
+      }
+      if (cancelled) return;
+
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (cancelled) return;
+          signalPrintDocumentReady();
+          if (window.self === window.top) {
+            window.print();
+          }
+        });
+      });
+    };
+
+    void notifyReady();
+    return () => {
+      cancelled = true;
+    };
+  }, [loading]);
 
   const fetchBusinessInfo = async () => {
      try {
@@ -101,18 +148,14 @@ function PrintContent() {
          .single();
        
        if (profile?.tenant_id) {
-         // Fetch from tenants for the store name
-         const { data: tenant } = await supabase
-           .from('tenants')
-           .select('name')
-           .eq('id', profile.tenant_id)
-           .single();
-
-         const { data: settings } = await supabase
-           .from('system_settings')
-           .select('data')
-           .eq('id', `settings_${profile.tenant_id}`)
-           .single();
+         const [{ data: tenant }, { data: settings }] = await Promise.all([
+           supabase.from("tenants").select("name").eq("id", profile.tenant_id).single(),
+           supabase
+             .from("system_settings")
+             .select("data")
+             .eq("id", `settings_${profile.tenant_id}`)
+             .single(),
+         ]);
          
          if (settings?.data) {
            const d = settings.data;
@@ -132,7 +175,7 @@ function PrintContent() {
      }
   };
 
-  const fetchOrders = async (ids: string[]) => {
+  const fetchOrders = async (ids: string[], recipientParam: string) => {
     try {
       const { data, error } = await supabase
         .from("orders")
@@ -142,36 +185,46 @@ function PrintContent() {
 
       if (error) throw error;
       setItems(data || []);
-      
-      // If we have orders, try simple logic to get customer info for recipient header if not in params
-      if (data && data[0] && !recipient) {
-         const customerId = data[0].customer_id;
-         if (customerId) {
-            const { data: customer } = await supabase.from('customers').select('*').eq('id', customerId).single();
-            if (customer) {
-               setRecipient(customer.name);
-               setRecipientCompany(customer.company_name || "");
-               setRecipientContact(customer.contact || "");
-               setRecipientEmail(customer.email || "");
-            }
-         }
+
+      if (data?.[0] && !recipientParam) {
+        const orderer = data[0].orderer as { id?: string; name?: string; contact?: string; company?: string; email?: string } | undefined;
+        const customerId = data[0].customer_id || orderer?.id;
+        if (customerId) {
+          const { data: customer } = await supabase.from("customers").select("*").eq("id", customerId).single();
+          if (customer) {
+            setRecipient(customer.name);
+            setRecipientCompany(customer.company_name || "");
+            setRecipientContact(customer.contact || "");
+            setRecipientEmail(customer.email || "");
+          }
+        } else if (orderer?.name) {
+          setRecipient(orderer.name);
+          setRecipientCompany(orderer.company || "");
+          setRecipientContact(orderer.contact || "");
+          setRecipientEmail(orderer.email || "");
+        }
       }
     } catch (err) {
       console.error("Error fetching print data:", err);
     }
   };
 
-  if (loading) return <div className="p-10 text-center">{tf.f00513}</div>;
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-white text-sm text-slate-500">
+        {tf.f00513}
+      </div>
+    );
+  }
 
   const documentType = (type === "statement" || type === "receipt" || type === "estimate"
     ? type
     : "statement") as "statement" | "receipt" | "estimate";
   const documentLabels = { deliveryFee: tf.f00259, discount: tf.f00759 };
   const baseLocale = toBaseLocale(locale);
-  const flattenedItems = buildDocumentLineItemsFromOrders(
-    items,
-    documentType,
-    documentLabels
+  const flattenedItems = applyLineDateOverrides(
+    buildDocumentLineItemsFromOrders(items, documentType, documentLabels),
+    lineDateOverrides
   );
 
   const subtotal = computeDocumentTotal(items, documentType, flattenedItems);
@@ -179,7 +232,63 @@ function PrintContent() {
   const totalAmount = subtotal + vat;
 
   return (
-    <div className="p-8 max-w-[800px] mx-auto bg-white text-slate-900 font-sans">
+    <>
+      <style jsx global>{`
+        html,
+        body {
+          margin: 0;
+          padding: 0;
+          background: #fff;
+        }
+        @media print {
+          @page {
+            size: A4;
+            margin: 12mm;
+          }
+          html,
+          body {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #fff !important;
+          }
+          header,
+          aside,
+          nav,
+          footer,
+          [role="complementary"],
+          [role="navigation"],
+          .sidebar,
+          .app-header,
+          .quick-chat-container {
+            display: none !important;
+          }
+          body * {
+            visibility: hidden;
+          }
+          #print-document-root,
+          #print-document-root * {
+            visibility: visible;
+          }
+          #print-document-root {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            min-height: auto !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            box-shadow: none !important;
+          }
+          * {
+            transition: none !important;
+            box-shadow: none !important;
+          }
+        }
+      `}</style>
+      <div
+        id="print-document-root"
+        className="mx-auto min-h-screen max-w-[800px] bg-white p-8 text-slate-900 font-sans print:min-h-0 print:max-w-none print:p-0"
+      >
       <div className="flex justify-between items-start border-b-2 border-slate-900 pb-4 mb-8">
         <div>
           <h1 className="text-3xl font-black tracking-tighter mb-1">
@@ -224,8 +333,6 @@ function PrintContent() {
               : type === 'receipt'
                 ? tf.f02637
                 : tf.f00428}
-            <br />
-            {tf.f00766}
           </p>
         </div>
         
@@ -254,6 +361,13 @@ function PrintContent() {
            </div>
         </div>
       </div>
+
+      {type === "statement" && periodLabel && (
+        <div className="mb-8 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+          <p className="text-[10px] font-black uppercase text-slate-400">{tf.f02657}</p>
+          <p className="text-sm font-bold text-slate-800 mt-1">{periodLabel}</p>
+        </div>
+      )}
 
       <table className="w-full border-collapse mb-8">
         <thead>
@@ -304,18 +418,8 @@ function PrintContent() {
         </tfoot>
       </table>
 
-      <div className="border-t pt-4 italic">
-        {/* Footnotes removed as requested */}
       </div>
-
-      <style jsx global>{`
-        @media print {
-          body { padding: 0; margin: 0; }
-          .no-print { display: none; }
-          @page { size: auto; margin: 15mm; }
-        }
-      `}</style>
-    </div>
+    </>
   );
 }
 

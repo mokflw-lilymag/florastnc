@@ -1,48 +1,62 @@
+import { PRINT_DOCUMENT_READY_MESSAGE } from "@/lib/print-routes";
+
 /**
- * Prints a document by loading its URL into a hidden iframe and calling window.print()
- * This prevents opening a new browser tab/window for the user to manually close.
+ * hidden iframe으로 인쇄 URL을 불러온 뒤, 페이지가 준비되면 print() 호출
  */
 export function printDocument(url: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    // 1. Create a hidden iframe
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'absolute';
-    iframe.style.width = '0px';
-    iframe.style.height = '0px';
-    iframe.style.border = 'none';
-    iframe.style.visibility = 'hidden';
-    
-    // 2. Add iframe to the body
+    const iframe = document.createElement("iframe");
+    iframe.style.position = "fixed";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "none";
+    iframe.style.visibility = "hidden";
+    iframe.setAttribute("aria-hidden", "true");
+
+    let settled = false;
+
+    const cleanup = () => {
+      window.removeEventListener("message", onMessage);
+      clearTimeout(fallbackTimer);
+      if (iframe.parentNode) {
+        document.body.removeChild(iframe);
+      }
+    };
+
+    const finish = (action: "resolve" | "reject", err?: unknown) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      if (action === "resolve") resolve();
+      else reject(err ?? new Error("print_failed"));
+    };
+
+    const triggerPrint = () => {
+      try {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+        finish("resolve");
+      } catch (err) {
+        finish("reject", err);
+      }
+    };
+
+    const onMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      if (event.source !== iframe.contentWindow) return;
+      if (event.data?.type !== PRINT_DOCUMENT_READY_MESSAGE) return;
+      requestAnimationFrame(triggerPrint);
+    };
+
+    window.addEventListener("message", onMessage);
+
+    const fallbackTimer = setTimeout(() => {
+      triggerPrint();
+    }, 4000);
+
+    iframe.onerror = () => finish("reject", new Error("iframe_load_error"));
+
     document.body.appendChild(iframe);
-    
-    // 3. Set the src to the document URL
     iframe.src = url;
-    
-    // 4. Handle loading
-    iframe.onload = () => {
-      // 5. Short delay to ensure rendering is complete
-      setTimeout(() => {
-        try {
-          if (iframe.contentWindow) {
-            iframe.contentWindow.focus();
-            iframe.contentWindow.print();
-            
-            // 6. Cleanup after the print dialog is handled (user prints or cancels)
-            // Note: In most browsers, print() is blocking
-            document.body.removeChild(iframe);
-            resolve();
-          } else {
-            reject(new Error("Could not access iframe content window"));
-          }
-        } catch (err) {
-          reject(err);
-        }
-      }, 1500);
-    };
-    
-    iframe.onerror = (err) => {
-      document.body.removeChild(iframe);
-      reject(err);
-    };
   });
 }

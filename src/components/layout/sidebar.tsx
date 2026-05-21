@@ -20,6 +20,7 @@ import {
   Key,
   BookOpen,
   Smartphone,
+  TrendingUp,
 } from "lucide-react";
 import Image from "next/image";
 import { createClient } from "@/utils/supabase/client";
@@ -182,9 +183,11 @@ export function Sidebar({
       id: "admin-global",
       label: "🌏 글로벌 관리",
       links: [
+        { name: "매출 엔진 Overview", href: "/dashboard/admin/revenue", icon: TrendingUp },
         { name: "연동 수요 분석", href: "/dashboard/admin/regional-demand", icon: BarChart3 },
         { name: "국가별 API 키", href: "/dashboard/admin/regional-keys", icon: Key },
         { name: "API 키 발급 가이드", href: "/dashboard/admin/regional-keys/guide", icon: BookOpen },
+        { name: "통합 운영 매뉴얼", href: "/dashboard/admin/manual/guide", icon: BookOpen },
         { name: "테넌트 현황", href: "/dashboard/admin/tenants", icon: Globe },
         { name: "구독/결제", href: "/dashboard/admin/billing", icon: CreditCard },
         { name: "번역 관리", href: "/dashboard/admin/translations", icon: Languages },
@@ -280,7 +283,10 @@ export function Sidebar({
     {
       id: "tenant-growth",
       label: t.sidebar.groups.tenantGrowth,
-      links: [{ name: t.sidebar.links.marketing, href: "/dashboard/marketing", icon: Sparkles, tier: ["pro", "erp_only"] }],
+      links: [
+        { name: t.sidebar.links.marketing, href: "/dashboard/marketing", icon: Sparkles, tier: ["pro", "erp_only"] },
+        { name: pickUiText(toBaseLocale(locale), "매출 캘린더", "Revenue"), href: "/dashboard/revenue", icon: TrendingUp, tier: ["pro", "erp_only"] },
+      ],
     },
     {
       id: "tenant-store",

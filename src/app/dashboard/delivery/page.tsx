@@ -130,6 +130,13 @@ export default function DeliveryManagementPage() {
     try {
       await updateOrder(orderId, { status });
       toast.success(status === "completed" ? tf.f00804 : tf.f00805);
+      if (status === "completed") {
+        fetch("/api/revenue/order-followup/trigger", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderId }),
+        }).catch(() => {});
+      }
     } catch (error) {
        toast.error(tf.f00323);
     }

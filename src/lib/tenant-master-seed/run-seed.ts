@@ -261,6 +261,18 @@ export async function runTenantMasterSeed(
       });
       if (genUpErr) throw genUpErr;
     }
+
+    const { error: metaErr } = await admin.from("system_settings").upsert({
+      id: "tenant_master_seed_meta",
+      tenant_id: tenantId,
+      data: {
+        version: seed.version,
+        label: seed.label,
+        appliedAt: now,
+      },
+      updated_at: now,
+    });
+    if (metaErr) throw metaErr;
   }
 
   let auditId: string | null = null;
@@ -285,7 +297,14 @@ export async function runTenantMasterSeed(
       })
       .select("id")
       .single();
-    if (!auditErr && auditRow?.id) auditId = auditRow.id;
+    if (auditErr) {
+      console.error("tenant_master_seed_audit insert failed:", auditErr);
+      warnings.push(
+        "시드 적용 이력(audit) 저장에 실패했습니다. Supabase에서 tenant_master_seed_audit 테이블을 생성했는지 확인하세요."
+      );
+    } else if (auditRow?.id) {
+      auditId = auditRow.id;
+    }
   }
 
   return {

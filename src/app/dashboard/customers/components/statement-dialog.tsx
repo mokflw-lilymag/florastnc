@@ -39,11 +39,16 @@ import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
 import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
 import {
+  applyLineDateOverrides,
   buildDocumentLineItemsFromOrders,
+  buildLineDateOverrideMap,
   computeDocumentTotal,
+  encodeLineDateOverrides,
   formatCustomerDocumentDate,
+  formatDocumentDateParam,
   isExcludedOrderForDocument,
   orderBelongsToCustomer,
+  parseDocumentDateParam,
 } from "@/lib/customer-document-lines";
 
 interface StatementDialogProps {
@@ -60,6 +65,10 @@ export function StatementDialog({ customer, isOpen, onOpenChange, type }: Statem
     new Date(new Date().getFullYear(), new Date().getMonth(), 1)
   );
   const [endDate, setEndDate] = useState<Date | undefined>(new Date());
+  const [issueDate, setIssueDate] = useState<Date>(new Date());
+  const [documentPeriodStart, setDocumentPeriodStart] = useState<Date | undefined>();
+  const [documentPeriodEnd, setDocumentPeriodEnd] = useState<Date | undefined>();
+  const [lineItemDates, setLineItemDates] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [orders, setOrders] = useState<any[]>([]);
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
@@ -74,9 +83,13 @@ export function StatementDialog({ customer, isOpen, onOpenChange, type }: Statem
   const tf = m.tenantFlows;
   const dfLoc = dateFnsLocaleForBase(toBaseLocale(locale));
   const issueDateLabel = useMemo(
-    () => format(new Date(), "PPP", { locale: dfLoc }),
-    [dfLoc]
+    () => format(issueDate, "PPP", { locale: dfLoc }),
+    [issueDate, dfLoc]
   );
+  const documentPeriodLabel = useMemo(() => {
+    if (!documentPeriodStart || !documentPeriodEnd) return "";
+    return `${format(documentPeriodStart, "PPP", { locale: dfLoc })} ~ ${format(documentPeriodEnd, "PPP", { locale: dfLoc })}`;
+  }, [documentPeriodStart, documentPeriodEnd, dfLoc]);
 
   const [businessInfo, setBusinessInfo] = useState({
     name: "Floxync Florist Group",
@@ -88,6 +101,7 @@ export function StatementDialog({ customer, isOpen, onOpenChange, type }: Statem
   useEffect(() => {
     if (isOpen && customer) {
       if (viewMode === 'edit') {
+        setIssueDate(new Date());
         setRecipientName(customer.name || "");
         setRecipientCompany(customer.company_name || "");
         setRecipientContact(customer.contact || "");
@@ -205,51 +219,96 @@ export function StatementDialog({ customer, isOpen, onOpenChange, type }: Statem
     );
   };
 
-   const handlePrint = async () => {
+  const handleGoPreview = () => {
     if (selectedOrderIds.length === 0) return;
 
-    // Save to document_logs
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user?.id).single();
-      
-      if (profile?.tenant_id) {
-        const selectedOrders = orders.filter((o) => selectedOrderIds.includes(o.id));
-        const totalAmount = selectedOrders.reduce(
-          (sum, o) => sum + (o.summary?.total ?? 0),
-          0
-        );
-
-        await supabase.from('document_logs').insert({
-          tenant_id: profile.tenant_id,
-          type: type,
-          recipient_info: {
-            name: recipientName,
-            company: recipientCompany,
-            contact: recipientContact,
-            email: recipientEmail
-          },
-          items: selectedOrders.map((o) => ({
-            id: o.id,
-            name: (o.items || []).map((item: { name: string }) => item.name).join(", "),
-            price: o.summary?.total ?? 0,
-            date: o.order_date
-          })),
-          total_amount: totalAmount
-        });
-      }
-    } catch (err) {
-      console.error("Error saving document log:", err);
+    const selected = orders.filter((order) => selectedOrderIds.includes(order.id));
+    if (type === "statement" && selected.length > 0) {
+      const timestamps = selected.map((order) => new Date(order.order_date).getTime());
+      setDocumentPeriodStart(new Date(Math.min(...timestamps)));
+      setDocumentPeriodEnd(new Date(Math.max(...timestamps)));
+    } else if (type === "statement") {
+      setDocumentPeriodStart(startDate);
+      setDocumentPeriodEnd(endDate);
     }
-    
+
+    const lines = buildDocumentLineItemsFromOrders(
+      selected,
+      type,
+      { deliveryFee: tf.f00259, discount: tf.f00759 }
+    );
+    setLineItemDates(buildLineDateOverrideMap(lines));
+
+    setViewMode("preview");
+  };
+
+  const handleLineItemDateChange = (lineKey: string, date: Date | undefined) => {
+    if (!date) return;
+    setLineItemDates((prev) => ({
+      ...prev,
+      [lineKey]: formatDocumentDateParam(date),
+    }));
+  };
+
+   const handlePrint = () => {
+    if (selectedOrderIds.length === 0) return;
+
+    const selectedOrders = orders.filter((o) => selectedOrderIds.includes(o.id));
+    const totalAmount = selectedOrders.reduce(
+      (sum, o) => sum + (o.summary?.total ?? 0),
+      0
+    );
+
+    void (async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user?.id).single();
+
+        if (profile?.tenant_id) {
+          await supabase.from('document_logs').insert({
+            tenant_id: profile.tenant_id,
+            type: type,
+            recipient_info: {
+              name: recipientName,
+              company: recipientCompany,
+              contact: recipientContact,
+              email: recipientEmail
+            },
+            items: selectedOrders.map((o) => ({
+              id: o.id,
+              name: (o.items || []).map((item: { name: string }) => item.name).join(", "),
+              price: o.summary?.total ?? 0,
+              date:
+                lineItemDates[o.id] ??
+                lineItemDates[o.order_number] ??
+                o.order_date,
+            })),
+            total_amount: totalAmount
+          });
+        }
+      } catch (err) {
+        console.error("Error saving document log:", err);
+      }
+    })();
+
     const params = new URLSearchParams({
       ids: selectedOrderIds.join(','),
       recipient: recipientName,
       company: recipientCompany,
       contact: recipientContact,
       email: recipientEmail,
-      type: type
+      type: type,
+      issue_date: formatDocumentDateParam(issueDate),
     });
+
+    if (type === "statement" && documentPeriodStart && documentPeriodEnd) {
+      params.set("period_start", formatDocumentDateParam(documentPeriodStart));
+      params.set("period_end", formatDocumentDateParam(documentPeriodEnd));
+    }
+
+    if (Object.keys(lineItemDates).length > 0) {
+      params.set("line_dates", encodeLineDateOverrides(lineItemDates));
+    }
     
     toast.promise(printDocument(`/dashboard/customers/print?${params.toString()}`), {
       loading: tf.f00353,
@@ -263,10 +322,9 @@ export function StatementDialog({ customer, isOpen, onOpenChange, type }: Statem
   const selectedOrdersData = orders.filter((order) => selectedOrderIds.includes(order.id));
   const baseLocale = toBaseLocale(locale);
   const documentLabels = { deliveryFee: tf.f00259, discount: tf.f00759 };
-  const previewLineItems = buildDocumentLineItemsFromOrders(
-    selectedOrdersData,
-    type,
-    documentLabels
+  const previewLineItems = applyLineDateOverrides(
+    buildDocumentLineItemsFromOrders(selectedOrdersData, type, documentLabels),
+    lineItemDates
   );
   const subtotal = computeDocumentTotal(selectedOrdersData, type, previewLineItems);
 
@@ -346,7 +404,7 @@ export function StatementDialog({ customer, isOpen, onOpenChange, type }: Statem
               </div>
 
               {/* Filters */}
-              <div className="grid grid-cols-2 gap-4 bg-slate-50 p-6 rounded-2xl border border-slate-200">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-50 p-6 rounded-2xl border border-slate-200">
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black text-slate-400 tracking-widest uppercase">{tf.f02642}</Label>
                   <Popover>
@@ -372,6 +430,20 @@ export function StatementDialog({ customer, isOpen, onOpenChange, type }: Statem
                     )} />
                     <PopoverContent className="w-auto p-0 border-none shadow-xl" align="start">
                       <Calendar mode="single" selected={endDate} onSelect={setEndDate} initialFocus locale={dfLoc} />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black text-slate-400 tracking-widest uppercase">{tf.f02621}</Label>
+                  <Popover>
+                    <PopoverTrigger render={(props) => (
+                      <Button {...props} variant="outline" className="w-full justify-start text-left font-bold border-slate-200 h-11 rounded-xl bg-white">
+                        <CalendarIcon className="mr-2 h-4 w-4 text-slate-400" />
+                        {issueDateLabel}
+                      </Button>
+                    )} />
+                    <PopoverContent className="w-auto p-0 border-none shadow-xl" align="start">
+                      <Calendar mode="single" selected={issueDate} onSelect={(date) => date && setIssueDate(date)} initialFocus locale={dfLoc} />
                     </PopoverContent>
                   </Popover>
                 </div>
@@ -444,9 +516,77 @@ export function StatementDialog({ customer, isOpen, onOpenChange, type }: Statem
                      <h1 className="text-3xl font-black tracking-tighter">{typeTitle}</h1>
                      <div className="text-right">
                         <p className="text-[10px] font-bold text-slate-400">{tf.f02621}</p>
-                        <p className="text-sm font-black">{issueDateLabel}</p>
+                        <Popover>
+                          <PopoverTrigger render={(props) => (
+                            <button
+                              {...props}
+                              type="button"
+                              className="text-sm font-black hover:text-blue-600 transition-colors underline-offset-4 hover:underline"
+                            >
+                              {issueDateLabel}
+                            </button>
+                          )} />
+                          <PopoverContent className="w-auto p-0 border-none shadow-xl" align="end">
+                            <Calendar
+                              mode="single"
+                              selected={issueDate}
+                              onSelect={(date) => date && setIssueDate(date)}
+                              initialFocus
+                              locale={dfLoc}
+                            />
+                          </PopoverContent>
+                        </Popover>
                      </div>
                   </div>
+
+                  {type === "statement" && (
+                    <div className="mb-8 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase mb-3">{tf.f02657}</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <Popover>
+                          <PopoverTrigger render={(props) => (
+                            <Button {...props} variant="outline" className="w-full justify-start text-left font-bold border-slate-200 h-10 rounded-lg bg-white">
+                              <CalendarIcon className="mr-2 h-4 w-4 text-slate-400" />
+                              {documentPeriodStart
+                                ? format(documentPeriodStart, "PPP", { locale: dfLoc })
+                                : tf.f02644}
+                            </Button>
+                          )} />
+                          <PopoverContent className="w-auto p-0 border-none shadow-xl" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={documentPeriodStart}
+                              onSelect={setDocumentPeriodStart}
+                              initialFocus
+                              locale={dfLoc}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <Popover>
+                          <PopoverTrigger render={(props) => (
+                            <Button {...props} variant="outline" className="w-full justify-start text-left font-bold border-slate-200 h-10 rounded-lg bg-white">
+                              <CalendarIcon className="mr-2 h-4 w-4 text-slate-400" />
+                              {documentPeriodEnd
+                                ? format(documentPeriodEnd, "PPP", { locale: dfLoc })
+                                : tf.f02644}
+                            </Button>
+                          )} />
+                          <PopoverContent className="w-auto p-0 border-none shadow-xl" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={documentPeriodEnd}
+                              onSelect={setDocumentPeriodEnd}
+                              initialFocus
+                              locale={dfLoc}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                      {documentPeriodLabel && (
+                        <p className="text-[11px] text-slate-500 font-medium mt-3">{documentPeriodLabel}</p>
+                      )}
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-2 gap-8 mb-10">
                      <div className="space-y-4">
@@ -504,17 +644,39 @@ export function StatementDialog({ customer, isOpen, onOpenChange, type }: Statem
                            </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 border-b border-slate-200">
-                           {previewLineItems.map((item, idx) => (
-                              <tr key={idx} className="text-[11px] font-medium border-b border-slate-50">
+                           {previewLineItems.map((item) => {
+                              const lineDate =
+                                parseDocumentDateParam(item.date) ?? new Date(item.date);
+                              return (
+                              <tr key={item.lineKey} className="text-[11px] font-medium border-b border-slate-50">
                                  <td className="p-3 pl-4 text-slate-400 font-bold whitespace-nowrap">
-                                   {formatCustomerDocumentDate(item.date, baseLocale)}
+                                   <Popover>
+                                     <PopoverTrigger render={(props) => (
+                                       <button
+                                         {...props}
+                                         type="button"
+                                         className="hover:text-blue-600 transition-colors underline-offset-2 hover:underline text-left"
+                                       >
+                                         {formatCustomerDocumentDate(item.date, baseLocale)}
+                                       </button>
+                                     )} />
+                                     <PopoverContent className="w-auto p-0 border-none shadow-xl" align="start">
+                                       <Calendar
+                                         mode="single"
+                                         selected={lineDate}
+                                         onSelect={(date) => handleLineItemDateChange(item.lineKey, date)}
+                                         initialFocus
+                                         locale={dfLoc}
+                                       />
+                                     </PopoverContent>
+                                   </Popover>
                                  </td>
                                  <td className="p-3 font-bold">{item.name}</td>
                                  <td className="p-3 text-center">{item.quantity}</td>
                                  <td className="p-3 text-right">₩{item.price.toLocaleString()}</td>
                                  <td className="p-3 text-right pr-4 font-black">₩{item.amount.toLocaleString()}</td>
                               </tr>
-                           ))}
+                           )})}
                         </tbody>
                         <tfoot>
                            <tr className="bg-slate-100">
@@ -547,7 +709,7 @@ export function StatementDialog({ customer, isOpen, onOpenChange, type }: Statem
               <Button 
                 className={cn("px-10 font-black shadow-lg gap-2 h-11", themeColor, type === 'statement' ? 'shadow-blue-200' : 'shadow-emerald-200')}
                 disabled={selectedOrderIds.length === 0}
-                onClick={() => setViewMode('preview')}
+                onClick={handleGoPreview}
               >
                 {tf.f02648}
                 <ChevronRight size={16} className="ml-1 opacity-50" />

@@ -2,6 +2,7 @@
 import { getMessages } from "@/i18n/getMessages";
 
 import { useState, useEffect, useRef, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import { loadTossPayments } from "@tosspayments/payment-sdk";
 import { 
   Zap, 
@@ -116,6 +117,9 @@ const PLANS_BASE = [
 export default function SubscriptionPage() {
   const supabase = createClient();
   const { tenantId } = useAuth();
+  const searchParams = useSearchParams();
+  const highlightRevenue = searchParams.get("highlight") === "revenue";
+  const proPlanRef = useRef<HTMLDivElement>(null);
   const [tenantData, setTenantData] = useState<any>(null);
   const [usageData, setUsageData] = useState<any>(null);
   const [selectedPeriod, setSelectedPeriod] = useState<Period>("12m");
@@ -259,6 +263,14 @@ export default function SubscriptionPage() {
     }
     loadTenant();
   }, [tenantId, supabase]);
+
+  useEffect(() => {
+    if (!highlightRevenue) return;
+    const t = window.setTimeout(() => {
+      proPlanRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 400);
+    return () => window.clearTimeout(t);
+  }, [highlightRevenue, localizedPlans.length]);
 
   const handleSubscribe = async (planId: PlanId, period: Period) => {
     if (!tenantId) {
@@ -454,11 +466,23 @@ export default function SubscriptionPage() {
           </div>
         </div>
 
+        {highlightRevenue && (
+          <div className="mb-8 rounded-2xl border border-indigo-400/30 bg-indigo-500/10 px-6 py-4 text-center">
+            <p className="text-sm font-bold text-indigo-200">
+              {pickUiText(
+                baseLocale,
+                "매출 엔진(SNS Auto-Pilot · 재고 플래시 · A/B · SEO)은 FLORA PRO에서 이용할 수 있습니다.",
+                "Revenue engine features (SNS Auto-Pilot, flash sales, A/B, SEO) are included in FLORA PRO.",
+              )}
+            </p>
+          </div>
+        )}
+
         {/* Pricing Cards with 3D Interaction */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch mb-40">
            {localizedPlans.map((plan, i) => (
+             <div key={plan.id} ref={plan.id === "pro" ? proPlanRef : undefined} className="h-full">
              <TiltCard 
-               key={plan.id} 
                plan={plan} 
                period={selectedPeriod} 
                onSubscribe={handleSubscribe}
@@ -468,7 +492,9 @@ export default function SubscriptionPage() {
                tf={tf}
                perMonthLabel={perMonthLabel}
                currencyPrefix={plan.pricing[selectedPeriod]?.currencyPrefix ?? "₩"}
+               highlightRevenue={highlightRevenue && plan.id === "pro"}
              />
+             </div>
            ))}
         </div>
 
@@ -563,6 +589,7 @@ function TiltCard({
   tf,
   perMonthLabel,
   currencyPrefix,
+  highlightRevenue,
 }: {
   plan: any;
   period: Period;
@@ -573,6 +600,7 @@ function TiltCard({
   index: number;
   tf: Record<string, string>;
   perMonthLabel: string;
+  highlightRevenue?: boolean;
 }) {
   const x = useMotionValue(0);
   const y = useMotionValue(0);
@@ -610,7 +638,8 @@ function TiltCard({
     >
        <Card className={cn(
          "h-full relative overflow-hidden bg-white/5 backdrop-blur-3xl border-white/10 rounded-[48px] shadow-2xl transition-all duration-700 group-hover:bg-white/10",
-         plan.popular && "ring-2 ring-indigo-500/50"
+         plan.popular && "ring-2 ring-indigo-500/50",
+         highlightRevenue && "ring-4 ring-emerald-400/60 shadow-emerald-500/20"
        )}>
           {plan.popular && (
             <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-indigo-500 to-transparent" />

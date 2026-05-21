@@ -19,16 +19,19 @@ import { getPartnerOrdersEnabled } from "@/lib/platform-config-server";
 import { PartnerOrdersFeatureProvider } from "@/components/providers/partner-orders-feature-provider";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  const partnerOrdersEnabled = await getPartnerOrdersEnabled();
   const cookieStore = await cookies();
+  const supabase = await createClient();
+  const [{ data: { user } }, partnerOrdersEnabled] = await Promise.all([
+    supabase.auth.getUser(),
+    getPartnerOrdersEnabled(),
+  ]);
   const isGuestBrowse = isGuestBrowseCookieValue(
     cookieStore.get(GUEST_BROWSE_COOKIE)?.value,
   );
 
   if (!user && !isGuestBrowse) {
-    redirect("/login");
+    const locale = resolveLocale(cookieStore.get(LOCALE_COOKIE)?.value);
+    redirect(`/${locale}/login`);
   }
 
   if (!user && isGuestBrowse) {
@@ -96,31 +99,30 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
 
   if (!user) {
-    redirect("/login");
+    const locale = resolveLocale(cookieStore.get(LOCALE_COOKIE)?.value);
+    redirect(`/${locale}/login`);
   }
 
   // 프로필과 tenants 는 분리 조회 (profiles → tenants FK가 tenant_id·org_work_tenant_id 두 개라 임베드 시 PGRST201 발생 가능)
-  const { data: profile, error } = await supabase
-    .from("profiles")
-    .select("role, tenant_id, org_work_tenant_id")
-    .eq("id", user.id)
-    .maybeSingle();
+  const [{ data: profile, error: profileError }, { count: orgMembershipCount, error: orgMemberError }] =
+    await Promise.all([
+      supabase
+        .from("profiles")
+        .select("role, tenant_id, org_work_tenant_id")
+        .eq("id", user.id)
+        .maybeSingle(),
+      supabase
+        .from("organization_members")
+        .select("organization_id", { count: "exact", head: true })
+        .eq("user_id", user.id),
+    ]);
 
-  if (error) {
-    console.error("DashboardLayout: Error fetching profile:", error);
+  if (profileError) {
+    console.error("DashboardLayout: Error fetching profile:", profileError);
   }
 
   const isSuperAdmin = effectiveIsSuperAdmin(profile, user.email ?? undefined);
-
-  let isOrgUser = false;
-  const { count: orgMembershipCount, error: orgMemberError } = await supabase
-    .from("organization_members")
-    .select("organization_id", { count: "exact", head: true })
-    .eq("user_id", user.id);
-
-  if (!orgMemberError) {
-    isOrgUser = (orgMembershipCount ?? 0) > 0;
-  }
+  const isOrgUser = !orgMemberError && (orgMembershipCount ?? 0) > 0;
   const isOrgOnly = isOrgUser && !profile?.tenant_id;
   const hasOrgWorkContext = !!profile?.org_work_tenant_id;
   /** 본사 계정이 지점 업무 모드가 아닐 때만 사이드바를 HQ 전용으로 제한 */
@@ -159,24 +161,29 @@ export default async function DashboardLayout({ children }: { children: React.Re
     status?: string | null;
   };
 
-  let homeTenantData: TenantRow | null = null;
-  if (profile?.tenant_id) {
-    const { data: ht } = await supabase
-      .from("tenants")
-      .select("plan, logo_url, name, subscription_end, subscription_start, status")
-      .eq("id", profile.tenant_id)
-      .maybeSingle();
-    homeTenantData = (ht as TenantRow | null) ?? null;
-  }
+  const tenantSelect =
+    "plan, logo_url, name, subscription_end, subscription_start, status" as const;
+  const tenantIds = [
+    profile?.tenant_id,
+    hasOrgWorkContext ? profile?.org_work_tenant_id : null,
+  ].filter((id): id is string => Boolean(id));
+  const uniqueTenantIds = [...new Set(tenantIds)];
 
+  const tenantRows = await Promise.all(
+    uniqueTenantIds.map((id) =>
+      supabase.from("tenants").select(tenantSelect).eq("id", id).maybeSingle()
+    )
+  );
+  const tenantById = new Map<string, TenantRow>();
+  uniqueTenantIds.forEach((id, i) => {
+    const row = tenantRows[i]?.data as TenantRow | null;
+    if (row) tenantById.set(id, row);
+  });
+
+  const homeTenantData = profile?.tenant_id ? tenantById.get(profile.tenant_id) ?? null : null;
   let tenantData: TenantRow | null = homeTenantData;
   if (hasOrgWorkContext && profile?.org_work_tenant_id) {
-    const { data: workTenant } = await supabase
-      .from("tenants")
-      .select("plan, logo_url, name, subscription_end, subscription_start, status")
-      .eq("id", profile.org_work_tenant_id)
-      .maybeSingle();
-    if (workTenant) tenantData = workTenant as TenantRow;
+    tenantData = tenantById.get(profile.org_work_tenant_id) ?? tenantData;
   }
 
   if (!isSuperAdmin && !profile?.tenant_id && !isOrgUser) {

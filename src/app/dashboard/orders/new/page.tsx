@@ -30,6 +30,14 @@ import { FulfillmentSection } from "./components/FulfillmentSection";
 import { OrderSummarySide } from "./components/OrderSummarySide";
 import { AiOrderConcierge } from "./components/AiOrderConcierge";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import {
+  postOrderAnniversary,
+  resolveAnniversaryDateFromSchedule,
+} from "@/lib/revenue/order-anniversary-register";
+import {
+  findCustomerByContact,
+  orderFormChecksForExistingCustomer,
+} from "@/lib/customers/order-customer-form";
 
 interface OrderItem {
   id: string;
@@ -53,9 +61,9 @@ declare global {
 
 export default function NewOrderPage() {
   const { profile, tenantId, isLoading: authLoading } = useAuth();
-  const { products: allProducts, loading: productsLoading, fetchProducts } = useProducts();
+  const { products: allProducts, loading: productsLoading, fetchProducts } = useProducts(true, true);
   const { orders, loading: ordersLoading, addOrder, updateOrder } = useOrders();
-  const { customers, addCustomer } = useCustomers();
+  const { customers, addCustomer, updateCustomer } = useCustomers();
   const { fees: regionFees } = useDeliveryFees();
   const { settings } = useSettings();
   const locale = usePreferredLocale();
@@ -110,19 +118,30 @@ export default function NewOrderPage() {
   const [ordererContact, setOrdererContact] = useState("");
   const [ordererCompany, setOrdererCompany] = useState("");
   const [ordererEmail, setOrdererEmail] = useState("");
-  const [registerCustomer, setRegisterCustomer] = useState(false);
+  const [registerCustomer, setRegisterCustomer] = useState(true);
+  const [marketingConsent, setMarketingConsent] = useState(true);
+  const [registerAnniversaryFromOrder, setRegisterAnniversaryFromOrder] = useState(false);
   const lastHasInfoRef = useRef(false);
+  const [customerSearchQuery, setCustomerSearchQuery] = useState("");
+  const [customerSearchResults, setCustomerSearchResults] = useState<Customer[]>([]);
+  const [customerSearchLoading, setCustomerSearchLoading] = useState(false);
+  const [isCustomerSearchOpen, setIsCustomerSearchOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
 
   useEffect(() => {
     const customerId = searchParams.get('customerId');
     if (customerId && customers.length > 0) {
       const customer = customers.find(c => String(c.id) === customerId);
       if (customer) {
+        setSelectedCustomer(customer);
         setOrdererName(customer.name);
         setOrdererContact(customer.contact || "");
         setOrdererCompany(customer.company_name || "");
         setOrdererEmail(customer.email || "");
-        setRegisterCustomer(false);
+        const checks = orderFormChecksForExistingCustomer();
+        setRegisterCustomer(checks.registerCustomer);
+        setMarketingConsent(checks.marketingConsent);
+        setRegisterAnniversaryFromOrder(checks.registerAnniversaryFromOrder);
         lastHasInfoRef.current = true;
       }
     }
@@ -133,20 +152,37 @@ export default function NewOrderPage() {
                     (ordererContact || "").trim() !== "" || 
                     (ordererCompany || "").trim() !== "";
     
+    if (selectedCustomer) {
+      lastHasInfoRef.current = hasInfo;
+      return;
+    }
+
     if (hasInfo && !lastHasInfoRef.current) {
       setRegisterCustomer(true);
     } else if (!hasInfo && lastHasInfoRef.current) {
       setRegisterCustomer(false);
     }
     lastHasInfoRef.current = hasInfo;
-  }, [ordererName, ordererContact, ordererCompany]);
+  }, [ordererName, ordererContact, ordererCompany, selectedCustomer]);
 
-  // Search
-  const [customerSearchQuery, setCustomerSearchQuery] = useState("");
-  const [customerSearchResults, setCustomerSearchResults] = useState<Customer[]>([]);
-  const [customerSearchLoading, setCustomerSearchLoading] = useState(false);
-  const [isCustomerSearchOpen, setIsCustomerSearchOpen] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  useEffect(() => {
+    if (isAnonymous) {
+      setMarketingConsent(false);
+      setRegisterAnniversaryFromOrder(false);
+      setRegisterCustomer(false);
+    }
+  }, [isAnonymous]);
+
+  useEffect(() => {
+    if (!marketingConsent) setRegisterAnniversaryFromOrder(false);
+  }, [marketingConsent]);
+
+  const hasOrdererIdentity = useMemo(
+    () =>
+      !!selectedCustomer?.id ||
+      ((ordererName || "").trim() !== "" && (ordererContact || "").trim() !== ""),
+    [selectedCustomer, ordererName, ordererContact],
+  );
 
   // Fulfillment
   const [receipt_type, setReceiptType] = useState<ReceiptType>("store_pickup");
@@ -416,23 +452,37 @@ export default function NewOrderPage() {
 
     let finalCustomerId = selectedCustomer?.id || "";
 
-    // 고객 정보 자동 등록
+    // 고객 정보 자동 등록 (연락처 중복 시 기존 고객 연결)
     if (registerCustomer && !finalCustomerId) {
-      try {
-        const newCustomerId = await addCustomer({
-          name: ordererName,
-          contact: ordererContact,
-          company_name: ordererCompany,
-          email: ordererEmail,
-          type: ordererCompany ? 'company' : 'individual',
-          grade: tf.f00415,
-          points: 0,
-        });
-        if (newCustomerId) {
-          finalCustomerId = newCustomerId;
+      const existingByContact = findCustomerByContact(customers, ordererContact);
+      if (existingByContact) {
+        finalCustomerId = existingByContact.id;
+      } else {
+        try {
+          const newCustomerId = await addCustomer({
+            name: ordererName,
+            contact: ordererContact,
+            company_name: ordererCompany,
+            email: ordererEmail,
+            type: ordererCompany ? 'company' : 'individual',
+            grade: tf.f00415,
+            points: 0,
+            marketing_consent: marketingConsent,
+          });
+          if (newCustomerId) {
+            finalCustomerId = newCustomerId;
+          }
+        } catch (e) {
+          console.error(tf.f00068, e);
         }
+      }
+    }
+
+    if (finalCustomerId && marketingConsent) {
+      try {
+        await updateCustomer(finalCustomerId, { marketing_consent: true });
       } catch (e) {
-        console.error(tf.f00068, e);
+        console.error("marketing_consent sync", e);
       }
     }
 
@@ -502,6 +552,40 @@ export default function NewOrderPage() {
       } else {
         const resultId = await addOrder(orderPayload);
         if (resultId) {
+          if (
+            !isAnonymous &&
+            marketingConsent &&
+            registerAnniversaryFromOrder &&
+            finalCustomerId
+          ) {
+            const anniv = await postOrderAnniversary({
+              customerId: finalCustomerId,
+              anniversaryDate: resolveAnniversaryDateFromSchedule(scheduleDate),
+              marketingConsent,
+            });
+            if (anniv.ok) {
+              if (anniv.duplicate) {
+                toast.info("이미 같은 날짜의 기념일이 등록되어 있습니다.", { duration: 4000 });
+              } else {
+                toast.success("기념일 날짜 등록됨 — 고객 관리에서 이름을 입력해 주세요.", { duration: 4000 });
+              }
+            }
+          }
+          const utmCampaign = searchParams.get("utm_campaign");
+          if (utmCampaign) {
+            fetch("/api/revenue/attributions/match", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                orderId: resultId,
+                utmSource: searchParams.get("utm_source") ?? undefined,
+                utmMedium: searchParams.get("utm_medium") ?? undefined,
+                utmCampaign,
+                customerId: searchParams.get("customerId") ?? orderPayload.orderer?.id,
+                attributedAmount: orderPayload.summary?.total ?? 0,
+              }),
+            }).catch(() => {});
+          }
           setLastOrderId(resultId);
           setLastOrderNumber(orderPayload.order_number || `ORD-${Date.now()}`);
           setShowSuccessDialog(true);
@@ -592,11 +676,15 @@ export default function NewOrderPage() {
             setCustomerSearchQuery={setCustomerSearchQuery}
             customerSearchResults={customerSearchResults}
             customerSearchLoading={customerSearchLoading}
-            onCustomerSelect={(c: any) => {
+            onCustomerSelect={(c: Customer) => {
               setSelectedCustomer(c);
               setOrdererName(c.name);
               setOrdererContact(c.contact);
               setOrdererCompany(c.company_name || "");
+              const checks = orderFormChecksForExistingCustomer();
+              setRegisterCustomer(checks.registerCustomer);
+              setMarketingConsent(checks.marketingConsent);
+              setRegisterAnniversaryFromOrder(checks.registerAnniversaryFromOrder);
               setIsCustomerSearchOpen(false);
               setCustomerSearchQuery(c.name);
             }}
@@ -610,6 +698,12 @@ export default function NewOrderPage() {
             setIsAnonymous={setIsAnonymous}
             registerCustomer={registerCustomer}
             setRegisterCustomer={setRegisterCustomer}
+            registerAnniversaryFromOrder={registerAnniversaryFromOrder}
+            setRegisterAnniversaryFromOrder={setRegisterAnniversaryFromOrder}
+            marketingConsent={marketingConsent}
+            setMarketingConsent={setMarketingConsent}
+            selectedCustomer={selectedCustomer}
+            hasOrdererIdentity={hasOrdererIdentity}
             formatPhoneNumber={formatPhoneNumber}
           />
 

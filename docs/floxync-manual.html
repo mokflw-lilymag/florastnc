@@ -17,6 +17,8 @@
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       color: #6b7280; font-weight: 500; border: 2px dashed #d1d5db; border-radius: 0.5rem;
     }
+    .manual-figure .manual-shot-img.hidden { display: none; }
+    .manual-figure .manual-shot-missing:not(.hidden) { display: flex; }
     .anchor-offset { scroll-margin-top: 100px; }
   </style>
 </head>
@@ -30,7 +32,7 @@
         <span class="text-xl font-bold tracking-tight text-emerald-800">Floxync <span class="font-light text-emerald-600">Docs</span></span>
       </div>
       <div class="hidden md:flex items-center gap-4 text-sm font-medium text-gray-500">
-        <span>v2.5.0 (Pro)</span>
+        <span>v3.0 (2026-05) · 매출 엔진 반영</span>
         <a href="#" class="text-emerald-600 hover:text-emerald-700">고객센터 지원</a>
       </div>
     </div>
@@ -65,10 +67,11 @@
            <li><a href="#orders-detail" class="flex items-center p-2 text-sm text-gray-700 rounded-lg sidebar-link anchor-offset">2-3. 주문 상세 모달 (상태/알림톡)</a></li>
         </ul>
 
-        <div class="mb-4 text-xs font-bold text-emerald-600 uppercase tracking-wider">3. CRM 및 캘린더</div>
+        <div class="mb-4 text-xs font-bold text-emerald-600 uppercase tracking-wider">3. CRM · 매출 엔진</div>
         <ul class="space-y-1 mb-8 border-l border-emerald-100 ml-2">
            <li><a href="#crm" class="flex items-center p-2 text-sm text-gray-700 rounded-lg sidebar-link anchor-offset">3-1. 고객(단골) 관리</a></li>
-           <li><a href="#calendar" class="flex items-center p-2 text-sm text-gray-700 rounded-lg sidebar-link anchor-offset">3-2. 캘린더 배송 스케줄링</a></li>
+           <li><a href="#revenue-engine" class="flex items-center p-2 text-sm text-emerald-800 font-semibold rounded-lg sidebar-link anchor-offset">3-2. 매출 캘린더 ⭐</a></li>
+           <li><a href="#calendar" class="flex items-center p-2 text-sm text-gray-700 rounded-lg sidebar-link anchor-offset">3-3. 캘린더 배송 스케줄</a></li>
         </ul>
 
         <div class="mb-4 text-xs font-bold text-blue-600 uppercase tracking-wider">4. 향후 비전</div>
@@ -96,7 +99,8 @@
            <li><a href="#nav-tax" class="flex items-center p-2 text-gray-700 rounded-lg sidebar-link anchor-offset">세무</a></li>
            <li><a href="#nav-printer" class="flex items-center p-2 text-gray-700 rounded-lg sidebar-link anchor-offset">리본 프린터 (상세)</a></li>
            <li><a href="#nav-design" class="flex items-center p-2 text-gray-700 rounded-lg sidebar-link anchor-offset">카드 디자인 (상세)</a></li>
-           <li><a href="#nav-marketing" class="flex items-center gap-2 p-2 text-gray-700 rounded-lg sidebar-link anchor-offset"><span>AI 홍보 마스터</span><span class="text-[9px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">개발 중</span></a></li>
+           <li><a href="#nav-revenue" class="flex items-center gap-2 p-2 text-emerald-800 font-semibold rounded-lg sidebar-link anchor-offset"><span>매출 캘린더</span><span class="text-[9px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200">NEW</span></a></li>
+           <li><a href="#nav-marketing" class="flex items-center gap-2 p-2 text-gray-700 rounded-lg sidebar-link anchor-offset"><span>AI 홍보 마스터</span><span class="text-[9px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 border border-slate-300">레거시</span></a></li>
            <li><a href="#nav-pos-settings" class="flex items-center p-2 text-gray-700 rounded-lg sidebar-link anchor-offset">POS 연동</a></li>
            <li><a href="#nav-subscription" class="flex items-center p-2 text-gray-700 rounded-lg sidebar-link anchor-offset">구독 · 플랜</a></li>
         </ul>
@@ -121,19 +125,34 @@
             이 매뉴얼은 단순히 기능을 나열하는 것이 아니라, <strong>화면의 버튼 하나하나가 무슨 일을 하는지</strong> 현미경으로 보듯 자세히 알려드리기 위해 만들어졌습니다. 
             옆에서 제가 직접 가르쳐드리는 것처럼 천천히 따라와 보세요! 😊
           </p>
-          <div class="flex gap-3">
+          <div class="flex gap-3 flex-wrap">
             <span class="bg-white/20 px-3 py-1 rounded-full text-xs">비전문가 환영</span>
             <span class="bg-white/20 px-3 py-1 rounded-full text-xs">상세 버튼 가이드</span>
+            <span class="bg-white/20 px-3 py-1 rounded-full text-xs">매출 캘린더 · Floxync Revenue</span>
             <span class="bg-white/20 px-3 py-1 rounded-full text-xs">미소와 함께하기</span>
           </div>
+        </div>
+
+        <div id="screenshot-guide" class="anchor-offset mb-10 p-5 rounded-2xl border-2 border-dashed border-emerald-300 bg-emerald-50/80 text-sm text-emerald-950 leading-relaxed">
+          <p class="font-black mb-2">📸 캡처 올리는 방법 (가장 쉬운 순서)</p>
+          <ol class="list-decimal pl-5 space-y-1 text-xs md:text-sm">
+            <li>아래 회색 상자에 적힌 <strong>파일 이름 그대로</strong> PNG 저장 (예: <code class="bg-white px-1 rounded">home-01-dashboard.png</code>)</li>
+            <li><code class="bg-white px-1 rounded">docs/manual-screenshots/</code> 폴더에 넣거나, Cursor 채팅에 <strong>파일명.png</strong> 첨부 → “매뉴얼 캡처 올려줘”</li>
+            <li><code>/docs/manual</code> 새로고침 → 회색 상자가 실제 화면으로 바뀌면 완료</li>
+          </ol>
+          <p class="text-[11px] text-emerald-800/80 mt-2">전체 목록: <code>docs/manual-screenshots/README.md</code></p>
         </div>
 
         <div id="dashboard" class="anchor-offset">
           <h3 class="text-2xl font-bold mb-6 flex items-center gap-2"><span class="w-2 h-8 bg-emerald-500 rounded-full"></span> 0. 대시보드: 우리 매장 한눈에 보기</h3>
           <div class="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
-            <div class="w-full h-64 img-placeholder bg-gray-50 mb-6 rounded-xl border-dashed border-gray-300">
-              <span class="text-gray-400 font-medium">[ 메인 대시보드 화면 캡처 ]</span>
-            </div>
+            <figure class="manual-figure mb-6">
+              <img src="manual-screenshots/home-01-dashboard.png" alt="업무 홈 대시보드" class="manual-shot-img w-full rounded-xl border border-slate-200 shadow-sm bg-white" loading="lazy" />
+              <div class="manual-shot-missing hidden w-full min-h-[16rem] img-placeholder rounded-xl">
+                <div class="text-center px-4"><p class="text-gray-400 text-sm mb-2">캡처 없음</p><p class="font-mono font-bold text-emerald-700">home-01-dashboard.png</p><p class="text-xs text-gray-400 mt-1">docs/manual-screenshots/</p></div>
+              </div>
+              <figcaption class="text-xs text-slate-500 mt-2"><code>home-01-dashboard.png</code> — 업무 홈 · 오늘 주문·매출·일정 카드 + 매출 차트 · <code>/dashboard</code></figcaption>
+            </figure>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div class="p-4 bg-emerald-50 rounded-xl border border-emerald-100">
                 <p class="font-bold text-emerald-900 mb-2">📊 오늘의 현황판</p>
@@ -189,9 +208,13 @@
                 </div>
               </div>
               <div class="space-y-4">
-                <div class="w-full h-44 img-placeholder bg-gray-50 rounded-xl border-dashed border-gray-300">
-                  <span class="text-gray-400 text-xs">[ 상점 정보 입력 화면 캡처 ]</span>
-                </div>
+                <figure class="manual-figure">
+                  <img src="manual-screenshots/settings-01-store-info.png" alt="상점 정보 입력" class="manual-shot-img w-full rounded-xl border border-slate-200 shadow-sm bg-white" loading="lazy" />
+                  <div class="manual-shot-missing hidden w-full min-h-[11rem] img-placeholder rounded-xl">
+                    <div class="text-center px-4"><p class="text-gray-400 text-xs mb-1">캡처 없음</p><p class="font-mono font-bold text-emerald-700 text-sm">settings-01-store-info.png</p></div>
+                  </div>
+                  <figcaption class="text-xs text-slate-500 mt-2"><code>settings-01-store-info.png</code> — 상점 정보 · 환경설정</figcaption>
+                </figure>
               </div>
             </div>
           </div>
@@ -209,7 +232,11 @@
                 "포인트는 단골을 만드는 마법의 지팡이예요! 적절한 적립률과 할인 버튼을 설정해서 고객님들의 재방문을 유도해 보세요."
               </p>
             </div>
-            <div class="w-full h-56 img-placeholder bg-gray-50 mb-8 rounded-xl border-dashed border-gray-300">[ 주문/할인/포인트 설정 화면 캡처 ]</div>
+            <figure class="manual-figure mb-8">
+              <img src="manual-screenshots/settings-02-order-policy.png" alt="주문 할인 포인트 설정" class="manual-shot-img w-full rounded-xl border border-slate-200 shadow-sm bg-white" loading="lazy" />
+              <div class="manual-shot-missing hidden w-full min-h-[14rem] img-placeholder rounded-xl"><div class="text-center px-4"><p class="font-mono font-bold text-emerald-700">settings-02-order-policy.png</p></div></div>
+              <figcaption class="text-xs text-slate-500 mt-2"><code>settings-02-order-policy.png</code> — 주문·할인·포인트 설정</figcaption>
+            </figure>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div class="p-5 bg-white border border-violet-100 rounded-2xl">
                     <p class="font-bold text-gray-800 mb-2">포인트 제도</p>
@@ -229,7 +256,11 @@
             <span class="w-1.5 h-6 bg-blue-500 rounded-full"></span> 1-3. 배송비 설정
           </h3>
           <div class="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm text-center">
-            <div class="w-full h-56 img-placeholder bg-gray-50 mb-6 rounded-xl border-dashed border-gray-300">[ 배송비 설정 화면 캡처 ]</div>
+            <figure class="manual-figure mb-6">
+              <img src="manual-screenshots/settings-03-delivery-fee.png" alt="배송비 설정" class="manual-shot-img w-full rounded-xl border border-slate-200 shadow-sm bg-white" loading="lazy" />
+              <div class="manual-shot-missing hidden w-full min-h-[14rem] img-placeholder rounded-xl"><div class="text-center px-4"><p class="font-mono font-bold text-emerald-700">settings-03-delivery-fee.png</p></div></div>
+              <figcaption class="text-xs text-slate-500 mt-2"><code>settings-03-delivery-fee.png</code> — 배송비·거리 설정</figcaption>
+            </figure>
             <p class="text-sm text-gray-500 italic">거리에 따른 배송비, 지역별 할증 등을 설정하는 공간입니다. (작성 예정)</p>
           </div>
         </div>
@@ -247,7 +278,11 @@
               </p>
             </div>
             
-            <div class="w-full h-64 img-placeholder bg-gray-50 mb-8 rounded-xl border-dashed border-gray-300">[ 분류 관리 전체 화면 캡처 ]</div>
+            <figure class="manual-figure mb-8">
+              <img src="manual-screenshots/settings-04-categories.png" alt="분류 관리" class="manual-shot-img w-full rounded-xl border border-slate-200 shadow-sm bg-white" loading="lazy" />
+              <div class="manual-shot-missing hidden w-full min-h-[16rem] img-placeholder rounded-xl"><div class="text-center px-4"><p class="font-mono font-bold text-emerald-700">settings-04-categories.png</p></div></div>
+              <figcaption class="text-xs text-slate-500 mt-2"><code>settings-04-categories.png</code> — 분류 관리 전체 화면</figcaption>
+            </figure>
             
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
               <div class="p-5 bg-orange-50/30 border border-orange-100 rounded-2xl">
@@ -283,7 +318,11 @@
                 "클라우드 웹앱인 플록싱크가 사장님 매장의 프린터를 직접 조종하기 위해서는 '프린트 브릿지'라는 든든한 일꾼이 필요해요! 여기서 연결 상태를 확인하실 수 있습니다."
               </p>
             </div>
-            <div class="w-full h-56 img-placeholder bg-gray-50 mb-6 rounded-xl border-dashed border-gray-300">[ 프린터 설정 화면 캡처 ]</div>
+            <figure class="manual-figure mb-6">
+              <img src="manual-screenshots/settings-05-printer.png" alt="프린터 설정" class="manual-shot-img w-full rounded-xl border border-slate-200 shadow-sm bg-white" loading="lazy" />
+              <div class="manual-shot-missing hidden w-full min-h-[14rem] img-placeholder rounded-xl"><div class="text-center px-4"><p class="font-mono font-bold text-emerald-700">settings-05-printer.png</p></div></div>
+              <figcaption class="text-xs text-slate-500 mt-2"><code>settings-05-printer.png</code> — 프린터·Bridge 설정</figcaption>
+            </figure>
             <div class="p-4 bg-blue-50 rounded-xl border border-blue-100 text-xs text-blue-800 leading-relaxed">
               <strong>왜 브릿지가 필요한가요?</strong><br/>
               인터넷 브라우저는 보안상 사장님의 컴퓨터에 연결된 하드웨어(프린터)를 직접 제어할 수 없습니다. 
@@ -293,9 +332,10 @@
         </div>
 
         <div id="settings-automation" class="anchor-offset mb-16">
-          <h3 class="text-xl font-bold mb-6 flex items-center gap-2 text-emerald-700">
-            <span class="w-1.5 h-6 bg-emerald-500 rounded-full"></span> 1-6. 연동 및 자동화 (쇼핑몰 연결)
+          <h3 class="text-xl font-bold mb-4 flex items-center gap-2 text-emerald-700">
+            <span class="w-1.5 h-6 bg-emerald-500 rounded-full"></span> 1-6. 연동 및 자동화 (쇼핑몰 · 문자 · 국가별)
           </h3>
+          <p class="text-sm text-slate-600 mb-6 max-w-3xl leading-relaxed">환경설정에서 선택한 <strong>운영 국가</strong>에 따라 아래 카드 구성이 달라집니다. <strong>매출 캘린더</strong> 문자 발송은 <a href="#integration-kakao-alimtalk" class="text-emerald-700 underline font-semibold">솔라피(매장 가입)</a> 연동이 필요합니다. 상세는 <a href="#revenue-engine" class="text-emerald-700 underline font-semibold">3-2. 매출 캘린더</a>를 참고하세요.</p>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
             <!-- Naver Smart Store -->
             <div id="integration-naver" class="p-6 bg-white border border-emerald-100 rounded-2xl shadow hover:shadow-lg transition-shadow">
@@ -325,14 +365,37 @@
               <p class="text-sm text-gray-700 mb-2">④ 클라이언트 ID와 클라이언트 비밀키를 복사 후 플록싱크 > ‘연동 및 자동화’ > ‘구글 드라이브 연동’에 입력합니다.</p>
               <p class="text-xs text-gray-500">※ 최초 연동 시 구글 권한 요청 팝업이 나타납니다. ‘파일 보기·관리’ 권한을 허용해 주세요.<span class="ml-1 inline-block" title="사진은 자동으로 지정 폴더에 업로드됩니다.">🛈</span></p>
             </div>
-            <!-- Kakao AlimTalk -->
+            <!-- Kakao / Solapi (매장 명의) -->
             <div id="integration-kakao-alimtalk" class="p-6 bg-white border border-emerald-100 rounded-2xl shadow hover:shadow-lg transition-shadow">
               <h4 class="text-lg font-semibold text-emerald-800 mb-3 flex items-center">
-                <svg class="w-5 h-5 mr-2 text-emerald-600" fill="currentColor" viewBox="0 0 20 20"><path d="M2 5a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H6l-4 4V5z"/></svg>카카오 알림톡 연동
+                <svg class="w-5 h-5 mr-2 text-emerald-600" fill="currentColor" viewBox="0 0 20 20"><path d="M2 5a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H6l-4 4V5z"/></svg>솔라피 · 카카오 알림 (매장 가입)
               </h4>
-              <p class="text-sm text-gray-700 mb-2">① 카카오 디벨로퍼스에 로그인 → ‘내 애플리케이션’ → ‘새 애플리케이션 만들기’<br>② ‘설정’ > ‘플랫폼’ > ‘웹’에 플록싱크 도메인 추가<br>③ ‘알림톡’ 메뉴에서 ‘채널 추가’ 후 비즈니스 채널을 생성하고, ‘채널 ID’와 ‘채널 시크릿’ 복사</p>
-              <p class="text-sm text-gray-700 mb-2">④ 플록싱크 환경설정 > ‘연동 및 자동화’ > ‘카카오 알림톡 연동’에 채널 ID/시크릿 입력 후 저장.</p>
-              <p class="text-xs text-gray-500">※ 알림톡 템플릿은 ‘템플릿 관리’에서 미리 등록해 두어야 합니다.<span class="ml-1 inline-block" title="템플릿 승인까지 1~2일 소요될 수 있습니다.">🛈</span></p>
+              <p class="text-sm text-gray-700 mb-3"><strong>매출 캘린더</strong>의 기념일·구매 후 문자는 <strong>매장 명의 솔라피(Solapi)</strong> 계정으로 발송됩니다. Floxync는 문구·스케줄만 맡고, 발송 비용·채널은 사장님 계정입니다.</p>
+              <p class="text-sm text-gray-700 mb-2">① <a href="https://solapi.com" class="text-emerald-600 underline" target="_blank">solapi.com</a> 가입 → 발신번호 등록 → API Key / Secret 발급<br>② (선택) 카카오톡 <strong>비즈니스 채널</strong> 개설·인증 → 솔라피에서 채널 연동<br>③ 플록싱크 <strong>환경설정</strong> → <strong>연동 및 자동화</strong> → 솔라피·카카오 키 입력 후 저장</p>
+              <p class="text-xs text-gray-500">※ 알림톡 템플릿은 솔라피·카카오에서 심사 등록이 필요합니다(1~2일 소요). 연동 전에는 매출 캘린더가 <strong>테스트(로그) 모드</strong>로 동작할 수 있습니다.<span class="ml-1 inline-block" title="카카오 Developers 직접 연동보다 솔라피 경유가 운영에 편합니다.">🛈</span></p>
+              <figure class="manual-figure mt-4">
+                <img src="manual-screenshots/settings-06-automation-solapi.png" alt="솔라피 연동" class="manual-shot-img w-full rounded-lg border border-emerald-100 bg-white" loading="lazy" />
+                <div class="manual-shot-missing hidden w-full min-h-[8rem] img-placeholder rounded-lg"><div class="text-center px-4"><p class="font-mono font-bold text-emerald-700 text-sm">settings-06-automation-solapi.png</p></div></div>
+                <figcaption class="text-xs text-slate-500 mt-2"><code>settings-06-automation-solapi.png</code> — 연동 및 자동화 · 솔라피·카카오 카드</figcaption>
+              </figure>
+            </div>
+            <!-- Regional integrations -->
+            <div id="integration-regional" class="p-6 bg-white border border-sky-100 rounded-2xl shadow hover:shadow-lg transition-shadow">
+              <h4 class="text-lg font-semibold text-sky-800 mb-3 flex items-center">
+                <svg class="w-5 h-5 mr-2 text-sky-600" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a8 8 0 100 16 8 8 0 000-16zm1 11H9v-2h2v2zm0-4H9V5h2v4z"/></svg>국가별 연동 (KR · VN · JP …)
+              </h4>
+              <p class="text-sm text-gray-700 mb-2">환경설정에서 <strong>운영 국가</strong>를 선택하면 해당 국가용 연동 카드가 표시됩니다.</p>
+              <ul class="text-sm text-gray-700 mb-2 space-y-1 list-disc pl-5">
+                <li><strong>한국(KR):</strong> 솔라피 · 카카오 알림 — 매장 직접 가입·연동</li>
+                <li><strong>베트남(VN):</strong> Zalo — UI·키 저장 준비 (발송 연동 진행 중)</li>
+                <li><strong>일본(JP):</strong> LINE — UI·키 저장 준비 (발송 연동 진행 중)</li>
+              </ul>
+              <p class="text-xs text-gray-500">※ 해외 메신저 자동 발송은 단계적으로 확대됩니다. 현재 매출 캘린더 문자는 <strong>한국 솔라피</strong> 기준으로 동작합니다.</p>
+              <figure class="manual-figure mt-4">
+                <img src="manual-screenshots/settings-07-regional.png" alt="국가별 연동" class="manual-shot-img w-full rounded-lg border border-sky-100 bg-white" loading="lazy" />
+                <div class="manual-shot-missing hidden w-full min-h-[8rem] img-placeholder rounded-lg"><div class="text-center px-4"><p class="font-mono font-bold text-sky-700 text-sm">settings-07-regional.png</p></div></div>
+                <figcaption class="text-xs text-slate-500 mt-2"><code>settings-07-regional.png</code> — 운영 국가별 연동 카드</figcaption>
+              </figure>
             </div>
             <!-- Google Sheets 자동 내보내기 -->
             <div id="integration-gsheets" class="p-6 bg-white border border-emerald-100 rounded-2xl shadow hover:shadow-lg transition-shadow">
@@ -407,10 +470,13 @@
                     </div>
                   </div>
                 </div>
-                <div class="w-full h-80 img-placeholder bg-white/5 border border-white/10 rounded-2xl flex flex-col items-center justify-center text-indigo-300">
-                  <div class="w-12 h-12 border-4 border-indigo-400 border-t-transparent rounded-full animate-spin mb-4"></div>
-                  <span class="text-sm font-medium">AI 비서가 분석 중...</span>
-                </div>
+                <figure class="manual-figure">
+                  <img src="manual-screenshots/orders-01-ai-entry.png" alt="AI 주문 입력" class="manual-shot-img w-full rounded-2xl border border-white/20 bg-white/5" loading="lazy" />
+                  <div class="manual-shot-missing hidden w-full min-h-[20rem] img-placeholder bg-white/5 border border-white/10 rounded-2xl text-indigo-300">
+                    <div class="text-center px-4"><p class="text-indigo-300/80 text-sm mb-2">캡처 없음</p><p class="font-mono font-bold text-indigo-200">orders-01-ai-entry.png</p></div>
+                  </div>
+                  <figcaption class="text-xs text-indigo-200/80 mt-2"><code>orders-01-ai-entry.png</code> — AI 주문 붙여넣기 영역 · <code>/dashboard/orders/new</code></figcaption>
+                </figure>
               </div>
               <!-- Miso's Little Tip -->
               <div class="mt-8 bg-white/10 backdrop-blur-sm p-6 rounded-2xl border border-white/20">
@@ -459,7 +525,11 @@
               <span class="w-1.5 h-8 bg-emerald-500 rounded-full"></span> 2-3. 주문 상세 창 (우리 매장 관제탑)
             </h3>
             <div class="bg-white border border-gray-200 rounded-3xl p-8 shadow-sm">
-              <div class="w-full h-96 img-placeholder bg-gray-50 mb-10 border border-dashed border-gray-300 rounded-2xl">[ 주문 상세 창 버튼별 번호표 캡처 ]</div>
+              <figure class="manual-figure mb-10">
+                <img src="manual-screenshots/orders-02-detail-annotated.png" alt="주문 상세 모달" class="manual-shot-img w-full rounded-2xl border border-dashed border-gray-300 bg-gray-50" loading="lazy" />
+                <div class="manual-shot-missing hidden w-full min-h-[24rem] img-placeholder rounded-2xl"><div class="text-center px-4"><p class="font-mono font-bold text-emerald-700">orders-02-detail-annotated.png</p><p class="text-xs text-gray-400 mt-1">버튼에 번호·화살표 표시 권장</p></div></div>
+                <figcaption class="text-xs text-slate-500 mt-2"><code>orders-02-detail-annotated.png</code> — 주문 상세 창 · 버튼별 번호표</figcaption>
+              </figure>
               
               <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
                 <div class="space-y-8">
@@ -487,9 +557,13 @@
                   <div class="bg-amber-50 p-6 rounded-2xl border border-amber-100">
                     <h5 class="font-bold text-amber-900 mb-4 flex items-center gap-2">📸 완성 사진 & 알림톡</h5>
                     <p class="text-xs text-amber-800 leading-relaxed mb-4">
-                      제작이 끝나면 상세 화면에서 완성 사진을 올리고, 연동된 경우 알림톡 등 고객 알림 기능을 사용합니다. (연동은 환경 설정의 카카오 알림톡 등을 먼저 완료하세요.)
+                      제작이 끝나면 상세 화면에서 완성 사진을 올리고, 연동된 경우 문자·알림톡 등 고객 알림 기능을 사용합니다. (연동은 환경 설정의 <strong>솔라피·카카오</strong> 키를 먼저 완료하세요.)
                     </p>
-                    <div class="w-full h-32 img-placeholder bg-white border border-amber-200 rounded-xl">[ 사진 업로드 및 발송 버튼 ]</div>
+                    <figure class="manual-figure">
+                      <img src="manual-screenshots/orders-03-photo-notify.png" alt="완성 사진 업로드" class="manual-shot-img w-full rounded-xl border border-amber-200 bg-white" loading="lazy" />
+                      <div class="manual-shot-missing hidden w-full min-h-[8rem] img-placeholder bg-white border border-amber-200 rounded-xl"><div class="text-center px-4"><p class="font-mono font-bold text-amber-800 text-sm">orders-03-photo-notify.png</p></div></div>
+                      <figcaption class="text-xs text-slate-500 mt-2"><code>orders-03-photo-notify.png</code> — 완성 사진 업로드 · 알림 버튼</figcaption>
+                    </figure>
                   </div>
                 </div>
               </div>
@@ -507,20 +581,169 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
           <div class="bg-white border border-gray-200 rounded-3xl p-8 shadow-sm">
             <h4 class="text-xl font-bold mb-4 flex items-center gap-2 text-rose-600">💖 우리 매장 단골 명부 (CRM)</h4>
-            <div class="w-full h-48 img-placeholder bg-rose-50 mb-6 rounded-2xl border border-rose-100">[ 고객 관리 리스트 캡처 ]</div>
-            <p class="text-xs text-gray-600 leading-relaxed">
+            <figure class="manual-figure mb-6">
+              <img src="manual-screenshots/crm-01-customer-list.png" alt="고객 관리 목록" class="manual-shot-img w-full rounded-2xl border border-rose-100 bg-rose-50/30" loading="lazy" />
+              <div class="manual-shot-missing hidden w-full min-h-[12rem] img-placeholder rounded-2xl border border-rose-100"><div class="text-center px-4"><p class="font-mono font-bold text-rose-700">crm-01-customer-list.png</p></div></div>
+              <figcaption class="text-xs text-slate-500 mt-2"><code>crm-01-customer-list.png</code> — 고객 관리 리스트 · <code>/dashboard/customers</code></figcaption>
+            </figure>
+            <p class="text-xs text-gray-600 leading-relaxed mb-4">
               한 번이라도 주문한 고객은 시스템이 자동으로 기억합니다. <br/>
               "저번이랑 똑같은 빨간 장미로 해주세요" 하시는 고객님께 당황하지 마세요. 이름만 검색하면 과거 주문 기록이 쫙 나옵니다!
             </p>
+            <div class="p-4 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-950 leading-relaxed space-y-2">
+              <p><strong>매출 캘린더와 연결 — 기념일 여러 개 등록</strong></p>
+              <ol class="list-decimal pl-4 space-y-1">
+                <li><strong>고객 관리</strong> → 고객 선택 또는 <strong>신규 고객 등록</strong></li>
+                <li>폼 하단 <strong>기념일</strong>에서 결혼기념일·생신·창립기념일 등 <strong>+ 추가</strong>로 여러 건 등록</li>
+                <li><strong>마케팅·기념일 알림 수신 동의</strong> 체크 (문자 발송 필수)</li>
+                <li>저장 후 <a href="#revenue-engine" class="text-rose-800 underline font-semibold">매출 캘린더</a> → <strong>기념일 D-7</strong> 탭에서 7일 후 대상 확인</li>
+              </ol>
+            </div>
           </div>
           <div id="calendar" class="anchor-offset bg-white border border-gray-200 rounded-3xl p-8 shadow-sm">
             <h4 class="text-xl font-bold mb-4 flex items-center gap-2 text-blue-600">📅 주문이 한눈에 보이는 달력</h4>
-            <div class="w-full h-48 img-placeholder bg-blue-50 mb-6 rounded-2xl border border-blue-100">[ 캘린더 화면 캡처 ]</div>
+            <figure class="manual-figure mb-6">
+              <img src="manual-screenshots/calendar-01-delivery-schedule.png" alt="배송 캘린더" class="manual-shot-img w-full rounded-2xl border border-blue-100 bg-blue-50/30" loading="lazy" />
+              <div class="manual-shot-missing hidden w-full min-h-[12rem] img-placeholder rounded-2xl border border-blue-100"><div class="text-center px-4"><p class="font-mono font-bold text-blue-700">calendar-01-delivery-schedule.png</p></div></div>
+              <figcaption class="text-xs text-slate-500 mt-2"><code>calendar-01-delivery-schedule.png</code> — 배송·픽업 캘린더 · <code>/dashboard/delivery</code></figcaption>
+            </figure>
             <p class="text-xs text-gray-600 leading-relaxed">
               어버이날, 졸업식... 바쁜 날짜를 미리 확인하세요. <br/>
               달력에 콕콕 박힌 주문들을 보며 이번 주에 꽃을 얼마나 더 사야 할지 계획을 세울 수 있습니다.
             </p>
           </div>
+        </div>
+      </section>
+
+      <!-- 3-2: Revenue Engine -->
+      <section id="revenue-engine" class="anchor-offset mb-20 border-t border-emerald-200 pt-16">
+        <h2 class="text-3xl font-black text-gray-900 mb-4 flex items-center gap-3">
+          <span class="w-12 h-12 bg-emerald-600 text-white rounded-2xl flex items-center justify-center shadow-lg">⭐</span>
+          매출 캘린더 — Floxync Revenue
+        </h2>
+        <p class="text-sm text-slate-600 mb-8 max-w-3xl leading-relaxed">
+          <strong>한 줄 요약:</strong> Floxync가 <strong>기념일·구매 후 문자</strong>, <strong>SNS 글 초안</strong>, <strong>재고 플래시</strong>를 대신 준비하고, <strong>Floxync 링크로 들어온 주문 매출</strong>을 숫자로 보여 줍니다.
+          경로: <code class="bg-slate-100 px-1 rounded text-xs">/dashboard/revenue</code>
+        </p>
+
+        <figure class="manual-figure mb-10">
+          <img src="manual-screenshots/revenue-01-overview.png" alt="매출 캘린더 전체" class="manual-shot-img w-full max-w-4xl rounded-xl border border-emerald-200 shadow-md bg-white" loading="lazy" />
+          <div class="manual-shot-missing hidden w-full min-h-[16rem] img-placeholder rounded-xl border-emerald-200"><div class="text-center px-4"><p class="font-mono font-bold text-emerald-700 text-lg">revenue-01-overview.png</p><p class="text-xs text-gray-400 mt-1">Auto-Pilot 스위치 + 탭 전체</p></div></div>
+          <figcaption class="text-xs text-slate-500 mt-2"><code>revenue-01-overview.png</code> — 매출 캘린더 전체 · Auto-Pilot · <code>/dashboard/revenue</code></figcaption>
+        </figure>
+
+        <div class="grid md:grid-cols-2 gap-6 mb-10">
+          <div class="p-6 bg-emerald-50 border border-emerald-200 rounded-2xl">
+            <h4 class="font-black text-emerald-900 mb-3">오늘 바로 시작 (3단계)</h4>
+            <ol class="text-sm text-emerald-950 space-y-2 list-decimal pl-5 leading-relaxed">
+              <li><strong>고객 관리</strong> → 마케팅 동의 ON + 기념일 등록 (여러 건 가능)</li>
+              <li><strong>매출 캘린더</strong> → Auto-Pilot <strong>기념일 D-7</strong> · <strong>구매 후</strong> ON</li>
+              <li>완료 주문 1건 → <strong>SNS 초안</strong> 탭에서 AI 글 생성 → <strong>[복사]</strong></li>
+            </ol>
+          </div>
+          <div class="p-6 bg-white border border-slate-200 rounded-2xl shadow-sm">
+            <h4 class="font-black text-slate-900 mb-3">플랜별로 쓸 수 있는 것</h4>
+            <ul class="text-sm text-slate-700 space-y-2 list-disc pl-5 leading-relaxed">
+              <li><strong>Free</strong> — SNS 수동 초안 (월 발송 상한 있음)</li>
+              <li><strong>ERP SMART</strong> — 기념일 D-7 · 구매 후 · Floxync 귀속 리포트</li>
+              <li><strong>FLORA PRO</strong> — 위 전부 + SNS Auto-Pilot · 재고 플래시 · A/B 카피 · 네이버 SEO</li>
+            </ul>
+            <p class="text-xs text-slate-500 mt-3">구독: <code class="bg-slate-100 px-1 rounded">/dashboard/subscription?highlight=revenue</code></p>
+          </div>
+        </div>
+
+        <div class="space-y-8">
+          <article class="bg-white border border-slate-200 rounded-3xl p-8 shadow-sm">
+            <h3 class="text-xl font-black text-slate-900 mb-4">상단 Auto-Pilot 스위치</h3>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm text-left border-collapse">
+                <thead><tr class="border-b border-slate-200 text-slate-500 text-xs uppercase"><th class="py-2 pr-4">탭·영역</th><th class="py-2 pr-4">하는 일</th><th class="py-2">처음 할 일</th></tr></thead>
+                <tbody class="text-slate-700">
+                  <tr class="border-b border-slate-100"><td class="py-3 pr-4 font-semibold">기념일 D-7</td><td class="py-3 pr-4">7일 뒤 기념일 고객에게 문자+주문 링크</td><td class="py-3">고객에 기념일·마케팅 동의 등록</td></tr>
+                  <tr class="border-b border-slate-100"><td class="py-3 pr-4 font-semibold">구매 후</td><td class="py-3 pr-4">배송 완료 후 D+1 / D+7 / D+30 후속 문자</td><td class="py-3">주문 <strong>완료</strong> 처리</td></tr>
+                  <tr class="border-b border-slate-100"><td class="py-3 pr-4 font-semibold">SNS 초안</td><td class="py-3 pr-4">AI 인스타·네이버 글 → <strong>[복사]</strong></td><td class="py-3">완료 주문 선택 → 초안 생성</td></tr>
+                  <tr class="border-b border-slate-100"><td class="py-3 pr-4 font-semibold">성과 리포트</td><td class="py-3 pr-4">Floxync 링크 경유 주문 매출 귀속</td><td class="py-3">링크 경유 주문 1건 확인</td></tr>
+                  <tr><td class="py-3 pr-4 font-semibold text-violet-700">재고 플래시 (PRO)</td><td class="py-3 pr-4">재고 소진 임박 시 긴급 홍보 초안</td><td class="py-3">PRO 구독 + Auto-Pilot ON</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <figure class="manual-figure mt-4">
+              <img src="manual-screenshots/revenue-02-anniversary-d7.png" alt="기념일 D-7 탭" class="manual-shot-img w-full rounded-xl border border-slate-200 bg-white" loading="lazy" />
+              <div class="manual-shot-missing hidden w-full min-h-[10rem] img-placeholder rounded-xl"><div class="text-center px-4"><p class="font-mono font-bold text-emerald-700">revenue-02-anniversary-d7.png</p></div></div>
+              <figcaption class="text-xs text-slate-500 mt-2"><code>revenue-02-anniversary-d7.png</code> — 기념일 D-7 탭</figcaption>
+            </figure>
+            <figure class="manual-figure mt-4">
+              <img src="manual-screenshots/revenue-03-post-purchase.png" alt="구매 후 탭" class="manual-shot-img w-full rounded-xl border border-slate-200 bg-white" loading="lazy" />
+              <div class="manual-shot-missing hidden w-full min-h-[10rem] img-placeholder rounded-xl"><div class="text-center px-4"><p class="font-mono font-bold text-emerald-700">revenue-03-post-purchase.png</p></div></div>
+              <figcaption class="text-xs text-slate-500 mt-2"><code>revenue-03-post-purchase.png</code> — 구매 후 D+1/7/30 탭</figcaption>
+            </figure>
+          </article>
+
+          <article class="bg-white border border-slate-200 rounded-3xl p-8 shadow-sm">
+            <h3 class="text-xl font-black text-slate-900 mb-4">설정 · 메시지 템플릿</h3>
+            <p class="text-sm text-slate-700 mb-4 leading-relaxed">매출 캘린더 우측 <strong>설정</strong> 패널에서 캠페인별 문구를 수정할 수 있습니다. 비어 있으면 아래 <strong>기본 예시</strong>가 자동으로 채워집니다.</p>
+            <div class="grid md:grid-cols-2 gap-4 text-xs font-mono">
+              <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 whitespace-pre-wrap leading-relaxed">[{{shopName}}] 기념일 안내 🌸
+{{customerName}}님, {{label}}({{eventDate}})이 7일 앞으로…
+▶ 1클릭 주문: {{orderLink}}</div>
+              <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 whitespace-pre-wrap leading-relaxed">[{{shopName}}] 감사합니다 🌸
+{{customerName}}님, {{orderNumber}} 주문 잘 받으셨나요?
+▶ 다시 주문: {{orderLink}}</div>
+            </div>
+            <p class="text-xs text-slate-500 mt-3">치환 변수: <code>{{customerName}}</code>, <code>{{label}}</code>, <code>{{eventDate}}</code>, <code>{{orderLink}}</code>, <code>{{shopName}}</code> 등</p>
+            <figure class="manual-figure mt-4">
+              <img src="manual-screenshots/revenue-04-templates.png" alt="메시지 템플릿 설정" class="manual-shot-img w-full rounded-xl border border-slate-200 bg-white" loading="lazy" />
+              <div class="manual-shot-missing hidden w-full min-h-[10rem] img-placeholder rounded-xl"><div class="text-center px-4"><p class="font-mono font-bold text-emerald-700">revenue-04-templates.png</p></div></div>
+              <figcaption class="text-xs text-slate-500 mt-2"><code>revenue-04-templates.png</code> — 설정 패널 · 4종 메시지 템플릿</figcaption>
+            </figure>
+          </article>
+
+          <article class="bg-gradient-to-br from-violet-50 to-indigo-50 border border-violet-200 rounded-3xl p-8">
+            <h3 class="text-xl font-black text-violet-900 mb-4">Instagram 계정 연결 (SNS Auto-Pilot · PRO)</h3>
+            <p class="text-sm text-slate-700 mb-4 leading-relaxed">기술 용어 없이 <strong>[Instagram 계정 연결]</strong> 버튼 하나로 진행합니다. Facebook·Instagram 로그인 후 권한을 허용하면 연결 완료입니다.</p>
+            <ol class="text-sm text-slate-700 space-y-2 list-decimal pl-5 leading-relaxed mb-4">
+              <li>매출 캘린더 → <strong>SNS Auto-Pilot</strong> 영역</li>
+              <li><strong>[Instagram 계정 연결]</strong> 클릭 → Meta 로그인·권한 허용</li>
+              <li>복귀 후 연결 상태가 <strong>연결됨</strong>으로 바뀌는지 확인</li>
+              <li>자동 게시는 <strong>승인 후 게시</strong> 또는 <strong>자동</strong> 모드 중 선택</li>
+            </ol>
+            <p class="text-xs text-violet-800 bg-white/60 p-3 rounded-lg border border-violet-100">※ 비즈니스/크리에이터 Instagram 계정이 필요할 수 있습니다. 연결 실패 시 브라우저 팝업 차단을 해제해 보세요.</p>
+            <figure class="manual-figure mt-4">
+              <img src="manual-screenshots/revenue-05-instagram-connect.png" alt="Instagram 계정 연결" class="manual-shot-img w-full rounded-xl border border-violet-200 bg-white" loading="lazy" />
+              <div class="manual-shot-missing hidden w-full min-h-[10rem] img-placeholder rounded-xl"><div class="text-center px-4"><p class="font-mono font-bold text-violet-700">revenue-05-instagram-connect.png</p></div></div>
+              <figcaption class="text-xs text-slate-500 mt-2"><code>revenue-05-instagram-connect.png</code> — Instagram 계정 연결 · 연결됨 상태</figcaption>
+            </figure>
+          </article>
+
+          <article class="bg-white border border-amber-200 rounded-3xl p-8">
+            <h3 class="text-xl font-black text-amber-900 mb-4">문자·알림 발송 — 솔라피 (매장 가입)</h3>
+            <p class="text-sm text-slate-700 mb-4 leading-relaxed">
+              Floxync는 <strong>문구와 발송 스케줄</strong>을 맡고, <strong>발송 비용·채널은 매장 명의 솔라피(Solapi)</strong> 계정으로 연결합니다. 본사가 대신 가입해 쓰는 구조가 아닙니다.
+            </p>
+            <ol class="text-sm text-slate-700 space-y-2 list-decimal pl-5 leading-relaxed mb-4">
+              <li><a href="https://solapi.com" class="text-emerald-700 underline" target="_blank">solapi.com</a>에서 매장 명의로 가입</li>
+              <li>발신번호 등록 · API Key / Secret 발급</li>
+              <li>(선택) 카카오톡 비즈니스 채널 → 솔라피에서 채널 연동</li>
+              <li>환경 설정 → <strong>연동 및 자동화</strong> → 솔라피·카카오 키 입력 후 저장</li>
+            </ol>
+            <p class="text-xs text-amber-900 bg-amber-50 p-3 rounded-lg border border-amber-100">솔라피를 아직 연결하지 않으면 메시지는 <strong>테스트(로그) 모드</strong>로 기록됩니다. 실제 문자는 키 연동 후 발송됩니다.</p>
+          </article>
+
+          <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600 leading-relaxed">
+            <strong>막힘 해소</strong>
+            <ul class="mt-2 space-y-1 list-disc pl-5">
+              <li>기념일 대상이 안 보이면: 고객 <strong>마케팅 동의</strong> + 기념일 날짜·라벨 확인</li>
+              <li>구매 후 문자가 안 가면: 주문 상태가 <strong>완료</strong>인지, Auto-Pilot <strong>구매 후</strong> ON인지 확인</li>
+              <li>SNS 초안이 비면: GEMINI 키(운영 환경) · 완료 주문에 사진이 있는지 확인</li>
+              <li>예전 n8n 웹훅 설정은 더 이상 쓰지 않습니다 — 매출 캘린더만 사용하세요</li>
+            </ul>
+          </div>
+
+          <figure class="manual-figure mt-6">
+            <img src="manual-screenshots/revenue-06-report.png" alt="성과 리포트" class="manual-shot-img w-full max-w-3xl rounded-xl border border-slate-200 bg-white" loading="lazy" />
+            <div class="manual-shot-missing hidden w-full min-h-[10rem] img-placeholder rounded-xl"><div class="text-center px-4"><p class="font-mono font-bold text-emerald-700">revenue-06-report.png</p></div></div>
+            <figcaption class="text-xs text-slate-500 mt-2"><code>revenue-06-report.png</code> — 성과 리포트 · Floxync 귀속 매출</figcaption>
+          </figure>
         </div>
       </section>
 
@@ -531,9 +754,11 @@
           미래 비전: 꽃집의 모든 것을 하나로
         </h2>
         <div class="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-3xl p-10 flex flex-col md:flex-row gap-10 items-center shadow-sm">
-          <div class="w-full md:w-1/3 h-56 img-placeholder bg-white border border-amber-100 rounded-2xl text-amber-300">
-            [ 스마트 POS 기기 다이어그램 ]
-          </div>
+          <figure class="manual-figure w-full md:w-1/3">
+            <img src="manual-screenshots/pos-future-diagram.png" alt="POS 연동 비전" class="manual-shot-img w-full min-h-[14rem] rounded-2xl border border-amber-100 bg-white object-contain" loading="lazy" />
+            <div class="manual-shot-missing hidden w-full min-h-[14rem] img-placeholder bg-white border border-amber-100 rounded-2xl text-amber-400"><div class="text-center px-4"><p class="font-mono font-bold text-amber-600 text-sm">pos-future-diagram.png</p><p class="text-xs mt-1">(선택 · 다이어그램)</p></div></div>
+            <figcaption class="text-xs text-slate-500 mt-2"><code>pos-future-diagram.png</code> — POS 연동 비전 (선택)</figcaption>
+          </figure>
           <div class="w-full md:w-2/3">
             <h4 class="text-2xl font-bold text-amber-900 mb-4">"조금만 기다려주세요, 곧 완벽한 POS가 옵니다!"</h4>
             <p class="text-gray-700 leading-relaxed text-sm">
@@ -562,7 +787,7 @@
             <li><strong>시작</strong>: <code class="bg-white px-1 rounded border">/dashboard</code> 업무 홈 — 오늘 주문·매출·일정 요약과 매출 차트.</li>
             <li><strong>매장 운영</strong>: 주문 접수·목록, 배송/픽업 일정, 고객 CRM, <a href="#nav-external-orders" class="text-slate-600 underline font-semibold">협력사 수발주</a> <span class="text-slate-500 font-semibold">(준비 중)</span>, 상품·재고, 거래처·매입, 정산·통계, 지출(<a href="#nav-expenses" class="text-emerald-700 underline font-semibold">AI 영수증 입력</a> 권장), 세무.</li>
             <li><strong>제작 · 출력</strong>: 리본 프린터, 카드 디자인 스튜디오.</li>
-            <li><strong>마케팅</strong>: <a href="#nav-marketing" class="text-indigo-700 underline font-medium">AI 홍보 마스터</a> <span class="text-amber-800 font-semibold">(개발 중)</span> — 방향은 SNS 연동·브랜드 DNA·자동 모드이나, 일부 연동·자동 게시는 아직 완성 단계가 아닙니다.</li>
+            <li><strong>마케팅</strong>: <a href="#nav-revenue" class="text-emerald-700 underline font-semibold">매출 캘린더</a> (기념일·구매 후·SNS) · <a href="#nav-marketing" class="text-slate-600 underline font-medium">AI 홍보 마스터</a> <span class="text-slate-500 font-semibold">(레거시)</span></li>
             <li><strong>매장 설정 · 구독</strong>: POS 연동, 환경 설정(이미 1장에서 다룸), 구독·플랜.</li>
             <li>화면 하단의 <strong>빠른 이동 바</strong>(모바일 등)에서는 홈·새 주문·주문현황·리본·배송/픽업·정산·지출·재고로 바로 갈 수 있습니다.</li>
           </ul>
@@ -669,6 +894,22 @@
           </div>
 
           <p class="text-sm text-slate-700 mb-6 leading-relaxed"><strong>개요</strong> 화면 제목은 <strong>고객 관리</strong>입니다. 검색창으로 이름·연락처·회사명을 찾고, 표에서 <strong>행을 클릭</strong>하면 넓은 <strong>고객 상세</strong> 다이얼로그가 열립니다. 여기서 주문을 다시 열어보거나, 법인 거래처에 보낼 <strong>거래명세서</strong>·개인에게 드릴 <strong>간이영수증</strong>·상담용 <strong>견적서</strong>까지 바로 발행할 수 있습니다.</p>
+
+          <div class="p-5 mb-8 rounded-2xl border-2 border-emerald-200 bg-emerald-50/60">
+            <h4 class="text-sm font-black text-emerald-900 uppercase tracking-wider mb-3">매출 캘린더 연동 — 기념일 · 마케팅 동의</h4>
+            <p class="text-sm text-slate-700 mb-3 leading-relaxed">신규 등록·수정 폼에서 아래를 설정하면 <a href="#nav-revenue" class="text-emerald-800 underline font-semibold">매출 캘린더</a> <strong>기념일 D-7</strong> 캠페인 대상에 포함됩니다.</p>
+            <ul class="text-sm text-slate-700 space-y-2 list-disc pl-5 leading-relaxed">
+              <li><strong>기념일 여러 건:</strong> 결혼기념일·생신·창립기념일 등 — <strong>+ 추가</strong>로 고객당 여러 날짜 등록</li>
+              <li><strong>마케팅·기념일 알림 수신 동의</strong> 체크 (미동의 시 문자 발송 안 됨)</li>
+              <li>고객 상세 창 <strong>상세 정보</strong> 탭에서 등록된 기념일 목록 확인</li>
+            </ul>
+          </div>
+
+          <figure class="manual-figure mb-8">
+            <img src="manual-screenshots/crm-02-anniversary-form.png" alt="기념일 다중 등록" class="manual-shot-img w-full rounded-xl border border-emerald-200 bg-white" loading="lazy" />
+            <div class="manual-shot-missing hidden w-full min-h-[12rem] img-placeholder rounded-xl border-emerald-200"><div class="text-center px-4"><p class="font-mono font-bold text-emerald-700">crm-02-anniversary-form.png</p><p class="text-xs text-gray-400 mt-1">기념일 + 추가 · 마케팅 동의</p></div></div>
+            <figcaption class="text-xs text-slate-500 mt-2"><code>crm-02-anniversary-form.png</code> — 고객 폼 · 기념일 여러 건 · 마케팅 동의</figcaption>
+          </figure>
 
           <div class="grid md:grid-cols-2 gap-5 mb-8">
             <div class="rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm">
@@ -841,12 +1082,13 @@
           <p class="text-xs font-mono text-slate-500 mb-6">경로: <code>/dashboard/printer</code> · 플랜: <strong>PRO</strong> 또는 <strong>리본 전용(ribbon_only)</strong></p>
 
           <div class="p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-950 mb-8">
-            <strong>캡처 이미지</strong>: 아래 회색 상자는 <code>docs/manual-screenshots/</code> 폴더에 PNG를 넣으면 자동으로 보입니다. 파일 이름·촬영 방법은 같은 폴더의 <code>README.md</code>를 보세요.
+            <strong>캡처 올리기</strong>: 회색 상자에 표시된 <code>파일명.png</code> 그대로 저장 → <code>docs/manual-screenshots/</code> 에 넣으면 자동 표시. 전체 목록은 <code>README.md</code>.
           </div>
 
-          <figure class="my-6">
-            <img src="manual-screenshots/ribbon-01-overview.png" alt="리본 프린터 전체 화면" class="w-full max-w-4xl rounded-xl border border-slate-200 shadow-md bg-white" loading="lazy" />
-            <figcaption class="text-xs text-slate-500 mt-2">예시 파일명: <code>ribbon-01-overview.png</code> — 좌측 설정 패널 + 중앙 리본 캔버스 + 하단 둥근 툴바가 한 프레임에 들어가게 찍어 주세요.</figcaption>
+          <figure class="manual-figure my-6">
+            <img src="manual-screenshots/ribbon-01-overview.png" alt="리본 프린터 전체 화면" class="manual-shot-img w-full max-w-4xl rounded-xl border border-slate-200 shadow-md bg-white" loading="lazy" />
+            <div class="manual-shot-missing hidden w-full min-h-[14rem] img-placeholder rounded-xl"><div class="text-center px-4"><p class="font-mono font-bold text-emerald-700">ribbon-01-overview.png</p></div></div>
+            <figcaption class="text-xs text-slate-500 mt-2"><code>ribbon-01-overview.png</code> — 좌측 설정 패널 + 중앙 리본 캔버스 + 하단 둥근 툴바</figcaption>
           </figure>
 
           <h4 class="text-lg font-bold text-slate-800 mt-10 mb-3">1. 들어가기 전에</h4>
@@ -872,9 +1114,10 @@
             </div>
           </div>
 
-          <figure class="my-6">
-            <img src="manual-screenshots/ribbon-02-sidebar-printer.png" alt="출력 프린터 및 리본 프리셋 영역" class="w-full max-w-3xl rounded-xl border border-slate-200 shadow" loading="lazy" />
-            <figcaption class="text-xs text-slate-500 mt-2"><code>ribbon-02-sidebar-printer.png</code> — 「출력 프린터」드롭다운과 갱신 버튼, 그 아래 「리본 프리셋」까지 포함.</figcaption>
+          <figure class="manual-figure my-6">
+            <img src="manual-screenshots/ribbon-02-sidebar-printer.png" alt="출력 프린터 및 리본 프리셋 영역" class="manual-shot-img w-full max-w-3xl rounded-xl border border-slate-200 shadow" loading="lazy" />
+            <div class="manual-shot-missing hidden w-full min-h-[10rem] img-placeholder rounded-xl"><div class="text-center px-4"><p class="font-mono font-bold text-emerald-700">ribbon-02-sidebar-printer.png</p></div></div>
+            <figcaption class="text-xs text-slate-500 mt-2"><code>ribbon-02-sidebar-printer.png</code> — 「출력 프린터」+ 「리본 프리셋」</figcaption>
           </figure>
 
           <h4 class="text-lg font-bold text-slate-800 mt-10 mb-3">3. 출력 프린터와 브릿지</h4>
@@ -909,9 +1152,10 @@
             <li><strong>특수 기호</strong> 그리드에서 기호를 누르면 커서 위치에 삽입됩니다.</li>
           </ul>
 
-          <figure class="my-6">
-            <img src="manual-screenshots/ribbon-03-floating-toolbar.png" alt="하단 Templates Preview PRINT 바" class="w-full max-w-3xl rounded-xl border border-slate-200 shadow" loading="lazy" />
-            <figcaption class="text-xs text-slate-500 mt-2"><code>ribbon-03-floating-toolbar.png</code> — 하얀 알약형 바에 Templates / Preview / 줌% / PRINT.</figcaption>
+          <figure class="manual-figure my-6">
+            <img src="manual-screenshots/ribbon-03-floating-toolbar.png" alt="하단 Templates Preview PRINT 바" class="manual-shot-img w-full max-w-3xl rounded-xl border border-slate-200 shadow" loading="lazy" />
+            <div class="manual-shot-missing hidden w-full min-h-[8rem] img-placeholder rounded-xl"><div class="text-center px-4"><p class="font-mono font-bold text-emerald-700">ribbon-03-floating-toolbar.png</p></div></div>
+            <figcaption class="text-xs text-slate-500 mt-2"><code>ribbon-03-floating-toolbar.png</code> — Templates / Preview / 줌 / PRINT</figcaption>
           </figure>
 
           <h4 class="text-lg font-bold text-slate-800 mt-10 mb-3">7. 로고 · 템플릿 · 미리보기 · 인쇄</h4>
@@ -939,9 +1183,10 @@
           <h3 class="text-2xl font-black text-slate-900 mb-1">카드 디자인 스튜디오 — 상세 매뉴얼</h3>
           <p class="text-xs font-mono text-slate-500 mb-6">경로: <code>/dashboard/design-studio</code> · 쿼리: <code>?orderId=…</code> , <code>?target=formtec</code> 또는 카드 기본</p>
 
-          <figure class="my-6">
-            <img src="manual-screenshots/design-01-header-canvas.png" alt="스튜디오 헤더와 캔버스" class="w-full max-w-4xl rounded-xl border border-slate-200 shadow-md bg-white" loading="lazy" />
-            <figcaption class="text-xs text-slate-500 mt-2"><code>design-01-header-canvas.png</code> — 상단 <strong>PROFESSIONAL STUDIO</strong> 바 + 앞면/내지 탭 + 저장·프린터 아이콘 + 왼쪽 도구 일부.</figcaption>
+          <figure class="manual-figure my-6">
+            <img src="manual-screenshots/design-01-header-canvas.png" alt="스튜디오 헤더와 캔버스" class="manual-shot-img w-full max-w-4xl rounded-xl border border-slate-200 shadow-md bg-white" loading="lazy" />
+            <div class="manual-shot-missing hidden w-full min-h-[14rem] img-placeholder rounded-xl"><div class="text-center px-4"><p class="font-mono font-bold text-indigo-700">design-01-header-canvas.png</p></div></div>
+            <figcaption class="text-xs text-slate-500 mt-2"><code>design-01-header-canvas.png</code> — PROFESSIONAL STUDIO + 앞면/내지 탭 + 캔버스</figcaption>
           </figure>
 
           <h4 class="text-lg font-bold text-slate-800 mt-10 mb-3">1. 이 화면으로 들어오는 방법</h4>
@@ -974,9 +1219,10 @@
             <li><strong>상점 브랜딩 자동 배치</strong> — 로고·상호·전화·웹사이트를 한 번에 깔끔히 올립니다(환경설정·테넌트 정보 기반).</li>
           </ol>
 
-          <figure class="my-6">
-            <img src="manual-screenshots/design-02-sidebar-paper.png" alt="용지 규격 및 방향 패널" class="w-full max-w-md rounded-xl border border-slate-200 shadow" loading="lazy" />
-            <figcaption class="text-xs text-slate-500 mt-2"><code>design-02-sidebar-paper.png</code> — 용지 프리셋 드롭다운이 펼쳐진 상태 권장.</figcaption>
+          <figure class="manual-figure my-6">
+            <img src="manual-screenshots/design-02-sidebar-paper.png" alt="용지 규격 및 방향 패널" class="manual-shot-img w-full max-w-md rounded-xl border border-slate-200 shadow" loading="lazy" />
+            <div class="manual-shot-missing hidden w-full min-h-[10rem] img-placeholder rounded-xl"><div class="text-center px-4"><p class="font-mono font-bold text-indigo-700">design-02-sidebar-paper.png</p></div></div>
+            <figcaption class="text-xs text-slate-500 mt-2"><code>design-02-sidebar-paper.png</code> — 용지 프리셋 드롭다운 펼친 상태</figcaption>
           </figure>
 
           <h4 class="text-lg font-bold text-slate-800 mt-10 mb-3">4. 가운데 캔버스와 줌</h4>
@@ -990,9 +1236,10 @@
             <li>상단 아래에 <strong>도구 · 용지</strong> / <strong>미리보기 · 편집</strong> 탭이 생겨 사이드바와 캔버스를 번갈아 봅니다.</li>
           </ul>
 
-          <figure class="my-6">
-            <img src="manual-screenshots/design-03-pdf-print.png" alt="PDF 인쇄 흐름 또는 폼텍 모달" class="w-full max-w-3xl rounded-xl border border-slate-200 shadow" loading="lazy" />
-            <figcaption class="text-xs text-slate-500 mt-2"><code>design-03-pdf-print.png</code> — PDF 미리보기 창이 떴을 때 또는 폼텍 칸 선택 모달.</figcaption>
+          <figure class="manual-figure my-6">
+            <img src="manual-screenshots/design-03-pdf-print.png" alt="PDF 인쇄 흐름 또는 폼텍 모달" class="manual-shot-img w-full max-w-3xl rounded-xl border border-slate-200 shadow" loading="lazy" />
+            <div class="manual-shot-missing hidden w-full min-h-[10rem] img-placeholder rounded-xl"><div class="text-center px-4"><p class="font-mono font-bold text-indigo-700">design-03-pdf-print.png</p></div></div>
+            <figcaption class="text-xs text-slate-500 mt-2"><code>design-03-pdf-print.png</code> — PDF 미리보기 또는 폼텍 셀 선택 모달</figcaption>
           </figure>
 
           <h4 class="text-lg font-bold text-slate-800 mt-10 mb-3">6. 인쇄·PDF 동작 요약</h4>
@@ -1011,19 +1258,45 @@
             </ul>
           </div>
         </article>
+        <!-- 매출 캘린더 -->
+        <article id="nav-revenue" class="anchor-offset mb-20 border border-emerald-200 rounded-3xl p-8 md:p-10 bg-gradient-to-br from-white via-emerald-50/30 to-teal-50/40 shadow-md">
+          <div class="flex flex-wrap items-center gap-3 mb-4">
+            <h3 class="text-2xl font-black text-emerald-900 tracking-tight">매출 캘린더</h3>
+            <span class="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">NEW · 메인</span>
+          </div>
+          <p class="text-xs font-mono text-slate-500 mb-4">경로: <code>/dashboard/revenue</code></p>
+          <p class="text-sm text-slate-700 mb-6 leading-relaxed"><strong>개요</strong> 기념일 D-7 · 구매 후 문자 · SNS AI 초안 · Floxync 귀속 매출을 <strong>한 화면</strong>에서 관리합니다. 왼쪽 사이드바 <strong>마케팅</strong> 그룹의 첫 메뉴입니다.</p>
+          <div class="grid md:grid-cols-2 gap-4 mb-6">
+            <div class="p-4 rounded-xl bg-white border border-emerald-100 text-sm text-slate-700 leading-relaxed">
+              <strong class="text-emerald-800">이용 순서</strong>
+              <ol class="mt-2 space-y-1 list-decimal pl-4 text-xs">
+                <li>고객 CRM에서 기념일·마케팅 동의 등록</li>
+                <li>Auto-Pilot 스위치 ON (기념일 D-7 · 구매 후)</li>
+                <li>설정에서 메시지 템플릿 확인·수정</li>
+                <li>(PRO) Instagram 계정 연결 → SNS Auto-Pilot</li>
+              </ol>
+            </div>
+            <div class="p-4 rounded-xl bg-emerald-900 text-white text-sm leading-relaxed">
+              <strong class="text-emerald-200">문자 발송</strong>
+              <p class="mt-2 text-xs text-emerald-50">매장 명의 <strong>솔라피</strong> 가입·연동 필요. 상세는 <a href="#revenue-engine" class="underline text-white">3-2. 매출 캘린더</a> · <a href="#integration-kakao-alimtalk" class="underline text-white">연동 및 자동화</a> 참고.</p>
+            </div>
+          </div>
+          <p class="text-xs text-slate-500">예전 <strong>AI 홍보 마스터</strong>만 쓰던 SNS·자동화 흐름은 여기로 통합되었습니다.</p>
+        </article>
+
         <!-- 마케팅 -->
         <article id="nav-marketing" class="anchor-offset mb-20 border border-violet-200/80 rounded-3xl p-8 md:p-10 bg-gradient-to-br from-white via-violet-50/40 to-indigo-50/60 shadow-md overflow-hidden relative">
           <div class="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-violet-200/30 to-transparent rounded-full blur-3xl pointer-events-none -translate-y-1/2 translate-x-1/3" aria-hidden="true"></div>
           <div class="relative">
-            <div class="mb-8 p-4 md:p-5 rounded-2xl border-2 border-amber-300/80 bg-amber-50 shadow-sm">
+            <div class="mb-8 p-4 md:p-5 rounded-2xl border-2 border-slate-300/80 bg-slate-50 shadow-sm">
               <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
-                <span class="inline-flex items-center gap-2 text-sm font-black text-amber-950">
-                  <span class="px-2.5 py-1 rounded-lg bg-amber-500 text-white text-[10px] uppercase tracking-widest">Beta</span>
-                  AI 홍보 마스터는 현재 <strong>개발 중</strong>입니다
+                <span class="inline-flex items-center gap-2 text-sm font-black text-slate-800">
+                  <span class="px-2.5 py-1 rounded-lg bg-slate-500 text-white text-[10px] uppercase tracking-widest">Legacy</span>
+                  SNS·자동 홍보의 <strong>메인 화면은 매출 캘린더</strong>로 이전되었습니다
                 </span>
               </div>
-              <p class="text-sm text-amber-950/90 leading-relaxed mb-2">화면과 매뉴얼에 적힌 기능은 <strong>목표 설계·진행 중인 구현</strong>을 함께 보여 줍니다. SNS 자동 업로드·매일 스케줄·영상 파이프라인 등은 채널별 API·백엔드 작업이 더 필요하며, 동작이 어긋날 수 있습니다.</p>
-              <p class="text-xs text-amber-900/80 leading-relaxed"><strong>추후 개발</strong>을 이어 갈 때 사장님·운영에서의 사용 시나리오와 “꼭 필요한 채널 순서”를 알려 주시면 우선순위를 잡는 데 큰 도움이 됩니다. (문서·제품 모두 점진적으로 맞춰 갈 예정입니다.)</p>
+              <p class="text-sm text-slate-700 leading-relaxed mb-2">기념일 문자·구매 후 시퀀스·Instagram 연결·SNS 초안은 <a href="#nav-revenue" class="text-emerald-700 underline font-semibold">매출 캘린더</a> (<code>/dashboard/revenue</code>)에서 사용하세요. 이 메뉴는 <strong>브랜드 DNA·레거시 AI 홍보</strong> 실험용으로 남아 있습니다.</p>
+              <p class="text-xs text-slate-600 leading-relaxed">일부 채널 자동 게시·영상 파이프라인은 아직 완성 단계가 아닐 수 있습니다.</p>
             </div>
 
             <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 mb-8">
@@ -1031,7 +1304,7 @@
                 <p class="text-[10px] font-black uppercase tracking-[0.2em] text-violet-600 mb-2">Marketing · 자동화</p>
                 <div class="flex flex-wrap items-center gap-3 mb-2">
                   <h3 class="text-3xl font-black text-slate-900 tracking-tight">AI 홍보 마스터</h3>
-                  <span class="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-slate-200 text-slate-700 border border-slate-300">개발 중</span>
+                  <span class="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-slate-200 text-slate-700 border border-slate-300">레거시</span>
                 </div>
                 <p class="text-xs font-mono text-slate-500">경로: <code>/dashboard/marketing</code></p>
               </div>
@@ -1113,7 +1386,7 @@
 
   <script>
     // Smooth scroll and active state for sidebar links
-    const sections = document.querySelectorAll('section, article[id^="nav-"], div[id^="settings-"], div[id^="orders-"], div[id^="integration-"], #calendar');
+    const sections = document.querySelectorAll('section, article[id^="nav-"], div[id^="settings-"], div[id^="orders-"], div[id^="integration-"], #calendar, #revenue-engine');
     const navLinks = document.querySelectorAll('.sidebar-link');
 
     window.addEventListener('scroll', () => {
@@ -1143,6 +1416,17 @@
           target.scrollIntoView({ behavior: 'smooth' });
         }
       });
+    });
+
+    // 캡처 PNG 없으면 회색 placeholder + 파일명 표시
+    document.querySelectorAll('.manual-shot-img').forEach((img) => {
+      const showMissing = () => {
+        img.classList.add('hidden');
+        const miss = img.nextElementSibling;
+        if (miss?.classList.contains('manual-shot-missing')) miss.classList.remove('hidden');
+      };
+      img.addEventListener('error', showMissing);
+      if (img.complete && img.naturalHeight === 0) showMissing();
     });
   </script>
 </body>

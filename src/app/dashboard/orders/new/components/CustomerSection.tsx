@@ -9,6 +9,7 @@ import { Search } from "lucide-react";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
 import { pickUiText } from "@/i18n/pick-ui-text";
+import { cn } from "@/lib/utils";
 
 export interface Branch {
     id: string;
@@ -41,6 +42,12 @@ interface CustomerSectionProps {
     setIsAnonymous: (isAnonymous: boolean) => void;
     registerCustomer: boolean;
     setRegisterCustomer: (register: boolean) => void;
+    registerAnniversaryFromOrder: boolean;
+    setRegisterAnniversaryFromOrder: (v: boolean) => void;
+    marketingConsent: boolean;
+    setMarketingConsent: (consent: boolean) => void;
+    selectedCustomer: Customer | null;
+    hasOrdererIdentity: boolean;
 
     formatPhoneNumber: (value: string) => string;
 }
@@ -67,6 +74,12 @@ export function CustomerSection({
     setIsAnonymous,
     registerCustomer,
     setRegisterCustomer,
+    registerAnniversaryFromOrder,
+    setRegisterAnniversaryFromOrder,
+    marketingConsent,
+    setMarketingConsent,
+    selectedCustomer,
+    hasOrdererIdentity,
     formatPhoneNumber
 }: CustomerSectionProps) {
     const locale = usePreferredLocale();
@@ -185,14 +198,14 @@ export function CustomerSection({
                     </div>
                 </div>
 
-                <div className="flex items-center gap-6 pt-2">
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-2 pt-2">
                     <div className="flex items-center space-x-2">
                         <Checkbox
                             id="anonymous"
                             checked={isAnonymous}
                             onCheckedChange={(checked) => setIsAnonymous(checked as boolean)}
                         />
-                        <Label htmlFor="anonymous" className="leading-none cursor-pointer">{tf.f00512}</Label>
+                        <Label htmlFor="anonymous" className="leading-none cursor-pointer text-sm">{tf.f00512}</Label>
                     </div>
 
                     <div className="flex items-center space-x-2">
@@ -200,11 +213,43 @@ export function CustomerSection({
                             id="registerCustomer"
                             checked={registerCustomer}
                             onCheckedChange={(checked) => setRegisterCustomer(checked as boolean)}
-                            disabled={isAnonymous || !!customerSearchResults.find(c => c.contact === ordererContact && c.name === ordererName)}
+                            disabled={isAnonymous || !!selectedCustomer}
                         />
-                        <Label htmlFor="registerCustomer" className="leading-none cursor-pointer">{tf.f00067}</Label>
+                        <Label htmlFor="registerCustomer" className={cn("leading-none text-sm", !isAnonymous && !selectedCustomer && "cursor-pointer")}>
+                            {tf.f00067}
+                        </Label>
                     </div>
+
+                    {!isAnonymous && (
+                        <div className="flex items-center space-x-2">
+                            <Checkbox
+                                id="registerAnniversaryFromOrder"
+                                checked={registerAnniversaryFromOrder}
+                                onCheckedChange={(checked) => setRegisterAnniversaryFromOrder(checked === true)}
+                                disabled={!marketingConsent || !hasOrdererIdentity}
+                            />
+                            <Label
+                                htmlFor="registerAnniversaryFromOrder"
+                                className={cn("leading-none text-sm", hasOrdererIdentity ? "cursor-pointer" : "text-muted-foreground")}
+                            >
+                                {pickUiText(baseLocale, "기념일로등록", "Anniversary")}
+                            </Label>
+                        </div>
+                    )}
                 </div>
+
+                {!isAnonymous && (
+                    <div className="flex items-center space-x-2 pt-1">
+                        <Checkbox
+                            id="marketingConsent"
+                            checked={marketingConsent}
+                            onCheckedChange={(checked) => setMarketingConsent(checked === true)}
+                        />
+                        <Label htmlFor="marketingConsent" className="leading-none cursor-pointer text-sm">
+                            {pickUiText(baseLocale, "마케팅 및 문자 수신 동의", "Marketing & SMS opt-in")}
+                        </Label>
+                    </div>
+                )}
             </CardContent>
         </Card>
     );

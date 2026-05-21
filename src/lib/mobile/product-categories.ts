@@ -90,7 +90,7 @@ export function filterProductsForMobilePicker(
 export function resolveMobileProductCategory(
   categories: string[],
   selected: string | null,
-  fallback = MOBILE_PRODUCT_CATEGORY_PRIORITY[0]
+  fallback: string = MOBILE_PRODUCT_CATEGORY_PRIORITY[0]
 ): string | null {
   if (selected && categories.includes(selected)) return selected;
   if (categories.length === 0) return null;

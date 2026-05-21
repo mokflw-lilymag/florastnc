@@ -59,3 +59,5 @@ supabase/.temp/
 scripts/data/tenant-flow-mt-cache.json
 scripts/data/dashboard-eu-mt-cache.json
 scripts/.dashboard-ja-lingva-cache.json
+
+.trigger

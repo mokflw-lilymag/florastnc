@@ -28,7 +28,8 @@ import {
   User, 
   Building2, 
   Phone,
-  Star
+  Star,
+  Bell
 } from "lucide-react";
 import { 
   AlertDialog, 
@@ -43,15 +44,17 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Customer } from "@/types/customer";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { getCustomerDisplayName } from "@/lib/customer-order-match";
 
 interface CustomerTableProps {
   customers: Customer[];
+  displayNames: Map<string, string>;
   onEdit: (customer: Customer) => void;
   onDelete: (id: string) => void;
   onRowClick?: (customer: Customer) => void;
 }
 
-export function CustomerTable({ customers, onEdit, onDelete, onRowClick }: CustomerTableProps) {
+export function CustomerTable({ customers, displayNames, onEdit, onDelete, onRowClick }: CustomerTableProps) {
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
   const getGradeBadge = (grade: string | null) => {
@@ -98,7 +101,15 @@ export function CustomerTable({ customers, onEdit, onDelete, onRowClick }: Custo
                         {customer.type === 'company' ? <Building2 className="h-4 w-4" /> : <User className="h-4 w-4" />}
                       </div>
                       <div className="flex flex-col">
-                        <span className="font-medium text-slate-900">{customer.name}</span>
+                        <span className="font-medium text-slate-900 flex flex-wrap items-center gap-1.5">
+                          {getCustomerDisplayName(customer, displayNames)}
+                          {customer.marketing_consent ? (
+                            <Badge className="bg-emerald-50 text-emerald-700 hover:bg-emerald-50 border border-emerald-200 text-[10px] font-bold gap-0.5 px-1.5 py-0 h-5">
+                              <Bell className="h-3 w-3" />
+                              알림동의
+                            </Badge>
+                          ) : null}
+                        </span>
                         {customer.company_name && (
                           <span className="text-xs text-slate-500">{customer.company_name}</span>
                         )}
@@ -163,7 +174,7 @@ export function CustomerTable({ customers, onEdit, onDelete, onRowClick }: Custo
                         <AlertDialogHeader>
                           <AlertDialogTitle className="text-slate-900">{tf.f00064}</AlertDialogTitle>
                           <AlertDialogDescription className="text-slate-500">
-                            {tf.f00808.replace("{name}", customer.name)}
+                            {tf.f00808.replace("{name}", getCustomerDisplayName(customer, displayNames))}
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>

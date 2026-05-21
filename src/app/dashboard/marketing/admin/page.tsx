@@ -26,6 +26,8 @@ import { createClient } from '@/utils/supabase/client';
 import { usePreferredLocale } from '@/hooks/use-preferred-locale';
 import { toBaseLocale } from '@/i18n/config';
 import { pickUiText } from '@/i18n/pick-ui-text';
+import { RevenueIntegrationsPanel } from '@/components/admin/revenue-integrations-panel';
+import type { RevenueIntegrationsConfig } from '@/lib/revenue/types';
 
 export default function MarketingAdmin() {
   const [loading, setLoading] = useState(false);
@@ -106,10 +108,11 @@ export default function MarketingAdmin() {
       </div>
 
       <Tabs defaultValue="sns" className="w-full">
-        <TabsList className="grid w-full max-w-2xl grid-cols-4 mb-8 h-12 bg-slate-50 dark:bg-slate-900 ring-1 ring-slate-100 dark:ring-slate-800">
+        <TabsList className="grid w-full max-w-3xl grid-cols-5 mb-8 h-12 bg-slate-50 dark:bg-slate-900 ring-1 ring-slate-100 dark:ring-slate-800">
           <TabsTrigger value="sns" className="gap-2 font-bold"><Globe className="w-4 h-4" /> {tf.f02291}</TabsTrigger>
           <TabsTrigger value="ai" className="gap-2 font-bold"><Brain className="w-4 h-4" /> {tf.f02239}</TabsTrigger>
           <TabsTrigger value="workflow" className="gap-2 font-bold"><Webhook className="w-4 h-4" /> {tf.f01636}</TabsTrigger>
+          <TabsTrigger value="revenue" className="gap-2 font-bold text-emerald-700"><Zap className="w-4 h-4" /> {L("매출엔진", "Revenue", "Doanh thu", "売上", "营收", "Ingresos", "Receita", "Revenus", "Umsatz", "Выручка")}</TabsTrigger>
           <TabsTrigger value="global" className="gap-2 font-bold"><Zap className="w-4 h-4" /> {tf.f00959}</TabsTrigger>
         </TabsList>
 
@@ -270,51 +273,31 @@ export default function MarketingAdmin() {
           <Card className="border-none shadow-xl ring-1 ring-slate-100 dark:ring-slate-800">
             <CardHeader className="border-b bg-slate-50/50 dark:bg-slate-900/50">
               <CardTitle className="flex items-center gap-2">
-                <Webhook className="w-5 h-5 text-indigo-600" /> {tf.f02269}
+                <Webhook className="w-5 h-5 text-indigo-600" /> Trigger.dev + Postiz
               </CardTitle>
-              <CardDescription>{tf.f01197}</CardDescription>
+              <CardDescription>
+                {L(
+                  "n8n은 Phase 2에서 제거됐습니다. Trigger.dev + Postiz 연동은 「매출엔진」 탭에서 설정하세요.",
+                  "n8n removed in Phase 2. Configure Trigger.dev + Postiz in the Revenue tab.",
+                  "n8n đã bỏ ở Phase 2. Cấu hình Trigger.dev + Postiz ở tab Doanh thu.",
+                )}
+              </CardDescription>
             </CardHeader>
-            <CardContent className="pt-8 space-y-6">
-              <div className="grid grid-cols-1 gap-6">
-                <div className="space-y-4">
-                  <Label className="font-bold text-indigo-600">
-                    {L(
-                      "전역 마스터 웹훅 URL",
-                      "Global Master Webhook URL",
-                      "URL webhook tổng (n8n)",
-                      "グローバルマスター Webhook URL",
-                      "全局主 Webhook URL",
-                      "URL de webhook maestro global",
-                      "URL do webhook mestre global",
-                      "URL webhook maître global",
-                      "Globale Master-Webhook-URL",
-                      "Глобальный URL основного вебхука",
-                    )}
-                  </Label>
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder={L(
-                        "https://n8n.your-domain.com/webhook/...",
-                        "https://n8n.your-domain.com/webhook/...",
-                        "https://n8n.your-domain.com/webhook/...",
-                        "https://n8n.your-domain.com/webhook/...",
-                        "https://n8n.your-domain.com/webhook/...",
-                        "https://n8n.your-domain.com/webhook/...",
-                        "https://n8n.your-domain.com/webhook/...",
-                        "https://n8n.your-domain.com/webhook/...",
-                        "https://n8n.your-domain.com/webhook/...",
-                        "https://n8n.your-domain.com/webhook/...",
-                      )}
-                      className="flex-1 font-mono text-xs"
-                      value={config.n8n_master_url || ''} 
-                      onChange={(e) => setConfig({...config, n8n_master_url: e.target.value})}
-                    />
-                    <Button onClick={() => handleSave('n8n_master_url', config.n8n_master_url)} className="bg-indigo-600">{tf.f01560}</Button>
-                  </div>
-                </div>
-              </div>
+            <CardContent className="pt-8 text-sm text-muted-foreground space-y-2">
+              <p>• npm run trigger:dev / trigger:deploy</p>
+              <p>• Postiz VPS: infra/postiz/docker-compose.yml</p>
+              <p>• 매출 캘린더 → SNS Auto-Pilot · Instagram 연결</p>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="revenue">
+          <RevenueIntegrationsPanel
+            saving={loading}
+            onSave={async (key, value) => {
+              await handleSave(key, value as RevenueIntegrationsConfig);
+            }}
+          />
         </TabsContent>
       </Tabs>
     </div>

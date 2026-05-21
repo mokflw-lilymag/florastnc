@@ -30,6 +30,11 @@ type MobileCustomerSectionProps = {
   setOrdererCompany: (v: string) => void;
   registerCustomer: boolean;
   setRegisterCustomer: (v: boolean) => void;
+  registerAnniversaryFromOrder: boolean;
+  setRegisterAnniversaryFromOrder: (v: boolean) => void;
+  marketingConsent: boolean;
+  setMarketingConsent: (v: boolean) => void;
+  hasOrdererIdentity: boolean;
   usedPoints: number;
   setUsedPoints: (v: number) => void;
   maxUsablePoints: number;
@@ -50,6 +55,11 @@ export function MobileCustomerSection({
   setOrdererCompany,
   registerCustomer,
   setRegisterCustomer,
+  registerAnniversaryFromOrder,
+  setRegisterAnniversaryFromOrder,
+  marketingConsent,
+  setMarketingConsent,
+  hasOrdererIdentity,
   usedPoints,
   setUsedPoints,
   maxUsablePoints,
@@ -104,6 +114,9 @@ export function MobileCustomerSection({
               <p className="text-xs text-gray-600">{selectedCustomer.company_name}</p>
             ) : null}
             <p className="text-xs text-gray-500">{selectedCustomer.contact}</p>
+            {selectedCustomer.marketing_consent ? (
+              <p className="mt-1 text-[10px] font-bold text-emerald-600">알림 수신 동의</p>
+            ) : null}
             <p className="mt-1 text-sm font-black text-emerald-700">
               보유 포인트 {(selectedCustomer.points ?? 0).toLocaleString()}P
             </p>
@@ -153,22 +166,45 @@ export function MobileCustomerSection({
         </div>
       </div>
 
-      <div className="flex items-start gap-2 rounded-lg bg-gray-50 p-3">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="mobile-register-customer"
+            checked={registerCustomer}
+            onCheckedChange={(c) => setRegisterCustomer(!!c)}
+            disabled={!!selectedCustomer}
+          />
+          <Label
+            htmlFor="mobile-register-customer"
+            className={cn("text-xs", selectedCustomer ? "text-gray-400" : "cursor-pointer")}
+          >
+            고객 등록
+          </Label>
+        </div>
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="mobile-anniversary-from-order"
+            checked={registerAnniversaryFromOrder}
+            onCheckedChange={(c) => setRegisterAnniversaryFromOrder(!!c)}
+            disabled={!marketingConsent || !hasOrdererIdentity}
+          />
+          <Label
+            htmlFor="mobile-anniversary-from-order"
+            className={cn("text-xs", hasOrdererIdentity ? "cursor-pointer" : "text-gray-400")}
+          >
+            기념일로등록
+          </Label>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2">
         <Checkbox
-          id="mobile-register-customer"
-          checked={registerCustomer}
-          onCheckedChange={(c) => setRegisterCustomer(!!c)}
-          disabled={!!selectedCustomer}
+          id="mobile-marketing-consent"
+          checked={marketingConsent}
+          onCheckedChange={(c) => setMarketingConsent(!!c)}
         />
-        <Label
-          htmlFor="mobile-register-customer"
-          className={cn(
-            "text-xs leading-snug",
-            selectedCustomer ? "text-gray-400" : "cursor-pointer"
-          )}
-        >
-          이 주문자를 신규 고객으로 등록합니다.
-          {selectedCustomer ? " (기존 고객 선택 시 비활성)" : ""}
+        <Label htmlFor="mobile-marketing-consent" className="text-xs cursor-pointer">
+          마케팅 및 문자 수신 동의
         </Label>
       </div>
 

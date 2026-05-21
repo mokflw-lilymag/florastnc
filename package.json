@@ -30,7 +30,9 @@
     "i18n:apply-core-ui-en-parity": "node scripts/apply-core-ui-en-parity.mjs",
     "i18n:apply-all-ui-parity": "node scripts/apply-tenantflow-ui-parity.mjs && node scripts/apply-landing-en-parity.mjs && node scripts/apply-core-ui-en-parity.mjs",
     "cap:sync": "npx cap sync android",
-    "cap:open": "npx cap open android"
+    "cap:open": "npx cap open android",
+    "trigger:dev": "npx trigger.dev@4.4.6 dev --env-file .env.local",
+    "trigger:deploy": "npx trigger.dev@4.4.6 deploy --env-file .env.local"
   },
   "dependencies": {
     "@base-ui/react": "^1.3.0",
@@ -50,6 +52,7 @@
     "@tiptap/react": "^3.22.4",
     "@tiptap/starter-kit": "^3.22.4",
     "@tosspayments/payment-sdk": "^1.9.2",
+    "@trigger.dev/sdk": "4.4.6",
     "@types/lodash": "^4.17.24",
     "axios": "^1.15.2",
     "class-variance-authority": "^0.7.1",
@@ -82,6 +85,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@trigger.dev/build": "4.4.6",
     "@types/file-saver": "^2.0.7",
     "@types/node": "^20",
     "@types/react": "^19",

@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS point_transactions (
     type TEXT NOT NULL,                -- 'earn' | 'use' | 'cancel' | 'manual'
     source TEXT NOT NULL,              -- 'pos' | 'order' | 'system' | 'manual'
     description TEXT,                  -- 상세 사유 (예: "POS 결제 적립 - TEST-1234")
+    balance_after INTEGER,             -- 거래 직후 보유 포인트
     related_id UUID,                   -- 연관된 주문 ID 등 (선택)
     created_at TIMESTAMPTZ DEFAULT now()
 );

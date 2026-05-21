@@ -18,7 +18,9 @@ import {
   TrendingUp,
   CreditCard,
   Target,
-  Trophy
+  Trophy,
+  Heart,
+  Bell,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { 
@@ -39,14 +41,24 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Customer } from "@/types/customer";
+import type { CustomerAnniversaryInput } from "@/types/customer";
 import { createClient } from "@/utils/supabase/client";
 import { OrderDetailDialog } from "@/app/dashboard/orders/components/order-detail-dialog";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
+import { pickUiText } from "@/i18n/pick-ui-text";
+import { PENDING_ANNIVERSARY_LABEL } from "@/lib/revenue/order-anniversary-register";
 import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
+import {
+  computeCustomerOrderStats,
+  filterOrdersForCustomer,
+  isPlaceholderContact,
+} from "@/lib/customer-order-match";
+import { attachPointBalances } from "@/lib/customers/point-transactions";
 
 interface CustomerDetailDialogProps {
   customer: Customer | null;
+  displayName?: string;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   onIssueStatement?: (customer: Customer) => void;
@@ -56,19 +68,22 @@ interface CustomerDetailDialogProps {
 }
 
 export function CustomerDetailDialog({ 
-  customer, 
+  customer,
+  displayName,
   isOpen, 
   onOpenChange,
   onIssueStatement,
   onIssueReceipt,
   onIssueEstimate,
-  onEdit
+  onEdit,
 }: CustomerDetailDialogProps) {
   const supabase = createClient();
   const [orders, setOrders] = useState<any[]>([]);
   const [pointTransactions, setPointTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [pointsLoading, setPointsLoading] = useState(false);
+  const [anniversaries, setAnniversaries] = useState<CustomerAnniversaryInput[]>([]);
+  const [anniversariesLoading, setAnniversariesLoading] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [isOrderDetailOpen, setIsOrderDetailOpen] = useState(false);
   const locale = usePreferredLocale();
@@ -79,32 +94,87 @@ export function CustomerDetailDialog({
 
   const formatOrderRowDate = (d: Date) => format(d, "PP", { locale: dfLoc });
 
+  const pointTransactionsWithBalance = useMemo(() => {
+    if (!customer) return [];
+    return attachPointBalances(pointTransactions, customer.points || 0);
+  }, [pointTransactions, customer?.points, customer]);
+
   useEffect(() => {
     if (isOpen && customer) {
       fetchCustomerOrders();
       fetchPointTransactions();
+      fetchAnniversaries();
     }
-  }, [isOpen, customer]);
+  }, [isOpen, customer?.id, customer?.points]);
+
+  const fetchAnniversaries = async () => {
+    if (!customer) return;
+    setAnniversariesLoading(true);
+    try {
+      const res = await fetch(`/api/revenue/anniversary?customerId=${customer.id}`);
+      const json = await res.json();
+      if (res.ok) setAnniversaries(json.anniversaries ?? []);
+    } catch (err) {
+      console.error("Error fetching anniversaries:", err);
+    } finally {
+      setAnniversariesLoading(false);
+    }
+  };
 
   const fetchCustomerOrders = async () => {
     if (!customer) return;
     setLoading(true);
     try {
-      const contactNoHyphens = customer.contact?.replace(/-/g, '');
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('tenant_id', customer.tenant_id)
-        .or(`orderer->>contact.eq.${customer.contact}${contactNoHyphens ? `,orderer->>contact.eq.${contactNoHyphens}` : ''}`)
-        .order('order_date', { ascending: false });
+      const queries = [
+        supabase
+          .from("orders")
+          .select("*")
+          .eq("tenant_id", customer.tenant_id)
+          .eq("orderer->>id", customer.id)
+          .neq("status", "canceled")
+          .order("order_date", { ascending: false }),
+      ];
 
-      if (error) throw error;
-      setOrders((data || []).map(row => ({
-        ...row,
-        completionPhotoUrl: row.completionphotourl
-      })));
+      if (customer.contact && !isPlaceholderContact(customer.contact)) {
+        const contactNoHyphens = customer.contact.replace(/-/g, "");
+        queries.push(
+          supabase
+            .from("orders")
+            .select("*")
+            .eq("tenant_id", customer.tenant_id)
+            .or(
+              `orderer->>contact.eq.${customer.contact},orderer->>contact.eq.${contactNoHyphens}`
+            )
+            .neq("status", "canceled")
+            .order("order_date", { ascending: false })
+        );
+      }
+
+      const results = await Promise.all(queries);
+      const fetchError = results.find((result) => result.error)?.error;
+      if (fetchError) throw fetchError;
+
+      type OrderRow = NonNullable<(typeof results)[number]["data"]>[number];
+      const merged = new Map<string, OrderRow>();
+      for (const result of results) {
+        for (const row of result.data || []) {
+          merged.set(row.id, row);
+        }
+      }
+
+      const matched = filterOrdersForCustomer(Array.from(merged.values()), customer).sort(
+        (a, b) =>
+          new Date(b.order_date).getTime() - new Date(a.order_date).getTime()
+      );
+
+      setOrders(
+        matched.map((row) => ({
+          ...row,
+          completionPhotoUrl: row.completionphotourl,
+        }))
+      );
     } catch (err) {
-      console.error('Error fetching customer orders:', err);
+      console.error("Error fetching customer orders:", err);
     } finally {
       setLoading(false);
     }
@@ -130,13 +200,15 @@ export function CustomerDetailDialog({
   };
 
   const stats = useMemo(() => {
-     if (orders.length === 0) return { total: 0, count: 0, lastDate: null };
+     const computed = computeCustomerOrderStats(orders);
      return {
-        total: orders.reduce((sum, o) => sum + (o.summary?.total || 0), 0),
-        count: orders.length,
-        lastDate: orders[0].order_date
+        total: computed.total_spent,
+        count: computed.order_count,
+        lastDate: computed.last_order_date,
      };
   }, [orders]);
+
+  const resolvedDisplayName = displayName || customer?.name || "";
 
   const handleOrderClick = (order: any) => {
     setSelectedOrder(order);
@@ -156,7 +228,7 @@ export function CustomerDetailDialog({
                  </div>
                  <div>
                     <div className="flex items-center gap-2">
-                       <DialogTitle className="text-2xl font-black text-slate-900">{customer.name}</DialogTitle>
+                       <DialogTitle className="text-2xl font-black text-slate-900">{resolvedDisplayName}</DialogTitle>
                         <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-100 uppercase tracking-tighter font-black text-[10px]">
                            {customer.grade || tf.f00526}
                         </Badge>
@@ -165,6 +237,12 @@ export function CustomerDetailDialog({
                             {tf.f00010}
                           </Badge>
                         )}
+                        {customer.marketing_consent ? (
+                          <Badge className="bg-emerald-600 text-white border-none h-5 px-1.5 text-[9px] font-bold gap-1 flex items-center shadow-sm">
+                            <Bell className="h-3 w-3" />
+                            알림동의
+                          </Badge>
+                        ) : null}
                      </div>
                     <DialogDescription className="text-slate-500 font-medium">
                        {customer.company_name ? `${customer.company_name} · ${customer.department || tf.f00295}` : tf.f00029}
@@ -238,7 +316,7 @@ export function CustomerDetailDialog({
             <Tabs defaultValue="history" className="w-full">
                <TabsList className="grid w-full grid-cols-3 bg-white/50 backdrop-blur-sm border border-slate-200 rounded-xl p-1">
                   <TabsTrigger value="history" className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">{tf.f00606} ({orders.length})</TabsTrigger>
-                  <TabsTrigger value="points" className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm text-amber-600">{tf.f00730}</TabsTrigger>
+                  <TabsTrigger value="points" className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm text-amber-600">{tf.f00730} ({pointTransactions.length})</TabsTrigger>
                   <TabsTrigger value="info" className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">{tf.f00315}</TabsTrigger>
                </TabsList>
                
@@ -255,9 +333,9 @@ export function CustomerDetailDialog({
                               <div className="p-4 space-y-4">
                                  {[1, 2, 3].map(i => <Skeleton key={i} className="h-16 w-full rounded-xl" />)}
                                </div>
-                           ) : pointTransactions.length > 0 ? (
+                           ) : pointTransactionsWithBalance.length > 0 ? (
                               <div className="divide-y divide-slate-50">
-                                 {pointTransactions.map((tx) => (
+                                 {pointTransactionsWithBalance.map((tx) => (
                                     <div key={tx.id} className="p-4 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
                                        <div className="flex items-center gap-4">
                                           <div className={cn(
@@ -272,10 +350,20 @@ export function CustomerDetailDialog({
                                              <p className="text-sm font-bold text-slate-800">{tx.description || tf.f00731}</p>
                                              <div className="flex items-center gap-2 text-[10px] text-slate-400 font-medium">
                                                 <Badge variant="outline" className="text-[8px] h-4 px-1 leading-none border-slate-200 uppercase tracking-tighter">
-                                                   {tx.source === 'pos' ? '📟 POS' : tx.source === 'order' ? tf.f00012 : tf.f00009}
+                                                   {tx.source === 'pos'
+                                                     ? '📟 POS'
+                                                     : tx.source === 'order'
+                                                       ? tf.f00012
+                                                       : tx.source === 'manual'
+                                                         ? pickUiText(toBaseLocale(locale), '📝 수동', '📝 Manual')
+                                                         : tf.f00009}
                                                 </Badge>
                                                 <span>{format(new Date(tx.created_at), "Pp", { locale: dfLoc })}</span>
                                              </div>
+                                             <p className="text-xs font-semibold text-amber-700">
+                                               {pickUiText(toBaseLocale(locale), "거래 후 잔액", "Balance after")}{" "}
+                                               {tx.balanceAfter.toLocaleString()}P
+                                             </p>
                                           </div>
                                        </div>
                                        <div className="text-right">
@@ -283,7 +371,7 @@ export function CustomerDetailDialog({
                                              "text-[10px] px-1.5 py-0",
                                              tx.type === 'earn' ? 'bg-emerald-500' : tx.type === 'use' ? 'bg-rose-500' : 'bg-slate-500'
                                           )}>
-                                             {tx.type === 'earn' ? tf.f00544 : tx.type === 'use' ? tf.f00302 : tx.type === 'cancel' ? tf.f00702 : tf.f00115}
+                                             {tx.type === 'earn' ? tf.f00544 : tx.type === 'use' ? tf.f00302 : tx.type === 'cancel' ? tf.f00702 : tx.type === 'manual' ? pickUiText(toBaseLocale(locale), '수동', 'Manual') : tf.f00115}
                                           </Badge>
                                        </div>
                                     </div>
@@ -396,6 +484,21 @@ export function CustomerDetailDialog({
                               <p className="text-slate-900 font-bold">{customer.contact || tf.f00167}</p>
                            </div>
                            <div className="space-y-1">
+                              <Label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                                {pickUiText(toBaseLocale(locale), "마케팅·기념일 알림", "Marketing & anniversary alerts")}
+                              </Label>
+                              <p className={cn(
+                                "text-sm font-bold flex items-center gap-1.5",
+                                customer.marketing_consent ? "text-emerald-700" : "text-slate-500",
+                              )}>
+                                {customer.marketing_consent ? (
+                                  <><Bell className="h-4 w-4" /> {pickUiText(toBaseLocale(locale), "수신 동의", "Opted in")}</>
+                                ) : (
+                                  pickUiText(toBaseLocale(locale), "미동의", "Not opted in")
+                                )}
+                              </p>
+                           </div>
+                           <div className="space-y-1">
                               <Label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">{tf.f00504}</Label>
                               <p className="text-slate-900 font-bold">{customer.email || tf.f00169}</p>
                            </div>
@@ -426,6 +529,40 @@ export function CustomerDetailDialog({
                         </CardContent>
                      </Card>
                   </div>
+
+                  <Card className="border-slate-200 shadow-sm bg-white mt-4">
+                     <CardHeader className="pb-2 border-b border-slate-50">
+                        <CardTitle className="text-sm font-black text-slate-700 flex items-center gap-2">
+                           <Heart className="h-4 w-4 text-emerald-500" />
+                           {pickUiText(toBaseLocale(locale), "기념일 · 기억하고 싶은 날", "Anniversaries & memorable dates")}
+                        </CardTitle>
+                     </CardHeader>
+                     <CardContent className="pt-4">
+                        {anniversariesLoading ? (
+                           <Skeleton className="h-16 w-full rounded-xl" />
+                        ) : anniversaries.length > 0 ? (
+                           <div className="grid gap-2 sm:grid-cols-2">
+                              {anniversaries.map((row) => (
+                                 <div key={row.id} className="rounded-lg border border-emerald-100 bg-emerald-50/40 px-3 py-2">
+                                    <p className={cn(
+                                      "text-sm font-bold",
+                                      row.label === PENDING_ANNIVERSARY_LABEL ? "text-amber-700" : "text-slate-900",
+                                    )}>{row.label || pickUiText(toBaseLocale(locale), "기념일", "Anniversary")}</p>
+                                    <p className="text-xs text-slate-600 mt-0.5">
+                                      {row.anniversary_date
+                                        ? formatDayLabel(new Date(`${row.anniversary_date}T12:00:00`))
+                                        : "-"}
+                                    </p>
+                                 </div>
+                              ))}
+                           </div>
+                        ) : (
+                           <p className="text-sm text-slate-500">
+                             {pickUiText(toBaseLocale(locale), "등록된 기념일이 없습니다.", "No anniversaries registered yet.")}
+                           </p>
+                        )}
+                     </CardContent>
+                  </Card>
                </TabsContent>
             </Tabs>
          </div>

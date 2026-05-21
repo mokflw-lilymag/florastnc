@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { DashboardMain } from "@/components/layout/dashboard-main";
+import { isBarePrintDocumentPath } from "@/lib/print-routes";
 
 type DashboardShellProps = {
   children: ReactNode;
@@ -22,6 +23,11 @@ export function DashboardShell({
 }: DashboardShellProps) {
   const pathname = usePathname() ?? "";
   const isMobileWorkspace = pathname.startsWith("/dashboard/mobile");
+  const isBarePrintDocument = isBarePrintDocumentPath(pathname);
+
+  if (isBarePrintDocument) {
+    return <div className="min-h-screen bg-white">{children}</div>;
+  }
 
   if (isMobileWorkspace) {
     return (

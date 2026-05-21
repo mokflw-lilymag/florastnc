@@ -50,6 +50,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { cn } from "@/lib/utils";
 import { DashboardTicker } from "@/components/dashboard/dashboard-ticker";
+import { RevenueOnboardingChecklist } from "@/components/revenue/revenue-onboarding-checklist";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
 import { pickUiText } from "@/i18n/pick-ui-text";
@@ -528,6 +529,7 @@ export default function DashboardPage() {
       touchUi ? "p-4 pb-8 sm:p-6" : "p-6 pb-12"
     )}>
       <DashboardTicker />
+      <RevenueOnboardingChecklist />
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
            <h1 className={cn("font-medium text-gray-900 tracking-tight", touchUi ? "text-2xl" : "text-3xl")}>

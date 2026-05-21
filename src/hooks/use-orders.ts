@@ -98,7 +98,15 @@ export function useOrders(initialFetch = true) {
   };
 
   const updateOrderStatus = async (id: string, status: Order['status']): Promise<boolean> => {
-    return updateOrder(id, { status } as any);
+    const ok = await updateOrder(id, { status } as any);
+    if (ok && status === "completed") {
+      fetch("/api/revenue/order-followup/trigger", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: id }),
+      }).catch(() => {});
+    }
+    return ok;
   };
 
   const cancelOrder = async (id: string): Promise<boolean> => {

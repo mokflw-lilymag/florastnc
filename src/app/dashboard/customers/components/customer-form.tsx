@@ -22,19 +22,50 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import Textarea from "@/components/ui/textarea";
-import { Customer, CustomerData } from "@/types/customer";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Plus, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { Customer, CustomerData, CustomerAnniversaryInput } from "@/types/customer";
+import { PENDING_ANNIVERSARY_LABEL } from "@/lib/revenue/order-anniversary-register";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
 import { pickUiText } from "@/i18n/pick-ui-text";
+import { cn } from "@/lib/utils";
 
 interface CustomerFormProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (data: CustomerData) => void;
+  onSubmit: (data: CustomerData) => void | Promise<void>;
   customer?: Customer | null;
+  isSaving?: boolean;
 }
 
-export function CustomerForm({ isOpen, onOpenChange, onSubmit, customer }: CustomerFormProps) {
+const INDIVIDUAL_ANNIVERSARY_PRESETS = [
+  "결혼기념일",
+  "배우자 생일",
+  "부모님 생신",
+  "자녀 생일",
+  "친구 생일",
+  "본인 생일",
+  "첫 방문일",
+  "기타",
+] as const;
+
+const COMPANY_ANNIVERSARY_PRESETS = [
+  "창립기념일",
+  "대표 생일",
+  "임원 생일",
+  "거래처 기념일",
+  "행사·오픈일",
+  "직원 생일",
+  "기타",
+] as const;
+
+function emptyAnniversary(label = ""): CustomerAnniversaryInput {
+  return { label, anniversary_date: "", recurring_yearly: true };
+}
+
+export function CustomerForm({ isOpen, onOpenChange, onSubmit, customer, isSaving = false }: CustomerFormProps) {
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
   const baseLocale = toBaseLocale(locale);
@@ -74,12 +105,36 @@ export function CustomerForm({ isOpen, onOpenChange, onSubmit, customer }: Custo
     address: "",
     grade: tf.f00525,
     points: 0,
-    memo: ""
+    memo: "",
+    marketing_consent: false,
+    anniversaries: [],
+    point_adjustment_reason: "",
   });
+  const [baselinePoints, setBaselinePoints] = useState(0);
 
   useEffect(() => {
     const t = getMessages(locale).tenantFlows;
+    const resetForm = (anniversaries: CustomerAnniversaryInput[] = []) => ({
+      name: "",
+      contact: "",
+      type: "individual" as const,
+      company_name: "",
+      department: "",
+      email: "",
+      address: "",
+      grade: t.f00525,
+      points: 0,
+      memo: "",
+      marketing_consent: false,
+      anniversaries,
+      point_adjustment_reason: "",
+    });
+
+    if (!isOpen) return;
+
     if (customer) {
+      const currentPoints = customer.points || 0;
+      setBaselinePoints(currentPoints);
       setFormData({
         name: customer.name,
         contact: customer.contact || "",
@@ -89,29 +144,99 @@ export function CustomerForm({ isOpen, onOpenChange, onSubmit, customer }: Custo
         email: customer.email || "",
         address: customer.address || "",
         grade: customer.grade || t.f00525,
-        points: customer.points || 0,
-        memo: customer.memo || ""
+        points: currentPoints,
+        memo: customer.memo || "",
+        marketing_consent: customer.marketing_consent ?? false,
+        anniversaries: [],
+        point_adjustment_reason: "",
       });
+
+      fetch(`/api/revenue/anniversary?customerId=${customer.id}`)
+        .then((res) => res.json())
+        .then((json) => {
+          const rows = (json.anniversaries ?? []) as CustomerAnniversaryInput[];
+          setFormData((prev) => ({
+            ...prev,
+            anniversaries: rows.map((row) => ({
+              id: row.id,
+              label: row.label ?? "",
+              anniversary_date: row.anniversary_date ?? "",
+              recurring_yearly: row.recurring_yearly ?? true,
+            })),
+          }));
+        })
+        .catch(() => {});
     } else {
-      setFormData({
-        name: "",
-        contact: "",
-        type: "individual",
-        company_name: "",
-        department: "",
-        email: "",
-        address: "",
-        grade: t.f00525,
-        points: 0,
-        memo: ""
-      });
+      setBaselinePoints(0);
+      setFormData(resetForm());
     }
   }, [customer, isOpen, locale]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit(formData);
+  const anniversaryPresets =
+    formData.type === "company" ? COMPANY_ANNIVERSARY_PRESETS : INDIVIDUAL_ANNIVERSARY_PRESETS;
+
+  const addAnniversary = (label = "") => {
+    setFormData((prev) => ({
+      ...prev,
+      anniversaries: [...(prev.anniversaries ?? []), emptyAnniversary(label)],
+    }));
   };
+
+  const updateAnniversary = (index: number, patch: Partial<CustomerAnniversaryInput>) => {
+    setFormData((prev) => ({
+      ...prev,
+      anniversaries: (prev.anniversaries ?? []).map((row, i) => (i === index ? { ...row, ...patch } : row)),
+    }));
+  };
+
+  const removeAnniversary = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      anniversaries: (prev.anniversaries ?? []).filter((_, i) => i !== index),
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isSaving) return;
+
+    const currentPoints = formData.points ?? 0;
+    const pointDelta = currentPoints - baselinePoints;
+    const reason = (formData.point_adjustment_reason ?? "").trim();
+
+    if (pointDelta !== 0 && !reason) {
+      toast.error(
+        pickUiText(
+          baseLocale,
+          "포인트를 변경할 때는 적립/차감 사유를 입력해 주세요.",
+          "Please enter a reason when changing points.",
+        ),
+      );
+      return;
+    }
+
+    if (!customer && currentPoints > 0 && !reason) {
+      toast.error(
+        pickUiText(
+          baseLocale,
+          "초기 포인트를 설정할 때는 사유를 입력해 주세요.",
+          "Please enter a reason for the initial points.",
+        ),
+      );
+      return;
+    }
+
+    await onSubmit({
+      ...formData,
+      point_adjustment_reason: reason,
+      point_adjustment_idempotency_key: crypto.randomUUID(),
+    });
+  };
+
+  const currentPoints = formData.points ?? 0;
+  const pointDelta = currentPoints - baselinePoints;
+  const showPointReason =
+    pointDelta !== 0 || (!customer && currentPoints > 0);
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -233,12 +358,52 @@ export function CustomerForm({ isOpen, onOpenChange, onSubmit, customer }: Custo
                 <Input 
                   id="customer-points"
                   type="number"
+                  min={0}
                   value={formData.points === undefined ? "" : formData.points} 
                   onChange={e => setFormData(prev => ({ ...prev, points: e.target.value ? parseInt(e.target.value) : 0 }))}
                   placeholder={tf.f00453}
                 />
+                {customer && pointDelta !== 0 && (
+                  <p className={cn(
+                    "text-xs font-medium",
+                    pointDelta > 0 ? "text-emerald-600" : "text-rose-600",
+                  )}>
+                    {pointDelta > 0 ? "+" : ""}{pointDelta.toLocaleString()}P{" "}
+                    {pickUiText(baseLocale, "변경", "change")}
+                    {" "}({baselinePoints.toLocaleString()}P → {currentPoints.toLocaleString()}P)
+                  </p>
+                )}
               </div>
             </div>
+
+            {showPointReason && (
+              <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50/60 p-4">
+                <Label htmlFor="point-adjustment-reason" className="text-slate-800 font-semibold">
+                  {pickUiText(baseLocale, "적립/차감 사유", "Earn / deduct reason")}
+                  <span className="text-red-500 ml-1">*</span>
+                </Label>
+                <Textarea
+                  id="point-adjustment-reason"
+                  value={formData.point_adjustment_reason ?? ""}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, point_adjustment_reason: e.target.value }))
+                  }
+                  placeholder={pickUiText(
+                    baseLocale,
+                    "예: 선불 10만원 충전, 오입력 정정, VIP 감사 포인트",
+                    "e.g. Prepaid top-up, correction, VIP bonus",
+                  )}
+                  className="min-h-[72px] resize-none bg-white"
+                />
+                <p className="text-[11px] text-amber-900/70">
+                  {pickUiText(
+                    baseLocale,
+                    "입력한 내용이 포인트 내역에 그대로 표시됩니다.",
+                    "This text appears as-is in point history.",
+                  )}
+                </p>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="memo" className="text-slate-700 font-medium">{tf.f00197}</Label>
@@ -250,12 +415,112 @@ export function CustomerForm({ isOpen, onOpenChange, onSubmit, customer }: Custo
                 className="resize-none h-20"
               />
             </div>
+
+            <div className="rounded-lg border border-emerald-100 bg-emerald-50/40 p-4 space-y-3">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="text-sm font-semibold text-emerald-900">
+                    {pickUiText(baseLocale, "매출 엔진 · 기념일 (선택)", "Revenue · anniversaries (optional)")}
+                  </p>
+                  <p className="text-xs text-emerald-800/80 mt-0.5">
+                    {pickUiText(
+                      baseLocale,
+                      formData.type === "company"
+                        ? "창립기념일, 거래처 기념일, 임원 생일 등 여러 날짜를 등록할 수 있어요."
+                        : "결혼기념일, 가족·친구 생일 등 기억하고 싶은 날을 모두 등록할 수 있어요.",
+                      formData.type === "company"
+                        ? "Add founding days, partner milestones, executive birthdays, and more."
+                        : "Add wedding anniversaries, family birthdays, friend birthdays, and more.",
+                    )}
+                  </p>
+                </div>
+                <Button type="button" size="sm" variant="outline" className="shrink-0" onClick={() => addAnniversary()}>
+                  <Plus className="w-3.5 h-3.5 mr-1" />
+                  {pickUiText(baseLocale, "추가", "Add")}
+                </Button>
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="marketing-consent"
+                  checked={formData.marketing_consent ?? false}
+                  onCheckedChange={(v) =>
+                    setFormData((prev) => ({ ...prev, marketing_consent: v === true }))
+                  }
+                />
+                <Label htmlFor="marketing-consent" className="text-sm font-normal cursor-pointer">
+                  {pickUiText(baseLocale, "마케팅·기념일 알림 수신 동의 (선택)", "Marketing & anniversary alerts (optional)")}
+                </Label>
+                <p className="text-[11px] text-emerald-800/70 pl-6">
+                  {pickUiText(
+                    baseLocale,
+                    "체크하지 않아도 고객 저장은 됩니다. 동의한 고객만 매출 캘린더 문자 대상입니다.",
+                    "Saving works without this. Only opted-in customers receive campaign messages.",
+                  )}
+                </p>
+              </div>
+              {(formData.anniversaries ?? []).length === 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {anniversaryPresets.slice(0, 4).map((label) => (
+                    <Button
+                      key={label}
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      className="h-7 text-xs"
+                      onClick={() => addAnniversary(label)}
+                    >
+                      + {label}
+                    </Button>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+                  {(formData.anniversaries ?? []).map((row, index) => (
+                    <div key={row.id ?? `new-${index}`} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-end">
+                      <div className="space-y-1">
+                        <Label className="text-xs">{pickUiText(baseLocale, "기념일 이름", "Label")}</Label>
+                        <Input
+                          list={`anniversary-presets-${index}`}
+                          value={row.label ?? ""}
+                          onChange={(e) => updateAnniversary(index, { label: e.target.value })}
+                          placeholder={pickUiText(baseLocale, "결혼기념일", "Anniversary")}
+                          className={row.label === PENDING_ANNIVERSARY_LABEL ? "border-amber-400 bg-amber-50/80" : undefined}
+                        />
+                        <datalist id={`anniversary-presets-${index}`}>
+                          {anniversaryPresets.map((label) => (
+                            <option key={label} value={label} />
+                          ))}
+                        </datalist>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">{pickUiText(baseLocale, "날짜", "Date")}</Label>
+                        <Input
+                          type="date"
+                          value={row.anniversary_date ?? ""}
+                          onChange={(e) => updateAnniversary(index, { anniversary_date: e.target.value })}
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="text-slate-400 hover:text-red-500"
+                        onClick={() => removeAnniversary(index)}
+                        aria-label={pickUiText(baseLocale, "삭제", "Remove")}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           <DialogFooter className="pt-2">
             <DialogClose render={<Button type="button" variant="ghost">{tf.f00702}</Button>} />
-            <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white min-w-[100px]">
-              {customer ? tf.f00395 : tf.f00063}
+            <Button type="submit" disabled={isSaving} className="bg-blue-600 hover:bg-blue-700 text-white min-w-[100px]">
+              {isSaving ? pickUiText(baseLocale, "저장 중…", "Saving…") : customer ? tf.f00395 : tf.f00063}
             </Button>
           </DialogFooter>
         </form>

@@ -109,14 +109,16 @@ export function Navbar({ locale }: { locale?: AppLocale }) {
             </select>
           </div>
 
-          <Link 
-            href={loginHref} 
+          <Link
+            href={loginHref}
+            prefetch={false}
             className="text-xs font-black text-slate-400 hover:text-white transition-colors uppercase tracking-[0.2em]"
           >
             {nav.login}
           </Link>
-          <Link 
-            href={loginHref} 
+          <Link
+            href={loginHref}
+            prefetch={false}
             className="group relative px-6 py-3 bg-white text-black font-black text-xs rounded-xl overflow-hidden shadow-[0_0_15px_rgba(255,255,255,0.1)] hover:shadow-white/20 transition-all uppercase tracking-[0.1em]"
           >
             <span className="relative z-10 flex items-center gap-2">
@@ -174,10 +176,10 @@ export function Navbar({ locale }: { locale?: AppLocale }) {
                 </Link>
               ))}
               <div className="flex flex-col gap-4 pt-8">
-                <Link href={loginHref} className="py-5 text-center font-black text-white border border-white/10 rounded-2xl bg-white/5 flex items-center justify-center gap-2">
+                <Link href={loginHref} prefetch={false} className="py-5 text-center font-black text-white border border-white/10 rounded-2xl bg-white/5 flex items-center justify-center gap-2">
                   <Smartphone size={20} /> {nav.mobileApp}
                 </Link>
-                <Link href={loginHref} className="py-5 text-center font-black bg-emerald-500 text-[#0A0F0D] rounded-2xl text-xl shadow-lg shadow-emerald-500/20">
+                <Link href={loginHref} prefetch={false} className="py-5 text-center font-black bg-emerald-500 text-[#0A0F0D] rounded-2xl text-xl shadow-lg shadow-emerald-500/20">
                   {nav.dashboardNow}
                 </Link>
               </div>

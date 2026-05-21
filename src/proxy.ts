@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/utils/supabase/middleware";
 import { DEFAULT_LOCALE, isSupportedLocale, LOCALE_COOKIE, resolveLocale } from "@/i18n/config";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isStatic =
     pathname.startsWith("/_next") ||

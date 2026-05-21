@@ -267,7 +267,7 @@ export function Header({
             variant="ghost" 
             size="icon" 
             className="text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-all rounded-full"
-            onClick={() => router.push("/dashboard/admin/manual")}
+            onClick={() => router.push("/dashboard/admin/manual/guide")}
             title={dh.hqManualTitle}
           >
             <BookOpen className="h-5 w-5" />

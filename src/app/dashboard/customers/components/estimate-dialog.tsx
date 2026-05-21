@@ -151,35 +151,35 @@ export function EstimateDialog({ customer, isOpen, onOpenChange }: EstimateDialo
   const vat = useVat ? Math.floor(subtotal * 0.1) : 0;
   const total = subtotal + vat;
 
-   const handlePrint = async () => {
+   const handlePrint = () => {
     const validItems = items.filter(item => item.name.trim() !== "");
     if (validItems.length === 0) return;
-    
-    // Save to document_logs
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user?.id).single();
-      
-      if (profile?.tenant_id) {
-        await supabase.from('document_logs').insert({
-          tenant_id: profile.tenant_id,
-          type: 'estimate',
-          recipient_info: {
-            name: recipientName,
-            company: recipientCompany,
-            contact: recipientContact,
-            email: recipientEmail
-          },
-          items: validItems.map(i => ({ name: i.name, quantity: i.quantity, price: i.price })),
-          total_amount: total,
-          use_vat: useVat
-        });
-      }
-    } catch (err) {
-      console.error("Error saving document log:", err);
-    }
 
-    // Pass items as base64 encoded JSON
+    void (async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user?.id).single();
+
+        if (profile?.tenant_id) {
+          await supabase.from('document_logs').insert({
+            tenant_id: profile.tenant_id,
+            type: 'estimate',
+            recipient_info: {
+              name: recipientName,
+              company: recipientCompany,
+              contact: recipientContact,
+              email: recipientEmail
+            },
+            items: validItems.map(i => ({ name: i.name, quantity: i.quantity, price: i.price })),
+            total_amount: total,
+            use_vat: useVat
+          });
+        }
+      } catch (err) {
+        console.error("Error saving document log:", err);
+      }
+    })();
+
     const itemsJson = JSON.stringify(validItems.map(i => ({
       name: i.name,
       quantity: i.quantity,

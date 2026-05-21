@@ -17,16 +17,18 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { TenantMasterSeedBulkResult, TenantMasterSeedResult } from "@/lib/tenant-master-seed/types";
+import type { TenantSeedAppliedStatus } from "@/lib/tenant-master-seed/seed-audit-status";
 import { TENANT_MASTER_SEED_BULK_MAX } from "@/lib/tenant-master-seed/run-seed";
 import { resolvedMaterialSeedMemo, resolvedProductCode } from "@/lib/tenant-master-seed/seed-db-shape";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
-import { toBaseLocale } from "@/i18n/config";
+import { type AppLocale, toBaseLocale } from "@/i18n/config";
 
 /** Base UI Select may treat value="" as uncontrolled, so empty uses sentinel only */
 const SELECT_TENANT_EMPTY = "__fs_seed_tenant_empty__";
@@ -79,6 +81,84 @@ function isAbortError(e: unknown) {
 
 function seedRowTotal(row: { toInsert: number; toSkip: number }) {
   return row.toInsert + row.toSkip;
+}
+
+function formatSeedAppliedAt(iso: string, locale: AppLocale) {
+  if (!iso) return "";
+  try {
+    return new Date(iso).toLocaleString(toBaseLocale(locale), {
+      dateStyle: "short",
+      timeStyle: "short",
+    });
+  } catch {
+    return iso.slice(0, 16).replace("T", " ");
+  }
+}
+
+function TenantSeedAppliedBadge({
+  status,
+  compareVersionId,
+  tf,
+  locale,
+  compact,
+}: {
+  status?: TenantSeedAppliedStatus;
+  /** 비교 기준 시드 버전 (드롭다운 또는 이번 미리보기/적용 배치) */
+  compareVersionId?: string;
+  tf: ReturnType<typeof getMessages>["tenantFlows"];
+  locale: AppLocale;
+  compact?: boolean;
+}) {
+  if (!status) {
+    return (
+      <Badge variant="outline" className="text-[10px] font-normal text-slate-500 border-slate-200">
+        {tf.f02660}
+      </Badge>
+    );
+  }
+
+  const datePart = formatSeedAppliedAt(status.appliedAt, locale);
+  const inferredNote = status.inferred ? ` · ${tf.f02664}` : "";
+
+  if (!status.seedVersion) {
+    const title = [tf.f02658, datePart, status.inferred ? tf.f02664 : ""].filter(Boolean).join(" · ");
+    return (
+      <Badge
+        variant="secondary"
+        className="text-[10px] font-normal bg-slate-100 text-slate-800 border-slate-200"
+        title={title}
+      >
+        {tf.f02658}
+      </Badge>
+    );
+  }
+
+  const sameVersion = !!compareVersionId && status.seedVersion === compareVersionId;
+  const title =
+    tf.f02659.replace("{version}", status.seedVersion).replace("{date}", datePart || "—") +
+    inferredNote;
+
+  if (sameVersion) {
+    return (
+      <Badge
+        variant="secondary"
+        className="text-[10px] font-normal bg-emerald-100 text-emerald-900 border-emerald-200/80"
+        title={title}
+      >
+        {compact ? `${status.seedVersion} · ${tf.f02661}` : `${status.seedVersion} · ${tf.f02661}`}
+      </Badge>
+    );
+  }
+
+  return (
+    <Badge
+      variant="outline"
+      className="text-[10px] font-normal text-amber-900 border-amber-200 bg-amber-50/80"
+      title={title}
+    >
+      {status.seedVersion}
+    </Badge>
+  );
 }
 
 function SeedPreviewBreakdown({
@@ -218,6 +298,11 @@ export default function TenantMasterSeedPage() {
   const [bulkPreviewing, setBulkPreviewing] = useState(false);
   const [bulkApplying, setBulkApplying] = useState(false);
   const [confirmBulk, setConfirmBulk] = useState(false);
+  const [seedStatusByTenant, setSeedStatusByTenant] = useState<
+    Record<string, TenantSeedAppliedStatus>
+  >({});
+  const [seedAuditAvailable, setSeedAuditAvailable] = useState(true);
+  const [loadingSeedStatus, setLoadingSeedStatus] = useState(true);
   const seedAbortRef = useRef<AbortController | null>(null);
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
@@ -236,8 +321,8 @@ export default function TenantMasterSeedPage() {
     setApplying(false);
     setBulkPreviewing(false);
     setBulkApplying(false);
-    toast.message(tf.f01628);
-  }, []);
+    toast.message(getMessages(locale).tenantFlows.f01628);
+  }, [locale]);
 
   const resetSeedWizard = useCallback(() => {
     seedAbortRef.current?.abort();
@@ -250,8 +335,8 @@ export default function TenantMasterSeedPage() {
     setBulkPreview(null);
     setConfirm(false);
     setConfirmBulk(false);
-    toast.success(tf.f01218);
-  }, []);
+    toast.success(getMessages(locale).tenantFlows.f01218);
+  }, [locale]);
 
   const seedBusy = previewing || applying || bulkPreviewing || bulkApplying;
 
@@ -283,6 +368,7 @@ export default function TenantMasterSeedPage() {
   }, [locale, baseLocale]);
 
   const loadVersions = useCallback(async () => {
+    const messages = getMessages(locale).tenantFlows;
     try {
       const res = await fetch(
         `/api/admin/tenant-master-seed/versions?uiLocale=${encodeURIComponent(locale)}`
@@ -293,11 +379,12 @@ export default function TenantMasterSeedPage() {
       if (json.versions?.[0]?.id) setVersionId((v) => v || json.versions[0].id);
     } catch (e) {
       console.error(e);
-      toast.error(tf.f01471);
+      toast.error(messages.f01471);
     }
-  }, [locale, tf]);
+  }, [locale]);
 
   const loadOrganizations = useCallback(async () => {
+    const messages = getMessages(locale).tenantFlows;
     try {
       setLoadingOrgs(true);
       const res = await fetch(`/api/admin/organizations?uiLocale=${encodeURIComponent(locale)}`);
@@ -310,18 +397,63 @@ export default function TenantMasterSeedPage() {
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       console.error("tenant-master-seed loadOrganizations:", msg, e);
-      toast.error(tf.f01836);
+      toast.error(messages.f01836);
     } finally {
       setLoadingOrgs(false);
     }
-  }, [baseLocale, locale, tf]);
+  }, [baseLocale, locale]);
+
+  const loadSeedStatus = useCallback(async () => {
+    try {
+      setLoadingSeedStatus(true);
+      const res = await fetch(
+        `/api/admin/tenant-master-seed/applied-status?uiLocale=${encodeURIComponent(locale)}`
+      );
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setSeedStatusByTenant({});
+        setSeedAuditAvailable(false);
+        return;
+      }
+      setSeedStatusByTenant((json.statuses as Record<string, TenantSeedAppliedStatus>) ?? {});
+      setSeedAuditAvailable(json.auditAvailable !== false);
+    } catch (e) {
+      console.error("tenant-master-seed loadSeedStatus:", e);
+      setSeedStatusByTenant({});
+      setSeedAuditAvailable(false);
+    } finally {
+      setLoadingSeedStatus(false);
+    }
+  }, [locale]);
+
+  const refreshTenantData = useCallback(async () => {
+    await Promise.all([loadTenants(), loadSeedStatus()]);
+  }, [loadTenants, loadSeedStatus]);
+
+  const patchLocalSeedStatus = useCallback((tenantIds: string[], seedVersion: string) => {
+    const now = new Date().toISOString();
+    setSeedStatusByTenant((prev) => {
+      const next = { ...prev };
+      for (const id of tenantIds) {
+        next[id] = {
+          seedVersion,
+          appliedAt: now,
+          auditId: "",
+          applyCount: (prev[id]?.applyCount ?? 0) + 1,
+          inferred: false,
+        };
+      }
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     if (!isSuperAdmin) return;
     loadTenants();
     loadVersions();
     loadOrganizations();
-  }, [isSuperAdmin, loadTenants, loadVersions, loadOrganizations]);
+    loadSeedStatus();
+  }, [isSuperAdmin, loadTenants, loadVersions, loadOrganizations, loadSeedStatus]);
 
   useEffect(() => {
     return () => {
@@ -366,6 +498,39 @@ export default function TenantMasterSeedPage() {
     for (const t of tenants) m.set(t.id, t.name);
     return m;
   }, [tenants]);
+
+  /** 미리보기 완료 후에도 선택 상태가 비어 있으면 적용 버튼이 막히지 않도록 미리보기 결과를 우선 사용 */
+  const bulkApplyTenantIds = useMemo(() => {
+    if (bulkPreview?.dryRun && bulkPreview.tenants.length > 0) {
+      return bulkPreview.tenants.filter((row) => row.ok).map((row) => row.tenantId);
+    }
+    return bulkSelectedTenantIds;
+  }, [bulkPreview, bulkSelectedTenantIds]);
+
+  const canTenantsBulkApply =
+    !!versionId &&
+    confirmBulk &&
+    bulkPreview?.dryRun === true &&
+    (bulkPreview?.okCount ?? 0) > 0 &&
+    bulkApplyTenantIds.length > 0 &&
+    bulkApplyTenantIds.length <= TENANT_MASTER_SEED_BULK_MAX &&
+    !bulkApplying;
+
+  const canOrgBulkApply =
+    !!versionId &&
+    !!organizationId &&
+    confirmBulk &&
+    bulkPreview?.dryRun === true &&
+    (bulkPreview?.okCount ?? 0) > 0 &&
+    !bulkApplying;
+
+  const seedAppliedSummary = useMemo(() => {
+    let applied = 0;
+    for (const t of tenants) {
+      if (seedStatusByTenant[t.id]) applied += 1;
+    }
+    return { applied, pending: Math.max(0, tenants.length - applied) };
+  }, [tenants, seedStatusByTenant]);
 
   useEffect(() => {
     if (!isSuperAdmin || !versionId) {
@@ -454,6 +619,7 @@ export default function TenantMasterSeedPage() {
     const ac = armSeedAbort();
     setBulkPreviewing(true);
     setBulkPreview(null);
+    setConfirmBulk(false);
     try {
       const res = await fetch("/api/admin/tenant-master-seed/preview-bulk", {
         method: "POST",
@@ -466,7 +632,13 @@ export default function TenantMasterSeedPage() {
         toast.error(json.error || tf.f01705);
         return;
       }
-      setBulkPreview(json as TenantMasterSeedBulkResult);
+      const previewResult = json as TenantMasterSeedBulkResult;
+      setBulkPreview(previewResult);
+      if (applyTab === "tenants" && previewResult.tenants.length > 0) {
+        setBulkSelectedTenantIds(
+          previewResult.tenants.filter((row) => row.ok).map((row) => row.tenantId)
+        );
+      }
       toast.success(
         applyTab === "tenants"
           ? tf.f01410
@@ -493,15 +665,15 @@ export default function TenantMasterSeedPage() {
     }
     let body: Record<string, unknown>;
     if (applyTab === "tenants") {
-      if (bulkSelectedTenantIds.length === 0) {
+      if (bulkApplyTenantIds.length === 0) {
         toast.error(tf.f01778);
         return;
       }
-      if (bulkSelectedTenantIds.length > TENANT_MASTER_SEED_BULK_MAX) {
+      if (bulkApplyTenantIds.length > TENANT_MASTER_SEED_BULK_MAX) {
         toast.error(`${tf.f02163} ${TENANT_MASTER_SEED_BULK_MAX}${tf.f00947}`);
         return;
       }
-      body = { versionId, tenantIds: bulkSelectedTenantIds, confirm: true, uiLocale: locale };
+      body = { versionId, tenantIds: bulkApplyTenantIds, confirm: true, uiLocale: locale };
     } else {
       if (!organizationId) {
         toast.error(tf.f01847);
@@ -524,10 +696,16 @@ export default function TenantMasterSeedPage() {
         return;
       }
       setBulkPreview(json as TenantMasterSeedBulkResult);
+      const bulkResult = json as TenantMasterSeedBulkResult;
+      patchLocalSeedStatus(
+        bulkResult.tenants.filter((row) => row.ok).map((row) => row.tenantId),
+        versionId
+      );
       toast.success(
         `${tf.f01707}: ${tf.f01425} ${(json as TenantMasterSeedBulkResult).okCount}${tf.f00945} / ${tf.f01517} ${(json as TenantMasterSeedBulkResult).failCount}${tf.f00945}`
       );
       setConfirmBulk(false);
+      void loadSeedStatus();
     } catch (e) {
       if (isAbortError(e)) return;
       console.error(e);
@@ -562,8 +740,10 @@ export default function TenantMasterSeedPage() {
         return;
       }
       setPreview(json as TenantMasterSeedResult);
+      patchLocalSeedStatus([tenantId], versionId);
       toast.success(tf.f01478);
       setConfirm(false);
+      void loadSeedStatus();
     } catch (e) {
       if (isAbortError(e)) return;
       console.error(e);
@@ -600,6 +780,13 @@ export default function TenantMasterSeedPage() {
           {tf.f01514}
         </AlertDescription>
       </Alert>
+
+      {!loadingSeedStatus && !seedAuditAvailable && (
+        <Alert className="border-amber-200 bg-amber-50/70">
+          <AlertTitle>{tf.f02664}</AlertTitle>
+          <AlertDescription className="text-sm leading-relaxed">{tf.f02665}</AlertDescription>
+        </Alert>
+      )}
 
       <Card className="border-slate-100 shadow-lg rounded-2xl">
         <CardHeader>
@@ -661,6 +848,7 @@ export default function TenantMasterSeedPage() {
               const t =
                 v === "organization" ? "organization" : v === "tenants" ? "tenants" : "single";
               setBulkPreview(null);
+              setConfirmBulk(false);
               setApplyTab(t);
               if (t === "organization" || t === "tenants") setPreview(null);
             }}
@@ -700,7 +888,16 @@ export default function TenantMasterSeedPage() {
                     </SelectItem>
                     {tenants.map((t) => (
                       <SelectItem key={t.id} value={t.id}>
-                        {t.name}
+                        <span className="flex flex-wrap items-center gap-2">
+                          <span>{t.name}</span>
+                          <TenantSeedAppliedBadge
+                            status={seedStatusByTenant[t.id]}
+                            compareVersionId={versionId}
+                            tf={tf}
+                            locale={locale}
+                            compact
+                          />
+                        </span>
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -710,10 +907,20 @@ export default function TenantMasterSeedPage() {
                   variant="ghost"
                   size="sm"
                   className="text-xs text-slate-500"
-                  onClick={loadTenants}
+                  onClick={refreshTenantData}
                 >
                   {tf.f01202}
                 </Button>
+                {tenantId && seedStatusByTenant[tenantId] && (
+                  <p className="text-xs text-muted-foreground">
+                    {tf.f02659
+                      .replace("{version}", seedStatusByTenant[tenantId].seedVersion)
+                      .replace(
+                        "{date}",
+                        formatSeedAppliedAt(seedStatusByTenant[tenantId].appliedAt, locale)
+                      )}
+                  </p>
+                )}
               </div>
 
               <p className="text-xs text-muted-foreground leading-snug">
@@ -789,6 +996,14 @@ export default function TenantMasterSeedPage() {
                   <span className="text-xs text-muted-foreground">
                     {bulkSelectedTenantIds.length}{tf.f00946} {TENANT_MASTER_SEED_BULK_MAX}{tf.f00945}
                   </span>
+                  {!loadingSeedStatus && seedAuditAvailable && tenants.length > 0 && (
+                    <span className="text-xs text-slate-600">
+                      ·{" "}
+                      {tf.f02662
+                        .replace("{applied}", String(seedAppliedSummary.applied))
+                        .replace("{pending}", String(seedAppliedSummary.pending))}
+                    </span>
+                  )}
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Button
@@ -816,7 +1031,7 @@ export default function TenantMasterSeedPage() {
                     variant="ghost"
                     size="sm"
                     className="text-xs text-slate-500"
-                    onClick={loadTenants}
+                    onClick={refreshTenantData}
                   >
                     {tf.f01202}
                   </Button>
@@ -845,9 +1060,18 @@ export default function TenantMasterSeedPage() {
                           />
                           <label
                             htmlFor={`bulk-tenant-${t.id}`}
-                            className="text-sm text-slate-700 leading-snug cursor-pointer flex-1"
+                            className="text-sm text-slate-700 leading-snug cursor-pointer flex-1 min-w-0"
                           >
-                            {t.name}
+                            <span className="flex flex-wrap items-center gap-2">
+                              <span>{t.name}</span>
+                              <TenantSeedAppliedBadge
+                                status={seedStatusByTenant[t.id]}
+                                compareVersionId={versionId}
+                                tf={tf}
+                                locale={locale}
+                                compact
+                              />
+                            </span>
                           </label>
                         </div>
                       ))}
@@ -912,11 +1136,15 @@ export default function TenantMasterSeedPage() {
                     </div>
                   )}
                   <p className="text-xs text-muted-foreground leading-snug">{tf.f02332}</p>
+                  <p className="text-[11px] text-slate-600 leading-snug rounded-md bg-slate-100/80 px-3 py-2 border border-slate-200/60">
+                    {tf.f02667}
+                  </p>
                   <ScrollArea className="h-[min(20rem,55vh)] min-h-[200px] rounded-md border bg-white">
                     <Table>
                       <TableHeader>
                         <TableRow>
                           <TableHead className="min-w-[140px]">{tf.f01164}</TableHead>
+                          <TableHead className="min-w-[120px]">{tf.f02666}</TableHead>
                           <TableHead className="w-[200px] font-mono text-xs">ID</TableHead>
                           <TableHead>{tf.f00906}</TableHead>
                         </TableRow>
@@ -926,6 +1154,15 @@ export default function TenantMasterSeedPage() {
                           <TableRow key={row.tenantId}>
                             <TableCell className="text-sm">
                               {tenantNameById.get(row.tenantId) ?? "—"}
+                            </TableCell>
+                            <TableCell>
+                              <TenantSeedAppliedBadge
+                                status={seedStatusByTenant[row.tenantId]}
+                                compareVersionId={bulkPreview.seedVersion}
+                                tf={tf}
+                                locale={locale}
+                                compact
+                              />
                             </TableCell>
                             <TableCell className="font-mono text-xs">{row.tenantId}</TableCell>
                             <TableCell className="text-xs">
@@ -956,26 +1193,25 @@ export default function TenantMasterSeedPage() {
                   id="confirm-seed-bulk-tenants"
                   checked={confirmBulk}
                   onCheckedChange={(c) => setConfirmBulk(c === true)}
+                  className="mt-0.5 size-5"
                 />
                 <label
                   htmlFor="confirm-seed-bulk-tenants"
-                  className="text-sm text-slate-600 leading-snug cursor-pointer"
+                  className="text-sm text-slate-600 leading-snug cursor-pointer select-none"
                 >
                   {tf.f01431}
                 </label>
               </div>
 
+              {!confirmBulk && bulkPreview?.dryRun && (
+                <p className="text-xs text-amber-800/90">{tf.f01710}</p>
+              )}
+
               <Button
                 type="button"
                 className="rounded-xl bg-slate-900 text-white"
                 onClick={handleBulkApply}
-                disabled={
-                  bulkApplying ||
-                  !versionId ||
-                  !confirmBulk ||
-                  bulkSelectedTenantIds.length === 0 ||
-                  bulkSelectedTenantIds.length > TENANT_MASTER_SEED_BULK_MAX
-                }
+                disabled={!canTenantsBulkApply}
               >
                 {bulkApplying ? (
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -1087,11 +1323,15 @@ export default function TenantMasterSeedPage() {
                     </div>
                   )}
                   <p className="text-xs text-muted-foreground leading-snug">{tf.f02332}</p>
+                  <p className="text-[11px] text-slate-600 leading-snug rounded-md bg-slate-100/80 px-3 py-2 border border-slate-200/60">
+                    {tf.f02667}
+                  </p>
                   <ScrollArea className="h-[min(20rem,55vh)] min-h-[200px] rounded-md border bg-white">
                     <Table>
                       <TableHeader>
                         <TableRow>
                           <TableHead className="min-w-[140px]">{tf.f01164}</TableHead>
+                          <TableHead className="min-w-[120px]">{tf.f02666}</TableHead>
                           <TableHead className="w-[200px] font-mono text-xs">ID</TableHead>
                           <TableHead>{tf.f00906}</TableHead>
                         </TableRow>
@@ -1101,6 +1341,15 @@ export default function TenantMasterSeedPage() {
                           <TableRow key={row.tenantId}>
                             <TableCell className="text-sm">
                               {tenantNameById.get(row.tenantId) ?? "—"}
+                            </TableCell>
+                            <TableCell>
+                              <TenantSeedAppliedBadge
+                                status={seedStatusByTenant[row.tenantId]}
+                                compareVersionId={bulkPreview.seedVersion}
+                                tf={tf}
+                                locale={locale}
+                                compact
+                              />
                             </TableCell>
                             <TableCell className="font-mono text-xs">{row.tenantId}</TableCell>
                             <TableCell className="text-xs">
@@ -1131,20 +1380,25 @@ export default function TenantMasterSeedPage() {
                   id="confirm-seed-bulk"
                   checked={confirmBulk}
                   onCheckedChange={(c) => setConfirmBulk(c === true)}
+                  className="mt-0.5 size-5"
                 />
                 <label
                   htmlFor="confirm-seed-bulk"
-                  className="text-sm text-slate-600 leading-snug cursor-pointer"
+                  className="text-sm text-slate-600 leading-snug cursor-pointer select-none"
                 >
                   {tf.f01433}
                 </label>
               </div>
 
+              {!confirmBulk && bulkPreview?.dryRun && (
+                <p className="text-xs text-amber-800/90">{tf.f01710}</p>
+              )}
+
               <Button
                 type="button"
                 className="rounded-xl bg-slate-900 text-white"
                 onClick={handleBulkApply}
-                disabled={bulkApplying || !organizationId || !versionId || !confirmBulk}
+                disabled={!canOrgBulkApply}
               >
                 {bulkApplying ? (
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />

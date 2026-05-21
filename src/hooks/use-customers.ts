@@ -40,9 +40,10 @@ export function useCustomers(initialFetch = true) {
     if (!tenantId) return null;
     
     try {
+      const { anniversaries: _ann, ...row } = customerData;
       const { data, error } = await supabase
         .from('customers')
-        .insert([{ ...customerData, tenant_id: tenantId }])
+        .insert([{ ...row, tenant_id: tenantId, marketing_consent: customerData.marketing_consent ?? false }])
         .select()
         .single();
 
@@ -61,9 +62,10 @@ export function useCustomers(initialFetch = true) {
     if (!tenantId) return false;
 
     try {
+      const { anniversaries: _ann, ...row } = updates;
       const { data, error } = await supabase
         .from('customers')
-        .update(updates)
+        .update(row)
         .eq('id', id)
         .eq('tenant_id', tenantId)
         .select()

@@ -28,6 +28,7 @@ import { usePartnerTouchUi } from "@/hooks/use-partner-touch-ui";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { HqRevenueStackedChart } from "@/components/hq/hq-revenue-stacked-chart";
+import { HqRevenueAttributionCard } from "@/components/hq/hq-revenue-attribution-card";
 import { cn } from "@/lib/utils";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
@@ -372,6 +373,8 @@ export default function HqDashboardPage() {
               )}
             </CardContent>
           </Card>
+
+          <HqRevenueAttributionCard />
 
           <Card>
             <CardHeader>

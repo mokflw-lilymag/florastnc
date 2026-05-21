@@ -1,6 +1,5 @@
 "use client";
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,9 +22,9 @@ import { usePreferredLocale } from '@/hooks/use-preferred-locale';
 import { getMessages } from '@/i18n/getMessages';
 import { toBaseLocale } from "@/i18n/config";
 import { pickUiText } from "@/i18n/pick-ui-text";
+import { loginWithPassword } from "@/app/login/actions";
 
 export default function LoginPage() {
-  const router = useRouter();
   const supabase = createClient();
   const locale = usePreferredLocale();
   const L = getMessages(locale).login;
@@ -167,30 +166,26 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const result = await loginWithPassword(email, password);
 
-      if (error) throw error;
-
-      if (data.user) {
-        toast.success(L.toastWelcome, {
-          description: L.toastWelcomeDesc,
-        });
-        router.push('/dashboard');
-        router.refresh();
-      }
-    } catch (error: any) {
-      console.error('Login error details:', error);
-      let errorMessage = L.errInvalidCreds;
-
-      if (error.message?.includes('Email not confirmed')) {
-        errorMessage = L.errEmailNotConfirmed;
+      if (!result.ok) {
+        let errorMessage = L.errInvalidCreds;
+        if (result.message.includes("Email not confirmed")) {
+          errorMessage = L.errEmailNotConfirmed;
+        } else if (result.message === "Invalid login credentials") {
+          errorMessage = L.errInvalidCreds;
+        }
+        toast.error(L.errLoginFailed, { description: errorMessage });
+        setLoading(false);
+        return;
       }
 
-      toast.error(L.errLoginFailed, { description: errorMessage });
-    } finally {
+      toast.success(L.toastWelcome, { description: L.toastWelcomeDesc });
+      // Route Handler 302 → dashboard (RSC redirect 대신 전체 문서 이동)
+      window.location.replace("/auth/enter");
+    } catch (error: unknown) {
+      console.error("Login error details:", error);
+      toast.error(L.errLoginFailed, { description: L.errInvalidCreds });
       setLoading(false);
     }
   };

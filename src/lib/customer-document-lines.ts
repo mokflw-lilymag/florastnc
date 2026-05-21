@@ -1,9 +1,11 @@
 import { format } from "date-fns";
 import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
+import { orderBelongsToCustomerStrict } from "@/lib/customer-order-match";
 
 export type CustomerDocumentType = "statement" | "receipt" | "estimate";
 
 export interface CustomerDocumentLineItem {
+  lineKey: string;
   date: string;
   name: string;
   quantity: number;
@@ -17,35 +19,11 @@ export interface CustomerDocumentLabels {
   discount: string;
 }
 
-function parseOrderer(orderer: unknown): Record<string, unknown> | null {
-  if (!orderer) return null;
-  if (typeof orderer === "string") {
-    try {
-      return JSON.parse(orderer) as Record<string, unknown>;
-    } catch {
-      return null;
-    }
-  }
-  if (typeof orderer === "object") return orderer as Record<string, unknown>;
-  return null;
-}
-
 export function orderBelongsToCustomer(
-  order: { orderer?: unknown },
+  order: { orderer?: unknown; status?: string },
   customer: { id: string; contact?: string | null }
 ): boolean {
-  const orderer = parseOrderer(order.orderer);
-  if (!orderer) return false;
-
-  const ordererId = orderer.id != null ? String(orderer.id) : "";
-  if (ordererId && ordererId === String(customer.id)) return true;
-
-  const ordererContact = typeof orderer.contact === "string" ? orderer.contact : "";
-  if (customer.contact && ordererContact && ordererContact === customer.contact) {
-    return true;
-  }
-
-  return false;
+  return orderBelongsToCustomerStrict(order, customer);
 }
 
 export function isExcludedOrderForDocument(order: { status?: string }): boolean {
@@ -54,6 +32,7 @@ export function isExcludedOrderForDocument(order: { status?: string }): boolean 
 
 export function buildDocumentLineItems(
   order: {
+    id?: string;
     order_date: string;
     order_number?: string;
     items?: Array<{ name: string; quantity: number; price: number }>;
@@ -66,36 +45,27 @@ export function buildDocumentLineItems(
   type: CustomerDocumentType,
   labels: CustomerDocumentLabels
 ): CustomerDocumentLineItem[] {
-  if (type === "receipt") {
-    const itemNames = (order.items || [])
-      .map((item) => item.name)
-      .filter(Boolean)
-      .join(", ");
-    const total = order.summary?.total ?? 0;
+  const orderKey = order.id || order.order_number || "order";
 
-    return [
-      {
-        date: order.order_date,
-        name: itemNames || "-",
-        quantity: 1,
-        price: total,
-        amount: total,
-        order_number: order.order_number,
-      },
-    ];
-  }
-
-  const products: CustomerDocumentLineItem[] = (order.items || []).map((item) => ({
+  const products: CustomerDocumentLineItem[] = (order.items || []).map((item, idx) => ({
+    lineKey: `${orderKey}-item-${idx}`,
     date: order.order_date,
     name: item.name,
-    quantity: item.quantity,
+    quantity: item.quantity ?? 1,
     price: item.price,
-    amount: item.price * item.quantity,
+    amount: item.price * (item.quantity ?? 1),
     order_number: order.order_number,
   }));
 
+  if (type === "receipt") {
+    return products;
+  }
+
+  const lines: CustomerDocumentLineItem[] = [...products];
+
   if ((order.summary?.deliveryFee ?? 0) > 0) {
-    products.push({
+    lines.push({
+      lineKey: `${orderKey}-delivery`,
       date: order.order_date,
       name: labels.deliveryFee,
       quantity: 1,
@@ -106,7 +76,8 @@ export function buildDocumentLineItems(
   }
 
   if ((order.summary?.discountAmount ?? 0) > 0) {
-    products.push({
+    lines.push({
+      lineKey: `${orderKey}-discount`,
       date: order.order_date,
       name: labels.discount,
       quantity: 1,
@@ -116,7 +87,7 @@ export function buildDocumentLineItems(
     });
   }
 
-  return products;
+  return lines;
 }
 
 export function buildDocumentLineItemsFromOrders(
@@ -137,6 +108,47 @@ export function computeDocumentTotal(
   }
 
   return lineItems.reduce((sum, item) => sum + item.amount, 0);
+}
+
+export function formatDocumentDateParam(date: Date): string {
+  return format(date, "yyyy-MM-dd");
+}
+
+export function parseDocumentDateParam(value: string | null | undefined): Date | null {
+  if (!value) return null;
+  const parsed = new Date(`${value}T12:00:00`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+export function applyLineDateOverrides(
+  items: CustomerDocumentLineItem[],
+  overrides: Record<string, string>
+): CustomerDocumentLineItem[] {
+  if (Object.keys(overrides).length === 0) return items;
+
+  return items.map((item) => ({
+    ...item,
+    date: overrides[item.lineKey] ?? item.date,
+  }));
+}
+
+export function buildLineDateOverrideMap(
+  items: CustomerDocumentLineItem[]
+): Record<string, string> {
+  return Object.fromEntries(items.map((item) => [item.lineKey, item.date]));
+}
+
+export function encodeLineDateOverrides(overrides: Record<string, string>): string {
+  return btoa(encodeURIComponent(JSON.stringify(overrides)));
+}
+
+export function decodeLineDateOverrides(encoded: string | null | undefined): Record<string, string> {
+  if (!encoded) return {};
+  try {
+    return JSON.parse(decodeURIComponent(atob(encoded))) as Record<string, string>;
+  } catch {
+    return {};
+  }
 }
 
 export function formatCustomerDocumentDate(

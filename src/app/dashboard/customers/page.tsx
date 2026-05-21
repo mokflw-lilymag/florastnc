@@ -1,7 +1,7 @@
 "use client";
 import { getMessages } from "@/i18n/getMessages";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,7 +27,14 @@ import { exportToExcel } from "@/lib/excel-export";
 import { format } from "date-fns";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
+import { pickUiText } from "@/i18n/pick-ui-text";
 import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
+import {
+  buildDuplicateCustomerDisplayNames,
+  computeCustomerOrderStats,
+  filterOrdersForCustomer,
+  getCustomerDisplayName,
+} from "@/lib/customer-order-match";
 
 export default function CustomersPage() {
   const supabase = createClient();
@@ -57,16 +64,27 @@ export default function CustomersPage() {
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [isEstimateOpen, setIsEstimateOpen] = useState(false);
   const [isRegistryOpen, setIsRegistryOpen] = useState(false);
+  const [isSavingCustomer, setIsSavingCustomer] = useState(false);
+  const customerSaveLockRef = useRef(false);
+
+  const customerDisplayNames = useMemo(
+    () => buildDuplicateCustomerDisplayNames(customers),
+    [customers]
+  );
 
   const filteredCustomers = useMemo(() => {
     if (!searchTerm) return customers;
     const lowerSearch = searchTerm.toLowerCase();
-    return customers.filter(c => 
-      c.name.toLowerCase().includes(lowerSearch) || 
-      (c.contact?.includes(searchTerm)) ||
-      (c.company_name?.toLowerCase().includes(lowerSearch))
-    );
-  }, [customers, searchTerm]);
+    return customers.filter((c) => {
+      const displayName = getCustomerDisplayName(c, customerDisplayNames).toLowerCase();
+      return (
+        displayName.includes(lowerSearch) ||
+        c.name.toLowerCase().includes(lowerSearch) ||
+        c.contact?.includes(searchTerm) ||
+        c.company_name?.toLowerCase().includes(lowerSearch)
+      );
+    });
+  }, [customers, searchTerm, customerDisplayNames]);
 
   const stats = useMemo(() => {
     return {
@@ -128,52 +146,39 @@ export default function CustomersPage() {
     if (!tenantId) return;
     try {
       const { data: oData, error: oErr } = await supabase
-        .from('orders')
-        .select('id, orderer, summary, order_date')
-        .eq('tenant_id', tenantId);
-      
+        .from("orders")
+        .select("id, orderer, summary, order_date, status")
+        .eq("tenant_id", tenantId);
+
       const { data: cData, error: cErr } = await supabase
-        .from('customers')
-        .select('id, contact')
-        .eq('tenant_id', tenantId)
-        .eq('is_deleted', false);
+        .from("customers")
+        .select("id, contact")
+        .eq("tenant_id", tenantId)
+        .eq("is_deleted", false);
 
       if (oErr || cErr) throw oErr || cErr;
 
-      // 2. Map and calculate updates
       let totalUpdated = 0;
-      for (const customer of (cData || [])) {
-        const contactNoHyphens = customer.contact?.replace(/-/g, '');
-        const matchingOrders = (oData || []).filter((o: any) => 
-          o.orderer?.contact === customer.contact || 
-          (contactNoHyphens && o.orderer?.contact === contactNoHyphens)
-        );
+      for (const customer of cData || []) {
+        const matchingOrders = filterOrdersForCustomer(oData || [], customer);
+        const stats = computeCustomerOrderStats(matchingOrders);
 
-        if (matchingOrders.length > 0) {
-          const total_spent = matchingOrders.reduce((sum: number, o: any) => sum + (Number(o.summary?.total) || 0), 0);
-          const order_count = matchingOrders.length;
-          const sorted = matchingOrders.sort((a: any, b: any) => new Date(b.order_date).getTime() - new Date(a.order_date).getTime());
-          const last_order_date = sorted[0].order_date;
-
-          await supabase.from('customers').update({
-            total_spent,
-            order_count,
-            last_order_date
-          }).eq('id', customer.id);
-          totalUpdated++;
-        }
+        await supabase
+          .from("customers")
+          .update({
+            total_spent: stats.total_spent,
+            order_count: stats.order_count,
+            last_order_date: stats.last_order_date,
+          })
+          .eq("id", customer.id);
+        totalUpdated++;
       }
 
-      toast.success(
-        tf.f00807.replace("{count}", String(totalUpdated))
-      );
+      toast.success(tf.f00807.replace("{count}", String(totalUpdated)));
       fetchCustomers();
     } catch (err) {
       console.error("Sync error:", err);
       toast.error(tf.f00160);
-    } finally {
-      // isRefreshing is managed by hook, if we want to show loading during sync
-      // we could add a local state, but for now we rely on toast and fetchCustomers reload
     }
   };
 
@@ -187,19 +192,106 @@ export default function CustomersPage() {
     setIsDetailOpen(true);
   };
 
+  const syncAnniversaries = async (customerId: string, data: CustomerData) => {
+    const rows = (data.anniversaries ?? []).filter((row) => row.anniversary_date?.trim());
+    await fetch("/api/revenue/anniversary", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        customer_id: customerId,
+        marketing_consent: data.marketing_consent,
+        anniversaries: rows.map((row) => ({
+          id: row.id,
+          label: row.label || "기념일",
+          anniversary_date: row.anniversary_date,
+          recurring_yearly: row.recurring_yearly ?? true,
+          preferred_flowers: row.preferred_flowers,
+          allergies: row.allergies,
+        })),
+      }),
+    });
+  };
+
   const handleFormSubmit = async (data: CustomerData) => {
     if (!requireErpPersist(planCtx, locale)) return;
+    if (!tenantId) return;
+    if (customerSaveLockRef.current) return;
+
+    customerSaveLockRef.current = true;
+    setIsSavingCustomer(true);
     try {
+      const {
+        point_adjustment_reason,
+        point_adjustment_idempotency_key,
+        ...customerRow
+      } = data;
+      const newPoints = customerRow.points ?? 0;
+      const { points: _omitPoints, ...customerRowWithoutPoints } = customerRow;
+
+      const adjustPoints = async (customerId: string) => {
+        const res = await fetch("/api/customers/point-adjustment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            customer_id: customerId,
+            target_points: newPoints,
+            reason: point_adjustment_reason,
+            idempotency_key: point_adjustment_idempotency_key,
+          }),
+        });
+        const json = (await res.json().catch(() => ({}))) as {
+          ok?: boolean;
+          error?: string;
+          points?: number;
+        };
+        if (!res.ok || json.ok === false) {
+          throw new Error(json.error ?? "POINT_ADJUST_FAILED");
+        }
+        return json.points ?? newPoints;
+      };
+
       if (editingCustomer) {
-        const success = await updateCustomer(editingCustomer.id, data);
-        if (success) toast.success(tf.f00072);
+        const previousPoints = editingCustomer.points ?? 0;
+        const pointsChanged = newPoints !== previousPoints;
+        const success = await updateCustomer(editingCustomer.id, customerRowWithoutPoints);
+        if (success) {
+          const finalPoints = pointsChanged
+            ? await adjustPoints(editingCustomer.id)
+            : previousPoints;
+          await syncAnniversaries(editingCustomer.id, data);
+          if (selectedCustomer?.id === editingCustomer.id) {
+            setSelectedCustomer((prev) =>
+              prev ? { ...prev, ...customerRowWithoutPoints, points: finalPoints } : null,
+            );
+          }
+          setEditingCustomer((prev) =>
+            prev ? { ...prev, ...customerRowWithoutPoints, points: finalPoints } : null,
+          );
+          toast.success(tf.f00072);
+          setIsFormOpen(false);
+        }
       } else {
-        const id = await addCustomer(data);
-        if (id) toast.success(tf.f00343);
+        const id = await addCustomer({ ...customerRowWithoutPoints, points: 0 });
+        if (id) {
+          const finalPoints = newPoints > 0 ? await adjustPoints(id) : 0;
+          await syncAnniversaries(id, data);
+          toast.success(tf.f00343);
+          setIsFormOpen(false);
+          void finalPoints;
+        }
       }
-      setIsFormOpen(false);
     } catch (error) {
-      toast.error(tf.f00540);
+      console.error(error);
+      toast.error(
+        pickUiText(
+          toBaseLocale(locale),
+          "저장 중 오류가 발생했습니다. 포인트 내역이 중복되지 않았는지 확인해 주세요.",
+          "Save failed. Check whether point history was duplicated.",
+        ),
+      );
+    } finally {
+      customerSaveLockRef.current = false;
+      setIsSavingCustomer(false);
     }
   };
 
@@ -324,7 +416,9 @@ export default function CustomersPage() {
                       {i + 1}
                     </span>
                     <div className="flex flex-col">
-                      <span className="text-sm font-bold text-slate-800">{c.name}</span>
+                      <span className="text-sm font-bold text-slate-800">
+                        {getCustomerDisplayName(c, customerDisplayNames)}
+                      </span>
                       <span className="text-[10px] text-slate-500">{c.company_name || tf.f00028}</span>
                     </div>
                   </div>
@@ -358,7 +452,9 @@ export default function CustomersPage() {
                       {i + 1}
                     </span>
                     <div className="flex flex-col">
-                      <span className="text-sm font-bold text-slate-800">{c.name}</span>
+                      <span className="text-sm font-bold text-slate-800">
+                        {getCustomerDisplayName(c, customerDisplayNames)}
+                      </span>
                       <span className="text-[10px] text-slate-500">{c.company_name || tf.f00028}</span>
                     </div>
                   </div>
@@ -392,6 +488,7 @@ export default function CustomersPage() {
       {/* Customer Table */}
       <CustomerTable
         customers={filteredCustomers}
+        displayNames={customerDisplayNames}
         onEdit={handleEdit}
         onDelete={handleDelete}
         onRowClick={handleRowClick}
@@ -399,6 +496,11 @@ export default function CustomersPage() {
 
       <CustomerDetailDialog
         customer={selectedCustomer}
+        displayName={
+          selectedCustomer
+            ? getCustomerDisplayName(selectedCustomer, customerDisplayNames)
+            : undefined
+        }
         isOpen={isDetailOpen}
         onOpenChange={setIsDetailOpen}
         onEdit={handleEdit}
@@ -435,6 +537,7 @@ export default function CustomersPage() {
         onOpenChange={setIsFormOpen}
         onSubmit={handleFormSubmit}
         customer={editingCustomer}
+        isSaving={isSavingCustomer}
       />
       <EstimateDialog
         customer={selectedCustomer}

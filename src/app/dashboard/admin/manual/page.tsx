@@ -18,7 +18,8 @@ export default function AdminManualPage() {
   const router = useRouter();
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
-  const baseLocale = toBaseLocale(locale);  const roles = [
+  const baseLocale = toBaseLocale(locale);
+  const roles = [
     {
       title: tf.f01004,
       icon: <Shield className="w-8 h-8 text-indigo-500" />,
@@ -80,9 +81,18 @@ export default function AdminManualPage() {
           </h2>
           <p className="text-slate-500 font-medium">{tf.f02234}</p>
         </div>
-        <Button variant="ghost" className="text-slate-400 hover:text-slate-900 font-bold" onClick={() => router.back()}>
-          {tf.f00159}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            className="bg-slate-900 hover:bg-slate-800 text-white font-bold gap-2"
+            onClick={() => router.push("/dashboard/admin/manual/guide")}
+          >
+            <BookOpen className="w-4 h-4" />
+            통합 운영 매뉴얼
+          </Button>
+          <Button variant="ghost" className="text-slate-400 hover:text-slate-900 font-bold" onClick={() => router.back()}>
+            {tf.f00159}
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2">

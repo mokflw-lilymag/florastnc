@@ -24,6 +24,14 @@ import {
   resolveMobileProductCategory,
 } from "@/lib/mobile/product-categories";
 import { MOBILE_PAYMENT_METHODS } from "@/lib/mobile/payment-methods";
+import {
+  postOrderAnniversary,
+  resolveAnniversaryDateFromSchedule,
+} from "@/lib/revenue/order-anniversary-register";
+import {
+  findCustomerByContact,
+  orderFormChecksForExistingCustomer,
+} from "@/lib/customers/order-customer-form";
 import { formatPhoneNumber } from "@/lib/mobile/format-phone";
 import type { Product } from "@/types/product";
 import type { OrderData } from "@/types/order";
@@ -94,11 +102,13 @@ export default function MobileNewOrderPage() {
   const { profile, tenantId } = useAuth();
   const storeName = profile?.tenants?.name;
   const { addOrder } = useOrders();
-  const { customers, loading: customersLoading, addCustomer } = useCustomers();
+  const { customers, loading: customersLoading, addCustomer, updateCustomer } = useCustomers();
   const { settings } = useSettings();
 
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [registerCustomer, setRegisterCustomer] = useState(false);
+  const [registerCustomer, setRegisterCustomer] = useState(true);
+  const [marketingConsent, setMarketingConsent] = useState(true);
+  const [registerAnniversaryFromOrder, setRegisterAnniversaryFromOrder] = useState(false);
   const [usedPoints, setUsedPoints] = useState(0);
 
   const [products, setProducts] = useState<Product[]>([]);
@@ -276,14 +286,28 @@ export default function MobileNewOrderPage() {
     setOrdererName(c.name);
     setOrdererContact(c.contact);
     setOrdererCompany(c.company_name || "");
-    setRegisterCustomer(false);
+    const checks = orderFormChecksForExistingCustomer();
+    setRegisterCustomer(checks.registerCustomer);
+    setMarketingConsent(checks.marketingConsent);
+    setRegisterAnniversaryFromOrder(checks.registerAnniversaryFromOrder);
     setUsedPoints(0);
   };
 
   const handleClearCustomer = () => {
     setSelectedCustomer(null);
+    setMarketingConsent(true);
+    setRegisterCustomer(true);
+    setRegisterAnniversaryFromOrder(false);
     setUsedPoints(0);
   };
+
+  useEffect(() => {
+    if (!marketingConsent) setRegisterAnniversaryFromOrder(false);
+  }, [marketingConsent]);
+
+  const hasOrdererIdentity =
+    !!selectedCustomer?.id ||
+    (ordererName.trim() !== "" && ordererContact.trim() !== "");
 
   useEffect(() => {
     if (usedPoints > maxUsablePoints) {
@@ -337,16 +361,30 @@ export default function MobileNewOrderPage() {
     try {
       let finalCustomerId = selectedCustomer?.id || "";
       if (registerCustomer && !finalCustomerId) {
-        const newId = await addCustomer({
-          name: ordererName.trim(),
-          contact: ordererContact.trim(),
-          company_name: ordererCompany.trim() || undefined,
-          type: ordererCompany.trim() ? "company" : "individual",
-          grade: "일반",
-          points: 0,
-        });
-        if (newId) finalCustomerId = newId;
+        const existingByContact = findCustomerByContact(customers, ordererContact);
+        if (existingByContact) {
+          finalCustomerId = existingByContact.id;
+        } else {
+          const newId = await addCustomer({
+            name: ordererName.trim(),
+            contact: ordererContact.trim(),
+            company_name: ordererCompany.trim() || undefined,
+            type: ordererCompany.trim() ? "company" : "individual",
+            grade: "일반",
+            points: 0,
+            marketing_consent: marketingConsent,
+          });
+          if (newId) finalCustomerId = newId;
+        }
       }
+
+      if (finalCustomerId && marketingConsent) {
+        await updateCustomer(finalCustomerId, { marketing_consent: true });
+      }
+
+      const anniversaryDate = resolveAnniversaryDateFromSchedule(
+        scheduleDate ? new Date(`${scheduleDate}T12:00:00`) : undefined,
+      );
 
       const payload: OrderData = {
         status: "processing",
@@ -408,6 +446,20 @@ export default function MobileNewOrderPage() {
 
       const id = await addOrder(payload);
       if (!id) throw new Error("failed");
+      if (marketingConsent && registerAnniversaryFromOrder && finalCustomerId) {
+        const anniv = await postOrderAnniversary({
+          customerId: finalCustomerId,
+          anniversaryDate,
+          marketingConsent,
+        });
+        if (anniv.ok) {
+          if (anniv.duplicate) {
+            toast.info("이미 같은 날짜의 기념일이 등록되어 있습니다.");
+          } else {
+            toast.success("기념일 날짜 등록됨 — 고객 관리에서 이름을 입력해 주세요.");
+          }
+        }
+      }
       setLastOrderId(id);
       setLastOrderNumber(`ORD-${Date.now().toString().slice(-8)}`);
       setSubmittedMessageType(messageType);
@@ -452,6 +504,11 @@ export default function MobileNewOrderPage() {
           setOrdererCompany={setOrdererCompany}
           registerCustomer={registerCustomer}
           setRegisterCustomer={setRegisterCustomer}
+          registerAnniversaryFromOrder={registerAnniversaryFromOrder}
+          setRegisterAnniversaryFromOrder={setRegisterAnniversaryFromOrder}
+          marketingConsent={marketingConsent}
+          setMarketingConsent={setMarketingConsent}
+          hasOrdererIdentity={hasOrdererIdentity}
           usedPoints={usedPoints}
           setUsedPoints={setUsedPoints}
           maxUsablePoints={maxUsablePoints}

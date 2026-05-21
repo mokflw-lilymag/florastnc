@@ -58,7 +58,7 @@ async function loadProductGlobalStats(
   };
 }
 
-export function useProducts(initialFetch = true) {
+export function useProducts(initialFetch = true, fetchAll = false) {
   const supabase = useMemo(() => createClient(), []);
   const { tenantId, isLoading: authLoading } = useAuth();
   const { tr } = useUiText();
@@ -140,12 +140,17 @@ export function useProducts(initialFetch = true) {
       const from = safePage * DASHBOARD_LIST_PAGE_SIZE;
       const to = from + DASHBOARD_LIST_PAGE_SIZE - 1;
 
-      const { data, error, count } = await supabase
+      let query = supabase
         .from("products")
         .select("*", { count: "exact" })
         .eq("tenant_id", tenantId)
-        .order("name", { ascending: true })
-        .range(from, to);
+        .order("name", { ascending: true });
+
+      if (!fetchAll) {
+        query = query.range(from, to);
+      }
+
+      const { data, error, count } = await query;
 
       if (error) {
         console.error("Error fetching products:", error);
@@ -155,7 +160,7 @@ export function useProducts(initialFetch = true) {
       setProductsTotalCount(count ?? 0);
       setListPage(safePage);
     },
-    [tenantId, supabase]
+    [tenantId, supabase, fetchAll]
   );
 
   const fetchProducts = useCallback(async () => {
@@ -307,12 +312,17 @@ export function useProducts(initialFetch = true) {
         if (cancelled) return;
         setProductStats(stats);
 
-        const { data, error, count } = await supabase
+        let query = supabase
           .from("products")
           .select("*", { count: "exact" })
           .eq("tenant_id", tenantId)
-          .order("name", { ascending: true })
-          .range(0, DASHBOARD_LIST_PAGE_SIZE - 1);
+          .order("name", { ascending: true });
+
+        if (!fetchAll) {
+          query = query.range(0, DASHBOARD_LIST_PAGE_SIZE - 1);
+        }
+
+        const { data, error, count } = await query;
 
         if (cancelled) return;
         if (error) {
@@ -350,7 +360,7 @@ export function useProducts(initialFetch = true) {
       cancelled = true;
       supabase.removeChannel(channel);
     };
-  }, [tenantId, authLoading, initialFetch, supabase, fetchProductStats, fetchProductsPage]);
+  }, [tenantId, authLoading, initialFetch, fetchAll, supabase, fetchProductStats, fetchProductsPage]);
 
   return {
     products,

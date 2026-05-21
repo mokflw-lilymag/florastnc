@@ -337,6 +337,18 @@ export const PLAN_TEXTS: Record<
         "VIP-Mitgliedshop-Unterstützung",
         "Поддержка VIP-клуба для клиентов",
       ),
+      L(
+        "매출 엔진 — SNS Auto-Pilot · 재고 플래시 · A/B · SEO",
+        "Revenue engine — SNS Auto-Pilot, flash sales, A/B, SEO",
+        "Revenue engine — Auto-Pilot SNS, flash, A/B, SEO",
+        "売上エンジン — SNS Auto-Pilot・在庫フラッシュ・A/B・SEO",
+        "营收引擎 — SNS 自动驾驶、闪购、A/B、SEO",
+        "Motor de ingresos — Auto-Pilot SNS, flash, A/B, SEO",
+        "Motor de receita — Auto-Pilot SNS, flash, A/B, SEO",
+        "Moteur revenus — Auto-Pilot SNS, flash, A/B, SEO",
+        "Revenue-Engine — SNS Auto-Pilot, Flash, A/B, SEO",
+        "Движок выручки — Auto-Pilot SNS, flash, A/B, SEO",
+      ),
     ],
   },
 };
