@@ -18,6 +18,14 @@ const nextConfig: NextConfig = {
     ],
   },
   // 🚀 성능 최적화: tree-shaking 강제 및 번들 크기 최소화
+  outputFileTracingExcludes: {
+    '*': [
+      'node_modules/@imgly/background-removal/**/*',
+      'node_modules/onnxruntime-web/**/*',
+      'node_modules/@swc/core/**/*',
+      'node_modules/@next/swc*/**/*',
+    ],
+  },
   experimental: {
     optimizePackageImports: [
       'lucide-react',
