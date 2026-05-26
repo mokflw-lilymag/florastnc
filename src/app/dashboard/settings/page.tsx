@@ -753,6 +753,7 @@ export default function SettingsPage() {
   const [logoUrl, setLogoUrl] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isBridgeOnboardingOpen, setIsBridgeOnboardingOpen] = useState(false);
+  const [localPrinters, setLocalPrinters] = useState<string[]>([]);
   const t = useMemo(() => getDashboardSettingsMessages(uiLocale), [uiLocale]);
   const baseLocale = useMemo(() => toBaseLocale(uiLocale), [uiLocale]);
   const tf = useMemo(() => getMessages(uiLocale).tenantFlows, [uiLocale]);
@@ -788,6 +789,16 @@ export default function SettingsPage() {
       clearTimeout(timeoutId);
       if (response.ok) {
         setBridgeStatus(true);
+        // 브릿지에서 최신 프린터 목록 바로 가져오기 (Supabase 동기화 대기 없이 즉시 반영)
+        try {
+          const pr = await fetch("http://127.0.0.1:8003/printers", { mode: 'cors' });
+          if (pr.ok) {
+            const data = await pr.json();
+            if (data.printers && Array.isArray(data.printers) && data.printers.length > 0) {
+              setLocalPrinters(data.printers);
+            }
+          }
+        } catch (e) {}
       } else {
         throw new Error(
           pickUiText(
@@ -1657,10 +1668,10 @@ export default function SettingsPage() {
                             <SelectValue placeholder={pickUiText(baseLocale, '프린터를 선택하세요', 'Select a printer', 'Chọn một máy in')} />
                           </SelectTrigger>
                           <SelectContent>
-                            {settings.installedPrinters?.map(p => (
+                            {(localPrinters.length > 0 ? localPrinters : settings.installedPrinters)?.map(p => (
                               <SelectItem key={p} value={p}>{p}</SelectItem>
                             ))}
-                            {(!settings.installedPrinters || settings.installedPrinters.length === 0) && (
+                            {(!(localPrinters.length > 0 ? localPrinters : settings.installedPrinters) || (localPrinters.length > 0 ? localPrinters : settings.installedPrinters)!.length === 0) && (
                               <SelectItem value="none" disabled>{pickUiText(baseLocale, '설치된 프린터 없음', 'No printers installed', 'Không có máy in được cài đặt')}</SelectItem>
                             )}
                           </SelectContent>
@@ -1678,10 +1689,10 @@ export default function SettingsPage() {
                             <SelectValue placeholder={pickUiText(baseLocale, '프린터를 선택하세요', 'Select a printer', 'Chọn một máy in')} />
                           </SelectTrigger>
                           <SelectContent>
-                            {settings.installedPrinters?.map(p => (
+                            {(localPrinters.length > 0 ? localPrinters : settings.installedPrinters)?.map(p => (
                               <SelectItem key={p} value={p}>{p}</SelectItem>
                             ))}
-                            {(!settings.installedPrinters || settings.installedPrinters.length === 0) && (
+                            {(!(localPrinters.length > 0 ? localPrinters : settings.installedPrinters) || (localPrinters.length > 0 ? localPrinters : settings.installedPrinters)!.length === 0) && (
                               <SelectItem value="none" disabled>{pickUiText(baseLocale, '설치된 프린터 없음', 'No printers installed', 'Không có máy in được cài đặt')}</SelectItem>
                             )}
                           </SelectContent>

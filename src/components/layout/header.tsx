@@ -79,6 +79,7 @@ export function Header({
   const supabase = createClient();
   const [isBridgeOnline, setIsBridgeOnline] = useState(false);
   const [isPPBridgeOnline, setIsPPBridgeOnline] = useState(false);
+  const [bridgeVersion, setBridgeVersion] = useState("");
   const preferredLocale = usePreferredLocale();
   const messages = getMessages(preferredLocale);
   const t = messages.dashboardCommon;
@@ -135,6 +136,7 @@ export function Header({
         if (!resPP.ok) throw new Error(`HTTP ${resPP.status}`);
         const dataPP = await resPP.json();
         setIsPPBridgeOnline(dataPP.status === 'success' || dataPP.status === 'ok');
+        if (dataPP.version) setBridgeVersion(dataPP.version);
       } catch (err) {
         setIsPPBridgeOnline(false);
       }
@@ -228,7 +230,7 @@ export function Header({
       <div className="flex items-center gap-2 md:gap-4">
 
         <div className="hidden md:flex items-center gap-2">
-          {/* PP Bridge Status Indicator (v10.7) */}
+          {/* PP Bridge Status Indicator */}
           <div 
             onClick={() => router.push('/dashboard/settings')}
             className={cn(
@@ -243,7 +245,7 @@ export function Header({
               isPPBridgeOnline ? "bg-blue-500 animate-pulse shadow-[0_0_6px_rgba(59,130,246,0.5)]" : "bg-slate-400"
             )} />
             <span className="text-[9px] font-bold uppercase tracking-tight">
-              PP {isPPBridgeOnline ? "ON" : "OFF"} <span className="opacity-60 font-mono tracking-tighter">v10.7</span>
+              PP {isPPBridgeOnline ? "ON" : "OFF"} <span className="opacity-60 font-mono tracking-tighter">{bridgeVersion || 'v1'}</span>
             </span>
           </div>
 
