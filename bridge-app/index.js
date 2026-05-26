@@ -70,10 +70,19 @@ Set WshShell = Nothing
     }
 
     // Write initial .env file during installation
+    let installedTenantId = process.env.CURRENT_TENANT_ID || '';
+    const localEnvPath = path.join(currentFolder, '.env');
+    if (fs.existsSync(localEnvPath)) {
+      const localEnv = fs.readFileSync(localEnvPath, 'utf8');
+      const match = localEnv.match(/TENANT_ID=(.*)/);
+      if (match && match[1]) installedTenantId = match[1].trim();
+    }
+
     const envPath = path.join(targetFolder, '.env');
     fs.writeFileSync(envPath, `SUPABASE_URL=https://xphvycuaffifjgjaiqxe.supabase.co
 SUPABASE_SERVICE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhwaHZ5Y3VhZmZpZmpnamFpcXhlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODkyMTI0OSwiZXhwIjoyMDg0NDk3MjQ5fQ.nBJ86wD5wyIQaQHZ7UMCq6VAHSCCSzdAZ37e5Ld_y28
-CURRENT_TENANT_ID=${process.env.CURRENT_TENANT_ID || ''}
+CURRENT_TENANT_ID=${installedTenantId}
+TENANT_ID=${installedTenantId}
 `);
 
     // Start the installed background copy
