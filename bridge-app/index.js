@@ -672,10 +672,10 @@ const server = http.createServer(async (req, res) => {
        // .env 파일에 업데이트하여 영구 저장
        try {
          const targetEnvPath = path.join(targetFolder, '.env');
-         const envContent = \`SUPABASE_URL=https://xphvycuaffifjgjaiqxe.supabase.co
+         const envContent = `SUPABASE_URL=https://xphvycuaffifjgjaiqxe.supabase.co
 SUPABASE_SERVICE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhwaHZ5Y3VhZmZpZmpnamFpcXhlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODkyMTI0OSwiZXhwIjoyMDg0NDk3MjQ5fQ.nBJ86wD5wyIQaQHZ7UMCq6VAHSCCSzdAZ37e5Ld_y28
-CURRENT_TENANT_ID=\${CURRENT_TENANT_ID}
-TENANT_ID=\${CURRENT_TENANT_ID}\`;
+CURRENT_TENANT_ID=${CURRENT_TENANT_ID}
+TENANT_ID=${CURRENT_TENANT_ID}`;
          fs.writeFileSync(targetEnvPath, envContent, 'utf8');
        } catch (err) {
          console.error('❌ .env 파일 업데이트 실패:', err);
