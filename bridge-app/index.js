@@ -190,7 +190,8 @@ let globalBranchPhone = '';
 
 // 2. 주문 데이터를 HTML 템플릿으로 변환 (영수증 디자인)
 function generateHtmlReceipt(job, settings = {}) {
-  const { job_type, payload } = job;
+  const job_type = job.job_type || job.type;
+  const payload = job.payload || job.data || {};
   const { orderer, items, summary, pickupInfo, deliveryInfo, message, request } = payload;
 
   const isPkg = typeof process.pkg !== 'undefined';
