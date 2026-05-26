@@ -12,7 +12,7 @@ export async function GET(req: Request) {
     return NextResponse.redirect(new URL('/dashboard/marketing/admin?error=naver_auth_failed', req.url));
   }
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: authData } = await supabase.auth.getUser();
   
   if (!authData?.user) {

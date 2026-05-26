@@ -5,7 +5,7 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const host = url.origin; // e.g., http://localhost:3000
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: authData } = await supabase.auth.getUser();
   
   if (!authData?.user) {

@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
 import { runTenantMasterSeedBulk } from "./src/lib/tenant-master-seed/run-seed";
-import { TENANT_MASTER_SEED_V2026_04_22_EASTPOLE } from "./src/lib/tenant-master-seed/seeds/v2026-04-22-eastpole.generated";
+import { TENANT_MASTER_SEED_V2026_05_21_YEOUIDO } from "./src/lib/tenant-master-seed/seeds/v2026-05-21-yeouido.generated";
 import { TENANT_MASTER_SEED_DELIVERY_GWANGHWAMUN } from "./src/lib/tenant-master-seed/seeds/delivery-gwanghwamun";
 
 dotenv.config({ path: ".env.local" });
@@ -17,7 +17,7 @@ if (!supabaseUrl || !supabaseKey) {
 const admin = createClient(supabaseUrl, supabaseKey);
 
 const eastpoleSeedWithDelivery = {
-  ...TENANT_MASTER_SEED_V2026_04_22_EASTPOLE,
+  ...TENANT_MASTER_SEED_V2026_05_21_YEOUIDO,
   delivery: { ...TENANT_MASTER_SEED_DELIVERY_GWANGHWAMUN },
 };
 
