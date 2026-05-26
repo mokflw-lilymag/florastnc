@@ -39,7 +39,7 @@ export class NaverService {
   }): Promise<NaverBlogPost> {
     const key = params.apiKey || process.env.GEMINI_API_KEY || '';
     const genAI = new GoogleGenerativeAI(key);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
 
     const prompt = `
       [TASK] 네이버 블로그 전용 홍보 포스팅 원고를 작성하라.

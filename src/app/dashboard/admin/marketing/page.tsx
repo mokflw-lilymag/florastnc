@@ -4,17 +4,14 @@ import { getMessages } from "@/i18n/getMessages";
 import React, { useState, useEffect } from 'react';
 import { 
   ShieldCheck, 
-  Key, 
   Save, 
   RefreshCw, 
-  Globe, 
-  Instagram, 
-  Youtube, 
   Zap, 
   Lock,
-  MessageSquare
+  Brain,
+  Workflow
 } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,19 +21,17 @@ import { createClient } from '@/utils/supabase/client';
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
 import { pickUiText } from "@/i18n/pick-ui-text";
+import { RevenueIntegrationsPanel } from '@/components/admin/revenue-integrations-panel';
+import type { RevenueIntegrationsConfig, RevenueCouponLimitsConfig } from '@/lib/revenue/types';
 
 export default function AdminMarketingSettings() {
   const [isSaving, setIsSaving] = useState(false);
   const [settings, setSettings] = useState({
-    meta_app_id: '',
-    meta_app_secret: '',
-    tiktok_client_key: '',
-    tiktok_client_secret: '',
-    google_client_id: '',
-    google_client_secret: '',
     naver_client_id: '',
     naver_client_secret: '',
-    n8n_webhook_url: ''
+    gemini_key: '',
+    openai_key: '',
+    anthropic_key: ''
   });
 
   const supabase = createClient();
@@ -68,11 +63,11 @@ export default function AdminMarketingSettings() {
       .maybeSingle();
     
     if (data && data.value) {
-      setSettings(data.value);
+      setSettings(prev => ({ ...prev, ...data.value }));
     }
   };
 
-  const handleSave = async () => {
+  const handleSaveKeys = async () => {
     setIsSaving(true);
     try {
       const { error } = await supabase
@@ -85,6 +80,25 @@ export default function AdminMarketingSettings() {
 
       if (error) throw error;
       toast.success(tf.f01137);
+    } catch (err: any) {
+      toast.error(tf.f01770 + err.message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleRevenueSave = async (key: string, value: RevenueIntegrationsConfig | RevenueCouponLimitsConfig) => {
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('platform_config')
+        .upsert({
+          key,
+          value,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'key' });
+
+      if (error) throw error;
     } catch (err: any) {
       toast.error(tf.f01770 + err.message);
     } finally {
@@ -115,138 +129,61 @@ export default function AdminMarketingSettings() {
               )}
             </h1>
           </div>
-          <p className="text-muted-foreground font-medium">{tf.f01800}</p>
+          <p className="text-muted-foreground font-medium">{tr("시스템 인프라 및 글로벌 엔진 마스터 설정을 관리합니다.", "Manage system infrastructure and global engine master settings.")}</p>
         </div>
-        <Button 
-          size="lg" 
-          className="bg-indigo-600 hover:bg-indigo-700 font-bold gap-2"
-          onClick={handleSave}
-          disabled={isSaving}
-        >
-          {isSaving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-          {tf.f01416}
-        </Button>
       </div>
 
-      <Tabs defaultValue="meta" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 mb-8 bg-slate-100 dark:bg-slate-900 p-1 rounded-2xl h-14">
-          <TabsTrigger value="meta" className="rounded-xl font-bold gap-2"><Instagram className="w-4 h-4" /> Meta</TabsTrigger>
-          <TabsTrigger value="tiktok" className="rounded-xl font-bold gap-2"><Globe className="w-4 h-4" /> TikTok</TabsTrigger>
-          <TabsTrigger value="google" className="rounded-xl font-bold gap-2"><Youtube className="w-4 h-4" /> Google</TabsTrigger>
+      <Tabs defaultValue="automation" className="w-full">
+        <TabsList className="grid w-full grid-cols-3 mb-8 bg-slate-100 dark:bg-slate-900 p-1 rounded-2xl h-14">
+          <TabsTrigger value="automation" className="rounded-xl font-bold gap-2"><Workflow className="w-4 h-4" /> Postiz + Trigger.dev</TabsTrigger>
+          <TabsTrigger value="ai" className="rounded-xl font-bold gap-2"><Brain className="w-4 h-4" /> AI 엔진</TabsTrigger>
           <TabsTrigger value="naver" className="rounded-xl font-bold gap-2">
             <Zap className="w-4 h-4" />{" "}
-            {tr("네이버 / n8n", "Naver / n8n", "Naver / n8n", "Naver / n8n", "Naver / n8n", "Naver / n8n", "Naver / n8n", "Naver / n8n", "Naver / n8n", "Naver / n8n")}
+            {tr("네이버 (로컬)", "Naver (Local)", "Naver (Local)")}
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="meta">
-          <KeyCard 
-            title={tr(
-              "Meta (인스타·페이스북)",
-              "Meta (Instagram & Facebook)",
-              "Meta (Instagram & Facebook)",
-              "Meta（Instagram・Facebook）",
-              "Meta（Instagram 和 Facebook）",
-              "Meta (Instagram y Facebook)",
-              "Meta (Instagram e Facebook)",
-              "Meta (Instagram et Facebook)",
-              "Meta (Instagram und Facebook)",
-              "Meta (Instagram и Facebook)",
-            )}
-            desc={tf.f01185}
-            icon={<Instagram className="w-8 h-8 text-pink-500" />}
-          >
-            <div className="space-y-4">
-              <InputGroup
-                label={tr("Meta 앱 ID", "Meta App ID", "Meta App ID", "Meta アプリID", "Meta 应用 ID", "ID de app Meta", "ID do app Meta", "ID d’app Meta", "Meta-App-ID", "ID приложения Meta")}
-                value={settings.meta_app_id}
-                onChange={(v) => setSettings({ ...settings, meta_app_id: v })}
-              />
-              <InputGroup
-                label={tr(
-                  "Meta 앱 시크릿",
-                  "Meta App Secret",
-                  "Meta App Secret",
-                  "Meta アプリシークレット",
-                  "Meta 应用密钥",
-                  "Secreto de app Meta",
-                  "Segredo do app Meta",
-                  "Secret d’app Meta",
-                  "Meta-App-Geheimnis",
-                  "Секрет приложения Meta",
-                )}
-                value={settings.meta_app_secret}
-                onChange={(v) => setSettings({ ...settings, meta_app_secret: v })}
-                type="password"
-              />
-            </div>
-          </KeyCard>
+        <TabsContent value="automation">
+          <div className="mb-4 text-sm text-slate-500 font-medium px-2">
+            * 글로벌 소셜 서비스(Instagram, Facebook, Threads, TikTok 등)는 Postiz 플랫폼이 토큰 발급 및 관리를 대행합니다.
+          </div>
+          <RevenueIntegrationsPanel 
+            onSave={handleRevenueSave}
+            saving={isSaving}
+          />
         </TabsContent>
 
-        <TabsContent value="tiktok">
+        <TabsContent value="ai">
           <KeyCard 
-            title="TikTok for Developers" 
-            desc={tf.f02088}
-            icon={<Globe className="w-8 h-8 text-slate-900 dark:text-white" />}
-          >
-            <div className="space-y-4">
-              <InputGroup label="TikTok Client Key" value={settings.tiktok_client_key} onChange={(v) => setSettings({...settings, tiktok_client_key: v})} />
-              <InputGroup label="TikTok Client Secret" value={settings.tiktok_client_secret} onChange={(v) => setSettings({...settings, tiktok_client_secret: v})} type="password" />
-            </div>
-          </KeyCard>
-        </TabsContent>
-
-        <TabsContent value="google">
-          <KeyCard 
-            title={tr(
-              "Google Cloud (YouTube·Blogger)",
-              "Google Cloud (YouTube & Blogger)",
-              "Google Cloud (YouTube & Blogger)",
-              "Google Cloud（YouTube・Blogger）",
-              "Google Cloud（YouTube 与 Blogger）",
-              "Google Cloud (YouTube y Blogger)",
-              "Google Cloud (YouTube e Blogger)",
-              "Google Cloud (YouTube et Blogger)",
-              "Google Cloud (YouTube und Blogger)",
-              "Google Cloud (YouTube и Blogger)",
-            )}
-            desc={tf.f01660}
-            icon={<Youtube className="w-8 h-8 text-red-600" />}
+            title={tr("AI 엔진 설정", "AI Engine Settings", "Cài đặt AI")}
+            desc={tr("Gemini 1.5 Flash (기본) 및 보조 LLM 마스터 키", "Gemini 1.5 Flash (default) and auxiliary LLM master keys")}
+            icon={<Brain className="w-8 h-8 text-purple-600" />}
           >
             <div className="space-y-4">
               <InputGroup
-                label={tr(
-                  "Google 클라이언트 ID",
-                  "Google Client ID",
-                  "Google Client ID",
-                  "Google クライアントID",
-                  "Google 客户端 ID",
-                  "ID de cliente de Google",
-                  "ID do cliente Google",
-                  "ID client Google",
-                  "Google-Client-ID",
-                  "Идентификатор клиента Google",
-                )}
-                value={settings.google_client_id}
-                onChange={(v) => setSettings({ ...settings, google_client_id: v })}
-              />
-              <InputGroup
-                label={tr(
-                  "Google 클라이언트 시크릿",
-                  "Google Client Secret",
-                  "Google Client Secret",
-                  "Google クライアントシークレット",
-                  "Google 客户端密钥",
-                  "Secreto de cliente de Google",
-                  "Segredo do cliente Google",
-                  "Secret client Google",
-                  "Google-Client-Geheimnis",
-                  "Секрет клиента Google",
-                )}
-                value={settings.google_client_secret}
-                onChange={(v) => setSettings({ ...settings, google_client_secret: v })}
+                label={tr("Gemini API 마스터 키 (주력 엔진)", "Gemini API Master Key (Main Engine)", "Khóa API Gemini (Chính)")}
+                value={settings.gemini_key}
+                onChange={(v) => setSettings({ ...settings, gemini_key: v })}
                 type="password"
               />
+              <InputGroup
+                label={tr("OpenAI API 마스터 키 (보조)", "OpenAI API Master Key (Fallback)", "Khóa API OpenAI")}
+                value={settings.openai_key}
+                onChange={(v) => setSettings({ ...settings, openai_key: v })}
+                type="password"
+              />
+              <InputGroup
+                label={tr("Anthropic (Claude) API 키", "Anthropic (Claude) API Key", "Khóa API Anthropic (Claude)")}
+                value={settings.anthropic_key}
+                onChange={(v) => setSettings({ ...settings, anthropic_key: v })}
+                type="password"
+              />
+              <div className="pt-4 flex justify-end">
+                <Button onClick={handleSaveKeys} disabled={isSaving} className="font-bold">
+                  {isSaving ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                  {tf.f01416}
+                </Button>
+              </div>
             </div>
           </KeyCard>
         </TabsContent>
@@ -254,83 +191,30 @@ export default function AdminMarketingSettings() {
         <TabsContent value="naver">
           <KeyCard 
             title={tr(
-              "네이버·자동화 설정",
-              "Naver & automation",
-              "Naver & tự động hóa",
-              "Naver・自動化設定",
-              "Naver 与自动化设置",
-              "Naver y automatización",
-              "Naver e automação",
-              "Naver et automatisation",
-              "Naver & Automatisierung",
-              "Naver и автоматизация",
+              "네이버 블로그 연동 (로컬 전용)",
+              "Naver Blog Integration (Local Only)",
+              "Tích hợp Naver Blog"
             )}
-            desc={tf.f01043}
+            desc={tr("Postiz가 지원하지 않는 한국 로컬 플랫폼 연동 설정입니다.", "Integration settings for Korean local platforms not supported by Postiz.")}
             icon={<Zap className="w-8 h-8 text-green-600" />}
           >
             <div className="space-y-4">
               <InputGroup
-                label={tr(
-                  "네이버 클라이언트 ID",
-                  "Naver Client ID",
-                  "Naver Client ID",
-                  "Naver クライアントID",
-                  "Naver 客户端 ID",
-                  "ID de cliente de Naver",
-                  "ID do cliente Naver",
-                  "ID client Naver",
-                  "Naver-Client-ID",
-                  "Идентификатор клиента Naver",
-                )}
+                label={tr("네이버 클라이언트 ID", "Naver Client ID", "Naver Client ID")}
                 value={settings.naver_client_id}
                 onChange={(v) => setSettings({ ...settings, naver_client_id: v })}
               />
               <InputGroup
-                label={tr(
-                  "네이버 클라이언트 시크릿",
-                  "Naver Client Secret",
-                  "Naver Client Secret",
-                  "Naver クライアントシークレット",
-                  "Naver 客户端密钥",
-                  "Secreto de cliente de Naver",
-                  "Segredo do cliente Naver",
-                  "Secret client Naver",
-                  "Naver-Client-Geheimnis",
-                  "Секрет клиента Naver",
-                )}
+                label={tr("네이버 클라이언트 시크릿", "Naver Client Secret", "Naver Client Secret")}
                 value={settings.naver_client_secret}
                 onChange={(v) => setSettings({ ...settings, naver_client_secret: v })}
                 type="password"
               />
-              <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-                <InputGroup
-                  label={tr(
-                    "n8n 마스터 Webhook URL",
-                    "n8n master webhook URL",
-                    "URL webhook n8n chính",
-                    "n8n マスター Webhook URL",
-                    "n8n 主 Webhook URL",
-                    "URL de webhook maestro n8n",
-                    "URL do webhook mestre n8n",
-                    "URL webhook maître n8n",
-                    "n8n-Master-Webhook-URL",
-                    "URL основного вебхука n8n",
-                  )}
-                  value={settings.n8n_webhook_url}
-                  onChange={(v) => setSettings({ ...settings, n8n_webhook_url: v })}
-                  placeholder={tr(
-                    "https://n8n.example.com/webhook/...",
-                    "https://your-n8n-url/webhook/marketing-trigger",
-                    "https://n8n.example.com/webhook/...",
-                    "https://n8n.example.com/webhook/...",
-                    "https://your-n8n-url/webhook/marketing-trigger",
-                    "https://tu-n8n/webhook/...",
-                    "https://seu-n8n/webhook/...",
-                    "https://votre-n8n/webhook/...",
-                    "https://ihre-n8n-url/webhook/...",
-                    "https://ваш-n8n/webhook/...",
-                  )}
-                />
+              <div className="pt-4 flex justify-end">
+                <Button onClick={handleSaveKeys} disabled={isSaving} className="font-bold">
+                  {isSaving ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                  {tf.f01416}
+                </Button>
               </div>
             </div>
           </KeyCard>

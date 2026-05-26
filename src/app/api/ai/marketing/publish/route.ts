@@ -6,7 +6,7 @@ import { hqApiUiBase } from '@/lib/hq/hq-api-locale';
 import { resolveEffectiveTenantId } from '@/lib/revenue/resolve-tenant';
 import { publishMarketingContent } from '@/lib/revenue/publish-service';
 
-/** POST — Trigger.dev + Postiz (n8n 제거, Phase 2) */
+/** POST — Trigger.dev + Postiz (SNS Automation) */
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));

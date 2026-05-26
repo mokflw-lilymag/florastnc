@@ -24,6 +24,12 @@ import {
   DialogTrigger,
   DialogClose
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -44,6 +50,7 @@ import { Order } from "@/types/order";
 import { createClient } from "@/utils/supabase/client";
 import { cn } from "@/lib/utils";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { enqueuePrintJob } from "@/lib/print-service";
 
 interface OrderDetailDialogProps {
   isOpen: boolean;
@@ -87,6 +94,25 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
     toast.success(tf.f00154);
     setIsDateEditing(false);
     onUpdate?.();
+  };
+
+  const handleReprint = async (reprintType: 'order_form' | 'receipt' | 'receipt_self' | 'both') => {
+    if (!order || !tenantId) return;
+    
+    try {
+      let orderType: "store" | "pickup" | "delivery" = "store";
+      if (order.receipt_type === 'delivery_reservation' || (order.receipt_type as string) === 'delivery') {
+        orderType = "delivery";
+      } else if (order.receipt_type === 'pickup_reservation') {
+        orderType = "pickup";
+      }
+
+      await enqueuePrintJob(createClient(), tenantId, order.id, orderType, order, true, reprintType);
+      toast.success("인쇄 큐에 다시 등록되었습니다.");
+    } catch (e) {
+      console.error('Reprint failed:', e);
+      toast.error("인쇄 요청에 실패했습니다.");
+    }
   };
 
   const handleUploadPhoto = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -397,7 +423,33 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
               <Printer className="h-4 w-4 text-indigo-500" /> {tf.f00180}
             </Button>
           )}
-          <Button className="rounded-2xl h-12 px-10 font-bold bg-slate-900 hover:bg-black text-white shadow-xl shadow-slate-200 gap-2">
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger render={<Button className="rounded-2xl h-12 px-10 font-bold bg-slate-900 hover:bg-black text-white shadow-xl shadow-slate-200 gap-2" />}>
+              <Printer className="h-4 w-4" /> 재출력
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-80 rounded-xl p-2">
+              <DropdownMenuItem onClick={() => handleReprint('both')} className="font-semibold text-blue-600 rounded-lg py-3 cursor-pointer">
+                <Printer className="mr-2 h-4 w-4" />
+                <span>둘 다 출력 (주문서+인수증)</span>
+              </DropdownMenuItem>
+              <Separator className="my-1" />
+              <DropdownMenuItem onClick={() => handleReprint('order_form')} className="rounded-lg py-2 cursor-pointer">
+                <FileText className="mr-2 h-4 w-4 text-slate-500" />
+                <span className="text-slate-700 font-medium">주문서만 출력 (매장용)</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleReprint('receipt')} className="rounded-lg py-2 cursor-pointer">
+                <Package className="mr-2 h-4 w-4 text-slate-500" />
+                <span className="text-slate-700 font-medium">인수증/예약증만 출력 (대행/일반)</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleReprint('receipt_self')} className="rounded-lg py-2 cursor-pointer">
+                <Package className="mr-2 h-4 w-4 text-emerald-600" />
+                <span className="text-emerald-700 font-medium">자체배송 인수증 출력 (기사용)</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <Button className="rounded-2xl h-12 px-10 font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 shadow-sm gap-2">
             <RefreshCw className="h-4 w-4" /> {tf.f00598}
           </Button>
         </div>

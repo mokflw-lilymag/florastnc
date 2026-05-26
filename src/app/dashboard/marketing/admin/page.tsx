@@ -4,34 +4,29 @@ import { getMessages } from "@/i18n/getMessages";
 import React, { useState, useEffect } from 'react';
 import { 
   ShieldCheck, 
-  Key, 
-  Webhook, 
-  Brain, 
-  Save, 
-  Zap, 
+  RefreshCw, 
   Globe, 
-  Facebook, 
   Instagram, 
-  Youtube, 
-  Video,
-  Share2
+  Zap,
+  MessageSquare,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from 'sonner';
 import { createClient } from '@/utils/supabase/client';
 import { usePreferredLocale } from '@/hooks/use-preferred-locale';
 import { toBaseLocale } from '@/i18n/config';
 import { pickUiText } from '@/i18n/pick-ui-text';
-import { RevenueIntegrationsPanel } from '@/components/admin/revenue-integrations-panel';
-import type { RevenueIntegrationsConfig } from '@/lib/revenue/types';
 
 export default function MarketingAdmin() {
   const [loading, setLoading] = useState(false);
-  const [config, setConfig] = useState<any>({});
+  const [status, setStatus] = useState({
+    instagram_connected: false,
+    naver_connected: false
+  });
+  
   const supabase = createClient();
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
@@ -50,339 +45,153 @@ export default function MarketingAdmin() {
   ) => pickUiText(baseLocale, ko, en, vi, ja, zh, es, pt, fr, de, ru);
 
   useEffect(() => {
-    fetchConfig();
+    fetchConnectionStatus();
+    
+    const searchParams = new URLSearchParams(window.location.search);
+    const error = searchParams.get('error');
+    const success = searchParams.get('success');
+    
+    if (error) {
+      toast.error(`연동 실패: ${error}`);
+    } else if (success) {
+      toast.success('성공적으로 연동되었습니다!');
+    }
   }, []);
 
-  const fetchConfig = async () => {
-    const { data, error } = await supabase.from('platform_config').select('*');
-    if (error) {
-      toast.error(`${tf.f01414}: ${error.message}`);
-      return;
-    }
-    if (data) {
-      const configMap = data.reduce((acc: any, item: any) => {
-        acc[item.key] = item.value;
-        return acc;
-      }, {});
-      setConfig(configMap);
+  const fetchConnectionStatus = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
+      const { data: tenantUser } = await supabase
+        .from('tenant_users')
+        .select('tenant_id')
+        .eq('user_id', user.id)
+        .limit(1)
+        .single();
+        
+      if (!tenantUser) return;
+      
+      const { data: integration } = await supabase
+        .from('tenant_postiz_integrations')
+        .select('instagram_connected')
+        .eq('tenant_id', tenantUser.tenant_id)
+        .maybeSingle();
+        
+      setStatus({
+        instagram_connected: !!integration?.instagram_connected,
+        naver_connected: false // TODO: Naver auth check
+      });
+    } catch (err) {
+      console.error(err);
     }
   };
 
-  const handleSave = async (key: string, value: any) => {
-    setLoading(true);
-    const { error } = await supabase
-      .from('platform_config')
-      .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: 'key' });
-    
-    if (error) {
-      const msg = error.message.toLowerCase();
-      const rlsBlocked =
-        error.code === '42501' ||
-        msg.includes('permission') ||
-        msg.includes('row-level security') ||
-        msg.includes('policy');
-      toast.error(
-        rlsBlocked
-          ? tf.f01768
-          : `${tf.f01417}: ${error.message}`
-      );
-    } else {
-      toast.success(tf.f01424);
-      fetchConfig();
-    }
-    setLoading(false);
+  const handleConnectPostiz = async () => {
+    toast.info("Instagram / Threads 연동 페이지로 이동합니다...");
+    window.location.href = "/api/marketing/postiz/auth?integration=instagram";
+  };
+  
+  const handleConnectNaver = async () => {
+    toast.info("Naver 블로그 연동 페이지로 이동합니다...");
+    window.location.href = "/api/auth/naver";
   };
 
   return (
-    <div className="container mx-auto p-8 max-w-6xl space-y-8 animate-in fade-in duration-500">
+    <div className="container mx-auto p-8 max-w-4xl space-y-8 animate-in fade-in duration-500">
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-2 mb-2">
             <div className="bg-slate-900 text-white p-2 rounded-lg">
-              <ShieldCheck className="w-6 h-6" />
+              <Globe className="w-6 h-6" />
             </div>
-            <h1 className="text-4xl font-black tracking-tight">{tf.f02152}</h1>
+            <h1 className="text-4xl font-black tracking-tight">{tf.f02291}</h1>
           </div>
-          <p className="text-muted-foreground">{tf.f01808}</p>
+          <p className="text-muted-foreground">마케팅 자동화를 위한 소셜 채널 연동 현황입니다. 복잡한 설정 없이 원클릭으로 채널을 연결하세요.</p>
         </div>
       </div>
 
-      <Tabs defaultValue="sns" className="w-full">
-        <TabsList className="grid w-full max-w-3xl grid-cols-5 mb-8 h-12 bg-slate-50 dark:bg-slate-900 ring-1 ring-slate-100 dark:ring-slate-800">
-          <TabsTrigger value="sns" className="gap-2 font-bold"><Globe className="w-4 h-4" /> {tf.f02291}</TabsTrigger>
-          <TabsTrigger value="ai" className="gap-2 font-bold"><Brain className="w-4 h-4" /> {tf.f02239}</TabsTrigger>
-          <TabsTrigger value="workflow" className="gap-2 font-bold"><Webhook className="w-4 h-4" /> {tf.f01636}</TabsTrigger>
-          <TabsTrigger value="revenue" className="gap-2 font-bold text-emerald-700"><Zap className="w-4 h-4" /> {L("매출엔진", "Revenue", "Doanh thu", "売上", "营收", "Ingresos", "Receita", "Revenus", "Umsatz", "Выручка")}</TabsTrigger>
-          <TabsTrigger value="global" className="gap-2 font-bold"><Zap className="w-4 h-4" /> {tf.f00959}</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="sns">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <PlatformCard 
-              title={L(
-                "Meta (페이스북/인스타그램)",
-                "Meta (Facebook/Instagram)",
-                "Meta (Facebook / Instagram)",
-                "Meta（Facebook / Instagram）",
-                "Meta（Facebook / Instagram）",
-                "Meta (Facebook/Instagram)",
-                "Meta (Facebook/Instagram)",
-                "Meta (Facebook/Instagram)",
-                "Meta (Facebook/Instagram)",
-                "Meta (Facebook/Instagram)",
-              )}
-              icon={<Instagram className="text-pink-500" />}
-              description={tf.f02268}
-              configKey="meta_api_config"
-              data={config.meta_api_config || { appId: '', appSecret: '' }}
-              onSave={(val: any) => handleSave('meta_api_config', val)}
-            />
-            <PlatformCard 
-              title={L(
-                "네이버 개발자 센터",
-                "Naver Developers",
-                "Trung tâm nhà phát triển Naver",
-                "Naver デベロッパーセンター",
-                "Naver 开发者中心",
-                "Centro para desarrolladores de Naver",
-                "Centro de desenvolvedores Naver",
-                "Centre développeurs Naver",
-                "Naver-Entwicklerzentrum",
-                "Центр разработчиков Naver",
-              )}
-              icon={<Zap className="text-green-500" />}
-              description={tf.f01038}
-              configKey="naver_api_config"
-              data={config.naver_api_config || { clientId: '', clientSecret: '' }}
-              onSave={(val: any) => handleSave('naver_api_config', val)}
-            />
-            <PlatformCard 
-              title={L(
-                "YouTube / Google",
-                "YouTube / Google",
-                "YouTube / Google",
-                "YouTube / Google",
-                "YouTube / Google",
-                "YouTube / Google",
-                "YouTube / Google",
-                "YouTube / Google",
-                "YouTube / Google",
-                "YouTube / Google",
-              )}
-              icon={<Youtube className="text-red-500" />}
-              description={tf.f02299}
-              configKey="google_api_config"
-              data={config.google_api_config || { apiKey: '', clientId: '' }}
-              onSave={(val: any) => handleSave('google_api_config', val)}
-            />
-            <PlatformCard 
-              title={L(
-                "TikTok for Business",
-                "TikTok for Business",
-                "TikTok cho doanh nghiệp",
-                "TikTok for Business",
-                "TikTok for Business",
-                "TikTok for Business",
-                "TikTok for Business",
-                "TikTok for Business",
-                "TikTok for Business",
-                "TikTok for Business",
-              )}
-              icon={<Video className="text-slate-900" />}
-              description={tf.f02296}
-              configKey="tiktok_api_config"
-              data={config.tiktok_api_config || { clientKey: '', clientSecret: '' }}
-              onSave={(val: any) => handleSave('tiktok_api_config', val)}
-            />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="ai">
-          <Card className="border-none shadow-xl ring-1 ring-slate-100 dark:ring-slate-800">
-            <CardHeader className="border-b bg-slate-50/50 dark:bg-slate-900/50">
-              <CardTitle className="flex items-center gap-2">
-                <Brain className="w-5 h-5 text-purple-600" /> {tf.f02235}
-              </CardTitle>
-              <CardDescription>{tf.f02203}</CardDescription>
-            </CardHeader>
-            <CardContent className="pt-8 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                <div className="space-y-4">
-                  <Label className="font-bold">
-                    {L(
-                      "OpenAI API 마스터 키",
-                      "OpenAI API Master Key",
-                      "Khóa API OpenAI chính",
-                      "OpenAI API マスターキー",
-                      "OpenAI API 主密钥",
-                      "Clave maestra de la API de OpenAI",
-                      "Chave mestra da API OpenAI",
-                      "Clé principale API OpenAI",
-                      "OpenAI-API-Masterschlüssel",
-                      "Главный ключ API OpenAI",
-                    )}
-                  </Label>
-                  <Input
-                    type="password"
-                    placeholder={L("sk-...", "sk-...", "sk-...", "sk-...", "sk-...", "sk-...", "sk-...", "sk-...", "sk-...", "sk-...")}
-                    value={config.openai_key || ''} 
-                    onChange={(e) => setConfig({...config, openai_key: e.target.value})}
-                  />
-                  <Button size="sm" onClick={() => handleSave('openai_key', config.openai_key)}>{tf.f01771}</Button>
-                </div>
-                <div className="space-y-4">
-                  <Label className="font-bold">
-                    {L(
-                      "Anthropic (Claude) API 키",
-                      "Anthropic (Claude) API Key",
-                      "Khóa API Anthropic (Claude)",
-                      "Anthropic（Claude）API キー",
-                      "Anthropic（Claude）API 密钥",
-                      "Clave API de Anthropic (Claude)",
-                      "Chave API Anthropic (Claude)",
-                      "Clé API Anthropic (Claude)",
-                      "Anthropic-(Claude)-API-Schlüssel",
-                      "Ключ API Anthropic (Claude)",
-                    )}
-                  </Label>
-                  <Input
-                    type="password"
-                    placeholder={L(
-                      "sk-ant-...",
-                      "sk-ant-...",
-                      "sk-ant-...",
-                      "sk-ant-...",
-                      "sk-ant-...",
-                      "sk-ant-...",
-                      "sk-ant-...",
-                      "sk-ant-...",
-                      "sk-ant-...",
-                      "sk-ant-...",
-                    )}
-                    value={config.anthropic_key || ''} 
-                    onChange={(e) => setConfig({...config, anthropic_key: e.target.value})}
-                  />
-                  <Button size="sm" onClick={() => handleSave('anthropic_key', config.anthropic_key)}>{tf.f01771}</Button>
-                </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+        {/* Postiz (Global SNS) Card */}
+        <Card className="border-none shadow-lg ring-1 ring-slate-100 dark:ring-slate-800 overflow-hidden">
+          <CardHeader className="bg-slate-50/50 dark:bg-slate-900/50 p-6">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-white dark:bg-slate-800 rounded-xl shadow-sm">
+                <Instagram className="w-8 h-8 text-pink-500" />
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+              <div>
+                <CardTitle className="text-lg font-extrabold">
+                  {L("Meta & Threads", "Meta & Threads", "Meta & Threads")}
+                </CardTitle>
+                <CardDescription className="text-xs mt-1">Instagram, Facebook, Threads 통합 연동</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <span className="text-sm font-semibold text-slate-500">연동 상태</span>
+              {status.instagram_connected ? (
+                <div className="flex items-center gap-2 text-emerald-600 font-bold bg-emerald-50 px-3 py-1 rounded-full text-xs">
+                  <CheckCircle2 className="w-4 h-4" /> 연결됨
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 text-slate-500 font-bold bg-slate-100 px-3 py-1 rounded-full text-xs">
+                  <AlertCircle className="w-4 h-4" /> 미연결
+                </div>
+              )}
+            </div>
+            <Button 
+              className={`w-full font-bold h-12 ${status.instagram_connected ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' : 'bg-pink-600 hover:bg-pink-700 text-white'}`}
+              onClick={handleConnectPostiz}
+            >
+              {status.instagram_connected ? "연동 관리하기" : "인스타그램 / 쓰레드 연동 시작"}
+            </Button>
+            <p className="text-[11px] text-muted-foreground mt-4 text-center">
+              하나의 버튼으로 인스타그램 피드, 릴스, 페이스북, 쓰레드까지 한 번에 발행됩니다.
+            </p>
+          </CardContent>
+        </Card>
 
-        <TabsContent value="workflow">
-          <Card className="border-none shadow-xl ring-1 ring-slate-100 dark:ring-slate-800">
-            <CardHeader className="border-b bg-slate-50/50 dark:bg-slate-900/50">
-              <CardTitle className="flex items-center gap-2">
-                <Webhook className="w-5 h-5 text-indigo-600" /> Trigger.dev + Postiz
-              </CardTitle>
-              <CardDescription>
-                {L(
-                  "n8n은 Phase 2에서 제거됐습니다. Trigger.dev + Postiz 연동은 「매출엔진」 탭에서 설정하세요.",
-                  "n8n removed in Phase 2. Configure Trigger.dev + Postiz in the Revenue tab.",
-                  "n8n đã bỏ ở Phase 2. Cấu hình Trigger.dev + Postiz ở tab Doanh thu.",
-                )}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-8 text-sm text-muted-foreground space-y-2">
-              <p>• npm run trigger:dev / trigger:deploy</p>
-              <p>• Postiz VPS: infra/postiz/docker-compose.yml</p>
-              <p>• 매출 캘린더 → SNS Auto-Pilot · Instagram 연결</p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="revenue">
-          <RevenueIntegrationsPanel
-            saving={loading}
-            onSave={async (key, value) => {
-              await handleSave(key, value as RevenueIntegrationsConfig);
-            }}
-          />
-        </TabsContent>
-      </Tabs>
+        {/* Naver (Local SNS) Card */}
+        <Card className="border-none shadow-lg ring-1 ring-slate-100 dark:ring-slate-800 overflow-hidden">
+          <CardHeader className="bg-slate-50/50 dark:bg-slate-900/50 p-6">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-white dark:bg-slate-800 rounded-xl shadow-sm">
+                <Zap className="w-8 h-8 text-green-500" />
+              </div>
+              <div>
+                <CardTitle className="text-lg font-extrabold">
+                  {L("네이버 블로그", "Naver Blog", "Naver Blog")}
+                </CardTitle>
+                <CardDescription className="text-xs mt-1">한국 전용 로컬 채널 연동</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <span className="text-sm font-semibold text-slate-500">연동 상태</span>
+              {status.naver_connected ? (
+                <div className="flex items-center gap-2 text-emerald-600 font-bold bg-emerald-50 px-3 py-1 rounded-full text-xs">
+                  <CheckCircle2 className="w-4 h-4" /> 연결됨
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 text-slate-500 font-bold bg-slate-100 px-3 py-1 rounded-full text-xs">
+                  <AlertCircle className="w-4 h-4" /> 미연결
+                </div>
+              )}
+            </div>
+            <Button 
+              className={`w-full font-bold h-12 ${status.naver_connected ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' : 'bg-green-600 hover:bg-green-700 text-white'}`}
+              onClick={handleConnectNaver}
+            >
+              {status.naver_connected ? "연동 관리하기" : "네이버 블로그 연동 시작"}
+            </Button>
+            <p className="text-[11px] text-muted-foreground mt-4 text-center">
+              인스타그램 글이 작성될 때 블로그 형식으로 변환되어 자동 포스팅됩니다.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
     </div>
-  );
-}
-
-function PlatformCard({ title, icon, description, data, onSave }: any) {
-  const [localData, setLocalData] = useState(data);
-  const locale = usePreferredLocale();
-  const tf = getMessages(locale).tenantFlows;
-  const baseLocale = toBaseLocale(locale);
-  const L = (
-    ko: string,
-    en: string,
-    vi?: string,
-    ja?: string,
-    zh?: string,
-    es?: string,
-    pt?: string,
-    fr?: string,
-    de?: string,
-    ru?: string,
-  ) => pickUiText(baseLocale, ko, en, vi, ja, zh, es, pt, fr, de, ru);
-
-  return (
-    <Card className="border-none shadow-lg ring-1 ring-slate-100 dark:ring-slate-800 overflow-hidden">
-      <CardHeader className="bg-slate-50/50 dark:bg-slate-900/50 p-4 pb-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-white dark:bg-slate-800 rounded-lg shadow-sm">
-            {icon}
-          </div>
-          <div>
-            <CardTitle className="text-md font-extrabold">{title}</CardTitle>
-            <CardDescription className="text-xs">{description}</CardDescription>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="p-6 space-y-4">
-        <div className="space-y-2">
-          <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-            {L(
-              "클라이언트 ID / 앱 ID",
-              "Client ID / App ID",
-              "ID ứng dụng / Client ID",
-              "クライアントID / アプリID",
-              "客户端 ID / 应用 ID",
-              "ID de cliente / ID de app",
-              "ID do cliente / ID do app",
-              "ID client / ID d’app",
-              "Client-ID / App-ID",
-              "ID клиента / ID приложения",
-            )}
-          </Label>
-          <Input 
-            value={localData.appId || localData.clientId || localData.clientKey || localData.apiKey || ''} 
-            onChange={(e) => setLocalData({ ...localData, appId: e.target.value, clientId: e.target.value, clientKey: e.target.value, apiKey: e.target.value })}
-            className="h-9 text-xs"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-            {L(
-              "시크릿 키 / 시크릿 ID",
-              "Secret Key / Secret ID",
-              "Secret / Client Secret",
-              "シークレットキー / シークレットID",
-              "密钥 / 密钥 ID",
-              "Clave secreta / ID secreto",
-              "Chave secreta / ID secreto",
-              "Clé secrète / ID secret",
-              "Geheimer Schlüssel / Geheime ID",
-              "Секретный ключ / секретный ID",
-            )}
-          </Label>
-          <Input 
-            type="password"
-            value={localData.appSecret || localData.clientSecret || ''} 
-            onChange={(e) => setLocalData({ ...localData, appSecret: e.target.value, clientSecret: e.target.value })}
-            className="h-9 text-xs"
-          />
-        </div>
-        <Button size="sm" variant="secondary" className="w-full font-bold h-9" onClick={() => onSave(localData)}>
-          <Save className="w-3.5 h-3.5 mr-2" /> {tf.f01415}
-        </Button>
-      </CardContent>
-    </Card>
   );
 }

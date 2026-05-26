@@ -224,6 +224,18 @@ export const OrderService = {
       }
     }
 
+    // --- Side Effect 4: Trigger Print Job ---
+    try {
+      const { enqueuePrintJob } = await import('@/lib/print-service');
+      let mappedOrderType: 'store' | 'pickup' | 'delivery' = 'store';
+      if (orderData.receipt_type === 'delivery_reservation') mappedOrderType = 'delivery';
+      else if (orderData.receipt_type === 'pickup_reservation') mappedOrderType = 'pickup';
+      
+      await enqueuePrintJob(supabase, tenantId, order.id, mappedOrderType, orderPayload, false);
+    } catch (e) {
+      console.error('Failed to trigger print job', e);
+    }
+
     return order.id;
   },
 

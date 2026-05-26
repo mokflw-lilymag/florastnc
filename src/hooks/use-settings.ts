@@ -66,6 +66,17 @@ export interface SystemSettings {
   hideDashboardTicker?: boolean;
   /** 새 주문 발생 시 우렁찬 알림음 재생 여부 */
   orderNotificationSound?: boolean;
+  ppBridgeEnabled: boolean;
+  ribbonBridgeEnabled: boolean;
+  printerName: string;
+  posPrinterName: string;
+  ribbonPrinterName: string;
+  labelPrinterName: string;
+  receiptPrinterType: 'pos' | 'label';
+  printPickupMemo: boolean;
+  printDeliveryShop: boolean;
+  printDeliveryDriver: boolean;
+  installedPrinters: string[];
 }
 
 export const defaultSettings: SystemSettings = {
@@ -115,6 +126,17 @@ export const defaultSettings: SystemSettings = {
   dashboardTickerEnabled: true,
   hideDashboardTicker: false,
   orderNotificationSound: true,
+  ppBridgeEnabled: false,
+  ribbonBridgeEnabled: false,
+  printerName: "",
+  posPrinterName: "",
+  ribbonPrinterName: "",
+  labelPrinterName: "",
+  receiptPrinterType: 'pos',
+  printPickupMemo: true,
+  printDeliveryShop: true,
+  printDeliveryDriver: true,
+  installedPrinters: [],
 };
 
 function mergeTenantGeneralSettings(raw: unknown): SystemSettings {

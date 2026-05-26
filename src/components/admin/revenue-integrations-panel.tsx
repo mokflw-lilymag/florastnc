@@ -75,6 +75,7 @@ export function RevenueIntegrationsPanel({
   const handleSubmit = async () => {
     const next: RevenueIntegrationsConfig = {
       ...form,
+      postiz_api_key: postizApiKey.length > 0 ? postizApiKey : form.postiz_api_key,
       postiz_api_key_set: form.postiz_api_key_set || postizApiKey.length > 0,
     };
     await onSave(REVENUE_INTEGRATIONS_KEY, next);

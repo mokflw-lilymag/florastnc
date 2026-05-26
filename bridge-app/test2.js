@@ -1,0 +1,1 @@
+const fs=require('fs'); const path=require('path'); const src=path.join(__dirname, 'node_modules', 'pdf-to-printer', 'dist', 'SumatraPDF-3.4.6-32.exe'); try { console.log('SIZE:', fs.statSync(src).size); } catch(e) { console.error('MISSING', e.message); }

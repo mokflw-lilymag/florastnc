@@ -78,6 +78,7 @@ export function Header({
   const router = useRouter();
   const supabase = createClient();
   const [isBridgeOnline, setIsBridgeOnline] = useState(false);
+  const [isPPBridgeOnline, setIsPPBridgeOnline] = useState(false);
   const preferredLocale = usePreferredLocale();
   const messages = getMessages(preferredLocale);
   const t = messages.dashboardCommon;
@@ -104,8 +105,6 @@ export function Header({
   useEffect(() => {
     const checkBridge = async () => {
       try {
-        // PNA (Private Network Access) handling: 
-        // Vercel (HTTPS) -> Localhouse (HTTP) requires reliable CORS/PNA headers
         const res = await fetch('http://127.0.0.1:8002/api/version', { 
           signal: AbortSignal.timeout(2000),
           mode: 'cors',
@@ -113,12 +112,22 @@ export function Header({
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-        // Accept both 'success' and 'ok' for better compatibility
         setIsBridgeOnline(data.status === 'success' || data.status === 'ok');
       } catch (err) {
-        // Silently fail but keep log for dev
-        console.debug('Bridge check paused:', err);
         setIsBridgeOnline(false);
+      }
+
+      try {
+        const resPP = await fetch('http://127.0.0.1:8003/api/version', { 
+          signal: AbortSignal.timeout(2000),
+          mode: 'cors',
+          credentials: 'omit'
+        });
+        if (!resPP.ok) throw new Error(`HTTP ${resPP.status}`);
+        const dataPP = await resPP.json();
+        setIsPPBridgeOnline(dataPP.status === 'success' || dataPP.status === 'ok');
+      } catch (err) {
+        setIsPPBridgeOnline(false);
       }
     };
     checkBridge();
@@ -207,14 +216,21 @@ export function Header({
         )}
       </div>
 
-      <div className="flex items-center gap-4">
-        <div className="hidden md:flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5">
+      <div className="flex items-center gap-2 md:gap-4">
+        {/* Language Selector */}
+        <div className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2 py-1 md:px-3 md:py-1.5">
           <Globe className="h-3.5 w-3.5 text-slate-500" />
           <select
             aria-label={dh.displayLanguageAria}
             value={selectLocale}
             onChange={(e) => handleLocaleChange(e.target.value as AppLocale)}
-            className="bg-transparent text-[11px] font-semibold text-slate-700 outline-none"
+            className="appearance-none bg-transparent text-[10px] md:text-xs font-semibold text-slate-700 outline-none pr-3 cursor-pointer"
+            style={{
+              backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
+              backgroundRepeat: 'no-repeat',
+              backgroundPosition: 'right center',
+              backgroundSize: '1em'
+            }}
           >
             {DASHBOARD_LOCALE_SELECT_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -224,29 +240,47 @@ export function Header({
           </select>
         </div>
 
-        {/* Bridge Status Indicator (v25.0) */}
-        <div 
-          onClick={() => router.push('/dashboard/printer')}
-          className={cn(
-            "hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800",
-            isBridgeOnline 
-              ? "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-400" 
-              : "bg-slate-100 border-slate-200 text-slate-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-500"
-          )}
-        >
-          <div className={cn(
-            "w-2 h-2 rounded-full",
-            isBridgeOnline ? "bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-slate-400"
-          )} />
-          <span className="text-[10px] font-bold uppercase tracking-tight flex items-center gap-1.5">
-            {isBridgeOnline ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
-            <span className="flex items-baseline gap-1">
-              Print Bridge
-              <span className="text-[8px] opacity-60 font-mono tracking-tighter">v25.0</span>
+        <div className="hidden md:flex items-center gap-2">
+          {/* PP Bridge Status Indicator (v10.7) */}
+          <div 
+            onClick={() => router.push('/dashboard/settings')}
+            className={cn(
+              "flex items-center gap-1.5 px-2 py-1 rounded-full border transition-all cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800",
+              isPPBridgeOnline 
+                ? "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-950/30 dark:border-blue-800 dark:text-blue-400" 
+                : "bg-slate-100 border-slate-200 text-slate-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-500"
+            )}
+          >
+            <div className={cn(
+              "w-1.5 h-1.5 rounded-full",
+              isPPBridgeOnline ? "bg-blue-500 animate-pulse shadow-[0_0_6px_rgba(59,130,246,0.5)]" : "bg-slate-400"
+            )} />
+            <span className="text-[9px] font-bold uppercase tracking-tight">
+              PP {isPPBridgeOnline ? "ON" : "OFF"} <span className="opacity-60 font-mono tracking-tighter">v10.7</span>
             </span>
-          </span>
+          </div>
+
+          {/* RP Bridge Status Indicator (v25.0) */}
+          <div 
+            onClick={() => router.push('/dashboard/printer')}
+            className={cn(
+              "flex items-center gap-1.5 px-2 py-1 rounded-full border transition-all cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800",
+              isBridgeOnline 
+                ? "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-400" 
+                : "bg-slate-100 border-slate-200 text-slate-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-500"
+            )}
+          >
+            <div className={cn(
+              "w-1.5 h-1.5 rounded-full",
+              isBridgeOnline ? "bg-emerald-500 animate-pulse shadow-[0_0_6px_rgba(16,185,129,0.5)]" : "bg-slate-400"
+            )} />
+            <span className="text-[9px] font-bold uppercase tracking-tight">
+              RP {isBridgeOnline ? "ON" : "OFF"} <span className="opacity-60 font-mono tracking-tighter">v25.0</span>
+            </span>
+          </div>
+
           <span className="h-3 w-[1px] bg-slate-300 dark:bg-slate-700 mx-1"></span>
-          <span className="text-[10px] font-medium opacity-80">
+          <span className="text-[9px] font-bold uppercase tracking-tight opacity-80">
             {isSuperAdmin ? 'HQ ADMIN' : plan.toUpperCase()}
           </span>
         </div>

@@ -58,6 +58,14 @@ import {
   DialogTrigger
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 import { useDeliveryFees } from "@/hooks/use-delivery-fees";
 import { defaultSettings, useSettings } from "@/hooks/use-settings";
@@ -72,6 +80,7 @@ import { applyCountryPreset, getCountryPreset, getCountryPresetDiff } from "@/li
 import { AppLocale, LOCALE_COOKIE, resolveLocale, toBaseLocale } from "@/i18n/config";
 import { getDashboardSettingsMessages } from "@/i18n/dashboard-settings-messages";
 import { pickUiText } from "@/i18n/pick-ui-text";
+import { BridgeOnboardingDialog } from "@/components/printer/BridgeOnboardingDialog";
 
 const MAJOR_CURRENCIES = [
   { code: 'KRW', symbol: '₩', flag: '🇰🇷', nameKo: '대한민국 원', nameEn: 'Korean Won' },
@@ -742,6 +751,7 @@ export default function SettingsPage() {
   const [checkingBridge, setCheckingBridge] = useState(false);
   const [logoUrl, setLogoUrl] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isBridgeOnboardingOpen, setIsBridgeOnboardingOpen] = useState(false);
   const t = useMemo(() => getDashboardSettingsMessages(uiLocale), [uiLocale]);
   const baseLocale = useMemo(() => toBaseLocale(uiLocale), [uiLocale]);
   const tf = useMemo(() => getMessages(uiLocale).tenantFlows, [uiLocale]);
@@ -765,7 +775,7 @@ export default function SettingsPage() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 2000);
       
-      const response = await fetch("http://localhost:8002/api/printers", { 
+      const response = await fetch("http://127.0.0.1:8003/api/version", { 
         signal: controller.signal,
         mode: 'cors'
       });
@@ -1500,17 +1510,180 @@ export default function SettingsPage() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="printer" className="space-y-4">
+            <TabsContent value="printer" className="space-y-6">
               <Card className="border-0 shadow-sm ring-1 ring-slate-200">
-                <CardHeader><CardTitle>{tf.f02141}</CardTitle></CardHeader>
-                <CardContent>
-                  <div className="p-6 border rounded-2xl flex items-center justify-between">
+                <CardHeader>
+                  <CardTitle>{tf.f02141}</CardTitle>
+                  <CardDescription>
+                    {pickUiText(baseLocale, '프린터 브릿지와 프린터 기기를 설정합니다.', 'Configure printer bridge and devices.', 'Cấu hình bridge và máy in.')}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Bridge Status */}
+                  <div className="p-4 border rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-slate-50/50">
                     <div>
-                      <p className="text-lg font-bold">{bridgeStatus ? tf.f01565 : tf.f01559}</p>
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="text-sm font-bold">
+                          {pickUiText(baseLocale, '프린터 브릿지 연결 상태', 'Printer Bridge Status', 'Trạng thái kết nối Bridge')}
+                        </p>
+                        <Badge variant={bridgeStatus ? 'default' : 'secondary'} className={bridgeStatus ? 'bg-green-500 hover:bg-green-600' : ''}>
+                          {bridgeStatus ? tf.f01565 : tf.f01559}
+                        </Badge>
+                      </div>
                       <p className="text-xs text-slate-500">{tf.f01131}</p>
                     </div>
-                    <Button variant="outline" onClick={checkBridgeStatus}>{checkingBridge ? <Loader2 className="animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}{tf.f00348}</Button>
+                    <Button variant="outline" onClick={checkBridgeStatus} size="sm">
+                      {checkingBridge ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                      {tf.f00348}
+                    </Button>
                   </div>
+
+                  <Separator />
+
+                  {/* Bridge Toggles */}
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-base">{pickUiText(baseLocale, '영수증/라벨 브릿지 사용', 'Enable POS/Label Bridge', 'Sử dụng Bridge cho POS/Nhãn')}</Label>
+                        <p className="text-sm text-slate-500">
+                          {pickUiText(baseLocale, '영수증 및 라벨 프린터를 사용하려면 활성화하세요.', 'Enable to use POS and label printers.', 'Bật để sử dụng máy in hóa đơn và nhãn.')}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <Button variant="outline" asChild size="sm">
+                          <a href="/downloads/LilyMag-Bridge-Setup-v10.7.zip" download>
+                            <Download className="mr-2 h-4 w-4" />
+                            {pickUiText(baseLocale, '브릿지 다운로드', 'Download Bridge', 'Tải Bridge')}
+                          </a>
+                        </Button>
+                        <Switch 
+                          checked={settings.ppBridgeEnabled} 
+                          onCheckedChange={(v) => saveSettings({ ...settings, ppBridgeEnabled: v })} 
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-base">{pickUiText(baseLocale, '리본 프린터 브릿지 사용', 'Enable Ribbon Bridge', 'Sử dụng Bridge cho Ruy băng')}</Label>
+                        <p className="text-sm text-slate-500">
+                          {pickUiText(baseLocale, '리본(화환) 프린터를 사용하려면 활성화하세요.', 'Enable to use ribbon printers.', 'Bật để sử dụng máy in ruy băng.')}
+                        </p>
+                      </div>
+                      <Switch 
+                        checked={settings.ribbonBridgeEnabled} 
+                        onCheckedChange={(v) => saveSettings({ ...settings, ribbonBridgeEnabled: v })} 
+                      />
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Printer Devices */}
+                  <div className="space-y-6">
+                    <h3 className="text-sm font-semibold">{pickUiText(baseLocale, '프린터 기기 선택', 'Select Printer Devices', 'Chọn thiết bị máy in')}</h3>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <Label>{pickUiText(baseLocale, '영수증(POS) 프린터', 'POS Printer', 'Máy in hóa đơn (POS)')}</Label>
+                        <Select 
+                          value={settings.printerName || ""} 
+                          onValueChange={(v) => saveSettings({ ...settings, printerName: v || "" })}
+                          disabled={settings.receiptPrinterType !== 'pos'}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder={pickUiText(baseLocale, '프린터를 선택하세요', 'Select a printer', 'Chọn một máy in')} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {settings.installedPrinters?.map(p => (
+                              <SelectItem key={p} value={p}>{p}</SelectItem>
+                            ))}
+                            {(!settings.installedPrinters || settings.installedPrinters.length === 0) && (
+                              <SelectItem value="none" disabled>{pickUiText(baseLocale, '설치된 프린터 없음', 'No printers installed', 'Không có máy in được cài đặt')}</SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>{pickUiText(baseLocale, '라벨 프린터', 'Label Printer', 'Máy in nhãn')}</Label>
+                        <Select 
+                          value={settings.labelPrinterName || ""} 
+                          onValueChange={(v) => saveSettings({ ...settings, labelPrinterName: v || "" })}
+                          disabled={settings.receiptPrinterType !== 'label'}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder={pickUiText(baseLocale, '프린터를 선택하세요', 'Select a printer', 'Chọn một máy in')} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {settings.installedPrinters?.map(p => (
+                              <SelectItem key={p} value={p}>{p}</SelectItem>
+                            ))}
+                            {(!settings.installedPrinters || settings.installedPrinters.length === 0) && (
+                              <SelectItem value="none" disabled>{pickUiText(baseLocale, '설치된 프린터 없음', 'No printers installed', 'Không có máy in được cài đặt')}</SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Print Options */}
+                  <div className="space-y-6">
+                    <div className="space-y-4">
+                      <div>
+                        <h3 className="text-sm font-semibold mb-1">{pickUiText(baseLocale, '기본 주문서/영수증 출력 방식', 'Default Receipt Print Type', 'Loại in hóa đơn mặc định')}</h3>
+                        <p className="text-sm text-slate-500 mb-3">
+                          {pickUiText(baseLocale, '주문 접수 시 출력될 프린터 종류를 선택하세요.', 'Select the printer type to output when an order is received.', 'Chọn loại máy in để xuất khi nhận được đơn hàng.')}
+                        </p>
+                      </div>
+                      <RadioGroup 
+                        value={settings.receiptPrinterType || 'pos'} 
+                        onValueChange={(v) => saveSettings({ ...settings, receiptPrinterType: v as 'pos' | 'label' })}
+                        className="flex flex-col space-y-2"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="pos" id="r-pos" />
+                          <Label htmlFor="r-pos">{pickUiText(baseLocale, '영수증(POS) 프린터로 출력', 'Print to POS Printer', 'In ra máy in POS')}</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="label" id="r-label" />
+                          <Label htmlFor="r-label">{pickUiText(baseLocale, '라벨 프린터로 출력', 'Print to Label Printer', 'In ra máy in nhãn')}</Label>
+                        </div>
+                      </RadioGroup>
+                    </div>
+
+                    <div className="space-y-4 pt-4">
+                      <h3 className="text-sm font-semibold mb-3">{pickUiText(baseLocale, '자동 출력 옵션', 'Auto-print Options', 'Tùy chọn tự động in')}</h3>
+                      
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm font-normal">{pickUiText(baseLocale, '픽업 시 메모 자동 출력', 'Auto-print memo for pickup', 'Tự động in ghi chú khi nhận hàng')}</Label>
+                        <Switch 
+                          checked={settings.printPickupMemo} 
+                          onCheckedChange={(v) => saveSettings({ ...settings, printPickupMemo: v })} 
+                        />
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm font-normal">{pickUiText(baseLocale, '배송 시 매장용 주문서 출력', 'Print shop receipt for delivery', 'In hóa đơn cửa hàng khi giao hàng')}</Label>
+                        <Switch 
+                          checked={settings.printDeliveryShop} 
+                          onCheckedChange={(v) => saveSettings({ ...settings, printDeliveryShop: v })} 
+                        />
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm font-normal">{pickUiText(baseLocale, '배송 시 기사용 영수증 출력', 'Print driver receipt for delivery', 'In biên lai cho tài xế khi giao hàng')}</Label>
+                        <Switch 
+                          checked={settings.printDeliveryDriver} 
+                          onCheckedChange={(v) => saveSettings({ ...settings, printDeliveryDriver: v })} 
+                        />
+                      </div>
+                    </div>
+                  </div>
+
                 </CardContent>
               </Card>
             </TabsContent>

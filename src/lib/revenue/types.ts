@@ -118,6 +118,7 @@ export const REVENUE_INTEGRATIONS_KEY = "revenue_integrations";
 
 export interface RevenueIntegrationsConfig {
   postiz_api_url?: string;
+  postiz_api_key?: string;
   postiz_api_key_set?: boolean;
   trigger_project_ref?: string;
   trigger_env?: "DEVELOPMENT" | "STAGING" | "PRODUCTION";

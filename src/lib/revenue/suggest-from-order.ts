@@ -90,6 +90,13 @@ export async function suggestMarketingFromOrder(
     .eq("tenant_id", tenantId)
     .maybeSingle();
 
+  const { data: mkData } = await db
+    .from("platform_config")
+    .select("value")
+    .eq("key", "marketing_keys")
+    .maybeSingle();
+  const mKeys = mkData?.value as { gemini_key?: string; openai_key?: string } | undefined;
+
   const { data: order, error } = await db
     .from("orders")
     .select("id, order_number, items, message, delivery_info, completionphotourl")
@@ -131,8 +138,13 @@ export async function suggestMarketingFromOrder(
       persona,
       description: [harnessHint, photoUrl ? `작품 사진 URL: ${photoUrl}` : undefined].filter(Boolean).join("\n"),
       platform: "instagram",
+      apiKey: mKeys?.gemini_key || undefined,
     }),
-    NaverService.generateBlogPost({ topic: naverTopic, persona }),
+    NaverService.generateBlogPost({ 
+      topic: naverTopic, 
+      persona,
+      apiKey: mKeys?.gemini_key || undefined, 
+    }),
   ]);
 
   const abVariants = opts?.abTest
