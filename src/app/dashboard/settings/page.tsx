@@ -854,7 +854,7 @@ export default function SettingsPage() {
     try {
       const { error } = await supabase.from('print_jobs').insert({
         tenant_id: tenantId,
-        job_type: 'receipt_shop',
+        type: 'receipt_shop',
         status: 'pending',
         payload: {
           orderId: 'TEST-1234',
