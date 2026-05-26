@@ -776,7 +776,11 @@ export default function SettingsPage() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 2000);
       
-      const response = await fetch("http://127.0.0.1:8003/api/version", { 
+      const endpoint = tenantId 
+        ? `http://127.0.0.1:8003/set_tenant?id=${tenantId}` 
+        : "http://127.0.0.1:8003/api/version";
+        
+      const response = await fetch(endpoint, { 
         signal: controller.signal,
         mode: 'cors'
       });

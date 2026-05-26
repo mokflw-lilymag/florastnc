@@ -69,20 +69,12 @@ Set WshShell = Nothing
       console.error("Registry add failed", e);
     }
 
-    // Write initial .env file during installation
-    let installedTenantId = process.env.CURRENT_TENANT_ID || '';
-    const localEnvPath = path.join(currentFolder, '.env');
-    if (fs.existsSync(localEnvPath)) {
-      const localEnv = fs.readFileSync(localEnvPath, 'utf8');
-      const match = localEnv.match(/TENANT_ID=(.*)/);
-      if (match && match[1]) installedTenantId = match[1].trim();
-    }
-
+    // Write generic .env file during installation
     const envPath = path.join(targetFolder, '.env');
     fs.writeFileSync(envPath, `SUPABASE_URL=https://xphvycuaffifjgjaiqxe.supabase.co
 SUPABASE_SERVICE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhwaHZ5Y3VhZmZpZmpnamFpcXhlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODkyMTI0OSwiZXhwIjoyMDg0NDk3MjQ5fQ.nBJ86wD5wyIQaQHZ7UMCq6VAHSCCSzdAZ37e5Ld_y28
-CURRENT_TENANT_ID=${installedTenantId}
-TENANT_ID=${installedTenantId}
+CURRENT_TENANT_ID=
+TENANT_ID=
 `);
 
     // Start the installed background copy
@@ -110,7 +102,8 @@ const envPath = path.join(targetFolder, '.env');
 if (!fs.existsSync(envPath)) {
   fs.writeFileSync(envPath, `SUPABASE_URL=https://xphvycuaffifjgjaiqxe.supabase.co
 SUPABASE_SERVICE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhwaHZ5Y3VhZmZpZmpnamFpcXhlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODkyMTI0OSwiZXhwIjoyMDg0NDk3MjQ5fQ.nBJ86wD5wyIQaQHZ7UMCq6VAHSCCSzdAZ37e5Ld_y28
-CURRENT_TENANT_ID=여기에_테넌트_ID를_입력하세요
+CURRENT_TENANT_ID=
+TENANT_ID=
 `);
 }
 
@@ -673,8 +666,21 @@ const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host}`);
     const newTenantId = url.searchParams.get('id');
     if (newTenantId && newTenantId !== CURRENT_TENANT_ID) {
-       console.log(`🔄 테넌트 접속 감지됨: ${newTenantId}`);
+       console.log(`🔄 테넌트 접속 감지됨: ${newTenantId} (영구 저장됨)`);
        CURRENT_TENANT_ID = newTenantId;
+       
+       // .env 파일에 업데이트하여 영구 저장
+       try {
+         const targetEnvPath = path.join(targetFolder, '.env');
+         const envContent = \`SUPABASE_URL=https://xphvycuaffifjgjaiqxe.supabase.co
+SUPABASE_SERVICE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhwaHZ5Y3VhZmZpZmpnamFpcXhlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODkyMTI0OSwiZXhwIjoyMDg0NDk3MjQ5fQ.nBJ86wD5wyIQaQHZ7UMCq6VAHSCCSzdAZ37e5Ld_y28
+CURRENT_TENANT_ID=\${CURRENT_TENANT_ID}
+TENANT_ID=\${CURRENT_TENANT_ID}\`;
+         fs.writeFileSync(targetEnvPath, envContent, 'utf8');
+       } catch (err) {
+         console.error('❌ .env 파일 업데이트 실패:', err);
+       }
+       
        syncPrinters(); // 새 테넌트에 맞게 프린터 목록 동기화
     }
     lastHeartbeatTime = Date.now(); // 하트비트 갱신

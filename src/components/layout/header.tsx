@@ -104,6 +104,7 @@ export function Header({
 
   useEffect(() => {
     const checkBridge = async () => {
+      // 1. 구형 POS 브릿지 (8002) - 레거시 호환
       try {
         const res = await fetch('http://127.0.0.1:8002/api/version', { 
           signal: AbortSignal.timeout(2000),
@@ -117,8 +118,16 @@ export function Header({
         setIsBridgeOnline(false);
       }
 
+      // 2. 신형 범용 프린트 브릿지 (8003) - 브라우저 자동 페어링 (Hot-swap & 영구저장)
       try {
-        const resPP = await fetch('http://127.0.0.1:8003/api/version', { 
+        const { data: { user } } = await supabase.auth.getUser();
+        const currentTenantId = user?.id || '';
+        
+        const endpoint = currentTenantId 
+          ? `http://127.0.0.1:8003/set_tenant?id=${currentTenantId}` 
+          : 'http://127.0.0.1:8003/api/version';
+
+        const resPP = await fetch(endpoint, { 
           signal: AbortSignal.timeout(2000),
           mode: 'cors',
           credentials: 'omit'

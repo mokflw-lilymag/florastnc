@@ -4,12 +4,7 @@ import fs from 'fs';
 import AdmZip from 'adm-zip';
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const tenantId = searchParams.get('tenantId');
-
-  if (!tenantId) {
-    return NextResponse.json({ error: 'tenantId is required' }, { status: 400 });
-  }
+  // tenantId is no longer required as the bridge is now a universal app
 
   try {
     const zip = new AdmZip();
@@ -41,10 +36,10 @@ export async function GET(request: Request) {
     const sumatraPath = path.join(process.cwd(), 'bridge-app', 'SumatraPDF-3.4.6-32.exe');
     if (fs.existsSync(sumatraPath)) zip.addLocalFile(sumatraPath);
 
-    // Create the custom .env content populated with the tenantId
+    // Create the custom .env content populated with generic settings
     const envContent = `SUPABASE_URL=${process.env.NEXT_PUBLIC_SUPABASE_URL || ''}
 SUPABASE_SERVICE_KEY=${process.env.SUPABASE_SERVICE_ROLE_KEY || ''}
-TENANT_ID=${tenantId}
+TENANT_ID=
 `;
     zip.addFile('.env', Buffer.from(envContent, 'utf8'));
 
