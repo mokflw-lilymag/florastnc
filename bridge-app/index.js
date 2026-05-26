@@ -46,6 +46,12 @@ if (!isDaemon && currentFolder.toLowerCase() !== targetFolder.toLowerCase()) {
       }
     }
 
+    // 파일 복사 후 인터넷 다운로드 차단(Mark of the Web) 해제하여 VBS 실행 오류 방지
+    try {
+      execSync(`powershell -Command "Unblock-File -Path '${targetFolder}\\ppbridge-daemon.exe'"`, { stdio: 'ignore' });
+      execSync(`powershell -Command "Unblock-File -Path '${targetFolder}\\SumatraPDF-3.4.6-32.exe'"`, { stdio: 'ignore' });
+    } catch(e) {}
+
     // Create hidden VBS wrapper in targetFolder
     const vbsCode = `
 Set WshShell = CreateObject("WScript.Shell")
@@ -71,7 +77,14 @@ CURRENT_TENANT_ID=${process.env.CURRENT_TENANT_ID || ''}
 `);
 
     // Start the installed background copy
-    execSync(`wscript.exe "${wrapperVbs}"`, { stdio: 'ignore' });
+    try {
+      execSync(`wscript.exe "${wrapperVbs}"`, { stdio: 'ignore' });
+    } catch (err) {
+      console.error("VBS execution failed, falling back to powershell", err);
+      try {
+         execSync(`powershell -WindowStyle Hidden -Command "Start-Process '${targetFolder}\\ppbridge-daemon.exe' -WindowStyle Hidden"`, { stdio: 'ignore' });
+      } catch(e) {}
+    }
 
     // Show success message
     execSync(`powershell -Command "Add-Type -AssemblyName PresentationFramework; [System.Windows.MessageBox]::Show('PP 브릿지 설치가 완료되었습니다!' + [Environment]::NewLine + [Environment]::NewLine + '이제 백그라운드에서 조용히 실행되며, 컴퓨터가 켜질 때마다 자동으로 시작됩니다.', 'LilyMag ERP', 'OK', 'Information')"`);
@@ -112,7 +125,7 @@ console.error = function(...args) {
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
 let CURRENT_TENANT_ID = process.env.CURRENT_TENANT_ID || process.env.TENANT_ID || '';
-const BRIDGE_VERSION = 'v10.7';
+const BRIDGE_VERSION = 'v10.9';
 
 let lastHeartbeatTime = 0;
 let isPausedLogged = false;

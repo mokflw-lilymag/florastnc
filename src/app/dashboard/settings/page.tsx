@@ -833,6 +833,31 @@ export default function SettingsPage() {
     toast.success(pickUiText(baseLocale, '언어가 변경되었습니다.', 'Language has been changed.', 'Ngôn ngữ đã được thay đổi.'));
   };
 
+  const handlePrintTest = async () => {
+    if (!tenantId) return;
+    toast.info(pickUiText(baseLocale, '테스트 인쇄를 요청중입니다...', 'Requesting test print...', 'Đang yêu cầu in thử...'));
+    try {
+      const { error } = await supabase.from('print_jobs').insert({
+        tenant_id: tenantId,
+        job_type: 'receipt_shop',
+        status: 'pending',
+        payload: {
+          orderId: 'TEST-1234',
+          orderer: { name: '테스트 고객', phone: '010-0000-0000' },
+          items: [{ name: '테스트 상품 (프린터 브릿지 점검용)', quantity: 1, price: 0 }],
+          summary: { subtotal: 0, deliveryFee: 0, total: 0 },
+          message: { text: '이 출력물은 프린터 연동 테스트용입니다.', type: 'none' },
+          pickupInfo: { date: new Date().toLocaleDateString(), time: '00:00' }
+        }
+      });
+      if (error) throw error;
+      toast.success(pickUiText(baseLocale, '테스트 인쇄가 요청되었습니다. 프린터를 확인해주세요.', 'Test print requested. Please check the printer.', 'Đã yêu cầu in thử. Vui lòng kiểm tra máy in.'));
+    } catch (error) {
+      console.error(error);
+      toast.error(pickUiText(baseLocale, '테스트 인쇄 요청에 실패했습니다.', 'Failed to request test print.', 'Yêu cầu in thử thất bại.'));
+    }
+  };
+
   useEffect(() => {
     if (settings) {
       setLocalRep(settings.representative || "");
@@ -1577,12 +1602,18 @@ export default function SettingsPage() {
                         </p>
                       </div>
                       <div className="flex items-center gap-4">
-                        <Button variant="outline" asChild size="sm">
-                          <a href="/downloads/LilyMag-Bridge-Setup-v10.7.zip" download>
-                            <Download className="mr-2 h-4 w-4" />
-                            {pickUiText(baseLocale, '브릿지 다운로드', 'Download Bridge', 'Tải Bridge')}
-                          </a>
+                        <Button variant="outline" size="sm" onClick={handlePrintTest}>
+                          <Printer className="mr-2 h-4 w-4" />
+                          {pickUiText(baseLocale, '프린트 테스트', 'Print Test', 'In thử')}
                         </Button>
+                        <a 
+                          href="/downloads/LilyMag-Bridge-Setup-v10.9.zip" 
+                          download
+                          className={buttonVariants({ variant: "outline", size: "sm" })}
+                        >
+                          <Download className="mr-2 h-4 w-4" />
+                          {pickUiText(baseLocale, '브릿지 다운로드', 'Download Bridge', 'Tải Bridge')}
+                        </a>
                         <Switch 
                           checked={settings.ppBridgeEnabled} 
                           onCheckedChange={(v) => saveSettings({ ...settings, ppBridgeEnabled: v })} 
