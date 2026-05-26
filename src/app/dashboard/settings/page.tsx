@@ -80,6 +80,7 @@ import { applyCountryPreset, getCountryPreset, getCountryPresetDiff } from "@/li
 import { AppLocale, LOCALE_COOKIE, resolveLocale, toBaseLocale } from "@/i18n/config";
 import { getDashboardSettingsMessages } from "@/i18n/dashboard-settings-messages";
 import { pickUiText } from "@/i18n/pick-ui-text";
+import { DASHBOARD_LOCALE_SELECT_OPTIONS, resolveDashboardSelectLocale } from "@/i18n/ui-locale-options";
 import { BridgeOnboardingDialog } from "@/components/printer/BridgeOnboardingDialog";
 
 const MAJOR_CURRENCIES = [
@@ -825,6 +826,13 @@ export default function SettingsPage() {
     return () => window.removeEventListener("preferred-locale-changed", readLocale);
   }, []);
 
+  const handleLocaleChange = (nextLocale: AppLocale) => {
+    setUiLocale(nextLocale);
+    document.cookie = `${LOCALE_COOKIE}=${nextLocale}; path=/; max-age=${60 * 60 * 24 * 365}`;
+    window.dispatchEvent(new Event("preferred-locale-changed"));
+    toast.success(pickUiText(baseLocale, '언어가 변경되었습니다.', 'Language has been changed.', 'Ngôn ngữ đã được thay đổi.'));
+  };
+
   useEffect(() => {
     if (settings) {
       setLocalRep(settings.representative || "");
@@ -1242,6 +1250,25 @@ export default function SettingsPage() {
                       ))}
                     </select>
                     <p className="text-[11px] text-slate-500">{t.store.countryHint}</p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="uiLocale">{pickUiText(baseLocale, 'UI 언어 / Language', 'UI Language', 'Ngôn ngữ UI')}</Label>
+                    <select
+                      id="uiLocale"
+                      value={resolveDashboardSelectLocale(uiLocale)}
+                      onChange={(e) => handleLocaleChange(e.target.value as AppLocale)}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    >
+                      {DASHBOARD_LOCALE_SELECT_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-[11px] text-slate-500">
+                      {pickUiText(baseLocale, '로그인 시 선택한 언어가 기본으로 설정되며, 화면의 메뉴 언어만 변경합니다. 매장 지역(국가) 설정에 따라 화폐 단위, 부가세 용어 등 비즈니스 환경이 자동 최적화됩니다.', 'The language selected at login is set by default, changing only the menu language. Business environment details such as currency and tax terms are automatically optimized based on the store region setting.', 'Ngôn ngữ được chọn khi đăng nhập sẽ là mặc định, chỉ thay đổi ngôn ngữ menu. Các chi tiết môi trường kinh doanh như tiền tệ và thuật ngữ thuế được tối ưu hóa tự động dựa trên cài đặt khu vực cửa hàng.')}
+                    </p>
                   </div>
                   {selectedCountryPreset ? (
                     <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-3 space-y-2">

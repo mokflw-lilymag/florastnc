@@ -217,28 +217,6 @@ export function Header({
       </div>
 
       <div className="flex items-center gap-2 md:gap-4">
-        {/* Language Selector */}
-        <div className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2 py-1 md:px-3 md:py-1.5">
-          <Globe className="h-3.5 w-3.5 text-slate-500" />
-          <select
-            aria-label={dh.displayLanguageAria}
-            value={selectLocale}
-            onChange={(e) => handleLocaleChange(e.target.value as AppLocale)}
-            className="appearance-none bg-transparent text-[10px] md:text-xs font-semibold text-slate-700 outline-none pr-3 cursor-pointer"
-            style={{
-              backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
-              backgroundRepeat: 'no-repeat',
-              backgroundPosition: 'right center',
-              backgroundSize: '1em'
-            }}
-          >
-            {DASHBOARD_LOCALE_SELECT_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
 
         <div className="hidden md:flex items-center gap-2">
           {/* PP Bridge Status Indicator (v10.7) */}
