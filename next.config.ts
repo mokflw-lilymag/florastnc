@@ -17,6 +17,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  output: 'standalone',
   // 🚀 성능 최적화: tree-shaking 강제 및 번들 크기 최소화
   outputFileTracingExcludes: {
     '*': [
