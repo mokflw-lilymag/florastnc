@@ -1607,8 +1607,8 @@ export default function SettingsPage() {
                           {pickUiText(baseLocale, '프린트 테스트', 'Print Test', 'In thử')}
                         </Button>
                         <a 
-                          href="/downloads/LilyMag-Bridge-Setup-v10.9.zip" 
-                          download
+                          href={`/api/downloads/bridge?tenantId=${tenantId}`} 
+                          download="Floxync-Bridge-Setup.zip"
                           className={buttonVariants({ variant: "outline", size: "sm" })}
                         >
                           <Download className="mr-2 h-4 w-4" />

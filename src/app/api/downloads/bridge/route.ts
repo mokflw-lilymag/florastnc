@@ -55,7 +55,7 @@ TENANT_ID=${tenantId}
       status: 200,
       headers: {
         'Content-Type': 'application/zip',
-        'Content-Disposition': 'attachment; filename="ppbridge-setup.zip"',
+        'Content-Disposition': 'attachment; filename="Floxync-Bridge-Setup.zip"',
       },
     });
 

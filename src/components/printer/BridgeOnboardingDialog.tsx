@@ -68,7 +68,7 @@ export function BridgeOnboardingDialog({ isOpen, onClose, tenantId }: BridgeOnbo
               </div>
               <a 
                 href={`/api/downloads/bridge?tenantId=${tenantId}`} 
-                download="ppbridge-setup.zip"
+                download="Floxync-Bridge-Setup.zip"
                 onClick={() => setStep(2)}
                 className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold flex items-center justify-center gap-3 transition-all hover:scale-[1.02] shadow-lg shadow-blue-900/20"
               >
@@ -92,7 +92,7 @@ export function BridgeOnboardingDialog({ isOpen, onClose, tenantId }: BridgeOnbo
                 </div>
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-white">2단계: 압축 해제 및 프로그램 실행</h3>
                 <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">
-                  다운로드 받은 <b>ppbridge-setup.zip</b> 압축을 풀고,<br/>
+                  다운로드 받은 <b>Floxync-Bridge-Setup.zip</b> 압축을 풀고,<br/>
                   <b>ppbridge.exe</b>를 실행한 후 아래 '활성화 확인' 버튼을 눌러주세요.
                 </p>
               </div>
