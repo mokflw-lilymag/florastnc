@@ -52,6 +52,7 @@ if (!isDaemon && currentFolder.toLowerCase() !== targetFolder.toLowerCase()) {
       execSync(`powershell -Command "Unblock-File -Path '${targetFolder}\\SumatraPDF-3.4.6-32.exe'"`, { stdio: 'ignore' });
     } catch(e) {}
 
+
     // Create hidden VBS wrapper in targetFolder
     const vbsCode = `
 Set WshShell = CreateObject("WScript.Shell")
@@ -69,12 +70,21 @@ Set WshShell = Nothing
       console.error("Registry add failed", e);
     }
 
-    // Write generic .env file during installation
+    // Write initial .env file during installation ONLY if not exists, or preserve branch
     const envPath = path.join(targetFolder, '.env');
+    let existingBranchId = '';
+    if (fs.existsSync(envPath)) {
+      try {
+        const existingEnv = fs.readFileSync(envPath, 'utf8');
+        const branchMatch = existingEnv.match(/(?:CURRENT_)?BRANCH_ID=(.*)/);
+        if (branchMatch && branchMatch[1]) {
+          existingBranchId = branchMatch[1].trim();
+        }
+      } catch(e) {}
+    }
     fs.writeFileSync(envPath, `SUPABASE_URL=https://mheqfhiyfsgnsglvxdrn.supabase.co
 SUPABASE_SERVICE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1oZXFmaGl5ZnNnbnNnbHZ4ZHJuIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDE0Mzk5MywiZXhwIjoyMDg5NzE5OTkzfQ.eI8RIAygYVSz0BHiSfK1kNRqfYFBadZ-ub1nt23n1ls
-CURRENT_TENANT_ID=
-TENANT_ID=
+CURRENT_BRANCH_ID=${existingBranchId}
 `);
 
     // Start the installed background copy
@@ -102,8 +112,7 @@ const envPath = path.join(targetFolder, '.env');
 if (!fs.existsSync(envPath)) {
   fs.writeFileSync(envPath, `SUPABASE_URL=https://mheqfhiyfsgnsglvxdrn.supabase.co
 SUPABASE_SERVICE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1oZXFmaGl5ZnNnbnNnbHZ4ZHJuIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDE0Mzk5MywiZXhwIjoyMDg5NzE5OTkzfQ.eI8RIAygYVSz0BHiSfK1kNRqfYFBadZ-ub1nt23n1ls
-CURRENT_TENANT_ID=
-TENANT_ID=
+CURRENT_BRANCH_ID=
 `);
 }
 
@@ -126,8 +135,8 @@ console.error = function(...args) {
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
-let CURRENT_TENANT_ID = process.env.CURRENT_TENANT_ID || process.env.TENANT_ID || '';
-const BRIDGE_VERSION = 'v1.2';
+let CURRENT_BRANCH_ID = process.env.CURRENT_BRANCH_ID || process.env.BRANCH_ID || '';
+const BRIDGE_VERSION = 'v11.0';
 
 let lastHeartbeatTime = 0;
 let isPausedLogged = false;
@@ -145,24 +154,38 @@ async function syncPrinters() {
     const printerNames = printers.map(p => typeof p === 'string' ? p : (p.name || p.deviceId));
     console.log("🖨️ [시스템] 설치된 프린터 목록:", printerNames);
 
-    if (!CURRENT_TENANT_ID) return; // No tenant set yet, skip pushing to DB
+    if (!CURRENT_BRANCH_ID) return; // No branch set yet, skip pushing to DB
 
-    const settingsId = `settings_${CURRENT_TENANT_ID}`;
+    const { data: branch } = await supabase
+      .from('branches')
+      .select('id, name')
+      .or(`id.eq.${CURRENT_BRANCH_ID},name.eq.${CURRENT_BRANCH_ID}`)
+      .single();
+
+    if (!branch) {
+      console.error(`❌ 지점 정보를 찾을 수 없습니다. 설정된 지점명: ${CURRENT_BRANCH_ID}`);
+      return;
+    }
+    
+    CURRENT_BRANCH_ID = branch.id;
+    globalBranchName = branch.name || CURRENT_BRANCH_ID;
+
+    const settingsId = `branch_settings_${branch.name}`;
     const { data: settingsRow } = await supabase
       .from('system_settings')
       .select('data')
       .eq('id', settingsId)
-      .eq('tenant_id', CURRENT_TENANT_ID)
       .single();
 
     let settingsData = settingsRow?.data || {};
-    settingsData.installedPrinters = printerNames;
+    if (!settingsData.general) settingsData.general = {};
+    settingsData.general.installedPrinters = printerNames;
 
     await supabase
       .from('system_settings')
-      .upsert({ id: settingsId, tenant_id: CURRENT_TENANT_ID, data: settingsData, updated_at: new Date().toISOString() });
+      .upsert({ id: settingsId, data: settingsData, updated_at: new Date().toISOString() });
 
-    console.log(`✅ [시스템] 프린터 목록 ERP 동기화 완료 (${CURRENT_TENANT_ID})`);
+    console.log(`✅ [시스템] 프린터 목록 ERP 동기화 완료 (${branch.name})`);
   } catch (err) {
     console.error("❌ 프린터 동기화 오류:", err);
   }
@@ -187,11 +210,11 @@ function maskPhone(contact) {
 }
 
 let globalBranchPhone = '';
+let globalBranchName = '';
 
 // 2. 주문 데이터를 HTML 템플릿으로 변환 (영수증 디자인)
 function generateHtmlReceipt(job, settings = {}) {
-  const job_type = job.job_type || job.type;
-  const payload = job.payload || job.data || {};
+  const { job_type, payload } = job;
   const { orderer, items, summary, pickupInfo, deliveryInfo, message, request } = payload;
 
   const isPkg = typeof process.pkg !== 'undefined';
@@ -201,7 +224,7 @@ function generateHtmlReceipt(job, settings = {}) {
   const rawOrderId = payload?.orderId || job.order_id || job.id || '';
   const shortOrderId = String(rawOrderId).substring(0, 8);
 
-  const displayName = settings.branchDisplayName || CURRENT_ID;
+  const displayName = settings.branchDisplayName || globalBranchName;
   const displayPhone = settings.branchPhone || globalBranchPhone;
   const shopInfoStr = `${displayName} ${displayPhone}`.trim();
 
@@ -214,15 +237,6 @@ function generateHtmlReceipt(job, settings = {}) {
       isRibbon = true;
     }
   }
-
-  // ─── 로고 설정 ───
-  let logoHtml = '';
-  const fallbackLogo = 'https://florasync.co/images/floxync-logo-dark.png';
-  const logoUrlToUse = payload.logo_url || fallbackLogo;
-  if (logoUrlToUse) {
-    logoHtml = `<img src="${logoUrlToUse}" style="max-height: 40px; max-width: 100%; object-fit: contain;" />`;
-  }
-
   const messageTypeCheckHtml = `
     <div style="font-size:14px; font-weight:bold; margin: 8px 0; padding: 6px; border: 1px solid #000; text-align:center; border-radius: 4px;">
       [${isRibbon ? '☑' : '☐'}] 리본 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [${isCard ? '☑' : '☐'}] 카드
@@ -248,7 +262,6 @@ function generateHtmlReceipt(job, settings = {}) {
       .replace('{{picker_name}}', pickerName)
       .replace('{{picker_contact_last4}}', pickerContact)
       .replace('{{items_html}}', pickupItemsHtml)
-      .replace('{{logo_html}}', logoHtml)
       .replace('{{print_datetime}}', dateStr)
       .replace('{{orderer_name}}', orderer?.name || '')
       .replace('{{short_order_id}}', shortOrderId)
@@ -312,7 +325,6 @@ function generateHtmlReceipt(job, settings = {}) {
       .replace('{{delivery_datetime}}', `${deliveryInfo?.date || ''} ${deliveryInfo?.time || ''}`.trim())
       .replace('{{delivery_address}}', deliveryInfo?.address || '')
       .replace('{{items_html}}', driverItemsHtml)
-      .replace('{{logo_html}}', logoHtml)
       .replace('{{message_type_checkbox}}', messageTypeCheckHtml)
       .replace('{{message_html}}', driverMessageHtml)
       .replace('{{shop_info}}', shopInfoStr);
@@ -376,7 +388,6 @@ function generateHtmlReceipt(job, settings = {}) {
     .replace('{{delivery_datetime}}', dDatetime)
     .replace('{{delivery_address}}', dAddr)
     .replace('{{items_html}}', shopItemsHtml)
-    .replace('{{logo_html}}', logoHtml)
     .replace('{{subtotal}}', summary?.subtotal ? `${summary.subtotal.toLocaleString()}원` : '')
     .replace('{{delivery_fee}}', summary?.deliveryFee ? `${summary.deliveryFee.toLocaleString()}원` : '')
     .replace('{{total}}', summary?.total ? `${summary.total.toLocaleString()}원` : '')
@@ -446,16 +457,17 @@ async function start() {
   }
 
   // 지점 정보 확인 (Realtime 필터 및 영수증 하단 출력용)
-  const { data: tenantInfo, error: tenantError } = await supabase
-    .from('tenants')
+  const { data: branchInfo, error: branchError } = await supabase
+    .from('branches')
     .select('id, name, phone')
-    .eq('id', CURRENT_TENANT_ID)
+    .or(`id.eq.${CURRENT_BRANCH_ID},name.eq.${CURRENT_BRANCH_ID}`)
     .single();
 
-  if (tenantError || !tenantInfo) {
-    console.error(`❌ 테넌트 정보를 아직 찾을 수 없습니다. (ID: ${CURRENT_TENANT_ID}). 웹사이트에서 테넌트 환경설정을 열면 자동으로 연동됩니다.`);
+  if (branchError || !branchInfo) {
+    console.error(`❌ 지점 정보를 아직 찾을 수 없습니다. (ID: ${CURRENT_BRANCH_ID}). 웹사이트에서 지점 환경설정을 열면 자동으로 연동됩니다.`);
   } else {
-    globalBranchPhone = tenantInfo.phone || '';
+    globalBranchName = branchInfo.name || CURRENT_BRANCH_ID;
+    globalBranchPhone = branchInfo.phone || '';
   }
 
   // 5. 인쇄 대기열(print_jobs) 주기적 폴링 (Realtime 미작동 대비)
@@ -466,7 +478,7 @@ async function start() {
     if (isProcessingQueue) return;
     isProcessingQueue = true;
     try {
-      if (!CURRENT_TENANT_ID) return;
+      if (!CURRENT_BRANCH_ID) return;
 
       // Heartbeat Timeout Check (90 seconds)
       if (Date.now() - lastHeartbeatTime > 90000) {
@@ -489,7 +501,7 @@ async function start() {
         .from('print_jobs')
         .select('*')
         .eq('status', 'pending')
-        .eq('tenant_id', CURRENT_TENANT_ID)
+        .eq('branch_id', CURRENT_BRANCH_ID)
         .gte('created_at', tenMinutesAgo)
         .order('created_at', { ascending: true })
         .limit(5);
@@ -507,11 +519,11 @@ async function start() {
 
         try {
           // ERP 설정에서 타겟 프린터 이름 가져오기
-          const { data: settingsRow } = await supabase.from('system_settings').select('data').eq('id', `settings_${CURRENT_TENANT_ID}`).single();
+          const { data: settingsRow } = await supabase.from('system_settings').select('data').eq('id', `branch_settings_${globalBranchName}`).single();
           
           const settings = settingsRow?.data?.general || {};
 
-          if (settings.ppBridgeEnabled === false) {
+          if (settings.bridgeEnabled === false) {
               console.log(`⏸️ 브릿지 전원이 OFF 상태입니다. 인쇄 작업(${job.id})을 무시하고 삭제(실패) 처리합니다.`);
               await supabase.from('print_jobs').update({ status: 'failed' }).eq('id', job.id);
               continue;
@@ -652,10 +664,10 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  if (req.url === '/' || req.url === '/api/version') {
+  if (req.url === '/') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ status: 'ok', message: 'Print POS Bridge is running', tenant_id: CURRENT_TENANT_ID, version: BRIDGE_VERSION }));
-  } else if (req.url === '/printers' || req.url === '/api/printers') {
+    res.end(JSON.stringify({ status: 'ok', message: 'Print POS Bridge is running', branch_id: CURRENT_BRANCH_ID, version: BRIDGE_VERSION }));
+  } else if (req.url === '/printers') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     if (cachedPrinters === null) {
       res.end(JSON.stringify({ printers: ["브릿지 로딩중... 10초 뒤 다시 열어주세요"] }));
@@ -663,30 +675,31 @@ const server = http.createServer(async (req, res) => {
       res.end(JSON.stringify({ printers: cachedPrinters || [] }));
     }
     return;
-  } else if (req.url.startsWith('/set_tenant')) {
+  } else if (req.url.startsWith('/set_branch')) {
     const url = new URL(req.url, `http://${req.headers.host}`);
-    const newTenantId = url.searchParams.get('id');
-    if (newTenantId && newTenantId !== CURRENT_TENANT_ID) {
-       console.log(`🔄 테넌트 접속 감지됨: ${newTenantId} (영구 저장됨)`);
-       CURRENT_TENANT_ID = newTenantId;
+    const newBranchId = url.searchParams.get('id');
+    if (newBranchId && newBranchId !== CURRENT_BRANCH_ID) {
+       console.log(`🔄 새로운 지점 접속 감지됨: ${newBranchId}. 페어링을 시작합니다.`);
+       CURRENT_BRANCH_ID = newBranchId;
        
-       // .env 파일에 업데이트하여 영구 저장
-       try {
-         const targetEnvPath = path.join(targetFolder, '.env');
-         const envContent = `SUPABASE_URL=https://mheqfhiyfsgnsglvxdrn.supabase.co
+       // .env 파일에 영구 저장하여 재부팅 시에도 유지되도록 함
+       const actualEnvPath = path.join(targetFolder, '.env');
+       const envContent = `SUPABASE_URL=https://mheqfhiyfsgnsglvxdrn.supabase.co
 SUPABASE_SERVICE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1oZXFmaGl5ZnNnbnNnbHZ4ZHJuIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDE0Mzk5MywiZXhwIjoyMDg5NzE5OTkzfQ.eI8RIAygYVSz0BHiSfK1kNRqfYFBadZ-ub1nt23n1ls
-CURRENT_TENANT_ID=${CURRENT_TENANT_ID}
-TENANT_ID=${CURRENT_TENANT_ID}`;
-         fs.writeFileSync(targetEnvPath, envContent, 'utf8');
-       } catch (err) {
-         console.error('❌ .env 파일 업데이트 실패:', err);
+CURRENT_BRANCH_ID=${CURRENT_BRANCH_ID}
+`;
+       try {
+         fs.writeFileSync(actualEnvPath, envContent, 'utf8');
+         console.log(`✅ [시스템] 지점 정보(${CURRENT_BRANCH_ID})가 파일에 영구 저장되었습니다.`);
+       } catch (e) {
+         console.error("❌ 지점 정보 저장 실패:", e);
        }
-       
-       syncPrinters(); // 새 테넌트에 맞게 프린터 목록 동기화
+
+       syncPrinters(); // 새 지점에 맞게 프린터 목록 동기화
     }
     lastHeartbeatTime = Date.now(); // 하트비트 갱신
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ status: 'ok', tenant_id: CURRENT_TENANT_ID, version: BRIDGE_VERSION }));
+    res.end(JSON.stringify({ status: 'ok', branch_id: CURRENT_BRANCH_ID, version: BRIDGE_VERSION }));
   } else if (req.url === '/logs') {
     try {
       const actualLogPath = path.join(targetFolder, 'daemon.log');
@@ -719,5 +732,5 @@ server.on('error', (e) => {
 });
 
 server.listen(8004, '0.0.0.0', () => {
-  console.log("🟢 [상태 확인] 브릿지 하트비트 서버가 포트 8004 (0.0.0.0)에서 실행 중입니다. (Universal PP 연동)");
+  console.log("🟢 [상태 확인] 브릿지 하트비트 서버가 포트 8004 (0.0.0.0)에서 실행 중입니다. (ERP PP 연동)");
 });
