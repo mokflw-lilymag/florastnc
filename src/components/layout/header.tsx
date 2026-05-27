@@ -135,7 +135,7 @@ export function Header({
         });
         if (!resPP.ok) throw new Error(`HTTP ${resPP.status}`);
         const dataPP = await resPP.json();
-        setIsPPBridgeOnline(dataPP.status === 'success' || dataPP.status === 'ok');
+        setIsPPBridgeOnline(dataPP.status === 'success' || dataPP.status === 'ok' || dataPP.success === true);
         if (dataPP.version) setBridgeVersion(dataPP.version);
       } catch (err) {
         setIsPPBridgeOnline(false);
