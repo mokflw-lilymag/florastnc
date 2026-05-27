@@ -31,18 +31,17 @@ export async function enqueuePrintJob(
     // - 배송 매장용(delivery_shop)은 기본적으로 pos
     // - 기사용(delivery_driver)은 label
     // - 픽업예약증(pickup_memo)은 label
-    const printerType = orderType === "delivery" ? "label" : "pos";
 
     if (orderType === "pickup") {
       // 픽업 주문: 자동출력 시 픽업메모만 출력
       if (!isManualReprint) {
-        jobs.push({ tenant_id: tenantId, user_id: tenantId, image_base64: '', order_id: orderId, type: "pickup_memo", data: orderData, printer_type: "label", status: "pending" });
+        jobs.push({ tenant_id: tenantId, user_id: tenantId, image_base64: '', width_mm: 0, length_mm: 0, type: "pickup_memo", data: orderData, status: "pending" });
       } else {
         if (reprintType === 'order_form' || reprintType === 'both') {
-          jobs.push({ tenant_id: tenantId, user_id: tenantId, image_base64: '', order_id: orderId, type: "pickup_shop", data: orderData, printer_type: "pos", status: "pending" });
+          jobs.push({ tenant_id: tenantId, user_id: tenantId, image_base64: '', width_mm: 0, length_mm: 0, type: "pickup_shop", data: orderData, status: "pending" });
         }
         if (reprintType === 'receipt' || reprintType === 'both') {
-          jobs.push({ tenant_id: tenantId, user_id: tenantId, image_base64: '', order_id: orderId, type: "pickup_memo", data: orderData, printer_type: "label", status: "pending" });
+          jobs.push({ tenant_id: tenantId, user_id: tenantId, image_base64: '', width_mm: 0, length_mm: 0, type: "pickup_memo", data: orderData, status: "pending" });
         }
       }
     } else if (orderType === "delivery") {
@@ -53,27 +52,27 @@ export async function enqueuePrintJob(
       };
 
       if (!isManualReprint) {
-        jobs.push({ tenant_id: tenantId, user_id: tenantId, image_base64: '', order_id: orderId, type: "delivery_shop", data: orderData, printer_type: "pos", status: "pending" });
-        jobs.push({ tenant_id: tenantId, user_id: tenantId, image_base64: '', order_id: orderId, type: "delivery_driver", data: driverPayload, printer_type: "label", status: "pending" });
+        jobs.push({ tenant_id: tenantId, user_id: tenantId, image_base64: '', width_mm: 0, length_mm: 0, type: "delivery_shop", data: orderData, status: "pending" });
+        jobs.push({ tenant_id: tenantId, user_id: tenantId, image_base64: '', width_mm: 0, length_mm: 0, type: "delivery_driver", data: driverPayload, status: "pending" });
       } else {
         if (reprintType === 'order_form' || reprintType === 'both') {
-          jobs.push({ tenant_id: tenantId, user_id: tenantId, image_base64: '', order_id: orderId, type: "delivery_shop", data: orderData, printer_type: "pos", status: "pending" });
+          jobs.push({ tenant_id: tenantId, user_id: tenantId, image_base64: '', width_mm: 0, length_mm: 0, type: "delivery_shop", data: orderData, status: "pending" });
         }
         if (reprintType === 'receipt' || reprintType === 'both') {
-          jobs.push({ tenant_id: tenantId, user_id: tenantId, image_base64: '', order_id: orderId, type: "delivery_driver", data: driverPayload, printer_type: "label", status: "pending" });
+          jobs.push({ tenant_id: tenantId, user_id: tenantId, image_base64: '', width_mm: 0, length_mm: 0, type: "delivery_driver", data: driverPayload, status: "pending" });
         }
         if (reprintType === 'receipt_self') {
-          jobs.push({ tenant_id: tenantId, user_id: tenantId, image_base64: '', order_id: orderId, type: "delivery_driver_self", data: driverPayload, printer_type: "label", status: "pending" });
+          jobs.push({ tenant_id: tenantId, user_id: tenantId, image_base64: '', width_mm: 0, length_mm: 0, type: "delivery_driver_self", data: driverPayload, status: "pending" });
         }
       }
     } else if (orderType === "store") {
       // 현장 픽업
       if (isManualReprint) {
         if (reprintType === 'order_form' || reprintType === 'both') {
-          jobs.push({ tenant_id: tenantId, user_id: tenantId, image_base64: '', order_id: orderId, type: "store_shop", data: orderData, printer_type: "pos", status: "pending" });
+          jobs.push({ tenant_id: tenantId, user_id: tenantId, image_base64: '', width_mm: 0, length_mm: 0, type: "store_shop", data: orderData, status: "pending" });
         }
         if (reprintType === 'receipt' || reprintType === 'both') {
-          jobs.push({ tenant_id: tenantId, user_id: tenantId, image_base64: '', order_id: orderId, type: "pickup_memo", data: orderData, printer_type: "label", status: "pending" });
+          jobs.push({ tenant_id: tenantId, user_id: tenantId, image_base64: '', width_mm: 0, length_mm: 0, type: "pickup_memo", data: orderData, status: "pending" });
         }
       }
     }

@@ -121,8 +121,9 @@ export function Header({
 
       // 2. 신형 범용 프린트 브릿지 (8004) - 브라우저 자동 페어링 (Hot-swap & 영구저장)
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        const currentTenantId = user?.id || '';
+        const { useAuthStore } = require("@/stores/auth-store");
+        const storeState = useAuthStore.getState();
+        const currentTenantId = storeState.tenantId || '';
         
         const endpoint = currentTenantId 
           ? `http://127.0.0.1:8004/set_tenant?id=${currentTenantId}` 

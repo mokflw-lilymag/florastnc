@@ -39,7 +39,7 @@ export default function DeliveryProfitPage() {
 
     deliveryOrders.forEach((o) => {
       totalReceived += o.summary.deliveryFee || 0;
-      totalActual += o.actual_delivery_cost || 0;
+      totalActual += (o.actual_delivery_cost || 0) + (o.actual_delivery_cost_cash || 0);
     });
 
     return {
@@ -145,8 +145,10 @@ export default function DeliveryProfitPage() {
                    ) : (
                       deliveryOrders.map(order => {
                         const received = order.summary.deliveryFee || 0;
-                        const actual = order.actual_delivery_cost || 0;
-                        const profit = received - actual;
+                        const cardCost = order.actual_delivery_cost || 0;
+                        const cashCost = order.actual_delivery_cost_cash || 0;
+                        const actualTotal = cardCost + cashCost;
+                        const profit = received - actualTotal;
                         return (
                           <TableRow key={order.id} className="hover:bg-slate-50 transition-colors">
                              <TableCell>
@@ -160,7 +162,14 @@ export default function DeliveryProfitPage() {
                                <Badge variant="outline" className="bg-white">{order.delivery_info?.driverAffiliation || tf.f00226}</Badge>
                              </TableCell>
                              <TableCell className="text-right font-semibold text-blue-600">₩{received.toLocaleString()}</TableCell>
-                             <TableCell className="text-right font-semibold text-rose-600">₩{actual.toLocaleString()}</TableCell>
+                             <TableCell className="text-right">
+                               <div className="font-semibold text-rose-600">₩{actualTotal.toLocaleString()}</div>
+                               {(cardCost > 0 || cashCost > 0) && (
+                                 <div className="text-[10px] text-muted-foreground mt-0.5">
+                                   (일반: ₩{cardCost.toLocaleString()} / 현금: ₩{cashCost.toLocaleString()})
+                                 </div>
+                               )}
+                             </TableCell>
                              <TableCell className={`text-right font-bold tracking-tight text-lg ${profit >= 0 ? "text-emerald-600" : "text-red-500"}`}>
                                {profit > 0 ? "+" : ""}₩{profit.toLocaleString()}
                              </TableCell>

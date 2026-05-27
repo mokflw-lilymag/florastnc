@@ -1,31 +1,93 @@
 "use client";
-import { getMessages } from "@/i18n/getMessages";
 
 import { Suspense, useEffect, useState } from 'react';
-import { createClient } from '@/utils/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { MessagePrintLayout } from './components/message-print-layout';
+import type { Order as OrderType } from '@/hooks/use-orders';
+
 import { useAuth } from '@/hooks/use-auth';
 import { useSearchParams } from 'next/navigation';
-import { Order } from '@/types/order';
-import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+
+export interface SerializableOrder extends Omit<OrderType, 'orderDate' | 'id'> {
+    id: string;
+    orderDate: string; // ISO string format
+}
+
+const toLocalDate = (dateVal: any): Date => {
+    if (!dateVal) return new Date();
+    if (typeof dateVal === 'string') return new Date(dateVal);
+    // Supabase date strings are handled above. numeric timestamps?
+    if (typeof dateVal === 'number') return new Date(dateVal);
+    if (dateVal instanceof Date) return dateVal;
+    return new Date(dateVal);
+};
+
+async function getOrder(orderId: string): Promise<SerializableOrder | null> {
+    try {
+        const { data, error: fetchError } = await supabase
+            .from('orders')
+            .select('*')
+            .eq('id', orderId)
+            .maybeSingle();
+
+        if (fetchError) throw fetchError;
+
+        if (data) {
+            const orderDateIso = toLocalDate(data.order_date).toISOString();
+
+            return {
+                id: data.id,
+                branchId: data.branch_id,
+                branchName: data.branch_name,
+                orderNumber: data.order_number,
+                orderDate: orderDateIso,
+                status: data.status,
+                items: data.items || [],
+                summary: data.summary || {},
+                orderer: data.orderer || {},
+                isAnonymous: data.is_anonymous || false,
+                registerCustomer: data.register_customer || false,
+                orderType: data.order_type,
+                receiptType: data.receipt_type,
+                payment: data.payment || {},
+                pickupInfo: data.pickup_info,
+                deliveryInfo: data.delivery_info,
+                message: data.message || {},
+                request: data.request || '',
+                transferInfo: data.transfer_info,
+                outsourceInfo: data.outsource_info
+            };
+        } else {
+            console.error("No such document!");
+            return null;
+        }
+    } catch (error) {
+        console.error("Error fetching document:", error);
+        return null;
+    }
+}
+
+
 
 export default function PrintMessagePage() {
-    const { profile, isLoading: authLoading, tenantId } = useAuth();
-    const supabase = createClient();
+    const { user, loading } = useAuth();
     const searchParams = useSearchParams();
-    const [orderData, setOrderData] = useState<Order | null>(null);
+    const [orderData, setOrderData] = useState<SerializableOrder | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const locale = usePreferredLocale();
-    const tf = getMessages(locale).tenantFlows;
+
     const orderId = searchParams.get('orderId') || '';
     const labelType = searchParams.get('labelType') || 'formtec-3108';
     const startPosition = parseInt(searchParams.get('start') || '1');
     const messageFont = searchParams.get('messageFont') || 'Noto Sans KR';
     const messageFontSize = parseInt(searchParams.get('messageFontSize') || '14');
+    const messageBold = searchParams.get('messageBold') === 'true';
+    const messageItalic = searchParams.get('messageItalic') === 'true';
     const senderFont = searchParams.get('senderFont') || 'Noto Sans KR';
     const senderFontSize = parseInt(searchParams.get('senderFontSize') || '12');
+    const senderBold = searchParams.get('senderBold') === 'true';
+    const senderItalic = searchParams.get('senderItalic') === 'true';
     const messageContent = searchParams.get('messageContent') || '';
     const senderName = searchParams.get('senderName') || '';
     const positionsParam = searchParams.get('positions') || '';
@@ -34,34 +96,27 @@ export default function PrintMessagePage() {
     useEffect(() => {
         const fetchOrder = async () => {
             if (!orderId) {
-                setError(tf.f00623);
+                setError('주문 ID가 필요합니다.');
                 setIsLoading(false);
                 return;
             }
 
-            if (!tenantId && !authLoading) {
-                setError(tf.f00176);
+            if (!user && !loading) {
+                setError('로그인이 필요합니다.');
                 setIsLoading(false);
                 return;
             }
 
-            if (tenantId) {
+            if (user) {
                 try {
-                    const { data, error: fetchError } = await supabase
-                        .from('orders')
-                        .select('*')
-                        .eq('id', orderId)
-                        .eq('tenant_id', tenantId)
-                        .maybeSingle();
-
-                    if (fetchError) throw fetchError;
+                    const data = await getOrder(orderId);
                     if (data) {
-                        setOrderData(data as Order);
+                        setOrderData(data);
                     } else {
-                        setError(tf.f00635);
+                        setError('주문을 찾을 수 없습니다.');
                     }
                 } catch (err) {
-                    setError(tf.f00591);
+                    setError('주문 데이터를 가져오는 중 오류가 발생했습니다.');
                     console.error('Error fetching order:', err);
                 } finally {
                     setIsLoading(false);
@@ -69,12 +124,13 @@ export default function PrintMessagePage() {
             }
         };
 
-        if (!authLoading) {
+        if (orderId) {
             fetchOrder();
         }
-    }, [orderId, tenantId, authLoading]);
+    }, [orderId, user, loading]);
 
-    if (authLoading || isLoading) {
+    // 로딩 중이거나 인증 대기 중
+    if (loading || isLoading) {
         return (
             <div className="max-w-4xl mx-auto p-6">
                 <Skeleton className="h-96 w-full" />
@@ -82,12 +138,25 @@ export default function PrintMessagePage() {
         );
     }
 
-    if (error || !orderData) {
+    // 에러 발생
+    if (error) {
         return (
             <div className="max-w-4xl mx-auto p-6">
                 <div className="text-center">
-                    <h2 className="text-2xl font-bold text-red-600 mb-4">{tf.f00467}</h2>
-                    <p className="text-gray-600 font-light">{error || tf.f00616}</p>
+                    <h2 className="text-2xl font-bold text-red-600 mb-4">오류 발생</h2>
+                    <p className="text-gray-600">{error}</p>
+                </div>
+            </div>
+        );
+    }
+
+    // 주문 데이터가 없음
+    if (!orderData) {
+        return (
+            <div className="max-w-4xl mx-auto p-6">
+                <div className="text-center">
+                    <h2 className="text-2xl font-bold text-gray-600 mb-4">주문을 찾을 수 없습니다</h2>
+                    <p className="text-gray-500">요청하신 주문 정보가 존재하지 않습니다.</p>
                 </div>
             </div>
         );
@@ -99,12 +168,7 @@ export default function PrintMessagePage() {
                 order={orderData}
                 labelType={labelType}
                 startPosition={startPosition}
-                messageFont={messageFont}
-                messageFontSize={messageFontSize}
-                senderFont={senderFont}
-                senderFontSize={senderFontSize}
                 messageContent={messageContent}
-                senderName={senderName}
                 selectedPositions={selectedPositions}
             />
         </Suspense>

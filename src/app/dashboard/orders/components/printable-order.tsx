@@ -183,38 +183,32 @@ export class PrintableOrder extends React.Component<PrintableOrderProps> {
                         )}
                     </tbody>
                 </table>
-                <div className="mt-4 text-xs border-t border-black pt-3">
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
-                        <div className="flex flex-col">
-                            <span className="font-bold text-[10px] text-gray-600 uppercase tracking-tighter">{tf.f01367}</span>
-                            <span className="text-[14px] font-bold">{data.shopInfo.name}</span>
-                        </div>
-                        <div className="flex flex-col">
-                            <span className="font-bold text-[10px] text-gray-600 uppercase tracking-tighter">{tf.f00444}</span>
-                            <span className="text-[14px] font-medium">{data.shopInfo.contact || tf.f02593}</span>
-                        </div>
-                        <div className="flex flex-col">
-                            <span className="font-bold text-[10px] text-gray-600 uppercase tracking-tighter">{tf.f00504}</span>
-                            <span className="text-[13px]">{data.shopInfo.email || "-"}</span>
-                        </div>
-                        <div className="flex flex-col">
-                            <span className="font-bold text-[10px] text-gray-600 uppercase tracking-tighter">{tf.f02596}</span>
-                            <span className="text-[13px] truncate">{data.shopInfo.website || "-"}</span>
-                        </div>
-                    </div>
-                    <div className="mt-3 flex items-start justify-between">
-                        <div className="flex flex-col flex-1 mr-4">
-                            <span className="font-bold text-[10px] text-gray-600 uppercase tracking-tighter">{tf.f00650}</span>
-                            <span className="text-[13px] leading-snug">{data.shopInfo.address || tf.f02594}</span>
-                        </div>
-                        {data.shopInfo.account && (
-                            <div className="text-right whitespace-nowrap">
-                                <span className="font-bold text-[10px] text-gray-600 uppercase mr-2">{tf.f02595}</span>
-                                <span className="text-[13px] font-semibold">{data.shopInfo.account}</span>
+                {isReceipt && (
+                    <div className="mt-4 text-xs border-t border-black pt-3">
+                        <div className="grid grid-cols-2 gap-6">
+                            <div className="flex flex-col">
+                                <span className="font-bold text-[10px] text-gray-600 uppercase tracking-tighter">{tf.f01367}</span>
+                                <span className="text-[14px] font-bold">{data.shopInfo.name}</span>
                             </div>
-                        )}
+                            <div className="flex flex-col">
+                                <span className="font-bold text-[10px] text-gray-600 uppercase tracking-tighter">{tf.f00444}</span>
+                                <span className="text-[14px] font-medium">{data.shopInfo.contact || tf.f02593}</span>
+                            </div>
+                        </div>
+                        <div className="mt-3 flex items-start justify-between">
+                            <div className="flex flex-col flex-1 mr-4">
+                                <span className="font-bold text-[10px] text-gray-600 uppercase tracking-tighter">{tf.f00650}</span>
+                                <span className="text-[13px] leading-snug">{data.shopInfo.address || tf.f02594}</span>
+                            </div>
+                            {data.shopInfo.account && (
+                                <div className="text-right whitespace-nowrap">
+                                    <span className="font-bold text-[10px] text-gray-600 uppercase mr-2">{tf.f02595}</span>
+                                    <span className="text-[13px] font-semibold">{data.shopInfo.account}</span>
+                                </div>
+                            )}
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
         );
 

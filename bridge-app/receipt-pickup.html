@@ -5,7 +5,7 @@
   <title>픽업</title>
   <style>
     @page { margin: 0; }
-    body {
+    body { font-weight: 800; -webkit-font-smoothing: none; 
       font-family: 'Malgun Gothic', sans-serif;
       margin: 0;
       padding: 8px;
@@ -43,7 +43,7 @@
     }
     .items-list li {
       padding: 4px 0;
-      border-bottom: 1px dotted #ccc;
+      border-bottom: 1px dotted #000;
       font-size: 14px;
     }
     .items-list li:last-child {
@@ -52,20 +52,19 @@
     .footer {
       text-align: center;
       font-size: 11px;
-      color: #555;
+      color: #000;
       margin-top: 6px;
     }
   </style>
 </head>
 <body>
-  <div style="text-align: center; margin-bottom: 10px;">{{logo_html}}</div>
   <div style="text-align:center; font-size:14px; font-weight:bold; margin:4px 0 8px 0;">픽업 예약 <span style="font-size:12px; color:#666; font-weight:normal;">(#{{short_order_id}})</span></div>
-  <div style="text-align:center; font-size:11px; color:#555; margin-bottom:6px;">출력일시: {{print_datetime}}</div>
+  <div style="text-align:center; font-size:11px; color:#000; margin-bottom:6px;">출력일시: {{print_datetime}}</div>
 
   <div class="divider"></div>
 
   <div class="pickup-time">{{pickup_datetime}}</div>
-  <div class="recipient-name" style="margin-top: 10px; margin-bottom: 10px;">{{picker_name}} <span style="font-size:18px; color:#333;">({{picker_contact_last4}})</span></div>
+  <div class="recipient-name" style="margin-top: 10px; margin-bottom: 10px;">{{picker_name}} <span style="font-size:18px; color:#000;">({{picker_contact_last4}})</span></div>
 
   <div class="divider"></div>
 

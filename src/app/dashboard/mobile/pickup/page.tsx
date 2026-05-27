@@ -23,6 +23,7 @@ import {
   type PickupListItem,
 } from "@/lib/mobile/pickup-utils";
 import type { Order } from "@/types/order";
+import { OrderDetailDialog } from "../../pickup-delivery/components/order-detail-dialog";
 
 const PAY_BUTTONS: { id: Order["payment"]["method"]; label: string; cls: string }[] = [
   { id: "card", label: "카드", cls: "bg-blue-500 text-white" },
@@ -36,12 +37,13 @@ const PAY_BUTTONS: { id: Order["payment"]["method"]; label: string; cls: string 
 export default function MobilePickupPage() {
   const { profile, tenantId } = useAuth();
   const storeName = profile?.tenants?.name;
-  const { orders, loading, isRefreshing, fetchOrders, updateOrder } = useOrders();
+  const { orders, loading, isRefreshing, fetchOrders, updateOrder, setOrders } = useOrders();
   const [activeTab, setActiveTab] = useState<PickupTabType>("전체");
   const [dateFilter, setDateFilter] = useState<DateFilterType>("오늘");
   const [search, setSearch] = useState("");
   const [showCompleted, setShowCompleted] = useState(false);
   const [completingId, setCompletingId] = useState<string | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   const list = useMemo(() => {
     return orders
@@ -103,6 +105,7 @@ export default function MobilePickupPage() {
     const row = orders.find((o) => o.id === orderId);
     if (!row) return;
     const extra = { ...(row.extra_data || {}), production_completed: !current };
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, extra_data: extra } : o));
     const ok = await updateOrder(orderId, { extra_data: extra } as Partial<Order>);
     if (ok) toast.success(!current ? "제작 완료로 표시했습니다." : "제작 대기로 변경했습니다.");
     else toast.error("저장에 실패했습니다.");
@@ -149,14 +152,6 @@ export default function MobilePickupPage() {
     }
   };
 
-  const handleUpdateDeliveryCost = async (orderId: string, cardCost: number, cashCost: number) => {
-    const ok = await updateOrder(orderId, {
-      actual_delivery_cost: cardCost,
-      actual_delivery_cost_cash: cashCost,
-    } as Partial<Order>);
-    if (ok) toast.success("배송비가 저장되었습니다.");
-    else toast.error("배송비 저장에 실패했습니다.");
-  };
 
   if (!tenantId) {
     return (
@@ -169,6 +164,7 @@ export default function MobilePickupPage() {
   }
 
   return (
+    <>
     <div className="flex h-full min-h-0 flex-col">
       <MobilePageHeader
         title="픽업 / 배송 관리"
@@ -254,12 +250,20 @@ export default function MobilePickupPage() {
               completingId={completingId}
               onToggleProduction={handleToggleProduction}
               onComplete={handleComplete}
-              onUpdateDeliveryCost={handleUpdateDeliveryCost}
+              onOrderClick={() => setSelectedOrder(order.originalOrder)}
             />
           ))
         )}
       </div>
     </div>
+      {selectedOrder && (
+        <OrderDetailDialog
+          open={!!selectedOrder}
+          onOpenChange={(open) => !open && setSelectedOrder(null)}
+          order={selectedOrder}
+        />
+      )}
+    </>
   );
 }
 
@@ -268,23 +272,15 @@ function PickupOrderCard({
   completingId,
   onToggleProduction,
   onComplete,
-  onUpdateDeliveryCost,
+  onOrderClick,
 }: {
   order: PickupListItem;
   completingId: string | null;
   onToggleProduction: (id: string, current: boolean) => void;
   onComplete: (id: string, method: Order["payment"]["method"] | null, amount: number) => void;
-  onUpdateDeliveryCost: (id: string, cardCost: number, cashCost: number) => void;
+  onOrderClick: () => void;
 }) {
-  const [expanded, setExpanded] = useState(false);
-  const [cardCost, setCardCost] = useState(order.actualDeliveryCost || 0);
-  const [cashCost, setCashCost] = useState(order.actualDeliveryCostCash || 0);
 
-  // Sync state if order changes externally
-  useMemo(() => {
-    setCardCost(order.actualDeliveryCost || 0);
-    setCashCost(order.actualDeliveryCostCash || 0);
-  }, [order.actualDeliveryCost, order.actualDeliveryCostCash]);
 
   const isPickup =
     order.receiptType === "pickup_reservation" || order.receiptType === "store_pickup";
@@ -336,7 +332,7 @@ function PickupOrderCard({
           </div>
 
           <div className="flex items-center justify-between gap-2">
-            <h3 className="truncate text-sm font-black text-gray-900">{order.ordererName}</h3>
+            <h3 onClick={onOrderClick} className="truncate text-sm font-black text-gray-900 cursor-pointer underline hover:text-emerald-600 decoration-emerald-200 underline-offset-4">{order.ordererName}</h3>
             <div className="flex shrink-0 gap-1">
               <button
                 type="button"
@@ -395,73 +391,10 @@ function PickupOrderCard({
             <p className="text-sm font-black text-gray-900">
               {order.total.toLocaleString()}원
             </p>
-            <button
-              onClick={() => setExpanded(!expanded)}
-              className="text-[10px] font-bold text-emerald-600 underline"
-            >
-              {expanded ? "접기" : "상세보기"}
-            </button>
           </div>
         </div>
       </div>
       
-      {/* Expanded Details */}
-      {expanded && (
-        <div className="mt-3 rounded-xl border border-gray-100 bg-gray-50/50 p-3">
-          <div className="mb-3 border-b border-gray-100 pb-2">
-            <p className="text-[10px] font-bold text-gray-500">주문 상품</p>
-            {order.rawItems.map((item, idx) => (
-              <div key={idx} className="mt-1 flex items-center justify-between text-xs">
-                <span className="text-gray-700">{item.name}</span>
-                <span className="font-bold text-gray-900">{item.quantity}개</span>
-              </div>
-            ))}
-          </div>
-
-          {order.memo && (
-            <div className="mb-3 border-b border-gray-100 pb-2">
-              <p className="text-[10px] font-bold text-gray-500">메모</p>
-              <p className="mt-1 whitespace-pre-wrap text-xs text-rose-600">{order.memo}</p>
-            </div>
-          )}
-
-          {order.receiptType === "delivery_reservation" && (
-            <div className="rounded-lg border border-gray-200 bg-white p-2">
-              <p className="mb-2 text-[11px] font-bold text-gray-700">🚚 실제 배송비 입력</p>
-              <div className="flex gap-2">
-                <div className="flex-1">
-                  <label className="mb-1 block text-[9px] text-gray-500">기본(카드) 배송비</label>
-                  <input
-                    type="number"
-                    value={cardCost || ""}
-                    onChange={(e) => setCardCost(Number(e.target.value))}
-                    className="w-full rounded border bg-gray-50 px-2 py-1 text-xs outline-none focus:border-emerald-400 focus:bg-white"
-                    placeholder="0"
-                  />
-                </div>
-                <div className="flex-1">
-                  <label className="mb-1 block text-[9px] text-gray-500">기사 현금지급</label>
-                  <input
-                    type="number"
-                    value={cashCost || ""}
-                    onChange={(e) => setCashCost(Number(e.target.value))}
-                    className="w-full rounded border bg-gray-50 px-2 py-1 text-xs outline-none focus:border-emerald-400 focus:bg-white"
-                    placeholder="0"
-                  />
-                </div>
-              </div>
-              <div className="mt-2 text-right">
-                <button
-                  onClick={() => onUpdateDeliveryCost(order.id, cardCost, cashCost)}
-                  className="rounded bg-gray-800 px-3 py-1 text-[10px] font-bold text-white hover:bg-gray-700"
-                >
-                  저장
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }

@@ -136,7 +136,7 @@ console.error = function(...args) {
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
 let CURRENT_BRANCH_ID = process.env.CURRENT_BRANCH_ID || process.env.BRANCH_ID || '';
-const BRIDGE_VERSION = 'v11.0';
+const BRIDGE_VERSION = 'v1.2';
 
 let lastHeartbeatTime = 0;
 let isPausedLogged = false;
@@ -156,21 +156,8 @@ async function syncPrinters() {
 
     if (!CURRENT_BRANCH_ID) return; // No branch set yet, skip pushing to DB
 
-    const { data: branch } = await supabase
-      .from('branches')
-      .select('id, name')
-      .or(`id.eq.${CURRENT_BRANCH_ID},name.eq.${CURRENT_BRANCH_ID}`)
-      .single();
-
-    if (!branch) {
-      console.error(`❌ 지점 정보를 찾을 수 없습니다. 설정된 지점명: ${CURRENT_BRANCH_ID}`);
-      return;
-    }
-    
-    CURRENT_BRANCH_ID = branch.id;
-    globalBranchName = branch.name || CURRENT_BRANCH_ID;
-
-    const settingsId = `branch_settings_${branch.name}`;
+    globalBranchName = CURRENT_BRANCH_ID;
+    const settingsId = `settings_${globalBranchName}`;
     const { data: settingsRow } = await supabase
       .from('system_settings')
       .select('data')
@@ -178,14 +165,13 @@ async function syncPrinters() {
       .single();
 
     let settingsData = settingsRow?.data || {};
-    if (!settingsData.general) settingsData.general = {};
-    settingsData.general.installedPrinters = printerNames;
+    settingsData.installedPrinters = printerNames;
 
     await supabase
       .from('system_settings')
-      .upsert({ id: settingsId, data: settingsData, updated_at: new Date().toISOString() });
+      .upsert({ id: settingsId, tenant_id: CURRENT_BRANCH_ID, data: settingsData, updated_at: new Date().toISOString() });
 
-    console.log(`✅ [시스템] 프린터 목록 ERP 동기화 완료 (${branch.name})`);
+    console.log(`✅ [시스템] 프린터 목록 ERP 동기화 완료 (${globalBranchName})`);
   } catch (err) {
     console.error("❌ 프린터 동기화 오류:", err);
   }
@@ -214,19 +200,39 @@ let globalBranchName = '';
 
 // 2. 주문 데이터를 HTML 템플릿으로 변환 (영수증 디자인)
 function generateHtmlReceipt(job, settings = {}) {
-  const { job_type, payload } = job;
-  const { orderer, items, summary, pickupInfo, deliveryInfo, message, request } = payload;
+  const payload = job.payload || job.data;
+  const job_type = job.type || job.job_type;
+  
+  if (!payload) {
+    throw new Error('인쇄 데이터(payload/data)가 없습니다.');
+  }
+  
+  const orderer = payload.orderer || {};
+  const items = payload.items || [];
+  const summary = payload.summary || {};
+  const pickupInfo = payload.pickupInfo || payload.pickup_info || {};
+  const deliveryInfo = payload.deliveryInfo || payload.delivery_info || {};
+  const message = payload.message || {};
+  const request = payload.request || payload.memo || '';
 
   const isPkg = typeof process.pkg !== 'undefined';
   const baseDir = isPkg ? path.dirname(process.execPath) : __dirname;
   const dateStr = new Date().toLocaleString('ko-KR');
 
-  const rawOrderId = payload?.orderId || job.order_id || job.id || '';
+  const rawOrderId = payload?.orderId || payload?.id || job.order_id || job.id || '';
   const shortOrderId = String(rawOrderId).substring(0, 8);
 
-  const displayName = settings.branchDisplayName || globalBranchName;
-  const displayPhone = settings.branchPhone || globalBranchPhone;
+  const displayName = settings.siteName || settings.branchDisplayName || globalBranchName;
+  const displayPhone = settings.contactPhone || settings.branchPhone || globalBranchPhone;
   const shopInfoStr = `${displayName} ${displayPhone}`.trim();
+
+  let logoHtml = '';
+  if (payload.logo_url) {
+    logoHtml = `<img src="${payload.logo_url}" style="max-width: 120px; height: auto;" alt="Logo">`;
+  } else {
+    logoHtml = `<img src="https://ecimg.cafe24img.com/pg1472b45444056090/lilymagflower/web/upload/category/logo/v2_d13ecd48bab61a0269fab4ecbe56ce07_lZMUZ1lORo_top.jpg" style="max-width: 120px; height: auto;" alt="LilyMag Flower">`;
+  }
+
 
   let isCard = false;
   let isRibbon = false;
@@ -259,6 +265,7 @@ function generateHtmlReceipt(job, settings = {}) {
 
     return pickupTemplate
       .replace('{{pickup_datetime}}', pickupDatetime)
+      .replace('{{logo_html}}', logoHtml)
       .replace('{{picker_name}}', pickerName)
       .replace('{{picker_contact_last4}}', pickerContact)
       .replace('{{items_html}}', pickupItemsHtml)
@@ -319,6 +326,7 @@ function generateHtmlReceipt(job, settings = {}) {
 
     let finalHtml = driverTemplate
       .replace('{{short_order_id}}', shortOrderId)
+      .replace('{{logo_html}}', logoHtml)
       .replace('{{recipient_name}}', deliveryInfo?.recipientName || '')
       .replace('{{recipient_contact}}', recipientContactStr)
       .replace('{{orderer_masked}}', ordererMasked)
@@ -380,6 +388,7 @@ function generateHtmlReceipt(job, settings = {}) {
   // 템플릿 변환
   let finalHtml = shopTemplate
     .replace('{{short_order_id}}', shortOrderId)
+    .replace('{{logo_html}}', '') // 주문서에는 로고 없으므로 빈 문자열로 대체 (기존 템플릿 호환성)
     .replace('{{print_datetime}}', dateStr)
     .replace('{{orderer_name}}', orderer?.name || '익명')
     .replace('{{orderer_contact}}', orderer?.contact || '')
@@ -388,9 +397,9 @@ function generateHtmlReceipt(job, settings = {}) {
     .replace('{{delivery_datetime}}', dDatetime)
     .replace('{{delivery_address}}', dAddr)
     .replace('{{items_html}}', shopItemsHtml)
-    .replace('{{subtotal}}', summary?.subtotal ? `${summary.subtotal.toLocaleString()}원` : '')
-    .replace('{{delivery_fee}}', summary?.deliveryFee ? `${summary.deliveryFee.toLocaleString()}원` : '')
-    .replace('{{total}}', summary?.total ? `${summary.total.toLocaleString()}원` : '')
+    .replace('{{subtotal}}', summary?.subtotal != null ? `${summary.subtotal.toLocaleString()}원` : '')
+    .replace('{{delivery_fee}}', summary?.deliveryFee != null ? `${summary.deliveryFee.toLocaleString()}원` : '')
+    .replace('{{total}}', summary?.total != null ? `${summary.total.toLocaleString()}원` : '')
     .replace('{{request_html}}', reqHtml)
     .replace('{{message_html}}', msgHtml);
 
@@ -457,18 +466,8 @@ async function start() {
   }
 
   // 지점 정보 확인 (Realtime 필터 및 영수증 하단 출력용)
-  const { data: branchInfo, error: branchError } = await supabase
-    .from('branches')
-    .select('id, name, phone')
-    .or(`id.eq.${CURRENT_BRANCH_ID},name.eq.${CURRENT_BRANCH_ID}`)
-    .single();
-
-  if (branchError || !branchInfo) {
-    console.error(`❌ 지점 정보를 아직 찾을 수 없습니다. (ID: ${CURRENT_BRANCH_ID}). 웹사이트에서 지점 환경설정을 열면 자동으로 연동됩니다.`);
-  } else {
-    globalBranchName = branchInfo.name || CURRENT_BRANCH_ID;
-    globalBranchPhone = branchInfo.phone || '';
-  }
+  globalBranchName = CURRENT_BRANCH_ID;
+  globalBranchPhone = '';
 
   // 5. 인쇄 대기열(print_jobs) 주기적 폴링 (Realtime 미작동 대비)
   console.log("🔄 클라우드 인쇄 대기열(print_jobs) 감시를 시작합니다. (3초 간격)");
@@ -501,7 +500,7 @@ async function start() {
         .from('print_jobs')
         .select('*')
         .eq('status', 'pending')
-        .eq('branch_id', CURRENT_BRANCH_ID)
+        .eq('user_id', CURRENT_BRANCH_ID)
         .gte('created_at', tenMinutesAgo)
         .order('created_at', { ascending: true })
         .limit(5);
@@ -519,11 +518,11 @@ async function start() {
 
         try {
           // ERP 설정에서 타겟 프린터 이름 가져오기
-          const { data: settingsRow } = await supabase.from('system_settings').select('data').eq('id', `branch_settings_${globalBranchName}`).single();
+          const { data: settingsRow } = await supabase.from('system_settings').select('data').eq('id', `settings_${globalBranchName}`).single();
           
-          const settings = settingsRow?.data?.general || {};
+          const settings = settingsRow?.data || {};
 
-          if (settings.bridgeEnabled === false) {
+          if (settings.ppBridgeEnabled === false) {
               console.log(`⏸️ 브릿지 전원이 OFF 상태입니다. 인쇄 작업(${job.id})을 무시하고 삭제(실패) 처리합니다.`);
               await supabase.from('print_jobs').update({ status: 'failed' }).eq('id', job.id);
               continue;
@@ -667,6 +666,9 @@ const server = http.createServer(async (req, res) => {
   if (req.url === '/') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ status: 'ok', message: 'Print POS Bridge is running', branch_id: CURRENT_BRANCH_ID, version: BRIDGE_VERSION }));
+  } else if (req.url === '/api/version') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ status: 'ok', version: BRIDGE_VERSION, branch_id: CURRENT_BRANCH_ID }));
   } else if (req.url === '/printers') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     if (cachedPrinters === null) {
@@ -675,7 +677,7 @@ const server = http.createServer(async (req, res) => {
       res.end(JSON.stringify({ printers: cachedPrinters || [] }));
     }
     return;
-  } else if (req.url.startsWith('/set_branch')) {
+  } else if (req.url.startsWith('/set_tenant')) {
     const url = new URL(req.url, `http://${req.headers.host}`);
     const newBranchId = url.searchParams.get('id');
     if (newBranchId && newBranchId !== CURRENT_BRANCH_ID) {
