@@ -778,8 +778,8 @@ export default function SettingsPage() {
       const timeoutId = setTimeout(() => controller.abort(), 2000);
       
       const endpoint = tenantId 
-        ? `http://127.0.0.1:8003/set_tenant?id=${tenantId}` 
-        : "http://127.0.0.1:8003/api/version";
+        ? `http://127.0.0.1:8004/set_tenant?id=${tenantId}` 
+        : "http://127.0.0.1:8004/api/version";
         
       const response = await fetch(endpoint, { 
         signal: controller.signal,
@@ -791,7 +791,7 @@ export default function SettingsPage() {
         setBridgeStatus(true);
         // 브릿지에서 최신 프린터 목록 바로 가져오기 (Supabase 동기화 대기 없이 즉시 반영)
         try {
-          const pr = await fetch("http://127.0.0.1:8003/printers", { mode: 'cors' });
+          const pr = await fetch("http://127.0.0.1:8004/printers", { mode: 'cors' });
           if (pr.ok) {
             const data = await pr.json();
             if (data.printers && Array.isArray(data.printers) && data.printers.length > 0) {

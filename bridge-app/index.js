@@ -3,18 +3,18 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 
-const targetFolder = path.join(os.homedir(), 'AppData', 'Roaming', 'LilyMagBridge');
+const targetFolder = path.join(os.homedir(), 'AppData', 'Roaming', 'FloxyncBridge');
 const exePath = process.execPath;
 const currentFolder = path.dirname(exePath);
 
 // 1. Auto-Installation Logic
-const isDaemon = process.argv.includes('--daemon') || process.execPath.includes('ppbridge-daemon.exe');
+const isDaemon = process.argv.includes('--daemon') || process.execPath.includes('floxync-daemon.exe');
 if (!isDaemon && currentFolder.toLowerCase() !== targetFolder.toLowerCase()) {
   try {
     // Kill existing process if running before overwriting files
     try {
-      execSync('taskkill /F /IM ppbridge-daemon.exe', { stdio: 'ignore' });
-      execSync('taskkill /F /IM LilyMag-Print-Bridge.exe', { stdio: 'ignore' });
+      execSync('taskkill /F /IM floxync-daemon.exe', { stdio: 'ignore' });
+      execSync('taskkill /F /IM Floxync-Print-Bridge.exe', { stdio: 'ignore' });
       execSync('powershell -Command "Start-Sleep -Seconds 2"', { stdio: 'ignore' });
     } catch(e) {}
 
@@ -23,13 +23,13 @@ if (!isDaemon && currentFolder.toLowerCase() !== targetFolder.toLowerCase()) {
     }
 
     try {
-      execSync('taskkill /F /IM ppbridge-daemon.exe', { stdio: 'ignore' });
+      execSync('taskkill /F /IM floxync-daemon.exe', { stdio: 'ignore' });
     } catch(e) {
       // Ignore if not running
     }
 
     // Copy EXE
-    fs.copyFileSync(exePath, path.join(targetFolder, 'ppbridge-daemon.exe'));
+    fs.copyFileSync(exePath, path.join(targetFolder, 'floxync-daemon.exe'));
     
         // Copy templates if exists
     const templates = [
@@ -48,7 +48,7 @@ if (!isDaemon && currentFolder.toLowerCase() !== targetFolder.toLowerCase()) {
 
     // 파일 복사 후 인터넷 다운로드 차단(Mark of the Web) 해제하여 VBS 실행 오류 방지
     try {
-      execSync(`powershell -Command "Unblock-File -Path '${targetFolder}\\ppbridge-daemon.exe'"`, { stdio: 'ignore' });
+      execSync(`powershell -Command "Unblock-File -Path '${targetFolder}\\floxync-daemon.exe'"`, { stdio: 'ignore' });
       execSync(`powershell -Command "Unblock-File -Path '${targetFolder}\\SumatraPDF-3.4.6-32.exe'"`, { stdio: 'ignore' });
     } catch(e) {}
 
@@ -56,7 +56,7 @@ if (!isDaemon && currentFolder.toLowerCase() !== targetFolder.toLowerCase()) {
     const vbsCode = `
 Set WshShell = CreateObject("WScript.Shell")
 WshShell.CurrentDirectory = "${targetFolder}"
-WshShell.Run chr(34) & "${targetFolder}\\ppbridge-daemon.exe" & chr(34), 0, False
+WshShell.Run chr(34) & "${targetFolder}\\floxync-daemon.exe" & chr(34), 0, False
 Set WshShell = Nothing
     `.trim();
     const wrapperVbs = path.join(targetFolder, 'ppbridge.vbs');
@@ -64,15 +64,15 @@ Set WshShell = Nothing
 
     // Register in Registry for Auto-Start
     try {
-      execSync(`reg add HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run /v LilyMagBridge /t REG_SZ /d "wscript.exe \\"${wrapperVbs}\\"" /f`, { stdio: 'ignore' });
+      execSync(`reg add HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run /v FloxyncBridge /t REG_SZ /d "wscript.exe \\"${wrapperVbs}\\"" /f`, { stdio: 'ignore' });
     } catch(e) {
       console.error("Registry add failed", e);
     }
 
     // Write generic .env file during installation
     const envPath = path.join(targetFolder, '.env');
-    fs.writeFileSync(envPath, `SUPABASE_URL=https://xphvycuaffifjgjaiqxe.supabase.co
-SUPABASE_SERVICE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhwaHZ5Y3VhZmZpZmpnamFpcXhlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODkyMTI0OSwiZXhwIjoyMDg0NDk3MjQ5fQ.nBJ86wD5wyIQaQHZ7UMCq6VAHSCCSzdAZ37e5Ld_y28
+    fs.writeFileSync(envPath, `SUPABASE_URL=https://mheqfhiyfsgnsglvxdrn.supabase.co
+SUPABASE_SERVICE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1oZXFmaGl5ZnNnbnNnbHZ4ZHJuIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDE0Mzk5MywiZXhwIjoyMDg5NzE5OTkzfQ.eI8RIAygYVSz0BHiSfK1kNRqfYFBadZ-ub1nt23n1ls
 CURRENT_TENANT_ID=
 TENANT_ID=
 `);
@@ -83,7 +83,7 @@ TENANT_ID=
     } catch (err) {
       console.error("VBS execution failed, falling back to powershell", err);
       try {
-         execSync(`powershell -WindowStyle Hidden -Command "Start-Process '${targetFolder}\\ppbridge-daemon.exe' -WindowStyle Hidden"`, { stdio: 'ignore' });
+         execSync(`powershell -WindowStyle Hidden -Command "Start-Process '${targetFolder}\\floxync-daemon.exe' -WindowStyle Hidden"`, { stdio: 'ignore' });
       } catch(e) {}
     }
 
@@ -100,8 +100,8 @@ TENANT_ID=
 // 2. Background Daemon Logic (Running from %APPDATA%)
 const envPath = path.join(targetFolder, '.env');
 if (!fs.existsSync(envPath)) {
-  fs.writeFileSync(envPath, `SUPABASE_URL=https://xphvycuaffifjgjaiqxe.supabase.co
-SUPABASE_SERVICE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhwaHZ5Y3VhZmZpZmpnamFpcXhlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODkyMTI0OSwiZXhwIjoyMDg0NDk3MjQ5fQ.nBJ86wD5wyIQaQHZ7UMCq6VAHSCCSzdAZ37e5Ld_y28
+  fs.writeFileSync(envPath, `SUPABASE_URL=https://mheqfhiyfsgnsglvxdrn.supabase.co
+SUPABASE_SERVICE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1oZXFmaGl5ZnNnbnNnbHZ4ZHJuIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDE0Mzk5MywiZXhwIjoyMDg5NzE5OTkzfQ.eI8RIAygYVSz0BHiSfK1kNRqfYFBadZ-ub1nt23n1ls
 CURRENT_TENANT_ID=
 TENANT_ID=
 `);
@@ -673,8 +673,8 @@ const server = http.createServer(async (req, res) => {
        // .env 파일에 업데이트하여 영구 저장
        try {
          const targetEnvPath = path.join(targetFolder, '.env');
-         const envContent = `SUPABASE_URL=https://xphvycuaffifjgjaiqxe.supabase.co
-SUPABASE_SERVICE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhwaHZ5Y3VhZmZpZmpnamFpcXhlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODkyMTI0OSwiZXhwIjoyMDg0NDk3MjQ5fQ.nBJ86wD5wyIQaQHZ7UMCq6VAHSCCSzdAZ37e5Ld_y28
+         const envContent = `SUPABASE_URL=https://mheqfhiyfsgnsglvxdrn.supabase.co
+SUPABASE_SERVICE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1oZXFmaGl5ZnNnbnNnbHZ4ZHJuIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDE0Mzk5MywiZXhwIjoyMDg5NzE5OTkzfQ.eI8RIAygYVSz0BHiSfK1kNRqfYFBadZ-ub1nt23n1ls
 CURRENT_TENANT_ID=${CURRENT_TENANT_ID}
 TENANT_ID=${CURRENT_TENANT_ID}`;
          fs.writeFileSync(targetEnvPath, envContent, 'utf8');
@@ -707,7 +707,7 @@ TENANT_ID=${CURRENT_TENANT_ID}`;
 server.on('error', (e) => {
   if (e.code === 'EADDRINUSE') {
     console.error('====================================================');
-    console.error('❌ 이미 브릿지가 실행 중이거나 포트(8003)가 사용 중입니다!');
+    console.error('❌ 이미 브릿지가 실행 중이거나 포트(8004)가 사용 중입니다!');
     console.error('❌ 작업 표시줄 하단이나 숨겨진 아이콘에 검은 창이 있는지 확인해주세요.');
     console.error('====================================================');
     console.log('이 창은 10초 후 자동으로 닫힙니다...');
@@ -718,6 +718,6 @@ server.on('error', (e) => {
   }
 });
 
-server.listen(8003, '0.0.0.0', () => {
-  console.log("🟢 [상태 확인] 브릿지 하트비트 서버가 포트 8003 (0.0.0.0)에서 실행 중입니다. (Universal PP 연동)");
+server.listen(8004, '0.0.0.0', () => {
+  console.log("🟢 [상태 확인] 브릿지 하트비트 서버가 포트 8004 (0.0.0.0)에서 실행 중입니다. (Universal PP 연동)");
 });

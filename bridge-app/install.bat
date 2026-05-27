@@ -8,7 +8,7 @@ echo.
 echo 1. Terminating existing background bridge services...
 taskkill /F /IM ppbridge.exe /T >nul 2>&1
 taskkill /F /IM ppbridge-daemon.exe /T >nul 2>&1
-taskkill /F /IM LilyMag-Print-Bridge.exe /T >nul 2>&1
+taskkill /F /IM Floxync-Print-Bridge.exe /T >nul 2>&1
 echo.
 echo 2. Installing bridge program as a background service...
 echo (Configured to hide the terminal window and run automatically.)
