@@ -853,7 +853,7 @@ export default function SettingsPage() {
     toast.info(pickUiText(baseLocale, '테스트 인쇄를 요청중입니다...', 'Requesting test print...', 'Đang yêu cầu in thử...'));
     try {
       const { error } = await supabase.from('print_jobs').insert({
-        tenant_id: tenantId, user_id: tenantId, image_base64: '',
+        tenant_id: tenantId, user_id: tenantId, image_base64: '', width_mm: 0, length_mm: 0,
         type: 'receipt_shop',
         status: 'pending',
         data: {
@@ -1056,7 +1056,7 @@ export default function SettingsPage() {
 
       const backupData = {
         timestamp: new Date().toISOString(),
-        tenant_id: tenantId, user_id: tenantId, image_base64: '',
+        tenant_id: tenantId, user_id: tenantId, image_base64: '', width_mm: 0, length_mm: 0,
         shop_name: storeName,
         settings,
         orders: ordersRes.data || [],
