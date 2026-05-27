@@ -62,4 +62,5 @@ If you are unsure about how a feature should work, ALWAYS check these reference 
 1. **문제 해결 우선**: 새 코드를 짜기 전 에러 로그와 팩트에 기반해 디버깅을 먼저 진행합니다.
 2. **환각 주의**: `package.json`에 없는 가상의 라이브러리/옵션을 추천하지 않습니다.
 3. **마이크로 스텝**: 한 번에 거대한 기능을 작성하지 않고, 작은 컴포넌트 단위로 쪼개어 접근합니다.
+4. **연쇄 수정 및 최종 검수(QA) 의무**: 특정 코드를 수정할 때에는 반드시 그것과 연결된 빌드 산출물(예: `.exe` 재컴파일, 다운로드 `.zip` 등), UI 표기, API 호출 부분까지 완벽하게 함께 수정되었는지 확인합니다. 배포(Commit/Push) 전에는 항상 '총괄 오케스트레이터' 및 'QA 에이전트'의 관점에서 배포물이 100% 정상 작동하는지 최종 교차 검수(Cross-check)를 완료한 후 보고합니다.
 <!-- END:antigravity-skill-agencies -->
