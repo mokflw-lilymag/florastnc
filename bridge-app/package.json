@@ -1,7 +1,7 @@
 {
-  "name": "bridge-app",
-  "version": "1.1.0",
-  "description": "",
+  "name": "print-bridge",
+  "version": "1.2.0",
+  "description": "Floxync and LilyMag ERP Universal Print POS Bridge",
   "main": "index.js",
   "bin": "index.js",
   "scripts": {

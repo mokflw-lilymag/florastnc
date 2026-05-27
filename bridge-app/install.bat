@@ -1,6 +1,6 @@
 @echo off
 echo ==============================================
-echo Floxync Bridge POS Printer Setup (v1.1)
+echo Floxync / LilyMag ERP Universal Bridge Setup (v1.2)
 echo ==============================================
 echo.
 echo Starting bridge setup...

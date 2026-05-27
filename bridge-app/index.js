@@ -201,7 +201,7 @@ function generateHtmlReceipt(job, settings = {}) {
   const rawOrderId = payload?.orderId || job.order_id || job.id || '';
   const shortOrderId = String(rawOrderId).substring(0, 8);
 
-  const displayName = settings.branchDisplayName || CURRENT_TENANT_ID;
+  const displayName = settings.branchDisplayName || CURRENT_ID;
   const displayPhone = settings.branchPhone || globalBranchPhone;
   const shopInfoStr = `${displayName} ${displayPhone}`.trim();
 
@@ -719,5 +719,5 @@ server.on('error', (e) => {
 });
 
 server.listen(8003, '0.0.0.0', () => {
-  console.log("🟢 [상태 확인] 브릿지 하트비트 서버가 포트 8003 (0.0.0.0)에서 실행 중입니다. (ERP PP 연동)");
+  console.log("🟢 [상태 확인] 브릿지 하트비트 서버가 포트 8003 (0.0.0.0)에서 실행 중입니다. (Universal PP 연동)");
 });
