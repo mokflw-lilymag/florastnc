@@ -1,6 +1,6 @@
 @echo off
 echo ==============================================
-echo Floxync Bridge POS Printer Setup (v1)
+echo Floxync Bridge POS Printer Setup (v1.1)
 echo ==============================================
 echo.
 echo Starting bridge setup...
