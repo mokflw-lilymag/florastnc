@@ -856,7 +856,7 @@ export default function SettingsPage() {
         tenant_id: tenantId,
         type: 'receipt_shop',
         status: 'pending',
-        data: {
+        payload: {
           orderId: 'TEST-1234',
           orderer: { name: '테스트 고객', phone: '010-0000-0000' },
           items: [{ name: '테스트 상품 (프린터 브릿지 점검용)', quantity: 1, price: 0 }],
