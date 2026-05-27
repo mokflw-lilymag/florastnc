@@ -1656,49 +1656,56 @@ export default function SettingsPage() {
                   <div className="space-y-6">
                     <h3 className="text-sm font-semibold">{pickUiText(baseLocale, '프린터 기기 선택', 'Select Printer Devices', 'Chọn thiết bị máy in')}</h3>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <Label>{pickUiText(baseLocale, '영수증(POS) 프린터', 'POS Printer', 'Máy in hóa đơn (POS)')}</Label>
-                        <Select 
-                          value={settings.printerName || ""} 
-                          onValueChange={(v) => saveSettings({ ...settings, printerName: v || "" })}
-                          disabled={settings.receiptPrinterType !== 'pos'}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder={pickUiText(baseLocale, '프린터를 선택하세요', 'Select a printer', 'Chọn một máy in')} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {(localPrinters.length > 0 ? localPrinters : settings.installedPrinters)?.map(p => (
-                              <SelectItem key={p} value={p}>{p}</SelectItem>
-                            ))}
-                            {(!(localPrinters.length > 0 ? localPrinters : settings.installedPrinters) || (localPrinters.length > 0 ? localPrinters : settings.installedPrinters)!.length === 0) && (
-                              <SelectItem value="none" disabled>{pickUiText(baseLocale, '설치된 프린터 없음', 'No printers installed', 'Không có máy in được cài đặt')}</SelectItem>
-                            )}
-                          </SelectContent>
-                        </Select>
+                    {!bridgeStatus ? (
+                      <div className="p-4 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2">
+                        <AlertCircle className="h-5 w-5" />
+                        {pickUiText(baseLocale, '브릿지가 연결되지 않아 프린터 목록을 표시할 수 없습니다. 상단의 상태 체크를 누르거나 브릿지를 실행해주세요.', 'Printer list cannot be displayed because the bridge is not connected. Please check status or run the bridge.', 'Không thể hiển thị danh sách máy in do Bridge không được kết nối.')}
                       </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <Label>{pickUiText(baseLocale, '영수증(POS) 프린터', 'POS Printer', 'Máy in hóa đơn (POS)')}</Label>
+                          <Select 
+                            value={settings.printerName || ""} 
+                            onValueChange={(v) => saveSettings({ ...settings, printerName: v || "" })}
+                            disabled={settings.receiptPrinterType !== 'pos'}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder={pickUiText(baseLocale, '프린터를 선택하세요', 'Select a printer', 'Chọn một máy in')} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {(localPrinters.length > 0 ? localPrinters : settings.installedPrinters)?.map(p => (
+                                <SelectItem key={p} value={p}>{p}</SelectItem>
+                              ))}
+                              {(!(localPrinters.length > 0 ? localPrinters : settings.installedPrinters) || (localPrinters.length > 0 ? localPrinters : settings.installedPrinters)!.length === 0) && (
+                                <SelectItem value="none" disabled>{pickUiText(baseLocale, '설치된 프린터 없음', 'No printers installed', 'Không có máy in được cài đặt')}</SelectItem>
+                              )}
+                            </SelectContent>
+                          </Select>
+                        </div>
 
-                      <div className="space-y-2">
-                        <Label>{pickUiText(baseLocale, '라벨 프린터', 'Label Printer', 'Máy in nhãn')}</Label>
-                        <Select 
-                          value={settings.labelPrinterName || ""} 
-                          onValueChange={(v) => saveSettings({ ...settings, labelPrinterName: v || "" })}
-                          disabled={settings.receiptPrinterType !== 'label'}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder={pickUiText(baseLocale, '프린터를 선택하세요', 'Select a printer', 'Chọn một máy in')} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {(localPrinters.length > 0 ? localPrinters : settings.installedPrinters)?.map(p => (
-                              <SelectItem key={p} value={p}>{p}</SelectItem>
-                            ))}
-                            {(!(localPrinters.length > 0 ? localPrinters : settings.installedPrinters) || (localPrinters.length > 0 ? localPrinters : settings.installedPrinters)!.length === 0) && (
-                              <SelectItem value="none" disabled>{pickUiText(baseLocale, '설치된 프린터 없음', 'No printers installed', 'Không có máy in được cài đặt')}</SelectItem>
-                            )}
-                          </SelectContent>
-                        </Select>
+                        <div className="space-y-2">
+                          <Label>{pickUiText(baseLocale, '라벨 프린터', 'Label Printer', 'Máy in nhãn')}</Label>
+                          <Select 
+                            value={settings.labelPrinterName || ""} 
+                            onValueChange={(v) => saveSettings({ ...settings, labelPrinterName: v || "" })}
+                            disabled={settings.receiptPrinterType !== 'label'}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder={pickUiText(baseLocale, '프린터를 선택하세요', 'Select a printer', 'Chọn một máy in')} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {(localPrinters.length > 0 ? localPrinters : settings.installedPrinters)?.map(p => (
+                                <SelectItem key={p} value={p}>{p}</SelectItem>
+                              ))}
+                              {(!(localPrinters.length > 0 ? localPrinters : settings.installedPrinters) || (localPrinters.length > 0 ? localPrinters : settings.installedPrinters)!.length === 0) && (
+                                <SelectItem value="none" disabled>{pickUiText(baseLocale, '설치된 프린터 없음', 'No printers installed', 'Không có máy in được cài đặt')}</SelectItem>
+                              )}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
 
                   <Separator />
