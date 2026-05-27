@@ -176,8 +176,9 @@ export function useOrders(initialFetch = true) {
       fetchOrders();
     }
 
+    const channelId = `orders-tenant-${tenantId}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     const channel = supabase
-      .channel(`orders-tenant-${tenantId}`)
+      .channel(channelId)
       .on(
         'postgres_changes',
         { 
