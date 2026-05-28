@@ -517,12 +517,35 @@ async function start() {
         await supabase.from('print_jobs').update({ status: 'processing' }).eq('id', job.id);
 
         try {
-          // ERP 설정에서 타겟 프린터 이름 가져오기
-          const { data: settingsRow } = await supabase.from('system_settings').select('data').eq('id', `settings_${globalBranchName}`).single();
+          // 환경 설정(Floxync 및 ERP) 모두 조회
+          const { data: settingsRows } = await supabase
+            .from('system_settings')
+            .select('id, data')
+            .in('id', [`settings_${globalBranchName}`, `branch_settings_${globalBranchName}`]);
           
-          const settings = settingsRow?.data || {};
+          let settings = {};
+          let isBridgeEnabled = false;
 
-          if (settings.ppBridgeEnabled === false) {
+          if (settingsRows && settingsRows.length > 0) {
+            const floxyncSettings = settingsRows.find(r => r.id === `settings_${globalBranchName}`);
+            const erpSettings = settingsRows.find(r => r.id.startsWith('branch_settings_'));
+            
+            if (job.tenant_id && floxyncSettings) {
+              settings = floxyncSettings.data || {};
+              isBridgeEnabled = settings.ppBridgeEnabled !== false;
+            } else if (job.branch_id && erpSettings) {
+              settings = erpSettings.data?.general || {};
+              isBridgeEnabled = settings.bridgeEnabled !== false;
+            } else if (floxyncSettings) {
+              settings = floxyncSettings.data || {};
+              isBridgeEnabled = settings.ppBridgeEnabled !== false;
+            } else if (erpSettings) {
+              settings = erpSettings.data?.general || {};
+              isBridgeEnabled = settings.bridgeEnabled !== false;
+            }
+          }
+
+          if (!isBridgeEnabled) {
               console.log(`⏸️ 브릿지 전원이 OFF 상태입니다. 인쇄 작업(${job.id})을 무시하고 삭제(실패) 처리합니다.`);
               await supabase.from('print_jobs').update({ status: 'failed' }).eq('id', job.id);
               continue;
