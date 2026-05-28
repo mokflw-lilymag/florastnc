@@ -530,8 +530,7 @@ export default function OrdersPage() {
       );
       return;
     }
-    setSelectedOrder(order);
-    setIsMessagePrintOpen(true);
+    router.push(`/dashboard/orders/print-message?orderId=${order.id}`);
   };
 
 
@@ -1442,6 +1441,25 @@ export default function OrdersPage() {
           refreshOrders();
         }}
       />
+      {selectedOrder && (
+        <MessagePrintDialog
+          isOpen={isMessagePrintOpen}
+          onOpenChange={setIsMessagePrintOpen}
+          order={selectedOrder}
+          onSubmit={(data) => {
+            const params = new URLSearchParams();
+            Object.entries(data).forEach(([key, value]) => {
+              if (Array.isArray(value)) {
+                params.set(key, value.join(','));
+              } else {
+                params.set(key, String(value));
+              }
+            });
+            router.push(`/dashboard/orders/print-message?${params.toString()}`);
+            setIsMessagePrintOpen(false);
+          }}
+        />
+      )}
       <OrderEditDialog
         isOpen={isOrderEditOpen}
         onOpenChange={setIsOrderEditOpen}
@@ -1454,22 +1472,7 @@ export default function OrdersPage() {
         order={selectedOrder}
         onSuccess={refreshOrders}
       />
-      <MessagePrintDialog
-        isOpen={isMessagePrintOpen}
-        onOpenChange={setIsMessagePrintOpen}
-        order={selectedOrder}
-        onSubmit={(data) => {
-          const params = new URLSearchParams();
-          Object.entries(data).forEach(([key, value]) => {
-            if (Array.isArray(value)) {
-              params.set(key, value.join(','));
-            } else {
-              params.set(key, String(value));
-            }
-          });
-          router.push(`/dashboard/orders/print-message?${params.toString()}`);
-        }}
-      />
+
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent className="rounded-3xl border-none shadow-2xl">

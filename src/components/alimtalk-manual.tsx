@@ -8,11 +8,9 @@ import { HelpCircle, ExternalLink, Key, Layout, MessageSquare, CheckCircle2 } fr
 export function AlimtalkManual() {
     return (
         <Dialog>
-            <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200">
+            <DialogTrigger render={<Button variant="outline" size="sm" className="h-8 gap-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200" />}>
                     <HelpCircle className="w-4 h-4" />
                     연동 매뉴얼 확인
-                </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
                 <DialogHeader>

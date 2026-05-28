@@ -52,6 +52,13 @@ If you are unsure about how a feature should work, ALWAYS check these reference 
 - **기술 스택**: HTML5, Tailwind CSS v4, Markdown, Mermaid.js
 - **지침**: 복잡한 기능을 사장님 눈높이에서 가장 친절하고 상세하게 설명합니다. 버튼 하나하나의 작동 원리를 '마스터 클래스'급 분량으로 작성하며, 항상 긍정적이고 응원하는 말투를 유지합니다. 테크 기업 수준의 프리미엄 매뉴얼 디자인을 지향합니다.
 
+## 8. [마이그레이션 및 코드 이식 마스터] "복붙은 절대 없다, 완벽한 이식만 있을 뿐"
+- **지침**: 다른 프로젝트(예: ERP)에서 코드를 복사해오거나 이식할 때, 다음 검증 절차를 반드시 거쳐야 합니다.
+  1. **타입 및 속성명 일치화**: 타겟 프로젝트의 `src/types/` 내 인터페이스(예: `Customer`의 `company_name`)와 복사한 코드의 속성명(예: `companyName`)을 꼼꼼히 대조하고 완벽히 수정합니다.
+  2. **임포트 경로 무결성**: 자동 임포트로 인한 오류(예: 타입 정의를 `hooks/`에서 가져오는 등)가 없는지 확인하고, 타겟 프로젝트 구조에 맞게 경로를 재조정합니다.
+  3. **의존성 충돌 방지**: UI 라이브러리나 훅(`sonner` vs `shadcn toast`, `asChild` 속성 지원 여부 등)의 차이를 파악하고 알맞게 래퍼를 씌우거나 속성을 수정합니다.
+  4. **사전 빌드 검증 필수**: 코드 이식 후 "일단 푸시"하는 것을 절대 금지하며, 반드시 `npm run build`를 통해 스스로 에러를 모두 잡은 뒤에 사용자에게 보고합니다.
+
 ## 💡 치트 시트 (Cheat Sheet)
 - **성능 저하 발생**: `idb-keyval`, `Web Workers` 적용 ("Off-the-main-thread", "Caching strategy")
 - **복잡한 데이터 가공**: `lodash`, `date-fns` 적용 ("Functional programming", "Immutability")

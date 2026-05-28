@@ -424,11 +424,11 @@ export function OrderDetailDialog({ open, onOpenChange, order, onPrintMessage }:
                     <span className="text-[11px] text-muted-foreground">출고지점</span>
                     <div className="flex items-center gap-1">
                       <p className="text-sm font-semibold">
-                        {order.outsource_info?.isTransferred && order.outsource_info?.processBranchName
-                          ? order.outsource_info.processBranchName
+                        {order.transferInfo?.isTransferred && order.transferInfo?.processBranchName
+                          ? order.transferInfo.processBranchName
                           : order.tenantName}
                       </p>
-                      {order.outsource_info?.isTransferred && <Badge className="h-4 text-[9px] px-1 bg-purple-100 text-purple-700 border-none">이관</Badge>}
+                      {order.transferInfo?.isTransferred && <Badge className="h-4 text-[9px] px-1 bg-purple-100 text-purple-700 border-none">이관</Badge>}
                     </div>
                   </div>
                   <div className="space-y-1">
@@ -618,10 +618,10 @@ export function OrderDetailDialog({ open, onOpenChange, order, onPrintMessage }:
                     <span>₩{order.summary.deliveryFee.toLocaleString()}</span>
                   </div>
                 )}
-                {order.summary.pointsUsed > 0 && (
+                {(order.summary.pointsUsed ?? 0) > 0 && (
                   <div className="flex justify-between text-xs text-red-500">
                     <span>포인트 사용</span>
-                    <span>-₩{order.summary.pointsUsed.toLocaleString()}</span>
+                    <span>-₩{order.summary.pointsUsed!.toLocaleString()}</span>
                   </div>
                 )}
                 <div className="flex justify-between font-bold text-lg pt-2 border-t">
@@ -653,7 +653,7 @@ export function OrderDetailDialog({ open, onOpenChange, order, onPrintMessage }:
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <span className="text-[11px] font-semibold text-slate-500">메시지 타입:</span>
-                      {getMessageTypeBadge(order.message.type)}
+                      {getMessageTypeBadge(order.message.type || '')}
                     </div>
                     <div className="p-3 bg-purple-50/50 rounded-lg border border-purple-100">
                       <p className="text-sm whitespace-pre-wrap leading-relaxed">{order.message.content}</p>

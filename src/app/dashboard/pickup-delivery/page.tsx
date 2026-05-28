@@ -146,20 +146,20 @@ const { orders, loading, updateOrderStatus, updateOrder, fetchOrdersByRange } = 
     try {
       const existingPartner = partners.find(partner =>
         partner.name === driverAffiliation ||
-        partner.contactPerson === driverName ||
-        partner.phone === driverContact
+        partner.contact_person === driverName ||
+        partner.contact === driverContact
       );
       if (!existingPartner) {
         await addPartner({
           name: driverAffiliation,
           type: '운송업체',
-          contactPerson: driverName || '',
-          phone: driverContact || '',
+          contact_person: driverName || '',
+          contact: driverContact || '',
           memo: `자동 등록 - 기사: ${driverName || ''}`,
           items: '배송 서비스',
-          bankAccount: '',
-          businessNumber: '',
-          ceoName: '',
+          bank_account: '',
+          business_number: '',
+          ceo_name: '',
           address: '',
           email: ''
         });
@@ -256,8 +256,8 @@ const { orders, loading, updateOrderStatus, updateOrder, fetchOrdersByRange } = 
       await deleteFromOptimalStorage(photoUrl);
       const order = orders.find(o => o.id === orderId);
       if (order?.delivery_info) {
-        await updateOrder(orderId, { delivery_info: { ...order.delivery_info, completionPhotoUrl: null } });
-        toast({ title: "사진 삭제 완료" });
+        await updateOrder(orderId, { delivery_info: { ...order.delivery_info, completionPhotoUrl: undefined } });
+        toast.success("사진 삭제 완료");
       }
     } catch (error) { toast.error('사진 삭제 중 오류가 발생했습니다.'); }
   };
@@ -581,12 +581,12 @@ const { orders, loading, updateOrderStatus, updateOrder, fetchOrdersByRange } = 
                   </div>
 
                   <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className="h-10 border-slate-200 bg-white min-w-[200px] justify-start text-left font-normal">
+                    <PopoverTrigger render={(props) => (
+                      <Button {...props} variant="outline" className="w-[130px] h-8 bg-slate-50 justify-start text-left font-normal border-slate-200">
                         <CalendarIcon className="mr-2 h-4 w-4 text-slate-400" />
                         {startDate ? (endDate ? `${format(startDate, "MM/dd")} - ${format(endDate, "MM/dd")}` : format(startDate, "MM/dd")) : "기간 선택"}
                       </Button>
-                    </PopoverTrigger>
+                    )} />
                     <PopoverContent className="w-auto p-0" align="start">
                       <div className="p-2 border-b">
                         <Select value={dateFilterType} onValueChange={(v: any) => setDateFilterType(v)}>
@@ -613,7 +613,7 @@ const { orders, loading, updateOrderStatus, updateOrder, fetchOrdersByRange } = 
 
             <div className="flex items-center gap-3">
               {isAdmin && (
-                <Select value={selectedBranch} onValueChange={setSelectedBranch}>
+                <Select value={selectedBranch} onValueChange={(v: string | null) => setSelectedBranch(v || '')}>
                   <SelectTrigger className="w-[160px] h-10 bg-white">
                     <SelectValue placeholder="지점 선택" />
                   </SelectTrigger>
@@ -731,7 +731,7 @@ const { orders, loading, updateOrderStatus, updateOrder, fetchOrdersByRange } = 
                 setDeliveryCost(order.actual_delivery_cost?.toString() || '');
                 setDeliveryCostCash(order.actual_delivery_cost_cash?.toString() || '');
                 setDeliveryAffiliation(order.delivery_info?.driverAffiliation || '');
-                setDeliveryCostReason(order.deliveryCostReason || '');
+                setDeliveryCostReason((order as any).deliveryCostReason || '');
                 setIsDeliveryCostDialogOpen(true);
               }}
               onRowClick={(order) => { setSelectedOrder(order); setIsDialogOpen(true); }}
@@ -936,7 +936,7 @@ const { orders, loading, updateOrderStatus, updateOrder, fetchOrdersByRange } = 
           isOpen={isDeliveryFeeSettingsOpen}
           onOpenChange={setIsDeliveryFeeSettingsOpen}
           onSave={async (branchId, settings) => {
-            await updateBranch(branchId, settings);
+            await updateBranch(branchId, settings as any);
             setIsDeliveryFeeSettingsOpen(false);
           }}
         />

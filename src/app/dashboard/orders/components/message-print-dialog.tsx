@@ -117,7 +117,7 @@ export function MessagePrintDialog({ isOpen, onOpenChange, onSubmit, order }: Me
             <div className="space-y-2 border p-4 rounded-md">
               <Label htmlFor="label-type" className="font-bold">1. 라벨지 규격 선택</Label>
               <Select value={labelType} onValueChange={(value) => {
-                setLabelType(value);
+                setLabelType(value || 'formtec-3108');
                 setSelectedPositions([]);
               }}>
                 <SelectTrigger id="label-type">

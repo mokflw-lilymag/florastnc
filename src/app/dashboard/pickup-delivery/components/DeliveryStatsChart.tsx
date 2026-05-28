@@ -135,7 +135,7 @@ export function DeliveryStatsChart({ orders }: DeliveryStatsChartProps) {
                                 />
                                 <Tooltip
                                     cursor={{ fill: '#f8fafc' }}
-                                    formatter={(value: number) => [`₩${value.toLocaleString()}`, ""]}
+                                    formatter={(value: any) => [`₩${(value || 0).toLocaleString()}`, ""]}
                                     contentStyle={{
                                         borderRadius: '12px',
                                         border: 'none',

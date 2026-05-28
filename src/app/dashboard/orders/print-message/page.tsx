@@ -10,21 +10,11 @@ import type { Order as OrderType } from '@/types/order';
 import { useAuth } from '@/hooks/use-auth';
 import { useSearchParams } from 'next/navigation';
 
-export interface SerializableOrder extends Omit<OrderType, 'orderDate' | 'id'> {
-    id: string;
-    orderDate: string; // ISO string format
-}
+import { OrderService } from '@/services/order-service';
 
-const toLocalDate = (dateVal: any): Date => {
-    if (!dateVal) return new Date();
-    if (typeof dateVal === 'string') return new Date(dateVal);
-    // Supabase date strings are handled above. numeric timestamps?
-    if (typeof dateVal === 'number') return new Date(dateVal);
-    if (dateVal instanceof Date) return dateVal;
-    return new Date(dateVal);
-};
+export type SerializableOrder = OrderType;
 
-async function getOrder(orderId: string): Promise<SerializableOrder | null> {
+async function getOrder(orderId: string): Promise<OrderType | null> {
     try {
         const { data, error: fetchError } = await supabase
             .from('orders')
@@ -35,30 +25,7 @@ async function getOrder(orderId: string): Promise<SerializableOrder | null> {
         if (fetchError) throw fetchError;
 
         if (data) {
-            const orderDateIso = toLocalDate(data.order_date).toISOString();
-
-            return {
-                id: data.id,
-                branchId: data.branch_id,
-                branchName: data.branch_name,
-                orderNumber: data.order_number,
-                orderDate: orderDateIso,
-                status: data.status,
-                items: data.items || [],
-                summary: data.summary || {},
-                orderer: data.orderer || {},
-                isAnonymous: data.is_anonymous || false,
-                registerCustomer: data.register_customer || false,
-                orderType: data.order_type,
-                receiptType: data.receipt_type,
-                payment: data.payment || {},
-                pickupInfo: data.pickup_info,
-                deliveryInfo: data.delivery_info,
-                message: data.message || {},
-                request: data.request || '',
-                transferInfo: data.transfer_info,
-                outsourceInfo: data.outsource_info
-            };
+            return OrderService.mapRowToOrder(data);
         } else {
             console.error("No such document!");
             return null;
@@ -72,7 +39,7 @@ async function getOrder(orderId: string): Promise<SerializableOrder | null> {
 
 
 export default function PrintMessagePage() {
-    const { user, loading } = useAuth();
+    const { user, isLoading: isAuthLoading } = useAuth();
     const searchParams = useSearchParams();
     const [orderData, setOrderData] = useState<SerializableOrder | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -102,7 +69,7 @@ export default function PrintMessagePage() {
                 return;
             }
 
-            if (!user && !loading) {
+            if (!user && !isAuthLoading) {
                 setError('로그인이 필요합니다.');
                 setIsLoading(false);
                 return;
@@ -128,10 +95,10 @@ export default function PrintMessagePage() {
         if (orderId) {
             fetchOrder();
         }
-    }, [orderId, user, loading]);
+    }, [orderId, user, isAuthLoading]);
 
     // 로딩 중이거나 인증 대기 중
-    if (loading || isLoading) {
+    if (isAuthLoading || isLoading) {
         return (
             <div className="max-w-4xl mx-auto p-6">
                 <Skeleton className="h-96 w-full" />

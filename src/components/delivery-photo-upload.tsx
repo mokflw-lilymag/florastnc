@@ -100,8 +100,6 @@ export function DeliveryPhotoUpload({
       // 최적화 정보 업데이트
       setOptimizationInfo(prev => ({
         ...prev!,
-        optimizedSize: uploadResult.finalSize,
-        compressionRatio: uploadResult.compressionRatio,
         provider: uploadResult.provider
       }))
 
@@ -112,7 +110,7 @@ export function DeliveryPhotoUpload({
 
       toast({
         title: "업로드 완료",
-        description: `${uploadResult.provider === 'supabase' ? 'Supabase' : 'Cloudinary'}에 사진이 업로드되었습니다.${uploadResult.compressionRatio > 0 ? ` (${uploadResult.compressionRatio}% 압축됨)` : ''}`
+        description: `${uploadResult.provider === 'supabase' ? 'Supabase' : 'Cloudinary'}에 사진이 업로드되었습니다.`
       })
     } catch (error) {
       console.error('업로드 실패:', error)
@@ -183,11 +181,9 @@ export function DeliveryPhotoUpload({
           setIsOpen(open)
           if (!open) resetDialog()
         }}>
-          <DialogTrigger asChild>
-            <Button variant="outline" size="sm">
+          <DialogTrigger render={<Button variant="outline" size="sm" />}>
               <Camera className="h-4 w-4 mr-1" />
               사진 업로드
-            </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>

@@ -11,7 +11,7 @@ import Textarea from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Minus, Plus, Trash2, Store, Search, Calendar as CalendarIcon, ChevronRight, User, MapPin, CreditCard, ShoppingBag, X, ChevronUp, ChevronDown } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-type Branch = { id: string; name: string; type?: string; };
+type Branch = { id: string; name: string; type?: string; deliveryFees?: { district: string; fee: number }[]; };
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -22,8 +22,10 @@ import { useOrders } from "@/hooks/use-orders";
 import { OrderData } from "@/types/order";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { useProducts, Product } from "@/hooks/use-products";
-import { useCustomers, Customer } from "@/hooks/use-customers";
+import { useProducts } from "@/hooks/use-products";
+import { Product } from "@/types/product";
+import { useCustomers } from "@/hooks/use-customers";
+import { Customer } from "@/types/customer";
 import { enqueuePrintJob } from "@/lib/print-service";
 import { useAuth } from "@/hooks/use-auth";
 import { useDiscountSettings } from "@/hooks/use-discount-settings";
@@ -212,16 +214,16 @@ const ProductListSection = memo(({ orderItems, updateQuantity, removeProduct, on
                 ) : (
                     <div className="space-y-3">
                         {orderItems.map((item: any, idx: number) => (
-                            <div key={item.docId || idx} className="flex items-center justify-between bg-white p-2 rounded border shadow-sm">
+                            <div key={item.id || idx} className="flex items-center justify-between bg-white p-2 rounded border shadow-sm">
                                 <div className="flex-1 min-w-0">
                                     <div className="font-medium text-sm truncate">{item.name}</div>
                                     <div className="text-xs text-muted-foreground">{item.price.toLocaleString()}원</div>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => updateQuantity(item.docId, -1)}><Minus className="h-3 w-3" /></Button>
+                                    <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => updateQuantity(item.id, -1)}><Minus className="h-3 w-3" /></Button>
                                     <span className="w-4 text-center text-sm font-medium">{item.quantity}</span>
-                                    <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => updateQuantity(item.docId, 1)}><Plus className="h-3 w-3" /></Button>
-                                    <Button size="icon" variant="ghost" className="h-7 w-7 text-red-500" onClick={() => removeProduct(item.docId)}><Trash2 className="h-3 w-3" /></Button>
+                                    <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => updateQuantity(item.id, 1)}><Plus className="h-3 w-3" /></Button>
+                                    <Button size="icon" variant="ghost" className="h-7 w-7 text-red-500" onClick={() => removeProduct(item.id)}><Trash2 className="h-3 w-3" /></Button>
                                 </div>
                             </div>
                         ))}
@@ -262,12 +264,12 @@ const FulfillmentSection = memo(({
                             <div>
                                 <Label className="text-xs">날짜</Label>
                                 <Popover>
-                                    <PopoverTrigger asChild>
-                                        <Button variant="outline" className={cn("w-full pl-3 text-left font-normal h-9", !scheduleDate && "text-muted-foreground")}>
+                                    <PopoverTrigger render={(props) => (
+                                        <Button {...props} variant="outline" className={cn("w-full pl-3 text-left font-normal h-9", !scheduleDate && "text-muted-foreground")}>
                                             {scheduleDate ? format(scheduleDate, "MM-dd") : <span>선택</span>}
                                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                         </Button>
-                                    </PopoverTrigger>
+                                    )} />
                                     <PopoverContent className="w-auto p-0" align="start">
                                         <Calendar mode="single" selected={scheduleDate} onSelect={setScheduleDate} initialFocus />
                                     </PopoverContent>
@@ -526,7 +528,7 @@ const CustomerSearchSheet = memo(({ open, onOpenChange, onSelect, customers }: a
         const filtered = customers.filter((c: any) =>
             c.name.toLowerCase().includes(searchTerm) ||
             c.contact.includes(searchTerm) ||
-            c.companyName?.toLowerCase().includes(searchTerm)
+            c.company_name?.toLowerCase().includes(searchTerm)
         );
         setSearchResults(filtered);
     }, 300), [customers]);
@@ -555,7 +557,7 @@ const CustomerSearchSheet = memo(({ open, onOpenChange, onSelect, customers }: a
                             <div>
                                 <div className="font-bold text-sm">
                                     {c.name}
-                                    {c.companyName && <span className="text-xs text-muted-foreground ml-1">({c.companyName})</span>}
+                                    {c.company_name && <span className="text-xs text-muted-foreground ml-1">({c.company_name})</span>}
                                 </div>
                                 <div className="text-xs text-gray-500">{c.contact}</div>
                             </div>
@@ -588,8 +590,8 @@ const ProductSelectionSheet = memo(({ open, onOpenChange, categorizedProducts, o
         }
     }, [categorizedProducts, activeTab]);
 
-    const getProductQuantity = (docId: string) => {
-        return orderItems.find((item: any) => item.docId === docId)?.quantity || 0;
+    const getProductQuantity = (id: string) => {
+        return orderItems.find((item: any) => item.id === id)?.quantity || 0;
     };
 
     const subtotal = orderItems.reduce((acc: number, i: any) => acc + (i.price * i.quantity), 0);
@@ -644,9 +646,9 @@ const ProductSelectionSheet = memo(({ open, onOpenChange, categorizedProducts, o
                         {Object.entries(filteredCategorizedProducts).map(([key, products]) => (
                             <TabsContent key={key} value={key} className="mt-0 grid grid-cols-2 gap-2">
                                 {(products as any[]).map(p => {
-                                    const qty = getProductQuantity(p.docId);
+                                    const qty = getProductQuantity(p.id);
                                     return (
-                                        <div key={p.docId} className={cn("p-2 border rounded-lg relative cursor-pointer", qty > 0 ? "border-blue-500 bg-blue-50" : "bg-white")} onClick={() => onAddProduct(p)}>
+                                        <div key={p.id} className={cn("p-2 border rounded-lg relative cursor-pointer", qty > 0 ? "border-blue-500 bg-blue-50" : "bg-white")} onClick={() => onAddProduct(p)}>
                                             {qty > 0 && <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center">{qty}</Badge>}
                                             <div className="text-sm font-semibold truncate">{p.name}</div>
                                             <div className="text-xs text-gray-500">{p.price.toLocaleString()}원</div>
@@ -674,9 +676,9 @@ export default function NewOrderMobilePage() {
     const { user, profile, tenantId, isLoading: authLoading } = useAuth();
     const branches = tenantId ? [{ id: tenantId, name: profile?.tenants?.name || "Floxync", type: '가맹점' }] : [];
     const branchesLoading = authLoading;
-    const { products: allProducts, loading: productsLoading, fetchProducts } = useProducts();
+    const { products: allProducts, loading: productsLoading, fetchProducts } = useProducts(true, true, true);
     const { orders, addOrder } = useOrders();
-    const { findCustomersByContact, customers } = useCustomers();
+    const { customers } = useCustomers();
     const { discountSettings, canApplyDiscount, getActiveDiscountRates } = useDiscountSettings();
       const router = useRouter();
 
@@ -700,7 +702,7 @@ export default function NewOrderMobilePage() {
     // 지점이 선택되면 해당 지점의 상품 목록을 가져옴
     useEffect(() => {
         if (selectedBranch) {
-            fetchProducts({ branch: selectedBranch.name, pageSize: 1000 });
+            fetchProducts();
         }
     }, [selectedBranch, fetchProducts]);
     const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
@@ -881,7 +883,7 @@ export default function NewOrderMobilePage() {
 
     const branchProducts = useMemo(() => {
         if (!selectedBranch) return [];
-        return allProducts.filter(p => (p.branch || "").trim() === selectedBranch.name.trim());
+        return allProducts;
     }, [allProducts, selectedBranch]);
 
     // --- PC 버전과 동일한 상품 필터링/정렬 로직 ---
@@ -890,7 +892,7 @@ export default function NewOrderMobilePage() {
 
         const productCounts: Record<string, number> = {};
         orders.forEach(order => {
-            if (order.branchId === selectedBranch.id || order.tenantName === selectedBranch.name) {
+            if (true) {
                 order.items.forEach(item => {
                     if (item.id) productCounts[item.id] = (productCounts[item.id] || 0) + item.quantity;
                 });
@@ -900,8 +902,8 @@ export default function NewOrderMobilePage() {
         let targetProducts = branchProducts;
         if (isMidCategory) {
             targetProducts = targetProducts.filter(p => {
-                const mCat = (p.mainCategory || "").toString();
-                const midCat = (p.midCategory || "").toString();
+                const mCat = (p.main_category || "").toString();
+                const midCat = (p.mid_category || "").toString();
                 const name = (p.name || "").toString();
 
                 if (category === '어버이날') return mCat === '어버이날';
@@ -912,7 +914,7 @@ export default function NewOrderMobilePage() {
                 return mCat.includes(category) || midCat.includes(category) || name.includes(category);
             });
         } else {
-            targetProducts = targetProducts.filter(p => p.mainCategory === category);
+            targetProducts = targetProducts.filter(p => p.main_category === category);
         }
 
         // '어버이날' 정렬: 영문 알파벳 시작(A1, B1...I...) → 앞, 나머지 → 뒤 (PC 버전과 동일)
@@ -966,18 +968,18 @@ export default function NewOrderMobilePage() {
 
 
     // --- HANDLERS ---
-    const handleUpdateQuantity = useCallback((docId: string, delta: number) => {
-        setOrderItems(prev => prev.map(item => item.docId === docId ? { ...item, quantity: Math.max(1, item.quantity + delta) } : item));
+    const handleUpdateQuantity = useCallback((id: string, delta: number) => {
+        setOrderItems(prev => prev.map(item => item.id === id ? { ...item, quantity: Math.max(1, item.quantity + delta) } : item));
     }, []);
 
-    const handleRemoveProduct = useCallback((docId: string) => {
-        setOrderItems(prev => prev.filter(i => i.docId !== docId));
+    const handleRemoveProduct = useCallback((id: string) => {
+        setOrderItems(prev => prev.filter(i => i.id !== id));
     }, []);
 
     const handleAddProduct = useCallback((product: Product) => {
         setOrderItems(prev => {
-            const existing = prev.find(i => i.docId === product.docId);
-            if (existing) return prev.map(i => i.docId === product.docId ? { ...i, quantity: i.quantity + 1 } : i);
+            const existing = prev.find(i => i.id === product.id);
+            if (existing) return prev.map(i => i.id === product.id ? { ...i, quantity: i.quantity + 1 } : i);
             return [...prev, { ...product, quantity: 1 }];
         });
     }, []);
@@ -1003,8 +1005,8 @@ export default function NewOrderMobilePage() {
     };
 
     const handleSubmit = async () => {
-        if (!selectedBranch) return toast({ variant: 'destructive', title: "지점 선택 필요" });
-        if (orderItems.length === 0) return toast({ variant: 'destructive', title: "상품을 담아주세요" });
+        if (!selectedBranch) return toast.error("지점 선택 필요");
+        if (orderItems.length === 0) return toast.error("상품을 담아주세요");
         setIsSubmitting(true);
         try {
             // 리본 메시지 파싱
@@ -1019,11 +1021,9 @@ export default function NewOrderMobilePage() {
             };
 
             const orderPayload: OrderData = {
-                branchId: selectedBranch.id,
-                tenantName: selectedBranch.name,
-                order_date: new Date(),
+                order_date: new Date().toISOString(),
                 status: 'processing',
-                orderType: 'store',
+
                 receipt_type,
                 // PC 버전과 동일하게 필수 필드만 추려서 전달 (type 안전)
                 items: orderItems.map(({ id, name, quantity, price }) => ({ id, name, quantity, price })),
@@ -1043,9 +1043,6 @@ export default function NewOrderMobilePage() {
                     company: ordererCompany,
                     email: ""
                 },
-                isAnonymous,
-                registerCustomer: isRegisterCustomer,
-                marketingConsent: marketingConsent,
                 payment: {
                     method: paymentMethod,
                     status: paymentStatus,
@@ -1067,8 +1064,8 @@ export default function NewOrderMobilePage() {
                     district: selectedDistrict || ''
                 } : null,
                 message: buildMessage() as any,
-                request: specialRequest,
-                extraData: {
+                memo: specialRequest,
+                extra_data: {
                     delivery_request: deliveryRequest
                 }
             };
@@ -1080,7 +1077,7 @@ export default function NewOrderMobilePage() {
                 if (receipt_type === 'pickup_reservation') dbOrderType = 'pickup';
                 else if (receipt_type === 'delivery_reservation') dbOrderType = 'delivery';
                 
-                await enqueuePrintJob(result, selectedBranch.id, dbOrderType as any, orderPayload);
+                await enqueuePrintJob(supabase, selectedBranch.id, result, dbOrderType as any, orderPayload);
 
                 // addOrder 내부에서 이미 성공 toast를 띄우므로 여기서는 페이지 이동만 처리
                 router.push('/dashboard/orders');
@@ -1209,8 +1206,8 @@ export default function NewOrderMobilePage() {
                     setSelectedCustomer(c);
                     setOrdererName(c.name);
                     setOrdererContact(c.contact);
-                    setOrdererCompany(c.companyName || "");
-                    applyLastOrderPreferences(c.contact, c.companyName);
+                    setOrdererCompany(c.company_name || "");
+                    applyLastOrderPreferences(c.contact, c.company_name || undefined);
                 }}
                 customers={customers}
             />
@@ -1244,7 +1241,7 @@ export default function NewOrderMobilePage() {
                     </div>
                     <DialogFooter><Button onClick={() => {
                         const price = parseInt(customProductPrice) || 0;
-                        const newItem = { docId: `custom-${Date.now()}`, name: customProductName, price, quantity: customProductQuantity, isCustomProduct: true } as any;
+                        const newItem = { id: `custom-${Date.now()}`, name: customProductName, price, quantity: customProductQuantity, isCustomProduct: true } as any;
                         setOrderItems(prev => [...prev, newItem]);
                         setCustomProductName(""); setCustomProductPrice(""); setCustomProductQuantity(1); setIsCustomProductDialogOpen(false);
                     }}>추가하기</Button></DialogFooter>

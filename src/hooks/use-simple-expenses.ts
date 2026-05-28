@@ -14,7 +14,14 @@ import type {
   ExpenseStats
 } from '@/types/simple-expense';
 import { SimpleExpenseCategory } from '@/types/simple-expense';
-import { MaterialRequest } from '@/types/material-request';
+
+interface MaterialRequest {
+  id: string;
+  branchId?: string;
+  tenantName?: string;
+  requestNumber?: string;
+  [key: string]: any;
+}
 
 export function useSimpleExpenses({ enableRealtime = false }: { enableRealtime?: boolean } = {}) {
   const [expenses, setExpenses] = useState<SimpleExpense[]>([]);
@@ -22,8 +29,8 @@ export function useSimpleExpenses({ enableRealtime = false }: { enableRealtime?:
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [supplierSuggestions, setSupplierSuggestions] = useState<SupplierSuggestion[]>([]);
   const { user } = useAuth();
-  const { materials } = useMaterials(); const updateMaterialStock = async () => {}; const generateNewId = () => "new-id";
-  const { products } = useProducts(); const updateProductStock = async () => {};
+  const { materials } = useMaterials(); const updateMaterialStock = async (_items: any[], _dir?: string, _tenant?: string, _user?: string) => {}; const generateNewId = (_mainCat?: string, _midCat?: string, _tenant?: string) => "new-id";
+  const { products } = useProducts(); const updateProductStock = async (_items: any[], _dir?: string, _tenant?: string, _user?: string) => {};
 
   const mapRowToExpense = useCallback((row: any): SimpleExpense => ({
     id: row.id,
@@ -409,7 +416,7 @@ export function useSimpleExpenses({ enableRealtime = false }: { enableRealtime?:
       }));
       const { error } = await supabase.from('simple_expenses').insert(payloads);
       if (error) throw error;
-      toast({ title: "일괄 입력 완료", description: `${payloads.length}개 지출 등록됨` });
+      toast.success("일괄 입력 완료", { description: `${payloads.length}개 지출 등록됨` });
       await fetchExpenses();
       return true;
     } catch (error) { return false; } finally { setLoading(false); }
@@ -478,7 +485,7 @@ export function useSimpleExpenses({ enableRealtime = false }: { enableRealtime?:
       const { error } = await supabase.from('simple_expenses').insert(payloads);
       if (error) throw error;
 
-      toast({ title: '성공', description: `${supplierName} - 총 ${purchaseItems.length}건의 품목별 지출이 등록되었습니다.` });
+      toast.success('성공', { description: `${supplierName} - 총 ${purchaseItems.length}건의 품목별 지출이 등록되었습니다.` });
       return true;
     } catch (error) {
       console.error('자재요청 지출 등록 오류:', error);

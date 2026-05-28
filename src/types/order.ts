@@ -82,6 +82,13 @@ export interface Order {
   actual_delivery_payment_method?: "card" | "cash" | "transfer";
   actual_delivery_payment_status?: string;
   actual_delivery_cost_cash?: number;
+  deliveryProfit?: number;
+  tenantName?: string;
+  transferInfo?: {
+    isTransferred?: boolean;
+    processBranchName?: string;
+    [key: string]: any;
+  };
   outsource_info?: {
     isOutsourced: boolean;
     partnerId: string;
@@ -91,6 +98,9 @@ export interface Order {
     senderProfit?: number;
     hideCustomerInfo?: boolean;
     isNetworkPartner?: boolean;
+    isTransferred?: boolean;
+    processBranchName?: string;
+    transferDate?: string;
     profit?: number;
     status: 'pending' | 'completed' | 'canceled';
     notes?: string;
