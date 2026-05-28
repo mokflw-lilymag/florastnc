@@ -1168,6 +1168,7 @@ export function materialImportHeaderAliases(uiLocale?: string) {
  * Parse an Excel file and return an array of objects.
  */
 export async function parseExcel(file: File): Promise<any[]> {
+  const XLSX = await import("xlsx");
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
