@@ -112,7 +112,7 @@ export default function CustomersPage() {
     setIsFormOpen(true);
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (filteredCustomers.length === 0) {
       toast.error(tf.f00130);
       return;
@@ -136,7 +136,7 @@ export default function CustomersPage() {
     }));
     
     const today = format(new Date(), 'yyyy-MM-dd');
-    exportToExcel(dataToExport, `${tf.f00075}_${today}.xlsx`, tf.f00079);
+    await exportToExcel(dataToExport, `${tf.f00075}_${today}.xlsx`, tf.f00079);
     toast.success(
       tf.f00806.replace("{count}", String(dataToExport.length))
     );

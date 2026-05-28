@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Cpu, Github, Monitor, Terminal } from 'lucide-react';
 import { AppLocale, localizePath } from '@/i18n/config';
 import { getMessages } from '@/i18n/getMessages';
@@ -23,7 +24,7 @@ export function Footer({ locale }: { locale?: AppLocale }) {
         <div className="flex flex-col xl:flex-row justify-between items-start gap-16 mb-20">
           <div className="max-w-md">
             <Link href={home} className="flex items-center gap-3 mb-8 group">
-              <img src="/images/floxync-logo-official-white.png" alt={nav.logoAlt} className="h-16 w-auto object-contain" />
+              <Image src="/images/floxync-logo-official-white.png" alt={nav.logoAlt} width={120} height={64} className="h-16 w-auto object-contain" />
             </Link>
             <p className="text-slate-400 mb-10 leading-relaxed text-lg font-light max-w-2xl">
               {f.line1}

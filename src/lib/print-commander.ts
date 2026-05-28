@@ -1,5 +1,4 @@
-import { PDFDocument, rgb, StandardFonts, degrees } from 'pdf-lib';
-import fontkit from '@pdf-lib/fontkit';
+// Dynamic imports will be used for pdf-lib and fontkit to reduce initial bundle size
 import { LABEL_CONFIGS } from './constants/templates';
 
 export interface PrintPageData {
@@ -76,6 +75,9 @@ export class PrintCommander {
 
   static async generatePdf(jobData: PrintJobData): Promise<Uint8Array | null> {
     try {
+      const { PDFDocument, rgb, StandardFonts, degrees } = await import('pdf-lib');
+      const { default: fontkit } = await import('@pdf-lib/fontkit');
+
       const pdfDoc = await PDFDocument.create();
       pdfDoc.registerFontkit(fontkit);
       

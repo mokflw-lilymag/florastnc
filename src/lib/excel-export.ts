@@ -1,4 +1,3 @@
-import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { format } from "date-fns";
 import { parseISO } from "date-fns";
@@ -123,7 +122,7 @@ function expenseRelatedOrderLabel(bl: string, orderId: string) {
 
 
 // 주문 내역 엑셀 내보내기
-export const exportOrdersToExcel = (
+export const exportOrdersToExcel = async (
   orders: any[],
   startDate?: string,
   endDate?: string,
@@ -216,6 +215,7 @@ export const exportOrdersToExcel = (
       }
     });
 
+    const XLSX = await import("xlsx");
     const workbook = XLSX.utils.book_new();
     const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
     
@@ -244,7 +244,8 @@ export const exportOrdersToExcel = (
 };
 
 // 범용 데이터 엑셀 내보내기
-export const exportToExcel = (data: any[], fileName: string, sheetName: string = 'Sheet1') => {
+export const exportToExcel = async (data: any[], fileName: string, sheetName: string = 'Sheet1') => {
+  const XLSX = await import("xlsx");
   const worksheet = XLSX.utils.json_to_sheet(data);
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
@@ -436,6 +437,7 @@ export const exportToGoogleSheet = async (
 
   // 대체: 엑셀 파일로 다운로드 (같은 시트 이름 규칙 적용)
   try {
+    const XLSX = await import("xlsx");
     const workbook = XLSX.utils.book_new();
     const worksheet = XLSX.utils.aoa_to_sheet([data.headers, ...data.rows]);
     XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);

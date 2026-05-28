@@ -710,9 +710,9 @@ export default function OrdersPage() {
           </Button>
           <Button 
             variant="outline" 
-            onClick={() => {
+            onClick={async () => {
               if (!requireErpPersist(planCtx, locale)) return;
-              exportOrdersToExcel(sourceOrders, undefined, undefined, locale);
+              await exportOrdersToExcel(sourceOrders, undefined, undefined, locale);
             }}
             className="flex-1 lg:flex-none h-11 lg:h-12 px-6 rounded-2xl border-2 border-slate-100 bg-white hover:bg-slate-50 font-bold transition-all shadow-sm gap-2"
           >

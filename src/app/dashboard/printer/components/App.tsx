@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import Image from 'next/image';
 import { usePreferredLocale } from '@/hooks/use-preferred-locale';
 import { getMessages } from '@/i18n/getMessages';
 import { toBaseLocale } from '@/i18n/config';
@@ -1418,7 +1419,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
   // ─── 프린트 헬퍼: 이미지 180도 회전 ───
   const rotateImage180 = (dataUrl: string): Promise<string> => {
     return new Promise((resolve) => {
-      const img = new Image();
+      const img = new window.Image();
       img.onload = () => {
         const canvas = document.createElement('canvas');
         canvas.width = img.width;
@@ -1786,7 +1787,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
           <div className="flex items-center justify-between">
             <div className="flex flex-col">
               <h1 className="text-xl font-bold flex items-center gap-2">
-                <img src="/logo.png" alt="Floxync" className="w-6 h-6 object-contain" />
+                <Image src="/logo.png" alt="Floxync" width={24} height={24} className="w-6 h-6 object-contain" />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-slate-800 to-slate-600">Floxync</span>
               </h1>
               <span className="text-[8px] text-slate-500 uppercase tracking-widest ml-8 font-medium">{R.floristTagline}</span>

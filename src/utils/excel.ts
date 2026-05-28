@@ -1,4 +1,3 @@
-import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import { toBaseLocale, type AppLocale } from "@/i18n/config";
 import { pickUiText } from "@/i18n/pick-ui-text";
@@ -11,7 +10,7 @@ function resolveExcelBase(uiLocale?: string): string {
  * Download a template for product/material registration.
  * `uiLocale`가 있으면 자재(material) 양식의 헤더·파일명을 해당 로케일에 맞춥니다.
  */
-export function downloadTemplate(type: "product" | "material" | "supplier", uiLocale?: string) {
+export async function downloadTemplate(type: "product" | "material" | "supplier", uiLocale?: string) {
   let headers: string[] = [];
   let sample: any[] = [];
   let filename = "";
@@ -361,6 +360,7 @@ export function downloadTemplate(type: "product" | "material" | "supplier", uiLo
     }
   }
 
+  const XLSX = await import("xlsx");
   const worksheet = XLSX.utils.aoa_to_sheet([headers, ...sample]);
   const workbook = XLSX.utils.book_new();
   const sheetLabel = pickUiText(
@@ -388,7 +388,7 @@ export function downloadTemplate(type: "product" | "material" | "supplier", uiLo
  * Export actual data to Excel.
  * 자재(material)보내기 시 `uiLocale`로 헤더·파일명·시트명을 맞춥니다.
  */
-export function exportDataToExcel(type: "product" | "material" | "supplier", list: any[], uiLocale?: string) {
+export async function exportDataToExcel(type: "product" | "material" | "supplier", list: any[], uiLocale?: string) {
   let headers: string[] = [];
   let dataRows: any[] = [];
   let filename = "";
@@ -713,6 +713,7 @@ export function exportDataToExcel(type: "product" | "material" | "supplier", lis
     ]);
   }
 
+  const XLSX = await import("xlsx");
   const worksheet = XLSX.utils.aoa_to_sheet([headers, ...dataRows]);
   const workbook = XLSX.utils.book_new();
   const dataSheet = pickUiText(

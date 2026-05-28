@@ -41,7 +41,6 @@ import {
   Undo2,
   RotateCcw
 } from "lucide-react";
-import * as XLSX from "xlsx";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
@@ -812,7 +811,7 @@ export default function PurchasesPage() {
   }, [purchases]);
 
   // --- Export Excel ---
-  const handleDownloadBatchExcel = (batchId: string, batchName: string) => {
+  const handleDownloadBatchExcel = async (batchId: string, batchName: string) => {
     const batchItems = purchases.filter(p =>
       p.batch_id === batchId || (!p.batch_id && `legacy-${p.scheduled_date}` === batchId)
     );
@@ -832,6 +831,7 @@ export default function PurchasesPage() {
       [tf.f00197]: item.notes || ""
     }));
 
+    const XLSX = await import("xlsx");
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, tf.f01162);
@@ -1009,7 +1009,7 @@ export default function PurchasesPage() {
     });
   }, [purchases, deferredSearchTerm, filterStartDate, filterEndDate, filterMaterialId, filterSupplierId, materialMap, supplierMap]);
 
-  const handleExportFilteredExcel = () => {
+  const handleExportFilteredExcel = async () => {
     if (filteredPurchases.length === 0) {
       toast.error(tf.f01061);
       return;
@@ -1030,6 +1030,7 @@ export default function PurchasesPage() {
       [tf.f00197]: item.notes || ""
     }));
 
+    const XLSX = await import("xlsx");
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, tf.f01810);

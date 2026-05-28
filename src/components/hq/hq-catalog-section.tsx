@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "react";
-import * as XLSX from "xlsx";
 import { FileSpreadsheet, Package, Plus, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -264,7 +263,8 @@ export function HqCatalogSection({
     }
   };
 
-  const downloadExcelTemplate = () => {
+  const downloadExcelTemplate = async () => {
+    const XLSX = await import("xlsx");
     const wb = XLSX.utils.book_new();
     const data = [
       ["상품명", "가격", "코드", "대분류(1차)", "중분류(2차)", "상태"],
@@ -296,6 +296,7 @@ export function HqCatalogSection({
 
     setImporting(true);
     try {
+      const XLSX = await import("xlsx");
       const buf = await file.arrayBuffer();
       const wb = XLSX.read(buf, { type: "array" });
       const sheet = wb.Sheets[wb.SheetNames[0]];

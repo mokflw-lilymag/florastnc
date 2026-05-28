@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Image from 'next/image';
 import { supabase } from './lib/supabase';
 import { Mail, Lock, LogIn, UserPlus, Loader2 } from 'lucide-react';
 import { usePreferredLocale } from '@/hooks/use-preferred-locale';
@@ -47,7 +48,7 @@ export default function Auth({ onAuthenticated }: { onAuthenticated: () => void 
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 font-sans pattern-bg">
       <div className="bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-700">
         <div className="p-8 text-center border-b border-slate-700 bg-slate-800/50 flex flex-col items-center">
-          <img src="/logo.png" alt="Floxync" className="w-24 h-24 mb-4 object-contain drop-shadow-2xl rounded-2xl border border-slate-700/30" />
+          <Image src="/logo.png" alt="Floxync" width={96} height={96} className="w-24 h-24 mb-4 object-contain drop-shadow-2xl rounded-2xl border border-slate-700/30" />
           <h1 className="text-3xl font-black text-white mb-1 tracking-tight">
             Floxync <span className="text-blue-500 font-bold text-2xl">Printer</span>
           </h1>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, Smartphone, Terminal, Globe } from 'lucide-react';
 import { AppLocale, LOCALE_COOKIE, localizePath, resolveLocale, SUPPORTED_LOCALES } from '@/i18n/config';
@@ -74,7 +75,7 @@ export function Navbar({ locale }: { locale?: AppLocale }) {
       <div className="container mx-auto px-6 md:px-12 flex items-center justify-between">
         {/* Logo */}
         <Link href={homeHref} className="flex items-center gap-3 group relative">
-          <img src="/images/floxync-logo-official-white.png" alt={nav.logoAlt} className="h-20 md:h-28 w-auto object-contain" />
+          <Image src="/images/floxync-logo-official-white.png" alt={nav.logoAlt} width={160} height={112} className="h-20 md:h-28 w-auto object-contain" />
         </Link>
 
         {/* Desktop Nav */}
