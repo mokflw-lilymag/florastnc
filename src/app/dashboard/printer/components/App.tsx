@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import Image from 'next/image';
 import { usePreferredLocale } from '@/hooks/use-preferred-locale';
 import { getMessages } from '@/i18n/getMessages';
