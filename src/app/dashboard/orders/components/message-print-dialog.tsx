@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { Printer } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Order } from "@/hooks/use-orders";
+import { Order } from "@/types/order";
 import { useSearchParams } from "next/navigation";
 import { LabelGridSelector } from "./label-grid-selector";
 import { TiptapEditor } from "@/components/ui/tiptap-editor";

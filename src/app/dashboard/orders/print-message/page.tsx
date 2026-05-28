@@ -1,10 +1,11 @@
 "use client";
 
 import { Suspense, useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/utils/supabase/client';
+const supabase = createClient();
 import { Skeleton } from '@/components/ui/skeleton';
 import { MessagePrintLayout } from './components/message-print-layout';
-import type { Order as OrderType } from '@/hooks/use-orders';
+import type { Order as OrderType } from '@/types/order';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useSearchParams } from 'next/navigation';

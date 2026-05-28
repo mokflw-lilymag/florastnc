@@ -18,7 +18,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { useOrders, OrderData } from "@/hooks/use-orders";
+import { useOrders } from "@/hooks/use-orders";
+import { OrderData } from "@/types/order";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { useProducts, Product } from "@/hooks/use-products";
