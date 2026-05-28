@@ -9,7 +9,6 @@ import {
   PointerSensor 
 } from '@dnd-kit/core';
 import { useEditorStore } from '@/stores/design-store';
-import { DraggableText } from './DraggableText';
 import { DraggableImage } from './DraggableImage';
 import { Trash2, Sparkles, Maximize2, Minimize2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -21,10 +20,8 @@ export const EditorCanvas: React.FC = () => {
   const D = getMessages(locale).dashboard.designStudio;
   const { 
     currentDimension, 
-    textBlocks, 
     imageBlocks,
     zoom,
-    updateTextBlockPosition, 
     updateImageBlockPosition,
     setSelectedBlockId,
     backgroundUrl,
@@ -35,13 +32,12 @@ export const EditorCanvas: React.FC = () => {
     foldType,
     showFoldingGuide,
     orientation,
-    activePage,
-    removeTextBlock,
     removeImageBlock,
     selectedBlockIds,
     toggleBlockSelection,
     moveSelectedBlocks,
-    isGenerating // 추가: 구조 분해 할당으로 꺼내오기
+    isGenerating,
+    brandingTextInfo
   } = useEditorStore();
 
   const [contextMenu, setContextMenu] = React.useState<{
@@ -91,12 +87,9 @@ export const EditorCanvas: React.FC = () => {
       if (selectedBlockIds.includes(blockId)) {
         moveSelectedBlocks(dx, dy);
       } else {
-        const tBlock = textBlocks.find(b => b.id === blockId);
         const iBlock = imageBlocks.find(b => b.id === blockId);
         
-        if (tBlock) {
-          updateTextBlockPosition(blockId, tBlock.x + dx, tBlock.y + dy);
-        } else if (iBlock) {
+        if (iBlock) {
           updateImageBlockPosition(blockId, iBlock.x + dx, iBlock.y + dy);
         }
       }
@@ -178,6 +171,9 @@ export const EditorCanvas: React.FC = () => {
               position: 'relative',
               width: `${canvasWidthPx}px`,
               height: `${canvasHeightPx}px`,
+              minWidth: `${canvasWidthPx}px`,
+              minHeight: `${canvasHeightPx}px`,
+              flexShrink: 0,
               backgroundColor: '#ffffff',
               boxShadow: '0 20px 40px -10px rgba(0,0,0,0.15), 0 0 10px rgba(0,0,0,0.03)',
               overflow: 'hidden',
@@ -199,109 +195,27 @@ export const EditorCanvas: React.FC = () => {
           >
             {/* Background Layers */}
             <div style={{ position: 'absolute', inset: 0, zIndex: 0, display: 'flex', flexDirection: isLandscape ? 'row' : 'column', backgroundColor: '#ffffff' }}>
-              {foldType === 'half' ? (
-                // 접이식 카드
-                activePage === 'outside' ? (
-                  // 표지: 실제 앞면/뒷면 배경 출력
-                  <>
-                    <div style={{ 
-                      flex: 1, 
-                      backgroundImage: backBackgroundUrl ? `url('${backBackgroundUrl}')` : undefined, 
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center',
-                      backgroundColor: '#f8fafc',
-                      borderRight: isLandscape ? '1px solid rgba(0,0,0,0.05)' : 'none',
-                      borderBottom: !isLandscape ? '1px solid rgba(0,0,0,0.05)' : 'none'
-                    }} />
-                    <div style={{ 
-                      flex: 1, 
-                      backgroundImage: frontBackgroundUrl ? `url('${frontBackgroundUrl}')` : undefined, 
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center',
-                      backgroundColor: '#f1f5f9',
-                      position: 'relative'
-                    }} />
-                  </>
-                ) : (
-                  // 내지: 깨끗한 배경 혹은 내지용 배경(backgroundUrl) 출력
-                  <div style={{ 
-                    flex: 1, 
-                    backgroundImage: backgroundUrl ? `url('${backgroundUrl}')` : 'none',
-                    backgroundColor: backgroundUrl ? 'transparent' : '#ffffff',
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    position: 'relative'
-                  }}>
-                     <div className="absolute top-2 left-2 text-[8px] font-black text-gray-200 uppercase tracking-widest z-[10]">{D.editorInsidePageBadge}</div>
-                  </div>
-                )
-              ) : (
-                // 일반 카드 (Flat)
+              <>
                 <div style={{ 
                   flex: 1, 
-                  backgroundImage: backgroundUrl ? `url('${backgroundUrl}')` : undefined, 
+                  backgroundImage: backBackgroundUrl ? `url('${backBackgroundUrl}')` : undefined, 
                   backgroundSize: 'cover',
                   backgroundPosition: 'center',
-                  backgroundColor: '#f8fafc'
+                  backgroundColor: '#f8fafc',
+                  borderRight: isLandscape ? '1px solid rgba(0,0,0,0.05)' : 'none',
+                  borderBottom: !isLandscape ? '1px solid rgba(0,0,0,0.05)' : 'none'
                 }} />
-              )}
+                <div style={{ 
+                  flex: 1, 
+                  backgroundImage: frontBackgroundUrl ? `url('${frontBackgroundUrl}')` : undefined, 
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  backgroundColor: '#f1f5f9',
+                  position: 'relative'
+                }} />
+              </>
             </div>
 
-            {/* Margin Guides */}
-            {activePage === 'inside' && foldType === 'half' ? (
-              <>
-                {/* First Page Safe Area (Left for Landscape, Top for Portrait) */}
-                <div 
-                  style={{
-                    position: 'absolute',
-                    top: `${margins.top * zoom}px`,
-                    left: `${margins.left * zoom}px`,
-                    width: isLandscape ? `${(currentDimension.widthMm / 2 - margins.left) * zoom}px` : undefined,
-                    right: isLandscape ? undefined : `${margins.right * zoom}px`,
-                    height: !isLandscape ? `${(currentDimension.heightMm / 2 - margins.top) * zoom}px` : undefined,
-                    bottom: isLandscape ? `${margins.bottom * zoom}px` : undefined,
-                    border: '1px dashed rgba(59, 130, 246, 0.4)',
-                    pointerEvents: 'none',
-                    zIndex: 1
-                  }}
-                />
-                {/* Second Page Safe Area (Right for Landscape, Bottom for Portrait) */}
-                <div 
-                  style={{
-                    position: 'absolute',
-                    top: isLandscape ? `${margins.top * zoom}px` : `${(currentDimension.heightMm / 2) * zoom}px`,
-                    left: isLandscape ? `${(currentDimension.widthMm / 2) * zoom}px` : `${margins.left * zoom}px`,
-                    right: `${margins.right * zoom}px`,
-                    bottom: `${margins.bottom * zoom}px`,
-                    border: '1px dashed rgba(59, 130, 246, 0.4)',
-                    pointerEvents: 'none',
-                    zIndex: 1
-                  }}
-                />
-              </>
-            ) : activePage === 'inside' ? (
-              <div 
-                style={{
-                  position: 'absolute',
-                  top: `${margins.top * zoom}px`,
-                  left: `${margins.left * zoom}px`,
-                  right: `${margins.right * zoom}px`,
-                  bottom: `${margins.bottom * zoom}px`,
-                  border: '1px dashed rgba(59, 130, 246, 0.3)',
-                  pointerEvents: 'none',
-                  zIndex: 1
-                }}
-              />
-            ) : null}
-            {textBlocks.map(block => (
-              <DraggableText 
-                key={block.id} 
-                {...block} 
-                isSelected={selectedBlockIds.includes(block.id)}
-                zoom={zoom}
-                onContextMenu={(e: React.MouseEvent) => handleContextMenu(e, block.id, 'text')}
-              />
-            ))}
 
             {imageBlocks.map(block => (
               <DraggableImage 
@@ -312,6 +226,31 @@ export const EditorCanvas: React.FC = () => {
                 onContextMenu={(e: React.MouseEvent) => handleContextMenu(e, block.id, 'image')}
               />
             ))}
+
+            {/* Static Branding Info (Rendered on Back Cover or Bottom) */}
+            {(brandingTextInfo.shopName || brandingTextInfo.contact || brandingTextInfo.address || brandingTextInfo.message) && (
+              <div
+                className="absolute text-center flex flex-col justify-end text-slate-800"
+                style={{
+                  bottom: brandingTextInfo.position === 'center' ? undefined : (foldType === 'half' && !isLandscape ? undefined : `${10 * zoom}px`),
+                  top: brandingTextInfo.position === 'center' ? (foldType === 'half' && !isLandscape ? '25%' : '50%') : (foldType === 'half' && !isLandscape ? `${(currentDimension.heightMm / 2 - 10) * zoom}px` : undefined),
+                  left: foldType === 'half' && isLandscape ? '25%' : '50%',
+                  transform: brandingTextInfo.position === 'center' ? 'translate(-50%, -50%)' : 'translateX(-50%)',
+                  width: foldType === 'half' && isLandscape ? `${(currentDimension.widthMm / 2 - 20) * zoom}px` : `${(currentDimension.widthMm - 20) * zoom}px`,
+                  fontFamily: brandingTextInfo.fontFamily || 'Pretendard',
+                  pointerEvents: 'none',
+                  zIndex: 10,
+                }}
+              >
+                {brandingTextInfo.logoUrl && (
+                  <img src={brandingTextInfo.logoUrl} alt="Logo" style={{ height: `${12 * zoom}px`, objectFit: 'contain', margin: '0 auto', marginBottom: `${2 * zoom}px`, opacity: 0.8 }} />
+                )}
+                {brandingTextInfo.shopName && <div style={{ fontWeight: 'bold', fontSize: `${3.5 * zoom}px`, marginBottom: `${1 * zoom}px` }}>{brandingTextInfo.shopName}</div>}
+                {brandingTextInfo.contact && <div>{brandingTextInfo.contact}</div>}
+                {brandingTextInfo.address && <div>{brandingTextInfo.address}</div>}
+                {brandingTextInfo.message && <div style={{ marginTop: `${1.5 * zoom}px`, fontSize: `${2.5 * zoom}px`, opacity: 0.8 }}>{brandingTextInfo.message}</div>}
+              </div>
+            )}
 
             {/* 접지 가이드 (Fold Line Only) */}
             {foldType === 'half' && showFoldingGuide && (
@@ -364,8 +303,7 @@ export const EditorCanvas: React.FC = () => {
           <button 
             onClick={(e) => {
               e.stopPropagation();
-              if (contextMenu.type === 'text') removeTextBlock(contextMenu.targetId);
-              else removeImageBlock(contextMenu.targetId);
+              removeImageBlock(contextMenu.targetId);
               setContextMenu(prev => ({ ...prev, visible: false }));
             }}
             className="w-full px-4 py-3 flex items-center gap-3 text-red-600 hover:bg-red-50 transition-colors text-xs font-bold"
@@ -389,13 +327,13 @@ export const EditorCanvas: React.FC = () => {
           <div className="flex-1 flex items-center justify-center p-2">
             <span className="text-[10px] font-bold text-gray-400 flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-gray-300"></span>
-              {activePage === 'outside' ? D.editorBack : isLandscape ? D.editorInsideLeft : D.editorInsideTop}
+              {D.editorBack}
             </span>
           </div>
           <div className="flex-1 flex items-center justify-center p-2 border-l border-gray-100" style={{ borderLeft: isLandscape ? '1px solid #f3f4f6' : 'none', borderTop: !isLandscape ? '1px solid #f3f4f6' : 'none' }}>
             <span className="text-[10px] font-bold text-gray-400 flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-gray-300"></span>
-              {activePage === 'outside' ? D.editorFront : isLandscape ? D.editorInsideRight : D.editorInsideBottom}
+              {D.editorFront}
             </span>
           </div>
         </div>

@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Check, Loader2, Printer, PlusCircle, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { debounce } from "lodash";
+import debounce from "lodash/debounce";
 import { createClient } from '@/utils/supabase/client';
 
 import { useOrders } from '@/hooks/use-orders';

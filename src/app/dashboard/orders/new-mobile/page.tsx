@@ -31,7 +31,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useDiscountSettings } from "@/hooks/use-discount-settings";
 import { createClient } from '@/utils/supabase/client';
 const supabase = createClient();
-import { debounce } from "lodash";
+import debounce from "lodash/debounce";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetFooter, SheetClose, SheetDescription } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";

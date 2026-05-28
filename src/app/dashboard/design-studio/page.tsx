@@ -30,9 +30,6 @@ import { EditorCanvas } from '@/components/design-studio/EditorCanvas';
 import { DesignSidebar } from '@/components/design-studio/DesignSidebar';
 import { PhotoEditModal } from '@/components/design-studio/PhotoEditModal';
 import { ShopSettingsModal } from '@/components/design-studio/ShopSettingsModal';
-import { SuggestionModal } from '@/components/design-studio/SuggestionModal';
-import { GalleryModal } from '@/components/design-studio/GalleryModal';
-import { FormtecModal } from '@/components/design-studio/FormtecModal';
 import { useEditorStore, smartFitText } from '@/stores/design-store';
 import { useAuth } from '@/hooks/use-auth';
 import { useTenantPlanAccess } from '@/hooks/use-tenant-plan-access';
@@ -42,7 +39,6 @@ import { useRouter } from 'next/navigation';
 import { toBaseLocale } from '@/i18n/config';
 import { pickUiText } from '@/i18n/pick-ui-text';
 import { toast } from 'sonner';
-import { PrintCommander } from '@/lib/print-commander';
 import { LABEL_CONFIGS, PAPER_PRESETS } from '@/lib/constants/templates';
 import { createClient } from '@/utils/supabase/client';
 import { usePartnerTouchUi } from '@/hooks/use-partner-touch-ui';
@@ -69,8 +65,6 @@ function DesignStudioContent() {
     addTextBlock, 
     setDimension, 
     selectedPresetId, 
-    activePage, 
-    setActivePage, 
     currentDimension, 
     isGenerating, 
     setIsGenerating, 
@@ -99,45 +93,49 @@ function DesignStudioContent() {
   const locale = usePreferredLocale();
   const D = getMessages(locale).dashboard.designStudio;
   const [mobileStudioTab, setMobileStudioTab] = useState<'tools' | 'canvas'>('canvas');
+  const mainRef = React.useRef<HTMLElement>(null);
 
-  /** 화면 크기에 맞춰 종이가 꽉 차도록 줌(Zoom) 자동 조절 */
-  useEffect(() => {
-    const fit = () => {
-      const { currentDimension: dim, setZoom: sz } = useEditorStore.getState();
-      
-      // 데스크톱 사이드바(340px) 고려하여 가용한 넓이 계산
-      const sidebarWidth = window.innerWidth >= 1024 ? 340 : 0;
-      const vw = window.innerWidth - sidebarWidth - (touchUi ? 20 : 60);
-      const vh = window.innerHeight - (touchUi ? 200 : 160);
-      
-      const zByW = (vw * 0.95) / dim.widthMm;
-      const zByH = (vh * 0.92) / dim.heightMm;
-      
-      // 너무 작거나 크지 않게 제한 (데스크톱에서는 좀 더 유연하게)
-      const z = Math.max(0.5, Math.min(10, Math.min(zByW, zByH)));
-      sz(z);
-    };
+  const fitZoomToScreen = React.useCallback(() => {
+    const { currentDimension: dim, setZoom: sz } = useEditorStore.getState();
+    if (!mainRef.current) return;
     
-    const id = requestAnimationFrame(fit);
-    const onResize = () => requestAnimationFrame(fit);
-    window.addEventListener('resize', onResize);
-    return () => {
-      cancelAnimationFrame(id);
-      window.removeEventListener('resize', onResize);
-    };
-  }, [currentDimension.widthMm, currentDimension.heightMm, touchUi, mobileStudioTab]);
+    const vw = mainRef.current.clientWidth;
+    const vh = mainRef.current.clientHeight;
+    
+    // 모바일과 데스크톱의 여백을 다르게 설정하여 UI를 가리지 않도록 함
+    const paddingX = touchUi ? 40 : 120;
+    const paddingY = touchUi ? 160 : 200;
+    
+    const zByW = Math.max(0, vw - paddingX) / dim.widthMm;
+    const zByH = Math.max(0, vh - paddingY) / dim.heightMm;
+    
+    // 너무 작거나 크지 않게 제한 (최소 0.5, 최대 10)
+    const z = Math.max(0.5, Math.min(10, Math.min(zByW, zByH)));
+    sz(z);
+  }, [touchUi]);
+
+  /** 화면 크기나 용지 크기 변경 시 줌 자동 조절 */
+  useEffect(() => {
+    const el = mainRef.current;
+    if (!el) return;
+
+    const ro = new ResizeObserver(() => {
+      requestAnimationFrame(fitZoomToScreen);
+    });
+    
+    ro.observe(el);
+    // 용지 크기가 변경되었을 때도 맞춤 실행
+    fitZoomToScreen();
+    
+    return () => ro.disconnect();
+  }, [fitZoomToScreen, currentDimension.widthMm, currentDimension.heightMm, mobileStudioTab]);
 
   const showToolsPanel = !touchUi || mobileStudioTab === 'tools';
   const showCanvasPanel = !touchUi || mobileStudioTab === 'canvas';
 
   // Modal States
   const [isPhotoEditorOpen, setIsPhotoEditorOpen] = useState(false);
-  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
-  const [activeSuggestionType, setActiveSuggestionType] = useState<'quote' | 'message' | null>(null);
-  const [isSuggestionModalOpen, setIsSuggestionModalOpen] = useState(false);
   const [isShopSettingsOpen, setIsShopSettingsOpen] = useState(false);
-  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
-  const [isFormtecModalOpen, setIsFormtecModalOpen] = useState(false);
 
   // Shop Settings Load
   useEffect(() => {
@@ -180,7 +178,7 @@ function DesignStudioContent() {
     const handleRequestPrint = () => handlePrintRequest();
     window.addEventListener('request-print', handleRequestPrint);
     return () => window.removeEventListener('request-print', handleRequestPrint);
-  }, [selectedPresetId, zoom, textBlocks, imageBlocks, activePage]);
+  }, [selectedPresetId, zoom, textBlocks, imageBlocks]);
 
   const requirePaidExport = (): boolean => {
     if (!isFreeTier) return true;
@@ -194,7 +192,7 @@ function DesignStudioContent() {
         'PDF・印刷はPRINT CORE以上でご利用ください。',
         '导出 PDF/打印需 PRINT CORE 及以上。',
         'PDF e impresión requieren PRINT CORE o superior.',
-        'PDF e impressão exigem PRINT CORE ou superior.',
+        'PDF e impressão exigem PRINT CORE o superior.',
         'PDF et impression nécessitent PRINT CORE ou plus.',
         'PDF und Druck ab PRINT CORE.',
         'PDF и печать — с PRINT CORE.',
@@ -206,31 +204,70 @@ function DesignStudioContent() {
 
   const handlePrintRequest = async () => {
     if (!requirePaidExport()) return;
-    if (selectedPresetId?.startsWith('formtec-')) {
-      setSelectedBlockId(null);
-      setIsFormtecModalOpen(true);
-      return;
-    }
     toast.loading(D.pdfGenMulti, { id: 'print-loading' });
     try {
       const state = useEditorStore.getState();
       const allPagesData = [
-        state.activePage === 'outside' 
-          ? { backgroundUrl: state.backgroundUrl, frontBackgroundUrl: state.frontBackgroundUrl, backBackgroundUrl: state.backBackgroundUrl, textBlocks: state.textBlocks, imageBlocks: state.imageBlocks }
-          : state.pages.outside,
-        state.activePage === 'inside'
-          ? { backgroundUrl: state.backgroundUrl, textBlocks: state.textBlocks, imageBlocks: state.imageBlocks }
-          : state.pages.inside
+        { 
+          backgroundUrl: state.backgroundUrl, 
+          frontBackgroundUrl: state.frontBackgroundUrl, 
+          backBackgroundUrl: state.backBackgroundUrl, 
+          brandingTextInfo: state.brandingTextInfo, 
+          textBlocks: state.textBlocks || [], 
+          imageBlocks: state.imageBlocks 
+        }
       ];
+
+      // Dynamically import PrintCommander to avoid blocking initial load
+      const { PrintCommander } = await import('@/lib/print-commander');
 
       const pdfBytes = await PrintCommander.generatePdf({
         paperSizeMm: state.currentDimension,
         margins: { top: 10, right: 10, bottom: 10, left: 10 },
-        pages: allPagesData.map(p => ({
-          ...p,
-          textBlocks: p.textBlocks.map(tb => ({ ...tb, size: tb.fontSize })),
-          imageBlocks: p.imageBlocks?.map(img => ({ ...img, isPrintable: true }))
-        }))
+        pages: allPagesData.map((p, idx) => {
+          const isOutside = idx === 0;
+          const brandInfo = p.brandingTextInfo || { shopName: '', contact: '', address: '', message: '' };
+          const hasBrandInfo = isOutside && (brandInfo.shopName || brandInfo.contact || brandInfo.address || brandInfo.message);
+          
+          let generatedBlocks: any[] = [];
+          let generatedImages: any[] = [];
+          if (hasBrandInfo) {
+            const centerX = state.foldType === 'half' && state.orientation === 'landscape' ? state.currentDimension.widthMm / 4 : state.currentDimension.widthMm / 2;
+            const centerY = state.foldType === 'half' && state.orientation === 'portrait' ? state.currentDimension.heightMm / 4 : state.currentDimension.heightMm / 2;
+            
+            const bottomY = state.foldType === 'half' && state.orientation === 'portrait' ? state.currentDimension.heightMm / 2 - 20 : state.currentDimension.heightMm - 20;
+            const topY = brandInfo.position === 'center' ? centerY + 21 : bottomY;
+            
+            if (brandInfo.logoUrl) {
+              generatedImages.push({
+                id: 'b_logo',
+                url: brandInfo.logoUrl,
+                x: centerX - 20,
+                y: topY - 52,
+                width: 40,
+                height: 40,
+                isPrintable: true
+              });
+            }
+            const fontFam = brandInfo.fontFamily || 'Pretendard';
+            if (brandInfo.shopName) generatedBlocks.push({ id: 'b_name', text: brandInfo.shopName, x: centerX, y: topY - 10, fontSize: 10, colorHex: '#64748b', textAlign: 'center', fontFamily: fontFam });
+            if (brandInfo.contact) generatedBlocks.push({ id: 'b_tel', text: brandInfo.contact, x: centerX, y: topY - 5, fontSize: 8, colorHex: '#64748b', textAlign: 'center', fontFamily: fontFam });
+            if (brandInfo.address) generatedBlocks.push({ id: 'b_add', text: brandInfo.address, x: centerX, y: topY, fontSize: 8, colorHex: '#64748b', textAlign: 'center', fontFamily: fontFam });
+            if (brandInfo.message) generatedBlocks.push({ id: 'b_msg', text: brandInfo.message, x: centerX, y: topY + 6, fontSize: 7, colorHex: '#64748b', textAlign: 'center', fontFamily: fontFam });
+          }
+
+          return {
+            ...p,
+            textBlocks: [
+              ...(p.textBlocks || []).map((tb: any) => ({ ...tb, size: tb.fontSize })),
+              ...generatedBlocks.map(tb => ({ ...tb, size: tb.fontSize }))
+            ],
+            imageBlocks: [
+              ...(p.imageBlocks || []).map((img: any) => ({ ...img, isPrintable: true })),
+              ...generatedImages
+            ]
+          };
+        })
       });
       toast.dismiss('print-loading');
       if (pdfBytes) {
@@ -301,12 +338,10 @@ function DesignStudioContent() {
               setFormtecSelectedCells([0]); // 첫 번째 칸 기본 선택
             } else {
               setDimension({ widthMm: 210, heightMm: 148 }, 'a5');
-              setActivePage('inside');
             }
 
             const { widthMm, heightMm } = useEditorStore.getState().currentDimension;
             const isCard = !isFormtec;
-            const isInside = useEditorStore.getState().activePage === 'inside';
             
             // 1. 메시지 처리 및 정확한 중앙 좌표 계산
             const fontSizeMsg = 15;
@@ -329,8 +364,8 @@ function DesignStudioContent() {
               fontSize: 15, 
               textAlign: 'center',
               fontFamily: "'Gowun Batang', serif", 
-              colorHex: isInside ? '#000000' : '#ffffff',
-              strokeWidth: isInside ? 0 : 0.5,
+              colorHex: '#ffffff',
+              strokeWidth: 0.5,
               width: TEXT_BOX_WIDTH
             });
             setSuggestedMessageBlockId(msgId);
@@ -358,17 +393,9 @@ function DesignStudioContent() {
       }
     };
     fetchOrder();
-  }, [orderId, currentOrderId, supabase, addTextBlock, resetDesign, setCurrentOrderId, setDimension, setActivePage, printTarget, textBlocks.length]);
+  }, [orderId, currentOrderId, supabase, addTextBlock, resetDesign, setCurrentOrderId, setDimension, printTarget, textBlocks.length]);
 
-  const fitZoomToScreen = React.useCallback(() => {
-    const { currentDimension: dim, setZoom: sz } = useEditorStore.getState();
-    const vw = window.innerWidth - 20;
-    const vh = window.innerHeight - (touchUi ? 200 : 180);
-    const zByW = (vw * 0.96) / dim.widthMm;
-    const zByH = (vh * 0.92) / dim.heightMm;
-    const z = Math.max(0.65, Math.min(8, Math.min(zByW, zByH)));
-    sz(z);
-  }, [touchUi]);
+  // fitZoomToScreen is now defined at the top of the component
 
   if (!planAccessLoading && !canUseStudio) {
     return <AccessDenied requiredTier="Ribbon" />;
@@ -400,32 +427,7 @@ function DesignStudioContent() {
              </div>
           </div>
 
-          {!touchUi && <div className="h-8 w-px bg-gray-100 hidden sm:block" />}
-
-          <div className={cn("flex items-center gap-0.5 bg-gray-50 p-1 rounded-2xl border border-gray-100 shrink-0", touchUi && "ml-auto")}>
-             <button 
-                type="button"
-                onClick={() => setActivePage('outside')}
-                className={cn(
-                  "rounded-xl font-black transition-all",
-                  touchUi ? "px-3 py-2 text-[10px]" : "px-5 py-2 text-xs",
-                  activePage === 'outside' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'
-                )}
-             >
-                {touchUi ? D.coverShort : D.coverLong}
-             </button>
-             <button 
-                type="button"
-                onClick={() => setActivePage('inside')}
-                className={cn(
-                  "rounded-xl font-black transition-all",
-                  touchUi ? "px-3 py-2 text-[10px]" : "px-5 py-2 text-xs",
-                  activePage === 'inside' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'
-                )}
-             >
-                {touchUi ? D.insideShort : D.insideLong}
-             </button>
-          </div>
+          <div className="h-8 w-px bg-gray-100 hidden sm:block" />
         </div>
 
         <div className={cn("flex items-center gap-2 shrink-0", touchUi && "w-full justify-end")}>
@@ -502,8 +504,6 @@ function DesignStudioContent() {
           )}
         >
           <DesignSidebar 
-            onOpenGallery={() => setIsGalleryOpen(true)}
-            onOpenSuggestion={(type) => { setActiveSuggestionType(type); setIsSuggestionModalOpen(true); }}
             onOpenShopSettings={() => setIsShopSettingsOpen(true)}
             onOpenPhotoEditor={() => setIsPhotoEditorOpen(true)}
           />
@@ -511,6 +511,7 @@ function DesignStudioContent() {
 
         {/* Main Canvas Area */}
         <main
+          ref={mainRef}
           className={cn(
             "flex-1 relative bg-neutral-100/50 flex flex-col items-center justify-center overflow-auto custom-scrollbar min-h-0 min-w-0",
             touchUi ? "p-2" : "p-12",
@@ -551,59 +552,9 @@ function DesignStudioContent() {
 
       {/* Modals Assembly */}
       <PhotoEditModal isOpen={isPhotoEditorOpen} onClose={() => setIsPhotoEditorOpen(false)} />
-      <SuggestionModal isOpen={isSuggestionModalOpen} onClose={() => setIsSuggestionModalOpen(false)} type={activeSuggestionType || 'message'} />
-      <GalleryModal isOpen={isGalleryOpen} onClose={() => setIsGalleryOpen(false)} />
       <ShopSettingsModal isOpen={isShopSettingsOpen} onClose={() => setIsShopSettingsOpen(false)} />
       
-      {isFormtecModalOpen && (
-        <FormtecModal 
-          isOpen={isFormtecModalOpen} 
-          onClose={() => setIsFormtecModalOpen(false)}
-          onPrint={async () => {
-             const state = useEditorStore.getState();
-             setIsGenerating(true);
-             toast.loading(D.labelPdfGen, { id: 'label-print' });
-             
-             try {
-               // 캔버스 데이터 + 추가 메시지 블록 조합
-               const messageToAdd = state.formtecAdditionalMessage;
-               let finalBlocks = [...state.textBlocks];
-               
-               if (messageToAdd) {
-                  finalBlocks.push({
-                    id: 'bulk-extra',
-                    text: messageToAdd,
-                    x: state.currentDimension.widthMm / 2,
-                    y: state.currentDimension.heightMm - 10,
-                    fontSize: 10,
-                    textAlign: 'center',
-                    colorHex: '#64748b'
-                  } as any);
-               }
 
-               const pdfBytes = await PrintCommander.generatePdf({
-                 paperSizeMm: state.currentDimension,
-                 labelType: state.selectedPresetId || 'formtec-8',
-                 selectedCells: state.formtecSelectedCells,
-                 textBlocks: finalBlocks.map(tb => ({ ...tb, size: tb.fontSize })),
-                 imageBlocks: state.imageBlocks.map(img => ({ ...img, isPrintable: true }))
-               });
-
-               if (pdfBytes) {
-                 PrintCommander.triggerPrintPopup(pdfBytes);
-                 toast.success(D.labelPdfReady, { id: 'label-print' });
-               }
-               setIsFormtecModalOpen(false);
-             } catch (e) {
-               console.error(e);
-               toast.error(D.labelPrintErr, { id: 'label-print' });
-             } finally {
-               setIsGenerating(false);
-             }
-          }}
-          isGenerating={isGenerating}
-        />
-      )}
 
       {isGenerating && (
         <div className="fixed inset-0 bg-white/60 backdrop-blur-xl z-[200] flex flex-col items-center justify-center animate-in fade-in duration-500">

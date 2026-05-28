@@ -120,7 +120,7 @@
       "suppliers": "거래처",
       "externalOrders": "협력사 수발주",
       "marketing": "AI 홍보 마스터",
-      "designStudio": "카드 디자인",
+      "designStudio": "심플카드제작",
       "pos": "POS 연동",
       "settings": "환경 설정",
       "subscription": "구독 · 플랜"
@@ -300,7 +300,7 @@
         "expenses": "지출",
         "tax": "세무",
         "printer": "리본 프린터",
-        "designStudio": "카드 디자인",
+        "designStudio": "심플카드제작",
         "marketing": "AI 홍보 마스터",
         "pos": "POS 연동",
         "settings": "환경 설정",

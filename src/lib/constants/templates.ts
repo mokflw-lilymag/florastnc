@@ -75,31 +75,7 @@ export const PAPER_PRESETS = [
   // 용지 규격
   { id: 'a5', label: 'A5 (210x148mm)', widthMm: 210, heightMm: 148, group: '용지 규격' },
   { id: 'a4', label: 'A4 (210x297mm)', widthMm: 297, heightMm: 210, group: '용지 규격' },
-  { id: 'a3', label: 'A3 (297x420mm)', widthMm: 420, heightMm: 297, group: '용지 규격' },
-  { id: 'a2', label: 'A2 (420x594mm)', widthMm: 594, heightMm: 420, group: '용지 규격' },
-  { id: 'a6', label: 'A6 (105x148mm)', widthMm: 148, heightMm: 105, group: '용지 규격' },
-  { id: 'postcard', label: '엽서 (105x148mm)', widthMm: 105, heightMm: 148, group: '용지 규격' },
-  // 폼텍 라벨 (사용자 요청 5종: 1, 2, 6, 8, 12칸)
-  { id: 'formtec-1', label: '3130 (1칸 - A4 전체)', widthMm: 210, heightMm: 297, group: '폼텍 라벨' },
-  { id: 'formtec-2', label: '3102 (2칸 - A4 반절)', widthMm: 199.6, heightMm: 143.5, group: '폼텍 라벨' },
-  { id: 'formtec-6', label: '3639 (6칸 - 105x99mm)', widthMm: 105, heightMm: 99, group: '폼텍 라벨' },
-  { id: 'formtec-8', label: '3114 (8칸 - 물류용)', widthMm: 99.1, heightMm: 67.7, group: '폼텍 라벨' },
-  { id: 'formtec-12', label: '3112 (12칸 - 주소용)', widthMm: 63.5, heightMm: 70, group: '폼텍 라벨' },
+  { id: 'a3', label: 'A3 (297x420mm)', widthMm: 420, heightMm: 297, group: '용지 규격' }
 ];
 
-export const LABEL_CONFIGS: Record<string, {
-  cells: number;
-  cols: number;
-  widthMm: number;
-  heightMm: number;
-  marginTopMm: number;
-  marginLeftMm: number;
-  hGapMm: number;
-  vGapMm: number;
-}> = {
-  'formtec-1':  { cells: 1,  cols: 1, widthMm: 210.0, heightMm: 297.0, marginTopMm: 0, marginLeftMm: 0, hGapMm: 0, vGapMm: 0 },
-  'formtec-2':  { cells: 2,  cols: 1, widthMm: 199.6, heightMm: 143.5, marginTopMm: 5.0, marginLeftMm: 5.2, hGapMm: 0, vGapMm: 0 },
-  'formtec-6':  { cells: 6,  cols: 2, widthMm: 105.0, heightMm: 99.0,  marginTopMm: 0, marginLeftMm: 0, hGapMm: 0, vGapMm: 0 },
-  'formtec-8':  { cells: 8,  cols: 2, widthMm: 99.1,  heightMm: 67.7,  marginTopMm: 14.0, marginLeftMm: 4.95, hGapMm: 2.0, vGapMm: 0 },
-  'formtec-12': { cells: 12, cols: 3, widthMm: 63.5,  heightMm: 70.0,  marginTopMm: 8.5, marginLeftMm: 9.5, hGapMm: 0, vGapMm: 0 }
-};
+export const LABEL_CONFIGS: Record<string, any> = {};

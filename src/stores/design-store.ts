@@ -30,8 +30,8 @@ function pickSenderCardFallback(): string {
     "발신인",
     "Sender",
     "Người gửi",
-    "送信者",
-    "发件人",
+    "差出人",
+    "寄件人",
     "Remitente",
     "Remetente",
     "Expéditeur",
@@ -65,7 +65,7 @@ function defaultCardSenderName(): string {
     "Sender",
     "Người gửi",
     "差出人",
-    "发件人",
+    "寄件人",
     "Remitente",
     "Remetente",
     "Expéditeur",
@@ -78,17 +78,15 @@ function defaultCardSenderName(): string {
 export const smartFitText = (text: string, maxWidthMm: number, baseFontSize: number) => {
   if (!text) return { text: '', fontSize: baseFontSize };
 
-  // 1. 지능형 줄바꿈 고도화 (이미 줄바꿈이 있거나 텍스트가 짧으면 수행하지 않음)
+  // 1. 지능형 줄바꿈
   let processedText = text;
   if (text.length > 20 && !text.includes('\n')) {
-    // 한국어 조사 및 공백 기반 분할 지점 탐색
     const words = text.split(' ');
     if (words.length > 3) {
       const mid = Math.floor(words.length / 2);
       processedText = words.slice(0, mid).join(' ') + '\n' + words.slice(mid).join(' ');
     } else {
-      // 아주 긴 단어 하나만 있는 특수한 경우를 위한 방어 로직
-      const splitPoints = text.match(/[가-힣]{2,}[은|는|이|가|을|를|에|와|과|도]/g);
+      const splitPoints = text.match(/[가-힣]{2,}[은|는|이|가|을|를|에|의]/g);
       if (splitPoints && splitPoints.length > 0) {
         const point = splitPoints[Math.floor(splitPoints.length / 2)];
         processedText = text.replace(point, point + '\n');
@@ -96,12 +94,12 @@ export const smartFitText = (text: string, maxWidthMm: number, baseFontSize: num
     }
   }
 
-  // 2. 가변 폰트 사이즈 계산 (너비에 맞춰 자동으로 줄어듦)
+  // 2. 가변 ?�트 ?�이�?계산 (?�비??맞춰 ?�동?�로 줄어??
   let adjustedSize = baseFontSize;
   const lines = processedText.split('\n');
   const longestLine = Math.max(...lines.map(l => l.length));
 
-  // 기준을 좀 더 넉넉하게 조정
+  // 기�???좀 ???�넉?�게 조정
   if (longestLine > 15) adjustedSize = baseFontSize * (15 / longestLine);
   if (lines.length > 2) adjustedSize = adjustedSize * (2 / lines.length);
 
@@ -122,14 +120,14 @@ export interface TextBlock {
   zIndex?: number;
   opacity?: number;
   isLocked?: boolean;
-  width?: number; // 가로 너비 (mm)
-  height?: number; // 세로 영역 (mm, 리사이즈·정렬용)
-  lineHeight?: number; // 줄 간격 (기본 1.6)
-  letterSpacing?: number; // 자간 (mm 또는 em, 여기선 mm 기준 가공 예정)
-  rotation?: number; // 회전 (도)
-  textShadow?: string; // CSS 텍스트 그림자 속성
-  strokeColor?: string; // 테두리 색상
-  strokeWidth?: number; // 테두리 두께
+  width?: number; // 가�??�비 (mm)
+  height?: number; // ?�로 ?�역 (mm, 리사?�즈·?�렬??
+  lineHeight?: number; // �?간격 (기본 1.6)
+  letterSpacing?: number; // ?�간 (mm ?�는 em, ?�기??mm 기�? 가�??�정)
+  rotation?: number; // ?�전 (??
+  textShadow?: string; // CSS ?�스??그림???�성
+  strokeColor?: string; // ?�두�??�상
+  strokeWidth?: number; // ?�두�??�께
 }
 
 export interface ImageBlock {
@@ -141,8 +139,8 @@ export interface ImageBlock {
   height: number;
   isPrintable: boolean;
   zIndex?: number;
-  rotation?: number; // 회전 (도)
-  opacity?: number; // 투명도 (0~1)
+  rotation?: number; // ?�전 (??
+  opacity?: number; // ?�명??(0~1)
 }
 
 export interface Dimension {
@@ -158,6 +156,7 @@ export interface PageData {
   backgroundUrl: string | null;
   frontBackgroundUrl?: string | null;
   backBackgroundUrl?: string | null;
+  brandingTextInfo: { shopName: string; contact: string; address: string; message: string; logoUrl?: string; fontFamily?: string; position?: 'bottom' | 'center'; };
   textBlocks: TextBlock[];
   imageBlocks: ImageBlock[];
   margins?: { top: number; right: number; bottom: number; left: number };
@@ -181,7 +180,7 @@ export interface BrandingOptions {
 
 interface EditorState {
   currentDimension: Dimension;
-  selectedPresetId: string | null; // 추가: 현재 선택된 용지 규격 ID
+  selectedPresetId: string | null; // 추�?: ?�재 ?�택???��? 규격 ID
   orientation: Orientation;
   foldType: FoldType;
 
@@ -190,6 +189,7 @@ interface EditorState {
   backgroundUrl: string | null;
   frontBackgroundUrl: string | null;
   backBackgroundUrl: string | null;
+  brandingTextInfo: { shopName: string; contact: string; address: string; message: string; logoUrl?: string; fontFamily?: string; position?: 'bottom' | 'center'; }; 
   textBlocks: TextBlock[];
   imageBlocks: ImageBlock[];
   margins: { top: number; right: number; bottom: number; left: number };
@@ -201,7 +201,7 @@ interface EditorState {
   };
 
   selectedBlockId: string | null;
-  selectedBlockIds: string[]; // 다중 선택 지원
+  selectedBlockIds: string[]; // ?�중 ?�택 지??
   designId: string | null;
   showFoldingGuide: boolean;
 
@@ -265,6 +265,7 @@ interface EditorState {
   setTenantId: (id: string | null) => void;
   toggleFoldingGuide: () => void;
   updateShopSettings: (updates: Partial<ShopSettings>) => void;
+  updateBrandingTextInfo: (updates: Partial<{ shopName: string; contact: string; address: string; message: string; logoUrl?: string; fontFamily?: string; position?: 'bottom' | 'center'; }>) => void;
   applyShopBranding: (target: 'front' | 'back', options?: BrandingOptions) => void;
   moveSelectedBlocks: (dx: number, dy: number) => void;
   resetDesign: () => void;
@@ -286,12 +287,12 @@ export const useEditorStore = create<EditorState>()(
       backgroundUrl: null,
       frontBackgroundUrl: null,
       backBackgroundUrl: null,
-      textBlocks: [],
+      brandingTextInfo: { shopName: '', contact: '', address: '', message: '' }, textBlocks: [],
       imageBlocks: [],
       margins: { top: 15, right: 15, bottom: 15, left: 15 },
       pages: {
-        outside: { backgroundUrl: null, frontBackgroundUrl: null, backBackgroundUrl: null, textBlocks: [], imageBlocks: [], margins: { top: 15, right: 15, bottom: 15, left: 15 } },
-        inside: { backgroundUrl: null, frontBackgroundUrl: null, backBackgroundUrl: null, textBlocks: [], imageBlocks: [], margins: { top: 15, right: 15, bottom: 15, left: 15 } }
+        outside: { backgroundUrl: null, frontBackgroundUrl: null, backBackgroundUrl: null, brandingTextInfo: { shopName: '', contact: '', address: '', message: '' }, textBlocks: [], imageBlocks: [], margins: { top: 15, right: 15, bottom: 15, left: 15 } },
+        inside: { backgroundUrl: null, frontBackgroundUrl: null, backBackgroundUrl: null, brandingTextInfo: { shopName: '', contact: '', address: '', message: '' }, textBlocks: [], imageBlocks: [], margins: { top: 15, right: 15, bottom: 15, left: 15 } }
       },
 
       shopSettings: { name: '', tel: '', address: '', website: '', sns: '', logoUrl: null },
@@ -321,11 +322,11 @@ export const useEditorStore = create<EditorState>()(
 
       resetDesign: () => set((state) => ({
         designId: null,
-        currentOrderId: null, // 초기화 시 ID도 비움
+        currentOrderId: null, // 초기????ID??비�?
         backgroundUrl: null,
         frontBackgroundUrl: null,
         backBackgroundUrl: null,
-        textBlocks: [],
+        brandingTextInfo: { shopName: '', contact: '', address: '', message: '' }, textBlocks: [],
         imageBlocks: [],
         selectedBlockId: null,
         selectedBlockIds: [],
@@ -337,12 +338,12 @@ export const useEditorStore = create<EditorState>()(
           outside: {
             ...state.pages.outside,
             backgroundUrl: null, frontBackgroundUrl: null, backBackgroundUrl: null,
-            textBlocks: [], imageBlocks: []
+            brandingTextInfo: { shopName: '', contact: '', address: '', message: '' }, textBlocks: [], imageBlocks: []
           },
           inside: {
             ...state.pages.inside,
             backgroundUrl: null, frontBackgroundUrl: null, backBackgroundUrl: null,
-            textBlocks: [], imageBlocks: []
+            brandingTextInfo: { shopName: '', contact: '', address: '', message: '' }, textBlocks: [], imageBlocks: []
           }
         }
       })),
@@ -372,7 +373,7 @@ export const useEditorStore = create<EditorState>()(
           const { margins } = state;
           const isLandscape = widthMm > state.currentDimension.heightMm;
 
-          // 우측 상단 배치 (정밀 계산)
+          // ?�측 ?�단 배치 (?��? 계산)
           const blockWidth = (widthMm / 2) - margins.right - 20;
           const x = isLandscape
             ? (widthMm / 2 + (widthMm - margins.right)) / 2
@@ -403,7 +404,7 @@ export const useEditorStore = create<EditorState>()(
           const { margins } = state;
           const isLandscape = widthMm > heightMm;
 
-          // 우측 하단 배치 (정밀 계산)
+          // ?�측 ?�단 배치 (?��? 계산)
           const blockWidth = (widthMm / 2) - margins.right - 20;
           const x = isLandscape
             ? (widthMm / 2 + (widthMm - margins.right)) / 2
@@ -434,7 +435,7 @@ export const useEditorStore = create<EditorState>()(
         const state = get();
         if (state.activePage === page) return;
 
-        // 1. 현재 페이지의 상태를 pages 객체에 저장
+        // 1. ?�재 ?�이지???�태�?pages 객체???�??
         const updatedPages = {
           ...state.pages,
           [state.activePage]: {
@@ -448,7 +449,7 @@ export const useEditorStore = create<EditorState>()(
           }
         };
 
-        // 2. 목적지 페이지 데이터를 로드
+        // 2. 목적지 ?�이지 ?�이?��? 로드
         const targetData = updatedPages[page];
 
         set({
@@ -477,14 +478,14 @@ export const useEditorStore = create<EditorState>()(
         const newFoldType: FoldType = isLabel ? 'none' : 'half';
         const newActivePage: PageSide = (wasLabel && isCard) ? 'inside' : state.activePage;
 
-        // [지능형 판단] 용지 종류에 따른 자동 정렬 위치 값 (mm 단위)
+        // [지?�형 ?�단] ?��? 종류???�른 ?�동 ?�렬 ?�치 �?(mm ?�위)
         const getAutoX = (currentX: number, blockWidth: number = 0, targetPage: PageSide) => {
           if (isLabel) return (dimension.widthMm / 2) - (blockWidth / 2);
           
           if (isCard) {
             const panelStartX = dimension.widthMm / 2;
             const panelCenter = panelStartX + (panelWidth / 2);
-            return panelCenter - (blockWidth / 2); // 왼쪽 상단 좌표 반환
+            return panelCenter - (blockWidth / 2); // ?�쪽 ?�단 좌표 반환
           }
           
           return currentX * scaleX;
@@ -498,7 +499,7 @@ export const useEditorStore = create<EditorState>()(
         };
 
         const getAutoY = (currentY: number, blockHeight: number = 0) => {
-          if (isLabel || isCard) return (dimension.heightMm * 0.45) - (blockHeight / 2); // 위쪽 중앙 기준 왼쪽 상단 좌표
+          if (isLabel || isCard) return (dimension.heightMm * 0.45) - (blockHeight / 2); // ?�쪽 중앙 기�? ?�쪽 ?�단 좌표
           return currentY * scaleY;
         };
 
@@ -524,7 +525,7 @@ export const useEditorStore = create<EditorState>()(
           };
         });
 
-        // 라벨에서 카드로 갈 때는 현재 내용을 내지로 복사
+        // ?�벨?�서 카드�?�??�는 ?�재 ?�용???��?�?복사
         const sourceTextBlocks = (wasLabel && isCard) ? state.textBlocks : state.pages.outside.textBlocks;
         const sourceImageBlocks = (wasLabel && isCard) ? state.imageBlocks : state.pages.outside.imageBlocks;
 
@@ -603,7 +604,7 @@ export const useEditorStore = create<EditorState>()(
       addTextBlock: (block) => {
         const newId = `text-${Math.random().toString(36).substr(2, 9)}`;
 
-        // [총괄 교정] 폰트 크기 강제 축소 방지: 넘겨받은 fontSize가 있으면 그대로 사용
+        // [총괄 교정] ?�트 ?�기 강제 축소 방�?: ?�겨받�? fontSize가 ?�으�?그�?�??�용
         const { text, fontSize: autoFontSize } = smartFitText(block.text || '', 80, block.fontSize || 18);
         const finalFontSize = block.fontSize || autoFontSize;
 
@@ -653,7 +654,7 @@ export const useEditorStore = create<EditorState>()(
       }),
 
       updateTextBlockContent: (id, updates) => set((state) => {
-        // [지능형 폰트 동기화] 본문(메시지)이나 수발신자 중 하나의 폰트가 바뀌면 나머지도 같이 변경 (명언은 독립적)
+        // [지?�형 ?�트 ?�기?? 본문(메시지)?�나 ?�발?�자 �??�나???�트가 바뀌면 ?�머지??같이 변�?(명언?� ?�립??
         const isSyncGroup = id === state.toBlockId || id === state.fromBlockId || id === state.suggestedMessageBlockId;
 
         if (updates.fontFamily && isSyncGroup) {
@@ -786,10 +787,10 @@ export const useEditorStore = create<EditorState>()(
                 `Save failed: ${error.message}`,
                 `Lưu thất bại: ${error.message}`,
                 `保存に失敗しました: ${error.message}`,
-                `保存失败：${error.message}`,
+                `保存失败: ${error.message}`,
                 `Error al guardar: ${error.message}`,
                 `Falha ao salvar: ${error.message}`,
-                `Échec de l’enregistrement : ${error.message}`,
+                `Échec de l'enregistrement : ${error.message}`,
                 `Speichern fehlgeschlagen: ${error.message}`,
                 `Ошибка сохранения: ${error.message}`,
               ),
@@ -822,10 +823,10 @@ export const useEditorStore = create<EditorState>()(
                 `Save failed: ${error.message}`,
                 `Lưu mới thất bại: ${error.message}`,
                 `新規保存に失敗しました: ${error.message}`,
-                `新建保存失败：${error.message}`,
+                `新建保存失败: ${error.message}`,
                 `Error al guardar: ${error.message}`,
                 `Falha ao salvar: ${error.message}`,
-                `Échec de l’enregistrement : ${error.message}`,
+                `Échec de l'enregistrement : ${error.message}`,
                 `Speichern fehlgeschlagen: ${error.message}`,
                 `Ошибка сохранения: ${error.message}`,
               ),
@@ -886,8 +887,8 @@ export const useEditorStore = create<EditorState>()(
               '조회 실패',
               'Lookup failed',
               'Truy vấn thất bại',
-              '取得に失敗',
-              '查询失败',
+              '取得に失敗しました',
+              '获取失败',
               'Consulta fallida',
               'Consulta falhou',
               'Échec de la lecture',
@@ -901,7 +902,7 @@ export const useEditorStore = create<EditorState>()(
               `Could not load design: ${detail}`,
               `Không thể tải thiết kế: ${detail}`,
               `デザインを読み込めません: ${detail}`,
-              `无法加载设计：${detail}`,
+              `无法加载设计: ${detail}`,
               `No se pudo cargar el diseño: ${detail}`,
               `Não foi possível carregar o design: ${detail}`,
               `Impossible de charger le design : ${detail}`,
@@ -935,6 +936,8 @@ export const useEditorStore = create<EditorState>()(
       updateShopSettings: (updates) => set((state) => ({
         shopSettings: { ...state.shopSettings, ...updates }
       })),
+
+      updateBrandingTextInfo: (updates) => set((state) => ({ brandingTextInfo: { ...state.brandingTextInfo, ...updates } })),
 
       applyShopBranding: (target, options = { logo: true, name: true, tel: true, website: true }) => {
         const { shopSettings, currentDimension, orientation, foldType, addTextBlock, addImageBlock, setActivePage } = get();
@@ -1043,7 +1046,7 @@ export const useEditorStore = create<EditorState>()(
         
         if (textBlocks.length === 0 && imageBlocks.length === 0) return;
 
-        // [지능형 영역 판단] 카드인 경우 우측 패널 중앙을 목표로 함
+        // [지?�형 ?�역 ?�단] 카드??경우 ?�측 ?�널 중앙??목표�???
         const targetAreaX = isCard ? targetDimension.widthMm * 0.5 : 0;
         const targetAreaWidth = isCard ? targetDimension.widthMm * 0.5 : targetDimension.widthMm;
 
@@ -1061,14 +1064,14 @@ export const useEditorStore = create<EditorState>()(
         const contentWidth = maxX - minX;
         const contentHeight = maxY - minY;
         
-        // 2. [특수 로직] 단일 블록일 경우
+        // 2. [?�수 로직] ?�일 블록??경우
         if (textBlocks.length === 1 && imageBlocks.length === 0) {
           const b = textBlocks[0];
           const newW = Math.min(b.width || targetAreaWidth * 0.8, targetAreaWidth - 20);
           const newTextBlocks = [{
             ...b,
             width: newW,
-            x: targetAreaX + (targetAreaWidth - newW) / 2, // 패널 내 중앙 배치 (왼쪽 상단 좌표)
+            x: targetAreaX + (targetAreaWidth - newW) / 2, // ?�널 ??중앙 배치 (?�쪽 ?�단 좌표)
             y: (targetDimension.heightMm - (b.height || 20)) / 2,
             textAlign: 'center' as const
           }];
@@ -1079,7 +1082,7 @@ export const useEditorStore = create<EditorState>()(
           return;
         }
 
-        // 3. 다중 블록 일괄 이동
+        // 3. ?�중 블록 ?�괄 ?�동
         const offsetX = targetAreaX + (targetAreaWidth - contentWidth) / 2 - minX;
         const offsetY = (targetDimension.heightMm - contentHeight) / 2 - minY;
 
