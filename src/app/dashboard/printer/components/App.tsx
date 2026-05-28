@@ -1658,16 +1658,17 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
     return extendedFonts.filter(f => !hiddenFonts.includes(f.value));
   }, [extendedFonts, hiddenFonts]);
 
-  // Auto-Zoom Calculation (Runs on major layout changes only)
-  useEffect(() => {
+  // Auto-Zoom Calculation (Runs on layout changes and resize)
+  const fitZoomToScreen = useCallback(() => {
     if (mainRef.current && length > 0) {
-      const padX = 20;
-      const padY = 40;
+      const padX = 64; // Horizontal padding
+      const padY = 64; // Vertical padding
       const availableH = mainRef.current.clientHeight - padY * 2;
       const availableW = mainRef.current.clientWidth - padX * 2;
       
+      // RibbonCanvas scales by 2, and there are 2 ribbons side-by-side with 96px gap (gap-24)
       const targetH = length * 2;
-      const targetW = width * 2;
+      const targetW = (width * 2) * 2 + 96;
       
       if (targetH > 0 && targetW > 0 && availableH > 0 && availableW > 0) {
         const zoomH = availableH / targetH;
@@ -1675,7 +1676,20 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
         setZoom(Math.min(1.5, zoomH, zoomW));
       }
     }
-  }, [isSidebarOpen]); // Re-fit when side panel toggles
+  }, [length, width]);
+
+  useEffect(() => {
+    fitZoomToScreen();
+  }, [fitZoomToScreen]);
+
+  useEffect(() => {
+    if (!mainRef.current) return;
+    const resizeObserver = new ResizeObserver(() => {
+      fitZoomToScreen();
+    });
+    resizeObserver.observe(mainRef.current);
+    return () => resizeObserver.disconnect();
+  }, [fitZoomToScreen]);
 
   useEffect(() => {
     const checkBridge = async () => {
