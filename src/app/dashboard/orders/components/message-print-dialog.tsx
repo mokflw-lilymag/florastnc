@@ -163,8 +163,8 @@ export function MessagePrintDialog({ isOpen, onOpenChange, onSubmit, order }: Me
           </div>
         </div>
         <DialogFooter className="pt-4">
-          <DialogClose asChild>
-            <Button type="button" variant="secondary">취소</Button>
+          <DialogClose render={<Button type="button" variant="secondary" />}>
+            취소
           </DialogClose>
           <Button type="button" onClick={handleFormSubmit} disabled={!messageContent || (selectedLabel.cells > 1 && selectedPositions.length === 0)}>
             <Printer className="mr-2 h-4 w-4" /> 인쇄 미리보기

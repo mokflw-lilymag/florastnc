@@ -14,8 +14,7 @@ echo 2. Installing bridge program as a background service...
 echo (Configured to hide the terminal window and run automatically.)
 echo Please wait...
 echo.
-
-Floxync-Print-Bridge.exe
+ppbridge.exe
 
 echo.
 echo Setup (Update) complete!
