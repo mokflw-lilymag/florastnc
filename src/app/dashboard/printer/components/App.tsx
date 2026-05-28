@@ -1140,7 +1140,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
   }, [R, printTarget, printLayout]);
   const [mediaType, setMediaType] = useState<'roll' | 'cut'>('cut');
   const [cuttingMargin, setCuttingMargin] = useState(50); // 커팅 여유분 (mm), 기본 5cm = 50mm
-  const [printQuality, setPrintQuality] = useState<'fast' | 'high'>('fast');
+  const [printQuality, setPrintQuality] = useState<'fast' | 'high'>('high');
 
   const connectedPrintRef = useRef<HTMLDivElement>(null);
   const separateLeftRef = useRef<HTMLDivElement>(null);
