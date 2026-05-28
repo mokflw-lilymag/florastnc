@@ -442,10 +442,21 @@ async function start() {
   let browser;
   try {
     console.log("🔍 브라우저 엔진을 찾고 있습니다...");
+    const baseProfileDir = path.join(os.tmpdir(), 'puppeteer_bridge_profile');
+    let profileDir = baseProfileDir;
+    try {
+      if (fs.existsSync(baseProfileDir)) {
+        fs.rmSync(baseProfileDir, { recursive: true, force: true });
+      }
+    } catch (e) {
+      console.log("⚠️ 기존 프로필이 잠겨있어 새 프로필을 생성합니다.");
+      profileDir = baseProfileDir + '_' + Date.now();
+    }
+
     browser = await puppeteer.launch({ 
-      headless: 'new',
+      headless: true, // Use old headless for better stability on Windows startup
       executablePath: executablePath,
-      userDataDir: path.join(os.tmpdir(), 'puppeteer_bridge_profile'),
+      userDataDir: profileDir,
       args: [
         '--no-sandbox', 
         '--disable-setuid-sandbox', 
@@ -757,5 +768,5 @@ server.on('error', (e) => {
 });
 
 server.listen(8004, '0.0.0.0', () => {
-  console.log("🟢 [상태 확인] 브릿지 하트비트 서버가 포트 8004 (0.0.0.0)에서 실행 중입니다. (ERP PP 연동)");
+  console.log("🟢 [상태 확인] 브릿지 하트비트 서버가 포트 8004 (0.0.0.0)에서 실행 중입니다. (Universal PP 연동)");
 });
