@@ -530,7 +530,9 @@ export default function OrdersPage() {
       );
       return;
     }
-    router.push(`/dashboard/orders/print-message?orderId=${order.id}`);
+    setSelectedOrder(order);
+    setIsOrderDetailOpen(false);
+    setIsMessagePrintOpen(true);
   };
 
 

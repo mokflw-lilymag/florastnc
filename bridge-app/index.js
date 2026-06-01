@@ -236,7 +236,7 @@ function generateHtmlReceipt(job, settings = {}) {
 
   let isCard = false;
   let isRibbon = false;
-  if (message?.content || message?.type) {
+  if (message?.content && message.content.trim().length > 0) {
     if (message.type === '카드' || message.type?.toLowerCase() === 'card') {
       isCard = true;
     } else {

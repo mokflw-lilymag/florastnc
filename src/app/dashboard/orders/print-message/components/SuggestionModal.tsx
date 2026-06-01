@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, MessageSquareText, Sparkles, Languages, Check, ArrowRight } from 'lucide-react';
 import {
   CATEGORY_LABELS,
@@ -15,9 +16,10 @@ interface SuggestionModalProps {
   isOpen: boolean;
   onClose: () => void;
   type: 'quote' | 'message';
+  onSelectText?: (content: string, author?: string) => void;
 }
 
-export const SuggestionModal: React.FC<SuggestionModalProps> = ({ isOpen, onClose, type }) => {
+export const SuggestionModal: React.FC<SuggestionModalProps> = ({ isOpen, onClose, type, onSelectText }) => {
   const locale = usePreferredLocale();
   const D = getMessages(locale).dashboard.designStudio;
   const {
@@ -38,10 +40,21 @@ export const SuggestionModal: React.FC<SuggestionModalProps> = ({ isOpen, onClos
 
   const [selectedCategory, setSelectedCategory] = useState<string>('lover');
   const [selectedLang, setSelectedLang] = useState<'ko' | 'en'>('ko');
+  const [mounted, setMounted] = useState(false);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!isOpen || !mounted) return null;
 
   const handleSelect = (suggestion: any) => {
+    if (onSelectText) {
+      onSelectText(suggestion.content, suggestion.author);
+      onClose();
+      return;
+    }
+
     const isFolding = foldType === 'half';
     const isLandscape = currentDimension.widthMm > currentDimension.heightMm;
     const isLabel = selectedPresetId?.startsWith('formtec-');
@@ -120,7 +133,7 @@ export const SuggestionModal: React.FC<SuggestionModalProps> = ({ isOpen, onClos
   const suggestions = (type === 'quote' ? QUOTE_SUGGESTIONS : MESSAGE_SUGGESTIONS)
     .filter(s => s.category === selectedCategory && s.lang === selectedLang);
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[1000] flex items-center justify-center p-4 animate-in fade-in duration-300">
       <div className="bg-white rounded-[2.5rem] w-full max-w-5xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden border border-white/20">
         {/* Header */}
@@ -227,6 +240,7 @@ export const SuggestionModal: React.FC<SuggestionModalProps> = ({ isOpen, onClos
         .custom-scrollbar::-webkit-scrollbar { width: 5px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
       `}</style>
-    </div>
+    </div>,
+    document.body
   );
 };
