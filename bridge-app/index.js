@@ -136,7 +136,7 @@ console.error = function(...args) {
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
 let CURRENT_BRANCH_ID = process.env.CURRENT_BRANCH_ID || process.env.BRANCH_ID || '';
-const BRIDGE_VERSION = 'v1.2';
+const BRIDGE_VERSION = 'v1.5';
 
 let lastHeartbeatTime = 0;
 let isPausedLogged = false;
