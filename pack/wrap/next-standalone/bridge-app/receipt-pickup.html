@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>픽업</title>
+  <style>
+    @page { margin: 0; }
+    body { font-weight: 800; -webkit-font-smoothing: none; 
+      font-family: 'Malgun Gothic', sans-serif;
+      margin: 0;
+      padding: 8px;
+      width: 72mm;
+      color: #000;
+      background: #fff;
+      font-size: 13px;
+    }
+    .divider {
+      border-top: 1px dashed #000;
+      margin: 8px 0;
+    }
+    .recipient-name {
+      text-align: center;
+      font-size: 36px;
+      font-weight: bold;
+      margin: 10px 0 4px 0;
+      letter-spacing: 2px;
+    }
+    .recipient-contact {
+      text-align: center;
+      font-size: 16px;
+      margin-bottom: 6px;
+    }
+    .pickup-time {
+      text-align: center;
+      font-size: 18px;
+      font-weight: bold;
+      margin: 6px 0;
+    }
+    .items-list {
+      margin: 6px 0;
+      padding: 0;
+      list-style: none;
+    }
+    .items-list li {
+      padding: 4px 0;
+      border-bottom: 1px dotted #000;
+      font-size: 14px;
+    }
+    .items-list li:last-child {
+      border-bottom: none;
+    }
+    .footer {
+      text-align: center;
+      font-size: 11px;
+      color: #000;
+      margin-top: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div style="text-align:center; font-size:14px; font-weight:bold; margin:4px 0 8px 0;">픽업 예약 <span style="font-size:12px; color:#000; font-weight:bold;">(#{{short_order_id}})</span></div>
+  <div style="text-align:center; font-size:11px; color:#000; margin-bottom:6px;">출력일시: {{print_datetime}}</div>
+
+  <div class="divider"></div>
+
+  <div class="pickup-time">{{pickup_datetime}}</div>
+  <div class="recipient-name" style="margin-top: 10px; margin-bottom: 10px;">{{picker_name}} <span style="font-size:18px; color:#000;">({{picker_contact_last4}})</span></div>
+
+  <div class="divider"></div>
+
+  <ul class="items-list">
+    {{items_html}}
+  </ul>
+
+  {{message_type_checkbox}}
+</body>
+</html>

@@ -1,0 +1,3 @@
+{
+  "/api/webhooks/naver/route": "app/api/webhooks/naver/route.js"
+}

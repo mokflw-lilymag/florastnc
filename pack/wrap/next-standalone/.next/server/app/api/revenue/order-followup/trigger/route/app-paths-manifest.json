@@ -1,0 +1,3 @@
+{
+  "/api/revenue/order-followup/trigger/route": "app/api/revenue/order-followup/trigger/route.js"
+}

@@ -8,7 +8,11 @@ const { exec, spawn } = require('child_process');
 const { loadElectronEnv } = require('./loadEnv');
 const { getSyncState } = require('./syncState');
 
+const { initLocalDb } = require('./database/initDb');
+const { SyncWorker } = require('./sync/syncWorker');
+
 let syncWorker = null;
+let localDb = null;
 let mainWindow = null;
 let tray = null;
 const isDev = !app.isPackaged;
@@ -417,8 +421,17 @@ if (!gotTheLock) {
   app.whenReady().then(() => {
     loadElectronEnv(app.getPath('userData'));
 
-    // const { startSyncWorker } = require('./syncWorker');
-    // startSyncWorker();
+    // 로컬 DB 및 SyncWorker 초기화
+    try {
+      const dbPath = path.join(app.getPath('userData'), 'floxync_local.db');
+      localDb = initLocalDb(dbPath);
+      const sbUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://xxx.supabase.co';
+      const sbAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'xxx';
+      syncWorker = new SyncWorker(localDb, sbUrl, sbAnon);
+      console.log('Local DB & SyncWorker initialized.');
+    } catch (err) {
+      console.error('Failed to init Local DB:', err);
+    }
 
     try {
       const { ensureWebBridgesOnFirstRun } = require('./ensureBridges');
@@ -1000,9 +1013,50 @@ try {
 } catch (_) {}
 // initDatabase(app.getPath('userData'));
 
+// 🚀 [Phase 4] Offline Sync & Security Handlers
+ipcMain.handle('start-sync', async (event, session) => {
+  if (syncWorker) {
+    syncWorker.configure(session);
+    syncWorker.start(60000); // 1분 주기로 백그라운드 동기화
+    return { ok: true };
+  }
+  return { ok: false, error: 'SyncWorker not initialized' };
+});
+
+ipcMain.handle('clear-offline-data', async () => {
+  if (syncWorker) {
+    syncWorker.clearLocalData();
+    return { ok: true };
+  }
+  return { ok: false };
+});
+
+ipcMain.handle('trigger-backup', async () => {
+  if (syncWorker) {
+    syncWorker.dailyBackup(); // Force daily backup script to run
+    const data = syncWorker.getBackupData();
+    return { ok: true, data };
+  }
+  return { ok: false, error: 'SyncWorker not active' };
+});
+
+ipcMain.handle('trigger-restore', async (event, backupData) => {
+  if (syncWorker) {
+    try {
+      await syncWorker.restoreData(backupData);
+      return { ok: true };
+    } catch (error) {
+      console.error('Restore failed:', error);
+      return { ok: false, error: error.message };
+    }
+  }
+  return { ok: false, error: 'SyncWorker not active' };
+});
+
 ipcMain.handle('query-db', async (event, { table, astChain }) => {
   try {
-    const db = getDb();
+    const db = localDb;
+    if (!db) throw new Error("Local DB not initialized");
     
     // Default values
     let action = 'select';

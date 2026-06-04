@@ -223,6 +223,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <PartnerOrdersFeatureProvider enabled={partnerOrdersEnabled}>
     <DashboardShell
       serverIsSuperAdmin={isSuperAdmin}
+      tenantId={hasOrgWorkContext ? profile?.org_work_tenant_id : profile?.tenant_id}
       sidebar={
         <Sidebar
           isSuperAdmin={isSuperAdmin}

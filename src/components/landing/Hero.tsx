@@ -104,7 +104,9 @@ export function Hero({ locale = 'ko' }: { locale?: AppLocale }) {
               </Link>
 
               <a
-                href="/downloads/Floxync_Setup.exe"
+                href="https://github.com/mokflw-lilymag/floxync-releases/releases/latest"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="w-full sm:w-auto px-10 py-5 rounded-2xl bg-blue-600/20 text-blue-400 font-bold text-xl border border-blue-500/30 hover:bg-blue-600/30 hover:border-blue-500 backdrop-blur-[20px] transition-all duration-300 flex items-center justify-center gap-2"
               >
                 {pickUiText(

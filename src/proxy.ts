@@ -2,16 +2,41 @@ import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/utils/supabase/middleware";
 import { DEFAULT_LOCALE, isSupportedLocale, LOCALE_COOKIE, resolveLocale } from "@/i18n/config";
 
+// 간단한 인메모리 방식의 Rate Limiting (Edge 환경에서는 인스턴스별로 캐시되므로 완벽하지는 않으나, 기본적인 방지용으로 적합)
+const rateLimitMap = new Map<string, { count: number; lastReset: number }>();
+const RATE_LIMIT = 100; // 1분당 최대 요청 수
+const WINDOW_MS = 60 * 1000; // 1분
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isStatic =
     pathname.startsWith("/_next") ||
-    pathname.startsWith("/api") ||
     pathname === "/favicon.ico" ||
     /\.[a-zA-Z0-9]+$/.test(pathname);
 
+  // /api 경로에 대한 Rate Limiting 적용
+  if (pathname.startsWith("/api/")) {
+    const ip = request.headers.get('x-forwarded-for') ?? request.headers.get('x-real-ip') ?? '127.0.0.1';
+    const now = Date.now();
+    const windowStart = now - WINDOW_MS;
+
+    const record = rateLimitMap.get(ip);
+
+    if (!record || record.lastReset < windowStart) {
+      rateLimitMap.set(ip, { count: 1, lastReset: now });
+    } else {
+      record.count += 1;
+      if (record.count > RATE_LIMIT) {
+        return new NextResponse(
+          JSON.stringify({ error: 'Too Many Requests', message: '너무 많은 요청이 발생했습니다. 잠시 후 다시 시도해주세요.' }),
+          { status: 429, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+  }
+
   /** Country code mix-up: Korean UI uses language segment `ko`, not ISO country `kr`. */
-  if (!isStatic) {
+  if (!isStatic && !pathname.startsWith("/api/")) {
     const segmentsEarly = pathname.split("/").filter(Boolean);
     if (segmentsEarly[0]?.toLowerCase() === "kr") {
       const target = request.nextUrl.clone();

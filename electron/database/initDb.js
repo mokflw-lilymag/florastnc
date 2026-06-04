@@ -18,6 +18,7 @@ function initLocalDb(dbPath) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS branches (
       id TEXT PRIMARY KEY,
+      tenant_id TEXT,
       name TEXT UNIQUE NOT NULL,
       type TEXT,
       address TEXT,
@@ -40,6 +41,7 @@ function initLocalDb(dbPath) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS orders (
       id TEXT PRIMARY KEY,
+      tenant_id TEXT,
       order_number TEXT,
       status TEXT DEFAULT 'processing',
       receipt_type TEXT,
@@ -76,6 +78,7 @@ function initLocalDb(dbPath) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS print_jobs (
       id TEXT PRIMARY KEY,
+      tenant_id TEXT,
       printer_id TEXT,
       branch_id TEXT,
       document_type TEXT,
@@ -93,6 +96,7 @@ function initLocalDb(dbPath) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS customers (
       id TEXT PRIMARY KEY,
+      tenant_id TEXT,
       name TEXT NOT NULL,
       contact TEXT NOT NULL,
       company_name TEXT,

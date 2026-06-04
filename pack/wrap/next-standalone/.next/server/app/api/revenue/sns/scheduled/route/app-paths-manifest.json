@@ -1,0 +1,3 @@
+{
+  "/api/revenue/sns/scheduled/route": "app/api/revenue/sns/scheduled/route.js"
+}

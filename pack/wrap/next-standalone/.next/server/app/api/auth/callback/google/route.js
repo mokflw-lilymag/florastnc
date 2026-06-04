@@ -1,0 +1,11 @@
+var R=require("../../../../../chunks/[turbopack]_runtime.js")("server/app/api/auth/callback/google/route.js")
+R.c("server/chunks/[root-of-the-server]__0.8fait._.js")
+R.c("server/chunks/node_modules_next_124cnn1._.js")
+R.c("server/chunks/node_modules_@supabase_ssr_0uq7pd_._.js")
+R.c("server/chunks/node_modules_@opentelemetry_api_build_esm_0k_r4p6._.js")
+R.c("server/chunks/[root-of-the-server]__0nglzhr._.js")
+R.c("server/chunks/node_modules_@supabase_supabase-js_dist_index_mjs_0hp37pu._.js")
+R.c("server/chunks/[root-of-the-server]__0mo5g2p._.js")
+R.c("server/chunks/_next-internal_server_app_api_auth_callback_google_route_actions_0j87xup.js")
+R.m(436224)
+module.exports=R.m(436224).exports

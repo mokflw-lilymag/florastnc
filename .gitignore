@@ -61,3 +61,4 @@ scripts/data/dashboard-eu-mt-cache.json
 scripts/.dashboard-ja-lingva-cache.json
 
 .trigger
+dist/

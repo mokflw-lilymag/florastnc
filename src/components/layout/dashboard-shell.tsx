@@ -11,6 +11,7 @@ type DashboardShellProps = {
   header: ReactNode;
   footer?: ReactNode;
   serverIsSuperAdmin?: boolean;
+  tenantId?: string | null;
 };
 
 /** `/dashboard/mobile` — 사이드바·헤더 없이 풀스크린 모바일 매장 UI */
@@ -20,6 +21,7 @@ export function DashboardShell({
   header,
   footer,
   serverIsSuperAdmin = false,
+  tenantId,
 }: DashboardShellProps) {
   const pathname = usePathname() ?? "";
   const isMobileWorkspace = pathname.startsWith("/dashboard/mobile");
@@ -30,8 +32,23 @@ export function DashboardShell({
   useEffect(() => {
     if (typeof window !== "undefined" && (window as any).electronAPI) {
       setIsElectron(true);
+      
+      // 🚀 [Phase 4] Offline Sync & Security Start
+      if (tenantId) {
+        import("@/utils/supabase/client").then(({ createClient }) => {
+          const supabase = createClient();
+          supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session?.access_token) {
+              (window as any).electronAPI.startSync({
+                access_token: session.access_token,
+                tenant_id: tenantId,
+              }).catch(console.error);
+            }
+          });
+        });
+      }
     }
-  }, []);
+  }, [tenantId]);
 
   if (isBarePrintDocument) {
     return <div className="min-h-screen bg-white">{children}</div>;

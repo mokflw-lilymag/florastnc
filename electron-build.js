@@ -5,11 +5,11 @@ const path = require('path');
 const root = __dirname;
 
 console.log('[electron-build] Step 0/6: App icon (build/icon.ico)...');
-try {
-  execSync('python scripts/generate-app-icon.py', { stdio: 'inherit', cwd: root });
-} catch (e) {
-  console.warn('[electron-build] icon generate skipped:', e.message);
-}
+// try {
+//   execSync('python scripts/generate-app-icon.py', { stdio: 'inherit', cwd: root });
+// } catch (e) {
+//   console.warn('[electron-build] icon generate skipped:', e.message);
+// }
 const iconCache = path.join(root, 'dist', '.icon-ico');
 if (fs.existsSync(iconCache)) {
   fs.rmSync(iconCache, { recursive: true, force: true });
@@ -38,7 +38,7 @@ if (!fs.existsSync(puppeteerMarker)) {
 }
 
 console.log('[electron-build] Step 3/6: Ribbon bridge files...');
-require('./scripts/sync-ribbon-from-floxync.js').syncRibbonFromFloxync();
+// require('./scripts/sync-ribbon-from-floxync.js').syncRibbonFromFloxync();
 
 const gdiPath = path.join(root, 'electron', 'engine', 'dist', 'gdi_print_cli.exe');
 const winIconPath = path.join(root, 'build', 'icon.ico');
@@ -129,7 +129,17 @@ if (!fs.existsSync(nextMod)) {
 console.log('[electron-build] pack/wrap/next-standalone 준비 완료 (extraResources)');
 
 console.log('[electron-build] Step 5/6: electron-builder...');
-execSync('npx electron-builder', { stdio: 'inherit', cwd: root });
+require('dotenv').config({ path: path.join(root, '.env.local') });
+try {
+  execSync('npx electron-builder --publish always', { 
+    stdio: 'inherit', 
+    cwd: root,
+    env: { ...process.env }
+  });
+} catch (e) {
+  console.error('[electron-build] electron-builder 빌드/배포 실패:', e.message);
+  process.exit(1);
+}
 
 const unpackedNext = path.join(root, 'dist', 'win-unpacked', 'resources', 'next-standalone', 'node_modules', 'next', 'package.json');
 if (!fs.existsSync(unpackedNext)) {

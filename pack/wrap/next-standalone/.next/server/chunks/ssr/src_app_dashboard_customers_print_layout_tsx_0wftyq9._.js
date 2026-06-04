@@ -1,0 +1,3 @@
+module.exports=[717057,a=>{"use strict";var b=a.i(905246),c=a.i(423109),d=a.i(225850);async function e(){let a=await (0,b.cookies)(),e=(0,c.resolveLocale)(a.get(c.LOCALE_COOKIE)?.value??null);return{title:(0,d.getMessages)(e).tenantFlows.f00023}}a.s(["default",0,function({children:a}){return a},"generateMetadata",0,e])},410266,a=>{a.n(a.i(717057))}];
+
+//# sourceMappingURL=src_app_dashboard_customers_print_layout_tsx_0wftyq9._.js.map

@@ -108,10 +108,10 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
       }
 
       await enqueuePrintJob(createClient(), tenantId, order.id, orderType, order, true, reprintType);
-      toast.success("인쇄 큐에 다시 등록되었습니다.");
+      toast.success(tf.f00720);
     } catch (e) {
       console.error('Reprint failed:', e);
-      toast.error("인쇄 요청에 실패했습니다.");
+      toast.error(tf.f00721);
     }
   };
 
@@ -426,25 +426,25 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
           
           <DropdownMenu>
             <DropdownMenuTrigger render={<Button className="rounded-2xl h-12 px-10 font-bold bg-slate-900 hover:bg-black text-white shadow-xl shadow-slate-200 gap-2" />}>
-              <Printer className="h-4 w-4" /> 재출력
+              <Printer className="h-4 w-4" /> {tf.f00722}
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-80 rounded-xl p-2">
               <DropdownMenuItem onClick={() => handleReprint('both')} className="font-semibold text-blue-600 rounded-lg py-3 cursor-pointer">
                 <Printer className="mr-2 h-4 w-4" />
-                <span>둘 다 출력 (주문서+인수증)</span>
+                <span>{tf.f00723}</span>
               </DropdownMenuItem>
               <Separator className="my-1" />
               <DropdownMenuItem onClick={() => handleReprint('order_form')} className="rounded-lg py-2 cursor-pointer">
                 <FileText className="mr-2 h-4 w-4 text-slate-500" />
-                <span className="text-slate-700 font-medium">주문서만 출력 (매장용)</span>
+                <span className="text-slate-700 font-medium">{tf.f00724}</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleReprint('receipt')} className="rounded-lg py-2 cursor-pointer">
                 <Package className="mr-2 h-4 w-4 text-slate-500" />
-                <span className="text-slate-700 font-medium">인수증/예약증만 출력 (대행/일반)</span>
+                <span className="text-slate-700 font-medium">{tf.f00725}</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleReprint('receipt_self')} className="rounded-lg py-2 cursor-pointer">
                 <Package className="mr-2 h-4 w-4 text-emerald-600" />
-                <span className="text-emerald-700 font-medium">자체배송 인수증 출력 (기사용)</span>
+                <span className="text-emerald-700 font-medium">{tf.f00726}</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

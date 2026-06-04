@@ -19,4 +19,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('local-sync-status', handler);
     return () => ipcRenderer.removeListener('local-sync-status', handler);
   },
+  // 🚀 [Phase 4] Offline Sync & Security
+  startSync: (session) => ipcRenderer.invoke('start-sync', session),
+  clearOfflineData: () => ipcRenderer.invoke('clear-offline-data'),
+  triggerBackup: () => ipcRenderer.invoke('trigger-backup'),
+  triggerRestore: (data) => ipcRenderer.invoke('trigger-restore', data),
 });

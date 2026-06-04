@@ -135,6 +135,11 @@ export function Sidebar({
   );
 
   const handleLogout = async () => {
+    if (typeof window !== "undefined" && (window as any).electronAPI) {
+      try {
+        await (window as any).electronAPI.clearOfflineData();
+      } catch(e) {}
+    }
     await supabase.auth.signOut();
     toast.success(t.header.logoutSuccess);
     router.push("/login");
