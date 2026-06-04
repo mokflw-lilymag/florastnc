@@ -218,6 +218,7 @@ export function RegionalIntegrationPanel({
             variant="secondary"
             className="shrink-0 gap-1.5 border-violet-200 bg-violet-50 text-violet-900 hover:bg-violet-100"
             render={<Link href="/dashboard/admin/regional-keys/guide" />}
+            nativeButton={false}
           >
             <BookOpen className="h-3.5 w-3.5" />
             키 발급 가이드

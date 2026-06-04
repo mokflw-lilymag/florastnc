@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { ArrowRight, Sparkles, Cpu } from 'lucide-react';
+import { ArrowRight, Sparkles, Cpu, Download } from 'lucide-react';
 import { AppLocale, localizePath, toBaseLocale } from '@/i18n/config';
 import { getMessages } from '@/i18n/getMessages';
 import { pickUiText } from '@/i18n/pick-ui-text';
@@ -102,6 +102,26 @@ export function Hero({ locale = 'ko' }: { locale?: AppLocale }) {
               >
                 {t.demo} <Sparkles size={18} className="text-emerald-400" />
               </Link>
+
+              <a
+                href="/downloads/Floxync_Setup.exe"
+                className="w-full sm:w-auto px-10 py-5 rounded-2xl bg-blue-600/20 text-blue-400 font-bold text-xl border border-blue-500/30 hover:bg-blue-600/30 hover:border-blue-500 backdrop-blur-[20px] transition-all duration-300 flex items-center justify-center gap-2"
+              >
+                {pickUiText(
+                  baseLocale,
+                  "윈도우 앱 다운로드",
+                  "Download Windows App",
+                  "Tải ứng dụng Windows",
+                  "Windowsアプリのダウンロード",
+                  "下载Windows应用",
+                  "Descargar App para Windows",
+                  "Baixar App Windows",
+                  "Télécharger l'App Windows",
+                  "Windows-App herunterladen",
+                  "Скачать приложение для Windows"
+                )} 
+                <Download size={18} className="text-blue-400" />
+              </a>
             </motion.div>
 
             <motion.p

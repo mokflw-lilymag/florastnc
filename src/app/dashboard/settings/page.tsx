@@ -738,6 +738,24 @@ export default function SettingsPage() {
   
   // Partner Network State
   const [canReceiveOrders, setCanReceiveOrders] = useState(false);
+
+  // Device-specific State
+  const [deviceAutoPrintDisabled, setDeviceAutoPrintDisabled] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setDeviceAutoPrintDisabled(localStorage.getItem('device_autoprint_disabled') === 'true');
+    }
+  }, []);
+
+  const handleDeviceAutoPrintToggle = (disabled: boolean) => {
+    setDeviceAutoPrintDisabled(disabled);
+    if (disabled) {
+      localStorage.setItem('device_autoprint_disabled', 'true');
+    } else {
+      localStorage.removeItem('device_autoprint_disabled');
+    }
+  };
   const [isStorefrontPublic, setIsStorefrontPublic] = useState(false);
   const [partnerRegion, setPartnerRegion] = useState("");
   const [partnerCategory, setPartnerCategory] = useState("");
@@ -774,6 +792,21 @@ export default function SettingsPage() {
   const checkBridgeStatus = async () => {
     setCheckingBridge(true);
     try {
+      // 1. Electron 내부 API(IPC)가 존재하는 경우 (우선 사용)
+      if (typeof window !== "undefined" && (window as any).electronAPI?.getPrinters) {
+        setBridgeStatus(true);
+        try {
+          const printers = await (window as any).electronAPI.getPrinters();
+          if (printers && Array.isArray(printers) && printers.length > 0) {
+            setLocalPrinters(printers);
+          }
+        } catch (e) {
+          console.warn("Electron getPrinters failed:", e);
+        }
+        return; // Electron 통신 성공 시 바로 종료
+      }
+
+      // 2. Electron 외부 웹 브라우저 환경이거나 예외 발생 시 기존 8004 포트 통신 시도
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 2000);
       
@@ -852,20 +885,31 @@ export default function SettingsPage() {
     if (!tenantId) return;
     toast.info(pickUiText(baseLocale, '테스트 인쇄를 요청중입니다...', 'Requesting test print...', 'Đang yêu cầu in thử...'));
     try {
-      const { error } = await supabase.from('print_jobs').insert({
-        tenant_id: tenantId, user_id: tenantId, image_base64: '', width_mm: 0, length_mm: 0,
-        type: 'receipt_shop',
-        status: 'pending',
-        data: {
-          orderId: 'TEST-1234',
-          orderer: { name: '테스트 고객', phone: '010-0000-0000' },
-          items: [{ name: '테스트 상품 (프린터 브릿지 점검용)', quantity: 1, price: 0 }],
-          summary: { subtotal: 0, deliveryFee: 0, total: 0 },
-          message: { text: '이 출력물은 프린터 연동 테스트용입니다.', type: 'none' },
-          pickupInfo: { date: new Date().toLocaleDateString(), time: '00:00' }
-        }
-      });
-      if (error) throw error;
+      const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI?.printJob;
+      const payload = {
+        orderId: 'TEST-1234',
+        orderer: { name: '테스트 고객', phone: '010-0000-0000' },
+        items: [{ name: '테스트 상품 (프린터 브릿지 점검용)', quantity: 1, price: 0 }],
+        summary: { subtotal: 0, deliveryFee: 0, total: 0 },
+        message: { text: '이 출력물은 프린터 연동 테스트용입니다.', type: 'none' },
+        pickupInfo: { date: new Date().toLocaleDateString(), time: '00:00' }
+      };
+
+      if (isElectron) {
+        await (window as any).electronAPI.printJob({
+          job: { job_type: 'receipt_shop', payload },
+          settings: settings,
+          branchName: tenantId
+        });
+      } else {
+        const { error } = await supabase.from('print_jobs').insert({
+          tenant_id: tenantId, user_id: tenantId, image_base64: '', width_mm: 0, length_mm: 0,
+          type: 'receipt_shop',
+          status: 'pending',
+          data: payload
+        });
+        if (error) throw error;
+      }
       toast.success(pickUiText(baseLocale, '테스트 인쇄가 요청되었습니다. 프린터를 확인해주세요.', 'Test print requested. Please check the printer.', 'Đã yêu cầu in thử. Vui lòng kiểm tra máy in.'));
     } catch (error) {
       console.error(error);
@@ -1759,6 +1803,23 @@ export default function SettingsPage() {
                         <Switch 
                           checked={settings.printDeliveryDriver} 
                           onCheckedChange={(v) => saveSettings({ ...settings, printDeliveryDriver: v })} 
+                        />
+                      </div>
+
+                      {/* 기기별 자동 인쇄 제어 (로컬 스토리지) */}
+                      <div className="mt-6 pt-4 border-t border-slate-100 flex items-start justify-between">
+                        <div className="space-y-1">
+                          <Label className="text-sm font-bold text-red-500">
+                            {pickUiText(baseLocale, '🚫 이 컴퓨터(기기)에서 자동 인쇄 끄기', '🚫 Disable Auto-print on this device', '🚫 Tắt tự động in trên thiết bị này')}
+                          </Label>
+                          <p className="text-[11px] text-slate-500 max-w-[280px]">
+                            {pickUiText(baseLocale, '여러 컴퓨터를 동시에 사용할 때, 서브 컴퓨터에서 실수로 자동 인쇄가 되지 않도록 이 옵션을 켜세요. (현재 브라우저에만 저장됨)', 'When using multiple computers, enable this on secondary devices to prevent duplicate auto-printing. (Saved only in this browser)', 'Khi sử dụng nhiều máy tính, bật tính năng này trên các thiết bị phụ để tránh in tự động trùng lặp. (Chỉ lưu trong trình duyệt này)')}
+                          </p>
+                        </div>
+                        <Switch 
+                          className="data-[state=checked]:bg-red-500"
+                          checked={deviceAutoPrintDisabled} 
+                          onCheckedChange={handleDeviceAutoPrintToggle} 
                         />
                       </div>
                     </div>

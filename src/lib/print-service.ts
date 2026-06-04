@@ -25,6 +25,26 @@ export async function enqueuePrintJob(
       orderData = { ...orderData, logo_url: tenantData.logo_url };
     }
 
+    // 1. Electron 환경(데스크톱 앱)인지 확인
+    const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI?.printJob;
+
+    // 환경설정에서 프린터 세팅 불러오기 (Supabase)
+    let localSettings: any = {};
+    if (isElectron) {
+      try {
+        const { data: settingsData } = await supabase
+          .from('system_settings')
+          .select('data')
+          .eq('id', `settings_${tenantId}`)
+          .single();
+        if (settingsData?.data) {
+          localSettings = settingsData.data;
+        }
+      } catch (e) {
+        console.warn('Failed to fetch printer settings from supabase:', e);
+      }
+    }
+
     const jobs = [];
 
     // 어떤 프린터를 사용할지 결정 (pos 또는 label)
@@ -81,7 +101,31 @@ export async function enqueuePrintJob(
       return true;
     }
 
-    // 3. 작업 큐(print_jobs)에 저장
+    // 3. Electron 환경인 경우 Supabase 큐를 거치지 않고 즉시 로컬 인쇄 실행 (Silent Print)
+    if (isElectron) {
+      console.log(`[PrintService] Electron 앱 환경 감지됨. 로컬 네이티브 인쇄를 실행합니다. 대기열 개수: ${jobs.length}`);
+      for (const job of jobs) {
+        try {
+          const result = await (window as any).electronAPI.printJob({
+            job: {
+              ...job,
+              job_type: job.type,
+              payload: job.data, // printEngine.js 는 job.payload 를 참조함
+              order_id: orderId
+            },
+            settings: localSettings,
+            branchName: tenantId // 필요시 지점명으로 매핑
+          });
+          console.log(`[PrintService] 네이티브 인쇄 성공:`, result);
+        } catch (printErr) {
+          console.error(`[PrintService] 네이티브 인쇄 실패:`, printErr);
+          // 실패해도 다른 작업을 멈추지 않음
+        }
+      }
+      return true; // Electron 환경에서는 여기서 즉시 완료 처리
+    }
+
+    // 4. 웹 환경(브라우저)인 경우 작업 큐(print_jobs)에 저장하여 외부 브릿지가 풀링하도록 함
     const { error: insertError } = await supabase.from("print_jobs").insert(jobs);
 
     if (insertError) {

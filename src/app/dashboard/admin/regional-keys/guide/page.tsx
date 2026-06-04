@@ -159,6 +159,7 @@ export default async function RegionalApiKeyGuidePage() {
           size="sm"
           className="gap-1.5"
           render={<Link href="/dashboard/admin/regional-keys" />}
+          nativeButton={false}
         >
           <ArrowLeft className="h-4 w-4" />
           API 키 관리로

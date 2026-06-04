@@ -1,0 +1,72 @@
+appId: com.floxync.app
+productName: Floxync
+directories:
+  output: dist
+  buildResources: build
+files:
+  - "electron/**/*"
+  - "package.json"
+extraResources:
+  # pack/wrap/next-standalone — node_modules가 wrap 하위에 있어야 electron-builder가 루트 node_modules 제외 규칙을 피함
+  - from: "pack/wrap"
+    to: "."
+  - from: ".env.local"
+    to: ".env.local"
+  - from: "electron/engine/dist/gdi_print_cli.exe"
+    to: "engine/gdi_print_cli.exe"
+  - from: "bridge-app/SumatraPDF-3.4.6-32.exe"
+    to: "engine/SumatraPDF-3.4.6-32.exe"
+  - from: "bridge-app/node_modules/pdf-to-printer"
+    to: "print-engine/pdf-to-printer"
+  - from: "print-engine-staging/node_modules"
+    to: "print-engine/node_modules"
+  - from: "bridge-assets"
+    to: "bridge-assets"
+    filter:
+      - "receipt-*.html"
+      - "sample-*.html"
+  - from: "build/install-bridges.ps1"
+    to: "install-bridges.ps1"
+  - from: "build/run-bridge-pp.cmd"
+    to: "run-bridge-pp.cmd"
+  - from: "build/install-pp-bridge.cmd"
+    to: "install-pp-bridge.cmd"
+  - from: "build/install-ribbon-bridge.cmd"
+    to: "install-ribbon-bridge.cmd"
+  - from: "build/run-bridge-ribbon.cmd"
+    to: "run-bridge-ribbon.cmd"
+  - from: "bridge-app/ppbridge.exe"
+    to: "bridge-installers/ppbridge.exe"
+  - from: "bridge-app/SumatraPDF-3.4.6-32.exe"
+    to: "bridge-installers/SumatraPDF-3.4.6-32.exe"
+  - from: "bridge-app"
+    to: "bridge-installers"
+    filter:
+      - "receipt-*.html"
+  - from: "vendor/ribbon-bridge/RibbonBridgePackage.zip"
+    to: "bridge-installers/RibbonBridgePackage.zip"
+  - from: "vendor/ribbon-bridge/RibbonBridge_Setup_v25_0.exe"
+    to: "bridge-installers/RibbonBridge_Setup_v25_0.exe"
+  - from: "public/favicon.ico"
+    to: "favicon.ico"
+  - from: "build/icon.ico"
+    to: "app-icon.ico"
+win:
+  target: nsis
+  icon: build/icon.ico
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  include: build/installer.nsh
+  warningsAsErrors: false
+  installerLanguages:
+    - ko_KR
+  language: "1042"
+  shortcutName: Floxync
+  uninstallDisplayName: Floxync
+publish:
+  provider: github
+  owner: mokflw-lilymag
+  repo: floxync-releases

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from 'sonner';
 import { 
@@ -73,6 +74,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberEmail, setRememberEmail] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
@@ -94,6 +96,14 @@ export default function LoginPage() {
     if (isKakaoTalk) {
       // Force open in external browser for KakaoTalk
       window.location.href = `kakaotalk://web/openExternal?url=${encodeURIComponent(window.location.href)}`;
+    }
+  }, []);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('floxync_saved_email');
+    if (saved) {
+      setEmail(saved);
+      setRememberEmail(true);
     }
   }, []);
 
@@ -178,6 +188,12 @@ export default function LoginPage() {
         toast.error(L.errLoginFailed, { description: errorMessage });
         setLoading(false);
         return;
+      }
+
+      if (rememberEmail) {
+        localStorage.setItem('floxync_saved_email', email);
+      } else {
+        localStorage.removeItem('floxync_saved_email');
       }
 
       toast.success(L.toastWelcome, { description: L.toastWelcomeDesc });
@@ -284,6 +300,19 @@ export default function LoginPage() {
                         onChange={(e) => setEmail(e.target.value)}
                         className="pl-10 h-11 bg-white/50 dark:bg-slate-950/50"
                       />
+                    </div>
+                    <div className="flex items-center space-x-2 pt-1">
+                      <Checkbox 
+                        id="remember" 
+                        checked={rememberEmail} 
+                        onCheckedChange={(checked) => setRememberEmail(checked === true)} 
+                      />
+                      <label
+                        htmlFor="remember"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-slate-600 dark:text-slate-400 cursor-pointer"
+                      >
+                        {pickUiText(baseLocale, "이메일 저장", "Remember email", "Lưu email", "メールアドレスを保存", "记住邮箱", "Recordar correo electrónico", "Lembrar e-mail", "Mémoriser l'e-mail", "E-Mail merken", "Запомнить email")}
+                      </label>
                     </div>
                   </div>
                   <div className="space-y-2">

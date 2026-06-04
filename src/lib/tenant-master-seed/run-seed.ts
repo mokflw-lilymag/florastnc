@@ -56,17 +56,23 @@ export async function runTenantMasterSeed(
   const { data: supRows } = await admin.from("suppliers").select("name").eq("tenant_id", tenantId);
   const supplierNames = new Set((supRows ?? []).map((r) => normName(String(r.name ?? ""))));
 
-  const { data: prodRows } = await admin.from("products").select("code").eq("tenant_id", tenantId);
+  const { data: prodRows } = await admin.from("products").select("code, name").eq("tenant_id", tenantId);
   const productCodes = new Set(
     (prodRows ?? []).map((r) => String(r.code ?? "").trim()).filter(Boolean)
   );
+  const productNames = new Set(
+    (prodRows ?? []).map((r) => normName(String(r.name ?? "")))
+  );
 
   const materialMemoPrefix = `FS-SEED|${seed.version}|`;
-  const { data: matRows } = await admin.from("materials").select("memo").eq("tenant_id", tenantId);
+  const { data: matRows } = await admin.from("materials").select("memo, name").eq("tenant_id", tenantId);
   const materialMemos = new Set(
     (matRows ?? [])
       .map((r) => String(r.memo ?? "").trim())
       .filter((m) => m.startsWith(materialMemoPrefix))
+  );
+  const materialNames = new Set(
+    (matRows ?? []).map((r) => normName(String(r.name ?? "")))
   );
 
   let supInsert = 0;
@@ -93,23 +99,27 @@ export async function runTenantMasterSeed(
   seed.products.forEach((p, i) => {
     const code = resolvedProductCode(seed.version, i, p.code);
     resolvedProductCodes.push(code);
-    if (productCodes.has(code)) prodSkip += 1;
+    const n = normName(p.name);
+    if (productCodes.has(code) || productNames.has(n)) prodSkip += 1;
     else {
       prodInsert += 1;
       productCodes.add(code);
+      productNames.add(n);
     }
   });
 
   const resolvedMaterialMemos: string[] = [];
   let matInsert = 0;
   let matSkip = 0;
-  seed.materials.forEach((_, i) => {
+  seed.materials.forEach((m, i) => {
     const memo = resolvedMaterialSeedMemo(seed.version, i);
     resolvedMaterialMemos.push(memo);
-    if (materialMemos.has(memo)) matSkip += 1;
+    const n = normName(m.name);
+    if (materialMemos.has(memo) || materialNames.has(n)) matSkip += 1;
     else {
       matInsert += 1;
       materialMemos.add(memo);
+      materialNames.add(n);
     }
   });
 
@@ -187,13 +197,22 @@ export async function runTenantMasterSeed(
     for (let i = 0; i < seed.products.length; i++) {
       const p = seed.products[i];
       const code = resolvedProductCodes[i];
-      const { data: exists } = await admin
+      // Check if product with same code OR same name exists
+      const { data: existsCode } = await admin
         .from("products")
         .select("id")
         .eq("tenant_id", tenantId)
         .eq("code", code)
         .maybeSingle();
-      if (exists?.id) continue;
+      
+      const { data: existsName } = await admin
+        .from("products")
+        .select("id")
+        .eq("tenant_id", tenantId)
+        .eq("name", p.name.trim())
+        .limit(1);
+
+      if (existsCode?.id || (existsName && existsName.length > 0)) continue;
 
       const row: Record<string, unknown> = {
         tenant_id: tenantId,
@@ -216,13 +235,21 @@ export async function runTenantMasterSeed(
     for (let i = 0; i < seed.materials.length; i++) {
       const m = seed.materials[i];
       const memo = resolvedMaterialMemos[i];
-      const { data: exists } = await admin
+      const { data: existsMemo } = await admin
         .from("materials")
         .select("id")
         .eq("tenant_id", tenantId)
         .eq("memo", memo)
         .maybeSingle();
-      if (exists?.id) continue;
+
+      const { data: existsName } = await admin
+        .from("materials")
+        .select("id")
+        .eq("tenant_id", tenantId)
+        .eq("name", m.name.trim())
+        .limit(1);
+
+      if (existsMemo?.id || (existsName && existsName.length > 0)) continue;
 
       const { error } = await admin.from("materials").insert({
         tenant_id: tenantId,

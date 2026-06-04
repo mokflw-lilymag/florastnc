@@ -1027,22 +1027,34 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
   const [showQueue, setShowQueue] = useState(false);
   const bridgeCheckRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const loadPrinters = () => {
-    fetch('http://127.0.0.1:8002/api/printers', { signal: AbortSignal.timeout(5000) })
-      .then(res => res.json())
-      .then(res => {
-        if (res.status === 'success' && Array.isArray(res.data)) {
-          setPrinters(res.data);
-          
-          setSelectedPrinter(current => {
-            const saved = localStorage.getItem('ribbon_selected_printer');
-            const prev = saved || current;
-            const found = prev && res.data.find((p: any) => p.name === prev);
-            return found ? prev : (res.data.length > 0 ? res.data[0].name : '');
-          });
+  const loadPrinters = async () => {
+    try {
+      const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI;
+      let newPrinters: any[] = [];
+      
+      if (isElectron) {
+        const electronPrinters = await (window as any).electronAPI.getPrinters();
+        newPrinters = electronPrinters.map((name: string) => ({ name }));
+      } else {
+        const res = await fetch('http://127.0.0.1:8002/api/printers', { signal: AbortSignal.timeout(5000) });
+        const data = await res.json();
+        if (data.status === 'success' && Array.isArray(data.data)) {
+          newPrinters = data.data;
         }
-      })
-      .catch(() => {});
+      }
+      
+      if (newPrinters.length > 0) {
+        setPrinters(newPrinters);
+        setSelectedPrinter(current => {
+          const saved = localStorage.getItem('ribbon_selected_printer');
+          const prev = saved || current;
+          const found = prev && newPrinters.find((p: any) => p.name === prev);
+          return found ? prev : newPrinters[0].name;
+        });
+      }
+    } catch (err) {
+      console.error('loadPrinters error:', err);
+    }
   };
 
 
@@ -1416,18 +1428,41 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
     }
   };
 
-  // ─── 프린트 헬퍼: 이미지 180도 회전 ───
-  const rotateImage180 = (dataUrl: string): Promise<string> => {
+  // ─── 프린트 헬퍼: 이미지 180도 회전 및 열전사(Xprinter)용 임계값(Threshold) 필터 ───
+  const processPrintImage = (dataUrl: string, rotate: boolean, applyThreshold: boolean): Promise<string> => {
     return new Promise((resolve) => {
       const img = new window.Image();
       img.onload = () => {
         const canvas = document.createElement('canvas');
         canvas.width = img.width;
         canvas.height = img.height;
-        const ctx = canvas.getContext('2d')!;
-        ctx.translate(canvas.width / 2, canvas.height / 2);
-        ctx.rotate(Math.PI);
-        ctx.drawImage(img, -img.width / 2, -img.height / 2);
+        const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
+        
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        if (rotate) {
+          ctx.translate(canvas.width / 2, canvas.height / 2);
+          ctx.rotate(Math.PI);
+          ctx.drawImage(img, -img.width / 2, -img.height / 2);
+        } else {
+          ctx.drawImage(img, 0, 0);
+        }
+        
+        if (applyThreshold) {
+          // 안티앨리어싱(회색 픽셀) 제거를 위한 엄격한 흑백(1-bit) 임계값 필터 적용 (감열식 전용)
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const data = imageData.data;
+          for (let i = 0; i < data.length; i += 4) {
+            const brightness = 0.34 * data[i] + 0.5 * data[i+1] + 0.16 * data[i+2];
+            const v = brightness > 200 ? 255 : 0;
+            data[i] = v;
+            data[i+1] = v;
+            data[i+2] = v;
+            data[i+3] = 255;
+          }
+          ctx.putImageData(imageData, 0, 0);
+        }
         resolve(canvas.toDataURL('image/png'));
       };
       img.src = dataUrl;
@@ -1486,9 +1521,9 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
       }
       
       // Helper to process a single ref into a rotated base64 image
-      const captureRef = async (ref: React.RefObject<HTMLDivElement | null>, label: string, rotate: boolean = true) => {
+      const captureRef = async (ref: React.RefObject<HTMLDivElement | null>, label: string, rotate: boolean = true, isThermal: boolean = false) => {
         if (!ref.current) throw new Error(fillDashboardTemplate(R.captureMissing, { label }));
-        console.log(`[Print] Capturing ${label} (rotate=${rotate})...`);
+        console.log(`[Print] Capturing ${label} (rotate=${rotate}, thermal=${isThermal})...`);
         const captureStart = Date.now();
 
         // Fix 1: 폰트 <style> 주입 후 반환값(styleEl) 저장 (나중에 정리용)
@@ -1499,21 +1534,20 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
         await new Promise(r => setTimeout(r, 150));
 
         const dataUrl = await toPng(ref.current, {
-          pixelRatio: 2.0, 
+          pixelRatio: 4.0, // 해상도를 4배로 뻥튀기해서 안티앨리어싱 품질 극대화
           backgroundColor: '#ffffff',
-          cacheBust: true,   // Fix 1: 첫 세션 캐시 문제 방지 (false → true)
+          cacheBust: true,
           skipAutoScale: true,
-          skipFonts: false,  // Fix 1: 라이브러리 자체 폰트 임베딩도 활성화 (이중 보호)
+          skipFonts: true, // html-to-image 자체 폰트 파싱 끄기 (SecurityError 방지, 수동 주입 사용)
           style: { transform: 'none' }
         });
 
         // Fix 1: 캡처 완료 후 주입된 스타일 정리 (DOM 메모리 관리)
         if (injectedStyle) injectedStyle.remove();
         
-        let processedUrl = dataUrl;
-        if (rotate) {
-          processedUrl = await rotateImage180(dataUrl);
-        }
+        // 감열식(Xprinter)일 경우에만 임계값 필터(processPrintImage의 applyThreshold=true)를 거쳐서
+        // 회색 픽셀을 제거하고 완벽한 흑백(1-bit)으로 변환합니다.
+        const processedUrl = await processPrintImage(dataUrl, rotate, isThermal);
         
         const captureTime = Date.now() - captureStart;
         console.log(`[Print] ${label} Capture & Process: ${captureTime}ms`);
@@ -1522,14 +1556,29 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
       
       const sendJob = async (refs: {ref: React.RefObject<HTMLDivElement | null>, label: string, rotate?: boolean}[], w: number, h: number, jobLabel: string) => {
         const images = [];
+        const isThermal = selectedPrinterType === 'xprinter';
         for (const target of refs) {
-          images.push(await captureRef(target.ref, target.label, target.rotate ?? true));
+          images.push(await captureRef(target.ref, target.label, target.rotate ?? true, isThermal));
         }
 
         console.log(`[Print] 🚀 Sending ${jobLabel}: printer=${selectedPrinter}, segments=${images.length}, margin=${marginOffset}mm, width=${w}mm, length=${h}mm`);
 
         // 로컬 브릿지 인쇄 시도
         try {
+          const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI;
+          if (isElectron) {
+             await (window as any).electronAPI.printImage({
+              printerName: selectedPrinter,
+              images: images,
+              width_mm: w,
+              length_mm: h,
+              margin_offset_mm: (RIBBON_SPECS.find(r => r.id === ribbonType)?.marginOffset || 0) + marginOffset,
+              offset_x_mm: 0
+            });
+            console.log(`[Print] ✅ Local print success (native electron)`);
+            return;
+          }
+
           const controller = new AbortController();
           const timeout = setTimeout(() => controller.abort(), 60000); // 60s timeout
           
@@ -1902,11 +1951,9 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
               ))}
             </select>
             <button 
-              onClick={() => {
-                fetch('http://127.0.0.1:8002/api/printers', { signal: AbortSignal.timeout(2000) })
-                  .then(res => res.json())
-                  .then(res => res.status === 'success' && setPrinters(res.data))
-                  .catch(() => setPrinters([])); // Clear on failure
+              onClick={(e) => {
+                e.preventDefault();
+                loadPrinters();
               }}
               title={R.refreshPrintersTitle}
               className="p-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-700 transition"
@@ -2924,6 +2971,12 @@ function PrintQueueMonitor({ isOpen, onClose }: { isOpen: boolean; onClose: () =
 
   const fetchQueue = async () => {
     try {
+      const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI;
+      if (isElectron) {
+        const electronQueue = await (window as any).electronAPI.getQueue();
+        setQueue(electronQueue);
+        return;
+      }
       const res = await fetch('http://127.0.0.1:8002/api/queue');
       const data = await res.json();
       if (data.status === 'success') setQueue(data.data);
@@ -2942,14 +2995,24 @@ function PrintQueueMonitor({ isOpen, onClose }: { isOpen: boolean; onClose: () =
 
   const handleRetry = async (id: string) => {
     try {
-      await fetch(`http://127.0.0.1:8002/api/queue/retry/${id}`, { method: 'POST' });
+      const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI;
+      if (isElectron) {
+        await (window as any).electronAPI.retryJob(id);
+      } else {
+        await fetch(`http://127.0.0.1:8002/api/queue/retry/${id}`, { method: 'POST' });
+      }
       fetchQueue();
     } catch (e) { toast.error(Rq.retryFailed); }
   };
 
   const handleDelete = async (id: string) => {
     try {
-      await fetch(`http://127.0.0.1:8002/api/queue/${id}`, { method: 'DELETE' });
+      const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI;
+      if (isElectron) {
+        await (window as any).electronAPI.deleteJob(id);
+      } else {
+        await fetch(`http://127.0.0.1:8002/api/queue/${id}`, { method: 'DELETE' });
+      }
       fetchQueue();
     } catch (e) { toast.error(Rq.deleteFailed); }
   };

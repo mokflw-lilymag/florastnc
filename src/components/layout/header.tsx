@@ -29,6 +29,7 @@ import {
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { getMessages } from "@/i18n/getMessages";
 import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
+import { useAuthStore } from "@/stores/auth-store";
 
 interface HeaderProps {
   userEmail: string;
@@ -86,6 +87,13 @@ export function Header({
   const dh = messages.dashboardHeader;
   const [uiLocale, setUiLocale] = useState<AppLocale>("ko");
   const selectLocale = resolveDashboardSelectLocale(uiLocale);
+  const [isElectron, setIsElectron] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setIsElectron(!!(window as any).electronAPI);
+    }
+  }, []);
 
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -105,6 +113,14 @@ export function Header({
 
   useEffect(() => {
     const checkBridge = async () => {
+      const isElectronEnv = typeof window !== "undefined" && !!(window as any).electronAPI;
+      if (isElectronEnv) {
+        setIsBridgeOnline(true);
+        setIsPPBridgeOnline(true);
+        setBridgeVersion('Desktop Native');
+        return;
+      }
+
       // 1. 구형 POS 브릿지 (8002) - 레거시 호환
       try {
         const res = await fetch('http://127.0.0.1:8002/api/version', { 
@@ -121,7 +137,6 @@ export function Header({
 
       // 2. 신형 범용 프린트 브릿지 (8004) - 브라우저 자동 페어링 (Hot-swap & 영구저장)
       try {
-        const { useAuthStore } = require("@/stores/auth-store");
         const storeState = useAuthStore.getState();
         const currentTenantId = storeState.tenantId || '';
         
@@ -231,43 +246,54 @@ export function Header({
       <div className="flex items-center gap-2 md:gap-4">
 
         <div className="hidden md:flex items-center gap-2">
-          {/* PP Bridge Status Indicator */}
-          <div 
-            onClick={() => router.push('/dashboard/settings')}
-            className={cn(
-              "flex items-center gap-1.5 px-2 py-1 rounded-full border transition-all cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800",
-              isPPBridgeOnline 
-                ? "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-950/30 dark:border-blue-800 dark:text-blue-400" 
-                : "bg-slate-100 border-slate-200 text-slate-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-500"
-            )}
-          >
-            <div className={cn(
-              "w-1.5 h-1.5 rounded-full",
-              isPPBridgeOnline ? "bg-blue-500 animate-pulse shadow-[0_0_6px_rgba(59,130,246,0.5)]" : "bg-slate-400"
-            )} />
-            <span className="text-[9px] font-bold uppercase tracking-tight">
-              PP {isPPBridgeOnline ? "ON" : "OFF"} <span className="opacity-60 font-mono tracking-tighter">{bridgeVersion || 'v1'}</span>
-            </span>
-          </div>
+          {isElectron ? (
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded-full border bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-400">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_6px_rgba(16,185,129,0.5)]" />
+              <span className="text-[9px] font-bold uppercase tracking-tight">
+                데스크톱 인쇄 켜짐
+              </span>
+            </div>
+          ) : (
+            <>
+              {/* PP Bridge Status Indicator */}
+              <div 
+                onClick={() => router.push('/dashboard/settings')}
+                className={cn(
+                  "flex items-center gap-1.5 px-2 py-1 rounded-full border transition-all cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800",
+                  isPPBridgeOnline 
+                    ? "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-950/30 dark:border-blue-800 dark:text-blue-400" 
+                    : "bg-slate-100 border-slate-200 text-slate-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-500"
+                )}
+              >
+                <div className={cn(
+                  "w-1.5 h-1.5 rounded-full",
+                  isPPBridgeOnline ? "bg-blue-500 animate-pulse shadow-[0_0_6px_rgba(59,130,246,0.5)]" : "bg-slate-400"
+                )} />
+                <span className="text-[9px] font-bold uppercase tracking-tight">
+                  PP {isPPBridgeOnline ? "ON" : "OFF"} <span className="opacity-60 font-mono tracking-tighter">{bridgeVersion || 'v1'}</span>
+                </span>
+              </div>
 
-          {/* RP Bridge Status Indicator (v25.0) */}
-          <div 
-            onClick={() => router.push('/dashboard/printer')}
-            className={cn(
-              "flex items-center gap-1.5 px-2 py-1 rounded-full border transition-all cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800",
-              isBridgeOnline 
-                ? "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-400" 
-                : "bg-slate-100 border-slate-200 text-slate-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-500"
-            )}
-          >
-            <div className={cn(
-              "w-1.5 h-1.5 rounded-full",
-              isBridgeOnline ? "bg-emerald-500 animate-pulse shadow-[0_0_6px_rgba(16,185,129,0.5)]" : "bg-slate-400"
-            )} />
-            <span className="text-[9px] font-bold uppercase tracking-tight">
-              RP {isBridgeOnline ? "ON" : "OFF"} <span className="opacity-60 font-mono tracking-tighter">v25.0</span>
-            </span>
-          </div>
+              {/* RP Bridge Status Indicator (v25.0) */}
+              <div 
+                onClick={() => router.push('/dashboard/printer')}
+                className={cn(
+                  "flex items-center gap-1.5 px-2 py-1 rounded-full border transition-all cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800",
+                  isBridgeOnline 
+                    ? "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-400" 
+                    : "bg-slate-100 border-slate-200 text-slate-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-500"
+                )}
+              >
+                <div className={cn(
+                  "w-1.5 h-1.5 rounded-full",
+                  isBridgeOnline ? "bg-emerald-500 animate-pulse shadow-[0_0_6px_rgba(16,185,129,0.5)]" : "bg-slate-400"
+                )} />
+                <span className="text-[9px] font-bold uppercase tracking-tight">
+                  RP {isBridgeOnline ? "ON" : "OFF"} <span className="opacity-60 font-mono tracking-tighter">v25.0</span>
+                </span>
+              </div>
+            </>
+          )}
 
           <span className="h-3 w-[1px] bg-slate-300 dark:bg-slate-700 mx-1"></span>
           <span className="text-[9px] font-bold uppercase tracking-tight opacity-80">

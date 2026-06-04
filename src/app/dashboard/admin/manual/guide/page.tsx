@@ -220,11 +220,11 @@ export default async function SuperAdminOperationsManualPage() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" className="gap-1.5" render={<Link href="/dashboard/admin/manual" />}>
+          <Button variant="outline" size="sm" className="gap-1.5" render={<Link href="/dashboard/admin/manual" />} nativeButton={false}>
             <ArrowLeft className="h-4 w-4" />
             역할별 요약
           </Button>
-          <Button variant="outline" size="sm" className="gap-1.5" render={<Link href="/docs/manual" target="_blank" />}>
+          <Button variant="outline" size="sm" className="gap-1.5" render={<Link href="/docs/manual" target="_blank" />} nativeButton={false}>
             <ExternalLink className="h-4 w-4" />
             사장님 HTML 매뉴얼
           </Button>

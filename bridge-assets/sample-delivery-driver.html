@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>인수증</title>
+  <style>
+    @page { margin: 0; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Malgun Gothic', sans-serif;
+      margin: 0 auto;
+      padding: 8px 2mm;
+      width: 74mm;
+      color: #000;
+      background: #fff;
+      font-size: 12px;
+    }
+    .logo {
+      text-align: center;
+      margin: 6px 0 4px 0;
+    }
+    .logo img {
+      max-width: 120px;
+      height: auto;
+    }
+    .title {
+      text-align: center;
+      font-size: 16px;
+      font-weight: bold;
+      margin: 4px 0 8px 0;
+      letter-spacing: 1px;
+    }
+    .divider {
+      border-top: 1px dashed #000;
+      margin: 8px 0;
+    }
+    .recipient-name {
+      text-align: center;
+      font-size: 34px;
+      font-weight: bold;
+      margin: 10px 0 4px 0;
+      letter-spacing: 2px;
+    }
+    .recipient-contact {
+      text-align: center;
+      font-size: 16px;
+      margin-bottom: 6px;
+    }
+    .row {
+      display: flex;
+      justify-content: space-between;
+      margin: 4px 0;
+      font-size: 12px;
+    }
+    .label { color: #000; }
+    .value { font-weight: bold; text-align: right; max-width: 65%; }
+    .items-list {
+      margin: 4px 0;
+      padding: 0;
+      list-style: none;
+    }
+    .items-list li {
+      padding: 5px 0;
+      border-bottom: 1px dotted #ccc;
+      font-size: 13px;
+    }
+    .items-list li:last-child {
+      border-bottom: none;
+    }
+    .sign-box {
+      margin-top: 15px;
+      text-align: left;
+      font-size: 16px;
+      font-weight: bold;
+    }
+    .sign-line {
+      display: inline-block;
+      border-bottom: 2px solid #000;
+      width: 120px;
+      margin-left: 10px;
+      vertical-align: bottom;
+    }
+    .footer-shop {
+      text-align: center;
+      font-size: 12px;
+      color: #000;
+      margin-top: 15px;
+      padding-top: 10px;
+      border-top: 1px dashed #ccc;
+    }
+  </style>
+</head>
+<body>
+  <div class="logo">
+    <img src="https://ecimg.cafe24img.com/pg1472b45444056090/lilymagflower/web/upload/category/logo/v2_d13ecd48bab61a0269fab4ecbe56ce07_lZMUZ1lORo_top.jpg" alt="LilyMag Flower">
+  </div>
+  <div class="title">인수증 <span style="font-size:12px; color:#000; font-weight:bold;">(#abcd1234)</span></div>
+  <div class="divider"></div>
+
+  <div class="recipient-name">이영희</div>
+  <div class="recipient-contact">010-****-6666</div>
+
+  <div class="divider"></div>
+
+  <div class="row">
+    <span class="label">주문자</span>
+    <span class="value">홍** (1234)</span>
+  </div>
+  <div class="row">
+    <span class="label">배송일시</span>
+    <span class="value">05/24 (일) 14:00</span>
+  </div>
+  <div class="row" style="font-size: 15px; margin: 8px 0; align-items: flex-start;">
+    <span class="label" style="min-width: 45px;">배송지</span>
+    <span class="value" style="word-break: keep-all; line-height: 1.4;">서울특별시 강남구 테헤란로 123, 4층 402호 (역삼동, 릴리맥타워)</span>
+  </div>
+
+  <div class="divider"></div>
+
+  <ul class="items-list">
+    <li>빨간 장미 다발</li><li>축하 카드</li><li>리본 포장</li>
+  </ul>
+
+  <div style="font-size:12px; margin: 4px 0;"><b>메시지(리본):</b><br/>생일 축하합니다! 항상 건강하고 행복하세요.<br/>보내는분: 홍길동</div>
+  <div style="font-size:12px; margin: 4px 0;"><b>요청사항:</b> 배송 전 연락주세요</div>
+
+  <div class="divider"></div>
+
+  <div class="sign-box">
+    수령 확인 <span class="sign-line"></span>
+  </div>
+
+  <div class="footer-shop">
+    릴리맥강남점 02-1234-5678
+  </div>
+</body>
+</html>
