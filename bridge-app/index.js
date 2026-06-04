@@ -150,7 +150,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 // 1. 윈도우 설치된 프린터 목록을 ERP(Supabase)에 동기화
 async function syncPrinters() {
   try {
-    const printers = await ptp.getPrinters();
+    const printers = await getFastPrinters();
     const printerNames = printers.map(p => typeof p === 'string' ? p : (p.name || p.deviceId));
     console.log("🖨️ [시스템] 설치된 프린터 목록:", printerNames);
 
@@ -651,9 +651,9 @@ const { exec } = require('child_process');
 
 function getFastPrinters() {
   return new Promise((resolve) => {
-    exec('powershell "Get-Printer | Select-Object -ExpandProperty Name"', { timeout: 3000 }, (error, stdout) => {
+    exec('powershell -NoProfile -Command "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Get-Printer | Select-Object -ExpandProperty Name"', { timeout: 3000, encoding: 'utf8' }, (error, stdout) => {
       if (error) {
-        exec('wmic printer get name', { timeout: 3000 }, (err2, stdout2) => {
+        exec('cmd.exe /c chcp 65001 >NUL && wmic printer get name', { timeout: 3000, encoding: 'utf8' }, (err2, stdout2) => {
            if (err2) return resolve([]);
            const lines = stdout2.split('\n').map(l => l.trim()).filter(l => l && l.toLowerCase() !== 'name');
            resolve(lines);

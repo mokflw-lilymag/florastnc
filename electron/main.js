@@ -212,8 +212,7 @@ function killProcessOnPort(port) {
 }
 
 function stopExternalBridge() {
-  console.log('[Bridge] Stopping external Ribbon (8002) & PP (8004)...');
-  killProcessOnPort(8002);
+  console.log('[Bridge] Stopping external PP (8004)...');
   killProcessOnPort(8004);
 }
 
@@ -223,18 +222,7 @@ function restoreExternalBridge(options = {}) {
     console.log('[Bridge] Skip restore — Electron app still running');
     return;
   }
-  console.log('[Bridge] Restoring external bridges for web browser use...');
-
-  const startupFolder = path.join(
-    os.homedir(),
-    'AppData',
-    'Roaming',
-    'Microsoft',
-    'Windows',
-    'Start Menu',
-    'Programs',
-    'Startup'
-  );
+  console.log('[Bridge] Restoring external PP bridge for web browser use...');
 
   const ppVbs = path.join(app.getPath('appData'), 'floxyncBridge', 'ppbridge.vbs');
   if (fs.existsSync(ppVbs)) {
@@ -245,38 +233,8 @@ function restoreExternalBridge(options = {}) {
   } else {
     console.log('[Bridge] ppbridge.vbs not found:', ppVbs);
   }
-
-  const ribbonLauncher = path.join(
-    process.env.LOCALAPPDATA || '',
-    'RibbonBridge',
-    'launch_service.exe'
-  );
-  if (fs.existsSync(ribbonLauncher)) {
-    exec(`"${ribbonLauncher}"`, { windowsHide: true, cwd: path.dirname(ribbonLauncher) }, (err) => {
-      if (err) console.log('[Bridge] Ribbon (8002) launch_service failed:', err.message);
-      else console.log('[Bridge] Ribbon v25 (floxync) started:', ribbonLauncher);
-    });
-  } else {
-    try {
-      const entries = fs.readdirSync(startupFolder);
-      const ribbonStarter = entries.find(
-        (name) =>
-          /ribbon/i.test(name) &&
-          (name.endsWith('.vbs') || name.endsWith('.lnk') || name.endsWith('.bat'))
-      );
-      if (ribbonStarter) {
-        const fullPath = path.join(startupFolder, ribbonStarter);
-        exec(`cmd /c start "" "${fullPath}"`, { windowsHide: true }, (err) => {
-          if (err) console.log('[Bridge] Ribbon (8002) start failed:', err.message);
-          else console.log('[Bridge] Ribbon bridge starter launched:', ribbonStarter);
-        });
-      } else {
-        console.log('[Bridge] Ribbon not found (no %LOCALAPPDATA%\\RibbonBridge\\launch_service.exe)');
-      }
-    } catch (e) {
-      console.log('[Bridge] Could not scan startup folder for Ribbon:', e.message);
-    }
-  }
+  
+  // 리본 브릿지(8002)는 윈도우앱 켜질 때 끄지 않으므로, 닫을 때 다시 살릴 필요가 없습니다.
 }
 
 // Set auto-start on boot for Windows
