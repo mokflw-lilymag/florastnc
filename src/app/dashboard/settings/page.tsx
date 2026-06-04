@@ -1666,7 +1666,7 @@ export default function SettingsPage() {
                           {pickUiText(baseLocale, '프린트 테스트', 'Print Test', 'In thử')}
                         </Button>
                         <a 
-                          href="/downloads/Floxync-Bridge-Setup.zip"
+                          href="/api/downloads/bridge"
                           download="Floxync-Bridge-Setup.zip"
                           className={buttonVariants({ variant: "outline", size: "sm" })}
                         >
