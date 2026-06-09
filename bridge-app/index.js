@@ -208,18 +208,7 @@ let globalBranchName = '';
 function generateHtmlReceipt(job, settings = {}) {
   const payload = job.payload || job.data;
   const job_type = job.type || job.job_type;
-  
-  if (!payload) {
-    throw new Error('인쇄 데이터(payload/data)가 없습니다.');
-  }
-  
-  const orderer = payload.orderer || {};
-  const items = payload.items || [];
-  const summary = payload.summary || {};
-  const pickupInfo = payload.pickupInfo || payload.pickup_info || {};
-  const deliveryInfo = payload.deliveryInfo || payload.delivery_info || {};
-  const message = payload.message || {};
-  const request = payload.request || payload.memo || '';
+  const { orderer, items, summary, pickupInfo, deliveryInfo, message, request } = payload;
 
   const isPkg = typeof process.pkg !== 'undefined';
   const baseDir = isPkg ? path.dirname(process.execPath) : __dirname;
@@ -228,21 +217,19 @@ function generateHtmlReceipt(job, settings = {}) {
   const rawOrderId = payload?.orderId || payload?.id || job.order_id || job.id || '';
   const shortOrderId = String(rawOrderId).substring(0, 8);
 
-  const displayName = settings.siteName || settings.branchDisplayName || globalBranchName;
-  const displayPhone = settings.contactPhone || settings.branchPhone || globalBranchPhone;
-  const shopInfoStr = `${displayName} ${displayPhone}`.trim();
+  const displayName = settings.branchDisplayName || globalBranchName;
+  const displayPhone = settings.branchPhone || globalBranchPhone;
 
   let logoHtml = '';
-  if (payload.logo_url) {
+  if (payload && payload.logo_url) {
     logoHtml = `<img src="${payload.logo_url}" style="max-width: 120px; height: auto;" alt="Logo">`;
-  } else {
-    logoHtml = `<img src="https://ecimg.cafe24img.com/pg1472b45444056090/lilymagflower/web/upload/category/logo/v2_d13ecd48bab61a0269fab4ecbe56ce07_lZMUZ1lORo_top.jpg" style="max-width: 120px; height: auto;" alt="LilyMag Flower">`;
   }
 
+  const shopInfoStr = `${displayName} ${displayPhone}`.trim();
 
   let isCard = false;
   let isRibbon = false;
-  if (message?.content && message.content.trim().length > 0) {
+  if (message?.content && message.content.trim() !== '') {
     if (message.type === '카드' || message.type?.toLowerCase() === 'card') {
       isCard = true;
     } else {
@@ -254,6 +241,72 @@ function generateHtmlReceipt(job, settings = {}) {
       [${isRibbon ? '☑' : '☐'}] 리본 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [${isCard ? '☑' : '☐'}] 카드
     </div>
   `;
+
+  // ─── 일일 마감정산 영수증 ───
+  if (job_type === 'daily_settlement') {
+    const settlementTemplatePath = path.join(baseDir, 'receipt-daily-settlement.html');
+    let settlementTemplate = fs.existsSync(settlementTemplatePath) ? fs.readFileSync(settlementTemplatePath, 'utf8') : '';
+    
+    const d = payload || {};
+    
+    // 지출 리스트 HTML 조립
+    let expensesHtml = '';
+    if (d.expensesList && d.expensesList.length > 0) {
+      expensesHtml += d.expensesList.map(exp => `
+        <div class="row"><span class="row-name">${exp.label}</span><span class="row-amount">${exp.amount}</span></div>
+      `).join('');
+    } else {
+      expensesHtml += `<div class="row"><span class="row-name">지출 없음</span><span class="row-amount"></span></div>`;
+    }
+    
+    expensesHtml += `
+      <div class="row total"><span class="row-name">지출 총액</span><span class="row-amount">${d.expensesTotal}</span></div>
+    `;
+
+      // 당일 주문 내역 리스트 HTML 조립
+      let todayOrdersHtml = '';
+      if (d.todayOrdersList && d.todayOrdersList.length > 0) {
+        todayOrdersHtml += d.todayOrdersList.map(order => `
+          <div class="row"><span class="row-name">${order.name}</span><span class="row-amount">${order.amount}</span></div>
+        `).join('');
+      }
+
+      // 수금 내역 리스트 HTML 조립
+      let collectionsHtml = '';
+      if (d.collectionsList && d.collectionsList.length > 0) {
+        collectionsHtml += d.collectionsList.map(c => `
+          <div class="row"><span class="row-name">${c.name}</span><span class="row-amount">${c.amount}</span></div>
+        `).join('');
+      }
+
+      // 미수금 내역 리스트 HTML 조립
+      let pendingHtml = '';
+      if (d.pendingCount > 0 && d.pendingList && d.pendingList.length > 0) {
+        pendingHtml += `
+          <div class="divider"></div>
+          <div class="section-title">미결제 외상</div>
+          <div class="row bold" style="margin-top: 4px;"><span class="row-name">미수금 총액 (${d.pendingCount}건)</span><span class="row-amount">${d.pendingAmount}</span></div>
+        `;
+        pendingHtml += d.pendingList.map(p => `
+          <div class="row"><span class="row-name">${p.name}</span><span class="row-amount">${p.amount}</span></div>
+        `).join('');
+      }
+
+      return settlementTemplate
+        .replaceAll('{{branch}}', d.branch || shopInfoStr)
+        .replaceAll('{{date}}', d.date || '')
+        .replaceAll('{{print_datetime}}', dateStr)
+        .replaceAll('{{vault_balance}}', d.vaultBalance || '0')
+        .replaceAll('{{expenses_html}}', expensesHtml)
+        .replaceAll('{{orders_count}}', d.ordersCount || 0)
+        .replaceAll('{{orders_amount}}', d.ordersAmount || '0')
+        .replaceAll('{{today_orders_html}}', todayOrdersHtml)
+        .replaceAll('{{collections_count}}', d.collectionsCount || 0)
+        .replaceAll('{{collections_amount}}', d.collectionsAmount || '0')
+        .replaceAll('{{collections_html}}', collectionsHtml)
+        .replaceAll('{{pending_html}}', pendingHtml);
+  }
+
 
   // ─── 픽업 예약 메모: 전용 간결 템플릿 ───
   if (job_type === 'pickup_memo') {
@@ -271,7 +324,6 @@ function generateHtmlReceipt(job, settings = {}) {
 
     return pickupTemplate
       .replace('{{pickup_datetime}}', pickupDatetime)
-      .replace('{{logo_html}}', logoHtml)
       .replace('{{picker_name}}', pickerName)
       .replace('{{picker_contact_last4}}', pickerContact)
       .replace('{{items_html}}', pickupItemsHtml)
@@ -327,12 +379,12 @@ function generateHtmlReceipt(job, settings = {}) {
     
     // 자체배송의 경우 제목에 표시
     let receiptTitleHtml = isSelfDelivery 
-      ? `<div class="title">인수증 (자체배송) <span style="font-size:12px; color:#666; font-weight:normal;">(#${shortOrderId})</span></div>`
-      : `<div class="title">인수증 <span style="font-size:12px; color:#666; font-weight:normal;">(#${shortOrderId})</span></div>`;
+      ? `<div class="title">인수증 (매장) <span style="font-size:12px; color:#000; font-weight:bold;">(#${shortOrderId})</span></div>`
+      : `<div class="title">인수증 <span style="font-size:12px; color:#000; font-weight:bold;">(#${shortOrderId})</span></div>`;
 
     let finalHtml = driverTemplate
       .replace('{{short_order_id}}', shortOrderId)
-      .replace('{{logo_html}}', logoHtml)
+      .replace('{{print_datetime}}', dateStr)
       .replace('{{recipient_name}}', deliveryInfo?.recipientName || '')
       .replace('{{recipient_contact}}', recipientContactStr)
       .replace('{{orderer_masked}}', ordererMasked)
@@ -341,7 +393,9 @@ function generateHtmlReceipt(job, settings = {}) {
       .replace('{{items_html}}', driverItemsHtml)
       .replace('{{message_type_checkbox}}', messageTypeCheckHtml)
       .replace('{{message_html}}', driverMessageHtml)
-      .replace('{{shop_info}}', shopInfoStr);
+      .replace('{{logo_html}}', logoHtml)
+      .replace('{{shop_info}}', shopInfoStr)
+      .replace('{{logo_html}}', logoHtml);
 
     // 템플릿에 {{title_html}}이 없으면 맨 위에 주입 (호환성 유지)
     if (finalHtml.includes('{{title_html}}')) {
@@ -394,7 +448,6 @@ function generateHtmlReceipt(job, settings = {}) {
   // 템플릿 변환
   let finalHtml = shopTemplate
     .replace('{{short_order_id}}', shortOrderId)
-    .replace('{{logo_html}}', '') // 주문서에는 로고 없으므로 빈 문자열로 대체 (기존 템플릿 호환성)
     .replace('{{print_datetime}}', dateStr)
     .replace('{{orderer_name}}', orderer?.name || '익명')
     .replace('{{orderer_contact}}', orderer?.contact || '')
@@ -403,11 +456,12 @@ function generateHtmlReceipt(job, settings = {}) {
     .replace('{{delivery_datetime}}', dDatetime)
     .replace('{{delivery_address}}', dAddr)
     .replace('{{items_html}}', shopItemsHtml)
-    .replace('{{subtotal}}', summary?.subtotal != null ? `${summary.subtotal.toLocaleString()}원` : '')
-    .replace('{{delivery_fee}}', summary?.deliveryFee != null ? `${summary.deliveryFee.toLocaleString()}원` : '')
-    .replace('{{total}}', summary?.total != null ? `${summary.total.toLocaleString()}원` : '')
+    .replace('{{subtotal}}', summary?.subtotal ? `${summary.subtotal.toLocaleString()}원` : '')
+    .replace('{{delivery_fee}}', summary?.deliveryFee ? `${summary.deliveryFee.toLocaleString()}원` : '')
+    .replace('{{total}}', summary?.total ? `${summary.total.toLocaleString()}원` : '')
     .replace('{{request_html}}', reqHtml)
-    .replace('{{message_html}}', msgHtml);
+    .replace('{{message_html}}', msgHtml)
+    .replace('{{logo_html}}', logoHtml);
 
   // 픽업인 경우 라벨 변경
   if (job_type === 'pickup_shop') {
@@ -418,6 +472,8 @@ function generateHtmlReceipt(job, settings = {}) {
   return finalHtml;
 }
 
+
+// 3. 메인 프로세스
 // 3. 메인 프로세스
 async function start() {
   console.log('====================================================');

@@ -225,14 +225,17 @@ export function useOrders(initialFetch = true) {
             }
 
             setOrders(prev => {
-              if (prev.some(o => o.id === mapped.id)) return prev;
+              const isExist = prev.some(o => o.id === mapped.id);
+              if (isExist) return prev;
+              
+              // Only increment totalCount if it's a new item
+              setTotalCount(c => c + 1);
               return [mapped, ...prev];
             });
             setPaginatedOrders(prev => {
               if (prev.some(o => o.id === mapped.id)) return prev;
               return [mapped, ...prev];
             });
-            setTotalCount(prev => prev + 1);
           } else if (payload.eventType === 'UPDATE') {
             const mapped = OrderService.mapRowToOrder(payload.new);
             setOrders(prev => prev.map(o => o.id === mapped.id ? mapped : o));

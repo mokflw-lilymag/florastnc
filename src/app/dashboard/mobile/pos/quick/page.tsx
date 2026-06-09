@@ -312,9 +312,9 @@ export default function MobileQuickPosPage() {
           </div>
         </div>
 
-        <div className="flex max-h-[45vh] min-h-[200px] flex-col border-t bg-white lg:max-h-none lg:w-80 lg:border-l lg:border-t-0">
+        <div className="flex max-h-[65vh] flex-col border-t bg-white lg:max-h-none lg:w-80 lg:border-l lg:border-t-0">
           <div className="flex items-center justify-between border-b px-3 py-2">
-            <span className="text-xs font-semibold text-gray-400">장바구니</span>
+            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">주문 항목</span>
             <button
               type="button"
               onClick={() => {
@@ -323,13 +323,13 @@ export default function MobileQuickPosPage() {
                 setShowCustomInput(false);
                 setCustomAmount("");
               }}
-              className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100"
+              className="rounded-full p-1.5 text-gray-400 hover:bg-gray-100 transition-colors"
             >
               <RotateCcw className="h-4 w-4" />
             </button>
           </div>
 
-          <div className="min-h-[72px] flex-1 overflow-y-auto p-3">
+          <div className="flex-1 min-h-[90px] overflow-y-auto p-3">
             {cart.length === 0 && !showCustomInput ? (
               <p className="py-4 text-center text-sm text-gray-300">상품을 선택하세요</p>
             ) : (
@@ -368,41 +368,63 @@ export default function MobileQuickPosPage() {
             )}
           </div>
 
-          <div className="space-y-2 border-t px-3 py-2">
-            <p className="text-xs font-semibold text-gray-400">할인</p>
+          <div className="border-t px-3 pb-2 pt-2">
+            <p className="mb-1.5 text-xs font-semibold text-gray-400">할인</p>
             <div className="grid grid-cols-4 gap-1">
               {DISCOUNT_OPTIONS.map((opt) => (
                 <button
                   key={opt.value}
                   type="button"
                   onClick={() => setDiscount(opt.value)}
-                  className={`rounded-lg py-1.5 text-xs font-medium ${
+                  className={`rounded-lg py-1.5 text-xs font-medium transition-colors ${
                     discount === opt.value
                       ? "bg-orange-500 text-white"
-                      : "bg-gray-100 text-gray-600"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                   }`}
                 >
                   {opt.label}
                 </button>
               ))}
             </div>
-            <p className="text-xs font-semibold text-gray-400">결제</p>
+          </div>
+
+          <div className="px-3 pb-2">
+            <p className="mb-1.5 text-xs font-semibold text-gray-400">결제 수단</p>
             <div className="grid grid-cols-3 gap-1.5">
-              {MOBILE_PAYMENT_METHODS.map((pm) => (
-                <button
-                  key={pm.key}
-                  type="button"
-                  onClick={() => setPaymentMethod(pm.key)}
-                  className={`rounded-lg py-2 text-xs font-bold ${
-                    paymentMethod === pm.key ? pm.color : "bg-gray-100 text-gray-600"
-                  }`}
-                >
-                  {pm.label}
-                </button>
-              ))}
+              {MOBILE_PAYMENT_METHODS.map((pm) => {
+                const isActive = paymentMethod === pm.key;
+                const activeColor = pm.color.includes("text-") ? pm.color : `${pm.color} text-white`;
+                return (
+                  <button
+                    key={pm.key}
+                    type="button"
+                    onClick={() => setPaymentMethod(pm.key)}
+                    className={`rounded-lg py-2 text-center transition-all ${
+                      isActive
+                        ? `${activeColor} font-black shadow-sm scale-[1.02]`
+                        : "bg-gray-100 font-medium text-gray-600 hover:bg-gray-200"
+                    }`}
+                  >
+                    <span className="text-xs">{pm.label}</span>
+                  </button>
+                );
+              })}
             </div>
-            <div className="flex justify-between py-1">
-              <span className="text-lg font-bold">합계</span>
+          </div>
+
+          <div className="px-3 pb-4">
+            <div className="mb-1 flex items-center justify-between">
+              <span className="text-sm text-gray-500">소계</span>
+              <span className="text-sm">{effectiveSubtotal.toLocaleString()}원</span>
+            </div>
+            {discountAmount > 0 && (
+              <div className="mb-1 flex items-center justify-between">
+                <span className="text-sm text-red-500">할인</span>
+                <span className="text-sm text-red-500">-{discountAmount.toLocaleString()}원</span>
+              </div>
+            )}
+            <div className="mb-3 flex items-center justify-between">
+              <span className="text-lg font-bold text-gray-800">합계</span>
               <span className="text-2xl font-black text-orange-500">
                 {total.toLocaleString()}원
               </span>
@@ -411,7 +433,7 @@ export default function MobileQuickPosPage() {
               type="button"
               onClick={handleSubmit}
               disabled={total <= 0 || submitting}
-              className="w-full rounded-2xl bg-gradient-to-r from-orange-500 to-pink-500 py-4 text-lg font-black text-white disabled:opacity-40"
+              className="w-full rounded-2xl bg-gradient-to-r from-orange-500 to-pink-500 py-4 text-lg font-black text-white shadow-lg transition-all active:scale-95 disabled:opacity-40 hover:from-orange-600 hover:to-pink-600"
             >
               {submitting ? "처리 중..." : "✓ 결제 완료"}
             </button>
