@@ -5,14 +5,18 @@
   <title>픽업</title>
   <style>
     @page { margin: 0; }
-    body { font-weight: 800; -webkit-font-smoothing: none; 
-      font-family: 'Malgun Gothic', sans-serif;
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+      font-weight: 800;
+      -webkit-font-smoothing: none;
       margin: 0;
-      padding: 8px;
+      padding: 8px 16px 8px 8px;
       width: 72mm;
       color: #000;
       background: #fff;
-      font-size: 13px;
+      box-sizing: border-box;
+      font-size: 12px;
     }
     .divider {
       border-top: 1px dashed #000;
@@ -20,10 +24,12 @@
     }
     .recipient-name {
       text-align: center;
-      font-size: 36px;
+      font-size: 32px;
       font-weight: bold;
       margin: 10px 0 4px 0;
-      letter-spacing: 2px;
+      letter-spacing: 0;
+      word-break: keep-all;
+      line-height: 1.2;
     }
     .recipient-contact {
       text-align: center;

@@ -228,11 +228,22 @@ export function useOrders(initialFetch = true) {
               if (prev.some(o => o.id === mapped.id)) return prev;
               return [mapped, ...prev];
             });
+            setPaginatedOrders(prev => {
+              if (prev.some(o => o.id === mapped.id)) return prev;
+              return [mapped, ...prev];
+            });
+            setTotalCount(prev => prev + 1);
           } else if (payload.eventType === 'UPDATE') {
             const mapped = OrderService.mapRowToOrder(payload.new);
             setOrders(prev => prev.map(o => o.id === mapped.id ? mapped : o));
+            setPaginatedOrders(prev => prev.map(o => o.id === mapped.id ? mapped : o));
           } else if (payload.eventType === 'DELETE') {
             setOrders(prev => prev.filter(o => o.id !== (payload.old as any).id));
+            setPaginatedOrders(prev => {
+              const exists = prev.some(o => o.id === (payload.old as any).id);
+              if (exists) setTotalCount(c => Math.max(0, c - 1));
+              return prev.filter(o => o.id !== (payload.old as any).id);
+            });
           }
         }
       )

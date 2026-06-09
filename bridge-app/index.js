@@ -31,18 +31,24 @@ if (!isDaemon && currentFolder.toLowerCase() !== targetFolder.toLowerCase()) {
     // Copy EXE
     fs.copyFileSync(exePath, path.join(targetFolder, 'floxync-daemon.exe'));
     
-        // Copy templates if exists
     const templates = [
       'receipt-template.html',
       'receipt-pickup.html',
+      'receipt-daily-settlement.html',
       'receipt-delivery-shop.html',
       'receipt-delivery-driver.html',
       'SumatraPDF-3.4.6-32.exe'
     ];
     for (const tpl of templates) {
       const localTpl = path.join(currentFolder, tpl);
+      const targetTpl = path.join(targetFolder, tpl);
+      const bundledTpl = path.join(__dirname, tpl);
+
       if (fs.existsSync(localTpl)) {
-        fs.copyFileSync(localTpl, path.join(targetFolder, tpl));
+        fs.copyFileSync(localTpl, targetTpl);
+      } else if (fs.existsSync(bundledTpl)) {
+        // Extract bundled HTML from pkg snapshot
+        fs.writeFileSync(targetTpl, fs.readFileSync(bundledTpl));
       }
     }
 
@@ -136,7 +142,7 @@ console.error = function(...args) {
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
 let CURRENT_BRANCH_ID = process.env.CURRENT_BRANCH_ID || process.env.BRANCH_ID || '';
-const BRIDGE_VERSION = 'v1.5';
+const BRIDGE_VERSION = 'v1.5.1';
 
 let lastHeartbeatTime = 0;
 let isPausedLogged = false;

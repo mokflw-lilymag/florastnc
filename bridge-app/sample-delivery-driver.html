@@ -6,12 +6,15 @@
   <style>
     @page { margin: 0; }
     body {
-      font-family: 'Malgun Gothic', sans-serif;
+      font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+      font-weight: 800;
+      -webkit-font-smoothing: none;
       margin: 0;
-      padding: 8px 10px;
+      padding: 8px 16px 8px 8px;
       width: 72mm;
       color: #000;
       background: #fff;
+      box-sizing: border-box;
       font-size: 12px;
     }
     .logo {
@@ -51,7 +54,7 @@
       margin: 4px 0;
       font-size: 12px;
     }
-    .label { color: #555; }
+    .label { color: #000; }
     .value { font-weight: bold; text-align: right; max-width: 65%; }
     .items-list {
       margin: 4px 0;
@@ -60,7 +63,7 @@
     }
     .items-list li {
       padding: 5px 0;
-      border-bottom: 1px dotted #ccc;
+      border-bottom: 1px dotted #000;
       font-size: 13px;
     }
     .items-list li:last-child {
@@ -82,10 +85,10 @@
     .footer-shop {
       text-align: center;
       font-size: 12px;
-      color: #333;
+      color: #000;
       margin-top: 15px;
       padding-top: 10px;
-      border-top: 1px dashed #ccc;
+      border-top: 1px dashed #000;
     }
   </style>
 </head>
@@ -93,7 +96,7 @@
   <div class="logo">
     <img src="https://ecimg.cafe24img.com/pg1472b45444056090/lilymagflower/web/upload/category/logo/v2_d13ecd48bab61a0269fab4ecbe56ce07_lZMUZ1lORo_top.jpg" alt="LilyMag Flower">
   </div>
-  <div class="title">인수증 <span style="font-size:12px; color:#666; font-weight:normal;">(#abcd1234)</span></div>
+  <div class="title">인수증 <span style="font-size:12px; color:#000; font-weight:bold;">(#abcd1234)</span></div>
   <div class="divider"></div>
 
   <div class="recipient-name">이영희</div>
