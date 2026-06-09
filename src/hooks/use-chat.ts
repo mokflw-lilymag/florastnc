@@ -33,7 +33,7 @@ export function useChat(roomId: string | null) {
         fetchMessages();
 
         const channel = supabase
-            .channel(`room-${roomId}`)
+            .channel(`room-${roomId}-${Date.now()}-${Math.floor(Math.random() * 1000)}`)
             .on('postgres_changes', {
                 event: 'INSERT',
                 schema: 'public',

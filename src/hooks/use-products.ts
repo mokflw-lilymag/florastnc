@@ -345,7 +345,7 @@ export function useProducts(initialFetch = true, fetchAll = false, skipStats = f
     };
 
     const channel = supabase
-      .channel(`products-tenant-${tenantId}`)
+      .channel(`products-tenant-${tenantId}-${Date.now()}-${Math.floor(Math.random() * 1000)}`)
       .on(
         "postgres_changes",
         {
