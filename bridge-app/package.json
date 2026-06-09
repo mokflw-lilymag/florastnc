@@ -22,7 +22,8 @@
     "assets": [
       "node_modules/iconv-lite/encodings/tables/**/*",
       "node_modules/iconv-lite/encodings/*.js",
-      "node_modules/pdf-to-printer/dist/**/*"
+      "node_modules/pdf-to-printer/dist/**/*",
+      "*.html"
     ]
   }
 }
