@@ -206,7 +206,13 @@ export function useExpenses() {
     }
   };
 
-  const updateExpense = async (id: string, data: Partial<Omit<Expense, 'id' | 'tenant_id' | 'created_at'>>) => {
+  const updateExpense = async (
+    id: string,
+    data: Partial<Omit<Expense, 'id' | 'tenant_id' | 'created_at'>> & {
+      receipt_url?: string | null;
+      receipt_file_id?: string | null;
+    },
+  ) => {
     if (!tenantId) return null;
 
     try {
@@ -220,12 +226,27 @@ export function useExpenses() {
       if (curErr) throw curErr;
 
       const oldPath = (current?.receipt_file_id as string | undefined)?.trim() ?? '';
-      const nextPath =
-        data.receipt_file_id !== undefined
+
+      const clearingReceipt =
+        data.receipt_url === null ||
+        (typeof data.receipt_url === 'string' && data.receipt_url.trim() === '');
+
+      const updatePayload: Record<string, unknown> = { ...data };
+
+      if (clearingReceipt) {
+        updatePayload.receipt_url = null;
+        updatePayload.receipt_file_id = null;
+      }
+
+      const nextPath = clearingReceipt
+        ? ''
+        : data.receipt_file_id !== undefined
           ? String(data.receipt_file_id).trim()
           : oldPath;
 
-      const receiptKeyChanging = data.receipt_file_id !== undefined && nextPath !== oldPath;
+      const receiptKeyChanging =
+        clearingReceipt || (data.receipt_file_id !== undefined && nextPath !== oldPath);
+
       const shouldRemoveOldFile =
         oldPath.length > 0 &&
         isManagedExpenseReceiptPath(oldPath, tenantId) &&
@@ -238,7 +259,7 @@ export function useExpenses() {
 
       const { data: updated, error } = await supabase
         .from('expenses')
-        .update({ ...data, tenant_id: tenantId })
+        .update({ ...updatePayload, tenant_id: tenantId })
         .eq('id', id)
         .eq('tenant_id', tenantId)
         .select()

@@ -1,14 +1,13 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="{{locale}}">
 <head>
   <meta charset="UTF-8">
-  <title>인수증</title>
+  <title>{{label_delivery_receipt}}</title>
   <style>
     @page { margin: 2mm; }
     * { box-sizing: border-box; }
-    /* 주문서(receipt-delivery-shop)와 동일한 가로 작업영역 */
     body {
-      font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+      font-family: {{font_family}};
       font-weight: 800;
       -webkit-font-smoothing: none;
       margin: 0;
@@ -115,11 +114,9 @@
   </style>
 </head>
 <body>
-  <div class="logo">
-    {{logo_html}}
-  </div>
+  {{logo_html}}
   {{title_html}}
-  <div style="text-align:center; font-size:11px; color:#000; margin-top:2px; margin-bottom:6px;">출력일시: {{print_datetime}}</div>
+  <div style="text-align:center; font-size:11px; color:#000; margin-top:2px; margin-bottom:6px;">{{label_print_datetime_prefix}}: {{print_datetime}}</div>
   <div class="divider"></div>
 
   <div class="recipient-name">{{recipient_name}}</div>
@@ -128,15 +125,15 @@
   <div class="divider"></div>
 
   <div class="row">
-    <span class="label">주문자</span>
+    <span class="label">{{label_orderer}}</span>
     <span class="value">{{orderer_masked}}</span>
   </div>
   <div class="row">
-    <span class="label">배송일시</span>
+    <span class="label">{{label_delivery_datetime}}</span>
     <span class="value">{{delivery_datetime}}</span>
   </div>
   <div class="row" style="font-size: 15px; margin: 8px 0; align-items: flex-start;">
-    <span class="label" style="min-width: 45px;">배송지</span>
+    <span class="label" style="min-width: 45px;">{{label_delivery_address}}</span>
     <span class="value" style="line-height: 1.4; word-break: break-all; overflow-wrap: break-word; word-wrap: break-word; white-space: normal; max-width: 100%;">{{delivery_address}}</span>
   </div>
 
@@ -152,7 +149,7 @@
   <div class="divider"></div>
 
   <div class="sign-box">
-    수령 확인 <span class="sign-line"></span>
+    {{label_recipient_confirm}} <span class="sign-line"></span>
   </div>
 
   <div class="footer-shop">

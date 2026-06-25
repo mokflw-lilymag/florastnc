@@ -1,13 +1,13 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="{{locale}}">
 <head>
   <meta charset="UTF-8">
-  <title>시장 장보기 리스트</title>
+  <title>{{label_market_list_title}}</title>
   <style>
     @page { margin: 0; }
     * { box-sizing: border-box; }
     body {
-      font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+      font-family: {{font_family}};
       font-weight: 800;
       -webkit-font-smoothing: none;
       margin: 0;
@@ -76,11 +76,11 @@
   </style>
 </head>
 <body>
-  <div class="title">장보기 리스트</div>
+  <div class="title">{{label_market_list_title}}</div>
   <div class="subtitle">{{batch_name}}</div>
   <div class="info-row">
-    <span>출력일시: {{print_datetime}}</span>
-    <span>지점: {{branch_name}}</span>
+    <span>{{label_print_datetime_prefix}}: {{print_datetime}}</span>
+    <span>{{branch_name}}</span>
   </div>
   
   <div class="divider"></div>
@@ -88,10 +88,10 @@
   <table>
     <thead>
       <tr>
-        <th class="checkbox-col center">확인</th>
-        <th class="name-col">품목 / 매장</th>
-        <th class="qty-col center">수량</th>
-        <th class="price-col right">예정단가</th>
+        <th class="checkbox-col center">{{label_confirm_col}}</th>
+        <th class="name-col">{{label_item_col}}</th>
+        <th class="qty-col center">{{label_qty}}</th>
+        <th class="price-col right">{{label_amount_col}}</th>
       </tr>
     </thead>
     <tbody>
@@ -101,8 +101,5 @@
 
   <div class="divider"></div>
   
-  <div style="text-align: center; font-size: 10px; margin-top: 10px; font-weight: normal;">
-    이 리스트는 PP 브릿지를 통해 출력되었습니다.
-  </div>
 </body>
 </html>

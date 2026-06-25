@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { CheckCircle, Plus, Minus, RotateCcw, Zap } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useOrders } from "@/hooks/use-orders";
+import { useSettings } from "@/hooks/use-settings";
 import { usePinnedMobileProductCategory } from "@/hooks/use-pinned-mobile-product-category";
 import { MobilePageHeader } from "@/components/mobile/mobile-page-header";
 import { MobileProductCategoryPicker } from "@/components/mobile/mobile-product-category-picker";
@@ -16,24 +17,30 @@ import {
   resolveMobileProductCategory,
 } from "@/lib/mobile/product-categories";
 import { buildMobilePaymentMethods } from "@/lib/mobile/payment-methods";
-import { getMessages } from "@/i18n/getMessages";
-import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { useMobileShopMessages } from "@/lib/mobile/use-mobile-shop-messages";
+import { formatMobileCurrency } from "@/lib/mobile/format-mobile-currency";
 import type { Product } from "@/types/product";
 import type { OrderData } from "@/types/order";
 import { toast } from "sonner";
 
 type CartItem = { product: Product; quantity: number };
 
-const DISCOUNT_OPTIONS = [
-  { label: "할인 없음", value: 0 },
-  { label: "5%", value: 0.05 },
-  { label: "10%", value: 0.1 },
-  { label: "20%", value: 0.2 },
-];
-
 export default function MobileQuickPosPage() {
-  const locale = usePreferredLocale();
-  const tf = getMessages(locale).tenantFlows;
+  const { m, tf, locale, dateLocale } = useMobileShopMessages();
+  const { settings } = useSettings();
+  const currency = settings?.currency ?? "KRW";
+  const fmt = (amount: number) => formatMobileCurrency(amount, locale, currency);
+
+  const discountOptions = useMemo(
+    () => [
+      { label: m.pos.discountNone, value: 0 },
+      { label: "5%", value: 0.05 },
+      { label: "10%", value: 0.1 },
+      { label: "20%", value: 0.2 },
+    ],
+    [m.pos.discountNone],
+  );
+
   const { profile, tenantId } = useAuth();
   const storeName = profile?.tenants?.name;
   const { addOrder } = useOrders();
@@ -60,11 +67,11 @@ export default function MobileQuickPosPage() {
     try {
       setProducts(await fetchTenantProductsForMobile(tenantId));
     } catch {
-      toast.error("상품을 불러오지 못했습니다.");
+      toast.error(m.pos.loadProductsFailed);
     } finally {
       setLoading(false);
     }
-  }, [tenantId]);
+  }, [tenantId, m.pos.loadProductsFailed]);
 
   useEffect(() => {
     loadProducts();
@@ -160,15 +167,16 @@ export default function MobileQuickPosPage() {
         price: item.product.price,
       }));
       if (showCustomInput && customValue > 0 && items.length === 0) {
-        items = [{ id: "custom", name: "현장 판매", quantity: 1, price: customValue }];
+        items = [{ id: "custom", name: m.common.onsiteSale, quantity: 1, price: customValue }];
       }
 
+      const walkIn = m.common.walkInCustomer;
       const payload: OrderData = {
         status: "completed",
         receipt_type: "store_pickup",
         order_date: now.toISOString(),
         items,
-        orderer: { name: "현장고객", contact: "" },
+        orderer: { name: walkIn, contact: "" },
         summary: {
           subtotal: effectiveSubtotal,
           discountAmount,
@@ -184,7 +192,7 @@ export default function MobileQuickPosPage() {
         pickup_info: {
           date: now.toISOString().slice(0, 10),
           time: formatTime(now),
-          pickerName: "현장고객",
+          pickerName: walkIn,
           pickerContact: "",
         },
         delivery_info: null,
@@ -203,7 +211,7 @@ export default function MobileQuickPosPage() {
         setShowCustomInput(false);
       }, 2000);
     } catch {
-      toast.error("주문 등록 중 오류가 발생했습니다.");
+      toast.error(m.pos.registerError);
     } finally {
       setSubmitting(false);
     }
@@ -212,7 +220,7 @@ export default function MobileQuickPosPage() {
   if (!tenantId) {
     return (
       <div className="flex flex-1 items-center justify-center p-6 text-center text-gray-500">
-        매장 정보가 없습니다.
+        {m.common.noStore}
       </div>
     );
   }
@@ -221,8 +229,8 @@ export default function MobileQuickPosPage() {
     return (
       <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-emerald-500">
         <CheckCircle className="mb-6 h-24 w-24 text-white" />
-        <p className="text-4xl font-bold text-white">결제 완료!</p>
-        <p className="mt-3 text-2xl text-white/80">{total.toLocaleString()}원</p>
+        <p className="text-4xl font-bold text-white">{m.pos.successTitle}</p>
+        <p className="mt-3 text-2xl text-white/80">{fmt(total)}</p>
       </div>
     );
   }
@@ -230,12 +238,13 @@ export default function MobileQuickPosPage() {
   return (
     <div className="flex h-full min-h-0 flex-col">
       <MobilePageHeader
-        title="빠른 판매 POS"
+        title={m.pos.title}
         subtitle={storeName ?? undefined}
         icon={Zap}
         variant="orange"
         onRefresh={loadProducts}
         loading={loading}
+        dateLocale={dateLocale}
       />
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
@@ -259,14 +268,14 @@ export default function MobileQuickPosPage() {
                 onClick={() => setShowCustomInput(true)}
                 className="mb-3 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-orange-300 py-3 font-medium text-orange-500"
               >
-                <Plus className="h-4 w-4" /> 금액 직접 입력
+                <Plus className="h-4 w-4" /> {m.pos.customAmount}
               </button>
             ) : (
               <div className="mb-3 flex items-center gap-2 rounded-xl border-2 border-orange-200 bg-orange-50 p-3">
                 <span className="font-bold text-orange-600">₩</span>
                 <input
                   type="number"
-                  placeholder="판매 금액"
+                  placeholder={m.pos.saleAmountPlaceholder}
                   value={customAmount}
                   onChange={(e) => setCustomAmount(e.target.value)}
                   className="flex-1 bg-transparent text-lg font-bold outline-none"
@@ -285,7 +294,7 @@ export default function MobileQuickPosPage() {
             )}
 
             {loading ? (
-              <p className="py-10 text-center text-gray-400">상품 불러오는 중...</p>
+              <p className="py-10 text-center text-gray-400">{m.pos.loadingProducts}</p>
             ) : (
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                 {filteredProducts.map((product) => {
@@ -311,7 +320,7 @@ export default function MobileQuickPosPage() {
                         {product.name}
                       </p>
                       <p className="mt-1 text-sm font-bold text-orange-600">
-                        {product.price.toLocaleString()}원
+                        {fmt(product.price)}
                       </p>
                     </button>
                   );
@@ -323,7 +332,7 @@ export default function MobileQuickPosPage() {
 
         <div className="flex max-h-[65vh] flex-col border-t bg-white lg:max-h-none lg:w-80 lg:border-l lg:border-t-0">
           <div className="flex items-center justify-between border-b px-3 py-2">
-            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">주문 항목</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">{m.pos.orderItems}</span>
             <button
               type="button"
               onClick={() => {
@@ -332,15 +341,15 @@ export default function MobileQuickPosPage() {
                 setShowCustomInput(false);
                 setCustomAmount("");
               }}
-              className="rounded-full p-1.5 text-gray-400 hover:bg-gray-100 transition-colors"
+              className="rounded-full p-1.5 text-gray-400 transition-colors hover:bg-gray-100"
             >
               <RotateCcw className="h-4 w-4" />
             </button>
           </div>
 
-          <div className="flex-1 min-h-[90px] overflow-y-auto p-3">
+          <div className="min-h-[90px] flex-1 overflow-y-auto p-3">
             {cart.length === 0 && !showCustomInput ? (
-              <p className="py-4 text-center text-sm text-gray-300">상품을 선택하세요</p>
+              <p className="py-4 text-center text-sm text-gray-300">{m.pos.selectProducts}</p>
             ) : (
               <div className="space-y-2">
                 {cart.map((item) => (
@@ -351,7 +360,7 @@ export default function MobileQuickPosPage() {
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">{item.product.name}</p>
                       <p className="text-xs text-gray-500">
-                        {item.product.price.toLocaleString()}원
+                        {fmt(item.product.price)}
                       </p>
                     </div>
                     <div className="flex items-center gap-1">
@@ -378,9 +387,9 @@ export default function MobileQuickPosPage() {
           </div>
 
           <div className="border-t px-3 pb-2 pt-2">
-            <p className="mb-1.5 text-xs font-semibold text-gray-400">할인</p>
+            <p className="mb-1.5 text-xs font-semibold text-gray-400">{m.pos.discount}</p>
             <div className="grid grid-cols-4 gap-1">
-              {DISCOUNT_OPTIONS.map((opt) => (
+              {discountOptions.map((opt) => (
                 <button
                   key={opt.value}
                   type="button"
@@ -398,7 +407,7 @@ export default function MobileQuickPosPage() {
           </div>
 
           <div className="px-3 pb-2">
-            <p className="mb-1.5 text-xs font-semibold text-gray-400">결제 수단</p>
+            <p className="mb-1.5 text-xs font-semibold text-gray-400">{m.pos.paymentMethod}</p>
             <div className="grid grid-cols-4 gap-1.5">
               {mobilePaymentMethods.map((pm) => {
                 const isActive = paymentMethod === pm.key;
@@ -410,7 +419,7 @@ export default function MobileQuickPosPage() {
                     onClick={() => setPaymentMethod(pm.key)}
                     className={`rounded-lg py-2 text-center transition-all ${
                       isActive
-                        ? `${activeColor} font-black shadow-sm scale-[1.02]`
+                        ? `${activeColor} scale-[1.02] font-black shadow-sm`
                         : "bg-gray-100 font-medium text-gray-600 hover:bg-gray-200"
                     }`}
                   >
@@ -423,28 +432,28 @@ export default function MobileQuickPosPage() {
 
           <div className="px-3 pb-4">
             <div className="mb-1 flex items-center justify-between">
-              <span className="text-sm text-gray-500">소계</span>
-              <span className="text-sm">{effectiveSubtotal.toLocaleString()}원</span>
+              <span className="text-sm text-gray-500">{m.pos.subtotal}</span>
+              <span className="text-sm">{fmt(effectiveSubtotal)}</span>
             </div>
             {discountAmount > 0 && (
               <div className="mb-1 flex items-center justify-between">
-                <span className="text-sm text-red-500">할인</span>
-                <span className="text-sm text-red-500">-{discountAmount.toLocaleString()}원</span>
+                <span className="text-sm text-red-500">{m.pos.discountLine}</span>
+                <span className="text-sm text-red-500">-{fmt(discountAmount)}</span>
               </div>
             )}
             <div className="mb-3 flex items-center justify-between">
-              <span className="text-lg font-bold text-gray-800">합계</span>
+              <span className="text-lg font-bold text-gray-800">{m.pos.total}</span>
               <span className="text-2xl font-black text-orange-500">
-                {total.toLocaleString()}원
+                {fmt(total)}
               </span>
             </div>
             <button
               type="button"
               onClick={handleSubmit}
               disabled={total <= 0 || submitting}
-              className="w-full rounded-2xl bg-gradient-to-r from-orange-500 to-pink-500 py-4 text-lg font-black text-white shadow-lg transition-all active:scale-95 disabled:opacity-40 hover:from-orange-600 hover:to-pink-600"
+              className="w-full rounded-2xl bg-gradient-to-r from-orange-500 to-pink-500 py-4 text-lg font-black text-white shadow-lg transition-all hover:from-orange-600 hover:to-pink-600 active:scale-95 disabled:opacity-40"
             >
-              {submitting ? "처리 중..." : "✓ 결제 완료"}
+              {submitting ? m.pos.submitting : m.pos.payComplete}
             </button>
           </div>
         </div>

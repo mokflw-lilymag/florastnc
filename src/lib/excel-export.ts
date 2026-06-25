@@ -255,6 +255,47 @@ export const exportToExcel = async (data: any[], fileName: string, sheetName: st
   saveAs(blob, fileName.endsWith('.xlsx') ? fileName : `${fileName}.xlsx`);
 };
 
+/** 지출 목록 엑셀 내보내기 */
+export const exportExpensesToExcel = async (
+  expenses: Array<{
+    expense_date: string;
+    category?: string;
+    sub_category?: string;
+    amount?: number;
+    description?: string;
+    payment_method?: string;
+    supplierName?: string;
+    memo?: string;
+  }>,
+  appLocale?: string,
+) => {
+  const bl = toBaseLocale(resolveLocale(appLocale));
+  const headers = buildExpenseSheetHeaders(bl);
+  const rows = expenses.map((exp) => [
+    format(parseDate(exp.expense_date), "P", { locale: dateFnsLoc(appLocale) }),
+    exp.category || "-",
+    exp.sub_category || "-",
+    exp.amount || 0,
+    exp.description || "-",
+    exp.payment_method || "-",
+    exp.supplierName || "-",
+    exp.memo || "-",
+  ]);
+
+  const XLSX = await import("xlsx");
+  const workbook = XLSX.utils.book_new();
+  const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  const sheetLabel = expenseHistoryExportLabel(bl);
+  XLSX.utils.book_append_sheet(workbook, worksheet, sheetLabel);
+
+  const today = format(new Date(), "yyyy-MM-dd");
+  const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+  const blob = new Blob([excelBuffer], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+  saveAs(blob, `${sheetLabel}_${today}.xlsx`);
+};
+
 // ============================================================
 //  구글 시트 내보내기 유틸리티 (Google Sheets Export)
 // ============================================================

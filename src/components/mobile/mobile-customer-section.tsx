@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/sheet";
 import { formatPhoneNumber } from "@/lib/mobile/format-phone";
 import { cn } from "@/lib/utils";
+import { useMobileShopMessages } from "@/lib/mobile/use-mobile-shop-messages";
 
 type MobileCustomerSectionProps = {
   customers: Customer[];
@@ -69,6 +70,7 @@ export function MobileCustomerSection({
   maxUsablePoints,
   pointRate = 0,
 }: MobileCustomerSectionProps) {
+  const { m } = useMobileShopMessages();
   const [customerSheetOpen, setCustomerSheetOpen] = useState(false);
   const [customerSearch, setCustomerSearch] = useState("");
 
@@ -91,10 +93,15 @@ export function MobileCustomerSection({
     setCustomerSearch("");
   };
 
+  const searchHint =
+    pointRate > 0
+      ? `${m.customer.searchHint} (${pointRate}%)`
+      : m.customer.searchHint;
+
   return (
     <section className="space-y-3 rounded-2xl border bg-white p-4 shadow-sm">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-sm font-bold text-gray-800">주문자 · 고객</h2>
+        <h2 className="text-sm font-bold text-gray-800">{m.customer.sectionTitle}</h2>
         <Button
           type="button"
           size="sm"
@@ -103,7 +110,7 @@ export function MobileCustomerSection({
           onClick={() => setCustomerSheetOpen(true)}
         >
           <Search className="h-3.5 w-3.5" />
-          고객 검색
+          {m.customer.search}
         </Button>
       </div>
 
@@ -119,40 +126,42 @@ export function MobileCustomerSection({
             ) : null}
             <p className="text-xs text-gray-500">{selectedCustomer.contact}</p>
             {selectedCustomer.marketing_consent ? (
-              <p className="mt-1 text-[10px] font-bold text-emerald-600">알림 수신 동의</p>
+              <p className="mt-1 text-[10px] font-bold text-emerald-600">{m.customer.marketingConsentBadge}</p>
             ) : null}
             <p className="mt-1 text-sm font-black text-emerald-700">
-              보유 포인트 {(selectedCustomer.points ?? 0).toLocaleString()}P
+              {m.customer.pointsBalance.replace(
+                "{{amount}}",
+                `${(selectedCustomer.points ?? 0).toLocaleString()}P`,
+              )}
             </p>
           </div>
           <button
             type="button"
             onClick={onClearCustomer}
             className="rounded-full p-1 text-gray-400 hover:bg-white hover:text-red-500"
-            aria-label="고객 선택 해제"
+            aria-label={m.customer.clearSelection}
           >
             <X className="h-4 w-4" />
           </button>
         </div>
       ) : (
         <p className="rounded-lg border border-dashed bg-gray-50 px-3 py-2 text-xs text-gray-500">
-          기존 고객을 검색해 불러오면 포인트 사용·적립이 연결됩니다.
-          {pointRate > 0 ? ` (결제 금액의 ${pointRate}% 적립)` : ""}
+          {searchHint}
         </p>
       )}
 
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label className="text-xs text-gray-500">회사명 (선택)</Label>
+          <Label className="text-xs text-gray-500">{m.customer.companyOptional}</Label>
           <Input
             value={ordererCompany}
             onChange={(e) => setOrdererCompany(e.target.value)}
             className="h-10"
-            placeholder="회사명"
+            placeholder={m.customer.companyPlaceholder}
           />
         </div>
         <div className="space-y-2">
-          <Label className="text-xs text-gray-500">이메일 (선택)</Label>
+          <Label className="text-xs text-gray-500">{m.customer.emailOptional}</Label>
           <Input
             type="email"
             value={ordererEmail}
@@ -163,11 +172,11 @@ export function MobileCustomerSection({
         </div>
       </div>
       <p className="text-[10px] text-muted-foreground leading-snug -mt-1">
-        제작·배송 완료 시 연락은 이메일로 전달됩니다.
+        {m.customer.emailHint}
       </p>
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <Label className="text-xs text-gray-500">이름</Label>
+          <Label className="text-xs text-gray-500">{m.customer.name}</Label>
           <Input
             value={ordererName}
             onChange={(e) => setOrdererName(e.target.value)}
@@ -175,7 +184,7 @@ export function MobileCustomerSection({
           />
         </div>
         <div>
-          <Label className="text-xs text-gray-500">연락처</Label>
+          <Label className="text-xs text-gray-500">{m.customer.contact}</Label>
           <Input
             value={ordererContact}
             onChange={(e) => setOrdererContact(formatPhoneNumber(e.target.value))}
@@ -197,7 +206,7 @@ export function MobileCustomerSection({
             htmlFor="mobile-register-customer"
             className={cn("text-xs", selectedCustomer ? "text-gray-400" : "cursor-pointer")}
           >
-            고객 등록
+            {m.customer.register}
           </Label>
         </div>
         <div className="flex items-center gap-2">
@@ -211,7 +220,7 @@ export function MobileCustomerSection({
             htmlFor="mobile-anniversary-from-order"
             className={cn("text-xs", hasOrdererIdentity ? "cursor-pointer" : "text-gray-400")}
           >
-            기념일로등록
+            {m.customer.anniversaryFromOrder}
           </Label>
         </div>
       </div>
@@ -223,14 +232,14 @@ export function MobileCustomerSection({
           onCheckedChange={(c) => setMarketingConsent(!!c)}
         />
         <Label htmlFor="mobile-marketing-consent" className="text-xs cursor-pointer">
-          마케팅 및 문자 수신 동의
+          {m.customer.marketingConsent}
         </Label>
       </div>
 
       {selectedCustomer && maxUsablePoints > 0 && (
         <div className="space-y-2 rounded-xl border border-amber-200 bg-amber-50/50 p-3">
           <div className="flex items-center justify-between">
-            <Label className="text-xs font-bold text-amber-900">포인트 사용</Label>
+            <Label className="text-xs font-bold text-amber-900">{m.customer.usePoints}</Label>
             <Button
               type="button"
               variant="ghost"
@@ -238,7 +247,7 @@ export function MobileCustomerSection({
               className="h-7 text-xs text-amber-800"
               onClick={() => setUsedPoints(maxUsablePoints)}
             >
-              전액 사용
+              {m.customer.useAllPoints}
             </Button>
           </div>
           <Input
@@ -253,7 +262,10 @@ export function MobileCustomerSection({
             className="h-10 bg-white"
           />
           <p className="text-[10px] text-amber-800/80">
-            최대 {maxUsablePoints.toLocaleString()}P 사용 가능
+            {m.customer.maxPointsHint.replace(
+              "{{amount}}",
+              maxUsablePoints.toLocaleString(),
+            )}
           </p>
         </div>
       )}
@@ -261,12 +273,12 @@ export function MobileCustomerSection({
       <Sheet open={customerSheetOpen} onOpenChange={setCustomerSheetOpen}>
         <SheetContent side="bottom" className="h-[80vh] rounded-t-3xl">
           <SheetHeader>
-            <SheetTitle>고객 검색</SheetTitle>
+            <SheetTitle>{m.customer.sheetTitle}</SheetTitle>
           </SheetHeader>
           <div className="relative mt-4">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <Input
-              placeholder="이름, 연락처, 회사명"
+              placeholder={m.customer.sheetSearchPlaceholder}
               value={customerSearch}
               onChange={(e) => setCustomerSearch(e.target.value)}
               className="pl-9"
@@ -275,12 +287,12 @@ export function MobileCustomerSection({
           </div>
           <ul className="mt-4 max-h-[calc(80vh-9rem)] space-y-1 overflow-y-auto pb-8">
             {customersLoading ? (
-              <li className="py-8 text-center text-sm text-gray-400">불러오는 중...</li>
+              <li className="py-8 text-center text-sm text-gray-400">{m.customer.sheetLoading}</li>
             ) : filteredCustomers.length === 0 ? (
               <li className="py-8 text-center text-sm text-gray-400">
-                검색 결과가 없습니다.
+                {m.customer.sheetEmpty}
                 <br />
-                <span className="text-xs">아래에서 직접 입력 후 「고객으로 등록」을 켜 주세요.</span>
+                <span className="text-xs">{m.customer.sheetEmptyHint}</span>
               </li>
             ) : (
               filteredCustomers.map((c) => (

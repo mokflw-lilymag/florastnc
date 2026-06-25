@@ -199,6 +199,37 @@ function initLocalDb(dbPath) {
     CREATE INDEX IF NOT EXISTS idx_simple_expenses_tenant_date ON simple_expenses(tenant_id, expense_date);
   `);
 
+  // expenses — 지출관리(receipt_url) Electron 월별 백업용 pull-only sync
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS expenses (
+      id TEXT PRIMARY KEY,
+      tenant_id TEXT,
+      category TEXT,
+      sub_category TEXT,
+      amount REAL,
+      description TEXT,
+      expense_date TEXT,
+      payment_method TEXT,
+      related_order_id TEXT,
+      supplier_id TEXT,
+      material_id TEXT,
+      quantity REAL,
+      unit TEXT,
+      receipt_url TEXT,
+      receipt_file_id TEXT,
+      storage_provider TEXT,
+      purchase_id TEXT,
+      related_branch_material_request_id TEXT,
+      created_at TEXT,
+      sync_status TEXT DEFAULT 'synced',
+      last_sync_time TEXT
+    );
+  `);
+
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_expenses_tenant_date ON expenses(tenant_id, expense_date);
+  `);
+
   // legacy single-column migrations
   try {
     db.exec(`ALTER TABLE orders ADD COLUMN completionphotourl TEXT`);

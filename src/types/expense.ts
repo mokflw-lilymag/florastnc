@@ -14,8 +14,8 @@ export interface Expense {
   material_id?: string;
   quantity?: number;
   unit?: string;
-  receipt_url?: string;
-  receipt_file_id?: string;
+  receipt_url?: string | null;
+  receipt_file_id?: string | null;
   storage_provider?: string;
   purchase_id?: string;
   created_at: string;

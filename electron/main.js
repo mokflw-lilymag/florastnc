@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, globalShortcut, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, globalShortcut, dialog, Notification } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const fs = require('fs');
@@ -15,7 +15,17 @@ let syncWorker = null;
 let localDb = null;
 let mainWindow = null;
 let tray = null;
+let externalOrderPendingCount = 0;
 const isDev = !app.isPackaged;
+
+function refreshTrayTooltip() {
+  if (!tray) return;
+  tray.setToolTip(
+    externalOrderPendingCount > 0
+      ? `FloXync — 새 네트워크 수주 ${externalOrderPendingCount}건`
+      : 'FloXync 백그라운드 인쇄 서버',
+  );
+}
 
 function resolveAppIconPath() {
   const candidates = isDev
@@ -341,17 +351,28 @@ function createWindow() {
     return false;
   });
 
-  // 새 창(target="_blank")이 열릴 때도 preload.js를 주입하여 native(electron) 브릿지 연동이 되게 함
+  // 새 창: 앱 내부(localhost/file)만 Electron, 그 외는 OS 기본 브라우저
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    const isInternal =
+      url.startsWith('file://') ||
+      url.startsWith('http://localhost') ||
+      url.startsWith('http://127.0.0.1') ||
+      url.startsWith('https://localhost') ||
+      url.startsWith('https://127.0.0.1');
+    if (!isInternal) {
+      const { shell } = require('electron');
+      void shell.openExternal(url);
+      return { action: 'deny' };
+    }
     return {
       action: 'allow',
       overrideBrowserWindowOptions: {
         webPreferences: {
           preload: path.join(__dirname, 'preload.js'),
           contextIsolation: true,
-          nodeIntegration: false
-        }
-      }
+          nodeIntegration: false,
+        },
+      },
     };
   });
 
@@ -378,6 +399,19 @@ if (!gotTheLock) {
 
   app.whenReady().then(() => {
     loadElectronEnv(app.getPath('userData'));
+
+    // Windows 바탕화면 바로가기 자동 복구 (업데이트 후 깨진 링크 방어)
+    try {
+      if (process.platform === 'win32') {
+        const { shell } = require('electron');
+        const desktopPath = path.join(os.homedir(), 'Desktop');
+        const shortcutPath = path.join(desktopPath, 'FloXync.lnk');
+        shell.writeShortcutLink(shortcutPath, 'replace', { target: process.execPath });
+        console.log('[Shortcut] Desktop shortcut verified:', shortcutPath);
+      }
+    } catch (e) {
+      console.log('[Shortcut Error]', e);
+    }
 
     // 로컬 DB 및 SyncWorker 초기화
     try {
@@ -524,15 +558,29 @@ ipcMain.handle('get-yearly-stats', async (_event, tenantId) => {
   }
 });
 
-ipcMain.handle('download-image', async (_event, { url, filename }) => {
+ipcMain.handle('sync-tenant-backup-path', (_event, { tenantId, path: backupPath }) => {
+  try {
+    const { setTenantBackupPath } = require('./backupPathStore');
+    if (!tenantId) return { ok: false, error: 'tenantId is required' };
+    setTenantBackupPath(tenantId, backupPath);
+    return { ok: true };
+  } catch (error) {
+    console.error('[sync-tenant-backup-path]', error);
+    return { ok: false, error: error.message };
+  }
+});
+
+ipcMain.handle('download-image', async (_event, { url, filename, tenantId }) => {
   try {
     const https = require('https');
     const http = require('http');
+    const { getImageDownloadDir } = require('./backupPathStore');
     if (!url || !filename) {
       return { success: false, error: 'url and filename are required' };
     }
 
-    const downloadDir = path.join(app.getPath('documents'), 'Floxync', 'ImageDownload');
+    const tid = tenantId || syncWorker?.tenantId;
+    const downloadDir = getImageDownloadDir(tid);
     if (!fs.existsSync(downloadDir)) fs.mkdirSync(downloadDir, { recursive: true });
 
     const safeName = String(filename).replace(/[<>:"/\\|?*]/g, '_');
@@ -588,10 +636,47 @@ ipcMain.handle('wake-up-window', async () => {
     if (mainWindow.isMinimized()) mainWindow.restore();
     mainWindow.show();
     mainWindow.focus();
+    mainWindow.flashFrame(true);
     mainWindow.setAlwaysOnTop(true);
     setTimeout(() => {
       if (mainWindow && !mainWindow.isDestroyed()) mainWindow.setAlwaysOnTop(false);
     }, 1000);
+  }
+  return { ok: true };
+});
+
+ipcMain.handle('notify-external-order', async (_event, payload = {}) => {
+  externalOrderPendingCount += 1;
+  refreshTrayTooltip();
+
+  const title = payload.title || '🌸 새 네트워크 수주';
+  const body = payload.body || '확인이 필요한 수주가 있습니다.';
+
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    if (!mainWindow.isVisible()) {
+      mainWindow.flashFrame(true);
+    }
+    mainWindow.show();
+    mainWindow.focus();
+  }
+
+  if (Notification.isSupported()) {
+    try {
+      new Notification({ title, body, silent: false }).show();
+    } catch (e) {
+      console.warn('[notify-external-order] Notification failed', e);
+    }
+  }
+
+  return { ok: true, count: externalOrderPendingCount };
+});
+
+ipcMain.handle('clear-external-order-badge', async () => {
+  externalOrderPendingCount = 0;
+  refreshTrayTooltip();
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.flashFrame(false);
   }
   return { ok: true };
 });
@@ -659,7 +744,15 @@ ipcMain.handle('open-print-log-folder', async () => {
 
 ipcMain.handle('get-bridge-assets-path', async () => {
   const exists = fs.existsSync(bridgeAssetsPath);
-  const templates = ['receipt-pickup.html', 'receipt-delivery-shop.html', 'receipt-delivery-driver.html'];
+  const templates = [
+    'receipt-pickup.html',
+    'receipt-delivery-shop.html',
+    'receipt-delivery-driver.html',
+    'receipt-daily-settlement.html',
+    'receipt-market-list.html',
+    'receipt-labels.json',
+    'receipt-i18n.js',
+  ];
   const missing = templates.filter((t) => !fs.existsSync(path.join(bridgeAssetsPath, t)));
   return { path: bridgeAssetsPath, exists, missing };
 });
@@ -1243,6 +1336,31 @@ ipcMain.handle('trigger-restore', async (event, backupData) => {
   return { ok: false, error: 'SyncWorker not active' };
 });
 
+ipcMain.handle('run-monthly-photo-backup', async (_event, payload = {}) => {
+  if (!syncWorker?.tenantId || !localDb) {
+    return { ok: false, error: 'SyncWorker not active' };
+  }
+  try {
+    const result = await syncWorker.runMonthlyPhotoBackup(payload.targetMonth, !!payload.force);
+    return result;
+  } catch (error) {
+    console.error('[MonthlyPhotoBackup]', error);
+    return { ok: false, error: error.message };
+  }
+});
+
+ipcMain.handle('open-monthly-backup-folder', async (_event, payload) => {
+  const { shell } = require('electron');
+  const { getDeliveryBackupDir, getReceiptBackupDir } = require('./sync/photoBackup');
+  const kind = typeof payload === 'string' ? payload : payload?.kind;
+  const tenantId = typeof payload === 'object' && payload ? payload.tenantId : undefined;
+  const tid = tenantId || syncWorker?.tenantId;
+  const folder = kind === 'receipt' ? getReceiptBackupDir(tid) : getDeliveryBackupDir(tid);
+  if (!fs.existsSync(folder)) fs.mkdirSync(folder, { recursive: true });
+  await shell.openPath(folder);
+  return { ok: true, path: folder };
+});
+
 ipcMain.handle('query-db', async (event, { table, astChain }) => {
   try {
     const db = localDb;
@@ -1492,5 +1610,62 @@ ipcMain.handle('query-db', async (event, { table, astChain }) => {
   } catch (error) {
     console.error('[Electron DB Error]', error);
     return { data: null, error: { message: error.message } };
+  }
+});
+
+let reminderWindow = null;
+let reminderData = null;
+
+function getUiBaseUrl() {
+  return isDev ? 'http://localhost:3000' : `http://127.0.0.1:${EMBEDDED_PORT}`;
+}
+
+ipcMain.on('open-reminder-window', (_event, data) => {
+  if (reminderWindow && !reminderWindow.isDestroyed()) {
+    reminderWindow.focus();
+    return;
+  }
+
+  reminderData = data;
+
+  const iconPath = resolveAppIconPath();
+  reminderWindow = new BrowserWindow({
+    width: 480,
+    height: 640,
+    title: '배송/픽업 준비 확인',
+    resizable: false,
+    minimizable: false,
+    maximizable: false,
+    alwaysOnTop: true,
+    modal: true,
+    parent: mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined,
+    ...(iconPath ? { icon: iconPath } : {}),
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: false,
+      contextIsolation: true,
+    },
+  });
+
+  reminderWindow.setMenu(null);
+  reminderWindow.loadURL(`${getUiBaseUrl()}/reminder-popup`);
+
+  reminderWindow.on('closed', () => {
+    reminderWindow = null;
+    reminderData = null;
+  });
+});
+
+ipcMain.handle('get-reminder-data', () => reminderData);
+
+ipcMain.on('close-reminder-window', () => {
+  if (reminderWindow && !reminderWindow.isDestroyed()) {
+    reminderWindow.close();
+  }
+});
+
+ipcMain.on('reminder-action', (_event, data) => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('reminder-action', data);
   }
 });

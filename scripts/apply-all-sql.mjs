@@ -40,6 +40,7 @@ const ORDER = [
   'supabase/platform_config_partner_orders_flag.sql',
   'supabase/test_user_applications_schema.sql',
   'supabase/support_faq_schema.sql',
+  'supabase/fixed_cost_templates_schema.sql',
   'supabase/ai_messaging_schema_update.sql',
   'supabase/products_delete_policy.sql',
   'supabase/storage_buckets.sql',

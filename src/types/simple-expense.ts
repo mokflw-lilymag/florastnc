@@ -154,6 +154,7 @@ export interface CreateSimpleExpenseData {
   unitPrice?: number;
   paymentMethod?: 'card' | 'cash' | 'transfer' | 'other';
   receiptFile?: File;
+  receiptUrl?: string | null;
   inventoryUpdates?: InventoryUpdateItem[];
   relatedRequestId?: string;
   relatedOrderId?: string;

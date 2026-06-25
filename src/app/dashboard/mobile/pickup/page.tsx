@@ -8,9 +8,9 @@ import {
   Search,
   RefreshCw,
 } from "lucide-react";
-import { format } from "date-fns";
 import { useOrders } from "@/hooks/use-orders";
 import { useAuth } from "@/hooks/use-auth";
+import { useSettings } from "@/hooks/use-settings";
 import { MobilePageHeader } from "@/components/mobile/mobile-page-header";
 import { toast } from "sonner";
 import {
@@ -18,28 +18,66 @@ import {
   getUrgencyColor,
   formatOrderDateShort,
   matchesDateFilter,
+  PICKUP_TABS,
+  PICKUP_DATE_FILTERS,
   type DateFilterType,
   type PickupTabType,
   type PickupListItem,
 } from "@/lib/mobile/pickup-utils";
+import {
+  mobilePaymentLabels,
+  useMobileShopMessages,
+} from "@/lib/mobile/use-mobile-shop-messages";
+import { formatMobileCurrency } from "@/lib/mobile/format-mobile-currency";
 import type { Order } from "@/types/order";
 import { OrderDetailDialog } from "../../pickup-delivery/components/order-detail-dialog";
 
-const PAY_BUTTONS: { id: Order["payment"]["method"]; label: string; cls: string }[] = [
-  { id: "card", label: "카드", cls: "bg-blue-500 text-white" },
-  { id: "cash", label: "현금", cls: "bg-emerald-500 text-white" },
-  { id: "transfer", label: "이체", cls: "bg-orange-500 text-white" },
-  { id: "mainpay", label: "메인", cls: "bg-rose-500 text-white" },
-  { id: "epay", label: "e-Pay", cls: "bg-violet-500 text-white" },
-  { id: "kakao", label: "카카오", cls: "bg-yellow-400 text-gray-900" },
-];
-
 export default function MobilePickupPage() {
+  const { m, locale, dateLocale } = useMobileShopMessages();
+  const { settings } = useSettings();
+  const currency = settings?.currency ?? "KRW";
+  const fmt = (amount: number) => formatMobileCurrency(amount, locale, currency);
+
+  const itemLabels = useMemo(
+    () => ({
+      productFallback: m.common.productFallback,
+      customerFallback: m.common.customerFallback,
+      itemsMore: m.common.itemsMore,
+    }),
+    [m],
+  );
+
+  const payButtons = useMemo(() => {
+    const labels = mobilePaymentLabels(m);
+    return (
+      [
+        { id: "card" as const, label: labels.card, cls: "bg-blue-500 text-white" },
+        { id: "cash" as const, label: labels.cash, cls: "bg-emerald-500 text-white" },
+        { id: "transfer" as const, label: labels.transfer, cls: "bg-orange-500 text-white" },
+        { id: "mainpay" as const, label: labels.mainpay, cls: "bg-rose-500 text-white" },
+        { id: "epay" as const, label: labels.epay, cls: "bg-violet-500 text-white" },
+        { id: "kakao" as const, label: labels.kakao, cls: "bg-yellow-400 text-gray-900" },
+      ] as const
+    );
+  }, [m]);
+
+  const tabLabel = (tab: PickupTabType) => {
+    if (tab === "pickup") return m.pickup.tabPickup;
+    if (tab === "delivery") return m.pickup.tabDelivery;
+    return m.pickup.tabAll;
+  };
+
+  const dateLabel = (opt: DateFilterType) => {
+    if (opt === "today") return m.pickup.dateToday;
+    if (opt === "tomorrow") return m.pickup.dateTomorrow;
+    return m.pickup.dateAll;
+  };
+
   const { profile, tenantId } = useAuth();
   const storeName = profile?.tenants?.name;
   const { orders, loading, isRefreshing, fetchOrders, updateOrder, setOrders } = useOrders();
-  const [activeTab, setActiveTab] = useState<PickupTabType>("전체");
-  const [dateFilter, setDateFilter] = useState<DateFilterType>("오늘");
+  const [activeTab, setActiveTab] = useState<PickupTabType>("all");
+  const [dateFilter, setDateFilter] = useState<DateFilterType>("today");
   const [search, setSearch] = useState("");
   const [showCompleted, setShowCompleted] = useState(false);
   const [completingId, setCompletingId] = useState<string | null>(null);
@@ -51,8 +89,8 @@ export default function MobilePickupPage() {
       .filter((o) =>
         ["pickup_reservation", "delivery_reservation"].includes(o.receipt_type)
       )
-      .map(mapOrderToPickupItem);
-  }, [orders]);
+      .map((o) => mapOrderToPickupItem(o, itemLabels));
+  }, [orders, itemLabels]);
 
   const filtered = useMemo(() => {
     const threeDaysAgo = new Date();
@@ -75,8 +113,8 @@ export default function MobilePickupPage() {
           if (compare < threeDaysAgo) return false;
         }
 
-        if (activeTab === "픽업" && o.receiptType === "delivery_reservation") return false;
-        if (activeTab === "배송" && o.receiptType !== "delivery_reservation") return false;
+        if (activeTab === "pickup" && o.receiptType === "delivery_reservation") return false;
+        if (activeTab === "delivery" && o.receiptType !== "delivery_reservation") return false;
 
         if (search) {
           const q = search.toLowerCase();
@@ -107,8 +145,8 @@ export default function MobilePickupPage() {
     const extra = { ...(row.extra_data || {}), production_completed: !current };
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, extra_data: extra } : o));
     const ok = await updateOrder(orderId, { extra_data: extra } as Partial<Order>);
-    if (ok) toast.success(!current ? "제작 완료로 표시했습니다." : "제작 대기로 변경했습니다.");
-    else toast.error("저장에 실패했습니다.");
+    if (ok) toast.success(!current ? m.pickup.toastProductionDone : m.pickup.toastProductionWait);
+    else toast.error(m.pickup.toastSaveFailed);
   };
 
   const handleComplete = async (
@@ -117,9 +155,9 @@ export default function MobilePickupPage() {
     amount: number
   ) => {
     const label = method
-      ? PAY_BUTTONS.find((p) => p.id === method)?.label ?? method
-      : "선결제";
-    if (!confirm(`${label}로 수령 완료 처리하시겠습니까?`)) return;
+      ? payButtons.find((p) => p.id === method)?.label ?? method
+      : m.payment.prepaid;
+    if (!confirm(m.pickup.confirmComplete.replace("{{method}}", label))) return;
 
     setCompletingId(orderId);
     try {
@@ -130,11 +168,10 @@ export default function MobilePickupPage() {
             ...(row?.payment || {}),
             status: "paid" as const,
             method,
-            completedAt, // 픽업 결제(현장결제): 결제일을 오늘(수령일)로 업데이트
+            completedAt,
           }
         : {
             ...(row?.payment || {}),
-            // 선결제: 기존 결제일(payment.completedAt)을 유지해야 일일마감이 틀어지지 않음
           };
 
       const ok = await updateOrder(orderId, {
@@ -142,23 +179,22 @@ export default function MobilePickupPage() {
         payment,
         completed_at: completedAt,
       } as Partial<Order>);
-      if (ok) toast.success("수령 완료 처리되었습니다.");
-      else toast.error("처리에 실패했습니다.");
+      if (ok) toast.success(m.pickup.toastCompleteSuccess);
+      else toast.error(m.pickup.toastCompleteFailed);
       void amount;
     } catch {
-      toast.error("처리 중 오류가 발생했습니다.");
+      toast.error(m.pickup.toastError);
     } finally {
       setCompletingId(null);
     }
   };
 
-
   if (!tenantId) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
         <Package className="h-12 w-12 text-gray-300" />
-        <p className="font-bold text-gray-700">매장 정보를 불러올 수 없습니다</p>
-        <p className="text-sm text-gray-400">로그인 후 다시 시도해 주세요.</p>
+        <p className="font-bold text-gray-700">{m.pickup.noTenantTitle}</p>
+        <p className="text-sm text-gray-400">{m.pickup.noTenantBody}</p>
       </div>
     );
   }
@@ -167,13 +203,18 @@ export default function MobilePickupPage() {
     <>
     <div className="flex h-full min-h-0 flex-col">
       <MobilePageHeader
-        title="픽업 / 배송 관리"
+        title={m.pickup.title}
         subtitle={storeName ?? undefined}
         icon={Package}
         variant="emerald"
-        badge={pendingCount > 0 ? `${pendingCount}건 대기` : undefined}
+        badge={
+          pendingCount > 0
+            ? m.pickup.pendingBadge.replace("{{count}}", String(pendingCount))
+            : undefined
+        }
         loading={loading || isRefreshing}
         onRefresh={() => fetchOrders(60)}
+        dateLocale={dateLocale}
       />
 
       <div className="sticky top-0 z-10 space-y-2 border-b bg-white px-3 py-2 shadow-sm">
@@ -181,14 +222,14 @@ export default function MobilePickupPage() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
             type="search"
-            placeholder="고객명, 연락처, 상품명 검색..."
+            placeholder={m.pickup.searchPlaceholder}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full rounded-2xl bg-gray-100 py-2.5 pl-9 pr-4 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-emerald-400"
           />
         </div>
         <div className="flex flex-wrap items-center gap-1.5 pb-1">
-          {(["전체", "픽업", "배송"] as PickupTabType[]).map((tab) => (
+          {PICKUP_TABS.map((tab) => (
             <button
               key={tab}
               type="button"
@@ -199,13 +240,13 @@ export default function MobilePickupPage() {
                   : "bg-gray-100 text-gray-500"
               }`}
             >
-              {tab === "픽업" && "📦 "}
-              {tab === "배송" && "🚚 "}
-              {tab}
+              {tab === "pickup" && "📦 "}
+              {tab === "delivery" && "🚚 "}
+              {tabLabel(tab)}
             </button>
           ))}
           <span className="mx-1 h-4 w-px bg-gray-200" />
-          {(["오늘", "내일", "전체"] as DateFilterType[]).map((opt) => (
+          {PICKUP_DATE_FILTERS.map((opt) => (
             <button
               key={opt}
               type="button"
@@ -216,7 +257,7 @@ export default function MobilePickupPage() {
                   : "bg-gray-100 text-gray-500"
               }`}
             >
-              {opt}
+              {dateLabel(opt)}
             </button>
           ))}
           <button
@@ -226,7 +267,7 @@ export default function MobilePickupPage() {
               showCompleted ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-400"
             }`}
           >
-            완료 {showCompleted ? "숨기기" : "보기"}
+            {showCompleted ? m.pickup.hideCompleted : m.pickup.showCompleted}
           </button>
         </div>
       </div>
@@ -235,12 +276,12 @@ export default function MobilePickupPage() {
         {loading && filtered.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-16 text-gray-400">
             <RefreshCw className="h-10 w-10 animate-spin text-emerald-200" />
-            <p className="text-sm">불러오는 중...</p>
+            <p className="text-sm">{m.common.loading}</p>
           </div>
         ) : filtered.length === 0 ? (
           <div className="py-20 text-center text-gray-400">
             <Package className="mx-auto mb-4 h-16 w-16 opacity-10" />
-            <p className="text-sm">예약·픽업·배송 주문이 없습니다.</p>
+            <p className="text-sm">{m.pickup.empty}</p>
           </div>
         ) : (
           filtered.map((order) => (
@@ -248,9 +289,12 @@ export default function MobilePickupPage() {
               key={order.id}
               order={order}
               completingId={completingId}
+              payButtons={payButtons}
               onToggleProduction={handleToggleProduction}
               onComplete={handleComplete}
               onOrderClick={() => setSelectedOrder(order.originalOrder)}
+              fmt={fmt}
+              dateLocale={dateLocale}
             />
           ))
         )}
@@ -270,17 +314,23 @@ export default function MobilePickupPage() {
 function PickupOrderCard({
   order,
   completingId,
+  payButtons,
   onToggleProduction,
   onComplete,
   onOrderClick,
+  fmt,
+  dateLocale,
 }: {
   order: PickupListItem;
   completingId: string | null;
+  payButtons: readonly { id: Order["payment"]["method"]; label: string; cls: string }[];
   onToggleProduction: (id: string, current: boolean) => void;
   onComplete: (id: string, method: Order["payment"]["method"] | null, amount: number) => void;
   onOrderClick: () => void;
+  fmt: (amount: number) => string;
+  dateLocale: import("date-fns").Locale;
 }) {
-
+  const { m } = useMobileShopMessages();
 
   const isPickup =
     order.receiptType === "pickup_reservation" || order.receiptType === "store_pickup";
@@ -312,21 +362,21 @@ function PickupOrderCard({
                 isPickup ? "bg-blue-600" : "bg-purple-600"
               }`}
             >
-              {isPickup ? "픽업" : "배송"}
+              {isPickup ? m.pickup.badgePickup : m.pickup.badgeDelivery}
             </span>
             {!isCompleted && isPrePaid && (
               <span className="rounded-md bg-indigo-100 px-1.5 py-0.5 text-[9px] font-black text-indigo-700">
-                💳 선결제
+                💳 {m.pickup.prepaid}
               </span>
             )}
             {order.productionCompleted && (
               <span className="rounded-md bg-emerald-100 px-1.5 py-0.5 text-[9px] font-black text-emerald-700">
-                ✨ 제작완료
+                ✨ {m.pickup.productionDone}
               </span>
             )}
             {isCompleted && (
               <span className="flex items-center gap-0.5 rounded-md bg-emerald-100 px-1.5 py-0.5 text-[9px] font-black text-emerald-700">
-                <CheckCircle2 className="h-3 w-3" /> 완료
+                <CheckCircle2 className="h-3 w-3" /> {m.pickup.statusDone}
               </span>
             )}
           </div>
@@ -343,7 +393,7 @@ function PickupOrderCard({
                     : "border-gray-200 bg-white text-gray-500"
                 }`}
               >
-                {order.productionCompleted ? "제작완료" : "제작대기"}
+                {order.productionCompleted ? m.pickup.productionDone : m.pickup.productionWait}
               </button>
               {!isCompleted && isPrePaid && (
                 <button
@@ -352,7 +402,7 @@ function PickupOrderCard({
                   onClick={() => onComplete(order.id, null, order.total)}
                   className="rounded-lg bg-indigo-500 px-2.5 py-1 text-[9px] font-bold text-white disabled:opacity-50"
                 >
-                  수령확인
+                  {m.pickup.confirmReceipt}
                 </button>
               )}
             </div>
@@ -360,13 +410,13 @@ function PickupOrderCard({
 
           {order.orderDate && (
             <p className="mt-1 text-[10px] text-gray-400">
-              주문: {formatOrderDateShort(order.orderDate)}
+              {m.pickup.orderDatePrefix} {formatOrderDateShort(order.orderDate, dateLocale)}
             </p>
           )}
 
           {!isCompleted && !isPrePaid && (
             <div className="mt-2 flex gap-0.5">
-              {PAY_BUTTONS.map(({ id, label, cls }) => (
+              {payButtons.map(({ id, label, cls }) => (
                 <button
                   key={id}
                   type="button"
@@ -389,12 +439,11 @@ function PickupOrderCard({
           )}
           <div className="mt-2 flex items-center justify-between">
             <p className="text-sm font-black text-gray-900">
-              {order.total.toLocaleString()}원
+              {fmt(order.total)}
             </p>
           </div>
         </div>
       </div>
-      
     </div>
   );
 }

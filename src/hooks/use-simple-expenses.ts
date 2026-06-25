@@ -259,7 +259,11 @@ export function useSimpleExpenses({ enableRealtime = false }: { enableRealtime?:
     if (!user) return false;
     setLoading(true);
     try {
-      const updatePayload: any = { updated_at: new Date().toISOString() };
+      const updatePayload: Record<string, unknown> = { updated_at: new Date().toISOString() };
+      if (data.receiptUrl === null) {
+        updatePayload.receipt_url = null;
+        updatePayload.receipt_file_name = null;
+      }
       if (data.receiptFile) {
         const { data: exp } = await supabase.from('simple_expenses').select('tenant_id').eq('id', expenseId).single();
         if (exp) {
@@ -411,6 +415,10 @@ export function useSimpleExpenses({ enableRealtime = false }: { enableRealtime?:
         supplier: item.supplier,
         tenant_id: branchId,
         tenant_name: tenantName,
+        extra_data: {
+          from_fixed_template: true,
+          due_day: item.dueDay ?? null,
+        },
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }));

@@ -4,6 +4,7 @@ import { Pin } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { canPinMobileProductCategory } from "@/lib/mobile/pinned-product-category";
+import { useMobileShopMessages } from "@/lib/mobile/use-mobile-shop-messages";
 
 type MobileProductCategoryPickerProps = {
   categories: string[];
@@ -24,6 +25,8 @@ export function MobileProductCategoryPicker({
   onPinCategory,
   accent = "blue",
 }: MobileProductCategoryPickerProps) {
+  const { m } = useMobileShopMessages();
+
   if (categories.length === 0) return null;
 
   const activeStyles =
@@ -37,13 +40,13 @@ export function MobileProductCategoryPicker({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-2">
-        <Label className="text-xs font-semibold text-gray-600">카테고리</Label>
+        <Label className="text-xs font-semibold text-gray-600">{m.pos.categoryLabel}</Label>
         {pinnedCategory ? (
           <span className="text-[10px] font-medium text-gray-500">
-            시작 화면: 📌 {pinnedCategory}
+            {m.pos.pinStartCategory.replace("{{category}}", pinnedCategory)}
           </span>
         ) : (
-          <span className="text-[10px] text-gray-400">선택 후 📌으로 시작 화면 고정</span>
+          <span className="text-[10px] text-gray-400">{m.pos.pinFixedHint}</span>
         )}
       </div>
 
@@ -93,16 +96,8 @@ export function MobileProductCategoryPicker({
               {showPin ? (
                 <button
                   type="button"
-                  title={
-                    isPinned
-                      ? "시작 카테고리로 고정됨"
-                      : "이 카테고리를 시작 화면으로 고정"
-                  }
-                  aria-label={
-                    isPinned
-                      ? `${cat} 시작 카테고리로 고정됨`
-                      : `${cat}을(를) 시작 화면으로 고정`
-                  }
+                  title={isPinned ? m.pos.pinCategoryDone : m.pos.pinCategoryAction}
+                  aria-label={isPinned ? m.pos.pinCategoryDone : m.pos.pinCategoryAction}
                   onClick={() => onPinCategory!(cat)}
                   className={cn(
                     "inline-flex h-8 w-8 shrink-0 touch-manipulation items-center justify-center rounded-full transition-colors active:scale-95",

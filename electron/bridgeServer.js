@@ -11,34 +11,6 @@ const POLL_INTERVAL_MS = 12_000;
 const MAX_JOBS_PER_POLL = 2;
 const MAX_JOB_AGE_MS = 4 * 60 * 60 * 1000;
 
-/** main.js print-job IPC와 동일: POS/라벨 정책 + job별 ribbon */
-function resolveTargetPrinter(settings, job) {
-  const posPrinter = settings?.printerName || settings?.posPrinterName || '';
-  const labelPrinter = settings?.labelPrinterName || posPrinter;
-  if (job?.printer_type === 'ribbon') {
-    return settings?.ribbonPrinterName || posPrinter;
-  }
-  if (settings?.receiptPrinterType === 'label') {
-    return labelPrinter || posPrinter;
-  }
-  return posPrinter || labelPrinter;
-}
-
-/** 라벨 80mm: main.js·bridge-app 과 동일한 절취선·여백 */
-function applyLabelPrintStyles(html) {
-  return String(html || '')
-    .replace(/padding:\s*8px\s+16px\s+8px\s+8px/gi, 'padding: 8px')
-    .replace(/padding:\s*8px\s+2mm/gi, 'padding: 8px')
-    .replace(
-      '</head>',
-      '<style>body{margin-left:auto!important;margin-right:auto!important;}</style></head>'
-    )
-    .replace(
-      '</body>',
-      '<div style="margin-top: 15px; border-top: 1px dashed #000; padding-top: 5px; text-align: center; font-size: 11px; color: #555;">✂ 절취선 ✂</div></body>'
-    );
-}
-
 function createBridgeServer(port = 8004) {
   let tenantId = null;
   let pollTimer = null;
@@ -88,39 +60,19 @@ function createBridgeServer(port = 8004) {
         try { normalizedJob.data = JSON.parse(normalizedJob.payload); } catch (_) {}
       }
 
-      const receiptPrinterType =
-        settings?.receiptPrinterType === 'label' ? 'label' : 'pos';
-      const targetPrinter = resolveTargetPrinter(settings, normalizedJob);
-      if (!targetPrinter) {
+      const htmlStr = generateHtmlReceipt(normalizedJob, settings, bridgeAssetsPath, '', '');
+      const printerName = settings.printerName || settings.posPrinterName || '';
+      if (!printerName) {
         throw new Error(
-          `프린터 이름이 설정되지 않았습니다. 웹 [환경설정]에서 ${
-            receiptPrinterType === 'label' ? '라벨' : '영수증(POS)'
-          } 프린터를 선택해주세요. (tenant: ${tenantId})`
+          `프린터 이름이 설정되지 않았습니다. 웹 설정(환경설정 → 프린터)에서 프린터를 선택해주세요. (tenant: ${tenantId})`
         );
       }
-
-      let htmlStr = generateHtmlReceipt(
-        normalizedJob,
-        settings,
-        bridgeAssetsPath,
-        '',
-        ''
-      );
-      if (!htmlStr || !htmlStr.trim()) {
-        throw new Error('인쇄 HTML 생성 실패 — bridge-assets 템플릿을 확인하세요.');
-      }
-      if (receiptPrinterType === 'label') {
-        htmlStr = applyLabelPrintStyles(htmlStr);
-      }
-
-      console.log(
-        `[Bridge] Job ${job.id} | type=${normalizedJob.job_type} | mode=${receiptPrinterType} | printer=${targetPrinter}`
-      );
-      await executeReceiptPrint(htmlStr, targetPrinter, {
+      console.log(`[Bridge] Job ${job.id} | type=${normalizedJob.job_type} | printer=${printerName}`);
+      await executeReceiptPrint(htmlStr, printerName, {
         appIsPackaged: app.isPackaged,
         resourcesPath: process.resourcesPath,
         logFn: (msg) => console.log(`[Bridge][Print] ${msg}`),
-        receiptPrinterType,
+        receiptPrinterType: normalizedJob.job_type || 'pos',
       });
       await supabase.from('print_jobs').update({ status: 'completed' }).eq('id', job.id);
     } catch (jobErr) {

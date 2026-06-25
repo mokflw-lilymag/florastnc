@@ -1,19 +1,22 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="{{locale}}">
 <head>
   <meta charset="UTF-8">
-  <title>픽업</title>
+  <title>{{label_doc_pickup}}</title>
   <style>
     @page { margin: 0; }
     * { box-sizing: border-box; }
-    body { font-weight: 800; -webkit-font-smoothing: none; 
-      font-family: 'Malgun Gothic', sans-serif;
-      margin: 0 auto;
-      padding: 8px 2mm;
-      width: 74mm;
+    body {
+      font-family: {{font_family}};
+      font-weight: 800;
+      -webkit-font-smoothing: none;
+      margin: 0;
+      padding: 8px 16px 8px 8px;
+      width: 72mm;
       color: #000;
       background: #fff;
-      font-size: 13px;
+      box-sizing: border-box;
+      font-size: 12px;
     }
     .divider {
       border-top: 1px dashed #000;
@@ -61,8 +64,8 @@
   </style>
 </head>
 <body>
-  <div style="text-align:center; font-size:14px; font-weight:bold; margin:4px 0 8px 0;">픽업 예약 <span style="font-size:12px; color:#000; font-weight:bold;">(#{{short_order_id}})</span></div>
-  <div style="text-align:center; font-size:11px; color:#000; margin-bottom:6px;">출력일시: {{print_datetime}}</div>
+  <div style="text-align:center; font-size:14px; font-weight:bold; margin:4px 0 8px 0;">{{label_doc_pickup}} <span style="font-size:12px; color:#000; font-weight:bold;">(#{{short_order_id}})</span></div>
+  <div style="text-align:center; font-size:11px; color:#000; margin-bottom:6px;">{{label_print_datetime_prefix}}: {{print_datetime}}</div>
 
   <div class="divider"></div>
 

@@ -5,6 +5,10 @@ function expenseCalendarYmd(e: Expense): string {
   return format(new Date(e.expense_date), "yyyy-MM-dd");
 }
 
+function normalizeDescription(value: string): string {
+  return value.replace(/\s+/g, " ").trim().toLowerCase();
+}
+
 /** 금액이 같은 영수증으로 볼 만큼 가까운지 (0.5% 또는 최소 1원). */
 export function amountsClose(a: number, b: number): boolean {
   const hi = Math.max(Math.abs(a), Math.abs(b));
@@ -13,16 +17,70 @@ export function amountsClose(a: number, b: number): boolean {
 }
 
 /**
+ * 레퍼런스 엑셀 일괄등록과 동일: 날짜 + 거래처 + 품목명 + 금액 완전 일치.
+ */
+export function findExactDuplicateExpenses(
+  expenses: Expense[],
+  input: {
+    expenseDateYmd: string;
+    supplierId: string;
+    headerDescription: string;
+    headerAmount: number;
+    lineItems: { description?: string; amount: number }[];
+    excludeExpenseId?: string;
+  },
+): Expense[] {
+  const pool = input.excludeExpenseId
+    ? expenses.filter((e) => e.id !== input.excludeExpenseId)
+    : expenses;
+
+  const sup = input.supplierId === "none" ? null : input.supplierId;
+  if (!sup) return [];
+
+  const matchRow = (description: string, amount: number) =>
+    pool.filter(
+      (e) =>
+        expenseCalendarYmd(e) === input.expenseDateYmd &&
+        e.supplier_id === sup &&
+        normalizeDescription(e.description || "") === normalizeDescription(description) &&
+        Math.trunc(Number(e.amount) || 0) === Math.trunc(Number(amount) || 0),
+    );
+
+  const out = new Map<string, Expense>();
+
+  if (input.lineItems.length > 0) {
+    for (const item of input.lineItems) {
+      const desc = item.description || input.headerDescription;
+      for (const hit of matchRow(desc, item.amount)) {
+        out.set(hit.id, hit);
+      }
+    }
+  } else {
+    for (const hit of matchRow(input.headerDescription, input.headerAmount)) {
+      out.set(hit.id, hit);
+    }
+  }
+
+  return Array.from(out.values())
+    .sort((a, b) => new Date(b.expense_date).getTime() - new Date(a.expense_date).getTime())
+    .slice(0, 15);
+}
+
+/** 다른 지출에 이미 등록된 영수증 URL */
+export function findReceiptUrlConflict(
+  expenses: Expense[],
+  receiptUrl: string,
+  excludeExpenseId?: string,
+): Expense[] {
+  const url = receiptUrl.trim();
+  if (!url) return [];
+  return expenses.filter(
+    (e) => e.id !== excludeExpenseId && (e.receipt_url || "").trim() === url,
+  );
+}
+
+/**
  * 새로 저장하려는 지출과 비슷한 기존 지출을 찾습니다 (차단하지 않고 경고용).
- *
- * - 동일 증빙 URL(같은 링크를 두 번 넣은 경우)
- * - **같은 거래일 + 같은 거래처 + 합계 금액 유사** — 날짜만 다르고 금액이 같다면 중복으로 보지 않음
- * - 품목 여러 줄: 같은 거래일·같은 거래처에서 각 줄 금액이 기존 행과 1:1로 모두 짝이면 중복 업로드 가능성
- *
- * 거래처가 없으면(`none`) 날짜·금액만으로는 경고하지 않습니다(우연한 동액 방지). URL 일치는 그대로 봅니다.
- *
- * 비교 대상은 화면에 로드된 `expenses` 전체입니다. `useExpenses`는 기본적으로 기간 제한 없이 조회하므로,
- * 일주일(또는 그 이전) 거래일을 폼에 맞춰 넣으면 그 날짜의 기존 지출과 비교됩니다.
  */
 export function findExpensesSimilarToDraft(
   expenses: Expense[],
@@ -32,8 +90,13 @@ export function findExpensesSimilarToDraft(
     headerAmount: number;
     lineItems: { amount: number }[];
     receiptUrl?: string;
-  }
+    excludeExpenseId?: string;
+  },
 ): Expense[] {
+  const pool = input.excludeExpenseId
+    ? expenses.filter((e) => e.id !== input.excludeExpenseId)
+    : expenses;
+
   const out = new Map<string, Expense>();
   const add = (list: Expense[]) => {
     for (const e of list) out.set(e.id, e);
@@ -41,7 +104,7 @@ export function findExpensesSimilarToDraft(
 
   const url = input.receiptUrl?.trim();
   if (url) {
-    add(expenses.filter((e) => e.receipt_url && e.receipt_url === url));
+    add(pool.filter((e) => e.receipt_url && e.receipt_url === url));
   }
 
   const sup = input.supplierId === "none" ? null : input.supplierId;
@@ -60,17 +123,15 @@ export function findExpensesSimilarToDraft(
     const sameDayAndSupplier = (e: Expense) =>
       expenseCalendarYmd(e) === input.expenseDateYmd && e.supplier_id === sup;
 
-    add(
-      expenses.filter((e) => sameDayAndSupplier(e) && amountsClose(e.amount, total))
-    );
+    add(pool.filter((e) => sameDayAndSupplier(e) && amountsClose(e.amount, total)));
 
     if (input.lineItems.length >= 2) {
-      const pool = expenses.filter(sameDayAndSupplier);
+      const sameDayPool = pool.filter(sameDayAndSupplier);
       const used = new Set<string>();
       const matched: Expense[] = [];
       for (const it of input.lineItems) {
         const amt = Number(it.amount) || 0;
-        const hit = pool.find((e) => !used.has(e.id) && amountsClose(e.amount, amt));
+        const hit = sameDayPool.find((e) => !used.has(e.id) && amountsClose(e.amount, amt));
         if (hit) {
           used.add(hit.id);
           matched.push(hit);
@@ -95,7 +156,7 @@ function compactLower(s: string): string {
 export function expenseDescriptionsOverlap(
   expenseDesc: string,
   headerDescription: string,
-  lineItems: { material_name?: string; description?: string }[]
+  lineItems: { material_name?: string; description?: string }[],
 ): boolean {
   const exp = compactLower(expenseDesc || "");
   if (exp.length < 2) return false;
@@ -124,8 +185,13 @@ export function findSameDaySupplierAmountMismatch(
     headerAmount: number;
     headerDescription: string;
     lineItems: { amount: number; material_name?: string; description?: string }[];
-  }
+    excludeExpenseId?: string;
+  },
 ): Expense[] {
+  const pool = input.excludeExpenseId
+    ? expenses.filter((e) => e.id !== input.excludeExpenseId)
+    : expenses;
+
   const sup = input.supplierId === "none" ? null : input.supplierId;
   if (!sup) return [];
 
@@ -135,8 +201,8 @@ export function findSameDaySupplierAmountMismatch(
       : input.headerAmount;
   if (draftTotal <= 0) return [];
 
-  const sameDaySupplier = expenses.filter(
-    (e) => expenseCalendarYmd(e) === input.expenseDateYmd && e.supplier_id === sup
+  const sameDaySupplier = pool.filter(
+    (e) => expenseCalendarYmd(e) === input.expenseDateYmd && e.supplier_id === sup,
   );
   if (sameDaySupplier.length === 0) return [];
 
@@ -144,11 +210,102 @@ export function findSameDaySupplierAmountMismatch(
   if (anyClose) return [];
 
   const withItemSignal = sameDaySupplier.filter((e) =>
-    expenseDescriptionsOverlap(e.description || "", input.headerDescription, input.lineItems)
+    expenseDescriptionsOverlap(e.description || "", input.headerDescription, input.lineItems),
   );
   if (withItemSignal.length === 0) return [];
 
   return withItemSignal
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 10);
+}
+
+export type DuplicateCheckInput = {
+  expenseDateYmd: string;
+  supplierId: string;
+  headerDescription: string;
+  headerAmount: number;
+  lineItems: { description?: string; amount: number; material_name?: string }[];
+  receiptUrl?: string;
+  excludeExpenseId?: string;
+};
+
+export type DuplicateCheckResult = {
+  exact: Expense[];
+  receiptUrlConflicts: Expense[];
+  similar: Expense[];
+  amountMismatch: Expense[];
+};
+
+/** 신규·수정 공통 중복 검사 (tenant 범위 expenses 배열 기준) */
+export function runExpenseDuplicateChecks(
+  expenses: Expense[],
+  input: DuplicateCheckInput,
+): DuplicateCheckResult {
+  const exact = findExactDuplicateExpenses(expenses, input);
+  const exactIds = new Set(exact.map((e) => e.id));
+
+  const receiptUrlConflicts = input.receiptUrl
+    ? findReceiptUrlConflict(expenses, input.receiptUrl, input.excludeExpenseId)
+    : [];
+
+  const similar = findExpensesSimilarToDraft(expenses, {
+    expenseDateYmd: input.expenseDateYmd,
+    supplierId: input.supplierId,
+    headerAmount: input.headerAmount,
+    lineItems: input.lineItems,
+    receiptUrl: input.receiptUrl,
+    excludeExpenseId: input.excludeExpenseId,
+  }).filter((e) => !exactIds.has(e.id));
+
+  const amountMismatch = findSameDaySupplierAmountMismatch(expenses, {
+    expenseDateYmd: input.expenseDateYmd,
+    supplierId: input.supplierId,
+    headerAmount: input.headerAmount,
+    headerDescription: input.headerDescription,
+    lineItems: input.lineItems,
+    excludeExpenseId: input.excludeExpenseId,
+  }).filter((e) => !exactIds.has(e.id));
+
+  return { exact, receiptUrlConflicts, similar, amountMismatch };
+}
+
+/** 레venshtein 기반 문자열 유사도 (0~1) */
+export function stringSimilarity(a: string, b: string): number {
+  const s1 = a.trim().toLowerCase();
+  const s2 = b.trim().toLowerCase();
+  if (!s1 || !s2) return 0;
+  if (s1 === s2) return 1;
+
+  const track: number[][] = Array.from({ length: s2.length + 1 }, () =>
+    Array.from({ length: s1.length + 1 }, () => 0),
+  );
+  for (let j = 0; j <= s2.length; j += 1) track[j][0] = j;
+  for (let i = 0; i <= s1.length; i += 1) track[0][i] = i;
+  for (let j = 1; j <= s2.length; j += 1) {
+    for (let i = 1; i <= s1.length; i += 1) {
+      const indicator = s1[i - 1] === s2[j - 1] ? 0 : 1;
+      track[j][i] = Math.min(
+        track[j][i - 1] + 1,
+        track[j - 1][i] + 1,
+        track[j - 1][i - 1] + indicator,
+      );
+    }
+  }
+  const distance = track[s2.length][s1.length];
+  const maxLength = Math.max(s1.length, s2.length);
+  return 1 - distance / maxLength;
+}
+
+export function findSimilarNamedItems(
+  name: string,
+  existing: { id: string; name: string }[],
+  threshold = 0.7,
+): { id: string; name: string }[] {
+  if (name.trim().length < 2) return [];
+  return existing
+    .filter((item) => {
+      const sim = stringSimilarity(name, item.name);
+      return sim >= threshold && item.name.trim() !== name.trim();
+    })
+    .slice(0, 5);
 }

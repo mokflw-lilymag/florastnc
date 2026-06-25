@@ -35,6 +35,7 @@ import {
   Eye,
   RotateCw,
   FlipHorizontal,
+  Download,
 } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -58,7 +59,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
-import { findExpensesSimilarToDraft, findSameDaySupplierAmountMismatch } from "@/lib/expense-similarity";
+import { isMobileNativeApp } from "@/lib/mobile-native-env";
+import { runExpenseDuplicateChecks } from "@/lib/expense-similarity";
+import { ReceiptAttachBlock } from "@/components/expenses/receipt-attach-block";
+import { FixedCostTemplateCard } from "@/components/expenses/fixed-cost-template-card";
+import { ExpenseExcelImportCard } from "@/components/expenses/expense-excel-import-card";
+import { exportExpensesToExcel } from "@/lib/excel-export";
 import { useExpenses, Expense, useExpenseStorage } from "@/hooks/use-expenses";
 import { useSuppliers } from "@/hooks/use-suppliers";
 import { useMaterials } from "@/hooks/use-materials";
@@ -208,7 +214,6 @@ export default function ExpensesPage() {
   const [isSupplierOpen, setIsSupplierOpen] = useState(false);
   const [activeItemPopover, setActiveItemPopover] = useState<string | null>(null);
 
-  const scanInputRef = React.useRef<HTMLInputElement>(null);
   const importInputRef = React.useRef<HTMLInputElement>(null);
   
   const videoRef = React.useRef<HTMLVideoElement>(null);
@@ -242,6 +247,21 @@ export default function ExpensesPage() {
   const [similarExpenses, setSimilarExpenses] = useState<Expense[]>([]);
   const [amountMismatchDialogOpen, setAmountMismatchDialogOpen] = useState(false);
   const [amountMismatchExpenses, setAmountMismatchExpenses] = useState<Expense[]>([]);
+  const [exactDuplicateDialogOpen, setExactDuplicateDialogOpen] = useState(false);
+  const [exactDuplicateExpenses, setExactDuplicateExpenses] = useState<Expense[]>([]);
+  const [receiptUrlDialogOpen, setReceiptUrlDialogOpen] = useState(false);
+  const [receiptUrlConflicts, setReceiptUrlConflicts] = useState<Expense[]>([]);
+  const [pendingReceiptAttach, setPendingReceiptAttach] = useState<{
+    expenseId: string;
+    url: string;
+    fileId: string;
+  } | null>(null);
+  const [detailReceiptLoading, setDetailReceiptLoading] = useState(false);
+  const [filterMissingReceipt, setFilterMissingReceipt] = useState(false);
+  const [isMobileApp, setIsMobileApp] = useState(false);
+  useEffect(() => {
+    setIsMobileApp(isMobileNativeApp());
+  }, []);
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
   const baseLocale = toBaseLocale(locale);
@@ -336,7 +356,7 @@ export default function ExpensesPage() {
       : formData.amount;
   }, [formData.items, formData.amount]);
 
-  const activeFilterCount = [filterCategory !== "all", filterSupplier !== "all", filterMethod !== "all", !!filterDateFrom, !!filterDateTo].filter(Boolean).length;
+  const activeFilterCount = [filterCategory !== "all", filterSupplier !== "all", filterMethod !== "all", !!filterDateFrom, !!filterDateTo, filterMissingReceipt].filter(Boolean).length;
 
   const resetFilters = () => {
     setFilterCategory("all");
@@ -344,6 +364,7 @@ export default function ExpensesPage() {
     setFilterMethod("all");
     setFilterDateFrom("");
     setFilterDateTo("");
+    setFilterMissingReceipt(false);
     setSearchTerm("");
   };
 
@@ -398,9 +419,10 @@ export default function ExpensesPage() {
         const expDate = format(new Date(e.expense_date), "yyyy-MM-dd");
         if (expDate > filterDateTo) return false;
       }
+      if (filterMissingReceipt && e.receipt_url) return false;
       return true;
     });
-  }, [expenses, searchTerm, filterCategory, filterSupplier, filterMethod, filterDateFrom, filterDateTo, suppliers]);
+  }, [expenses, searchTerm, filterCategory, filterSupplier, filterMethod, filterDateFrom, filterDateTo, filterMissingReceipt, suppliers]);
 
   const sortedExpenses = useMemo(() => {
     const arr = [...filteredExpenses];
@@ -452,6 +474,32 @@ export default function ExpensesPage() {
       avgExpense: filteredExpenses.length > 0 ? totalAmount / filteredExpenses.length : 0
     };
   }, [filteredExpenses, suppliers, totalAmount, tf]);
+
+  const handleExportExpenses = async () => {
+    if (sortedExpenses.length === 0) {
+      toast.error(tf.f00130);
+      return;
+    }
+    try {
+      await exportExpensesToExcel(
+        sortedExpenses.map((e) => ({
+          expense_date: e.expense_date,
+          category: e.category,
+          sub_category: e.sub_category,
+          amount: e.amount,
+          description: e.description,
+          payment_method: e.payment_method,
+          supplierName: e.supplier_id
+            ? suppliers.find((s) => s.id === e.supplier_id)?.name || ""
+            : "",
+        })),
+        locale,
+      );
+      toast.success(tf.f00806.replace("{count}", String(sortedExpenses.length)));
+    } catch {
+      toast.error(tf.f00518);
+    }
+  };
 
   const openCreateDialog = () => {
     setFieldsFromOcr(false);
@@ -535,6 +583,129 @@ export default function ExpensesPage() {
     return !descOk || !Number.isFinite(amt) || amt === 0;
   };
 
+  const buildDuplicateCheckInput = (excludeExpenseId?: string) => ({
+    expenseDateYmd: formData.expense_date,
+    supplierId: formData.supplier_id,
+    headerDescription: formData.description,
+    headerAmount: formData.amount,
+    lineItems: formData.items.map((item) => ({
+      description: item.description || item.material_name,
+      amount: item.amount,
+      material_name: item.material_name,
+    })),
+    receiptUrl: formData.receipt_url || undefined,
+    excludeExpenseId,
+  });
+
+  const applyDuplicateCheckResult = (result: ReturnType<typeof runExpenseDuplicateChecks>) => {
+    if (result.exact.length > 0) {
+      setExactDuplicateExpenses(result.exact);
+      setExactDuplicateDialogOpen(true);
+      return true;
+    }
+    if (result.receiptUrlConflicts.length > 0) {
+      setReceiptUrlConflicts(result.receiptUrlConflicts);
+      setReceiptUrlDialogOpen(true);
+      return true;
+    }
+    if (result.similar.length > 0) {
+      setSimilarExpenses(result.similar);
+      setSimilarExpenseDialogOpen(true);
+      return true;
+    }
+    if (result.amountMismatch.length > 0) {
+      setAmountMismatchExpenses(result.amountMismatch);
+      setAmountMismatchDialogOpen(true);
+      return true;
+    }
+    return false;
+  };
+
+  const handleDetailReceiptUpload = async (file: File) => {
+    if (!detailExpense) return;
+    setDetailReceiptLoading(true);
+    try {
+      const uploaded = await uploadReceipt(file);
+      if (!uploaded) return;
+
+      const conflicts = runExpenseDuplicateChecks(expenses, {
+        expenseDateYmd: format(new Date(detailExpense.expense_date), "yyyy-MM-dd"),
+        supplierId: detailExpense.supplier_id || "none",
+        headerDescription: detailExpense.description,
+        headerAmount: detailExpense.amount,
+        lineItems: [],
+        receiptUrl: uploaded.url,
+        excludeExpenseId: detailExpense.id,
+      }).receiptUrlConflicts;
+
+      if (conflicts.length > 0) {
+        setReceiptUrlConflicts(conflicts);
+        setPendingReceiptAttach({
+          expenseId: detailExpense.id,
+          url: uploaded.url,
+          fileId: uploaded.id,
+        });
+        setReceiptUrlDialogOpen(true);
+        return;
+      }
+
+      const updated = await updateExpense(detailExpense.id, {
+        receipt_url: uploaded.url,
+        receipt_file_id: uploaded.id,
+        storage_provider: "supabase",
+      });
+      if (updated) {
+        setDetailExpense(updated);
+        toast.success("영수증이 등록되었습니다.");
+      }
+    } finally {
+      setDetailReceiptLoading(false);
+    }
+  };
+
+  const handleDetailReceiptRemove = async () => {
+    if (!detailExpense) return;
+    if (!window.confirm("영수증을 삭제하시겠습니까?")) return;
+    setDetailReceiptLoading(true);
+    try {
+      const updated = await updateExpense(detailExpense.id, {
+        receipt_url: null,
+        receipt_file_id: null,
+      });
+      if (updated) {
+        setDetailExpense(updated);
+        toast.success("영수증이 삭제되었습니다.");
+      }
+    } finally {
+      setDetailReceiptLoading(false);
+    }
+  };
+
+  const confirmAttachDespiteReceiptUrlConflict = async () => {
+    setReceiptUrlDialogOpen(false);
+    const pending = pendingReceiptAttach;
+    setReceiptUrlConflicts([]);
+    setPendingReceiptAttach(null);
+    if (!pending) {
+      await performExpenseSubmit();
+      return;
+    }
+    setDetailReceiptLoading(true);
+    try {
+      const updated = await updateExpense(pending.expenseId, {
+        receipt_url: pending.url,
+        receipt_file_id: pending.fileId,
+        storage_provider: "supabase",
+      });
+      if (updated) {
+        setDetailExpense(updated);
+        toast.success("영수증이 등록되었습니다.");
+      }
+    } finally {
+      setDetailReceiptLoading(false);
+    }
+  };
+
   const performExpenseSubmit = async () => {
     if (isInvalidSingleLineExpense(formData)) {
       toast.error(tf.f02483);
@@ -556,8 +727,8 @@ export default function ExpensesPage() {
         material_id: formData.material_id === "none" ? undefined : formData.material_id,
         quantity: formData.quantity,
         unit: formData.unit,
-        receipt_url: formData.receipt_url,
-        receipt_file_id: formData.receipt_file_id,
+        receipt_url: formData.receipt_url.trim() ? formData.receipt_url : null,
+        receipt_file_id: formData.receipt_url.trim() ? formData.receipt_file_id : null,
         storage_provider: formData.storage_provider
       };
       const updated = await updateExpense(editingExpense.id, payload);
@@ -621,46 +792,59 @@ export default function ExpensesPage() {
       return;
     }
 
-    if (!editingExpense) {
-      const similar = findExpensesSimilarToDraft(expenses, {
-        expenseDateYmd: formData.expense_date,
-        supplierId: formData.supplier_id,
-        headerAmount: formData.amount,
-        lineItems: formData.items,
-        receiptUrl: formData.receipt_url || undefined,
-      });
-      if (similar.length > 0) {
-        setSimilarExpenses(similar);
-        setSimilarExpenseDialogOpen(true);
-        return;
-      }
-
-      const mismatch = findSameDaySupplierAmountMismatch(expenses, {
-        expenseDateYmd: formData.expense_date,
-        supplierId: formData.supplier_id,
-        headerAmount: formData.amount,
-        headerDescription: formData.description,
-        lineItems: formData.items,
-      });
-      if (mismatch.length > 0) {
-        setAmountMismatchExpenses(mismatch);
-        setAmountMismatchDialogOpen(true);
-        return;
-      }
+    const duplicateResult = runExpenseDuplicateChecks(
+      expenses,
+      buildDuplicateCheckInput(editingExpense?.id),
+    );
+    if (applyDuplicateCheckResult(duplicateResult)) {
+      return;
     }
 
+    await performExpenseSubmit();
+  };
+
+  const confirmSubmitDespiteExactDuplicates = async () => {
+    setExactDuplicateDialogOpen(false);
+    setExactDuplicateExpenses([]);
+    const duplicateResult = runExpenseDuplicateChecks(
+      expenses,
+      buildDuplicateCheckInput(editingExpense?.id),
+    );
+    duplicateResult.exact = [];
+    if (applyDuplicateCheckResult(duplicateResult)) {
+      return;
+    }
     await performExpenseSubmit();
   };
 
   const confirmSubmitDespiteSimilarExpenses = async () => {
     setSimilarExpenseDialogOpen(false);
     setSimilarExpenses([]);
+    const duplicateResult = runExpenseDuplicateChecks(
+      expenses,
+      buildDuplicateCheckInput(editingExpense?.id),
+    );
+    duplicateResult.exact = [];
+    duplicateResult.similar = [];
+    if (applyDuplicateCheckResult(duplicateResult)) {
+      return;
+    }
     await performExpenseSubmit();
   };
 
   const confirmSubmitDespiteAmountMismatch = async () => {
     setAmountMismatchDialogOpen(false);
     setAmountMismatchExpenses([]);
+    await performExpenseSubmit();
+  };
+
+  const confirmSubmitDespiteReceiptUrlConflict = async () => {
+    if (pendingReceiptAttach) {
+      await confirmAttachDespiteReceiptUrlConflict();
+      return;
+    }
+    setReceiptUrlDialogOpen(false);
+    setReceiptUrlConflicts([]);
     await performExpenseSubmit();
   };
 
@@ -1081,6 +1265,15 @@ export default function ExpensesPage() {
           <Button
             type="button"
             variant="outline"
+            className="h-11 gap-2"
+            onClick={() => void handleExportExpenses()}
+          >
+            <Download className="h-4 w-4" />
+            {tf.f01089}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
             className="h-11 gap-2 border-violet-200 bg-gradient-to-r from-violet-50 to-indigo-50 font-bold text-violet-900 shadow-sm hover:from-violet-100 hover:to-indigo-100"
             onClick={openCreateDialog}
           >
@@ -1122,35 +1315,42 @@ export default function ExpensesPage() {
               <Sparkles className="h-3.5 w-3.5" />
               {tf.f01899}
             </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              className="text-slate-600"
-              onClick={() => {
-                openCreateDialog();
-                window.setTimeout(() => openWebcam("single"), 450);
-              }}
-            >
-              <Camera className="mr-1 h-3.5 w-3.5" />
-              {tf.f02052}
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              className="text-slate-600"
-              onClick={() => {
-                openCreateDialog();
-                window.setTimeout(() => openWebcam("multi"), 450);
-              }}
-            >
-              <Images className="mr-1 h-3.5 w-3.5" />
-              {tf.f01578}
-            </Button>
+            {isMobileApp ? (
+              <>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="text-slate-600"
+                  onClick={() => {
+                    openCreateDialog();
+                    window.setTimeout(() => openWebcam("single"), 450);
+                  }}
+                >
+                  <Camera className="mr-1 h-3.5 w-3.5" />
+                  {tf.f02052}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="text-slate-600"
+                  onClick={() => {
+                    openCreateDialog();
+                    window.setTimeout(() => openWebcam("multi"), 450);
+                  }}
+                >
+                  <Images className="mr-1 h-3.5 w-3.5" />
+                  {tf.f01578}
+                </Button>
+              </>
+            ) : null}
           </div>
         </CardContent>
       </Card>
+
+      <ExpenseExcelImportCard expenses={expenses} />
+      <FixedCostTemplateCard />
 
       {/* Expense Form Dialog (Create / Edit) */}
       <Dialog open={isDialogOpen} onOpenChange={(open) => {
@@ -1571,47 +1771,49 @@ export default function ExpensesPage() {
                 {!formData.receipt_url ? (
                   <>
                     <div className="col-span-12 space-y-3">
-                        <div className="grid grid-cols-2 gap-3">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            className="group relative h-14 gap-2 overflow-hidden border-emerald-500 bg-emerald-50/50 font-black text-emerald-700 transition-all hover:bg-emerald-100"
-                            onClick={() => openWebcam("single")}
-                            disabled={isOcrLoading}
-                          >
-                            <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/10 to-teal-400/10 opacity-0 transition-opacity group-hover:opacity-100" />
-                            {isOcrLoading ? (
-                              <Loader2 className="h-5 w-5 animate-spin" />
-                            ) : (
-                              <Camera className="h-5 w-5 text-emerald-600" />
-                            )}
-                            <div className="flex flex-col items-start leading-tight">
-                              <span className="text-sm">{tf.f02052}</span>
-                              <span className="text-[10px] font-normal opacity-60">{tf.f01971}</span>
-                            </div>
-                            <div className="absolute -top-1 -right-1">
-                              <Sparkles className="h-3 w-3 animate-pulse text-emerald-400" />
-                            </div>
-                          </Button>
+                        {isMobileApp ? (
+                          <div className="grid grid-cols-2 gap-3">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="group relative h-14 gap-2 overflow-hidden border-emerald-500 bg-emerald-50/50 font-black text-emerald-700 transition-all hover:bg-emerald-100"
+                              onClick={() => openWebcam("single")}
+                              disabled={isOcrLoading}
+                            >
+                              <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/10 to-teal-400/10 opacity-0 transition-opacity group-hover:opacity-100" />
+                              {isOcrLoading ? (
+                                <Loader2 className="h-5 w-5 animate-spin" />
+                              ) : (
+                                <Camera className="h-5 w-5 text-emerald-600" />
+                              )}
+                              <div className="flex flex-col items-start leading-tight">
+                                <span className="text-sm">{tf.f02052}</span>
+                                <span className="text-[10px] font-normal opacity-60">{tf.f01971}</span>
+                              </div>
+                              <div className="absolute -top-1 -right-1">
+                                <Sparkles className="h-3 w-3 animate-pulse text-emerald-400" />
+                              </div>
+                            </Button>
 
-                          <Button
-                            type="button"
-                            variant="outline"
-                            className="group relative h-14 gap-2 overflow-hidden border-teal-600 bg-teal-50/50 font-black text-teal-800 transition-all hover:bg-teal-100"
-                            onClick={() => openWebcam("multi")}
-                            disabled={isOcrLoading}
-                          >
-                            {isOcrLoading ? (
-                              <Loader2 className="h-5 w-5 animate-spin" />
-                            ) : (
-                              <Images className="h-5 w-5 text-teal-700" />
-                            )}
-                            <div className="flex flex-col items-start leading-tight">
-                              <span className="text-sm">{tf.f01578}</span>
-                              <span className="text-[10px] font-normal opacity-60">{tf.f02017} {MAX_RECEIPT_FILES_PER_BATCH}{tf.f01756}</span>
-                            </div>
-                          </Button>
-                        </div>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="group relative h-14 gap-2 overflow-hidden border-teal-600 bg-teal-50/50 font-black text-teal-800 transition-all hover:bg-teal-100"
+                              onClick={() => openWebcam("multi")}
+                              disabled={isOcrLoading}
+                            >
+                              {isOcrLoading ? (
+                                <Loader2 className="h-5 w-5 animate-spin" />
+                              ) : (
+                                <Images className="h-5 w-5 text-teal-700" />
+                              )}
+                              <div className="flex flex-col items-start leading-tight">
+                                <span className="text-sm">{tf.f01578}</span>
+                                <span className="text-[10px] font-normal opacity-60">{tf.f02017} {MAX_RECEIPT_FILES_PER_BATCH}{tf.f01756}</span>
+                              </div>
+                            </Button>
+                          </div>
+                        ) : null}
                         <Button
                           type="button"
                           variant="outline"
@@ -1632,25 +1834,27 @@ export default function ExpensesPage() {
                           </div>
                         </Button>
                     </div>
-                    <details className="rounded-lg border border-dashed border-slate-200 bg-slate-50/60 px-3 py-2">
-                      <summary className="cursor-pointer list-inside text-xs font-bold text-slate-600 marker:text-slate-400">
-                        {tf.f02521}
-                      </summary>
-                      <div className="relative mt-2">
-                        <div className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-slate-400">
-                          <Link2 className="h-4 w-4" />
+                    {isMobileApp ? (
+                      <details className="rounded-lg border border-dashed border-slate-200 bg-slate-50/60 px-3 py-2">
+                        <summary className="cursor-pointer list-inside text-xs font-bold text-slate-600 marker:text-slate-400">
+                          {tf.f02521}
+                        </summary>
+                        <div className="relative mt-2">
+                          <div className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-slate-400">
+                            <Link2 className="h-4 w-4" />
+                          </div>
+                          <Input
+                            placeholder={phReceiptUrl}
+                            className="border-slate-200 bg-white pl-9 font-mono text-[11px]"
+                            value={formData.receipt_url}
+                            onChange={(e) => {
+                              setFieldsFromOcr(false);
+                              setFormData((prev) => ({ ...prev, receipt_url: e.target.value }));
+                            }}
+                          />
                         </div>
-                        <Input
-                          placeholder={phReceiptUrl}
-                          className="border-slate-200 bg-white pl-9 font-mono text-[11px]"
-                          value={formData.receipt_url}
-                          onChange={(e) => {
-                            setFieldsFromOcr(false);
-                            setFormData((prev) => ({ ...prev, receipt_url: e.target.value }));
-                          }}
-                        />
-                      </div>
-                    </details>
+                      </details>
+                    ) : null}
                     <p className="mt-2 ml-1 text-[10px] font-medium italic text-slate-400">
                       {tf.f02522}
                     </p>
@@ -1664,8 +1868,7 @@ export default function ExpensesPage() {
                   </div>
                 )}
 
-                <input type="file" className="hidden" ref={scanInputRef} accept="image/*" capture="environment" onChange={handleReceiptScan} />
-                <input type="file" className="hidden" ref={importInputRef} accept="image/*" multiple onChange={handleReceiptScan} />
+                <input type="file" className="hidden" ref={importInputRef} accept="image/*,application/pdf" multiple onChange={handleReceiptScan} />
               </div>
               </div>
             </div>
@@ -1696,14 +1899,7 @@ export default function ExpensesPage() {
           if (!open) setDetailExpense(null);
         }}
       >
-        <DialogContent
-          className={cn(
-            "gap-0 overflow-hidden p-0",
-            detailExpense?.receipt_url
-              ? "w-[min(96vw,1040px)] sm:max-w-[min(96vw,1040px)]"
-              : "sm:max-w-lg"
-          )}
-        >
+        <DialogContent className="gap-0 overflow-hidden p-0 w-[min(96vw,1040px)] sm:max-w-[min(96vw,1040px)]">
           {detailExpense ? (
             <>
               <div className="border-b bg-slate-50/50 p-6">
@@ -1721,42 +1917,17 @@ export default function ExpensesPage() {
                 <div
                   className={cn(
                     "grid gap-6",
-                    detailExpense.receipt_url &&
-                      "lg:grid-cols-[minmax(260px,340px)_minmax(0,1fr)] lg:items-start lg:gap-8"
+                    "lg:grid-cols-[minmax(260px,340px)_minmax(0,1fr)] lg:items-start lg:gap-8",
                   )}
                 >
-                  {detailExpense.receipt_url ? (
-                    <div className="space-y-3 lg:sticky lg:top-0 lg:self-start">
-                      <Label className="text-sm font-bold text-slate-800">{tf.f00448}</Label>
-                      <a
-                        href={receiptLinkHref(detailExpense.receipt_url) || detailExpense.receipt_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block w-full overflow-hidden rounded-xl border-2 border-slate-200 bg-slate-50 shadow-sm ring-offset-2 hover:border-indigo-300"
-                      >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={detailExpense.receipt_url}
-                          alt={tf.f02539}
-                          className="max-h-[min(48vh,420px)] w-full object-contain"
-                        />
-                      </a>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="text-xs font-semibold"
-                        onClick={() => {
-                          const raw = detailExpense.receipt_url;
-                          if (!raw) return;
-                          const u = receiptLinkHref(raw) || raw;
-                          window.open(u, "_blank", "noopener,noreferrer");
-                        }}
-                      >
-                        {tf.f02529}
-                      </Button>
-                    </div>
-                  ) : null}
+                  <ReceiptAttachBlock
+                    className="lg:sticky lg:top-0 lg:self-start"
+                    receiptUrl={detailExpense.receipt_url}
+                    editable
+                    loading={detailReceiptLoading}
+                    onUpload={handleDetailReceiptUpload}
+                    onRemove={handleDetailReceiptRemove}
+                  />
                   <div className="min-w-0 space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-1.5">
@@ -1887,6 +2058,108 @@ export default function ExpensesPage() {
               onClick={() => void confirmSubmitDespiteSimilarExpenses()}
             >
               {tf.f00994}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={exactDuplicateDialogOpen}
+        onOpenChange={(open) => {
+          setExactDuplicateDialogOpen(open);
+          if (!open) setExactDuplicateExpenses([]);
+        }}
+      >
+        <AlertDialogContent className="max-w-lg sm:max-w-lg">
+          <AlertDialogHeader className="text-left">
+            <AlertDialogMedia>
+              <AlertTriangle className="text-red-600" />
+            </AlertDialogMedia>
+            <AlertDialogTitle>동일 지출이 이미 있습니다</AlertDialogTitle>
+            <AlertDialogDescription className="sr-only">
+              날짜·거래처·품목·금액이 완전히 같은 지출
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-3 text-sm text-muted-foreground">
+            <p>
+              같은 <span className="font-medium text-foreground">날짜 · 거래처 · 품목명 · 금액</span> 조합의 지출이
+              이미 등록되어 있습니다. 실수로 두 번 입력한 경우 취소를 권장합니다.
+            </p>
+            <ul className="max-h-48 space-y-2 overflow-y-auto rounded-md border bg-muted/40 p-3 text-xs text-foreground">
+              {exactDuplicateExpenses.map((e) => (
+                <li key={e.id} className="border-b border-border/60 pb-2 last:border-0 last:pb-0">
+                  <span className="font-semibold text-slate-800">
+                    {format(new Date(e.expense_date), "P", { locale: dfLoc })}
+                  </span>
+                  <span className="mx-2 text-slate-400">·</span>
+                  <span className="font-bold text-indigo-700">₩{e.amount.toLocaleString()}</span>
+                  <span className="mx-2 text-slate-400">·</span>
+                  <span>{getSupplierName(e.supplier_id)}</span>
+                  {e.description ? (
+                    <span className="mt-0.5 line-clamp-2 block text-[11px] text-slate-600">{e.description}</span>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>취소</AlertDialogCancel>
+            <Button
+              type="button"
+              className="bg-red-600 hover:bg-red-700"
+              onClick={() => void confirmSubmitDespiteExactDuplicates()}
+            >
+              그래도 저장
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={receiptUrlDialogOpen}
+        onOpenChange={(open) => {
+          setReceiptUrlDialogOpen(open);
+          if (!open) {
+            setReceiptUrlConflicts([]);
+            setPendingReceiptAttach(null);
+          }
+        }}
+      >
+        <AlertDialogContent className="max-w-lg sm:max-w-lg">
+          <AlertDialogHeader className="text-left">
+            <AlertDialogMedia>
+              <FileImage className="text-amber-600" />
+            </AlertDialogMedia>
+            <AlertDialogTitle>이미 사용된 영수증입니다</AlertDialogTitle>
+            <AlertDialogDescription className="sr-only">
+              동일 영수증 URL이 다른 지출에 등록됨
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-3 text-sm text-muted-foreground">
+            <p>이 영수증 파일(링크)은 아래 지출에 이미 등록되어 있습니다.</p>
+            <ul className="max-h-48 space-y-2 overflow-y-auto rounded-md border bg-muted/40 p-3 text-xs text-foreground">
+              {receiptUrlConflicts.map((e) => (
+                <li key={e.id} className="border-b border-border/60 pb-2 last:border-0 last:pb-0">
+                  <span className="font-semibold text-slate-800">
+                    {format(new Date(e.expense_date), "P", { locale: dfLoc })}
+                  </span>
+                  <span className="mx-2 text-slate-400">·</span>
+                  <span className="font-bold text-indigo-700">₩{e.amount.toLocaleString()}</span>
+                  {e.description ? (
+                    <span className="mt-0.5 line-clamp-2 block text-[11px] text-slate-600">{e.description}</span>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>취소</AlertDialogCancel>
+            <Button
+              type="button"
+              className="bg-amber-600 hover:bg-amber-700"
+              onClick={() => void confirmSubmitDespiteReceiptUrlConflict()}
+            >
+              그래도 등록
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -2118,6 +2391,16 @@ export default function ExpensesPage() {
                 <SelectItem value="transfer">{tf.f01693}</SelectItem>
               </SelectContent>
             </Select>
+
+            <Button
+              type="button"
+              variant={filterMissingReceipt ? "default" : "outline"}
+              size="sm"
+              className="h-8 text-xs rounded-lg"
+              onClick={() => setFilterMissingReceipt((v) => !v)}
+            >
+              영수증 미등록
+            </Button>
 
             {activeFilterCount > 0 && (
               <Button variant="ghost" size="sm" className="h-8 text-xs text-slate-500 hover:text-red-500 gap-1 px-2" onClick={resetFilters}>

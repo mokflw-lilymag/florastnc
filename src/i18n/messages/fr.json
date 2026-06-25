@@ -288,6 +288,7 @@
         "newOrder": "Nouvelle commande",
         "orders": "Liste des commandes",
         "delivery": "Livraison et retrait",
+        "schedule": "Planning magasin",
         "crm": "CRM clients",
         "externalOrders": "Commandes partenaires",
         "products": "Produits",

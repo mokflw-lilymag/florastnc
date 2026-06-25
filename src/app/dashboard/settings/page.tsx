@@ -81,11 +81,13 @@ import { KakaoPcSettingsCard } from "./components/KakaoPcSettingsCard";
 import { MallIntegrationCard } from "./components/MallIntegrationCard";
 import { RegionalIntegrationPanel } from "./components/RegionalIntegrationPanel";
 import { applyCountryPreset, getCountryPreset, getCountryPresetDiff } from "@/lib/country-preset";
-import { AppLocale, LOCALE_COOKIE, resolveLocale, toBaseLocale } from "@/i18n/config";
+import { AppLocale, resolveLocale, toBaseLocale } from "@/i18n/config";
+import { readUiLocaleCookie } from "@/i18n/apply-ui-locale";
 import { getDashboardSettingsMessages } from "@/i18n/dashboard-settings-messages";
 import { pickUiText } from "@/i18n/pick-ui-text";
 import { DASHBOARD_LOCALE_SELECT_OPTIONS, resolveDashboardSelectLocale } from "@/i18n/ui-locale-options";
 import { BridgeOnboardingDialog } from "@/components/printer/BridgeOnboardingDialog";
+import { usePersistUiLocale } from "@/hooks/use-persist-ui-locale";
 
 const MAJOR_CURRENCIES = [
   { code: 'KRW', symbol: '₩', flag: '🇰🇷', nameKo: '대한민국 원', nameEn: 'Korean Won' },
@@ -720,6 +722,7 @@ export default function SettingsPage() {
   
   // Settings & Fees Hooks
   const { settings, saveSettings, loading: settingsLoading } = useSettings();
+  const { persistUiLocale } = usePersistUiLocale();
   const { fees: regionFees, addFee, deleteFee, updateFee, importFees, loading: feesLoading } = useDeliveryFees();
 
   // Local State for Management
@@ -867,22 +870,40 @@ export default function SettingsPage() {
   useEffect(() => {
     if (typeof document === "undefined") return;
     const readLocale = () => {
-      const cookieValue = document.cookie
-        .split("; ")
-        .find((row) => row.startsWith(`${LOCALE_COOKIE}=`))
-        ?.split("=")[1];
-      setUiLocale(resolveLocale(cookieValue));
+      if (settings.uiLocale) {
+        setUiLocale(resolveLocale(settings.uiLocale));
+        return;
+      }
+      const cookieValue = readUiLocaleCookie();
+      if (cookieValue) setUiLocale(cookieValue);
     };
     readLocale();
     window.addEventListener("preferred-locale-changed", readLocale);
     return () => window.removeEventListener("preferred-locale-changed", readLocale);
-  }, []);
+  }, [settings.uiLocale]);
 
-  const handleLocaleChange = (nextLocale: AppLocale) => {
+  const handleLocaleChange = async (nextLocale: AppLocale) => {
     setUiLocale(nextLocale);
-    document.cookie = `${LOCALE_COOKIE}=${nextLocale}; path=/; max-age=${60 * 60 * 24 * 365}`;
-    window.dispatchEvent(new Event("preferred-locale-changed"));
-    toast.success(pickUiText(baseLocale, '언어가 변경되었습니다.', 'Language has been changed.', 'Ngôn ngữ đã được thay đổi.'));
+    const saved = await persistUiLocale(nextLocale);
+    if (!saved) {
+      toast.error(
+        pickUiText(
+          baseLocale,
+          "언어 설정 저장에 실패했습니다.",
+          "Failed to save language setting.",
+          "Không thể lưu cài đặt ngôn ngữ.",
+        ),
+      );
+      return;
+    }
+    toast.success(
+      pickUiText(
+        baseLocale,
+        "언어가 변경되었습니다.",
+        "Language has been changed.",
+        "Ngôn ngữ đã được thay đổi.",
+      ),
+    );
   };
 
   const handlePrintTest = async () => {

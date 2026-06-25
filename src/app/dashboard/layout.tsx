@@ -8,6 +8,7 @@ import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { AnnualRenewalReminder } from "@/components/layout/annual-renewal-reminder";
 import { effectiveIsSuperAdmin } from "@/lib/auth-api-guards";
 import { LOCALE_COOKIE, resolveLocale, toBaseLocale } from "@/i18n/config";
+import { extractUiLocaleFromTenantSettings } from "@/i18n/apply-ui-locale";
 import { pickUiText } from "@/i18n/pick-ui-text";
 import {
   GUEST_BROWSE_COOKIE,
@@ -20,7 +21,7 @@ import { AppMessagesProvider } from "@/components/providers/app-messages-provide
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies();
-  const locale = resolveLocale(cookieStore.get(LOCALE_COOKIE)?.value);
+  const cookieLocale = resolveLocale(cookieStore.get(LOCALE_COOKIE)?.value);
   const supabase = await createClient();
   const [{ data: { user } }, partnerOrdersEnabled] = await Promise.all([
     supabase.auth.getUser(),
@@ -31,7 +32,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   );
 
   if (!user && !isGuestBrowse) {
-    redirect(`/${locale}/login`);
+    redirect(`/${cookieLocale}/login`);
   }
 
   if (!user && isGuestBrowse) {
@@ -65,7 +66,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     );
 
     return (
-      <AppMessagesProvider locale={locale}>
+      <AppMessagesProvider locale={cookieLocale}>
       <PartnerOrdersFeatureProvider enabled={partnerOrdersEnabled}>
         <GuestBrowseBootstrap />
         <DashboardShell
@@ -101,7 +102,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
 
   if (!user) {
-    redirect(`/${locale}/login`);
+    redirect(`/${cookieLocale}/login`);
   }
 
   // 프로필과 tenants 는 분리 조회 (profiles → tenants FK가 tenant_id·org_work_tenant_id 두 개라 임베드 시 PGRST201 발생 가능)
@@ -202,8 +203,25 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const effectivePlan =
     tenantData?.plan || (isSuperAdmin ? "pro" : isOrgOnly ? "pro" : "free");
   const logoUrl = tenantData?.logo_url ?? undefined;
-  const localeCookie = (await cookies()).get(LOCALE_COOKIE)?.value;
-  const baseLocale = toBaseLocale(resolveLocale(localeCookie));
+  const effectiveTenantId = hasOrgWorkContext
+    ? profile?.org_work_tenant_id
+    : profile?.tenant_id;
+
+  let dashboardLocale = cookieLocale;
+  if (effectiveTenantId) {
+    const { data: settingsRow } = await supabase
+      .from("system_settings")
+      .select("data")
+      .eq("id", `settings_${effectiveTenantId}`)
+      .maybeSingle();
+    const dbUiLocale = extractUiLocaleFromTenantSettings(
+      settingsRow?.data as Record<string, unknown> | undefined,
+    );
+    if (dbUiLocale) dashboardLocale = dbUiLocale;
+  }
+
+  const localeCookie = cookieStore.get(LOCALE_COOKIE)?.value;
+  const baseLocale = toBaseLocale(resolveLocale(localeCookie ?? dashboardLocale));
   const storeName =
     (hqMenuOnly
       ? pickUiText(
@@ -222,7 +240,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       : tenantData?.name) ?? undefined;
 
   return (
-    <AppMessagesProvider locale={locale}>
+    <AppMessagesProvider locale={dashboardLocale}>
     <PartnerOrdersFeatureProvider enabled={partnerOrdersEnabled}>
     <DashboardShell
       serverIsSuperAdmin={isSuperAdmin}

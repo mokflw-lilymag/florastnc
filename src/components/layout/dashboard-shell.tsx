@@ -7,6 +7,9 @@ import { isBarePrintDocumentPath } from "@/lib/print-routes";
 import { applyElectronSyncScope } from "@/lib/electron-sync-scope";
 import { logError } from "@/lib/errorLogger";
 import { MobilePrintPoller } from "@/components/desktop/mobile-print-poller";
+import { DeliveryPrepReminder } from "@/app/dashboard/orders/components/delivery-prep-reminder";
+import { ExternalOrdersAlertProvider } from "@/components/desktop/external-orders-alert-provider";
+import { TenantLocaleSync } from "@/components/providers/tenant-locale-sync";
 
 type DashboardShellProps = {
   children: ReactNode;
@@ -111,6 +114,7 @@ export function DashboardShell({
   if (isMobileWorkspace) {
     return (
       <div className="flex h-[100dvh] flex-col overflow-hidden bg-slate-50 dark:bg-slate-950">
+        <TenantLocaleSync />
         {children}
       </div>
     );
@@ -118,6 +122,9 @@ export function DashboardShell({
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
+      <TenantLocaleSync />
+      <DeliveryPrepReminder />
+      <ExternalOrdersAlertProvider />
       <MobilePrintPoller />
       {isElectron && (
         <div

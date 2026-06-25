@@ -1,7 +1,20 @@
 const fs = require('fs');
 const path = require('path');
 
-// 헬퍼: 연락처 뒷 4자리만 추출
+function resolveI18nModule(bridgeAssetsPath) {
+  const candidates = [
+    path.resolve(bridgeAssetsPath, 'receipt-i18n.js'),
+    path.resolve(__dirname, 'receipt-i18n.js'),
+    path.resolve(__dirname, '..', 'bridge-assets', 'receipt-i18n.js'),
+  ];
+  for (const absPath of candidates) {
+    if (fs.existsSync(absPath)) {
+      return require(absPath);
+    }
+  }
+  throw new Error(`receipt-i18n.js not found (searched: ${candidates.join(', ')})`);
+}
+
 function lastFour(contact) {
   if (!contact) return '';
   const digits = String(contact).replace(/\D/g, '');
@@ -13,94 +26,140 @@ function maskPhone(contact) {
   const digits = String(contact).replace(/\D/g, '');
   if (digits.length === 11) {
     return digits.replace(/(\d{3})(\d{4})(\d{4})/, '$1-****-$3');
-  } else if (digits.length === 10) {
+  }
+  if (digits.length === 10) {
     return digits.replace(/(\d{3})(\d{3})(\d{4})/, '$1-***-$3');
   }
   return String(contact);
 }
 
-function buildPrintTestHtml(dateStr, branchName) {
-  return `<!DOCTYPE html>
-<html lang="ko"><head><meta charset="UTF-8"><title>Print Test</title>
-<style>
-  @page { margin: 0; }
-  body { font-family: 'Malgun Gothic', sans-serif; width: 72mm; margin: 0; padding: 10px 8px; color: #000; font-size: 14px; font-weight: 700; }
-  .title { text-align: center; font-size: 22px; margin: 8px 0; }
-  .box { border: 2px solid #000; padding: 10px; margin: 10px 0; text-align: center; }
-  .line { border-top: 1px dashed #000; margin: 8px 0; }
-</style></head><body>
-  <div class="title">Floxync 인쇄 테스트</div>
-  <div class="line"></div>
-  <div class="box">프린터 연동 정상<br/>${dateStr}</div>
-  <div>지점: ${branchName || '미설정'}</div>
-  <div class="line"></div>
-  <div style="text-align:center;">이 용지가 보이면 성공입니다.</div>
-</body></html>`;
+function formatReceiptItemLi(item) {
+  const name = item.name || '';
+  const qty = Number(item.quantity);
+  const displayQty = Number.isFinite(qty) && qty > 0 ? qty : 1;
+  return `<li>${name} <span style="font-size:11px; font-weight:normal;">x ${displayQty}</span></li>`;
 }
 
-// 주문 데이터를 HTML 템플릿으로 변환 (영수증 디자인)
-function generateHtmlReceipt(job, settings, bridgeAssetsPath, globalBranchName, globalBranchPhone) {
+function generateHtmlReceipt(job, settings, bridgeAssetsPath, globalBranchName, globalBranchPhone, options = {}) {
+  const i18n = resolveI18nModule(bridgeAssetsPath);
   const { job_type, type, payload = {}, data = {} } = job || {};
   const actualJobType = type || job_type;
   const actualPayload = Object.keys(data).length > 0 ? data : payload;
   const { orderer, items, summary, pickupInfo, deliveryInfo, message, request } = actualPayload;
   settings = settings || {};
 
-  const dateStr = new Date().toLocaleString('ko-KR');
+  const ctx = i18n.createReceiptContext(settings, bridgeAssetsPath);
+  const { locale, labels, currency, fontFamily } = ctx;
+  const dateStr = i18n.formatReceiptDateTime(new Date(), locale);
+  const fmt = (amount) => i18n.formatReceiptMoney(amount, currency, locale);
 
-  const rawOrderId = payload?.orderId || job.order_id || job.id || '';
+  const rawOrderId = actualPayload?.orderId || job.order_id || job.id || '';
   const shortOrderId = String(rawOrderId).substring(0, 8);
 
-  const displayName = settings.siteName || settings.branchDisplayName || globalBranchName;
-  const displayPhone = settings.contactPhone || settings.branchPhone || globalBranchPhone;
+  const displayName = settings.siteName || settings.branchDisplayName || actualPayload.shop_name || actualPayload.branchName || globalBranchName;
+  const displayPhone = settings.contactPhone || settings.branchPhone || actualPayload.shop_phone || globalBranchPhone;
   const shopInfoStr = `${displayName} ${displayPhone}`.trim();
 
   let logoHtml = '';
   if ((actualPayload && actualPayload.logo_url) || settings.logo_url) {
     const logoUrl = (actualPayload && actualPayload.logo_url) || settings.logo_url;
-    logoHtml = `<div style="text-align:center;margin-bottom:6px;"><img src="${logoUrl}" style="max-height:50px;max-width:160px;object-fit:contain;" /></div>`;
+    logoHtml = `<div style="text-align:center;width:100%;margin:0 auto 6px auto;"><img src="${logoUrl}" style="display:block;margin:0 auto;max-height:50px;max-width:160px;width:auto;height:auto;object-fit:contain;" alt="" /></div>`;
   }
 
+  const msgContent = message?.text || message?.content;
   let isCard = false;
   let isRibbon = false;
-  const msgContent = message?.text || message?.content;
-  if (msgContent && msgContent.trim() !== '') {
-    if (message.type === '카드' || message.type?.toLowerCase() === 'card') {
+  if (msgContent && String(msgContent).trim() !== '') {
+    if (i18n.isCardMessageType(message.type)) {
       isCard = true;
     } else {
       isRibbon = true;
     }
   }
-  const messageTypeCheckHtml = `
-    <div style="font-size:14px; font-weight:bold; margin: 8px 0; padding: 6px; border: 1px solid #000; text-align:center; border-radius: 4px;">
-      [${isRibbon ? '☑' : '☐'}] 리본 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [${isCard ? '☑' : '☐'}] 카드
-    </div>
-  `;
+  const messageTypeCheckHtml = i18n.buildMessageTypeCheckHtml(labels, isRibbon, isCard);
+  const tplCtx = { labels, locale, fontFamily };
+
+  // ─── 일일 마감정산 ───
+  if (actualJobType === 'daily_settlement') {
+    let settlementTemplate = i18n.loadTemplate(bridgeAssetsPath, 'receipt-daily-settlement.html', tplCtx);
+    const d = actualPayload || {};
+
+    let expensesHtml = '';
+    if (d.expensesList && d.expensesList.length > 0) {
+      expensesHtml += d.expensesList.map((exp) => `
+        <div class="row"><span class="row-name">${exp.label}</span><span class="row-amount">${exp.amount}</span></div>
+      `).join('');
+    } else {
+      expensesHtml += `<div class="row"><span class="row-name">${labels.no_expenses}</span><span class="row-amount"></span></div>`;
+    }
+    expensesHtml += `
+      <div class="row total"><span class="row-name">${labels.expenses_total}</span><span class="row-amount">${d.expensesTotal || ''}</span></div>
+    `;
+
+    let todayOrdersHtml = '';
+    if (d.todayOrdersList && d.todayOrdersList.length > 0) {
+      todayOrdersHtml += d.todayOrdersList.map((order) => `
+        <div class="row"><span class="row-name">${order.name}</span><span class="row-amount">${order.amount}</span></div>
+      `).join('');
+    }
+
+    let collectionsHtml = '';
+    if (d.collectionsList && d.collectionsList.length > 0) {
+      collectionsHtml += d.collectionsList.map((c) => `
+        <div class="row"><span class="row-name">${c.name}</span><span class="row-amount">${c.amount}</span></div>
+      `).join('');
+    }
+
+    let pendingHtml = '';
+    if (d.pendingCount > 0 && d.pendingList && d.pendingList.length > 0) {
+      pendingHtml += `
+        <div class="divider"></div>
+        <div class="section-title">${labels.pending_credit}</div>
+        <div class="row bold" style="margin-top: 4px;"><span class="row-name">${labels.pending_total} (${d.pendingCount}${labels.orders_unit})</span><span class="row-amount">${d.pendingAmount}</span></div>
+      `;
+      pendingHtml += d.pendingList.map((p) => `
+        <div class="row"><span class="row-name">${p.name}</span><span class="row-amount">${p.amount}</span></div>
+      `).join('');
+    }
+
+    return settlementTemplate
+      .replaceAll('{{branch}}', d.branch || shopInfoStr)
+      .replaceAll('{{date}}', d.date || '')
+      .replaceAll('{{print_datetime}}', dateStr)
+      .replaceAll('{{vault_balance}}', d.vaultBalance || '0')
+      .replaceAll('{{settlement_balance}}', d.settlementBalance || d.settlement_balance || '0')
+      .replaceAll('{{expenses_html}}', expensesHtml)
+      .replaceAll('{{orders_count}}', d.ordersCount || 0)
+      .replaceAll('{{orders_amount}}', d.ordersAmount || '0')
+      .replaceAll('{{today_orders_html}}', todayOrdersHtml)
+      .replaceAll('{{collections_count}}', d.collectionsCount || 0)
+      .replaceAll('{{collections_amount}}', d.collectionsAmount || '0')
+      .replaceAll('{{collections_html}}', collectionsHtml)
+      .replaceAll('{{pending_html}}', pendingHtml);
+  }
 
   // ─── 시장 장보기 리스트 ───
   if (actualJobType === 'market_list') {
-    const marketTemplatePath = path.join(bridgeAssetsPath, 'receipt-market-list.html');
-    let marketTemplate = fs.existsSync(marketTemplatePath) ? fs.readFileSync(marketTemplatePath, 'utf8') : '';
-    
+    let marketTemplate = i18n.loadTemplate(bridgeAssetsPath, 'receipt-market-list.html', tplCtx);
     const d = actualPayload || {};
-    const batchName = d.batchName || '시장 장보기';
-    const items = d.items || [];
-    
+    const batchName = d.batchName || labels.market_default_batch;
+    const marketItems = d.items || [];
+
     let itemsHtml = '';
-    if (items.length > 0) {
-      itemsHtml = items.map(item => `
+    if (marketItems.length > 0) {
+      itemsHtml = marketItems.map((item) => `
         <tr>
           <td class="center" style="font-size: 14px;">[ ]</td>
           <td>
             <span style="font-weight: bold;">${item.name}</span>
             ${item.supplier ? `<span class="item-supplier">🏪 ${item.supplier}</span>` : ''}
           </td>
-          <td class="center" style="font-weight: bold;">${item.quantity}단</td>
-          <td class="right">${item.price ? `${Math.round(item.price).toLocaleString()}원` : '0원'}</td>
+          <td class="center" style="font-weight: bold;">${item.quantity}${labels.qty_unit_bundle}</td>
+          <td class="right">${item.price ? fmt(Math.round(item.price)) : labels.zero_price}</td>
         </tr>
       `).join('');
     } else {
-      itemsHtml = `<tr><td colspan="4" class="center">품목 없음</td></tr>`;
+      itemsHtml = `<tr><td colspan="4" class="center">${labels.no_items}</td></tr>`;
     }
 
     return marketTemplate
@@ -110,28 +169,25 @@ function generateHtmlReceipt(job, settings, bridgeAssetsPath, globalBranchName, 
       .replaceAll('{{items_html}}', itemsHtml);
   }
 
-  // ─── 프린터 연동 테스트 (템플릿 파일 불필요) ───
+  // ─── 프린터 연동 테스트 ───
   if (actualJobType === 'print_test') {
     const branchName = settings.siteName || settings.branchDisplayName || globalBranchName;
-    return buildPrintTestHtml(dateStr, branchName);
+    return i18n.buildPrintTestHtml(labels, dateStr, branchName, options.bridgeVersion);
   }
 
-  // ─── 픽업/현장 예약증 (pickup_shop·pickup_memo·store_shop 동일 템플릿) ───
+  // ─── 픽업/현장 예약증 ───
   if (actualJobType === 'pickup_shop' || actualJobType === 'pickup_memo' || actualJobType === 'store_shop') {
-    const pickupTemplatePath = path.join(bridgeAssetsPath, 'receipt-pickup.html');
-    let pickupTemplate = fs.existsSync(pickupTemplatePath) ? fs.readFileSync(pickupTemplatePath, 'utf8') : '';
+    let pickupTemplate = i18n.loadTemplate(bridgeAssetsPath, 'receipt-pickup.html', tplCtx);
     if (!pickupTemplate.trim()) {
-      pickupTemplate = buildPrintTestHtml(dateStr, displayName).replace('Floxync 인쇄 테스트', '픽업 예약증');
+      return i18n.buildPrintTestHtml(labels, dateStr, displayName, options.bridgeVersion)
+        .replace(labels.print_test_title, labels.doc_pickup);
     }
-    
-    // 픽업 시간 및 픽업자 정보
+
     const pInfo = pickupInfo || actualPayload.pickupInfo || actualPayload.pickup_info || {};
     const pickupDatetime = `${pInfo.date || ''} ${pInfo.time || ''}`.trim();
-    
-    const pickerName = pInfo.pickerName || orderer?.name || '익명';
+    const pickerName = pInfo.pickerName || orderer?.name || labels.anonymous;
     const pickerContact = lastFour(pInfo.pickerContact || orderer?.phone || orderer?.contact) || '****';
-    
-    const pickupItemsHtml = (items || []).map(item => `<li>${item.name || ''}</li>`).join('');
+    const pickupItemsHtml = (items || []).map(formatReceiptItemLi).join('');
 
     return pickupTemplate
       .replace('{{pickup_datetime}}', pickupDatetime)
@@ -146,52 +202,44 @@ function generateHtmlReceipt(job, settings, bridgeAssetsPath, globalBranchName, 
 
   // ─── 배송 인수증 (기사용) ───
   if (actualJobType === 'delivery_driver' || actualJobType === 'delivery_driver_self') {
-    const driverTemplatePath = path.join(bridgeAssetsPath, 'receipt-delivery-driver.html');
-    let driverTemplate = fs.existsSync(driverTemplatePath) ? fs.readFileSync(driverTemplatePath, 'utf8') : '';
-    
+    let driverTemplate = i18n.loadTemplate(bridgeAssetsPath, 'receipt-delivery-driver.html', tplCtx);
     let ordererMasked = '';
     let recipientContactStr = '';
-
     const isSelfDelivery = actualJobType === 'delivery_driver_self';
 
     if (orderer) {
       if (orderer.is_anonymous || orderer.isAnonymous || actualPayload.is_anonymous) {
-        ordererMasked = '익명';
+        ordererMasked = labels.anonymous;
         if (isSelfDelivery) {
-           ordererMasked = `익명 (연락처: ${orderer.phone || orderer.contact || ''})`;
+          ordererMasked = `${labels.anonymous} (${labels.contact_prefix}: ${orderer.phone || orderer.contact || ''})`;
         }
+      } else if (isSelfDelivery) {
+        ordererMasked = `${orderer.name || ''} ${orderer.phone || orderer.contact || ''}`.trim();
       } else {
-        if (isSelfDelivery) {
-          ordererMasked = `${orderer.name || ''} ${orderer.phone || orderer.contact || ''}`.trim();
-        } else {
-          ordererMasked = `${orderer.name || ''} ${maskPhone(orderer.phone || orderer.contact)}`.trim();
-        }
+        ordererMasked = `${orderer.name || ''} ${maskPhone(orderer.phone || orderer.contact)}`.trim();
       }
     }
 
-    if (isSelfDelivery) {
-      recipientContactStr = deliveryInfo?.recipientContact || '';
-    } else {
-      recipientContactStr = maskPhone(deliveryInfo?.recipientContact) || '';
-    }
+    recipientContactStr = isSelfDelivery
+      ? (deliveryInfo?.recipientContact || '')
+      : (maskPhone(deliveryInfo?.recipientContact) || '');
 
-    const driverItemsHtml = (items || []).map(item => `<li>${item.name || ''}</li>`).join('');
+    const driverItemsHtml = (items || []).map(formatReceiptItemLi).join('');
+    const msgTypeLabel = message?.type || labels.ribbon_default;
 
     let driverMessageHtml = '';
-    if (msgContent && !message.type?.includes('카드') && !message.type?.toLowerCase().includes('card')) {
+    if (msgContent && !i18n.isCardMessageType(message?.type)) {
       driverMessageHtml = `
       <div style="font-size:12px; margin: 4px 0;">
-        <b>메시지(${message.type || '리본'}):</b><br/>
+        <b>${labels.message_prefix}(${msgTypeLabel}):</b><br/>
         <span style="white-space: pre-wrap;">${msgContent}</span><br/>
-        ${message.sender ? `보내는분: ${message.sender}` : ''}
+        ${message.sender ? `${labels.sender_prefix}: ${message.sender}` : ''}
       </div>`;
     }
-    const driverRequestHtml = request ? `<div style="font-size:12px; margin: 4px 0;"><b>요청사항:</b> ${request}</div>` : '';
-    
-    // 자체배송의 경우 제목에 표시
-    let receiptTitleHtml = isSelfDelivery 
-      ? `<div class="title">인수증 (매장) <span style="font-size:12px; color:#000; font-weight:bold;">(#${shortOrderId})</span></div>`
-      : `<div class="title">인수증 <span style="font-size:12px; color:#000; font-weight:bold;">(#${shortOrderId})</span></div>`;
+
+    const receiptTitleHtml = isSelfDelivery
+      ? `<div class="title">${labels.delivery_receipt_store} <span style="font-size:12px; color:#000; font-weight:bold;">(#${shortOrderId})</span></div>`
+      : `<div class="title">${labels.delivery_receipt} <span style="font-size:12px; color:#000; font-weight:bold;">(#${shortOrderId})</span></div>`;
 
     let finalHtml = driverTemplate
       .replace('{{short_order_id}}', shortOrderId)
@@ -207,21 +255,17 @@ function generateHtmlReceipt(job, settings, bridgeAssetsPath, globalBranchName, 
       .replace('{{logo_html}}', logoHtml)
       .replace('{{shop_info}}', shopInfoStr);
 
-    // 템플릿에 {{title_html}}이 없으면 맨 위에 주입 (호환성 유지)
     if (finalHtml.includes('{{title_html}}')) {
       finalHtml = finalHtml.replace('{{title_html}}', receiptTitleHtml);
     } else {
       finalHtml = finalHtml.replace('<body>', `<body>${receiptTitleHtml}`);
     }
-
     return finalHtml;
   }
 
   // ─── 매장용 주문서 / 배송 영수증 / 현장 영수증 ───
   if (actualJobType === 'order_form' || actualJobType === 'delivery_shop' || actualJobType === 'store_shop' || actualJobType === 'receipt_shop') {
-    const shopTemplatePath = path.join(bridgeAssetsPath, 'receipt-delivery-shop.html');
-    let shopTemplate = fs.existsSync(shopTemplatePath) ? fs.readFileSync(shopTemplatePath, 'utf8') : '';
-
+    let shopTemplate = i18n.loadTemplate(bridgeAssetsPath, 'receipt-delivery-shop.html', tplCtx);
     const withBranding = actualJobType === 'delivery_shop' || actualJobType === 'receipt_shop';
     const maskContacts = actualJobType === 'delivery_shop' || actualJobType === 'receipt_shop' || actualJobType === 'store_shop';
 
@@ -230,26 +274,30 @@ function generateHtmlReceipt(job, settings, bridgeAssetsPath, globalBranchName, 
       return maskContacts ? maskPhone(contact) : contact;
     };
 
-    const shopItemsHtml = (items || []).map(item => `
+    const shopItemsHtml = (items || []).map((item) => `
       <tr>
         <td>${item.name || ''}</td>
         <td style="text-align:center;">${item.quantity || ''}</td>
-        <td class="right">${item.price != null ? item.price.toLocaleString() : ''}</td>
+        <td class="right">${item.price != null ? fmt(item.price) : ''}</td>
       </tr>
     `).join('');
 
     let reqHtml = '';
     if (request) {
-      reqHtml = `<div class="request-box"><b>요청사항:</b> ${request}</div>`;
+      reqHtml = `<div class="request-box"><b>${labels.request_prefix}:</b> ${request}</div>`;
     }
 
+    const msgTypeLabel = message?.type || labels.ribbon_default;
     let msgHtml = '';
     if (msgContent) {
-      msgHtml = `<div class="request-box" style="margin-top: 10px; border-top: 1px dashed #000; padding-top: 10px;"><b>메시지(${message.type || '리본'}):</b><br/><span style="white-space: pre-wrap;">${msgContent}</span>${message.sender ? `<br/>보내는분: ${message.sender}` : ''}</div>`;
+      msgHtml = `<div class="request-box" style="margin-top: 10px; border-top: 1px dashed #000; padding-top: 10px;"><b>${labels.message_prefix}(${msgTypeLabel}):</b><br/><span style="white-space: pre-wrap;">${msgContent}</span>${message.sender ? `<br/>${labels.sender_prefix}: ${message.sender}` : ''}</div>`;
     }
 
-    let rName = '', rContact = '', dDatetime = '', dAddr = '';
-    let docTitle = '주문서';
+    let rName = '';
+    let rContact = '';
+    let dDatetime = '';
+    let dAddr = '';
+    let docTitle = labels.doc_order_form;
     const pInfo = pickupInfo || actualPayload.pickupInfo || {};
 
     if (actualJobType === 'delivery_shop' || actualJobType === 'receipt_shop' || (actualJobType === 'order_form' && deliveryInfo && !pickupInfo?.date)) {
@@ -257,18 +305,18 @@ function generateHtmlReceipt(job, settings, bridgeAssetsPath, globalBranchName, 
       rContact = formatContact(deliveryInfo?.recipientContact);
       dDatetime = `${deliveryInfo?.date || ''} ${deliveryInfo?.time || ''}`.trim();
       dAddr = deliveryInfo?.address || '';
-      if (withBranding) docTitle = '영수증';
+      if (withBranding) docTitle = labels.doc_receipt;
     } else if (actualJobType === 'order_form' && (pInfo.date || pInfo.time || pInfo.pickerName)) {
-      rName = pInfo.pickerName || orderer?.name || '익명';
+      rName = pInfo.pickerName || orderer?.name || labels.anonymous;
       rContact = formatContact(pInfo.pickerContact || orderer?.phone || orderer?.contact);
       dDatetime = `${pInfo.date || ''} ${pInfo.time || ''}`.trim();
-      dAddr = '매장 픽업';
+      dAddr = labels.store_pickup;
     } else {
-      rName = orderer?.name || '익명';
+      rName = orderer?.name || labels.anonymous;
       rContact = formatContact(orderer?.phone || orderer?.contact);
       dDatetime = dateStr;
-      dAddr = '현장 구매';
-      if (actualJobType === 'store_shop') docTitle = '영수증';
+      dAddr = labels.onsite_purchase;
+      if (actualJobType === 'store_shop') docTitle = labels.doc_receipt;
     }
 
     const ordererContact = formatContact(orderer?.phone || orderer?.contact);
@@ -279,24 +327,25 @@ function generateHtmlReceipt(job, settings, bridgeAssetsPath, globalBranchName, 
       .replace('{{doc_title}}', docTitle)
       .replace('{{short_order_id}}', shortOrderId)
       .replace('{{print_datetime}}', dateStr)
-      .replace('{{orderer_name}}', orderer?.name || '익명')
+      .replace('{{orderer_name}}', orderer?.name || labels.anonymous)
       .replace('{{orderer_contact}}', ordererContact)
       .replace('{{recipient_name}}', rName)
       .replace('{{recipient_contact}}', rContact)
       .replace('{{delivery_datetime}}', dDatetime)
       .replace('{{delivery_address}}', dAddr)
       .replace('{{items_html}}', shopItemsHtml)
-      .replace('{{subtotal}}', summary?.subtotal != null ? `${summary.subtotal.toLocaleString()}원` : '')
-      .replace('{{delivery_fee}}', summary?.deliveryFee != null ? `${summary.deliveryFee.toLocaleString()}원` : '')
-      .replace('{{total}}', summary?.total != null ? `${summary.total.toLocaleString()}원` : '')
+      .replace('{{subtotal}}', summary?.subtotal != null ? fmt(summary.subtotal) : '')
+      .replace('{{delivery_fee}}', summary?.deliveryFee != null ? fmt(summary.deliveryFee) : '')
+      .replace('{{total}}', summary?.total != null ? fmt(summary.total) : '')
       .replace('{{request_html}}', reqHtml)
       .replace('{{message_html}}', msgHtml)
       .replace('{{logo_html}}', brandingLogo)
       .replace('{{shop_info}}', brandingFooter);
 
     if (actualJobType === 'order_form' && (pInfo.date || pInfo.time || pInfo.pickerName)) {
-      finalHtml = finalHtml.replace('<span class="label">배송일시</span>', '<span class="label">픽업일시</span>');
-      finalHtml = finalHtml.replace('<span class="label">배송지</span>', '<span class="label">수령방법</span>');
+      finalHtml = finalHtml
+        .replace(`<span class="label">${labels.delivery_datetime}</span>`, `<span class="label">${labels.pickup_datetime}</span>`)
+        .replace(`<span class="label">${labels.delivery_address}</span>`, `<span class="label">${labels.receive_method}</span>`);
     }
 
     if (!withBranding) {

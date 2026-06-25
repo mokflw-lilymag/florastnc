@@ -1,4 +1,5 @@
 import { format, isSameDay, isToday, addDays } from "date-fns";
+import type { Locale } from "date-fns";
 import type { Order } from "@/types/order";
 
 export type PickupListItem = {
@@ -28,12 +29,37 @@ export type PickupListItem = {
   originalOrder: Order;
 };
 
-export function mapOrderToPickupItem(o: Order): PickupListItem {
+export type PickupItemLabels = {
+  productFallback: string;
+  customerFallback: string;
+  itemsMore: string;
+};
+
+export function formatPickupItemsLabel(
+  items: Order["items"],
+  labels: PickupItemLabels,
+): string {
+  const list = items || [];
+  const head = list
+    .slice(0, 2)
+    .map((i) => i.name || labels.productFallback)
+    .join(", ");
+  if (list.length <= 2) return head;
+  return `${head}${labels.itemsMore.replace("{{count}}", String(list.length - 2))}`;
+}
+
+export function mapOrderToPickupItem(
+  o: Order,
+  labels?: PickupItemLabels,
+): PickupListItem {
   const pickup = o.pickup_info;
   const delivery = o.delivery_info;
-  const itemsLabel =
-    (o.items || []).slice(0, 2).map((i) => i.name || "상품").join(", ") +
-    ((o.items || []).length > 2 ? ` 외 ${(o.items || []).length - 2}건` : "");
+  const fallback: PickupItemLabels = labels ?? {
+    productFallback: "Item",
+    customerFallback: "Customer",
+    itemsMore: " +{{count}} more",
+  };
+  const itemsLabel = formatPickupItemsLabel(o.items, fallback);
 
   let scheduledTime: Date | undefined;
   const dateStr = pickup?.date || delivery?.date;
@@ -50,7 +76,7 @@ export function mapOrderToPickupItem(o: Order): PickupListItem {
   return {
     id: o.id,
     orderNumber: o.order_number,
-    ordererName: o.orderer?.name || "고객",
+    ordererName: o.orderer?.name || fallback.customerFallback,
     contact: o.orderer?.contact || "",
     itemsLabel,
     rawItems: o.items || [],
@@ -83,28 +109,28 @@ export function getUrgencyColor(scheduledTime?: Date): string {
   return "border-emerald-200 bg-white";
 }
 
-export function formatOrderDateShort(dateStr?: string): string {
+export function formatOrderDateShort(dateStr?: string, dateLocale?: Locale): string {
   if (!dateStr) return "";
   try {
-    return format(new Date(dateStr), "MM/dd HH:mm");
+    return format(new Date(dateStr), "MM/dd HH:mm", dateLocale ? { locale: dateLocale } : undefined);
   } catch {
     return "";
   }
 }
 
-export type DateFilterType = "오늘" | "내일" | "전체";
-export type PickupTabType = "전체" | "픽업" | "배송";
+export type DateFilterType = "today" | "tomorrow" | "all";
+export type PickupTabType = "all" | "pickup" | "delivery";
 
 export function matchesDateFilter(
   item: PickupListItem,
-  dateFilter: DateFilterType
+  dateFilter: DateFilterType,
 ): boolean {
-  if (dateFilter === "전체") return true;
+  if (dateFilter === "all") return true;
 
   const scheduleDate = item.scheduledTime;
   const orderDate = item.orderDate ? new Date(item.orderDate) : null;
 
-  if (dateFilter === "오늘") {
+  if (dateFilter === "today") {
     if (scheduleDate && isToday(scheduleDate)) return true;
     if (!scheduleDate && orderDate && isToday(orderDate)) return true;
     if (item.receiptType === "store_pickup" && orderDate && isToday(orderDate)) return true;
@@ -115,3 +141,6 @@ export function matchesDateFilter(
   if (scheduleDate && isSameDay(scheduleDate, tomorrow)) return true;
   return false;
 }
+
+export const PICKUP_TABS: PickupTabType[] = ["all", "pickup", "delivery"];
+export const PICKUP_DATE_FILTERS: DateFilterType[] = ["today", "tomorrow", "all"];

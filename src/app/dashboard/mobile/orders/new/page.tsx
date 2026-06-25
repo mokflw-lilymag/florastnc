@@ -24,9 +24,12 @@ import {
   resolveMobileProductCategory,
 } from "@/lib/mobile/product-categories";
 import { buildMobilePaymentMethods } from "@/lib/mobile/payment-methods";
+import {
+  receiptTypeLabel,
+  useMobileShopMessages,
+} from "@/lib/mobile/use-mobile-shop-messages";
+import { formatMobileCurrency } from "@/lib/mobile/format-mobile-currency";
 import { selectOrderPaymentMethod } from "@/lib/order-payment-methods";
-import { getMessages } from "@/i18n/getMessages";
-import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import {
   postOrderAnniversary,
   resolveAnniversaryDateFromSchedule,
@@ -94,21 +97,31 @@ function buildOrderMessage(
   };
 }
 
-const RECEIPT_OPTIONS: { value: ReceiptType; label: string }[] = [
-  { value: "store_pickup", label: "매장 픽업" },
-  { value: "pickup_reservation", label: "픽업 예약" },
-  { value: "delivery_reservation", label: "배송" },
-];
+const RECEIPT_TYPE_VALUES = [
+  "store_pickup",
+  "pickup_reservation",
+  "delivery_reservation",
+] as const satisfies readonly OrderData["receipt_type"][];
 
 export default function MobileNewOrderPage() {
   const router = useRouter();
-  const locale = usePreferredLocale();
-  const tf = getMessages(locale).tenantFlows;
+  const { m, tf, locale, dateLocale } = useMobileShopMessages();
+  const { settings } = useSettings();
+  const currency = settings?.currency ?? "KRW";
+  const fmt = (amount: number) => formatMobileCurrency(amount, locale, currency);
+
+  const receiptOptions = useMemo(
+    () =>
+      RECEIPT_TYPE_VALUES.map((value) => ({
+        value,
+        label: receiptTypeLabel(value, tf),
+      })),
+    [tf],
+  );
   const { profile, tenantId } = useAuth();
   const storeName = profile?.tenants?.name;
   const { addOrder } = useOrders();
   const { customers, loading: customersLoading, addCustomer, updateCustomer } = useCustomers();
-  const { settings } = useSettings();
 
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [registerCustomer, setRegisterCustomer] = useState(true);
@@ -155,7 +168,7 @@ export default function MobileNewOrderPage() {
     try {
       setProducts(await fetchTenantProductsForMobile(tenantId));
     } catch {
-      toast.error("상품 목록을 불러오지 못했습니다.");
+      toast.error(m.order.loadProductsFailed);
     }
   }, [tenantId]);
 
@@ -358,11 +371,11 @@ export default function MobileNewOrderPage() {
   const handleSubmit = async () => {
     if (!tenantId) return;
     if (!ordererName.trim() || !ordererContact.trim()) {
-      toast.error("주문자 이름과 연락처를 입력해 주세요.");
+      toast.error(m.order.needOrderer);
       return;
     }
     if (cart.length === 0) {
-      toast.error("상품을 1개 이상 추가해 주세요.");
+      toast.error(m.order.needItems);
       return;
     }
 
@@ -468,9 +481,9 @@ export default function MobileNewOrderPage() {
         });
         if (anniv.ok) {
           if (anniv.duplicate) {
-            toast.info("이미 같은 날짜의 기념일이 등록되어 있습니다.");
+            toast.info(m.order.anniversaryExists);
           } else {
-            toast.success("기념일 날짜 등록됨 — 고객 관리에서 이름을 입력해 주세요.");
+            toast.success(m.order.anniversaryRegistered);
           }
         }
       }
@@ -478,9 +491,9 @@ export default function MobileNewOrderPage() {
       setLastOrderNumber(`ORD-${Date.now().toString().slice(-8)}`);
       setSubmittedMessageType(messageType);
       setShowSuccessDialog(true);
-      toast.success("주문이 접수되었습니다.");
+      toast.success(m.order.saved);
     } catch {
-      toast.error("주문 저장에 실패했습니다.");
+      toast.error(m.order.saveFailed);
     } finally {
       setSubmitting(false);
     }
@@ -489,7 +502,7 @@ export default function MobileNewOrderPage() {
   if (!tenantId) {
     return (
       <div className="flex flex-1 items-center justify-center p-6 text-gray-500">
-        매장 정보가 없습니다.
+        {m.common.noStore}
       </div>
     );
   }
@@ -497,10 +510,11 @@ export default function MobileNewOrderPage() {
   return (
     <div className="flex h-full min-h-0 flex-col">
       <MobilePageHeader
-        title="모바일 주문접수"
+        title={m.order.title}
         subtitle={storeName ?? undefined}
         icon={ShoppingBag}
         variant="blue"
+        dateLocale={dateLocale}
       />
 
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 pb-28">
@@ -532,9 +546,9 @@ export default function MobileNewOrderPage() {
         />
 
         <section className="space-y-2 rounded-2xl border bg-white p-4 shadow-sm">
-          <h2 className="text-sm font-bold text-gray-800">수령 방식</h2>
+          <h2 className="text-sm font-bold text-gray-800">{m.order.receiveMethod}</h2>
           <div className="grid grid-cols-3 gap-2">
-            {RECEIPT_OPTIONS.map((opt) => (
+            {receiptOptions.map((opt) => (
               <button
                 key={opt.value}
                 type="button"
@@ -551,7 +565,7 @@ export default function MobileNewOrderPage() {
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <Label className="text-xs text-gray-500">예약일</Label>
+              <Label className="text-xs text-gray-500">{m.order.scheduleDate}</Label>
               <Input
                 type="date"
                 value={scheduleDate}
@@ -560,7 +574,7 @@ export default function MobileNewOrderPage() {
               />
             </div>
             <div>
-              <Label className="text-xs text-gray-500">시간</Label>
+              <Label className="text-xs text-gray-500">{m.order.scheduleTime}</Label>
               <Input
                 type="time"
                 value={scheduleTime}
@@ -572,19 +586,19 @@ export default function MobileNewOrderPage() {
           {receiptType === "delivery_reservation" && (
             <>
               <Input
-                placeholder="배송 주소"
+                placeholder={m.order.deliveryAddress}
                 value={deliveryAddress}
                 onChange={(e) => setDeliveryAddress(e.target.value)}
                 className="h-10"
               />
               <Input
-                placeholder="수령인 이름"
+                placeholder={m.order.recipientName}
                 value={recipientName}
                 onChange={(e) => setRecipientName(e.target.value)}
                 className="h-10"
               />
               <Input
-                placeholder="수령인 연락처"
+                placeholder={m.order.recipientContact}
                 value={recipientContact}
                 onChange={(e) => setRecipientContact(formatPhoneNumber(e.target.value))}
                 className="h-10"
@@ -595,14 +609,14 @@ export default function MobileNewOrderPage() {
 
         <section className="rounded-2xl border bg-white p-4 shadow-sm">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-bold text-gray-800">주문 상품</h2>
+            <h2 className="text-sm font-bold text-gray-800">{m.order.orderItems}</h2>
             <Button size="sm" type="button" onClick={openProductSheet}>
-              + 상품 추가
+              {m.order.addProduct}
             </Button>
           </div>
           {cart.length === 0 ? (
             <p className="rounded-lg border border-dashed py-6 text-center text-sm text-gray-400">
-              상품을 추가해 주세요
+              {m.order.addProductsHint}
             </p>
           ) : (
             <ul className="space-y-2">
@@ -614,7 +628,7 @@ export default function MobileNewOrderPage() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">{item.name}</p>
                     <p className="text-xs text-gray-500">
-                      {(item.price * item.quantity).toLocaleString()}원
+                      {(item.price * item.quantity).toLocaleString()}
                     </p>
                   </div>
                   <div className="flex items-center gap-1">
@@ -634,20 +648,20 @@ export default function MobileNewOrderPage() {
             </ul>
           )}
           <p className="mt-3 text-right text-lg font-black text-blue-700">
-            합계 {total.toLocaleString()}원
+            {m.order.totalLine} {fmt(total)}
             {pointsToUse > 0 && (
               <span className="block text-xs font-normal text-amber-700">
-                포인트 -{pointsToUse.toLocaleString()}P
+                {m.order.pointsUsed.replace("{{amount}}", `${pointsToUse.toLocaleString()}P`)}
               </span>
             )}
             {deliveryFee > 0 && (
               <span className="ml-1 text-xs font-normal text-gray-500">
-                (배송비 {deliveryFee.toLocaleString()}원 포함)
+                {m.order.deliveryFeeIncluded.replace("{{amount}}", fmt(deliveryFee))}
               </span>
             )}
             {pointsEarned > 0 && (
               <span className="block text-xs font-normal text-emerald-600">
-                적립 예정 +{pointsEarned.toLocaleString()}P
+                {m.order.pointsEarnHint.replace("{{amount}}", `${pointsEarned.toLocaleString()}P`)}
               </span>
             )}
           </p>
@@ -655,17 +669,17 @@ export default function MobileNewOrderPage() {
 
         <section className="space-y-3 rounded-2xl border bg-white p-4 shadow-sm">
           <div>
-            <h2 className="text-sm font-bold text-gray-800">메시지 (카드 · 리본)</h2>
+            <h2 className="text-sm font-bold text-gray-800">{m.order.messageSection}</h2>
             <p className="mt-1 text-[10px] text-gray-500">
-              리본 → 리본 프린터 · 카드 → 디자인 스튜디오와 연동됩니다. 주문 저장 후 바로 출력·편집할 수 있습니다.
+              {m.order.messageHint}
             </p>
           </div>
           <div className="grid grid-cols-3 gap-2">
             {(
               [
-                { value: "none" as const, label: "없음" },
-                { value: "card" as const, label: "카드" },
-                { value: "ribbon" as const, label: "리본" },
+                { value: "none" as const, label: m.common.none },
+                { value: "card" as const, label: tf.f00704 ?? "Card" },
+                { value: "ribbon" as const, label: tf.f00179 ?? "Ribbon" },
               ] as const
             ).map((opt) => (
               <button
@@ -689,16 +703,14 @@ export default function MobileNewOrderPage() {
 
           {messageType === "card" && (
             <div className="space-y-2">
-              <Label className="text-xs text-gray-500">카드 메시지</Label>
+              <Label className="text-xs text-gray-500">{tf.f00207 ?? "Card message"}</Label>
               <Textarea
                 value={messageContent}
                 onChange={(e) => setMessageContent(e.target.value)}
-                placeholder="카드에 들어갈 내용을 입력하세요."
+                placeholder={m.order.cardContentPlaceholder}
                 className="mt-1 min-h-[100px] text-sm"
               />
-              <p className="text-[10px] text-indigo-600">
-                저장 후 「카드 디자인」으로 디자인 스튜디오에 문구가 자동 반영됩니다.
-              </p>
+              <p className="text-[10px] text-indigo-600">{m.order.cardStudioHint}</p>
             </div>
           )}
 
@@ -706,7 +718,7 @@ export default function MobileNewOrderPage() {
             <div className="space-y-3">
               <div>
                 <Label className="mb-2 block text-[10px] text-gray-500">
-                  표준 문구 (탭하면 입력)
+                  {m.order.ribbonPresetsLabel}
                 </Label>
                 <div className="flex flex-wrap gap-1.5">
                   {RIBBON_PRESETS.map((preset) => (
@@ -724,7 +736,7 @@ export default function MobileNewOrderPage() {
               {recentRibbonMessages.length > 0 && (
                 <div>
                   <Label className="mb-1 block text-[10px] text-gray-500">
-                    이 고객의 최근 리본 문구
+                    {m.order.recentRibbonPhrases}
                   </Label>
                   <div className="flex flex-wrap gap-1.5">
                     {recentRibbonMessages.map((msg, idx) => (
@@ -748,16 +760,15 @@ export default function MobileNewOrderPage() {
                 </div>
               )}
               <div>
-                <Label className="text-xs text-gray-500">리본 문구</Label>
+                <Label className="text-xs text-gray-500">{tf.f00179 ?? "Ribbon"}</Label>
                 <Input
                   value={messageContent}
                   onChange={(e) => setMessageContent(e.target.value)}
-                  placeholder="예: 축결혼 / 홍길동 (보내는 분 미입력 시 주문자명)"
+                  placeholder={m.order.ribbonPlaceholder}
                   className="mt-1 h-10 text-sm"
                 />
                 <p className="mt-1 text-[10px] text-gray-400">
-                  메시지와 보내는 분은 &apos;/&apos; 로 구분합니다. 보내는 분을 비우면 주문자 이름이
-                  사용됩니다.
+                  {tf.f00003}
                 </p>
               </div>
               {messageContent.trim() ? (
@@ -775,19 +786,19 @@ export default function MobileNewOrderPage() {
                   }}
                 >
                   <Printer className="h-4 w-4" />
-                  리본 프린터 미리보기
+                  {m.order.ribbonPreview}
                 </Button>
               ) : null}
             </div>
           )}
 
           {messageType === "none" && (
-            <p className="text-xs text-gray-400">카드·리본 메시지 없이 주문합니다.</p>
+            <p className="text-xs text-gray-400">{m.order.noMessageOrder}</p>
           )}
         </section>
 
         <section className="space-y-2 rounded-2xl border bg-white p-4 shadow-sm">
-          <h2 className="text-sm font-bold text-gray-800">결제</h2>
+          <h2 className="text-sm font-bold text-gray-800">{tf.f00446 ?? tf.f00046 ?? "Payment"}</h2>
           <div className="grid grid-cols-4 gap-1.5">
             {mobilePaymentMethods.map(({ key, label }) => (
               <button
@@ -812,7 +823,7 @@ export default function MobileNewOrderPage() {
                 paymentStatus === "pending" ? "bg-amber-500 text-white" : "bg-gray-100"
               }`}
             >
-              미수(외상)
+              {m.order.paymentPending}
             </button>
             <button
               type="button"
@@ -821,11 +832,11 @@ export default function MobileNewOrderPage() {
                 paymentStatus === "paid" ? "bg-emerald-600 text-white" : "bg-gray-100"
               }`}
             >
-              결제완료
+              {m.order.paymentPaid}
             </button>
           </div>
           <Input
-            placeholder="요청사항"
+            placeholder={m.order.requestPlaceholder}
             value={memo}
             onChange={(e) => setMemo(e.target.value)}
             className="h-10"
@@ -839,7 +850,7 @@ export default function MobileNewOrderPage() {
           disabled={submitting}
           onClick={handleSubmit}
         >
-          {submitting ? "저장 중..." : "주문 접수"}
+          {submitting ? m.order.saving : m.order.submit}
         </Button>
       </div>
 
@@ -851,17 +862,20 @@ export default function MobileNewOrderPage() {
           <div className="shrink-0 border-b px-4 pb-3 pt-4">
             <SheetHeader className="space-y-0 p-0 pb-3">
               <div className="flex items-start justify-between gap-3 pr-8">
-                <SheetTitle>상품 선택</SheetTitle>
+                <SheetTitle>{m.order.addProduct}</SheetTitle>
                 {cartItemCount > 0 ? (
                   <span className="shrink-0 rounded-full bg-blue-600 px-2.5 py-1 text-xs font-bold text-white">
-                    {cartItemCount}개 담음
+                    {m.order.cartCountBadge.replace("{{count}}", String(cartItemCount))}
                   </span>
                 ) : null}
               </div>
               {activeProductCategory ? (
                 <p className="text-xs text-gray-500">
                   {activeProductCategory} ·{" "}
-                  {(categoryProductCounts.get(activeProductCategory) ?? 0).toLocaleString()}개
+                  {m.order.categoryItemCount.replace(
+                    "{{count}}",
+                    String(categoryProductCounts.get(activeProductCategory) ?? 0),
+                  )}
                 </p>
               ) : null}
             </SheetHeader>
@@ -884,8 +898,8 @@ export default function MobileNewOrderPage() {
             <Input
               placeholder={
                 activeProductCategory
-                  ? `${activeProductCategory} 상품 검색`
-                  : "상품명 검색"
+                  ? `${activeProductCategory} ${m.order.productSearchPlaceholder}`
+                  : m.order.productSearchPlaceholder
               }
               value={productSearch}
               onChange={(e) => setProductSearch(e.target.value)}
@@ -900,8 +914,8 @@ export default function MobileNewOrderPage() {
             {filteredProducts.length === 0 ? (
               <div className="col-span-2 py-12 text-center text-sm text-gray-400">
                 {productSearch.trim()
-                  ? "검색 결과가 없습니다."
-                  : "이 카테고리에 등록된 상품이 없습니다."}
+                  ? m.order.productSearchEmpty
+                  : m.order.categoryEmpty}
               </div>
             ) : (
               filteredProducts.map((p) => {
@@ -943,7 +957,7 @@ export default function MobileNewOrderPage() {
                         isSelected ? "text-blue-700" : "text-blue-600"
                       )}
                     >
-                      {p.price.toLocaleString()}원
+                      {fmt(p.price)}
                     </span>
                   </button>
                 );
@@ -959,7 +973,7 @@ export default function MobileNewOrderPage() {
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
               <Check className="h-8 w-8 text-green-600" />
             </div>
-            <DialogTitle className="text-center text-xl font-bold">주문 접수 완료</DialogTitle>
+            <DialogTitle className="text-center text-xl font-bold">{tf.f00614 ?? m.order.saved}</DialogTitle>
             <DialogDescription className="text-center font-mono text-sm font-bold text-indigo-600">
               {lastOrderNumber}
             </DialogDescription>
@@ -977,7 +991,7 @@ export default function MobileNewOrderPage() {
                 }}
               >
                 <Printer className="h-4 w-4" />
-                리본 프린터로 출력
+                {tf.f00181 ?? "Ribbon print"}
               </Button>
             )}
             {submittedMessageType === "card" && lastOrderId && (
@@ -986,7 +1000,7 @@ export default function MobileNewOrderPage() {
                 onClick={() => openCardDesignStudio(lastOrderId)}
               >
                 <Sparkles className="h-4 w-4" />
-                카드 디자인 스튜디오
+                {m.order.cardDesignStudio}
               </Button>
             )}
             {submittedMessageType === "card" && lastOrderId && (
@@ -1000,7 +1014,7 @@ export default function MobileNewOrderPage() {
                 }
               >
                 <Printer className="h-4 w-4" />
-                메시지 카드 인쇄
+                {tf.f00706 ?? "Print card"}
               </Button>
             )}
             <Button
@@ -1008,7 +1022,7 @@ export default function MobileNewOrderPage() {
               className="h-11 rounded-2xl font-bold"
               onClick={() => router.push("/dashboard/mobile/pickup")}
             >
-              픽업/배송 관리로 이동
+              {m.nav.pickupDelivery}
             </Button>
             <Button
               variant="ghost"
@@ -1018,7 +1032,7 @@ export default function MobileNewOrderPage() {
                 window.location.reload();
               }}
             >
-              이어서 주문 접수
+              {m.order.continueOrder}
             </Button>
           </div>
         </DialogContent>

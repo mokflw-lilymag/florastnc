@@ -41,20 +41,24 @@ export async function enqueuePrintJob(
     const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI?.printJob;
 
     let localSettings: any = {};
-    if (isElectron) {
-      try {
-        const { data: settingsData } = await supabase
-          .from('system_settings')
-          .select('data')
-          .eq('id', `settings_${tenantId}`)
-          .single();
-        if (settingsData?.data) {
-          localSettings = settingsData.data;
-        }
-      } catch (e) {
-        console.warn('Failed to fetch printer settings from supabase:', e);
+    try {
+      const { data: settingsData } = await supabase
+        .from('system_settings')
+        .select('data')
+        .eq('id', `settings_${tenantId}`)
+        .single();
+      if (settingsData?.data) {
+        localSettings = settingsData.data;
       }
+    } catch (e) {
+      console.warn('Failed to fetch printer settings from supabase:', e);
     }
+
+    const shopBranding = {
+      shop_name: localSettings.siteName || '',
+      shop_phone: localSettings.contactPhone || '',
+    };
+    orderData = { ...orderData, ...shopBranding };
 
     const orderFormPayload = { ...orderData, hideBranding: true };
     const driverPayload = {
@@ -85,9 +89,9 @@ export async function enqueuePrintJob(
         if (reprintType === 'order_form' || reprintType === 'both') {
           jobs.push(buildJob(tenantId, "order_form", orderFormPayload));
         }
-        // 인수증(재출력): 배송예약(delivery_shop)만
+        // 인수증(재출력): delivery_driver — 영수증(delivery_shop)은 고객관리 전용
         if (reprintType === 'receipt' || reprintType === 'both') {
-          jobs.push(buildJob(tenantId, "delivery_shop", orderData));
+          jobs.push(buildJob(tenantId, "delivery_driver", driverPayload));
         }
         if (reprintType === 'receipt_self') {
           jobs.push(buildJob(tenantId, "delivery_driver_self", driverPayload));
@@ -121,7 +125,7 @@ export async function enqueuePrintJob(
               order_id: orderId
             },
             settings: localSettings,
-            branchName: tenantId
+            branchName: localSettings.siteName || tenantId
           });
           console.log(`[PrintService] 네이티브 인쇄 성공:`, result);
         } catch (printErr) {

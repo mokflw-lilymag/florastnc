@@ -169,11 +169,13 @@ export const OrderService = {
 
     if (orderError) throw orderError;
 
+    const skipImportSideEffects = orderData.extra_data?.skipPrint === true;
+
     // --- Side Effect 1: Expense for Delivery ---
     const hasDeliveryFee = (orderData.actual_delivery_cost && orderData.actual_delivery_cost > 0) || 
                           (orderData.summary.deliveryFee && orderData.summary.deliveryFee > 0);
                           
-    if (orderData.receipt_type === 'delivery_reservation' && hasDeliveryFee) {
+    if (!skipImportSideEffects && orderData.receipt_type === 'delivery_reservation' && hasDeliveryFee) {
       const expenseAmount = orderData.actual_delivery_cost || orderData.summary.deliveryFee || 0;
       const carrier = orderData.delivery_info?.driverAffiliation || '자체';
       
@@ -190,6 +192,7 @@ export const OrderService = {
     }
 
     // --- Side Effect 2: Update Product Stock ---
+    if (!skipImportSideEffects) {
     for (const item of orderData.items) {
       if (item.id && !item.id.startsWith('custom_')) {
         const { data: p } = await supabase.from('products').select('stock').eq('id', item.id).single();
@@ -200,9 +203,10 @@ export const OrderService = {
         }
       }
     }
+    }
 
     // --- Side Effect 3: Update Customer Stats ---
-    if (orderData.orderer.id && orderData.orderer.id !== "") {
+    if (!skipImportSideEffects && orderData.orderer.id && orderData.orderer.id !== "") {
       const { data: c } = await supabase
         .from('customers')
         .select('points, total_spent, order_count')
@@ -225,6 +229,8 @@ export const OrderService = {
     }
 
     // --- Side Effect 4: Trigger Print Job ---
+    const skipPrint = orderData.extra_data?.skipPrint === true;
+    if (!skipPrint) {
     try {
       const { enqueuePrintJob } = await import('@/lib/print-service');
       let mappedOrderType: 'store' | 'pickup' | 'delivery' = 'store';
@@ -234,6 +240,7 @@ export const OrderService = {
       await enqueuePrintJob(supabase, tenantId, order.id, mappedOrderType, orderPayload, false);
     } catch (e) {
       console.error('Failed to trigger print job', e);
+    }
     }
 
     return order.id;

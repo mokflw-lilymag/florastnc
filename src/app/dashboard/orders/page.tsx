@@ -35,6 +35,7 @@ const OrderDetailDialog = dynamic(() => import("./components/order-detail-dialog
 const OrderEditDialog = dynamic(() => import("./components/order-edit-dialog").then(mod => mod.OrderEditDialog), { ssr: false });
 const MessagePrintDialog = dynamic(() => import("./components/message-print-dialog").then(mod => mod.MessagePrintDialog), { ssr: false });
 const OrderOutsourceDialog = dynamic(() => import("./components/order-outsource-dialog").then(mod => mod.OrderOutsourceDialog), { ssr: false });
+const OrderExcelUploadDialog = dynamic(() => import("./components/excel-upload-dialog").then(mod => mod.OrderExcelUploadDialog), { ssr: false });
 
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Link from "next/link";
@@ -53,6 +54,7 @@ import {
 import { printDocument } from "@/lib/print-document";
 import { usePartnerTouchUi } from "@/hooks/use-partner-touch-ui";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { ElectronYearlyStatsCard } from "@/components/desktop/electron-yearly-stats-card";
 import { toBaseLocale } from "@/i18n/config";
 import { pickUiText } from "@/i18n/pick-ui-text";
 import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
@@ -142,6 +144,7 @@ export default function OrdersPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isMessagePrintOpen, setIsMessagePrintOpen] = useState(false);
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
+  const [isExcelUploadOpen, setIsExcelUploadOpen] = useState(false);
 
   const [page, setPage] = useState(1);
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
@@ -721,6 +724,17 @@ export default function OrdersPage() {
             <Download className="h-4 w-4 text-slate-400" /> 
             <span>{tf.f00442}</span>
           </Button>
+          <Button
+            variant="outline"
+            onClick={() => {
+              if (!requireErpPersist(planCtx, locale)) return;
+              setIsExcelUploadOpen(true);
+            }}
+            className="flex-1 lg:flex-none h-11 lg:h-12 px-6 rounded-2xl border-2 border-slate-100 bg-white hover:bg-slate-50 font-bold transition-all shadow-sm gap-2"
+          >
+            <Upload className="h-4 w-4 text-slate-500" />
+            <span>{tf.f01086}</span>
+          </Button>
           <Button 
             variant="outline" 
             onClick={handleGoogleSheetExport}
@@ -753,7 +767,8 @@ export default function OrdersPage() {
       </PageHeader>
 
       {/* Stats Grid */}
-      <div className={cn("grid gap-6", touchUi ? "grid-cols-2 lg:grid-cols-4 gap-3" : "grid-cols-1 md:grid-cols-2 lg:grid-cols-4")}>
+      <div className={cn("grid gap-6", touchUi ? "grid-cols-2 lg:grid-cols-5 gap-3" : "grid-cols-1 md:grid-cols-2 lg:grid-cols-5")}>
+        <ElectronYearlyStatsCard compact className={touchUi ? "col-span-2 lg:col-span-1" : undefined} />
         <Card className="rounded-3xl border-none shadow-xl shadow-slate-200/50 bg-white overflow-hidden group hover:scale-[1.02] transition-all duration-300">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-bold text-slate-500 uppercase tracking-wider">{tf.f00463}</CardTitle>
@@ -1524,6 +1539,12 @@ export default function OrdersPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <OrderExcelUploadDialog
+        open={isExcelUploadOpen}
+        onOpenChange={setIsExcelUploadOpen}
+        onComplete={refreshOrders}
+      />
 
     </div>
   );

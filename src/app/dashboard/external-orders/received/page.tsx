@@ -26,6 +26,7 @@ import { Separator } from "@/components/ui/separator";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
 import { pickUiText } from "@/i18n/pick-ui-text";
+import { clearExternalOrderDesktopBadge } from "@/lib/electron-desktop-api";
 
 export default function ReceivedOrdersPage() {
     const supabase = createClient();
@@ -51,6 +52,10 @@ export default function ReceivedOrdersPage() {
     const [filterStatus, setFilterStatus] = useState("all");
     const [selectedOrder, setSelectedOrder] = useState<any>(null);
     const [isDetailOpen, setIsDetailOpen] = useState(false);
+
+    useEffect(() => {
+        void clearExternalOrderDesktopBadge();
+    }, []);
 
     useEffect(() => {
         if (tenantId) {

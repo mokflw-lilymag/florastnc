@@ -13,7 +13,7 @@ import { EstimateDialog } from "./components/estimate-dialog";
 import { DocumentRegistryDialog } from "./components/document-registry-dialog";
 import { useCustomers } from "@/hooks/use-customers";
 import { Customer, CustomerData } from "@/types/customer";
-import { Plus, Search, RefreshCw, Users, UserCheck, Star, Clock, Download, History as HistoryIcon, Trophy, Medal, Archive } from "lucide-react";
+import { Plus, Search, RefreshCw, Users, UserCheck, Star, Clock, Download, History as HistoryIcon, Trophy, Medal, Archive, Upload } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
@@ -23,7 +23,12 @@ import { useTenantPlanAccess } from "@/hooks/use-tenant-plan-access";
 import { ErpTrialBanner } from "@/components/subscription/erp-trial-banner";
 import { requireErpPersist } from "@/lib/subscription/erp-trial";
 import { Skeleton } from "@/components/ui/skeleton";
-import { exportToExcel } from "@/lib/excel-export";
+import {
+  downloadCustomerTemplate,
+  exportCustomersToExcel,
+  parseCustomerExcelFile,
+  parseCustomerExcelRow,
+} from "@/lib/customer-excel";
 import { format } from "date-fns";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
@@ -49,7 +54,8 @@ export default function CustomersPage() {
     isRefreshing, 
     fetchCustomers, 
     addCustomer, 
-    updateCustomer, 
+    updateCustomer,
+    bulkAddCustomers,
     deleteCustomer 
   } = useCustomers();
 
@@ -64,6 +70,7 @@ export default function CustomersPage() {
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [isEstimateOpen, setIsEstimateOpen] = useState(false);
   const [isRegistryOpen, setIsRegistryOpen] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
   const [isSavingCustomer, setIsSavingCustomer] = useState(false);
   const customerSaveLockRef = useRef(false);
 
@@ -117,29 +124,37 @@ export default function CustomersPage() {
       toast.error(tf.f00130);
       return;
     }
-    
-    const dataToExport = filteredCustomers.map(customer => ({
-        [tf.f00076]: customer.name || '',
-        [tf.f00081]: customer.type === 'company' ? tf.f00109 : tf.f00028,
-        [tf.f00779]: customer.company_name || '',
-        [tf.f00444]: customer.contact || '',
-        [tf.f00504]: customer.email || '',
-        [tf.f00650]: customer.address || '',
-        [tf.f00163]: customer.grade || tf.f00415,
-        [tf.f00288]: customer.points || 0,
-        [tf.f00146]: customer.total_spent || 0,
-        [tf.f00649]: customer.order_count || 0,
-        [tf.f00197]: customer.memo || '',
-        [tf.f00170]: customer.created_at
-          ? format(new Date(customer.created_at), "Pp", { locale: dfLoc })
-          : "",
-    }));
-    
-    const today = format(new Date(), 'yyyy-MM-dd');
-    await exportToExcel(dataToExport, `${tf.f00075}_${today}.xlsx`, tf.f00079);
+    await exportCustomersToExcel(filteredCustomers, locale);
     toast.success(
-      tf.f00806.replace("{count}", String(dataToExport.length))
+      tf.f00806.replace("{count}", String(filteredCustomers.length))
     );
+  };
+
+  const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    try {
+      const data = await parseCustomerExcelFile(file);
+      const rows = data
+        .map((row) => parseCustomerExcelRow(row as Record<string, unknown>, locale))
+        .filter((r): r is CustomerData => r !== null);
+
+      if (rows.length === 0) {
+        toast.error("등록할 고객 데이터가 없습니다. (고객명·연락처 필수)");
+        return;
+      }
+
+      const { newCount, updatedCount, skippedCount } = await bulkAddCustomers(rows);
+      toast.success(`신규 ${newCount}건 · 업데이트 ${updatedCount}건 · 건너뜀 ${skippedCount}건`);
+    } catch (err) {
+      console.error(err);
+      toast.error(tf.f01087);
+    } finally {
+      setIsImporting(false);
+      e.target.value = "";
+    }
   };
 
   const handleSyncFromOrders = async () => {
@@ -341,11 +356,37 @@ export default function CustomersPage() {
             variant="outline" 
             size="sm"
             className="gap-2 font-bold bg-white border-slate-200 h-9 px-4 rounded-lg hover:bg-slate-50 transition-all text-slate-400 shadow-sm"
-            onClick={handleExport}
+            onClick={() => void handleExport()}
           >
             <Download size={16} />
             {tf.f00443}
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2 font-bold bg-white border-slate-200 h-9 px-4 rounded-lg hover:bg-slate-50 transition-all text-slate-600 shadow-sm"
+            onClick={() => void downloadCustomerTemplate(locale)}
+          >
+            <Download size={16} className="text-slate-500" />
+            {tf.f01532}
+          </Button>
+          <div className="relative">
+            <input
+              type="file"
+              accept=".xlsx,.xls"
+              className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+              onChange={(e) => void handleImportExcel(e)}
+              disabled={isImporting}
+            />
+            <Button
+              size="sm"
+              disabled={isImporting}
+              className="gap-2 h-9 bg-slate-800 hover:bg-slate-900 text-white shadow-sm"
+            >
+              <Upload size={16} className={isImporting ? "animate-pulse" : ""} />
+              {isImporting ? tf.f00850 : tf.f01086}
+            </Button>
+          </div>
           <Button 
             size="sm"
             className="gap-2 font-black bg-slate-900 hover:bg-slate-800 text-white shadow-xl shadow-slate-200 h-9 px-6 rounded-lg transition-all"

@@ -1,10 +1,11 @@
 "use client";
 
 import { format } from "date-fns";
-import { ko } from "date-fns/locale";
+import type { Locale } from "date-fns";
 import type { LucideIcon } from "lucide-react";
 import { RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useMobileShopMessages } from "@/lib/mobile/use-mobile-shop-messages";
 
 type Variant = "emerald" | "orange" | "blue";
 
@@ -22,6 +23,7 @@ type MobilePageHeaderProps = {
   badge?: string;
   loading?: boolean;
   onRefresh?: () => void;
+  dateLocale?: Locale;
 };
 
 export function MobilePageHeader({
@@ -32,7 +34,11 @@ export function MobilePageHeader({
   badge,
   loading,
   onRefresh,
+  dateLocale: dateLocaleProp,
 }: MobilePageHeaderProps) {
+  const { m, dateLocale: hookDateLocale } = useMobileShopMessages();
+  const dateLocale = dateLocaleProp ?? hookDateLocale;
+
   return (
     <div
       className={cn(
@@ -44,7 +50,7 @@ export function MobilePageHeader({
       <div className="min-w-0 flex-1">
         <p className="text-lg font-bold leading-none">{title}</p>
         <p className="mt-0.5 truncate text-xs text-white/70">
-          {subtitle ?? format(new Date(), "M월 d일 (eee)", { locale: ko })}
+          {subtitle ?? format(new Date(), "PP (eee)", { locale: dateLocale })}
         </p>
       </div>
       {badge ? (
@@ -57,7 +63,7 @@ export function MobilePageHeader({
           type="button"
           onClick={onRefresh}
           className="rounded-full p-2 hover:bg-white/20"
-          aria-label="새로고침"
+          aria-label={m.header.refreshAria}
         >
           <RefreshCw className={cn("h-5 w-5", loading && "animate-spin")} />
         </button>

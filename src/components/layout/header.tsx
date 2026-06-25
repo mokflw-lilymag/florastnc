@@ -21,12 +21,13 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { AppLocale, LOCALE_COOKIE, resolveLocale, toBaseLocale } from "@/i18n/config";
+import { AppLocale, resolveLocale, toBaseLocale } from "@/i18n/config";
 import {
   DASHBOARD_LOCALE_SELECT_OPTIONS,
   resolveDashboardSelectLocale,
 } from "@/i18n/ui-locale-options";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { usePersistUiLocale } from "@/hooks/use-persist-ui-locale";
 import { getMessages } from "@/i18n/getMessages";
 import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
 import { useAuthStore } from "@/stores/auth-store";
@@ -85,6 +86,7 @@ export function Header({
   const messages = getMessages(preferredLocale);
   const t = messages.dashboardCommon;
   const dh = messages.dashboardHeader;
+  const { persistUiLocale, settingsUiLocale } = usePersistUiLocale();
   const [uiLocale, setUiLocale] = useState<AppLocale>("ko");
   const selectLocale = resolveDashboardSelectLocale(uiLocale);
   const [isElectron, setIsElectron] = useState(false);
@@ -96,19 +98,21 @@ export function Header({
   }, []);
 
   useEffect(() => {
-    if (typeof document === "undefined") return;
-    const cookieValue = document.cookie
-      .split("; ")
-      .find((row) => row.startsWith(`${LOCALE_COOKIE}=`))
-      ?.split("=")[1];
-    setUiLocale(resolveLocale(cookieValue));
-  }, []);
+    if (settingsUiLocale) {
+      setUiLocale(resolveLocale(settingsUiLocale));
+      return;
+    }
+    setUiLocale(preferredLocale);
+  }, [settingsUiLocale, preferredLocale]);
 
-  const handleLocaleChange = (nextLocale: AppLocale) => {
+  const handleLocaleChange = async (nextLocale: AppLocale) => {
     setUiLocale(nextLocale);
-    document.cookie = `${LOCALE_COOKIE}=${nextLocale}; path=/; max-age=${60 * 60 * 24 * 365}`;
-    window.dispatchEvent(new Event("preferred-locale-changed"));
-    toast.success(t.header.localeChanged);
+    const saved = await persistUiLocale(nextLocale);
+    if (saved) {
+      toast.success(t.header.localeChanged);
+    } else {
+      toast.error("Failed to save language setting.");
+    }
   };
 
   useEffect(() => {
@@ -232,20 +236,30 @@ export function Header({
                 {storeName}
               </h1>
             </div>
-            {subscriptionLine && (
+            <div className="flex min-w-0 items-center gap-2">
+              {subscriptionLine && (
+                <Link
+                  href="/dashboard/subscription"
+                  title={t.header.subscriptionTitle}
+                  className={cn(
+                    "inline-flex max-w-full items-center rounded-lg border px-2 py-1 text-[10px] font-semibold leading-tight transition-colors sm:shrink-0 md:text-[11px]",
+                    isExpired || isSuspended
+                      ? "border-amber-200 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100"
+                      : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200"
+                  )}
+                >
+                  <span className="truncate">{subscriptionLine}</span>
+                </Link>
+              )}
               <Link
-                href="/dashboard/subscription"
-                title={t.header.subscriptionTitle}
-                className={cn(
-                  "inline-flex max-w-full items-center rounded-lg border px-2 py-1 text-[10px] font-semibold leading-tight transition-colors sm:shrink-0 md:text-[11px]",
-                  isExpired || isSuspended
-                    ? "border-amber-200 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100"
-                    : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200"
-                )}
+                href="/dashboard/schedule"
+                title={dh.scheduleTitle}
+                className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-violet-200 bg-violet-50 text-base leading-none transition-colors hover:bg-violet-100 dark:border-violet-800 dark:bg-violet-950/40 dark:hover:bg-violet-900/50"
+                aria-label={dh.scheduleOpenAria}
               >
-                <span className="truncate">{subscriptionLine}</span>
+                📅
               </Link>
-            )}
+            </div>
           </div>
         )}
       </div>

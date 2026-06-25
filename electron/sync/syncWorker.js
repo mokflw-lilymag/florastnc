@@ -5,6 +5,7 @@ const os = require('os');
 const syncConfig = require('../sync-config');
 const { getSyncScope, shouldSkipPull, applyTenantFilter } = require('../syncScope');
 const { updateSyncState } = require('../syncState');
+const { checkAndRunPhotoBackup } = require('./photoBackup');
 
 const LOCAL_ONLY_COLUMNS = new Set(['sync_status', 'last_sync_time']);
 
@@ -19,10 +20,11 @@ class SyncWorker {
     this.syncLoopTimer = null;
     this.immediateSyncTimer = null;
     this.backupInterval = null;
+    this.photoBackupInterval = null;
     this.isSyncing = false;
     this.syncCycleCount = 0;
     this.lastSyncWorkAt = Date.now();
-    this.memCursor = { orders: null, customers: null, simple_expenses: null };
+    this.memCursor = { orders: null, customers: null, simple_expenses: null, expenses: null };
   }
 
   configure(session) {
@@ -48,6 +50,16 @@ class SyncWorker {
     this.scheduleSyncLoop(0);
     this.dailyBackup();
     this.backupInterval = setInterval(() => this.dailyBackup(), 1000 * 60 * 60);
+
+    void checkAndRunPhotoBackup(this.db, this.tenantId, this.supabase).catch((err) => {
+      console.error('[SyncWorker] Initial photo backup error:', err);
+    });
+    this.photoBackupInterval = setInterval(() => {
+      void checkAndRunPhotoBackup(this.db, this.tenantId, this.supabase).catch((err) => {
+        console.error('[SyncWorker] Photo backup check error:', err);
+      });
+    }, 60 * 60 * 1000);
+
     console.log('[SyncWorker] Adaptive sync loop started.');
   }
 
@@ -58,10 +70,12 @@ class SyncWorker {
     this.immediateSyncTimer = null;
     if (this.backupInterval) clearInterval(this.backupInterval);
     this.backupInterval = null;
+    if (this.photoBackupInterval) clearInterval(this.photoBackupInterval);
+    this.photoBackupInterval = null;
     this.supabase = null;
     this.tenantId = null;
     this.accessToken = null;
-    this.memCursor = { orders: null, customers: null, simple_expenses: null };
+    this.memCursor = { orders: null, customers: null, simple_expenses: null, expenses: null };
     console.log('Sync worker stopped.');
   }
 
@@ -102,7 +116,7 @@ class SyncWorker {
   }
 
   resetSyncCursorsForScopeChange() {
-    this.memCursor = { orders: null, customers: null, simple_expenses: null };
+    this.memCursor = { orders: null, customers: null, simple_expenses: null, expenses: null };
   }
 
   clearLocalData() {
@@ -112,10 +126,11 @@ class SyncWorker {
       this.db.prepare('DELETE FROM orders').run();
       this.db.prepare('DELETE FROM customers').run();
       this.db.prepare('DELETE FROM simple_expenses').run();
+      this.db.prepare('DELETE FROM expenses').run();
       this.db.prepare('DELETE FROM print_jobs').run();
       this.db.prepare('DELETE FROM branches').run();
       this.db.prepare('DELETE FROM sync_queue').run();
-      this.memCursor = { orders: null, customers: null, simple_expenses: null };
+      this.memCursor = { orders: null, customers: null, simple_expenses: null, expenses: null };
       console.log('Local data wiped successfully.');
     } catch (e) {
       console.error('Failed to wipe local data:', e);
@@ -137,6 +152,7 @@ class SyncWorker {
         pulled += await this.syncTable('orders');
         pulled += await this.syncTable('customers');
         pulled += await this.syncTable('simple_expenses');
+        pulled += await this.syncExpensesTable();
         await this.pullBranches();
       } else {
         console.log('[SyncWorker] Pull skipped (idle scope)');
@@ -151,6 +167,9 @@ class SyncWorker {
       }
       if (this.syncCycleCount % syncConfig.DELETED_SYNC_ORDERS_EVERY_N === 0) {
         deletedRemoved += await this.syncDeletedRecords('simple_expenses');
+      }
+      if (this.syncCycleCount % syncConfig.DELETED_SYNC_ORDERS_EVERY_N === 0) {
+        deletedRemoved += await this.syncDeletedRecords('expenses');
       }
 
       const hadWork = pushedQueue > 0 || pulled > 0 || deletedRemoved > 0;
@@ -319,6 +338,87 @@ class SyncWorker {
     return totalRows;
   }
 
+  /** expenses 테이블 — created_at 기준 pull-only (updated_at 없음) */
+  async syncExpensesTable() {
+    const tableName = 'expenses';
+    if (!this.db.prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name=?`).get(tableName)) {
+      return 0;
+    }
+
+    let totalRows = 0;
+    let lastCreated = this.memCursor.expenses;
+    if (!lastCreated) {
+      const row = this.db
+        .prepare(`SELECT MAX(created_at) as last_created FROM ${tableName} WHERE sync_status = 'synced' AND tenant_id = ?`)
+        .get(this.tenantId);
+      lastCreated = row?.last_created || '1970-01-01T00:00:00Z';
+      if (lastCreated !== '1970-01-01T00:00:00Z') {
+        let dt = new Date(lastCreated);
+        if (dt > new Date()) dt = new Date();
+        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        if (dt > sevenDaysAgo) dt = sevenDaysAgo;
+        else dt.setHours(dt.getHours() - 1);
+        lastCreated = dt.toISOString();
+      }
+    }
+
+    let isDone = false;
+    while (!isDone) {
+      let query = this.supabase
+        .from(tableName)
+        .select('*')
+        .gt('created_at', lastCreated)
+        .order('created_at', { ascending: true })
+        .order('id', { ascending: true })
+        .limit(1000);
+      query = applyTenantFilter(query);
+
+      const { data, error } = await query;
+      if (error) throw new Error(`Supabase fetch error for ${tableName}: ${error.message}`);
+
+      if (data?.length) {
+        totalRows += data.length;
+        lastCreated = data[data.length - 1].created_at;
+        const tableInfo = this.db.prepare(`PRAGMA table_info(${tableName})`).all();
+        const validColumns = new Set(tableInfo.map((c) => c.name));
+        const now = new Date().toISOString();
+
+        const insertMany = this.db.transaction((items) => {
+          for (const item of items) {
+            const filtered = {};
+            for (const key of Object.keys(item)) {
+              if (!validColumns.has(key)) continue;
+              let val = item[key];
+              if (val === undefined) val = null;
+              else if (typeof val === 'boolean') val = val ? 1 : 0;
+              else if (typeof val === 'object' && val !== null) val = JSON.stringify(val);
+              filtered[key] = val;
+            }
+            filtered.sync_status = 'synced';
+            filtered.last_sync_time = now;
+            const cols = Object.keys(filtered);
+            const placeholders = cols.map(() => '?').join(', ');
+            const updateSet = cols.map((c) => `${c} = excluded.${c}`).join(', ');
+            const values = cols.map((c) => filtered[c]);
+            this.db
+              .prepare(
+                `INSERT INTO ${tableName} (${cols.join(', ')}) VALUES (${placeholders})
+                 ON CONFLICT(id) DO UPDATE SET ${updateSet}`,
+              )
+              .run(...values);
+          }
+        });
+        insertMany(data);
+        isDone = data.length < 1000;
+      } else {
+        isDone = true;
+      }
+    }
+
+    this.memCursor.expenses = lastCreated;
+    return totalRows;
+  }
+
   async syncDeletedRecords(tableName) {
     const localIds = this.db
       .prepare(`SELECT id FROM ${tableName} WHERE sync_status = 'synced' AND tenant_id = ?`)
@@ -426,14 +526,25 @@ class SyncWorker {
 
   getBackupData() {
     if (!this.tenantId) return null;
+    let expenses = [];
+    try {
+      expenses = this.db.prepare('SELECT * FROM expenses WHERE tenant_id = ?').all(this.tenantId);
+    } catch (_) {}
     return {
       backupDate: new Date().toISOString(),
       tenantId: this.tenantId,
       customers: this.db.prepare('SELECT * FROM customers WHERE tenant_id = ?').all(this.tenantId),
       orders: this.db.prepare('SELECT * FROM orders WHERE tenant_id = ?').all(this.tenantId),
       simple_expenses: this.db.prepare('SELECT * FROM simple_expenses WHERE tenant_id = ?').all(this.tenantId),
+      expenses,
       branches: this.db.prepare('SELECT * FROM branches WHERE tenant_id = ?').all(this.tenantId),
     };
+  }
+
+  async runMonthlyPhotoBackup(targetMonth, force = false) {
+    const { runPhotoBackupForMonth, getPreviousTargetMonth } = require('./photoBackup');
+    const month = targetMonth || getPreviousTargetMonth();
+    return runPhotoBackupForMonth(this.db, this.tenantId, month, { force, supabase: this.supabase });
   }
 
   dailyBackup() {

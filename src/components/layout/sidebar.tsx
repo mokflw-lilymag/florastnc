@@ -21,6 +21,7 @@ import {
   BookOpen,
   Smartphone,
   TrendingUp,
+  CalendarDays,
 } from "lucide-react";
 import Image from "next/image";
 import { createClient } from "@/utils/supabase/client";
@@ -242,6 +243,7 @@ export function Sidebar({
           activeExcludePrefix: "/dashboard/orders/new",
         },
         { name: t.sidebar.links.delivery, href: "/dashboard/delivery", icon: Truck, tier: [...ERP_NAV_TIERS] },
+        { name: t.sidebar.links.schedule, href: "/dashboard/schedule", icon: CalendarDays, tier: [...ERP_NAV_TIERS] },
         { name: t.sidebar.links.crm, href: "/dashboard/customers", icon: Users, tier: [...ERP_NAV_TIERS] },
         ...(partnerOrdersEnabled || isSuperAdmin
           ? ([

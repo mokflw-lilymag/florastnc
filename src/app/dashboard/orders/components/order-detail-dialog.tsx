@@ -141,7 +141,7 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
     try {
       const ext = order.completionPhotoUrl.split(".").pop()?.split("?")[0] || "jpg";
       const filename = `order_${order.id.slice(0, 8)}_${Date.now()}.${ext}`;
-      const result = await downloadImageToLocal(order.completionPhotoUrl, filename);
+      const result = await downloadImageToLocal(order.completionPhotoUrl, filename, tenantId ?? undefined);
       if (result?.success) {
         toast.success(`사진 저장: ${result.path}`);
       } else {

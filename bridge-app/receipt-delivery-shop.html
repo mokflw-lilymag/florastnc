@@ -1,13 +1,13 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="{{locale}}">
 <head>
   <meta charset="UTF-8">
-  <title>주문서</title>
+  <title>{{label_doc_order_form}}</title>
   <style>
     @page { margin: 2mm; }
     * { box-sizing: border-box; }
     body {
-      font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+      font-family: {{font_family}};
       font-weight: 800;
       -webkit-font-smoothing: none;
       margin: 0;
@@ -88,27 +88,27 @@
   {{logo_html}}
   <div style="display: flex; align-items: center; justify-content: center; margin: 6px 0 8px 0; flex-wrap: wrap; gap: 4px;">
     <div style="display: flex; align-items: center; font-size: 11px; font-weight: normal;">
-      <input type="checkbox" style="margin:0 3px 0 0; width: 13px; height: 13px;"> 제작완료
+      <input type="checkbox" style="margin:0 3px 0 0; width: 13px; height: 13px;"> {{label_production_complete}}
     </div>
     <div class="title" style="margin: 0;">{{doc_title}} <span style="font-size:12px; color:#000; font-weight:bold;">(#{{short_order_id}})</span></div>
   </div>
-  <div style="text-align:center; font-size:11px; color:#000; margin-bottom:6px;">출력일시: {{print_datetime}}</div>
+  <div style="text-align:center; font-size:11px; color:#000; margin-bottom:6px;">{{label_print_datetime_prefix}}: {{print_datetime}}</div>
   <div class="divider"></div>
 
   <div class="row">
-    <span class="label">주문자</span>
+    <span class="label">{{label_orderer}}</span>
     <span class="value">{{orderer_name}} {{orderer_contact}}</span>
   </div>
   <div class="row" style="font-size: 15px; margin: 8px 0; align-items: flex-start;">
-    <span class="label">수령인</span>
+    <span class="label">{{label_recipient}}</span>
     <span class="value">{{recipient_name}} {{recipient_contact}}</span>
   </div>
   <div class="row" style="font-size: 15px; margin: 8px 0; align-items: flex-start;">
-    <span class="label">배송일시</span>
+    <span class="label">{{label_delivery_datetime}}</span>
     <span class="value">{{delivery_datetime}}</span>
   </div>
   <div class="row" style="font-size: 15px; margin: 8px 0; align-items: flex-start;">
-    <span class="label" style="min-width: 45px;">배송지</span>
+    <span class="label" style="min-width: 45px;">{{label_delivery_address}}</span>
     <span class="value" style="line-height: 1.4; word-break: break-all; overflow-wrap: break-word; word-wrap: break-word; white-space: normal; max-width: 100%;">{{delivery_address}}</span>
   </div>
 
@@ -117,9 +117,9 @@
   <table>
     <thead>
       <tr>
-        <th style="width:52%;">상품명</th>
-        <th style="text-align:center; width:18%;">수량</th>
-        <th style="text-align:right; width:30%;">금액</th>
+        <th style="width:52%;">{{label_product_name}}</th>
+        <th style="text-align:center; width:18%;">{{label_qty}}</th>
+        <th style="text-align:right; width:30%;">{{label_amount_col}}</th>
       </tr>
     </thead>
     <tbody>
@@ -130,9 +130,9 @@
   <div class="divider"></div>
 
   <div class="summary">
-    <div>주문금액 {{subtotal}}</div>
-    <div>배송비 {{delivery_fee}}</div>
-    <div class="total">합계 {{total}}</div>
+    <div>{{label_order_amount}} {{subtotal}}</div>
+    <div>{{label_delivery_fee}} {{delivery_fee}}</div>
+    <div class="total">{{label_total_sum}} {{total}}</div>
   </div>
 
   {{request_html}}

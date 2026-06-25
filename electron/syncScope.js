@@ -72,15 +72,27 @@ function pruneLocalRowsOutsideScope() {
            AND tenant_id != ?`,
       )
       .run(tenantId);
+    let mainExpensesResult = { changes: 0 };
+    try {
+      mainExpensesResult = dbRef
+        .prepare(
+          `DELETE FROM expenses
+           WHERE sync_status = 'synced'
+             AND tenant_id IS NOT NULL
+             AND tenant_id != ?`,
+        )
+        .run(tenantId);
+    } catch (_) {}
     const removed = {
       orders: ordersResult.changes || 0,
       customers: customersResult.changes || 0,
       simple_expenses: expensesResult.changes || 0,
+      expenses: mainExpensesResult.changes || 0,
     };
-    const total = removed.orders + removed.customers + removed.simple_expenses;
+    const total = removed.orders + removed.customers + removed.simple_expenses + removed.expenses;
     if (total > 0) {
       console.log(
-        `[SyncScope] Pruned other-tenant rows: orders=${removed.orders}, customers=${removed.customers}, expenses=${removed.simple_expenses}`,
+        `[SyncScope] Pruned other-tenant rows: orders=${removed.orders}, customers=${removed.customers}, simple_expenses=${removed.simple_expenses}, expenses=${removed.expenses}`,
       );
     }
     return removed;
@@ -96,15 +108,20 @@ function pruneLocalRowsOutsideScope() {
     const expensesResult = dbRef
       .prepare(`DELETE FROM simple_expenses WHERE sync_status = 'synced'`)
       .run();
+    let mainExpensesResult = { changes: 0 };
+    try {
+      mainExpensesResult = dbRef.prepare(`DELETE FROM expenses WHERE sync_status = 'synced'`).run();
+    } catch (_) {}
     const removed = {
       orders: ordersResult.changes || 0,
       customers: customersResult.changes || 0,
       simple_expenses: expensesResult.changes || 0,
+      expenses: mainExpensesResult.changes || 0,
     };
-    const total = removed.orders + removed.customers + removed.simple_expenses;
+    const total = removed.orders + removed.customers + removed.simple_expenses + removed.expenses;
     if (total > 0) {
       console.log(
-        `[SyncScope] Pruned synced rows on idle: orders=${removed.orders}, customers=${removed.customers}, expenses=${removed.simple_expenses}`,
+        `[SyncScope] Pruned synced rows on idle: orders=${removed.orders}, customers=${removed.customers}, simple_expenses=${removed.simple_expenses}, expenses=${removed.expenses}`,
       );
     }
     return removed;

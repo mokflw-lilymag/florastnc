@@ -21,6 +21,7 @@ import {
   DEFAULT_KAKAO_TEMPLATE_DELIVERY_COMPLETE,
   DEFAULT_KAKAO_TEMPLATE_PRODUCTION_COMPLETE,
 } from '@/lib/kakao/default-pc-templates';
+import { syncTenantBackupPathToElectron } from '@/lib/electron-desktop-api';
 
 export type { CategoryData } from '@/lib/category-defaults';
 export { DEFAULT_PRODUCT_CATEGORIES, DEFAULT_MATERIAL_CATEGORIES, DEFAULT_EXPENSE_CATEGORIES };
@@ -69,6 +70,8 @@ export interface SystemSettings {
   defaultTaxRate: number;
   currency: string;
   country: string;
+  /** Tenant UI language — synced with mobile via system_settings.data */
+  uiLocale?: string;
   /** 대시보드 상단 전광판(날씨·예약·본사 공지 흐름) — 표시 여부(하위 호환) */
   dashboardTickerEnabled: boolean;
   /** true면 사용자가 환경설정에서 전광판을 끔. 미설정/false면 표시(기본). 구버전 false만 있던 저장은 무시하고 표시. */
@@ -103,6 +106,8 @@ export interface SystemSettings {
   /** PC 카카오톡 반자동 알림 텍스트 (클립보드 복사용, {사진링크} = URL) */
   kakaoTemplateProductionComplete?: string;
   kakaoTemplateDeliveryComplete?: string;
+  /** Windows 앱 로컬 저장·백업 루트 (비우면 문서/Floxync) */
+  localBackupPath?: string;
 }
 
 export const defaultSettings: SystemSettings = {
@@ -223,7 +228,11 @@ export function useSettings() {
       if (prod) setProductCategories(prod.data as CategoryData);
       if (mat) setMaterialCategories(mat.data as CategoryData);
       if (exp) setExpenseCategories(exp.data as CategoryData);
-      if (general) setSettings(mergeTenantGeneralSettings(general.data));
+      if (general) {
+        const merged = mergeTenantGeneralSettings(general.data);
+        setSettings(merged);
+        void syncTenantBackupPathToElectron(tid, merged.localBackupPath);
+      }
 
     } catch (err) {
       console.error('Error fetching settings:', err);
@@ -264,6 +273,7 @@ export function useSettings() {
 
       if (upsertError) throw upsertError;
       setSettings(newSettings);
+      void syncTenantBackupPathToElectron(tid, newSettings.localBackupPath);
       return true;
     } catch (err) {
       console.error('Error saving settings:', err);

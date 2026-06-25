@@ -3,12 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-
-const TABS = [
-  { href: "/dashboard/mobile/pickup", label: "픽업/배송", emoji: "📦", accent: "emerald" },
-  { href: "/dashboard/mobile/pos/quick", label: "빠른판매 POS", emoji: "⚡", accent: "orange" },
-  { href: "/dashboard/mobile/orders/new", label: "주문접수", emoji: "📝", accent: "blue" },
-] as const;
+import { useMobileShopMessages } from "@/lib/mobile/use-mobile-shop-messages";
 
 function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
@@ -16,6 +11,13 @@ function isActive(pathname: string, href: string) {
 
 export function MobilePosNav() {
   const pathname = usePathname() ?? "";
+  const { m } = useMobileShopMessages();
+
+  const TABS = [
+    { href: "/dashboard/mobile/pickup", label: m.nav.pickupDelivery, emoji: "📦", accent: "emerald" as const },
+    { href: "/dashboard/mobile/pos/quick", label: m.nav.quickPos, emoji: "⚡", accent: "orange" as const },
+    { href: "/dashboard/mobile/orders/new", label: m.nav.newOrder, emoji: "📝", accent: "blue" as const },
+  ];
 
   return (
     <div className="flex shrink-0 gap-1 border-b bg-white px-3 pt-2">

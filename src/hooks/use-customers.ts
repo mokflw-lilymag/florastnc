@@ -40,7 +40,7 @@ export function useCustomers(initialFetch = true) {
 
   const addCustomer = async (customerData: CustomerData): Promise<string | null> => {
     if (!tenantId) return null;
-    
+
     try {
       const { anniversaries: _ann, ...row } = customerData;
       const { data, error } = await supabase
@@ -50,9 +50,9 @@ export function useCustomers(initialFetch = true) {
         .single();
 
       if (error) throw error;
-      
+
       const newCustomer = data as Customer;
-      setCustomers(prev => [newCustomer, ...prev].sort((a, b) => a.name.localeCompare(b.name)));
+      setCustomers((prev) => [newCustomer, ...prev].sort((a, b) => a.name.localeCompare(b.name)));
       return newCustomer.id;
     } catch (error) {
       console.error('Error adding customer:', error);
@@ -74,15 +74,73 @@ export function useCustomers(initialFetch = true) {
         .single();
 
       if (error) throw error;
-      
+
       if (data) {
-        setCustomers(prev => prev.map(c => c.id === id ? { ...c, ...(data as Customer) } : c));
+        setCustomers((prev) => prev.map((c) => (c.id === id ? { ...c, ...(data as Customer) } : c)));
       }
       return true;
     } catch (error) {
       console.error('Error updating customer:', error);
       return false;
     }
+  };
+
+  const bulkAddCustomers = async (
+    rows: CustomerData[],
+  ): Promise<{ newCount: number; updatedCount: number; skippedCount: number }> => {
+    if (!tenantId) return { newCount: 0, updatedCount: 0, skippedCount: rows.length };
+
+    let newCount = 0;
+    let updatedCount = 0;
+    let skippedCount = 0;
+
+    for (const customerData of rows) {
+      if (!customerData.name?.trim() || !customerData.contact?.trim()) {
+        skippedCount += 1;
+        continue;
+      }
+
+      try {
+        const { data: existing } = await supabase
+          .from('customers')
+          .select('id')
+          .eq('tenant_id', tenantId)
+          .eq('contact', customerData.contact.trim())
+          .eq('is_deleted', false)
+          .maybeSingle();
+
+        const { anniversaries: _ann, ...row } = customerData;
+
+        if (existing?.id) {
+          const { error } = await supabase
+            .from('customers')
+            .update({
+              ...row,
+              marketing_consent: customerData.marketing_consent ?? false,
+            })
+            .eq('id', existing.id)
+            .eq('tenant_id', tenantId);
+          if (error) throw error;
+          updatedCount += 1;
+        } else {
+          const { error } = await supabase.from('customers').insert([
+            {
+              ...row,
+              tenant_id: tenantId,
+              marketing_consent: customerData.marketing_consent ?? false,
+            },
+          ]);
+          if (error) throw error;
+          newCount += 1;
+        }
+      } catch (e) {
+        console.warn('[bulkAddCustomers] row failed', e);
+        skippedCount += 1;
+      }
+    }
+
+    await fetchCustomers();
+    return { newCount, updatedCount, skippedCount };
   };
 
   const deleteCustomer = async (id: string): Promise<boolean> => {
@@ -169,6 +227,7 @@ export function useCustomers(initialFetch = true) {
     fetchCustomers,
     addCustomer,
     updateCustomer,
+    bulkAddCustomers,
     deleteCustomer
   };
 }

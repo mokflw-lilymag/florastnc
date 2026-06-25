@@ -32,8 +32,22 @@ contextBridge.exposeInMainWorld('electronAPI', {
   requestImmediateSync: () => ipcRenderer.invoke('request-immediate-sync'),
   getYearlyStats: (tenantId) => ipcRenderer.invoke('get-yearly-stats', tenantId),
   downloadImage: (payload) => ipcRenderer.invoke('download-image', payload),
+  syncTenantBackupPath: (payload) => ipcRenderer.invoke('sync-tenant-backup-path', payload),
   clearSpooler: () => ipcRenderer.invoke('clear-spooler'),
   wakeUpWindow: () => ipcRenderer.invoke('wake-up-window'),
+  notifyExternalOrder: (payload) => ipcRenderer.invoke('notify-external-order', payload),
+  clearExternalOrderBadge: () => ipcRenderer.invoke('clear-external-order-badge'),
   triggerKakaotalkPaste: (message, contact) =>
     ipcRenderer.invoke('trigger-kakaotalk-paste', { message, contact }),
+  openReminderWindow: (data) => ipcRenderer.send('open-reminder-window', data),
+  getReminderData: () => ipcRenderer.invoke('get-reminder-data'),
+  closeReminderWindow: () => ipcRenderer.send('close-reminder-window'),
+  sendReminderAction: (data) => ipcRenderer.send('reminder-action', data),
+  onReminderAction: (callback) => {
+    const handler = (_event, payload) => callback(payload);
+    ipcRenderer.on('reminder-action', handler);
+    return () => ipcRenderer.removeListener('reminder-action', handler);
+  },
+  runMonthlyPhotoBackup: (payload) => ipcRenderer.invoke('run-monthly-photo-backup', payload || {}),
+  openMonthlyBackupFolder: (payload) => ipcRenderer.invoke('open-monthly-backup-folder', payload),
 });
