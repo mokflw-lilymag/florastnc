@@ -19,6 +19,25 @@ function maskPhone(contact) {
   return String(contact);
 }
 
+function buildPrintTestHtml(dateStr, branchName) {
+  return `<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><title>Print Test</title>
+<style>
+  @page { margin: 0; }
+  body { font-family: 'Malgun Gothic', sans-serif; width: 72mm; margin: 0; padding: 10px 8px; color: #000; font-size: 14px; font-weight: 700; }
+  .title { text-align: center; font-size: 22px; margin: 8px 0; }
+  .box { border: 2px solid #000; padding: 10px; margin: 10px 0; text-align: center; }
+  .line { border-top: 1px dashed #000; margin: 8px 0; }
+</style></head><body>
+  <div class="title">Floxync 인쇄 테스트</div>
+  <div class="line"></div>
+  <div class="box">프린터 연동 정상<br/>${dateStr}</div>
+  <div>지점: ${branchName || '미설정'}</div>
+  <div class="line"></div>
+  <div style="text-align:center;">이 용지가 보이면 성공입니다.</div>
+</body></html>`;
+}
+
 // 주문 데이터를 HTML 템플릿으로 변환 (영수증 디자인)
 function generateHtmlReceipt(job, settings, bridgeAssetsPath, globalBranchName, globalBranchPhone) {
   const { job_type, type, payload = {}, data = {} } = job || {};
@@ -32,9 +51,15 @@ function generateHtmlReceipt(job, settings, bridgeAssetsPath, globalBranchName, 
   const rawOrderId = payload?.orderId || job.order_id || job.id || '';
   const shortOrderId = String(rawOrderId).substring(0, 8);
 
-  const displayName = settings.branchDisplayName || globalBranchName;
-  const displayPhone = settings.branchPhone || globalBranchPhone;
+  const displayName = settings.siteName || settings.branchDisplayName || globalBranchName;
+  const displayPhone = settings.contactPhone || settings.branchPhone || globalBranchPhone;
   const shopInfoStr = `${displayName} ${displayPhone}`.trim();
+
+  let logoHtml = '';
+  if ((actualPayload && actualPayload.logo_url) || settings.logo_url) {
+    const logoUrl = (actualPayload && actualPayload.logo_url) || settings.logo_url;
+    logoHtml = `<div style="text-align:center;margin-bottom:6px;"><img src="${logoUrl}" style="max-height:50px;max-width:160px;object-fit:contain;" /></div>`;
+  }
 
   let isCard = false;
   let isRibbon = false;
@@ -52,13 +77,55 @@ function generateHtmlReceipt(job, settings, bridgeAssetsPath, globalBranchName, 
     </div>
   `;
 
-  // ─── 픽업 예약 메모: 전용 간결 템플릿 ───
-  if (actualJobType === 'pickup_memo') {
+  // ─── 시장 장보기 리스트 ───
+  if (actualJobType === 'market_list') {
+    const marketTemplatePath = path.join(bridgeAssetsPath, 'receipt-market-list.html');
+    let marketTemplate = fs.existsSync(marketTemplatePath) ? fs.readFileSync(marketTemplatePath, 'utf8') : '';
+    
+    const d = actualPayload || {};
+    const batchName = d.batchName || '시장 장보기';
+    const items = d.items || [];
+    
+    let itemsHtml = '';
+    if (items.length > 0) {
+      itemsHtml = items.map(item => `
+        <tr>
+          <td class="center" style="font-size: 14px;">[ ]</td>
+          <td>
+            <span style="font-weight: bold;">${item.name}</span>
+            ${item.supplier ? `<span class="item-supplier">🏪 ${item.supplier}</span>` : ''}
+          </td>
+          <td class="center" style="font-weight: bold;">${item.quantity}단</td>
+          <td class="right">${item.price ? `${Math.round(item.price).toLocaleString()}원` : '0원'}</td>
+        </tr>
+      `).join('');
+    } else {
+      itemsHtml = `<tr><td colspan="4" class="center">품목 없음</td></tr>`;
+    }
+
+    return marketTemplate
+      .replaceAll('{{batch_name}}', batchName)
+      .replaceAll('{{print_datetime}}', dateStr)
+      .replaceAll('{{branch_name}}', displayName)
+      .replaceAll('{{items_html}}', itemsHtml);
+  }
+
+  // ─── 프린터 연동 테스트 (템플릿 파일 불필요) ───
+  if (actualJobType === 'print_test') {
+    const branchName = settings.siteName || settings.branchDisplayName || globalBranchName;
+    return buildPrintTestHtml(dateStr, branchName);
+  }
+
+  // ─── 픽업/현장 예약증 (pickup_shop·pickup_memo·store_shop 동일 템플릿) ───
+  if (actualJobType === 'pickup_shop' || actualJobType === 'pickup_memo' || actualJobType === 'store_shop') {
     const pickupTemplatePath = path.join(bridgeAssetsPath, 'receipt-pickup.html');
     let pickupTemplate = fs.existsSync(pickupTemplatePath) ? fs.readFileSync(pickupTemplatePath, 'utf8') : '';
+    if (!pickupTemplate.trim()) {
+      pickupTemplate = buildPrintTestHtml(dateStr, displayName).replace('Floxync 인쇄 테스트', '픽업 예약증');
+    }
     
     // 픽업 시간 및 픽업자 정보
-    const pInfo = pickupInfo || actualPayload.pickupInfo || {};
+    const pInfo = pickupInfo || actualPayload.pickupInfo || actualPayload.pickup_info || {};
     const pickupDatetime = `${pInfo.date || ''} ${pInfo.time || ''}`.trim();
     
     const pickerName = pInfo.pickerName || orderer?.name || '익명';
@@ -137,6 +204,7 @@ function generateHtmlReceipt(job, settings, bridgeAssetsPath, globalBranchName, 
       .replace('{{items_html}}', driverItemsHtml)
       .replace('{{message_type_checkbox}}', messageTypeCheckHtml)
       .replace('{{message_html}}', driverMessageHtml)
+      .replace('{{logo_html}}', logoHtml)
       .replace('{{shop_info}}', shopInfoStr);
 
     // 템플릿에 {{title_html}}이 없으면 맨 위에 주입 (호환성 유지)
@@ -149,68 +217,96 @@ function generateHtmlReceipt(job, settings, bridgeAssetsPath, globalBranchName, 
     return finalHtml;
   }
 
-  // ─── 매장용 주문서 (배송/픽업/현장) ───
-  const shopTemplatePath = path.join(bridgeAssetsPath, 'receipt-delivery-shop.html');
-  let shopTemplate = fs.existsSync(shopTemplatePath) ? fs.readFileSync(shopTemplatePath, 'utf8') : '';
-  
-  const shopItemsHtml = (items || []).map(item => `
-    <tr>
-      <td>${item.name || ''}</td>
-      <td style="text-align:center;">${item.quantity || ''}</td>
-      <td class="right">${item.price != null ? item.price.toLocaleString() : ''}</td>
-    </tr>
-  `).join('');
+  // ─── 매장용 주문서 / 배송 영수증 / 현장 영수증 ───
+  if (actualJobType === 'order_form' || actualJobType === 'delivery_shop' || actualJobType === 'store_shop' || actualJobType === 'receipt_shop') {
+    const shopTemplatePath = path.join(bridgeAssetsPath, 'receipt-delivery-shop.html');
+    let shopTemplate = fs.existsSync(shopTemplatePath) ? fs.readFileSync(shopTemplatePath, 'utf8') : '';
 
-  let reqHtml = '';
-  if (request) {
-    reqHtml = `<div class="request-box"><b>요청사항:</b> ${request}</div>`;
-  }
-  
-  let msgHtml = '';
-  if (msgContent) {
-    msgHtml = `<div class="request-box" style="margin-top: 10px; border-top: 1px dashed #000; padding-top: 10px;"><b>메시지(${message.type || '리본'}):</b><br/><span style="white-space: pre-wrap;">${msgContent}</span>${message.sender ? `<br/>보내는분: ${message.sender}` : ''}</div>`;
-  }
+    const withBranding = actualJobType === 'delivery_shop' || actualJobType === 'receipt_shop';
+    const maskContacts = actualJobType === 'delivery_shop' || actualJobType === 'receipt_shop' || actualJobType === 'store_shop';
 
-  let rName = '', rContact = '', dDatetime = '', dAddr = '';
-  if (actualJobType === 'delivery_shop' || actualJobType === 'receipt_shop') {
-    rName = deliveryInfo?.recipientName || '';
-    rContact = deliveryInfo?.recipientContact || '';
-    dDatetime = `${deliveryInfo?.date || ''} ${deliveryInfo?.time || ''}`.trim();
-    dAddr = deliveryInfo?.address || '';
-  } else if (actualJobType === 'pickup_shop') {
+    const formatContact = (contact) => {
+      if (!contact) return '';
+      return maskContacts ? maskPhone(contact) : contact;
+    };
+
+    const shopItemsHtml = (items || []).map(item => `
+      <tr>
+        <td>${item.name || ''}</td>
+        <td style="text-align:center;">${item.quantity || ''}</td>
+        <td class="right">${item.price != null ? item.price.toLocaleString() : ''}</td>
+      </tr>
+    `).join('');
+
+    let reqHtml = '';
+    if (request) {
+      reqHtml = `<div class="request-box"><b>요청사항:</b> ${request}</div>`;
+    }
+
+    let msgHtml = '';
+    if (msgContent) {
+      msgHtml = `<div class="request-box" style="margin-top: 10px; border-top: 1px dashed #000; padding-top: 10px;"><b>메시지(${message.type || '리본'}):</b><br/><span style="white-space: pre-wrap;">${msgContent}</span>${message.sender ? `<br/>보내는분: ${message.sender}` : ''}</div>`;
+    }
+
+    let rName = '', rContact = '', dDatetime = '', dAddr = '';
+    let docTitle = '주문서';
     const pInfo = pickupInfo || actualPayload.pickupInfo || {};
-    rName = pInfo.pickerName || orderer?.name || '익명';
-    rContact = pInfo.pickerContact || orderer?.phone || orderer?.contact || '';
-    dDatetime = `${pInfo.date || ''} ${pInfo.time || ''}`.trim();
-    dAddr = '매장 픽업';
-  } else {
-    dAddr = '현장 구매';
+
+    if (actualJobType === 'delivery_shop' || actualJobType === 'receipt_shop' || (actualJobType === 'order_form' && deliveryInfo && !pickupInfo?.date)) {
+      rName = deliveryInfo?.recipientName || '';
+      rContact = formatContact(deliveryInfo?.recipientContact);
+      dDatetime = `${deliveryInfo?.date || ''} ${deliveryInfo?.time || ''}`.trim();
+      dAddr = deliveryInfo?.address || '';
+      if (withBranding) docTitle = '영수증';
+    } else if (actualJobType === 'order_form' && (pInfo.date || pInfo.time || pInfo.pickerName)) {
+      rName = pInfo.pickerName || orderer?.name || '익명';
+      rContact = formatContact(pInfo.pickerContact || orderer?.phone || orderer?.contact);
+      dDatetime = `${pInfo.date || ''} ${pInfo.time || ''}`.trim();
+      dAddr = '매장 픽업';
+    } else {
+      rName = orderer?.name || '익명';
+      rContact = formatContact(orderer?.phone || orderer?.contact);
+      dDatetime = dateStr;
+      dAddr = '현장 구매';
+      if (actualJobType === 'store_shop') docTitle = '영수증';
+    }
+
+    const ordererContact = formatContact(orderer?.phone || orderer?.contact);
+    const brandingLogo = withBranding ? logoHtml : '';
+    const brandingFooter = withBranding ? shopInfoStr : '';
+
+    let finalHtml = shopTemplate
+      .replace('{{doc_title}}', docTitle)
+      .replace('{{short_order_id}}', shortOrderId)
+      .replace('{{print_datetime}}', dateStr)
+      .replace('{{orderer_name}}', orderer?.name || '익명')
+      .replace('{{orderer_contact}}', ordererContact)
+      .replace('{{recipient_name}}', rName)
+      .replace('{{recipient_contact}}', rContact)
+      .replace('{{delivery_datetime}}', dDatetime)
+      .replace('{{delivery_address}}', dAddr)
+      .replace('{{items_html}}', shopItemsHtml)
+      .replace('{{subtotal}}', summary?.subtotal != null ? `${summary.subtotal.toLocaleString()}원` : '')
+      .replace('{{delivery_fee}}', summary?.deliveryFee != null ? `${summary.deliveryFee.toLocaleString()}원` : '')
+      .replace('{{total}}', summary?.total != null ? `${summary.total.toLocaleString()}원` : '')
+      .replace('{{request_html}}', reqHtml)
+      .replace('{{message_html}}', msgHtml)
+      .replace('{{logo_html}}', brandingLogo)
+      .replace('{{shop_info}}', brandingFooter);
+
+    if (actualJobType === 'order_form' && (pInfo.date || pInfo.time || pInfo.pickerName)) {
+      finalHtml = finalHtml.replace('<span class="label">배송일시</span>', '<span class="label">픽업일시</span>');
+      finalHtml = finalHtml.replace('<span class="label">배송지</span>', '<span class="label">수령방법</span>');
+    }
+
+    if (!withBranding) {
+      finalHtml = finalHtml.replace(/<div class="shop-footer"[^>]*>[\s\S]*?<\/div>/, '');
+    }
+
+    return finalHtml;
   }
 
-  // 템플릿 변환
-  let finalHtml = shopTemplate
-    .replace('{{short_order_id}}', shortOrderId)
-    .replace('{{print_datetime}}', dateStr)
-    .replace('{{orderer_name}}', orderer?.name || '익명')
-    .replace('{{orderer_contact}}', orderer?.phone || orderer?.contact || '')
-    .replace('{{recipient_name}}', rName)
-    .replace('{{recipient_contact}}', rContact)
-    .replace('{{delivery_datetime}}', dDatetime)
-    .replace('{{delivery_address}}', dAddr)
-    .replace('{{items_html}}', shopItemsHtml)
-    .replace('{{subtotal}}', summary?.subtotal != null ? `${summary.subtotal.toLocaleString()}원` : '')
-    .replace('{{delivery_fee}}', summary?.deliveryFee != null ? `${summary.deliveryFee.toLocaleString()}원` : '')
-    .replace('{{total}}', summary?.total != null ? `${summary.total.toLocaleString()}원` : '')
-    .replace('{{request_html}}', reqHtml)
-    .replace('{{message_html}}', msgHtml);
-
-  // 픽업인 경우 라벨 변경
-  if (actualJobType === 'pickup_shop') {
-    finalHtml = finalHtml.replace('<span class="label">배송일시</span>', '<span class="label">픽업일시</span>');
-    finalHtml = finalHtml.replace('<span class="label">배송지</span>', '<span class="label">수령방법</span>');
-  }
-
-  return finalHtml;
+  return '';
 }
 
 module.exports = { generateHtmlReceipt };

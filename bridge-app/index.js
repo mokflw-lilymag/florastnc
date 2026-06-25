@@ -142,7 +142,7 @@ console.error = function(...args) {
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
 let CURRENT_BRANCH_ID = process.env.CURRENT_BRANCH_ID || process.env.BRANCH_ID || '';
-const BRIDGE_VERSION = 'v1.5.1';
+const BRIDGE_VERSION = 'v1.5.3';
 
 let lastHeartbeatTime = 0;
 let isPausedLogged = false;
@@ -204,9 +204,48 @@ function maskPhone(contact) {
 let globalBranchPhone = '';
 let globalBranchName = '';
 
+function normalizeReceiptPayload(raw) {
+  const payload = raw && typeof raw === 'object' ? { ...raw } : {};
+  if (!payload.pickupInfo && payload.pickup_info) payload.pickupInfo = payload.pickup_info;
+  if (!payload.deliveryInfo && payload.delivery_info) payload.deliveryInfo = payload.delivery_info;
+  if (typeof payload.orderer === 'string') {
+    try { payload.orderer = JSON.parse(payload.orderer); } catch (e) {}
+  }
+  if (typeof payload.items === 'string') {
+    try { payload.items = JSON.parse(payload.items); } catch (e) { payload.items = []; }
+  }
+  if (typeof payload.summary === 'string') {
+    try { payload.summary = JSON.parse(payload.summary); } catch (e) {}
+  }
+  if (typeof payload.message === 'string') {
+    try { payload.message = JSON.parse(payload.message); } catch (e) {}
+  }
+  return payload;
+}
+
+function buildPrintTestHtml(dateStr, branchName) {
+  return `<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><title>Print Test</title>
+<style>
+  @page { margin: 0; }
+  body { font-family: 'Malgun Gothic', sans-serif; width: 72mm; margin: 0; padding: 10px 8px; color: #000; font-size: 14px; font-weight: 700; }
+  .title { text-align: center; font-size: 22px; margin: 8px 0; }
+  .box { border: 2px solid #000; padding: 10px; margin: 10px 0; text-align: center; }
+  .line { border-top: 1px dashed #000; margin: 8px 0; }
+</style></head><body>
+  <div class="title">Floxync 인쇄 테스트</div>
+  <div class="line"></div>
+  <div class="box">프린터 연동 정상<br/>${dateStr}</div>
+  <div>지점: ${branchName || '미설정'}</div>
+  <div>브릿지: ${BRIDGE_VERSION}</div>
+  <div class="line"></div>
+  <div style="text-align:center;">이 용지가 보이면 성공입니다.</div>
+</body></html>`;
+}
+
 // 2. 주문 데이터를 HTML 템플릿으로 변환 (영수증 디자인)
 function generateHtmlReceipt(job, settings = {}) {
-  const payload = job.payload || job.data;
+  const payload = normalizeReceiptPayload(job.payload || job.data || {});
   const job_type = job.type || job.job_type;
   const { orderer, items, summary, pickupInfo, deliveryInfo, message, request } = payload;
 
@@ -308,10 +347,19 @@ function generateHtmlReceipt(job, settings = {}) {
   }
 
 
-  // ─── 픽업 예약 메모: 전용 간결 템플릿 ───
-  if (job_type === 'pickup_memo') {
+  // ─── 프린터 연동 테스트 (템플릿 파일 불필요) ───
+  if (job_type === 'print_test') {
+    const branchName = settings.branchDisplayName || globalBranchName || payload.branchName || '';
+    return buildPrintTestHtml(dateStr, branchName);
+  }
+
+  // ─── 픽업/현장 예약증: 전용 간결 템플릿 (store_shop·pickup_memo → pickup_shop 동일) ───
+  if (job_type === 'pickup_shop' || job_type === 'pickup_memo' || job_type === 'store_shop') {
     const pickupTemplatePath = path.join(baseDir, 'receipt-pickup.html');
     let pickupTemplate = fs.existsSync(pickupTemplatePath) ? fs.readFileSync(pickupTemplatePath, 'utf8') : '';
+    if (!pickupTemplate.trim()) {
+      pickupTemplate = buildPrintTestHtml(dateStr, globalBranchName).replace('Floxync 인쇄 테스트', '픽업 예약증');
+    }
     
     // 픽업 시간 및 픽업자 정보
     const pInfo = pickupInfo || payload.pickupInfo || {};
@@ -320,7 +368,7 @@ function generateHtmlReceipt(job, settings = {}) {
     const pickerName = pInfo.pickerName || '익명';
     const pickerContact = lastFour(pInfo.pickerContact) || '****';
     
-    const pickupItemsHtml = (items || []).map(item => `<li>${item.name}</li>`).join('');
+    const pickupItemsHtml = (items || []).map(item => `<li>${item.name || ''}</li>`).join('') || '<li>품목 없음</li>';
 
     return pickupTemplate
       .replace('{{pickup_datetime}}', pickupDatetime)
@@ -429,24 +477,43 @@ function generateHtmlReceipt(job, settings = {}) {
     msgHtml = `<div class="request-box" style="margin-top: 10px; border-top: 1px dashed #000; padding-top: 10px;"><b>메시지(${message.type || '리본'}):</b><br/><span style="white-space: pre-wrap;">${message.content}</span>${message.sender ? `<br/>보내는분: ${message.sender}` : ''}</div>`;
   }
 
+  const withBranding = job_type === 'delivery_shop' || job_type === 'receipt_shop';
+  const brandingLogo = withBranding ? logoHtml : '';
+  const brandingFooter = withBranding ? shopInfoStr : '';
+
   let rName = '', rContact = '', dDatetime = '', dAddr = '';
-  if (job_type === 'delivery_shop') {
+  let docTitle = '주문서';
+  if (job_type === 'delivery_shop' || job_type === 'receipt_shop') {
     rName = deliveryInfo?.recipientName || '';
     rContact = deliveryInfo?.recipientContact || '';
     dDatetime = `${deliveryInfo?.date || ''} ${deliveryInfo?.time || ''}`.trim();
     dAddr = deliveryInfo?.address || '';
-  } else if (job_type === 'pickup_shop') {
+    docTitle = '영수증';
+  } else if (job_type === 'order_form') {
     const pInfo = pickupInfo || payload.pickupInfo || {};
-    rName = pInfo.pickerName || orderer?.name || '익명';
-    rContact = pInfo.pickerContact || orderer?.contact || '';
-    dDatetime = `${pInfo.date || ''} ${pInfo.time || ''}`.trim();
-    dAddr = '매장 픽업';
+    if (deliveryInfo?.date || deliveryInfo?.address) {
+      rName = deliveryInfo?.recipientName || '';
+      rContact = deliveryInfo?.recipientContact || '';
+      dDatetime = `${deliveryInfo?.date || ''} ${deliveryInfo?.time || ''}`.trim();
+      dAddr = deliveryInfo?.address || '';
+    } else if (pInfo.date || pInfo.time || pInfo.pickerName) {
+      rName = pInfo.pickerName || orderer?.name || '익명';
+      rContact = pInfo.pickerContact || orderer?.contact || '';
+      dDatetime = `${pInfo.date || ''} ${pInfo.time || ''}`.trim();
+      dAddr = '매장 픽업';
+    } else {
+      rName = orderer?.name || '익명';
+      rContact = orderer?.contact || orderer?.phone || '';
+      dDatetime = dateStr;
+      dAddr = '현장 구매';
+    }
+    docTitle = '주문서';
   } else {
     dAddr = '현장 구매';
   }
 
-  // 템플릿 변환
   let finalHtml = shopTemplate
+    .replace('{{doc_title}}', docTitle)
     .replace('{{short_order_id}}', shortOrderId)
     .replace('{{print_datetime}}', dateStr)
     .replace('{{orderer_name}}', orderer?.name || '익명')
@@ -461,12 +528,19 @@ function generateHtmlReceipt(job, settings = {}) {
     .replace('{{total}}', summary?.total ? `${summary.total.toLocaleString()}원` : '')
     .replace('{{request_html}}', reqHtml)
     .replace('{{message_html}}', msgHtml)
-    .replace('{{logo_html}}', logoHtml);
+    .replace('{{logo_html}}', brandingLogo)
+    .replace('{{shop_info}}', brandingFooter);
 
-  // 픽업인 경우 라벨 변경
-  if (job_type === 'pickup_shop') {
-    finalHtml = finalHtml.replace('<span class="label">배송일시</span>', '<span class="label">픽업일시</span>');
-    finalHtml = finalHtml.replace('<span class="label">배송지</span>', '<span class="label">수령방법</span>');
+  if (!withBranding) {
+    finalHtml = finalHtml.replace(/<div class="shop-footer"[^>]*>[\s\S]*?<\/div>/, '');
+  }
+
+  if (job_type === 'order_form' && (pickupInfo || payload.pickupInfo)) {
+    const pInfo = pickupInfo || payload.pickupInfo || {};
+    if (pInfo.date || pInfo.time || pInfo.pickerName) {
+      finalHtml = finalHtml.replace('<span class="label">배송일시</span>', '<span class="label">픽업일시</span>');
+      finalHtml = finalHtml.replace('<span class="label">배송지</span>', '<span class="label">수령방법</span>');
+    }
   }
 
   return finalHtml;
@@ -553,7 +627,7 @@ async function start() {
       if (!CURRENT_BRANCH_ID) return;
 
       // Heartbeat Timeout Check (90 seconds)
-      if (Date.now() - lastHeartbeatTime > 90000) {
+      if (lastHeartbeatTime > 0 && Date.now() - lastHeartbeatTime > 90000) {
         if (!isPausedLogged) {
           console.log("⏸️ ERP 웹페이지가 꺼져 있거나 로그아웃 상태입니다. 인쇄를 일시 정지합니다.");
           isPausedLogged = true;
@@ -584,7 +658,7 @@ async function start() {
       }
 
       for (const job of pendingJobs || []) {
-        console.log(`\n📥 새 인쇄 작업 수신: [${job.job_type}] (ID: ${job.id})`);
+        console.log(`\n📥 새 인쇄 작업 수신: [${job.type || job.job_type}] (ID: ${job.id})`);
 
         // 먼저 상태를 processing으로 변경하여 중복 처리 방지
         await supabase.from('print_jobs').update({ status: 'processing' }).eq('id', job.id);
@@ -634,6 +708,10 @@ async function start() {
 
           // HTML -> PDF (라벨 프린터 등 기존 그래픽 모드)
           let html = generateHtmlReceipt(job, settings);
+          if (!html || !html.trim()) {
+            console.error("❌ HTML 생성 실패 — print_test 폴백 사용");
+            html = buildPrintTestHtml(new Date().toLocaleString('ko-KR'), settings.branchDisplayName || globalBranchName || '');
+          }
           
           // 라벨 프린터(절취선 필요)인 경우 하단에 절취선 추가
           if (settings.receiptPrinterType === 'label') {
@@ -830,5 +908,7 @@ server.on('error', (e) => {
 });
 
 server.listen(8004, '0.0.0.0', () => {
+  lastHeartbeatTime = Date.now(); // daemon start grace
+
   console.log("🟢 [상태 확인] 브릿지 하트비트 서버가 포트 8004 (0.0.0.0)에서 실행 중입니다. (Universal PP 연동)");
 });

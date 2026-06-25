@@ -69,8 +69,21 @@ function initLocalDb(dbPath) {
       updated_at TEXT,
       completed_at TEXT,
       completed_by TEXT,
+      completionphotourl TEXT,
       sync_status TEXT DEFAULT 'pending_insert',
       last_sync_time TEXT
+    );
+  `);
+
+  // sync_queue — query-db 로컬 쓰기 → 클라우드 push
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS sync_queue (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      action TEXT NOT NULL,
+      table_name TEXT NOT NULL,
+      record_id TEXT,
+      payload TEXT,
+      timestamp TEXT NOT NULL
     );
   `);
 
@@ -82,7 +95,7 @@ function initLocalDb(dbPath) {
       printer_id TEXT,
       branch_id TEXT,
       document_type TEXT,
-      document_data TEXT, -- JSON
+      document_data TEXT,
       status TEXT DEFAULT 'pending',
       error_message TEXT,
       created_at TEXT,
@@ -115,6 +128,81 @@ function initLocalDb(dbPath) {
       last_sync_time TEXT
     );
   `);
+
+  // migration columns (기존 DB 호환)
+  const orderMigrations = [
+    `ALTER TABLE orders ADD COLUMN message TEXT`,
+    `ALTER TABLE orders ADD COLUMN actual_delivery_payment_method TEXT`,
+    `ALTER TABLE orders ADD COLUMN actual_delivery_payment_status TEXT`,
+    `ALTER TABLE orders ADD COLUMN alimtalk_status TEXT DEFAULT 'not_sent'`,
+    `ALTER TABLE orders ADD COLUMN alimtalk_sent_at TEXT`,
+    `ALTER TABLE orders ADD COLUMN alimtalk_error TEXT`,
+    `ALTER TABLE orders ADD COLUMN delivery_provider TEXT`,
+    `ALTER TABLE orders ADD COLUMN delivery_tracking_id TEXT`,
+    `ALTER TABLE orders ADD COLUMN delivery_provider_status TEXT`,
+    `ALTER TABLE orders ADD COLUMN delivery_provider_fee INTEGER`,
+    `ALTER TABLE orders ADD COLUMN delivery_tracking_url TEXT`,
+    `ALTER TABLE orders ADD COLUMN source TEXT`,
+    `ALTER TABLE orders ADD COLUMN pos_transaction_id TEXT`,
+    `ALTER TABLE orders ADD COLUMN attribution_campaign_id TEXT`,
+    `ALTER TABLE orders ADD COLUMN cancel_reason TEXT`,
+    `ALTER TABLE orders ADD COLUMN cancelled_at TEXT`,
+    `ALTER TABLE orders ADD COLUMN cancelled_by TEXT`,
+    `ALTER TABLE orders ADD COLUMN delivery_proof_url TEXT`,
+    `ALTER TABLE orders ADD COLUMN receipt_proof_url TEXT`,
+  ];
+  for (const sql of orderMigrations) {
+    try { db.exec(sql); } catch (_) {}
+  }
+
+  const customerMigrations = [
+    `ALTER TABLE customers ADD COLUMN is_deleted INTEGER DEFAULT 0`,
+    `ALTER TABLE customers ADD COLUMN marketing_consent INTEGER DEFAULT 0`,
+    `ALTER TABLE customers ADD COLUMN total_spent INTEGER DEFAULT 0`,
+    `ALTER TABLE customers ADD COLUMN order_count INTEGER DEFAULT 0`,
+    `ALTER TABLE customers ADD COLUMN last_order_date TEXT`,
+    `ALTER TABLE customers ADD COLUMN extra_data TEXT`,
+  ];
+  for (const sql of customerMigrations) {
+    try { db.exec(sql); } catch (_) {}
+  }
+
+  // simple_expenses — Electron 오프라인 sync
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS simple_expenses (
+      id TEXT PRIMARY KEY,
+      tenant_id TEXT,
+      expense_date TEXT,
+      amount REAL,
+      category TEXT,
+      sub_category TEXT,
+      description TEXT,
+      supplier TEXT,
+      quantity REAL,
+      unit_price REAL,
+      tenant_name TEXT,
+      receipt_url TEXT,
+      receipt_file_name TEXT,
+      inventory_updates TEXT,
+      extra_data TEXT,
+      created_at TEXT,
+      updated_at TEXT,
+      sync_status TEXT DEFAULT 'synced',
+      last_sync_time TEXT
+    );
+  `);
+
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_orders_tenant_date ON orders(tenant_id, order_date);
+    CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
+    CREATE INDEX IF NOT EXISTS idx_customers_tenant ON customers(tenant_id);
+    CREATE INDEX IF NOT EXISTS idx_simple_expenses_tenant_date ON simple_expenses(tenant_id, expense_date);
+  `);
+
+  // legacy single-column migrations
+  try {
+    db.exec(`ALTER TABLE orders ADD COLUMN completionphotourl TEXT`);
+  } catch (_) {}
 
   console.log("Local SQLite database initialized at", dbPath);
   return db;

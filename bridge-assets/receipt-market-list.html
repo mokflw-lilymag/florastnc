@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>시장 장보기 리스트</title>
+  <style>
+    @page { margin: 0; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+      font-weight: 800;
+      -webkit-font-smoothing: none;
+      margin: 0;
+      padding: 8px 16px 8px 8px;
+      width: 72mm;
+      color: #000;
+      background: #fff;
+      box-sizing: border-box;
+      font-size: 12px;
+    }
+    .title {
+      text-align: center;
+      font-size: 18px;
+      font-weight: bold;
+      margin: 6px 0 4px 0;
+      letter-spacing: 1px;
+    }
+    .subtitle {
+      text-align: center;
+      font-size: 11px;
+      color: #000;
+      margin-bottom: 6px;
+    }
+    .divider {
+      border-top: 1px dashed #000;
+      margin: 8px 0;
+    }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      margin: 4px 0;
+      font-size: 11px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin: 6px 0;
+      table-layout: fixed;
+    }
+    th {
+      border-bottom: 1px solid #000;
+      padding: 6px 2px;
+      text-align: left;
+      font-size: 11px;
+    }
+    td {
+      padding: 6px 2px;
+      border-bottom: 1px dotted #000;
+      word-break: break-all;
+    }
+    .center { text-align: center; }
+    .right { text-align: right; }
+    .checkbox-col { width: 10%; }
+    .name-col { width: 45%; }
+    .qty-col { width: 15%; }
+    .price-col { width: 30%; }
+    
+    .item-supplier {
+      font-size: 10px;
+      color: #333;
+      font-weight: normal;
+      margin-top: 2px;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="title">장보기 리스트</div>
+  <div class="subtitle">{{batch_name}}</div>
+  <div class="info-row">
+    <span>출력일시: {{print_datetime}}</span>
+    <span>지점: {{branch_name}}</span>
+  </div>
+  
+  <div class="divider"></div>
+
+  <table>
+    <thead>
+      <tr>
+        <th class="checkbox-col center">확인</th>
+        <th class="name-col">품목 / 매장</th>
+        <th class="qty-col center">수량</th>
+        <th class="price-col right">예정단가</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{items_html}}
+    </tbody>
+  </table>
+
+  <div class="divider"></div>
+  
+  <div style="text-align: center; font-size: 10px; margin-top: 10px; font-weight: normal;">
+    이 리스트는 PP 브릿지를 통해 출력되었습니다.
+  </div>
+</body>
+</html>

@@ -1,6 +1,6 @@
 {
   "agent_id": "marketing-architect-v1",
-  "role": "Chief Marketing Strategist for Florist SaaS",
+  "role": "Chief Marketing Strategist for Florist Management Platform",
   "inherits": "global-spec.json",
   "mission": "Orchestrate high-conversion SNS marketing campaigns for florists that feel authentic but professionally polished.",
   "workflow_steps": [

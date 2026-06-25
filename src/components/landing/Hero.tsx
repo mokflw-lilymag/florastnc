@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { ArrowRight, Sparkles, Cpu, Download } from 'lucide-react';
 import { AppLocale, localizePath, toBaseLocale } from '@/i18n/config';
@@ -28,11 +29,16 @@ export function Hero({ locale = 'ko' }: { locale?: AppLocale }) {
       {/* Premium Background Visuals */}
       <div className="absolute inset-0 z-0">
         <div className="absolute inset-0 bg-gradient-to-b from-[#0A0F0D]/80 via-[#0A0F0D]/50 to-[#0A0F0D] z-10" />
-        <img
-          src="https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?q=80&w=2000&auto=format&fit=crop"
+        <div className="relative w-full h-full">
+        <Image
+          src="https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?q=80&w=1600&auto=format&fit=crop"
           alt={t.altBackground}
-          className="w-full h-full object-cover opacity-30 scale-105 animate-pulse-slow mix-blend-luminosity"
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover opacity-30 scale-105 animate-pulse-slow mix-blend-luminosity"
         />
+        </div>
       </div>
 
       {/* Floating Particle Glows */}

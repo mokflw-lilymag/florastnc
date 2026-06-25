@@ -4,7 +4,8 @@ import fs from 'fs';
 import AdmZip from 'adm-zip';
 
 export async function GET(request: Request) {
-  // tenantId is no longer required as the bridge is now a universal app
+  const { searchParams } = new URL(request.url);
+  const tenantId = searchParams.get('tenantId') || '';
 
   try {
     const zip = new AdmZip();
@@ -30,6 +31,12 @@ export async function GET(request: Request) {
     const tpl4 = path.join(process.cwd(), 'bridge-app', 'receipt-delivery-driver.html');
     if (fs.existsSync(tpl4)) zip.addLocalFile(tpl4);
 
+    const tpl5 = path.join(process.cwd(), 'bridge-app', 'receipt-daily-settlement.html');
+    if (fs.existsSync(tpl5)) zip.addLocalFile(tpl5);
+
+    const tpl6 = path.join(process.cwd(), 'bridge-app', 'receipt-market-list.html');
+    if (fs.existsSync(tpl6)) zip.addLocalFile(tpl6);
+
     const batPath = path.join(process.cwd(), 'bridge-app', 'install.bat');
     if (fs.existsSync(batPath)) zip.addLocalFile(batPath);
 
@@ -39,10 +46,8 @@ export async function GET(request: Request) {
     // Create the custom .env content populated with generic settings
     const envContent = `SUPABASE_URL=${process.env.NEXT_PUBLIC_SUPABASE_URL || ''}
 SUPABASE_SERVICE_KEY=${process.env.SUPABASE_SERVICE_ROLE_KEY || ''}
-CURRENT_ID=
-CURRENT_TENANT_ID=
-CURRENT_BRANCH_ID=
-TENANT_ID=
+CURRENT_BRANCH_ID=${tenantId}
+TENANT_ID=${tenantId}
 `;
     zip.addFile('.env', Buffer.from(envContent, 'utf8'));
 

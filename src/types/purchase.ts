@@ -18,4 +18,9 @@ export interface Purchase {
   mid_category?: string;
   created_at: string;
   updated_at: string;
+  expense?: {
+    receipt_url?: string;
+    receipt_file_id?: string;
+  } | null;
 }
+

@@ -6,6 +6,7 @@ import { useAuth } from './use-auth';
 import { useUiText } from '@/hooks/use-ui-text';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { validateAndOptimizeImage } from '@/lib/image-optimizer';
 import type { Expense } from '@/types/expense';
 
 export type { Expense };
@@ -361,15 +362,20 @@ export function useExpenseStorage() {
     if (!tenantId) return null;
 
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${tenantId}/${format(new Date(), 'yyyyMMdd')}/${crypto.randomUUID()}.${fileExt}`;
-      const filePath = `receipts/${fileName}`;
+      let uploadFile = file;
+      if (file.type.startsWith("image/")) {
+        const optimized = await validateAndOptimizeImage(file);
+        uploadFile = optimized.file;
+      }
+
+      const fileExt = uploadFile.name.split(".").pop() || "jpg";
+      const fileName = `${tenantId}/${format(new Date(), "yyyyMMdd")}/${crypto.randomUUID()}.${fileExt}`;
 
       const { data, error } = await supabase.storage
-        .from('receipts')
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: false
+        .from("receipts")
+        .upload(fileName, uploadFile, {
+          cacheControl: "3600",
+          upsert: false,
         });
 
       if (error) throw error;

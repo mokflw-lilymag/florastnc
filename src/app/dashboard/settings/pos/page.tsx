@@ -36,6 +36,8 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { usePosSettings } from "@/hooks/use-pos-settings";
+import { usePosConnection } from "@/hooks/use-pos-connection";
+import { getPosConnectionLabel } from "@/lib/pos/pos-connection-status";
 import { PosType } from "@/services/pos/PosIntegrationService";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -113,6 +115,7 @@ export default function PosSettingsPage() {
     "Секрет API",
   );
   const { integration, loading, logs, logsLoading, fetchLogs, saveIntegration } = usePosSettings();
+  const { status: posConnection, bridgeOnline, refreshBridge } = usePosConnection();
   const [activeTab, setActiveTab] = useState("general");
   const [saving, setSaving] = useState(false);
 
@@ -226,6 +229,18 @@ export default function PosSettingsPage() {
              {integration?.last_synced_at && (
                <Badge variant="outline" className="text-green-400 border-green-500/30">
                 <CheckCircle2 className="w-3 h-3 mr-1" /> {tf.f01505}
+               </Badge>
+             )}
+             {formData.is_active && (
+               <Badge
+                 variant="outline"
+                 className={cn(
+                   posConnection.connectionState === "connected"
+                     ? "text-emerald-600 border-emerald-500/40"
+                     : "text-amber-600 border-amber-500/40"
+                 )}
+               >
+                 {getPosConnectionLabel(posConnection.connectionState)}
                </Badge>
              )}
           </div>
@@ -407,11 +422,31 @@ export default function PosSettingsPage() {
                         formData.is_active ? "bg-emerald-50 border-emerald-100 text-emerald-700" : "bg-slate-50 border-slate-100 text-slate-500"
                       )}>
                          {formData.is_active ? <Zap className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
-                         <p className="text-sm font-medium">
-                           {formData.is_active 
-                             ? tf.f01512
-                             : tf.f01569}
-                         </p>
+                         <div className="space-y-1">
+                           <p className="text-sm font-medium">
+                             {formData.is_active 
+                               ? tf.f01512
+                               : tf.f01569}
+                           </p>
+                           {formData.is_active && posConnection.connectionState === "pending" && (
+                             <p className="text-xs text-amber-800 font-normal leading-relaxed">
+                               {posConnection.reason}
+                               {formData.pos_type === "manual" && (
+                                 <>{" "}
+                                   <button type="button" className="underline" onClick={() => refreshBridge()}>
+                                     브릿지 다시 확인
+                                   </button>
+                                   {bridgeOnline ? " (브릿지 연결됨)" : " (브릿지 미연결)"}
+                                 </>
+                               )}
+                             </p>
+                           )}
+                           {formData.is_active && posConnection.isConnected && (
+                             <p className="text-xs text-emerald-800 font-normal">
+                               실제 연동 완료 — 카드 결제·현금영수증 등 단말 기능 사용 가능
+                             </p>
+                           )}
+                         </div>
                       </div>
                    </CardContent>
                 </Card>

@@ -46,7 +46,7 @@ export const saveCustomFontToDB = async (font: CustomFontInfo) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    // SaaS 비용 절감을 위해 로컬(PC/파일) 폰트는 클라우드(Supabase Storage)에 업로드하지 않습니다.
+    // 비용 절감을 위해 로컬(PC/파일) 폰트는 클라우드(Supabase Storage)에 업로드하지 않습니다.
     // 대신 브라우저의 IndexedDB(로컬)에만 저장되어 해당 PC에서 계속 사용할 수 있습니다.
     if (font.source === 'local') {
       console.log('Local font saved to IndexedDB only (Cloud sync disabled to save storage costs).');
@@ -65,7 +65,7 @@ export const saveCustomFontToDB = async (font: CustomFontInfo) => {
 
     if (dbError) throw dbError;
   } catch (err) {
-    console.error('SaaS Sync Error (Font):', err);
+    console.error('Font sync error:', err);
     // Continue anyway as it's saved locally
   }
 };

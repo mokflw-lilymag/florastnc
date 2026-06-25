@@ -4,6 +4,9 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect, type ReactNode } from "react";
 import { DashboardMain } from "@/components/layout/dashboard-main";
 import { isBarePrintDocumentPath } from "@/lib/print-routes";
+import { applyElectronSyncScope } from "@/lib/electron-sync-scope";
+import { logError } from "@/lib/errorLogger";
+import { MobilePrintPoller } from "@/components/desktop/mobile-print-poller";
 
 type DashboardShellProps = {
   children: ReactNode;
@@ -13,6 +16,26 @@ type DashboardShellProps = {
   serverIsSuperAdmin?: boolean;
   tenantId?: string | null;
 };
+
+async function startElectronSync(tenantId: string) {
+  const { createClient } = await import("@/utils/supabase/client");
+  const supabase = createClient();
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) return;
+
+  await applyElectronSyncScope(tenantId);
+
+  const api = (window as Window & {
+    electronAPI?: {
+      startSync?: (s: { access_token: string; tenant_id: string }) => Promise<{ ok: boolean }>;
+    };
+  }).electronAPI;
+
+  await api?.startSync?.({
+    access_token: session.access_token,
+    tenant_id: tenantId,
+  });
+}
 
 /** `/dashboard/mobile` — 사이드바·헤더 없이 풀스크린 모바일 매장 UI */
 export function DashboardShell({
@@ -28,26 +51,57 @@ export function DashboardShell({
   const isBarePrintDocument = isBarePrintDocumentPath(pathname);
 
   const [isElectron, setIsElectron] = useState(false);
+  const [syncHint, setSyncHint] = useState<string | null>(null);
 
   useEffect(() => {
-    if (typeof window !== "undefined" && (window as any).electronAPI) {
-      setIsElectron(true);
-      
-      // 🚀 [Phase 4] Offline Sync & Security Start
-      if (tenantId) {
-        import("@/utils/supabase/client").then(({ createClient }) => {
-          const supabase = createClient();
-          supabase.auth.getSession().then(({ data: { session } }) => {
-            if (session?.access_token) {
-              (window as any).electronAPI.startSync({
-                access_token: session.access_token,
-                tenant_id: tenantId,
-              }).catch(console.error);
-            }
-          });
-        });
-      }
+    if (typeof window === "undefined" || !(window as Window & { electronAPI?: unknown }).electronAPI) {
+      return;
     }
+    setIsElectron(true);
+
+    if (!tenantId) {
+      void applyElectronSyncScope(null);
+      return;
+    }
+
+    void startElectronSync(tenantId).catch(console.error);
+
+    let authUnsub: (() => void) | undefined;
+    void import("@/utils/supabase/client").then(({ createClient }) => {
+      const supabase = createClient();
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+        if (event === "TOKEN_REFRESHED") {
+          void startElectronSync(tenantId);
+        }
+      });
+      authUnsub = () => subscription.unsubscribe();
+    });
+
+    const api = (window as Window & {
+      electronAPI?: {
+        onLocalSyncStatus?: (cb: (s: { lastSyncAt?: string; lastError?: string }) => void) => () => void;
+      };
+    }).electronAPI;
+
+    const unsub = api?.onLocalSyncStatus?.((status) => {
+      if (status.lastError) {
+        setSyncHint("동기화 오류 — 네트워크를 확인해 주세요");
+        void logError("Electron sync failed", new Error(status.lastError), "electron-sync");
+      } else if (status.lastSyncAt) {
+        setSyncHint(null);
+      }
+    });
+
+    const onAuthRefresh = () => {
+      if (tenantId) void startElectronSync(tenantId).catch(console.error);
+    };
+    window.addEventListener("floxync-auth-refreshed", onAuthRefresh);
+
+    return () => {
+      unsub?.();
+      authUnsub?.();
+      window.removeEventListener("floxync-auth-refreshed", onAuthRefresh);
+    };
   }, [tenantId]);
 
   if (isBarePrintDocument) {
@@ -64,15 +118,22 @@ export function DashboardShell({
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
+      <MobilePrintPoller />
       {isElectron && (
-        <div 
-          className="shrink-0 h-10 w-full bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center px-4 select-none z-[9999]" 
-          style={{ WebkitAppRegion: 'drag' } as any}
+        <div
+          className="shrink-0 h-10 w-full bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 select-none z-[9999]"
+          style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
         >
           <span className="text-xs font-bold text-slate-500 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span className="w-2 h-2 rounded-full bg-emerald-500" />
             Floxync Desktop
+            <span className="text-[10px] font-normal text-slate-400">· 로컬 DB 우선 · Realtime 절약</span>
           </span>
+          {syncHint ? (
+            <span className="text-[10px] text-amber-600" style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}>
+              {syncHint}
+            </span>
+          ) : null}
         </div>
       )}
       <div className="flex flex-1 overflow-hidden bg-slate-50 dark:bg-slate-950">

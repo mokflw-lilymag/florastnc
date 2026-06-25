@@ -36,6 +36,9 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# migration dumps & Vercel env backups (secrets)
+scripts/backups/
+
 # vercel
 .vercel
 
@@ -62,3 +65,4 @@ scripts/.dashboard-ja-lingva-cache.json
 
 .trigger
 dist/
+.vercel

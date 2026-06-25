@@ -8,6 +8,65 @@ import {
   GUEST_TRIAL_TENANT_ID,
   readGuestBrowseCookie,
 } from '@/lib/subscription/guest-trial';
+import {
+  applyAuthCacheToState,
+  clearAuthCache,
+  isOfflineAuthError,
+  saveAuthCache,
+  shouldUseOfflineAuthBypass,
+} from '@/lib/auth-offline-cache';
+
+let authListenerRegistered = false;
+
+function registerAuthOfflineListener() {
+  if (authListenerRegistered || typeof window === "undefined") return;
+  authListenerRegistered = true;
+
+  const supabase = createClient();
+  supabase.auth.onAuthStateChange((event) => {
+    if (event === "SIGNED_OUT") {
+      clearAuthCache();
+      return;
+    }
+    if ((event as string) === "TOKEN_REFRESH_FAILED" && shouldUseOfflineAuthBypass()) {
+      console.warn("[Auth] Token refresh failed — offline bypass, keeping cached session.");
+    }
+  });
+}
+
+function applyCachedAuth(set: (partial: Partial<AuthState>) => void): boolean {
+  const cached = applyAuthCacheToState();
+  if (!cached) return false;
+  set({
+    user: cached.user,
+    profile: cached.profile,
+    tenantId: cached.tenantId,
+    isSuperAdmin: cached.isSuperAdmin,
+    isOrphaned: cached.isOrphaned,
+    isLoading: false,
+    _initialized: true,
+    _fetchPromise: null,
+  });
+  console.warn("[Auth] Offline/Electron fallback: using cached session.");
+  return true;
+}
+
+function persistAuthCache(
+  user: unknown,
+  profile: Record<string, unknown> | null,
+  tenantId: string | null,
+  isSuperAdmin: boolean,
+  isOrphaned: boolean,
+) {
+  if (!profile || !user || typeof user !== "object") return;
+  saveAuthCache({
+    user: user as Record<string, unknown>,
+    profile,
+    tenantId,
+    isSuperAdmin,
+    isOrphaned,
+  });
+}
 
 interface AuthState {
   user: any;
@@ -94,6 +153,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
 
     const promise = (async () => {
+      registerAuthOfflineListener();
       try {
         const supabase = createClient();
         const { data: { user }, error } = await supabase.auth.getUser();
@@ -101,6 +161,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         if (error || !user) {
           if (readGuestBrowseCookie()) {
             get().enterGuestTrial();
+            return;
+          }
+          if (shouldUseOfflineAuthBypass() && applyCachedAuth(set)) {
             return;
           }
           set({ isLoading: false, _initialized: true, _fetchPromise: null, isSuperAdmin: false });
@@ -162,6 +225,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           const isOrphaned =
             !data.tenant_id && data.role !== "super_admin" && data.role !== "org_admin";
           set({ profile: merged, tenantId: effectiveTenantId, isOrphaned });
+          persistAuthCache(user, merged, effectiveTenantId, get().isSuperAdmin, isOrphaned);
         } else if (isPlatformSuperEmail(user.email)) {
           const defaultTenantId = '50551f4c-0b6b-45ab-8db9-047ca3ff88de';
           const mockProfile = {
@@ -171,11 +235,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             tenants: { plan: 'pro', name: 'LilyMag Admin' }
           };
           set({ profile: mockProfile, tenantId: defaultTenantId, isSuperAdmin: true });
+          persistAuthCache(user, mockProfile, defaultTenantId, true, false);
         } else {
           set({ isSuperAdmin: false });
         }
       } catch (error) {
         console.error("Error fetching user session:", error);
+        const msg = error instanceof Error ? error.message : String(error);
+        if (isOfflineAuthError(msg) && shouldUseOfflineAuthBypass() && applyCachedAuth(set)) {
+          return;
+        }
       } finally {
         set({ isLoading: false, _initialized: true, _fetchPromise: null });
       }

@@ -10,7 +10,7 @@ function dateFnsLoc(appLocale?: string) {
 }
 
 /**
- * 엑셀 내보내기 유틸리티 (SaaS 버전)
+ * 엑셀 내보내기 유틸리티
  */
 
 const parseDate = (dateStr: any): Date => {

@@ -23,7 +23,10 @@ import {
   MOBILE_PRODUCT_CATEGORY_PRIORITY,
   resolveMobileProductCategory,
 } from "@/lib/mobile/product-categories";
-import { MOBILE_PAYMENT_METHODS } from "@/lib/mobile/payment-methods";
+import { buildMobilePaymentMethods } from "@/lib/mobile/payment-methods";
+import { selectOrderPaymentMethod } from "@/lib/order-payment-methods";
+import { getMessages } from "@/i18n/getMessages";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import {
   postOrderAnniversary,
   resolveAnniversaryDateFromSchedule,
@@ -34,7 +37,7 @@ import {
 } from "@/lib/customers/order-customer-form";
 import { formatPhoneNumber } from "@/lib/mobile/format-phone";
 import type { Product } from "@/types/product";
-import type { OrderData } from "@/types/order";
+import type { OrderData, PaymentStatus } from "@/types/order";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -99,6 +102,8 @@ const RECEIPT_OPTIONS: { value: ReceiptType; label: string }[] = [
 
 export default function MobileNewOrderPage() {
   const router = useRouter();
+  const locale = usePreferredLocale();
+  const tf = getMessages(locale).tenantFlows;
   const { profile, tenantId } = useAuth();
   const storeName = profile?.tenants?.name;
   const { addOrder } = useOrders();
@@ -121,6 +126,7 @@ export default function MobileNewOrderPage() {
   const [ordererName, setOrdererName] = useState("");
   const [ordererContact, setOrdererContact] = useState("");
   const [ordererCompany, setOrdererCompany] = useState("");
+  const [ordererEmail, setOrdererEmail] = useState("");
   const [receiptType, setReceiptType] = useState<ReceiptType>("pickup_reservation");
   const [scheduleDate, setScheduleDate] = useState(() => format(new Date(), "yyyy-MM-dd"));
   const [scheduleTime, setScheduleTime] = useState("10:00");
@@ -140,7 +146,9 @@ export default function MobileNewOrderPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const supabase = useMemo(() => createClient(), []);
   const [paymentMethod, setPaymentMethod] = useState<OrderData["payment"]["method"]>("card");
-  const [paymentStatus, setPaymentStatus] = useState<"paid" | "pending">("pending");
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>("paid");
+
+  const mobilePaymentMethods = useMemo(() => buildMobilePaymentMethods(tf), [tf]);
 
   const loadProducts = useCallback(async () => {
     if (!tenantId) return;
@@ -286,6 +294,7 @@ export default function MobileNewOrderPage() {
     setOrdererName(c.name);
     setOrdererContact(c.contact);
     setOrdererCompany(c.company_name || "");
+    setOrdererEmail(c.email || "");
     const checks = orderFormChecksForExistingCustomer();
     setRegisterCustomer(checks.registerCustomer);
     setMarketingConsent(checks.marketingConsent);
@@ -369,6 +378,7 @@ export default function MobileNewOrderPage() {
             name: ordererName.trim(),
             contact: ordererContact.trim(),
             company_name: ordererCompany.trim() || undefined,
+            email: ordererEmail.trim() || undefined,
             type: ordererCompany.trim() ? "company" : "individual",
             grade: "일반",
             points: 0,
@@ -380,6 +390,9 @@ export default function MobileNewOrderPage() {
 
       if (finalCustomerId && marketingConsent) {
         await updateCustomer(finalCustomerId, { marketing_consent: true });
+      }
+      if (finalCustomerId && ordererEmail.trim()) {
+        await updateCustomer(finalCustomerId, { email: ordererEmail.trim() });
       }
 
       const anniversaryDate = resolveAnniversaryDateFromSchedule(
@@ -410,6 +423,7 @@ export default function MobileNewOrderPage() {
           name: ordererName.trim(),
           contact: ordererContact.trim(),
           company: ordererCompany.trim() || undefined,
+          email: ordererEmail.trim() || undefined,
         },
         payment: {
           method: paymentMethod,
@@ -502,6 +516,8 @@ export default function MobileNewOrderPage() {
           setOrdererContact={setOrdererContact}
           ordererCompany={ordererCompany}
           setOrdererCompany={setOrdererCompany}
+          ordererEmail={ordererEmail}
+          setOrdererEmail={setOrdererEmail}
           registerCustomer={registerCustomer}
           setRegisterCustomer={setRegisterCustomer}
           registerAnniversaryFromOrder={registerAnniversaryFromOrder}
@@ -772,12 +788,14 @@ export default function MobileNewOrderPage() {
 
         <section className="space-y-2 rounded-2xl border bg-white p-4 shadow-sm">
           <h2 className="text-sm font-bold text-gray-800">결제</h2>
-          <div className="grid grid-cols-3 gap-1.5">
-            {MOBILE_PAYMENT_METHODS.map(({ key, label }) => (
+          <div className="grid grid-cols-4 gap-1.5">
+            {mobilePaymentMethods.map(({ key, label }) => (
               <button
                 key={key}
                 type="button"
-                onClick={() => setPaymentMethod(key)}
+                onClick={() =>
+                  selectOrderPaymentMethod(key, setPaymentMethod, setPaymentStatus)
+                }
                 className={`rounded-lg py-2 text-xs font-bold ${
                   paymentMethod === key ? "bg-blue-600 text-white" : "bg-gray-100"
                 }`}
@@ -794,7 +812,7 @@ export default function MobileNewOrderPage() {
                 paymentStatus === "pending" ? "bg-amber-500 text-white" : "bg-gray-100"
               }`}
             >
-              미결제
+              미수(외상)
             </button>
             <button
               type="button"

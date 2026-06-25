@@ -49,19 +49,39 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
         set({ isLoading: true });
         try {
             const supabase = createClient();
-            const { data, error } = await supabase
+            const { data: purchasesData, error } = await supabase
                 .from('purchases')
                 .select('*')
                 .eq('tenant_id', tenantId)
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
-            set({ purchases: data || [], _initialized: true });
+
+            const { data: expensesData } = await supabase
+                .from('expenses')
+                .select('id, receipt_url, receipt_file_id')
+                .eq('tenant_id', tenantId);
+
+            const expenseMap = new Map<string, { receipt_url?: string; receipt_file_id?: string }>();
+            expensesData?.forEach((exp) => {
+                expenseMap.set(exp.id, {
+                    receipt_url: exp.receipt_url || undefined,
+                    receipt_file_id: exp.receipt_file_id || undefined,
+                });
+            });
+
+            const mappedPurchases = (purchasesData || []).map((p: any) => ({
+                ...p,
+                expense: p.expense_id ? expenseMap.get(p.expense_id) || null : null
+            }));
+
+            set({ purchases: mappedPurchases, _initialized: true });
         } catch (error) {
             console.error("Error refreshing purchases:", error);
         } finally {
             set({ isLoading: false, _fetchPromise: null });
         }
     }
+
 
 }));

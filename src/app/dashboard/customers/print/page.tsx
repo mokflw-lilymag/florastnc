@@ -47,11 +47,11 @@ function PrintContent() {
   }, [periodStart, periodEnd, dfLoc]);
 
   const [businessInfo, setBusinessInfo] = useState({
-    name: "Floxync Florist Group",
+    name: "",
     representative: m.tenantFlows.f02625,
     address: m.tenantFlows.f02626,
-    contact: "02-1234-5678",
-    businessNumber: "123-45-67890"
+    contact: "",
+    businessNumber: ""
   });
   useEffect(() => {
     const ids = searchParams.get("ids")?.split(",") || [];
@@ -160,11 +160,11 @@ function PrintContent() {
          if (settings?.data) {
            const d = settings.data;
            setBusinessInfo({
-             name: tenant?.name || d.siteName || "Floxync Florist Group",
+             name: d.siteName || tenant?.name || "",
              representative: d.representative || tf.f02625,
              address: d.address || tf.f02626,
-             contact: d.contactPhone || "02-1234-5678",
-             businessNumber: d.businessNumber || "123-45-67890"
+             contact: d.contactPhone || "",
+             businessNumber: d.businessNumber || ""
            });
          } else if (tenant?.name) {
            setBusinessInfo(prev => ({ ...prev, name: tenant.name }));

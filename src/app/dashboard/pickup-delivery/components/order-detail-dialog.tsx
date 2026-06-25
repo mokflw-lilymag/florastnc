@@ -242,7 +242,12 @@ export function OrderDetailDialog({ open, onOpenChange, order, onPrintMessage }:
       case 'transfer': return '계좌이체';
       case 'mainpay': return '메인페이';
       case 'shopping_mall': return '쇼핑몰';
-      case 'epay': return '이페이';
+      case 'epay':
+      case 'kakao':
+      case 'apple':
+        return '이페이';
+      case 'unknown':
+        return '모름';
       default: return method;
     }
   };

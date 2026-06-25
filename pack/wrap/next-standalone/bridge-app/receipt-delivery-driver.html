@@ -5,13 +5,17 @@
   <title>인수증</title>
   <style>
     @page { margin: 0; }
-    body { font-weight: 800; -webkit-font-smoothing: none; 
-      font-family: 'Malgun Gothic', sans-serif;
+    /* 주문서(receipt-delivery-shop)와 동일한 가로 작업영역 */
+    body {
+      font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+      font-weight: 800;
+      -webkit-font-smoothing: none;
       margin: 0;
-      padding: 8px 12px 8px 8px;
+      padding: 8px 16px 8px 8px;
       width: 72mm;
       color: #000;
       background: #fff;
+      box-sizing: border-box;
       font-size: 12px;
     }
     .logo {
@@ -19,7 +23,8 @@
       margin: 6px 0 4px 0;
     }
     .logo img {
-      max-width: 120px;
+      max-width: 108px;
+      width: 85%;
       height: auto;
     }
     .title {
@@ -35,15 +40,18 @@
     }
     .recipient-name {
       text-align: center;
-      font-size: 34px;
+      font-size: 28px;
       font-weight: bold;
       margin: 10px 0 4px 0;
-      letter-spacing: 2px;
+      letter-spacing: 0;
+      word-break: keep-all;
+      line-height: 1.2;
     }
     .recipient-contact {
       text-align: center;
       font-size: 16px;
       margin-bottom: 6px;
+      word-break: keep-all;
     }
     .row {
       display: flex;
@@ -51,8 +59,14 @@
       margin: 4px 0;
       font-size: 12px;
     }
-    .label { color: #000; }
-    .value { font-weight: bold; text-align: right; max-width: 65%; }
+    .label { color: #000; flex-shrink: 0; }
+    .value {
+      font-weight: bold;
+      text-align: right;
+      max-width: 60%;
+      min-width: 0;
+      word-break: keep-all;
+    }
     .items-list {
       margin: 4px 0;
       padding: 0;
@@ -62,6 +76,7 @@
       padding: 5px 0;
       border-bottom: 1px dotted #000;
       font-size: 13px;
+      word-break: keep-all;
     }
     .items-list li:last-child {
       border-bottom: none;
@@ -75,8 +90,9 @@
     .sign-line {
       display: inline-block;
       border-bottom: 2px solid #000;
-      width: 120px;
-      margin-left: 10px;
+      width: 50%;
+      max-width: 140px;
+      margin-left: 8px;
       vertical-align: bottom;
     }
     .footer-shop {
@@ -86,6 +102,7 @@
       margin-top: 15px;
       padding-top: 10px;
       border-top: 1px dashed #000;
+      word-break: keep-all;
     }
   </style>
 </head>
@@ -94,6 +111,7 @@
     <img src="https://ecimg.cafe24img.com/pg1472b45444056090/lilymagflower/web/upload/category/logo/v2_d13ecd48bab61a0269fab4ecbe56ce07_lZMUZ1lORo_top.jpg" alt="LilyMag Flower">
   </div>
   {{title_html}}
+  <div style="text-align:center; font-size:11px; color:#000; margin-top:2px; margin-bottom:6px;">출력일시: {{print_datetime}}</div>
   <div class="divider"></div>
 
   <div class="recipient-name">{{recipient_name}}</div>
@@ -111,7 +129,7 @@
   </div>
   <div class="row" style="font-size: 15px; margin: 8px 0; align-items: flex-start;">
     <span class="label" style="min-width: 45px;">배송지</span>
-    <span class="value" style="word-break: keep-all; line-height: 1.4;">{{delivery_address}}</span>
+    <span class="value" style="line-height: 1.4;">{{delivery_address}}</span>
   </div>
 
   <div class="divider"></div>

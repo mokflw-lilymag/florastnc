@@ -6,7 +6,7 @@ import { Footer } from '@/components/landing/Footer';
 import { FeatureVisual } from '@/components/landing/feature-visual';
 import { LANDING_FEATURE_SLUGS, getLandingFeatureBySlug } from '@/data/landing-features';
 import { AppLocale, isSupportedLocale, localizePath, SUPPORTED_LOCALES } from '@/i18n/config';
-import { getMessages } from '@/i18n/getMessages';
+import { getPublicServerMessages } from '@/i18n/getMessages.server';
 import type { Metadata } from 'next';
 
 type Props = { params: Promise<{ slug: string; locale: string }> };
@@ -21,7 +21,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const feature = getLandingFeatureBySlug(slug);
   if (!feature || !isSupportedLocale(locale)) return { title: 'Feature' };
   const l = locale as AppLocale;
-  const cards = getMessages(l).landing.features.featureCards;
+  const cards = (await getPublicServerMessages(l)).landing.features.featureCards;
   const card = cards[feature.slug as keyof typeof cards];
   const titleText = card?.title ?? "Floxync";
   const descText = card?.description ?? "";
@@ -35,7 +35,7 @@ export default async function FeatureDetailPage({ params }: Props) {
   const { slug, locale } = await params;
   if (!isSupportedLocale(locale)) notFound();
   const l = locale as AppLocale;
-  const landing = getMessages(l).landing;
+  const landing = (await getPublicServerMessages(l)).landing;
   const t = landing.featureDetail;
   const cards = landing.features.featureCards;
   const card = cards[slug as keyof typeof cards];

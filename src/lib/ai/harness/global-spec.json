@@ -1,8 +1,8 @@
 {
-  "project": "Floxync SaaS (LilyMag)",
+  "project": "FloXync (LilyMag)",
   "version": "1.0.0",
   "base_context": {
-    "industry": "Floral Industry (B2B SaaS / ERP)",
+    "industry": "Floral Industry (B2B / ERP)",
     "founder_vision": "30-year veteran florist's experience digitalized as a 'Second Brain'.",
     "target_users": "Florists, flower shop owners, B2B marketing admins.",
     "tech_stack": "Next.js, Supabase, Tailwind (if requested), Premium Vanilla CSS, Framer Motion."

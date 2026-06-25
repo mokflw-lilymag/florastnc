@@ -1,6 +1,6 @@
 @echo off
 echo ==============================================
-echo Floxync / LilyMag ERP Universal Bridge Setup (v1.2)
+echo Floxync / LilyMag ERP Universal Bridge Setup (v1.5.1)
 echo ==============================================
 echo.
 echo Starting bridge setup...

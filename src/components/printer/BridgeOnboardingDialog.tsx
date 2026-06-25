@@ -20,7 +20,7 @@ export function BridgeOnboardingDialog({ isOpen, onClose, tenantId }: BridgeOnbo
     setError(null);
     try {
       // Simulate verification - in reality the bridge app would ping a heartbeat to Supabase or similar
-      // For this SaaS, we check if there's any active heartbeat from this tenant's local agent
+      // Check if there's any active heartbeat from this tenant's local agent
       await new Promise(res => setTimeout(res, 2000));
       
       // Let's assume success for now. (You can implement a real heartbeat check later).

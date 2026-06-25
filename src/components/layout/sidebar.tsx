@@ -8,7 +8,7 @@ import {
   Printer, ScrollText, Users, Store, 
   Settings, LayoutDashboard, ShieldCheck,
   CreditCard, Boxes, Truck, BarChart3, Monitor,
-  Zap, ArrowRight, Gem, Share2, FileText, PlusCircle, LogOut, ShoppingCart, Layout, Sparkles,
+  Zap, ArrowRight, Gem, Share2, FileText, PlusCircle, LogOut, ShoppingCart, Layout,
   Building2,
   Megaphone,
   Package,
@@ -172,7 +172,6 @@ export function Sidebar({
       label: t.sidebar.groups.adminContent,
       links: [
         { name: t.sidebar.links.faq, href: "/dashboard/admin/faq", icon: FileText },
-        { name: t.sidebar.links.promoMaster, href: "/dashboard/marketing/admin", icon: Sparkles },
         { name: t.sidebar.links.templates, href: "/dashboard/admin/design-templates", icon: Layout },
       ],
     },
@@ -188,8 +187,6 @@ export function Sidebar({
       id: "admin-global",
       label: "🌏 글로벌 관리",
       links: [
-        { name: "매출 엔진 Overview", href: "/dashboard/admin/revenue", icon: TrendingUp },
-        { name: "연동 수요 분석", href: "/dashboard/admin/regional-demand", icon: BarChart3 },
         { name: "국가별 API 키", href: "/dashboard/admin/regional-keys", icon: Key },
         { name: "API 키 발급 가이드", href: "/dashboard/admin/regional-keys/guide", icon: BookOpen },
         { name: "통합 운영 매뉴얼", href: "/dashboard/admin/manual/guide", icon: BookOpen },
@@ -283,14 +280,6 @@ export function Sidebar({
       links: [
         { name: t.sidebar.links.printer, href: "/dashboard/printer", icon: Printer, tier: ["pro", "ribbon_only", "free"] },
         { name: t.sidebar.links.designStudio, href: "/dashboard/design-studio", icon: Layout, tier: ["pro", "ribbon_only", "free"] },
-      ],
-    },
-    {
-      id: "tenant-growth",
-      label: t.sidebar.groups.tenantGrowth,
-      links: [
-        { name: t.sidebar.links.marketing, href: "/dashboard/marketing", icon: Sparkles, tier: ["pro", "erp_only"] },
-        { name: pickUiText(toBaseLocale(locale), "매출 캘린더", "Revenue"), href: "/dashboard/revenue", icon: TrendingUp, tier: ["pro", "erp_only"] },
       ],
     },
     {

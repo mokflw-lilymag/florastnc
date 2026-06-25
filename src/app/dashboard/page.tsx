@@ -50,7 +50,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { cn } from "@/lib/utils";
 import { DashboardTicker } from "@/components/dashboard/dashboard-ticker";
-import { RevenueOnboardingChecklist } from "@/components/revenue/revenue-onboarding-checklist";
+import { ElectronLocalStatsHint } from "@/components/desktop/electron-local-stats-hint";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
 import { pickUiText } from "@/i18n/pick-ui-text";
@@ -530,7 +530,6 @@ export default function DashboardPage() {
       touchUi ? "p-4 pb-8 sm:p-6" : "p-6 pb-12"
     )}>
       <DashboardTicker />
-      <RevenueOnboardingChecklist />
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
            <h1 className={cn("font-medium text-gray-900 tracking-tight", touchUi ? "text-2xl" : "text-3xl")}>
@@ -544,10 +543,11 @@ export default function DashboardPage() {
              {tf.f01665}
            </p>
         </div>
-        <div className="bg-white p-1 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-1">
+        <div className="bg-white p-1 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-1 flex-wrap">
            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-100 font-light px-3 py-1 text-[11px]">
               {tf.f01506}
            </Badge>
+           <ElectronLocalStatsHint />
         </div>
       </div>
 

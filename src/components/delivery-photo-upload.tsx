@@ -83,10 +83,11 @@ export function DeliveryPhotoUpload({
     setUploading(true)
     try {
       // 최적 저장소에 업로드 (자동 최적화 포함)
-      const fileName = `delivery-photos/${orderId}/${Date.now()}-${selectedFile.name}`
+      const fileName = `delivery-photos/${orderId}/${Date.now()}.jpg`;
       const uploadResult = await uploadWithOptimalStorage(selectedFile, fileName, {
-        tags: ['delivery-photo', orderId]
-      })
+        bucket: "order-photos",
+        tags: ["delivery-photo", orderId],
+      });
 
       // 기존 사진이 있다면 삭제
       if (currentPhotoUrl) {

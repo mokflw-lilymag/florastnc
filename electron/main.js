@@ -237,12 +237,12 @@ function restoreExternalBridge(options = {}) {
   // 리본 브릿지(8002)는 윈도우앱 켜질 때 끄지 않으므로, 닫을 때 다시 살릴 필요가 없습니다.
 }
 
-// Set auto-start on boot for Windows
-if (!isDev) {
-  app.setLoginItemSettings({
-    openAtLogin: true,
-    path: app.getPath('exe'),
-  });
+// Windows 시작 프로그램 — 설정 UI에서 토글 (기본값: 패키지 최초 실행 시 true)
+if (!isDev && app.isPackaged) {
+  const settings = app.getLoginItemSettings();
+  if (!settings.openAtLogin && !settings.executableWillLaunchAtLogin) {
+    app.setLoginItemSettings({ openAtLogin: true, path: app.getPath('exe') });
+  }
 }
 
 // [Phase 5] Legacy Bridge Daemons removed.
@@ -259,7 +259,7 @@ function createTray() {
   }
   
   const contextMenu = Menu.buildFromTemplate([
-    { label: '릴리맥 ERP 열기', click: () => showMainWindow() },
+    { label: 'Floxync 열기', click: () => showMainWindow() },
     {
       label: '화면 새로고침',
       click: () => {
@@ -383,6 +383,8 @@ if (!gotTheLock) {
     try {
       const dbPath = path.join(app.getPath('userData'), 'floxync_local.db');
       localDb = initLocalDb(dbPath);
+      const { bindDb } = require('./syncScope');
+      bindDb(localDb);
       const sbUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://xxx.supabase.co';
       const sbAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'xxx';
       syncWorker = new SyncWorker(localDb, sbUrl, sbAnon);
@@ -412,19 +414,59 @@ if (!gotTheLock) {
     
     createTray();
 
-    // Auto Updater 설정
+    // Auto Updater — 다운로드 진행 UI (ERP 패턴)
     if (!isDev) {
+      let progressWin = null;
+
+      autoUpdater.on('update-available', () => {
+        progressWin = new BrowserWindow({
+          width: 380,
+          height: 120,
+          alwaysOnTop: true,
+          frame: false,
+          resizable: false,
+          show: false,
+          webPreferences: { nodeIntegration: false, contextIsolation: true },
+        });
+        const htmlContent = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+          body{font-family:'Malgun Gothic','Segoe UI',sans-serif;padding:20px;background:#fff;text-align:center;margin:0;display:flex;flex-direction:column;justify-content:center;height:100vh;box-sizing:border-box;border-radius:8px;box-shadow:0 4px 6px -1px rgba(0,0,0,.1)}
+          h3{margin:0 0 10px;font-size:15px;color:#1f2937}
+          .bar-wrap{width:100%;background:#e5e7eb;border-radius:9999px;overflow:hidden;margin-bottom:8px}
+          .bar{height:10px;background:#3b82f6;width:0%;transition:width .3s}
+          #status{font-size:13px;color:#6b7280}
+        </style></head><body>
+          <h3>FloXync 업데이트 다운로드 중...</h3>
+          <div class="bar-wrap"><div class="bar" id="bar"></div></div>
+          <div id="status">0.0%</div>
+        </body></html>`;
+        progressWin.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`);
+        progressWin.once('ready-to-show', () => progressWin?.show());
+      });
+
+      autoUpdater.on('download-progress', (progressObj) => {
+        if (progressWin && !progressWin.isDestroyed()) {
+          const p = progressObj.percent.toFixed(1);
+          const s = (progressObj.bytesPerSecond / 1024 / 1024).toFixed(2);
+          progressWin.webContents.executeJavaScript(
+            `document.getElementById('bar').style.width='${p}%';document.getElementById('status').innerText='${p}% (${s} MB/s)';`,
+          ).catch(() => {});
+        }
+      });
+
       autoUpdater.checkForUpdatesAndNotify().catch(e => {
         console.log('[AutoUpdater] checkForUpdatesAndNotify failed:', e.message);
       });
       
       autoUpdater.on('update-downloaded', (info) => {
+        if (progressWin && !progressWin.isDestroyed()) {
+          progressWin.close();
+          progressWin = null;
+        }
         console.log('[AutoUpdater] update-downloaded', info);
-        // 다운로드 완료 시, 다이얼로그로 업데이트 설치 여부 묻기
         dialog.showMessageBox({
           type: 'info',
-          title: '업데이트 가능',
-          message: '새로운 버전이 다운로드되었습니다. 지금 재시작하여 업데이트하시겠습니까?',
+          title: '업데이트 준비 완료',
+          message: `새 버전(${info.version})이 다운로드되었습니다. 지금 재시작하여 업데이트하시겠습니까?`,
           buttons: ['지금 재시작', '나중에 (앱 종료 시)']
         }).then((result) => {
           if (result.response === 0) {
@@ -457,6 +499,103 @@ if (!gotTheLock) {
 
 ipcMain.handle('get-local-sync-status', () => getSyncState());
 
+ipcMain.handle('get-yearly-stats', async (_event, tenantId) => {
+  try {
+    const db = localDb;
+    if (!db || !tenantId) return { count: 0, revenue: 0 };
+
+    const currentYear = new Date().getFullYear();
+    const startDateStr = new Date(currentYear, 0, 1).toISOString();
+
+    const row = db.prepare(`
+      SELECT
+        COUNT(id) as totalCount,
+        SUM(CAST(json_extract(summary, '$.total') AS INTEGER)) as totalRevenue
+      FROM orders
+      WHERE tenant_id = ?
+        AND order_date >= ?
+        AND status != 'canceled'
+    `).get(tenantId, startDateStr);
+
+    return { count: row?.totalCount || 0, revenue: row?.totalRevenue || 0 };
+  } catch (error) {
+    console.error('[YearlyStats Error]', error);
+    return { count: 0, revenue: 0 };
+  }
+});
+
+ipcMain.handle('download-image', async (_event, { url, filename }) => {
+  try {
+    const https = require('https');
+    const http = require('http');
+    if (!url || !filename) {
+      return { success: false, error: 'url and filename are required' };
+    }
+
+    const downloadDir = path.join(app.getPath('documents'), 'Floxync', 'ImageDownload');
+    if (!fs.existsSync(downloadDir)) fs.mkdirSync(downloadDir, { recursive: true });
+
+    const safeName = String(filename).replace(/[<>:"/\\|?*]/g, '_');
+    const destPath = path.join(downloadDir, safeName);
+
+    await new Promise((resolve, reject) => {
+      const client = url.startsWith('https') ? https : http;
+      const file = fs.createWriteStream(destPath);
+      client.get(url, (response) => {
+        if (response.statusCode && response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
+          file.close();
+          fs.unlink(destPath, () => {});
+          client.get(response.headers.location, (redirectRes) => {
+            const redirectFile = fs.createWriteStream(destPath);
+            redirectRes.pipe(redirectFile);
+            redirectFile.on('finish', () => redirectFile.close(resolve));
+          }).on('error', reject);
+          return;
+        }
+        if (response.statusCode !== 200) {
+          reject(new Error(`Download failed: HTTP ${response.statusCode}`));
+          return;
+        }
+        response.pipe(file);
+        file.on('finish', () => file.close(resolve));
+      }).on('error', (err) => {
+        fs.unlink(destPath, () => reject(err));
+      });
+    });
+
+    return { success: true, path: destPath };
+  } catch (error) {
+    console.error('[Electron download-image Error]', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('clear-spooler', async () => {
+  try {
+    const { execSync } = require('child_process');
+    execSync('powershell -Command "Get-WmiObject Win32_PrintJob | Remove-WmiObject"', {
+      stdio: 'ignore',
+      windowsHide: true,
+    });
+    return { success: true, message: '인쇄 대기열이 초기화되었습니다.' };
+  } catch (err) {
+    return { success: false, message: `대기열 초기화 실패: ${err.message}` };
+  }
+});
+
+ipcMain.handle('wake-up-window', async () => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.show();
+    mainWindow.focus();
+    mainWindow.setAlwaysOnTop(true);
+    setTimeout(() => {
+      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.setAlwaysOnTop(false);
+    }, 1000);
+  }
+  return { ok: true };
+});
+
 app.on('will-quit', () => {
   stopEmbeddedServer();
   restoreExternalBridge({ force: true });
@@ -470,6 +609,32 @@ app.on('window-all-closed', function () {
 });
 
 ipcMain.handle('ping', async () => ({ ok: true, packaged: app.isPackaged }));
+
+ipcMain.handle('get-startup-setting', async () => {
+  const settings = app.getLoginItemSettings();
+  return settings.openAtLogin;
+});
+
+ipcMain.handle('set-startup-setting', async (_event, enabled) => {
+  app.setLoginItemSettings({
+    openAtLogin: !!enabled,
+    path: app.getPath('exe'),
+  });
+  return true;
+});
+
+ipcMain.handle('trigger-kakaotalk-paste', async (_event, { message }) => {
+  const { clipboard, shell } = require('electron');
+  if (message) {
+    clipboard.writeText(message);
+  }
+  try {
+    await shell.openExternal('kakaotalk://');
+  } catch (e) {
+    console.error('카카오톡 실행 실패:', e.message);
+  }
+  return { success: true };
+});
 
 ipcMain.handle('get-print-log', async () => {
   const logPath = getPrintLogPath();
@@ -786,6 +951,10 @@ ipcMain.handle('print-job', async (event, { job, settings, branchName }) => {
       branchName || '',
       ''
     );
+    if (!html || !html.trim()) {
+      appendPrintLog('WARN: empty HTML — skipping print');
+      throw new Error('인쇄 HTML 생성 실패');
+    }
     if (settings?.receiptPrinterType === 'label') {
       // 80mm 용지: POS와 동일 폭 — 패딩 대칭 + 본문 블록 가운데 정렬
       html = html
@@ -975,10 +1144,73 @@ try {
 ipcMain.handle('start-sync', async (event, session) => {
   if (syncWorker) {
     syncWorker.configure(session);
-    syncWorker.start(60000); // 1분 주기로 백그라운드 동기화
+    const { setSyncScope } = require('./syncScope');
+    setSyncScope({ mode: 'tenant', tenantId: session.tenant_id });
+    syncWorker.start();
     return { ok: true };
   }
   return { ok: false, error: 'SyncWorker not initialized' };
+});
+
+ipcMain.handle('set-sync-scope', async (_event, scope) => {
+  try {
+    const { setSyncScope, getSyncScope, pruneLocalRowsOutsideScope } = require('./syncScope');
+    const { changed } = setSyncScope(scope || {});
+    let pruned = { orders: 0, customers: 0, simple_expenses: 0 };
+    if (changed) {
+      if (syncWorker) {
+        syncWorker.resetSyncCursorsForScopeChange();
+        syncWorker.requestImmediateSyncCycle();
+      }
+      pruned = pruneLocalRowsOutsideScope();
+    }
+    return { data: { scope: getSyncScope(), changed, pruned }, error: null };
+  } catch (error) {
+    console.error('[Electron set-sync-scope Error]', error);
+    return { data: null, error: { message: error.message } };
+  }
+});
+
+/** 원격(클라우드)에서 이미 삭제된 레코드를 로컬 SQLite에서만 제거 — sync_queue 미등록 */
+ipcMain.handle('delete-local-record', async (_event, { table, id }) => {
+  try {
+    const db = localDb;
+    if (!db) throw new Error('Local DB not initialized');
+    const allowedTables = ['orders', 'customers'];
+    if (!allowedTables.includes(table)) {
+      return { data: null, error: { message: `Table not allowed: ${table}` } };
+    }
+    if (!id) {
+      return { data: null, error: { message: 'id is required' } };
+    }
+    const result = db.prepare(`DELETE FROM ${table} WHERE id = ?`).run(id);
+    return { data: { deleted: result.changes }, error: null };
+  } catch (error) {
+    console.error('[Electron delete-local-record Error]', error);
+    return { data: null, error: { message: error.message } };
+  }
+});
+
+/** SyncWorker 유령 주문 정리 (로컬 DB만) */
+ipcMain.handle('sync-deleted-orders', async () => {
+  try {
+    if (!syncWorker) {
+      return { data: { removed: 0 }, error: null };
+    }
+    const removed = await syncWorker.syncDeletedRecords('orders');
+    return { data: { removed }, error: null };
+  } catch (error) {
+    console.error('[Electron sync-deleted-orders Error]', error);
+    return { data: null, error: { message: error.message } };
+  }
+});
+
+ipcMain.handle('request-immediate-sync', async () => {
+  if (syncWorker) {
+    syncWorker.requestImmediateSyncCycle();
+    return { ok: true };
+  }
+  return { ok: false };
 });
 
 ipcMain.handle('clear-offline-data', async () => {
@@ -1174,79 +1406,84 @@ ipcMain.handle('query-db', async (event, { table, astChain }) => {
     // Add logic for INSERT, UPDATE, DELETE
     if (action === 'insert' || action === 'update' || action === 'delete') {
       const now = new Date().toISOString();
-      const insertQueue = db.prepare(`INSERT INTO sync_queue (action, table_name, record_id, payload, timestamp) VALUES (?, ?, ?, ?, ?)`);
+      const insertQueue = db.prepare(
+        `INSERT INTO sync_queue (action, table_name, record_id, payload, timestamp) VALUES (?, ?, ?, ?, ?)`,
+      );
+      const bumpSync = () => {
+        if (syncWorker?.requestImmediateSyncCycle) syncWorker.requestImmediateSyncCycle();
+      };
 
       if (action === 'insert' && insertData) {
         db.transaction((items) => {
           for (const item of items) {
-            item.updated_at = now;
-            item._sync_status = 'pending';
-            
+            item.updated_at = item.updated_at || now;
+            item.sync_status = 'pending_insert';
+
             const cols = Object.keys(item);
             const placeholders = cols.map(() => '?').join(', ');
-            const values = cols.map(c => {
+            const values = cols.map((c) => {
               const val = item[c];
               if (val === undefined) return null;
               if (typeof val === 'boolean') return val ? 1 : 0;
               if (typeof val === 'object' && val !== null) return JSON.stringify(val);
               return val;
             });
-            
+
             db.prepare(`INSERT INTO ${table} (${cols.join(', ')}) VALUES (${placeholders})`).run(...values);
             insertQueue.run('INSERT', table, item.id, JSON.stringify(item), now);
           }
         })(insertData);
+        bumpSync();
         return { data: insertData, error: null };
       }
 
       if (action === 'update' && updateData) {
-        updateData.updated_at = now;
-        updateData._sync_status = 'pending';
-        
+        updateData.updated_at = updateData.updated_at || now;
+
         const cols = Object.keys(updateData);
-        const setClause = cols.map(c => `${c} = ?`).join(', ');
-        const values = cols.map(c => {
+        const setClause = cols.map((c) => `${c} = ?`).join(', ');
+        const values = cols.map((c) => {
           const val = updateData[c];
           if (val === undefined) return null;
           if (typeof val === 'boolean') return val ? 1 : 0;
           if (typeof val === 'object' && val !== null) return JSON.stringify(val);
           return val;
         });
-        
-        let query = `UPDATE ${table} SET ${setClause}`;
+
+        let query = `UPDATE ${table} SET ${setClause}, sync_status = 'pending_update'`;
         if (whereClauses.length > 0) query += ` WHERE ${whereClauses.join(' AND ')}`;
-        
+
         db.transaction(() => {
           db.prepare(query).run(...values, ...whereValues);
-          
-          // To log to sync_queue, we need the affected record IDs. We have to fetch them.
+
           let selectQuery = `SELECT id FROM ${table}`;
           if (whereClauses.length > 0) selectQuery += ` WHERE ${whereClauses.join(' AND ')}`;
           const affectedRows = db.prepare(selectQuery).all(...whereValues);
-          
+
           for (const row of affectedRows) {
-             insertQueue.run('UPDATE', table, row.id, JSON.stringify(updateData), now);
+            insertQueue.run('UPDATE', table, row.id, JSON.stringify(updateData), now);
           }
         })();
+        bumpSync();
         return { data: null, error: null };
       }
 
       if (action === 'delete') {
         let query = `DELETE FROM ${table}`;
         if (whereClauses.length > 0) query += ` WHERE ${whereClauses.join(' AND ')}`;
-        
+
         db.transaction(() => {
-          // Fetch affected IDs before deleting
           let selectQuery = `SELECT id FROM ${table}`;
           if (whereClauses.length > 0) selectQuery += ` WHERE ${whereClauses.join(' AND ')}`;
           const affectedRows = db.prepare(selectQuery).all(...whereValues);
-          
+
           db.prepare(query).run(...whereValues);
-          
+
           for (const row of affectedRows) {
-             insertQueue.run('DELETE', table, row.id, null, now);
+            insertQueue.run('DELETE', table, row.id, null, now);
           }
         })();
+        bumpSync();
         return { data: null, error: null };
       }
     }

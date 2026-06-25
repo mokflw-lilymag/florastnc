@@ -33,7 +33,7 @@ export interface Order {
     total: number;
   };
   payment: {
-    method: "card" | "cash" | "transfer" | "mainpay" | "shopping_mall" | "epay" | "kakao" | "apple";
+    method: "card" | "cash" | "transfer" | "mainpay" | "shopping_mall" | "epay" | "kakao" | "apple" | "unknown";
     status: PaymentStatus;
     completedAt?: string;
     isSplitPayment?: boolean;

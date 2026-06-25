@@ -65,7 +65,7 @@ export default function SystemSettingsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="site-name">{tf.f01325}</Label>
-                  <Input id="site-name" defaultValue="Floxync SaaS" />
+                  <Input id="site-name" defaultValue="FloXync" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="admin-email">{tf.f00967}</Label>

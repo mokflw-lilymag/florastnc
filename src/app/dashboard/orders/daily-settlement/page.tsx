@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { 
   Calendar, Target, DollarSign, ArrowRightLeft, 
   RefreshCw, ChevronLeft, ChevronRight, FileText, 
-  XCircle, Download, CheckCircle2, ShoppingCart, Loader2, Package, TrendingUp
+  XCircle, Download, CheckCircle2, ShoppingCart, Loader2, Package, TrendingUp, Printer
 } from "lucide-react";
 import { format, parse, subDays, addDays, startOfDay, endOfDay } from "date-fns";
 import { useOrders } from "@/hooks/use-orders";
@@ -19,6 +19,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useDailySettlements, DailySettlementRecord } from "@/hooks/use-daily-settlements";
 import { useExpenses } from "@/hooks/use-expenses";
 import { useSettings } from "@/hooks/use-settings";
+import { createClient } from "@/utils/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import Link from 'next/link';
 import { Order } from "@/types/order";
@@ -33,7 +34,8 @@ export default function DailySettlementPage() {
     const { expenses, fetchExpenses, loading: expensesLoading } = useExpenses();
     const { getSettlement, saveSettlement, findLastSettlementBefore, loading: settlementLoading } = useDailySettlements();
     const { settings } = useSettings();
-    const { profile } = useAuth();
+    const { profile, tenantId } = useAuth();
+    const supabase = createClient();
     const locale = usePreferredLocale();
     const tf = getMessages(locale).tenantFlows;
     const dfLoc = dateFnsLocaleForBase(toBaseLocale(locale));
@@ -344,6 +346,88 @@ export default function DailySettlementPage() {
         }
     };
 
+    const handlePrint = async () => {
+        if (!tenantId) { toast.error('로그인 정보가 없습니다.'); return; }
+
+        const fmt = (n: number) => '₩' + n.toLocaleString('ko-KR');
+        const fmtMethod = (m: string) => m === 'card' ? '카드' : m === 'cash' ? '현금' : m === 'transfer' ? '계좌' : '기타';
+        const getTime = (o: Order, f: string) => {
+            const d = o.order_date || o.created_at;
+            return d ? format(new Date(d), f) : '';
+        };
+
+        const dailyExpenses = expenses.filter(e => {
+            const d = e.expense_date || e.created_at;
+            return d && format(new Date(d), 'yyyy-MM-dd') === reportDate;
+        });
+
+        const payload = {
+            branch: settings.siteName || (profile as any)?.tenant_name || '매장',
+            date: reportDate,
+            ordersAmount: fmt(stats.totalSales),
+            ordersCount: stats.orderCount,
+            vaultBalance: fmt(vaultCash.currentBalance),
+            settlementBalance: fmt(stats.totalSales - dailyExpenses.reduce((s, e) => s + (e.amount || 0), 0)),
+            expensesList: dailyExpenses.map(e => ({
+                label: `${(e.description || e.category || '기타').replace(/\s*\d+단\s*구매\s*$/, '').replace(/\s*\([^)]*\)\s*$/, '').trim()}${e.quantity ? ` x${e.quantity}` : ''}`,
+                amount: fmt(e.amount || 0),
+            })),
+            expensesTotal: fmt(dailyExpenses.reduce((s, e) => s + (e.amount || 0), 0)),
+            todayOrdersList: stats.paidOrdersToday.slice(0, 20).map((o: Order) => {
+                const cName = o.orderer?.name?.trim() || '현장고객';
+                const products = o.items?.map((i: any) => `${i.name} x${i.quantity || 1}`).join(', ') || '';
+                const method = o.payment?.isSplitPayment ? '분할결제' : fmtMethod(o.payment?.method || '');
+                return {
+                    name: `<div style="font-size:12px">[${getTime(o,'HH:mm')}] ${products}</div><div style="font-size:11px;color:#333">고객: ${cName} | ${method}</div>`,
+                    amount: fmt(o.summary?.total || 0),
+                };
+            }),
+            collectionsCount: stats.previousOrderPayments.length,
+            collectionsAmount: fmt(stats.prevOrderPaymentTotal),
+            collectionsList: stats.previousOrderPayments.slice(0, 10).map((o: Order) => {
+                const cName = o.orderer?.name?.trim() || '현장고객';
+                const products = o.items?.map((i: any) => `${i.name} x${i.quantity || 1}`).join(', ') || '';
+                const method = o.payment?.isSplitPayment ? '분할결제' : fmtMethod(o.payment?.method || '');
+                return {
+                    name: `<div style="font-size:12px">[${getTime(o,'MM-dd HH:mm')}] ${products}</div><div style="font-size:11px;color:#333">고객: ${cName} | ${method} (수금)</div>`,
+                    amount: fmt(o.summary?.total || 0),
+                };
+            }),
+            pendingCount: stats.pendingOrdersToday.length,
+            pendingAmount: fmt(stats.pendingAmountToday),
+            pendingList: stats.pendingOrdersToday.slice(0, 10).map((o: Order) => {
+                const cName = o.orderer?.name?.trim() || '현장고객';
+                const products = o.items?.map((i: any) => `${i.name} x${i.quantity || 1}`).join(', ') || '';
+                let pendingAmt = o.summary?.total || 0;
+                if (o.payment?.isSplitPayment && o.payment?.firstPaymentAmount) {
+                    pendingAmt -= Number(o.payment.firstPaymentAmount);
+                }
+                return {
+                    name: `<div style="font-size:12px">[${getTime(o,'HH:mm')}] ${products}</div><div style="font-size:11px;color:#333">고객: ${cName}</div>`,
+                    amount: fmt(pendingAmt),
+                };
+            }),
+        };
+
+        try {
+            const { error } = await supabase.from('print_jobs').insert({
+                tenant_id: tenantId,
+                user_id: tenantId,
+                type: 'daily_settlement',
+                status: 'pending',
+                width_mm: 80,
+                length_mm: 0,
+                image_base64: '',
+                data: payload,
+            });
+            if (error) throw error;
+            toast.success('정산서 인쇄를 요청했습니다. 프린터를 확인해주세요.');
+        } catch (e) {
+            console.error('[DailySettlement] print error:', e);
+            toast.error('인쇄 요청에 실패했습니다.');
+        }
+    };
+
     const loading = ordersLoading || expensesLoading || settlementLoading;
 
     return (
@@ -383,6 +467,15 @@ export default function DailySettlementPage() {
                         </Button>
                     </div>
                     
+                    <Button
+                        onClick={handlePrint}
+                        disabled={loading}
+                        variant="outline"
+                        className="font-medium rounded-xl px-4 h-10 gap-2 border-slate-200 hover:bg-slate-50"
+                    >
+                        <Printer className="h-4 w-4" />
+                        정산서 출력
+                    </Button>
                     <Button 
                         onClick={handleSave} 
                         disabled={loading} 
@@ -582,7 +675,18 @@ export default function DailySettlementPage() {
                                                 <span className="font-mono text-[10px] text-slate-700 uppercase">{order.order_number}</span>
                                             </div>
                                         </TableCell>
-                                        <TableCell className="text-xs font-light tracking-tight">{order.orderer?.name}</TableCell>
+                                        <TableCell className="tracking-tight">
+                                            <div className="flex flex-col gap-0.5">
+                                                {order.items && order.items.length > 0 ? (
+                                                    <span className="text-xs font-medium text-slate-800 truncate max-w-[180px]">
+                                                        {order.items.map((i: any) => `${i.name} x${i.quantity || 1}`).join(', ')}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-xs text-slate-400">상품 없음</span>
+                                                )}
+                                                <span className="text-[10px] text-slate-400 font-light">{order.orderer?.name || '현장고객'}</span>
+                                            </div>
+                                        </TableCell>
                                         <TableCell>
                                             <Badge variant="outline" className="text-[9px] font-light border-slate-200 text-slate-600 px-1.5 py-0 rounded-md">
                                                 {order.payment?.method}

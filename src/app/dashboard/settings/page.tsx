@@ -37,7 +37,8 @@ import {
   FileImage,
   LayoutGrid,
   Globe,
-  MonitorPlay
+  MonitorPlay,
+  Mail
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -74,6 +75,9 @@ import { DeliverySettings } from "./components/DeliverySettings";
 import { PosIntegrationCard } from "./components/PosIntegrationCard";
 import { OrderPolicySettings } from "./components/OrderPolicySettings";
 import { AutomationSettings } from "./components/AutomationSettings";
+import { EmailSettingsCard } from "./components/EmailSettingsCard";
+import { DesktopElectronSettingsCard } from "@/components/desktop/desktop-electron-settings-card";
+import { KakaoPcSettingsCard } from "./components/KakaoPcSettingsCard";
 import { MallIntegrationCard } from "./components/MallIntegrationCard";
 import { RegionalIntegrationPanel } from "./components/RegionalIntegrationPanel";
 import { applyCountryPreset, getCountryPreset, getCountryPresetDiff } from "@/lib/country-preset";
@@ -882,37 +886,44 @@ export default function SettingsPage() {
   };
 
   const handlePrintTest = async () => {
-    if (!tenantId) return;
+    console.log('[PrintTest] 클릭됨 | tenantId:', tenantId);
+    if (!tenantId) {
+      toast.error('테넌트 정보가 없습니다. 로그아웃 후 다시 로그인해주세요.');
+      console.warn('[PrintTest] tenantId 없음 → 중단');
+      return;
+    }
     toast.info(pickUiText(baseLocale, '테스트 인쇄를 요청중입니다...', 'Requesting test print...', 'Đang yêu cầu in thử...'));
     try {
       const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI?.printJob;
+      console.log('[PrintTest] isElectron:', isElectron);
       const payload = {
         orderId: 'TEST-1234',
-        orderer: { name: '테스트 고객', phone: '010-0000-0000' },
-        items: [{ name: '테스트 상품 (프린터 브릿지 점검용)', quantity: 1, price: 0 }],
-        summary: { subtotal: 0, deliveryFee: 0, total: 0 },
-        message: { text: '이 출력물은 프린터 연동 테스트용입니다.', type: 'none' },
-        pickupInfo: { date: new Date().toLocaleDateString(), time: '00:00' }
+        branchName: settings.siteName || tenantId,
       };
 
       if (isElectron) {
         await (window as any).electronAPI.printJob({
-          job: { job_type: 'receipt_shop', payload },
+          job: { job_type: 'print_test', type: 'print_test', payload, data: payload },
           settings: settings,
           branchName: tenantId
         });
       } else {
+        console.log('[PrintTest] Supabase insert 시도...');
         const { error } = await supabase.from('print_jobs').insert({
-          tenant_id: tenantId, user_id: tenantId, image_base64: '', width_mm: 0, length_mm: 0,
-          type: 'receipt_shop',
+          tenant_id: tenantId, user_id: tenantId, image_base64: '', width_mm: 80, length_mm: 0,
+          type: 'print_test',
           status: 'pending',
           data: payload
         });
-        if (error) throw error;
+        if (error) {
+          console.error('[PrintTest] insert 실패:', error);
+          throw error;
+        }
+        console.log('[PrintTest] insert 성공 → 브릿지 폴링 대기 중');
       }
       toast.success(pickUiText(baseLocale, '테스트 인쇄가 요청되었습니다. 프린터를 확인해주세요.', 'Test print requested. Please check the printer.', 'Đã yêu cầu in thử. Vui lòng kiểm tra máy in.'));
     } catch (error) {
-      console.error(error);
+      console.error('[PrintTest] 오류:', error);
       toast.error(pickUiText(baseLocale, '테스트 인쇄 요청에 실패했습니다.', 'Failed to request test print.', 'Yêu cầu in thử thất bại.'));
     }
   };
@@ -1091,6 +1102,35 @@ export default function SettingsPage() {
   const handleBackup = async () => {
     try {
       toast.loading(tf.f01094);
+      const electronAPI = typeof window !== "undefined"
+        ? (window as Window & { electronAPI?: { triggerBackup?: () => Promise<{ ok?: boolean; data?: Record<string, unknown> }> } }).electronAPI
+        : undefined;
+
+      if (electronAPI?.triggerBackup) {
+        const result = await electronAPI.triggerBackup();
+        const localData = result?.data ?? {};
+        const backupData = {
+          ...localData,
+          timestamp: new Date().toISOString(),
+          tenant_id: tenantId,
+          tenantId,
+          settings,
+          shop_name: storeName,
+        };
+        const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `Floxync_Local_Backup_${storeName}_${new Date().toISOString().split("T")[0]}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        toast.dismiss();
+        toast.success("로컬 DB 백업이 다운로드되었습니다.");
+        return;
+      }
+
       const [ordersRes, customersRes, productsRes, feesRes] = await Promise.all([
         supabase.from('orders').select('*').eq('tenant_id', tenantId),
         supabase.from('customers').select('*').eq('tenant_id', tenantId),
@@ -1133,10 +1173,30 @@ export default function SettingsPage() {
       reader.onload = async (e) => {
         try {
           const content = JSON.parse(e.target?.result as string);
-          if (content.tenant_id !== tenantId) {
+          const fileTenant = content.tenant_id ?? content.tenantId;
+          if (fileTenant !== tenantId) {
             toast.error(tf.f01669);
             return;
           }
+
+          const electronAPI = typeof window !== "undefined"
+            ? (window as Window & { electronAPI?: { triggerRestore?: (data: unknown) => Promise<{ ok?: boolean; error?: string }> } }).electronAPI
+            : undefined;
+
+          if (electronAPI?.triggerRestore && (content.orders || content.customers)) {
+            toast.loading("로컬 DB 복구 중...");
+            const result = await electronAPI.triggerRestore(content);
+            toast.dismiss();
+            if (!result?.ok) {
+              toast.error(result?.error || tf.f01755);
+              return;
+            }
+            if (content.settings) await saveSettings(content.settings);
+            toast.success("로컬 DB 복구가 완료되었습니다.");
+            window.location.reload();
+            return;
+          }
+
           toast.loading(tf.f01095);
           if (content.settings) await saveSettings(content.settings);
           toast.dismiss();
@@ -1274,6 +1334,9 @@ export default function SettingsPage() {
 
             <TabsTrigger value="integrations" className="justify-start shrink-0 text-sm py-2.5 px-4 md:py-3 data-[state=active]:bg-white rounded-xl transition-all">
               <LinkIcon className="h-4 w-4 mr-3 text-slate-500" /> {t.tabs.integrations}
+            </TabsTrigger>
+            <TabsTrigger value="email" className="justify-start shrink-0 text-sm py-2.5 px-4 md:py-3 data-[state=active]:bg-white rounded-xl transition-all">
+              <Mail className="h-4 w-4 mr-3 text-blue-500" /> {pickUiText(baseLocale, "이메일", "Email")}
             </TabsTrigger>
             <TabsTrigger value="partner-network" className="justify-start shrink-0 text-sm py-2.5 px-4 md:py-3 rounded-xl text-blue-700 bg-blue-50/30 data-[state=active]:bg-blue-600 data-[state=active]:text-white transition-all">
               <Share2 className="h-4 w-4 mr-3" /> {t.tabs.partner}
@@ -1562,6 +1625,11 @@ export default function SettingsPage() {
               </Card>
             </TabsContent>
 
+            <TabsContent value="email" className="space-y-6">
+              <EmailSettingsCard settings={settings} saveSettings={saveSettings} />
+              <KakaoPcSettingsCard settings={settings} saveSettings={saveSettings} />
+            </TabsContent>
+
             <TabsContent value="integrations" className="space-y-6">
               {/* 국가별 연동 앱 패널 (국가 설정에 따라 자동 교체) */}
               <RegionalIntegrationPanel
@@ -1666,7 +1734,7 @@ export default function SettingsPage() {
                           {pickUiText(baseLocale, '프린트 테스트', 'Print Test', 'In thử')}
                         </Button>
                         <a 
-                          href="/api/downloads/bridge"
+                          href={`/api/downloads/bridge?tenantId=${tenantId}`}
                           download="Floxync-Bridge-Setup.zip"
                           className={buttonVariants({ variant: "outline", size: "sm" })}
                         >
@@ -1847,11 +1915,18 @@ export default function SettingsPage() {
             </TabsContent>
 
             <TabsContent value="data" className="space-y-4">
+              <DesktopElectronSettingsCard />
               <Card className="border-0 shadow-sm ring-1 ring-rose-100">
                 <CardHeader><CardTitle>{tf.f01088}</CardTitle></CardHeader>
                 <CardContent className="grid grid-cols-2 gap-4">
                   <Button variant="outline" className="h-20" onClick={handleBackup}>{tf.f01797}</Button>
-                  <Button variant="destructive" className="h-20" onClick={() => setIsInitDialogOpen(true)}>{tf.f01097}</Button>
+                  <label htmlFor="restore-backup-input" className="block">
+                    <input id="restore-backup-input" type="file" accept=".json" className="hidden" onChange={handleRestore} />
+                    <div className="inline-flex h-20 w-full items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground">
+                      백업 파일 복구
+                    </div>
+                  </label>
+                  <Button variant="destructive" className="h-20 col-span-2" onClick={() => setIsInitDialogOpen(true)}>{tf.f01097}</Button>
                 </CardContent>
               </Card>
             </TabsContent>

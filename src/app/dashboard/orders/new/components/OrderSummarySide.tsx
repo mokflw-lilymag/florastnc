@@ -6,7 +6,14 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Trash2, MinusCircle, PlusCircle, CreditCard, Coins, Smartphone, Globe, Banknote, CheckCircle2, Circle } from "lucide-react";
+import { Trash2, MinusCircle, PlusCircle, CreditCard, Coins, Smartphone, Globe, Banknote, CheckCircle2, Circle, HelpCircle } from "lucide-react";
+import {
+    NEW_ORDER_PAYMENT_METHODS,
+    getNewOrderPaymentMethodLabel,
+    selectOrderPaymentMethod,
+    type OrderPaymentMethod,
+} from "@/lib/order-payment-methods";
+import { PaymentApprovalFailedBanner } from "./PaymentApprovalFailedBanner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,8 +31,18 @@ interface OrderItem extends Product {
     isCustomProduct?: boolean;
 }
 
-type PaymentMethod = "card" | "cash" | "transfer" | "mainpay" | "shopping_mall" | "epay" | "kakao" | "apple";
+type PaymentMethod = OrderPaymentMethod;
 type PaymentStatus = "pending" | "paid" | "completed" | "split_payment";
+
+const PAYMENT_METHOD_ICONS: Partial<Record<OrderPaymentMethod, typeof CreditCard>> = {
+    card: CreditCard,
+    cash: Banknote,
+    transfer: Coins,
+    mainpay: Smartphone,
+    shopping_mall: Globe,
+    epay: Smartphone,
+    unknown: HelpCircle,
+};
 
 interface OrderSummarySideProps {
     orderItems: any[]; // Using any to avoid circular deps if types not shared, but better to import OrderItem
@@ -75,6 +92,10 @@ interface OrderSummarySideProps {
     secondPaymentMethod: PaymentMethod;
     setSecondPaymentMethod: (method: PaymentMethod) => void;
 
+    cardApprovalError?: string | null;
+    onClearCardApprovalError?: () => void;
+    paymentSectionRef?: React.RefObject<HTMLDivElement | null>;
+
     // Actions
     onSubmit: () => void;
     isSubmitting: boolean;
@@ -109,6 +130,9 @@ export function OrderSummarySide({
     setFirstPaymentMethod,
     secondPaymentMethod,
     setSecondPaymentMethod,
+    cardApprovalError,
+    onClearCardApprovalError,
+    paymentSectionRef,
     onSubmit,
     isSubmitting
 }: OrderSummarySideProps) {
@@ -124,16 +148,11 @@ export function OrderSummarySide({
         setOrderItems(orderItems.filter((_, i) => i !== index));
     };
 
-    const PAYMENT_METHODS: { value: PaymentMethod; label: string; icon: any }[] = [
-        { value: "card", label: tf.f00704, icon: CreditCard },
-        { value: "cash", label: tf.f00769, icon: Banknote },
-        { value: "transfer", label: tf.f00057, icon: Coins },
-        { value: "mainpay", label: tf.f00211, icon: Smartphone },
-        { value: "shopping_mall", label: tf.f00368, icon: Globe },
-        { value: "epay", label: "e-Pay", icon: Smartphone },
-        { value: "kakao", label: tf.f00712, icon: Smartphone },
-        { value: "apple", label: tf.f00432, icon: Smartphone },
-    ];
+    const PAYMENT_METHODS = NEW_ORDER_PAYMENT_METHODS.map((value) => ({
+        value,
+        label: getNewOrderPaymentMethodLabel(value, tf),
+        icon: PAYMENT_METHOD_ICONS[value] ?? Smartphone,
+    }));
 
     return (
         <Card className="h-[calc(100vh-2rem)] flex flex-col sticky top-4">
@@ -262,7 +281,15 @@ export function OrderSummarySide({
                 <Separator />
 
                 {/* 3. Payment Method */}
-                <div className="space-y-4">
+                <div ref={paymentSectionRef} id="order-payment-section" className="space-y-4 scroll-mt-4">
+                    {cardApprovalError ? (
+                        <PaymentApprovalFailedBanner
+                            message={cardApprovalError}
+                            onClear={() => onClearCardApprovalError?.()}
+                            setPaymentMethod={setPaymentMethod}
+                            setPaymentStatus={setPaymentStatus}
+                        />
+                    ) : null}
                     <div className="flex items-center justify-between mb-2">
                         <Label>{tf.f00049}</Label>
                         <div className="flex items-center space-x-2">
@@ -282,7 +309,14 @@ export function OrderSummarySide({
                                     key={method.value}
                                     variant={paymentMethod === method.value ? "default" : "outline"}
                                     className={cn("h-16 flex flex-col p-1", paymentMethod === method.value ? "border-primary" : "")}
-                                    onClick={() => setPaymentMethod(method.value)}
+                                    onClick={() =>
+                                        selectOrderPaymentMethod(
+                                            method.value,
+                                            setPaymentMethod,
+                                            setPaymentStatus,
+                                            onClearCardApprovalError
+                                        )
+                                    }
                                 >
                                     <method.icon className="w-5 h-5 mb-1" />
                                     <span className="text-[10px]">{method.label}</span>

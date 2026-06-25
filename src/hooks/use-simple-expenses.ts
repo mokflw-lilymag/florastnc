@@ -14,6 +14,9 @@ import type {
   ExpenseStats
 } from '@/types/simple-expense';
 import { SimpleExpenseCategory } from '@/types/simple-expense';
+import { isElectronClient } from '@/lib/electron-env';
+import { onElectronSyncStatus } from '@/lib/electron-sync-listener';
+import { uploadWithOptimalStorage } from '@/lib/storage-manager';
 
 interface MaterialRequest {
   id: string;
@@ -121,11 +124,11 @@ export function useSimpleExpenses({ enableRealtime = false }: { enableRealtime?:
       let receiptUrl = '';
       let receiptFileName = '';
       if (data.receiptFile) {
-        const path = `receipts/${branchId}/${Date.now()}_${data.receiptFile.name}`;
-        const { data: uploadData, error: uploadError } = await supabase.storage.from('receipts').upload(path, data.receiptFile);
-        if (uploadError) throw uploadError;
-        const { data: urlData } = supabase.storage.from('receipts').getPublicUrl(uploadData.path);
-        receiptUrl = urlData.publicUrl;
+        const path = `${branchId}/${Date.now()}_${data.receiptFile.name.replace(/\.[^/.]+$/, "")}.jpg`;
+        const uploadResult = await uploadWithOptimalStorage(data.receiptFile, path, {
+          bucket: "receipts",
+        });
+        receiptUrl = uploadResult.url;
         receiptFileName = data.receiptFile.name;
       }
 
@@ -260,13 +263,10 @@ export function useSimpleExpenses({ enableRealtime = false }: { enableRealtime?:
       if (data.receiptFile) {
         const { data: exp } = await supabase.from('simple_expenses').select('tenant_id').eq('id', expenseId).single();
         if (exp) {
-          const path = `receipts/${exp.tenant_id}/${Date.now()}_${data.receiptFile.name}`;
-          const { data: up } = await supabase.storage.from('receipts').upload(path, data.receiptFile);
-          if (up) {
-            const { data: url } = supabase.storage.from('receipts').getPublicUrl(up.path);
-            updatePayload.receipt_url = url.publicUrl;
-            updatePayload.receipt_file_name = data.receiptFile.name;
-          }
+          const path = `${exp.tenant_id}/${Date.now()}_${data.receiptFile.name.replace(/\.[^/.]+$/, "")}.jpg`;
+          const uploadResult = await uploadWithOptimalStorage(data.receiptFile, path, { bucket: "receipts" });
+          updatePayload.receipt_url = uploadResult.url;
+          updatePayload.receipt_file_name = data.receiptFile.name;
         }
       }
       if (data.amount) updatePayload.amount = data.amount;
@@ -517,6 +517,16 @@ export function useSimpleExpenses({ enableRealtime = false }: { enableRealtime?:
     }
 
     if (!enableRealtime || !user) return;
+
+    if (isElectronClient()) {
+      let lastAt: string | null = null;
+      const unsub = onElectronSyncStatus((status) => {
+        if (!status.lastSyncAt || status.lastSyncAt === lastAt) return;
+        lastAt = status.lastSyncAt;
+        fetchExpenses();
+      });
+      return () => unsub();
+    }
 
     // Real-time synchronization
     const channelName = `simple-expenses-realtime-${crypto.randomUUID()}`;

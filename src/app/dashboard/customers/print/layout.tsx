@@ -2,12 +2,12 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { cookies } from "next/headers";
 import { LOCALE_COOKIE, resolveLocale } from "@/i18n/config";
-import { getMessages } from "@/i18n/getMessages";
+import { getServerMessages } from "@/i18n/getMessages.server";
 
 export async function generateMetadata(): Promise<Metadata> {
   const cookieStore = await cookies();
   const locale = resolveLocale(cookieStore.get(LOCALE_COOKIE)?.value ?? null);
-  const tf = getMessages(locale).tenantFlows;
+  const tf = (await getServerMessages(locale)).tenantFlows;
   return {
     title: tf.f00023,
   };

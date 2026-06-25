@@ -2,14 +2,17 @@
 import { getMessages } from "@/i18n/getMessages";
 
 import React, { useState, useEffect, useRef } from "react";
+import { uploadWithOptimalStorage, deleteFromOptimalStorage } from "@/lib/storage-manager";
+import { isElectronClient } from "@/lib/electron-env";
+import { downloadImageToLocal } from "@/lib/electron-desktop-api";
 import { format } from "date-fns";
 import { 
   User, Phone, Mail, Building, MapPin, Calendar, Clock, 
   Package, MessageSquare, FileText, CreditCard, Truck, 
   Printer, Settings, CheckCircle2, Trash2, RefreshCw, 
-  Camera, Send, Image as ImageIcon, MessageCircle, Loader2,
-  AlertCircle,
-  MoreHorizontal
+  Camera, Send, Image as ImageIcon, Loader2,
+  AlertCircle, Check,
+  MoreHorizontal, MessageCircle
 } from "lucide-react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -46,6 +49,7 @@ import { parseDate } from "@/lib/date-utils";
 import { isSettled } from "@/lib/order-utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useOrders } from "@/hooks/use-orders";
+import { useSettings } from "@/hooks/use-settings";
 import { Order } from "@/types/order";
 import { createClient } from "@/utils/supabase/client";
 import { cn } from "@/lib/utils";
@@ -63,8 +67,9 @@ interface OrderDetailDialogProps {
 
 export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage, onPrintRibbon, onUpdate }: OrderDetailDialogProps) {
   const supabase = createClient();
-  const { user, tenantId } = useAuth();
+  const { user, tenantId, profile } = useAuth();
   const { updateOrder } = useOrders();
+  const { settings } = useSettings();
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
   const [isDateEditing, setIsDateEditing] = useState(false);
@@ -72,6 +77,8 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
   const [editPaymentDate, setEditPaymentDate] = useState("");
   const [editPaymentMethod, setEditPaymentMethod] = useState("");
   const [editFirstPaymentMethod, setEditFirstPaymentMethod] = useState("");
+  const [customerEmailInput, setCustomerEmailInput] = useState("");
+  const [isSendingNotification, setIsSendingNotification] = useState(false);
 
   const [uploading, setUploading] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -82,6 +89,7 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
       setEditPaymentDate(order.payment?.completedAt ? format(parseDate(order.payment.completedAt), "yyyy-MM-dd'T'HH:mm") : "");
       setEditPaymentMethod(order.payment?.method || "card");
       setEditFirstPaymentMethod(order.payment?.firstPaymentMethod || "card");
+      setCustomerEmailInput(order.orderer?.email || "");
     }
   }, [order, isOpen]);
 
@@ -115,43 +123,207 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
     }
   };
 
+  const reprintOrderType: "store" | "pickup" | "delivery" =
+    order.receipt_type === 'delivery_reservation' || (order.receipt_type as string) === 'delivery'
+      ? "delivery"
+      : order.receipt_type === 'pickup_reservation'
+        ? "pickup"
+        : "store";
+  const receiptReprintLabel = reprintOrderType === "delivery" ? "인수증만 출력" : "예약증만 출력";
+  const bothReprintLabel = reprintOrderType === "delivery" ? "둘 다 출력 (주문서+인수증)" : "둘 다 출력 (주문서+예약증)";
+
+  const handleDownloadCompletionPhoto = async () => {
+    if (!order.completionPhotoUrl) return;
+    if (!isElectronClient()) {
+      window.open(order.completionPhotoUrl, "_blank");
+      return;
+    }
+    try {
+      const ext = order.completionPhotoUrl.split(".").pop()?.split("?")[0] || "jpg";
+      const filename = `order_${order.id.slice(0, 8)}_${Date.now()}.${ext}`;
+      const result = await downloadImageToLocal(order.completionPhotoUrl, filename);
+      if (result?.success) {
+        toast.success(`사진 저장: ${result.path}`);
+      } else {
+        toast.error(result?.error || "다운로드 실패");
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "다운로드 실패");
+    }
+  };
+
   const handleUploadPhoto = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file || !tenantId) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("이미지 파일만 업로드할 수 있습니다.");
+      return;
+    }
 
     setUploading(true);
     try {
-      const fileName = `${tenantId}/${order.id}_${Date.now()}.jpg`;
-      const { data, error } = await supabase.storage
-        .from('order-photos')
-        .upload(fileName, file, { upsert: true });
+      const storagePath = `${tenantId}/${order.id}_${Date.now()}.jpg`;
+      const uploadResult = await uploadWithOptimalStorage(file, storagePath, {
+        bucket: "order-photos",
+      });
 
-      if (error) throw error;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('order-photos')
-        .getPublicUrl(data.path);
+      if (order.completionPhotoUrl) {
+        try {
+          await deleteFromOptimalStorage(order.completionPhotoUrl);
+        } catch {
+          // ignore stale delete
+        }
+      }
 
       const { error: updateError } = await supabase
-        .from('orders')
-        .update({ completionphotourl: publicUrl })
-        .eq('id', order.id);
+        .from("orders")
+        .update({ completionphotourl: uploadResult.url })
+        .eq("id", order.id);
 
       if (updateError) throw updateError;
-      
-      toast.success(tf.f00580);
+
+      const sizeHint =
+        uploadResult.compressionRatio > 0
+          ? ` (${uploadResult.compressionRatio}% 압축 · Supabase 저장)`
+          : " (Supabase 저장)";
+      toast.success(`${tf.f00580}${sizeHint}`);
       if (onUpdate) onUpdate();
     } catch (err) {
       console.error(err);
       toast.error(tf.f00304);
     } finally {
       setUploading(false);
+      if (photoInputRef.current) photoInputRef.current.value = "";
     }
   };
 
-  const handleSendKakao = async () => {
-    toast.info(tf.f00710);
+  const handleSendNotificationManually = async (type: 'production' | 'delivery') => {
+    if (!order || !tenantId) return;
+
+    const email = customerEmailInput.trim();
+    const contact =
+      order.orderer?.contact ||
+      order.delivery_info?.recipientContact ||
+      '';
+
+    if (!email && !contact) {
+      toast.error('고객 이메일 또는 연락처(휴대폰)가 필요합니다.');
+      return;
+    }
+
+    setIsSendingNotification(true);
+    try {
+      if (email && email !== order.orderer?.email) {
+        const updatedOrderer = { ...order.orderer, email };
+        await supabase.from('orders').update({ orderer: updatedOrderer }).eq('id', order.id);
+        await updateOrder(order.id, { orderer: updatedOrderer });
+
+        const phoneForSearch = order.orderer?.contact || '';
+        if (phoneForSearch) {
+          const cleanPhone = phoneForSearch.replace(/[^0-9]/g, '');
+          const { data: customerData } = await supabase
+            .from('customers')
+            .select('id, contact, email')
+            .eq('tenant_id', tenantId)
+            .or(`contact.ilike.%${cleanPhone}%,contact.eq.${phoneForSearch}`);
+
+          if (customerData?.length) {
+            for (const cust of customerData) {
+              await supabase.from('customers').update({ email }).eq('id', cust.id);
+            }
+          }
+        }
+      }
+
+      const photoUrl =
+        order.completionPhotoUrl ||
+        order.delivery_info?.completionPhotoUrl ||
+        undefined;
+
+      const customerName = order.orderer?.name || '고객';
+      const orderNumber = order.order_number || order.id;
+      const tenantShopName = profile?.tenants?.name as string | undefined;
+      const tenantLogoUrl = profile?.tenants?.logo_url as string | undefined;
+      const emailSettings = {
+        ...settings,
+        autoEmailProductionComplete: true,
+        autoEmailDeliveryComplete: true,
+      };
+
+      let emailSent = false;
+      let kakaoSent = false;
+
+      if (email) {
+        if (type === 'production') {
+          const { sendProductionCompleteEmail } = await import('@/lib/email-service');
+          await sendProductionCompleteEmail(
+            email,
+            customerName,
+            orderNumber,
+            emailSettings,
+            photoUrl,
+            tenantId,
+            true,
+            tenantShopName,
+            tenantLogoUrl,
+          );
+          emailSent = true;
+        } else {
+          const { sendDeliveryCompleteEmail } = await import('@/lib/email-service');
+          await sendDeliveryCompleteEmail(
+            email,
+            customerName,
+            orderNumber,
+            new Date().toLocaleDateString('ko-KR'),
+            emailSettings,
+            photoUrl,
+            tenantId,
+            order.delivery_info?.recipientName || order.pickup_info?.pickerName || customerName,
+            true,
+            tenantShopName,
+            tenantLogoUrl,
+          );
+          emailSent = true;
+        }
+      }
+
+      if (contact) {
+        const { buildKakaoPcNotificationMessage } = await import('@/lib/kakao/build-kakao-pc-message');
+        const { launchKakaotalkMessage } = await import('@/lib/kakaotalk-helper');
+        const message = buildKakaoPcNotificationMessage(type, settings, {
+          customerName,
+          tenantShopName,
+          photoUrl,
+        });
+        const kakaoResult = await launchKakaotalkMessage(contact, message, customerName);
+        if (!kakaoResult.success) {
+          throw new Error('카카오톡 실행에 실패했습니다.');
+        }
+        kakaoSent = true;
+      }
+
+      if (emailSent && kakaoSent) {
+        toast.success('이메일 발송 + 카카오톡 메시지 복사가 완료되었습니다. (Ctrl+V로 붙여넣기)');
+      } else if (emailSent) {
+        toast.success(type === 'production' ? '제작완료 이메일을 발송했습니다.' : '배송완료 이메일을 발송했습니다.');
+      } else if (kakaoSent) {
+        toast.success('카카오톡이 열렸습니다. 메시지를 Ctrl+V로 붙여넣어 보내주세요.');
+      }
+    } catch (e: unknown) {
+      console.error(e);
+      const message = e instanceof Error ? e.message : '알림 발송 중 오류가 발생했습니다.';
+      toast.error(message);
+    } finally {
+      setIsSendingNotification(false);
+    }
   };
+
+  const customerContact =
+    order.orderer?.contact ||
+    order.delivery_info?.recipientContact ||
+    '';
+  const canNotify = !!customerEmailInput.trim() || !!customerContact.replace(/[^0-9]/g, '');
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -163,12 +335,16 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
   };
 
   const getPaymentMethodText = (method: string) => {
-    const maps: any = {
+    const maps: Record<string, string> = {
       card: tf.f00704,
       cash: tf.f00769,
       transfer: tf.f00057,
       mainpay: tf.f00211,
-      kakao: tf.f00712
+      shopping_mall: tf.f00368,
+      epay: tf.f02604,
+      kakao: tf.f02604,
+      apple: tf.f02604,
+      unknown: "모름",
     };
     return maps[method] || method;
   };
@@ -341,11 +517,18 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
                  </div>
                  <div className="grid grid-cols-1 gap-4">
                     <div className="bg-emerald-50/50 rounded-2xl p-4 border border-emerald-100">
-                       <div className="flex items-center justify-between mb-3">
+                       <div className="flex items-center justify-between mb-3 gap-2">
                          <span className="text-xs font-bold text-emerald-800">{tf.f00579}</span>
+                         <div className="flex gap-1">
+                         {order.completionPhotoUrl ? (
+                           <Button variant="ghost" size="sm" className="h-7 text-[10px] font-bold" onClick={() => void handleDownloadCompletionPhoto()}>
+                             PC 저장
+                           </Button>
+                         ) : null}
                          <Button variant="ghost" size="sm" className="h-7 text-[10px] font-bold" onClick={() => photoInputRef.current?.click()}>
                           <Camera className="h-3 w-3 mr-1" /> {order.completionPhotoUrl ? tf.f00278 : tf.f00164}
                          </Button>
+                         </div>
                        </div>
                        {order.completionPhotoUrl ? (
                          <div className="rounded-xl overflow-hidden shadow-sm aspect-video bg-black/5">
@@ -360,17 +543,73 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
                        <input type="file" ref={photoInputRef} className="hidden" accept="image/*" onChange={handleUploadPhoto} />
                     </div>
 
-                    <div className="bg-amber-50/50 rounded-2xl p-4 border border-amber-100 space-y-3">
-                       <div className="flex items-center justify-between">
-                         <span className="text-xs font-semibold text-amber-800">{tf.f00711}</span>
-                         <Badge variant="outline" className="text-[10px] bg-white text-amber-600 border-amber-200">{tf.f00249}</Badge>
+                    <div className="bg-blue-50/50 rounded-2xl p-4 border border-blue-100 space-y-3">
+                       <Label className="text-xs font-bold text-blue-800 flex items-center gap-1.5">
+                         <Mail className="h-3.5 w-3.5" />
+                         알림 발송 (이메일 + 카카오톡 PC)
+                       </Label>
+                       <Input
+                         type="email"
+                         placeholder="고객 이메일 (선택 — 있으면 이메일도 발송)"
+                         value={customerEmailInput}
+                         onChange={(e) => setCustomerEmailInput(e.target.value)}
+                         className="h-9 text-xs bg-white border-blue-200"
+                       />
+                       {customerContact ? (
+                         <p className="text-[10px] text-slate-600 flex items-center gap-1">
+                           <MessageCircle className="h-3 w-3 text-yellow-600" />
+                           카카오톡: {customerContact}
+                           {order.completionPhotoUrl ? ' · 완성사진 링크 포함' : ''}
+                         </p>
+                       ) : (
+                         <p className="text-[10px] text-amber-600">
+                           * 연락처가 없으면 카카오톡 알림은 보낼 수 없습니다.
+                         </p>
+                       )}
+                       <div className="flex gap-2">
+                         <Button
+                           onClick={(e) => {
+                             e.preventDefault();
+                             e.stopPropagation();
+                             handleSendNotificationManually('production');
+                           }}
+                           disabled={isSendingNotification || !canNotify}
+                           className="flex-1 h-9 text-[11px] font-semibold bg-blue-600 hover:bg-blue-700 text-white"
+                         >
+                           {isSendingNotification ? (
+                             <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> 전송 중...</>
+                           ) : (
+                             '제작완료 알림'
+                           )}
+                         </Button>
+                         <Button
+                           onClick={(e) => {
+                             e.preventDefault();
+                             e.stopPropagation();
+                             handleSendNotificationManually('delivery');
+                           }}
+                           disabled={isSendingNotification || !canNotify}
+                           className="flex-1 h-9 text-[11px] font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
+                         >
+                           {isSendingNotification ? (
+                             <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> 전송 중...</>
+                           ) : (
+                             '배송완료 알림'
+                           )}
+                         </Button>
                        </div>
-                       <Button 
-                         className="w-full h-10 bg-[#FEE500] hover:bg-[#FADB00] text-[#191919] font-bold text-xs gap-2 rounded-xl"
-                         onClick={handleSendKakao}
-                       >
-                         <MessageCircle className="h-4 w-4 fill-[#191919]" /> {tf.f00714}
-                       </Button>
+                       {customerEmailInput.trim() && (
+                         <p className="text-[10px] text-emerald-600 flex items-center gap-1 font-medium">
+                           <Check className="h-3 w-3" />
+                           이메일: 완성사진은 본문에 이미지로 표시됩니다.
+                         </p>
+                       )}
+                       {customerContact && (
+                         <p className="text-[10px] text-yellow-700 flex items-center gap-1 font-medium">
+                           <Check className="h-3 w-3" />
+                           카카오톡: 메시지 복사 후 PC 카카오톡에서 Ctrl+V (사진은 URL 링크)
+                         </p>
+                       )}
                     </div>
                  </div>
               </section>
@@ -431,7 +670,7 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
             <DropdownMenuContent align="end" className="w-80 rounded-xl p-2">
               <DropdownMenuItem onClick={() => handleReprint('both')} className="font-semibold text-blue-600 rounded-lg py-3 cursor-pointer">
                 <Printer className="mr-2 h-4 w-4" />
-                <span>{tf.f00723}</span>
+                <span>{bothReprintLabel}</span>
               </DropdownMenuItem>
               <Separator className="my-1" />
               <DropdownMenuItem onClick={() => handleReprint('order_form')} className="rounded-lg py-2 cursor-pointer">
@@ -440,7 +679,7 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleReprint('receipt')} className="rounded-lg py-2 cursor-pointer">
                 <Package className="mr-2 h-4 w-4 text-slate-500" />
-                <span className="text-slate-700 font-medium">{tf.f00725}</span>
+                <span className="text-slate-700 font-medium">{receiptReprintLabel}</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleReprint('receipt_self')} className="rounded-lg py-2 cursor-pointer">
                 <Package className="mr-2 h-4 w-4 text-emerald-600" />

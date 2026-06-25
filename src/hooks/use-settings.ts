@@ -12,6 +12,15 @@ import {
   DEFAULT_EXPENSE_CATEGORIES,
 } from '@/lib/category-defaults';
 import { GWANGHWAMUN_DISTRICT_DELIVERY_FEES } from '@/lib/gwanghwamun-delivery-fees';
+import {
+  DEFAULT_EMAIL_TEMPLATE_DELIVERY_COMPLETE,
+  DEFAULT_EMAIL_TEMPLATE_PRODUCTION_COMPLETE,
+  DEFAULT_EMAIL_TEMPLATE_ANNIVERSARY_D7,
+} from '@/lib/email/default-templates';
+import {
+  DEFAULT_KAKAO_TEMPLATE_DELIVERY_COMPLETE,
+  DEFAULT_KAKAO_TEMPLATE_PRODUCTION_COMPLETE,
+} from '@/lib/kakao/default-pc-templates';
 
 export type { CategoryData } from '@/lib/category-defaults';
 export { DEFAULT_PRODUCT_CATEGORIES, DEFAULT_MATERIAL_CATEGORIES, DEFAULT_EXPENSE_CATEGORIES };
@@ -77,6 +86,23 @@ export interface SystemSettings {
   printDeliveryShop: boolean;
   printDeliveryDriver: boolean;
   installedPrinters: string[];
+  /** 제작완료·배송완료 이메일 자동 발송 (수동 발송은 항상 가능) */
+  autoEmailProductionComplete: boolean;
+  autoEmailDeliveryComplete: boolean;
+  emailTemplateProductionComplete: string;
+  emailTemplateDeliveryComplete: string;
+  autoEmailAnniversaryD7: boolean;
+  emailTemplateAnniversaryD7: string;
+  /** 테넌트별 SMTP (미설정 시 env SMTP_USER/PASS 사용) */
+  smtpEnabled?: boolean;
+  smtpHost?: string;
+  smtpPort?: string;
+  smtpUser?: string;
+  smtpPass?: string;
+  smtpSenderName?: string;
+  /** PC 카카오톡 반자동 알림 텍스트 (클립보드 복사용, {사진링크} = URL) */
+  kakaoTemplateProductionComplete?: string;
+  kakaoTemplateDeliveryComplete?: string;
 }
 
 export const defaultSettings: SystemSettings = {
@@ -106,7 +132,7 @@ export const defaultSettings: SystemSettings = {
   googleSheetName: "",
   googleSheetOrdersId: "",
   googleSheetExpensesId: "",
-  siteName: "Floxync SaaS",
+  siteName: "FloXync",
   siteDescription: "플라워샵 통합 관리 시스템",
   siteWebsite: "",
   storeEmail: "",
@@ -137,6 +163,20 @@ export const defaultSettings: SystemSettings = {
   printDeliveryShop: true,
   printDeliveryDriver: true,
   installedPrinters: [],
+  autoEmailProductionComplete: true,
+  autoEmailDeliveryComplete: true,
+  emailTemplateProductionComplete: DEFAULT_EMAIL_TEMPLATE_PRODUCTION_COMPLETE,
+  emailTemplateDeliveryComplete: DEFAULT_EMAIL_TEMPLATE_DELIVERY_COMPLETE,
+  autoEmailAnniversaryD7: false,
+  emailTemplateAnniversaryD7: DEFAULT_EMAIL_TEMPLATE_ANNIVERSARY_D7,
+  smtpEnabled: false,
+  smtpHost: 'smtp.gmail.com',
+  smtpPort: '587',
+  smtpUser: '',
+  smtpPass: '',
+  smtpSenderName: '',
+  kakaoTemplateProductionComplete: DEFAULT_KAKAO_TEMPLATE_PRODUCTION_COMPLETE,
+  kakaoTemplateDeliveryComplete: DEFAULT_KAKAO_TEMPLATE_DELIVERY_COMPLETE,
 };
 
 function mergeTenantGeneralSettings(raw: unknown): SystemSettings {
@@ -220,7 +260,7 @@ export function useSettings() {
           tenant_id: tid, 
           data: newSettings, 
           updated_at: new Date().toISOString() 
-        });
+        }, { onConflict: 'id' });
 
       if (upsertError) throw upsertError;
       setSettings(newSettings);
@@ -240,7 +280,7 @@ export function useSettings() {
     try {
       const { error } = await supabase
         .from('system_settings')
-        .upsert({ id: 'product_categories', tenant_id: tid, data: newData });
+        .upsert({ id: 'product_categories', tenant_id: tid, data: newData }, { onConflict: 'id' });
 
       if (error) throw error;
       setProductCategories(newData);
@@ -286,7 +326,7 @@ export function useSettings() {
     try {
       const { error } = await supabase
         .from('system_settings')
-        .upsert({ id: 'material_categories', tenant_id: tid, data: newData });
+        .upsert({ id: 'material_categories', tenant_id: tid, data: newData }, { onConflict: 'id' });
 
       if (error) throw error;
       setMaterialCategories(newData);
@@ -332,7 +372,7 @@ export function useSettings() {
     try {
       const { error } = await supabase
         .from('system_settings')
-        .upsert({ id: 'expense_categories', tenant_id: tid, data: newData });
+        .upsert({ id: 'expense_categories', tenant_id: tid, data: newData }, { onConflict: 'id' });
 
       if (error) throw error;
       setExpenseCategories(newData);

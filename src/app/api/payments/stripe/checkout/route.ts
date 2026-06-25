@@ -107,7 +107,7 @@ export async function POST(request: Request) {
             unit_amount: amountCents,
             product_data: {
               name: productName,
-              description: "FloXync SaaS subscription",
+              description: "FloXync subscription",
             },
           },
         },

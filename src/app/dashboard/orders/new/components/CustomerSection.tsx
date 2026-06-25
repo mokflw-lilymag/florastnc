@@ -38,6 +38,8 @@ interface CustomerSectionProps {
     setOrdererContact: (contact: string) => void;
     ordererCompany: string;
     setOrdererCompany: (company: string) => void;
+    ordererEmail: string;
+    setOrdererEmail: (email: string) => void;
     isAnonymous: boolean;
     setIsAnonymous: (isAnonymous: boolean) => void;
     registerCustomer: boolean;
@@ -70,6 +72,8 @@ export function CustomerSection({
     setOrdererContact,
     ordererCompany,
     setOrdererCompany,
+    ordererEmail,
+    setOrdererEmail,
     isAnonymous,
     setIsAnonymous,
     registerCustomer,
@@ -166,14 +170,35 @@ export function CustomerSection({
                 </div>
 
                 <div className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="ordererCompany">{tf.f00779}</Label>
-                        <Input
-                            id="ordererCompany"
-                            value={ordererCompany}
-                            onChange={(e) => setOrdererCompany(e.target.value)}
-                            placeholder={tf.f00780}
-                        />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="ordererCompany">{tf.f00779}</Label>
+                            <Input
+                                id="ordererCompany"
+                                value={ordererCompany}
+                                onChange={(e) => setOrdererCompany(e.target.value)}
+                                placeholder={tf.f00780}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="ordererEmail">
+                                {pickUiText(baseLocale, "이메일 (선택)", "Email (optional)")}
+                            </Label>
+                            <Input
+                                id="ordererEmail"
+                                type="email"
+                                value={ordererEmail}
+                                onChange={(e) => setOrdererEmail(e.target.value)}
+                                placeholder="example@email.com"
+                            />
+                            <p className="text-[10px] text-muted-foreground leading-snug">
+                                {pickUiText(
+                                    baseLocale,
+                                    "제작·배송 완료 시 연락은 이메일로 전달됩니다.",
+                                    "Completion updates will be sent by email.",
+                                )}
+                            </p>
+                        </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">

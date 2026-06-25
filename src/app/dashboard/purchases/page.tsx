@@ -1,5 +1,8 @@
 "use client";
 import { getMessages } from "@/i18n/getMessages";
+import { createClient } from "@/utils/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
+
 
 import React, { useState, useMemo, useCallback, useDeferredValue, useEffect, memo, Fragment } from "react";
 import {
@@ -39,7 +42,8 @@ import {
   Circle,
   Zap,
   Undo2,
-  RotateCcw
+  RotateCcw,
+  Printer
 } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -55,13 +59,18 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { usePurchases, Purchase } from "@/hooks/use-purchases";
+import { usePurchaseStore } from "@/stores/purchase-store";
+
 import { useSuppliers } from "@/hooks/use-suppliers";
 import { useMaterials, type Material } from "@/hooks/use-materials";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSettings, DEFAULT_MATERIAL_CATEGORIES } from "@/hooks/use-settings";
 import { toast } from 'sonner';
+import { enqueueMarketListPrintJob } from "@/lib/print-service";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { useExpenseStorage } from "@/hooks/use-expenses";
+
 import { toBaseLocale } from "@/i18n/config";
 import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
 import { sortMaterialMainCategoriesForDisplay } from "@/lib/category-defaults";
@@ -700,10 +709,13 @@ const PurchaseManualDialog = ({
 );
 
 export default function PurchasesPage() {
+  const { tenantId } = useAuth();
   const { purchases, loading: purchasesLoading, addPurchases, updatePurchase, deletePurchase, completePurchase, completeBatch, cancelPurchaseConfirmation, cancelBatchConfirmation } = usePurchases();
   const { suppliers, loading: suppliersLoading, addSupplier } = useSuppliers();
   const { materials, loading: materialsLoading, addMaterial, updateMaterial } = useMaterials();
   const { materialCategories: settingsCategories, loading: settingsLoading } = useSettings();
+  const { uploadReceipt } = useExpenseStorage();
+
 
   const categories = useMemo(() => {
     if (settingsCategories) return settingsCategories;
@@ -748,6 +760,7 @@ export default function PurchasesPage() {
   const [filterEndDate, setFilterEndDate] = useState("");
   const [filterMaterialId, setFilterMaterialId] = useState("all");
   const [filterSupplierId, setFilterSupplierId] = useState("all");
+  const [filterReceiptStatus, setFilterReceiptStatus] = useState<"all" | "missing" | "exist">("all");
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
   const deferredSearchTerm = useDeferredValue(searchTerm);
 
@@ -852,6 +865,44 @@ export default function PurchasesPage() {
       `${tf.f02330}_${batchName}_${format(new Date(), "MMdd")}.xlsx`
     );
     toast.success(tf.f01554);
+  };
+
+  const handlePrintBatchList = async (batchId: string, batchName: string) => {
+    const supabase = createClient();
+    const batchItems = purchases.filter(p =>
+      p.batch_id === batchId || (!p.batch_id && `legacy-${p.scheduled_date}` === batchId)
+    );
+
+    if (batchItems.length === 0) {
+      toast.error(tf.f01061 || "출력할 품목이 없습니다.");
+      return;
+    }
+
+    try {
+      const itemsPayload = batchItems.map(p => ({
+        name: p.name,
+        quantity: p.quantity,
+        price: p.quantity > 0 ? Math.round(p.total_price / p.quantity) : 0,
+        supplier: supplierMap.get(p.supplier_id || "")?.name || ""
+      }));
+
+      const success = await enqueueMarketListPrintJob(
+        supabase,
+        tenantId || "default_tenant",
+        batchId,
+        batchName,
+        itemsPayload
+      );
+
+      if (success) {
+        toast.success(locale === 'ko' ? "장보기 리스트 출력을 브릿지로 보냈습니다." : "Sent print request via bridge.");
+      } else {
+        toast.error(locale === 'ko' ? "인쇄 요청 실패" : "Print request failed");
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "오류가 발생했습니다.");
+    }
   };
 
   const handleDeleteBatch = async (batchId: string, batchName: string) => {
@@ -998,6 +1049,13 @@ export default function PurchasesPage() {
       if (filterMaterialId !== "all" && p.material_id !== filterMaterialId) return false;
       if (filterSupplierId !== "all" && p.supplier_id !== filterSupplierId) return false;
 
+      // Receipt filter
+      if (filterReceiptStatus === "missing") {
+        if (p.status !== "completed" || p.expense?.receipt_url) return false;
+      } else if (filterReceiptStatus === "exist") {
+        if (p.status !== "completed" || !p.expense?.receipt_url) return false;
+      }
+
       if (term) {
         const mat = p.material_id ? materialMap.get(p.material_id) : null;
         const sup = p.supplier_id ? supplierMap.get(p.supplier_id) : null;
@@ -1007,7 +1065,8 @@ export default function PurchasesPage() {
       }
       return true;
     });
-  }, [purchases, deferredSearchTerm, filterStartDate, filterEndDate, filterMaterialId, filterSupplierId, materialMap, supplierMap]);
+  }, [purchases, deferredSearchTerm, filterStartDate, filterEndDate, filterMaterialId, filterSupplierId, filterReceiptStatus, materialMap, supplierMap]);
+
 
   const handleExportFilteredExcel = async () => {
     if (filteredPurchases.length === 0) {
@@ -1200,6 +1259,66 @@ export default function PurchasesPage() {
     }
   }, [isDialogOpen, editingPurchase]);
 
+  const handleDownloadFriendlyReceipt = async (url: string, date: string, name: string) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const cleanDate = date ? date.split(' ')[0] : format(new Date(), "yyyy-MM-dd");
+      const ext = url.split('.').pop()?.split('?')[0] || 'jpg';
+      const cleanName = name.trim().replace(/[\s\/:*?\"<>|]+/g, '_');
+      const filename = `[${cleanDate}]_${cleanName}_영수증.${ext}`;
+      const blobUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = blobUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      console.error("Failed to download receipt friendly:", err);
+      window.open(url, '_blank');
+    }
+  };
+
+  const handleDirectReceiptUpload = async (purchase: Purchase, file: File) => {
+    if (!purchase.expense_id) {
+      toast.error(locale === 'ko' ? '완료되지 않은 매입 건이거나 연결된 지출 내역이 없습니다.' : 'Not completed or no linked expense.');
+      return;
+    }
+    const supabase = createClient();
+    const toastId = toast.loading(locale === 'ko' ? '영수증 업로드 중...' : 'Uploading receipt...');
+    try {
+      const result = await uploadReceipt(file);
+      if (!result) throw new Error("Upload failed");
+
+      const { error: updateError } = await supabase
+        .from('expenses')
+        .update({
+          receipt_url: result.url,
+          receipt_file_id: result.id,
+          storage_provider: 'supabase'
+        })
+        .eq('id', purchase.expense_id);
+
+      if (updateError) throw updateError;
+
+      // Update store state
+      usePurchaseStore.getState().updatePurchase(purchase.id, {
+        expense: {
+          receipt_url: result.url,
+          receipt_file_id: result.id
+        }
+      });
+
+      toast.success(locale === 'ko' ? '영수증이 업로드되었습니다.' : 'Receipt uploaded successfully.', { id: toastId });
+    } catch (err) {
+      console.error("Direct receipt upload failed:", err);
+      toast.error(locale === 'ko' ? '영수증 업로드에 실패했습니다.' : 'Failed to upload receipt.', { id: toastId });
+    }
+  };
+
   if (loading) {
     return <div className="p-8 flex justify-center items-center font-bold text-slate-400">{tf.f00157}</div>;
   }
@@ -1375,6 +1494,7 @@ export default function PurchasesPage() {
                             {batch.status !== 'completed' && (
                               <Button variant="ghost" size="icon" className="h-7 w-7 text-emerald-500 hover:bg-emerald-50 hover:scale-110 active:scale-95 transition-all" onClick={(e) => { e.stopPropagation(); openBatchEdit(batch.id, 'confirm'); }} title={tf.f02024}><CheckCircle2 className="w-4 h-4" /></Button>
                             )}
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-indigo-500 hover:bg-indigo-50 hover:scale-110 active:scale-95 transition-all" onClick={(e) => { e.stopPropagation(); handlePrintBatchList(batch.id, batch.name); }} title={locale === 'ko' ? "장보기 리스트 인쇄" : "Print Market List"}><Printer className="w-4 h-4" /></Button>
                             <Button variant="ghost" size="icon" className="h-7 w-7 text-indigo-500 hover:bg-indigo-50 hover:scale-110 active:scale-95 transition-all" onClick={(e) => { e.stopPropagation(); handleDownloadBatchExcel(batch.id, batch.name); }} title={tf.f01551}><FileDown className="w-4 h-4" /></Button>
                             <Button variant="ghost" size="icon" className="h-7 w-7 text-indigo-500 hover:bg-slate-100 hover:scale-110 active:scale-95 transition-all" onClick={(e) => { e.stopPropagation(); openBatchEdit(batch.id, 'edit'); }} title={tf.f00566}><Edit2 className="w-4 h-4" /></Button>
                             <Button variant="ghost" size="icon" className="h-7 w-7 text-red-400 hover:bg-red-50 hover:text-red-600 hover:scale-110 active:scale-95 transition-all" onClick={(e) => { e.stopPropagation(); handleDeleteBatch(batch.id, batch.name); }} title={tf.f01240}><Trash2 className="w-4 h-4" /></Button>
@@ -1491,6 +1611,19 @@ export default function PurchasesPage() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="flex items-center gap-2">
+              <Label className="text-[10px] font-black text-slate-400 uppercase">{locale === 'ko' ? '영수증 여부' : 'Receipt Status'}</Label>
+              <Select value={filterReceiptStatus} onValueChange={(val: any) => setFilterReceiptStatus(val || "all")}>
+                <SelectTrigger className="h-9 text-xs w-36">
+                  <SelectValue placeholder={locale === 'ko' ? '전체' : 'All'} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{locale === 'ko' ? '전체' : 'All'}</SelectItem>
+                  <SelectItem value="exist">{locale === 'ko' ? '영수증 있음' : 'With Receipt'}</SelectItem>
+                  <SelectItem value="missing">{locale === 'ko' ? '영수증 누락' : 'Missing Receipt'}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="ml-auto flex items-center gap-2">
               <Button
                 variant="outline"
@@ -1501,8 +1634,10 @@ export default function PurchasesPage() {
                   setFilterEndDate("");
                   setFilterMaterialId("all");
                   setFilterSupplierId("all");
+                  setFilterReceiptStatus("all");
                   setSearchTerm("");
                 }}
+
               >
                 {tf.f02324}
               </Button>
@@ -1526,12 +1661,14 @@ export default function PurchasesPage() {
                   <TableHead className="w-20 text-right text-[11px] font-bold">{tf.f00377}</TableHead>
                   <TableHead className="w-32 text-right text-[11px] font-bold">{tf.f02003}</TableHead>
                   <TableHead className="w-20 text-center text-[11px] font-bold">{tf.f00319}</TableHead>
+                  <TableHead className="w-32 text-center text-[11px] font-bold">{locale === 'ko' ? '영수증' : 'Receipt'}</TableHead>
                   <TableHead className="w-20 text-right text-[11px] font-bold pr-6">{tf.f00087}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredPurchases.length === 0 ? (
-                  <TableRow><TableCell colSpan={7} className="h-64 text-center text-slate-400">{tf.f00133}</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={8} className="h-64 text-center text-slate-400">{tf.f00133}</TableCell></TableRow>
+
                 ) : filteredPurchases.map(p => (
                   <TableRow key={p.id} className="group hover:bg-indigo-50/20 transition-colors border-b border-slate-50 last:border-0 h-16">
                     <TableCell className="text-[10px] text-slate-400 font-medium py-3">
@@ -1631,6 +1768,61 @@ export default function PurchasesPage() {
                         {p.status === "completed" ? tf.f00471 : tf.f01596}
                       </Badge>
                     </TableCell>
+                    <TableCell className="text-center">
+                      {p.status === 'completed' ? (
+                        p.expense?.receipt_url ? (
+                          <div className="flex items-center justify-center gap-1.5">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 px-2 text-[10px] border-slate-200 text-indigo-600 hover:bg-indigo-50 font-bold"
+                              onClick={() => handleDownloadFriendlyReceipt(
+                                p.expense!.receipt_url!,
+                                p.purchase_date ? format(new Date(p.purchase_date), "yyyy-MM-dd") : p.scheduled_date || '',
+                                p.name || (p.material_id ? materialMap.get(p.material_id)?.name : '') || '매입자재'
+                              )}
+                            >
+                              📥 {locale === 'ko' ? '다운로드' : 'Download'}
+                            </Button>
+                            <label className="cursor-pointer text-[10px] text-slate-400 hover:text-indigo-600 underline font-medium">
+                              {locale === 'ko' ? '변경' : 'Replace'}
+                              <input
+                                type="file"
+                                accept="image/*,application/pdf"
+                                className="hidden"
+                                onChange={async (e) => {
+                                  const file = e.target.files?.[0];
+                                  if (!file) return;
+                                  await handleDirectReceiptUpload(p, file);
+                                }}
+                              />
+                            </label>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center gap-1 justify-center">
+                            <Badge variant="outline" className="bg-rose-50 text-rose-600 border-rose-200 text-[10px] h-5 font-bold">
+                              {locale === 'ko' ? '영수증 누락' : 'No Receipt'}
+                            </Badge>
+                            <label className="cursor-pointer text-[10px] text-indigo-600 hover:text-indigo-800 underline font-bold">
+                              {locale === 'ko' ? '영수증 업로드' : 'Upload'}
+                              <input
+                                type="file"
+                                accept="image/*,application/pdf"
+                                className="hidden"
+                                onChange={async (e) => {
+                                  const file = e.target.files?.[0];
+                                  if (!file) return;
+                                  await handleDirectReceiptUpload(p, file);
+                                }}
+                              />
+                            </label>
+                          </div>
+                        )
+                      ) : (
+                        <span className="text-[10px] text-slate-300">—</span>
+                      )}
+                    </TableCell>
+
                     <TableCell className="text-right pr-6">
                       <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 bg-red-50 hover:bg-red-100" onClick={async () => {

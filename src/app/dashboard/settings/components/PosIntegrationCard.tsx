@@ -10,6 +10,11 @@ import { cn } from "@/lib/utils";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
 import { pickUiText } from "@/i18n/pick-ui-text";
+import { usePosConnection } from "@/hooks/use-pos-connection";
+import {
+  getPosConnectionLabel,
+  resolvePosConnectionStatus,
+} from "@/lib/pos/pos-connection-status";
 
 interface PosIntegrationCardProps {
   posIntegration?: any;
@@ -20,6 +25,8 @@ export function PosIntegrationCard({ posIntegration, isLoading }: PosIntegration
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
   const baseLocale = toBaseLocale(locale);
+  const { status: liveStatus, bridgeOnline, loading: connectionLoading } = usePosConnection(0);
+
   const tr = (
     ko: string,
     en: string,
@@ -32,8 +39,36 @@ export function PosIntegrationCard({ posIntegration, isLoading }: PosIntegration
     de?: string,
     ru?: string,
   ) => pickUiText(baseLocale, ko, en, vi, ja, zh, es, pt, fr, de, ru);
-  const isEasyCheckActive = posIntegration?.pos_type === 'easycheck' && posIntegration?.is_active;
-  const isTossActive = posIntegration?.pos_type === 'toss' && posIntegration?.is_active;
+
+  const status = posIntegration
+    ? resolvePosConnectionStatus(posIntegration, { bridgeOnline })
+    : liveStatus;
+
+  const isEasyCheck = posIntegration?.pos_type === "easycheck";
+  const isToss = posIntegration?.pos_type === "toss";
+  const showLoading = isLoading || connectionLoading;
+
+  const connectionBadge = () => {
+    if (status.connectionState === "connected") {
+      return (
+        <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
+          {getPosConnectionLabel("connected")}
+        </Badge>
+      );
+    }
+    if (status.connectionState === "pending") {
+      return (
+        <Badge variant="outline" className="bg-amber-50 text-amber-800 border-amber-200">
+          {getPosConnectionLabel("pending")}
+        </Badge>
+      );
+    }
+    return (
+      <Badge variant="outline" className="text-slate-400">
+        {tf.f01220}
+      </Badge>
+    );
+  };
 
   return (
     <div className="space-y-4">
@@ -43,6 +78,25 @@ export function PosIntegrationCard({ posIntegration, isLoading }: PosIntegration
             <CreditCard className="h-4 w-4 text-orange-600" /> {tf.f01611}
           </Label>
           <p className="text-xs text-slate-500">{tf.f02106}</p>
+          {status.reason && status.connectionState === "pending" && (
+            <p className="text-[11px] text-amber-700 leading-snug">{status.reason}</p>
+          )}
+          {status.isConnected && (
+            <p className="text-[11px] text-emerald-700">
+              {tr(
+                "카드 결제·현금영수증 등 단말 연동 기능을 사용할 수 있습니다.",
+                "Terminal features (card payment, cash receipts) are available.",
+              )}
+            </p>
+          )}
+          {status.isEnabled && !status.isConnected && (
+            <p className="text-[11px] text-slate-500">
+              {tr(
+                "활성화만 된 상태입니다. 카드 단말 승인·현금영수증 발행은 연동 완료 후 사용됩니다.",
+                "Enabled in settings only — card terminal and cash receipts work after full connection.",
+              )}
+            </p>
+          )}
         </div>
         <Link href="/dashboard/settings/pos">
           <Button size="sm" variant="outline" className="gap-2 rounded-xl border-orange-200 text-orange-600 hover:bg-orange-50">
@@ -52,7 +106,7 @@ export function PosIntegrationCard({ posIntegration, isLoading }: PosIntegration
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {isLoading ? (
+        {showLoading ? (
           <div className="col-span-2 h-24 border border-dashed rounded-2xl flex items-center justify-center bg-slate-50/50">
             <Loader2 className="h-5 w-5 animate-spin text-slate-400 mr-2" />
             <span className="text-xs text-slate-400">{tf.f00157}</span>
@@ -61,66 +115,60 @@ export function PosIntegrationCard({ posIntegration, isLoading }: PosIntegration
           <>
             <div className={cn(
               "p-4 rounded-2xl border flex items-center justify-between transition-all",
-              isEasyCheckActive ? "bg-orange-50/30 border-orange-200" : "bg-slate-50/30 border-slate-200 opacity-60"
+              isEasyCheck && status.isConnected ? "bg-orange-50/30 border-orange-200" : "bg-slate-50/30 border-slate-200 opacity-80"
             )}>
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-white rounded-lg shadow-sm">
-                  <CheckCircle2 className={cn("h-4 w-4", isEasyCheckActive ? "text-emerald-500" : "text-slate-300")} />
+                  {isEasyCheck && status.isConnected ? (
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                  ) : (
+                    <AlertCircle className="h-4 w-4 text-slate-300" />
+                  )}
                 </div>
                 <div>
                   <p className="text-xs font-bold">
-                    {tr(
-                      "이지체크 (EasyCheck)",
-                      "EasyCheck",
-                      "EasyCheck",
-                      "EasyCheck",
-                      "EasyCheck",
-                      "EasyCheck",
-                      "EasyCheck",
-                      "EasyCheck",
-                      "EasyCheck",
-                      "EasyCheck",
-                    )}
+                    {tr("이지체크 (EasyCheck)", "EasyCheck")}
                   </p>
-                  <p className="text-[10px] text-slate-400">{isEasyCheckActive ? tf.f01651 : tf.f01571}</p>
+                  <p className="text-[10px] text-slate-400">
+                    {isEasyCheck
+                      ? status.isConnected
+                        ? tf.f01651
+                        : tr("설정됨 · Webhook 미수신", "Configured · no webhook yet")
+                      : tf.f01571}
+                  </p>
                 </div>
               </div>
-              {isEasyCheckActive ? (
-                <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">{tf.f01565}</Badge>
-              ) : (
+              {isEasyCheck ? connectionBadge() : (
                 <Badge variant="outline" className="text-slate-400">{tf.f01220}</Badge>
               )}
             </div>
             
             <div className={cn(
               "p-4 rounded-2xl border flex items-center justify-between transition-all",
-              isTossActive ? "bg-blue-50/30 border-blue-200" : "bg-slate-50/30 border-slate-200 opacity-60"
+              isToss && status.isConnected ? "bg-blue-50/30 border-blue-200" : "bg-slate-50/30 border-slate-200 opacity-80"
             )}>
                <div className="flex items-center gap-3">
                  <div className="p-2 bg-white rounded-lg shadow-sm">
-                   <CheckCircle2 className={cn("h-4 w-4", isTossActive ? "text-emerald-500" : "text-slate-300")} />
+                   {isToss && status.isConnected ? (
+                     <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                   ) : (
+                     <AlertCircle className="h-4 w-4 text-slate-300" />
+                   )}
                  </div>
                  <div>
                    <p className="text-xs font-bold">
-                     {tr(
-                       "토스 POS (Toss)",
-                       "Toss POS",
-                       "Toss POS",
-                       "Toss POS",
-                       "Toss POS",
-                       "Toss POS",
-                       "Toss POS",
-                       "Toss POS",
-                       "Toss POS",
-                       "Toss POS",
-                     )}
+                     {tr("토스 POS (Toss)", "Toss POS")}
                    </p>
-                   <p className="text-[10px] text-slate-400">{isTossActive ? tf.f01574 : tf.f01571}</p>
+                   <p className="text-[10px] text-slate-400">
+                     {isToss
+                       ? status.isConnected
+                         ? tf.f01574
+                         : tr("설정됨 · Webhook 미수신", "Configured · no webhook yet")
+                       : tf.f01571}
+                   </p>
                  </div>
                </div>
-               {isTossActive ? (
-                 <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">{tf.f01565}</Badge>
-               ) : (
+               {isToss ? connectionBadge() : (
                  <Badge variant="outline" className="text-slate-400">{tf.f01220}</Badge>
                )}
             </div>

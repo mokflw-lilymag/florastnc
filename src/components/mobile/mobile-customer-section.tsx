@@ -28,6 +28,8 @@ type MobileCustomerSectionProps = {
   setOrdererContact: (v: string) => void;
   ordererCompany: string;
   setOrdererCompany: (v: string) => void;
+  ordererEmail: string;
+  setOrdererEmail: (v: string) => void;
   registerCustomer: boolean;
   setRegisterCustomer: (v: boolean) => void;
   registerAnniversaryFromOrder: boolean;
@@ -53,6 +55,8 @@ export function MobileCustomerSection({
   setOrdererContact,
   ordererCompany,
   setOrdererCompany,
+  ordererEmail,
+  setOrdererEmail,
   registerCustomer,
   setRegisterCustomer,
   registerAnniversaryFromOrder,
@@ -137,15 +141,30 @@ export function MobileCustomerSection({
         </p>
       )}
 
-      <div className="space-y-2">
-        <Label className="text-xs text-gray-500">회사명 (선택)</Label>
-        <Input
-          value={ordererCompany}
-          onChange={(e) => setOrdererCompany(e.target.value)}
-          className="h-10"
-          placeholder="회사명"
-        />
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label className="text-xs text-gray-500">회사명 (선택)</Label>
+          <Input
+            value={ordererCompany}
+            onChange={(e) => setOrdererCompany(e.target.value)}
+            className="h-10"
+            placeholder="회사명"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label className="text-xs text-gray-500">이메일 (선택)</Label>
+          <Input
+            type="email"
+            value={ordererEmail}
+            onChange={(e) => setOrdererEmail(e.target.value)}
+            className="h-10"
+            placeholder="example@email.com"
+          />
+        </div>
       </div>
+      <p className="text-[10px] text-muted-foreground leading-snug -mt-1">
+        제작·배송 완료 시 연락은 이메일로 전달됩니다.
+      </p>
       <div className="grid grid-cols-2 gap-2">
         <div>
           <Label className="text-xs text-gray-500">이름</Label>

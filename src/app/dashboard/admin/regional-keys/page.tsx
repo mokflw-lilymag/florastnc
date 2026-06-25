@@ -504,8 +504,8 @@ export default function RegionalKeysPage() {
               </p>
               <ul className="list-disc pl-5 space-y-1.5 text-xs text-slate-600">
                 <li>
-                  <strong className="text-slate-800">관리자(플랫폼)</strong>: Meta 앱 ID/시크릿, Google 클라이언트, TikTok, Naver 개발자 앱, n8n 웹훅 URL →{" "}
-                  <strong>마케팅 연동 설정</strong> 화면에서 입력하세요.
+                  <strong className="text-slate-800">관리자(플랫폼)</strong>: Meta·Google·TikTok·Naver 등 SNS OAuth는{" "}
+                  <strong>별도 홍보 앱</strong>에서 연동합니다. FloXync ERP에서는 제거되었습니다.
                 </li>
                 <li>
                   <strong className="text-slate-800">국가별 SNS·배달·몰 API</strong>(LINE JP, Zalo, Grab, Shopee 국가별 파트너 키 등): 오른쪽{" "}
@@ -516,25 +516,6 @@ export default function RegionalKeysPage() {
                   <strong>설정 → 연동</strong>에서 <code className="rounded bg-white px-0.5 text-[11px]">shop_integrations</code> 테이블에 저장됩니다. 플랫폼 마스터 키와 역할이 다릅니다.
                 </li>
               </ul>
-              <div className="flex flex-wrap gap-2 pt-1">
-                <Link
-                  href="/dashboard/admin/marketing"
-                  className={cn(
-                    buttonVariants({ variant: "default" }),
-                    "inline-flex gap-1.5 bg-indigo-600 text-white hover:bg-indigo-700",
-                  )}
-                >
-                  <ExternalLink className="h-3.5 w-3.5" />
-                  마케팅 연동 설정 (Meta·Google…)
-                </Link>
-                <Link
-                  href="/dashboard/marketing/admin"
-                  className={cn(buttonVariants({ variant: "outline" }), "inline-flex gap-1.5")}
-                >
-                  <ExternalLink className="h-3.5 w-3.5" />
-                  프로모션 마스터 (동일 DB, 다른 UI)
-                </Link>
-              </div>
               <p className="text-[11px] text-slate-500 border-t border-indigo-100/80 pt-3">
                 국가 탭이 6개국만 있는 이유: 화면 필드가 <code className="text-[10px]">regional-keys/page.tsx</code>의{" "}
                 <code className="text-[10px]">COUNTRY_KEY_CONFIGS</code>에 정의된 국가만 노출됩니다. 다른 나라는 개발에서 배열·

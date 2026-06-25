@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <title>인수증</title>
   <style>
-    @page { margin: 0; }
+    @page { margin: 2mm; }
+    * { box-sizing: border-box; }
     /* 주문서(receipt-delivery-shop)와 동일한 가로 작업영역 */
     body {
       font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
@@ -44,14 +45,16 @@
       font-weight: bold;
       margin: 10px 0 4px 0;
       letter-spacing: 0;
-      word-break: keep-all;
+      word-break: break-all;
+      overflow-wrap: break-word;
       line-height: 1.2;
     }
     .recipient-contact {
       text-align: center;
       font-size: 16px;
       margin-bottom: 6px;
-      word-break: keep-all;
+      word-break: break-all;
+      overflow-wrap: break-word;
     }
     .row {
       display: flex;
@@ -65,7 +68,10 @@
       text-align: right;
       max-width: 60%;
       min-width: 0;
-      word-break: keep-all;
+      word-break: break-all;
+      overflow-wrap: break-word;
+      word-wrap: break-word;
+      white-space: normal;
     }
     .items-list {
       margin: 4px 0;
@@ -76,7 +82,8 @@
       padding: 5px 0;
       border-bottom: 1px dotted #000;
       font-size: 13px;
-      word-break: keep-all;
+      word-break: break-all;
+      overflow-wrap: break-word;
     }
     .items-list li:last-child {
       border-bottom: none;
@@ -102,13 +109,14 @@
       margin-top: 15px;
       padding-top: 10px;
       border-top: 1px dashed #000;
-      word-break: keep-all;
+      word-break: break-all;
+      overflow-wrap: break-word;
     }
   </style>
 </head>
 <body>
   <div class="logo">
-    <img src="https://ecimg.cafe24img.com/pg1472b45444056090/lilymagflower/web/upload/category/logo/v2_d13ecd48bab61a0269fab4ecbe56ce07_lZMUZ1lORo_top.jpg" alt="LilyMag Flower">
+    {{logo_html}}
   </div>
   {{title_html}}
   <div style="text-align:center; font-size:11px; color:#000; margin-top:2px; margin-bottom:6px;">출력일시: {{print_datetime}}</div>
@@ -129,7 +137,7 @@
   </div>
   <div class="row" style="font-size: 15px; margin: 8px 0; align-items: flex-start;">
     <span class="label" style="min-width: 45px;">배송지</span>
-    <span class="value" style="line-height: 1.4;">{{delivery_address}}</span>
+    <span class="value" style="line-height: 1.4; word-break: break-all; overflow-wrap: break-word; word-wrap: break-word; white-space: normal; max-width: 100%;">{{delivery_address}}</span>
   </div>
 
   <div class="divider"></div>

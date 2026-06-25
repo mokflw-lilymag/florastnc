@@ -29,6 +29,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { SystemSettings } from "@/hooks/use-settings";
 import { PosIntegrationCard } from "./PosIntegrationCard";
+import { usePosConnection } from "@/hooks/use-pos-connection";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 
 interface AutomationSettingsProps {
@@ -48,11 +49,12 @@ export function AutomationSettings({
 }: AutomationSettingsProps) {
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
+  const { isPosConnected } = usePosConnection(0);
   // 헬퍼 함수: 연동 상태 확인용
   const getStatus = (service: string) => {
     switch (service) {
       case 'pos':
-        return posIntegration && posIntegration.is_active;
+        return isPosConnected;
       case 'kakao':
         return settings.useKakaoTalk && !!settings.kakaoApiKey;
       case 'storage':

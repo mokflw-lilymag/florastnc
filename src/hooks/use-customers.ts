@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useAuth } from './use-auth';
 import { Customer, CustomerData } from '@/types/customer';
+import { isElectronClient } from '@/lib/electron-env';
+import { onElectronSyncStatus } from '@/lib/electron-sync-listener';
 
 export function useCustomers(initialFetch = true) {
   const supabase = useMemo(() => createClient(), []);
@@ -115,6 +117,10 @@ export function useCustomers(initialFetch = true) {
       fetchCustomers();
     }
 
+    if (isElectronClient()) {
+      return;
+    }
+
     const channel = supabase
       .channel(`customers-tenant-${tenantId}-${Date.now()}-${Math.floor(Math.random() * 1000)}`)
       .on(
@@ -145,6 +151,16 @@ export function useCustomers(initialFetch = true) {
       supabase.removeChannel(channel);
     };
   }, [tenantId, authLoading, initialFetch, fetchCustomers, supabase]);
+
+  useEffect(() => {
+    if (!isElectronClient() || !tenantId) return;
+    let lastAt: string | null = null;
+    return onElectronSyncStatus((status) => {
+      if (!status.lastSyncAt || status.lastSyncAt === lastAt) return;
+      lastAt = status.lastSyncAt;
+      fetchCustomers();
+    });
+  }, [tenantId, fetchCustomers]);
 
   return {
     customers,

@@ -5,14 +5,16 @@
   <title>주문서</title>
   <style>
     @page { margin: 0; }
-    body { font-weight: 800; -webkit-font-smoothing: none; 
-      font-family: 'Malgun Gothic', sans-serif;
+    body {
+      font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+      font-weight: 800;
+      -webkit-font-smoothing: none;
       margin: 0;
       padding: 8px 16px 8px 8px;
       width: 72mm;
-      box-sizing: border-box;
       color: #000;
       background: #fff;
+      box-sizing: border-box;
       font-size: 12px;
     }
     .title {
@@ -32,20 +34,20 @@
       margin: 4px 0;
       font-size: 12px;
     }
-    .label { color: #000; }
-    .value { font-weight: bold; text-align: right; max-width: 60%; }
-    .recipient-block {
-      margin: 6px 0;
-    }
-    .recipient-name {
-      font-size: 20px;
+    .label { color: #000; flex-shrink: 0; }
+    .value {
       font-weight: bold;
+      text-align: right;
+      max-width: 60%;
+      min-width: 0;
+      word-break: keep-all;
     }
     table {
       width: 100%;
       border-collapse: collapse;
       font-size: 12px;
       margin: 4px 0;
+      table-layout: fixed;
     }
     th {
       border-bottom: 1px solid #000;
@@ -56,6 +58,7 @@
     td {
       padding: 4px 2px;
       border-bottom: 1px dotted #000;
+      word-break: keep-all;
     }
     td.right { text-align: right; }
     .summary {
@@ -71,18 +74,13 @@
       font-size: 12px;
       margin: 6px 0;
       padding: 4px 0;
-    }
-    .footer {
-      text-align: center;
-      font-size: 11px;
-      color: #000;
-      margin-top: 6px;
+      word-break: keep-all;
     }
   </style>
 </head>
 <body>
-  <div style="position: relative; margin: 6px 0 8px 0;">
-    <div style="position: absolute; left: 0; top: 50%; transform: translateY(-50%); display: flex; align-items: center; font-size: 11px; font-weight: normal;">
+  <div style="display: flex; align-items: center; justify-content: center; margin: 6px 0 8px 0; flex-wrap: wrap; gap: 4px;">
+    <div style="display: flex; align-items: center; font-size: 11px; font-weight: normal;">
       <input type="checkbox" style="margin:0 3px 0 0; width: 13px; height: 13px;"> 제작완료
     </div>
     <div class="title" style="margin: 0;">주문서 <span style="font-size:12px; color:#000; font-weight:bold;">(#{{short_order_id}})</span></div>
@@ -94,17 +92,17 @@
     <span class="label">주문자</span>
     <span class="value">{{orderer_name}} {{orderer_contact}}</span>
   </div>
-  <div class="row" style="font-size: 15px; margin: 8px 0; align-items: center;">
+  <div class="row" style="font-size: 15px; margin: 8px 0; align-items: flex-start;">
     <span class="label">수령인</span>
     <span class="value">{{recipient_name}} {{recipient_contact}}</span>
   </div>
-  <div class="row" style="font-size: 15px; margin: 8px 0; align-items: center;">
+  <div class="row" style="font-size: 15px; margin: 8px 0; align-items: flex-start;">
     <span class="label">배송일시</span>
     <span class="value">{{delivery_datetime}}</span>
   </div>
   <div class="row" style="font-size: 15px; margin: 8px 0; align-items: flex-start;">
     <span class="label" style="min-width: 45px;">배송지</span>
-    <span class="value" style="word-break: keep-all; line-height: 1.4;">{{delivery_address}}</span>
+    <span class="value" style="line-height: 1.4;">{{delivery_address}}</span>
   </div>
 
   <div class="divider"></div>
@@ -112,9 +110,9 @@
   <table>
     <thead>
       <tr>
-        <th>상품명</th>
-        <th style="text-align:center;">수량</th>
-        <th style="text-align:right;">금액</th>
+        <th style="width:52%;">상품명</th>
+        <th style="text-align:center; width:18%;">수량</th>
+        <th style="text-align:right; width:30%;">금액</th>
       </tr>
     </thead>
     <tbody>

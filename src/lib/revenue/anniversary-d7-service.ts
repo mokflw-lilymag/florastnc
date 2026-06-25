@@ -20,9 +20,11 @@ export interface AnniversaryTarget {
   anniversaryId: string;
   tenantId: string;
   tenantName: string | null;
+  tenantLogoUrl: string | null;
   customerId: string;
   customerName: string;
   contact: string;
+  email?: string | null;
   label: string;
   anniversaryDate: string;
   recurringYearly: boolean;
@@ -76,6 +78,7 @@ export async function listAnniversaryD7Targets(
         id,
         name,
         contact,
+        email,
         marketing_consent,
         is_deleted
       )
@@ -86,9 +89,11 @@ export async function listAnniversaryD7Targets(
   if (error) throw error;
 
   const tenantNames = new Map<string, string>();
-  const { data: tenants } = await db.from("tenants").select("id, name").in("id", tenantIds);
+  const tenantLogos = new Map<string, string>();
+  const { data: tenants } = await db.from("tenants").select("id, name, logo_url").in("id", tenantIds);
   for (const t of tenants ?? []) {
     tenantNames.set(t.id as string, (t.name as string) ?? "");
+    if (t.logo_url) tenantLogos.set(t.id as string, t.logo_url as string);
   }
 
   const targets: AnniversaryTarget[] = [];
@@ -99,13 +104,14 @@ export async function listAnniversaryD7Targets(
       id: string;
       name: string;
       contact: string;
+      email?: string | null;
       marketing_consent: boolean;
       is_deleted: boolean;
     } | null;
 
     if (!customer || customer.is_deleted) continue;
     if (!customer.marketing_consent) continue;
-    if (!customer.contact?.trim()) continue;
+    if (!customer.contact?.trim() && !customer.email?.trim()) continue;
 
     const recurring = row.recurring_yearly !== false;
     if (!anniversaryMatchesD7(row.anniversary_date as string, runAt, recurring)) continue;
@@ -114,9 +120,11 @@ export async function listAnniversaryD7Targets(
       anniversaryId: row.id as string,
       tenantId: row.tenant_id as string,
       tenantName: tenantNames.get(row.tenant_id as string) ?? null,
+      tenantLogoUrl: tenantLogos.get(row.tenant_id as string) ?? null,
       customerId: customer.id,
       customerName: customer.name,
       contact: customer.contact,
+      email: customer.email ?? null,
       label: (row.label as string) || "기념일",
       anniversaryDate: row.anniversary_date as string,
       recurringYearly: recurring,
@@ -201,6 +209,48 @@ export async function processAnniversaryTarget(
 
   if (opts?.dryRun) {
     return { ...base, status: "skipped", reason: "dry_run" };
+  }
+
+  const customerEmail = target.email?.trim();
+  if (customerEmail) {
+    const { sendAnniversaryD7Email } = await import("@/lib/email/anniversary-email");
+    const emailResult = await sendAnniversaryD7Email(db, {
+      tenantId: target.tenantId,
+      to: customerEmail,
+      customerName: target.customerName,
+      label: target.label,
+      eventDateYmd: target.eventDateYmd,
+      orderLink,
+      shopName: target.tenantName ?? undefined,
+      shopLogoUrl: target.tenantLogoUrl ?? undefined,
+    });
+
+    if (emailResult.ok) {
+      const campaign = await createCampaign(db, target.tenantId, {
+        campaign_code: campaignCode,
+        campaign_type: "anniversary_d7",
+        channel: "email",
+        status: "sent",
+        title: `${target.customerName} · ${target.label} D-7 (이메일)`,
+        customer_id: target.customerId,
+        expected_revenue: capExpectedRevenue(DEFAULT_ANNIVERSARY_EXPECTED_KRW, limits),
+        attribution_link: orderLink,
+        executed_at: new Date().toISOString(),
+        metadata: {
+          anniversary_id: target.anniversaryId,
+          event_date: target.eventDateYmd,
+          d7_run_date: runYmd,
+          send_mode: "email",
+        },
+      });
+
+      return {
+        ...base,
+        status: "sent",
+        campaignId: campaign.id,
+        campaignCode: campaign.campaign_code,
+      };
+    }
   }
 
   const sent = await sendAnniversaryReminder(db, {

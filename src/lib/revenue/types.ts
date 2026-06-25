@@ -19,6 +19,7 @@ export type CampaignType = (typeof CAMPAIGN_TYPES)[number];
 export const CAMPAIGN_CHANNELS = [
   "alimtalk",
   "sms",
+  "email",
   "instagram",
   "naver_blog",
   "copy",

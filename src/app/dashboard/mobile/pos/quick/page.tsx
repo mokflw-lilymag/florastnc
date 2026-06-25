@@ -15,7 +15,9 @@ import {
   MOBILE_PRODUCT_CATEGORY_PRIORITY,
   resolveMobileProductCategory,
 } from "@/lib/mobile/product-categories";
-import { MOBILE_PAYMENT_METHODS } from "@/lib/mobile/payment-methods";
+import { buildMobilePaymentMethods } from "@/lib/mobile/payment-methods";
+import { getMessages } from "@/i18n/getMessages";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import type { Product } from "@/types/product";
 import type { OrderData } from "@/types/order";
 import { toast } from "sonner";
@@ -30,6 +32,8 @@ const DISCOUNT_OPTIONS = [
 ];
 
 export default function MobileQuickPosPage() {
+  const locale = usePreferredLocale();
+  const tf = getMessages(locale).tenantFlows;
   const { profile, tenantId } = useAuth();
   const storeName = profile?.tenants?.name;
   const { addOrder } = useOrders();
@@ -39,6 +43,11 @@ export default function MobileQuickPosPage() {
   const [discount, setDiscount] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState<OrderData["payment"]["method"]>("card");
   const [loading, setLoading] = useState(true);
+
+  const mobilePaymentMethods = useMemo(
+    () => buildMobilePaymentMethods(tf),
+    [tf]
+  );
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -390,8 +399,8 @@ export default function MobileQuickPosPage() {
 
           <div className="px-3 pb-2">
             <p className="mb-1.5 text-xs font-semibold text-gray-400">결제 수단</p>
-            <div className="grid grid-cols-3 gap-1.5">
-              {MOBILE_PAYMENT_METHODS.map((pm) => {
+            <div className="grid grid-cols-4 gap-1.5">
+              {mobilePaymentMethods.map((pm) => {
                 const isActive = paymentMethod === pm.key;
                 const activeColor = pm.color.includes("text-") ? pm.color : `${pm.color} text-white`;
                 return (

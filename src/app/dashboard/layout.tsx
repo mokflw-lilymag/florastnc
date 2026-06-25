@@ -16,9 +16,11 @@ import {
 import { GuestBrowseBootstrap } from "@/components/layout/guest-browse-bootstrap";
 import { getPartnerOrdersEnabled } from "@/lib/platform-config-server";
 import { PartnerOrdersFeatureProvider } from "@/components/providers/partner-orders-feature-provider";
+import { AppMessagesProvider } from "@/components/providers/app-messages-provider";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies();
+  const locale = resolveLocale(cookieStore.get(LOCALE_COOKIE)?.value);
   const supabase = await createClient();
   const [{ data: { user } }, partnerOrdersEnabled] = await Promise.all([
     supabase.auth.getUser(),
@@ -29,7 +31,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
   );
 
   if (!user && !isGuestBrowse) {
-    const locale = resolveLocale(cookieStore.get(LOCALE_COOKIE)?.value);
     redirect(`/${locale}/login`);
   }
 
@@ -64,6 +65,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     );
 
     return (
+      <AppMessagesProvider locale={locale}>
       <PartnerOrdersFeatureProvider enabled={partnerOrdersEnabled}>
         <GuestBrowseBootstrap />
         <DashboardShell
@@ -94,11 +96,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
           {children}
         </DashboardShell>
       </PartnerOrdersFeatureProvider>
+      </AppMessagesProvider>
     );
   }
 
   if (!user) {
-    const locale = resolveLocale(cookieStore.get(LOCALE_COOKIE)?.value);
     redirect(`/${locale}/login`);
   }
 
@@ -220,6 +222,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       : tenantData?.name) ?? undefined;
 
   return (
+    <AppMessagesProvider locale={locale}>
     <PartnerOrdersFeatureProvider enabled={partnerOrdersEnabled}>
     <DashboardShell
       serverIsSuperAdmin={isSuperAdmin}
@@ -272,5 +275,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
       {children}
     </DashboardShell>
     </PartnerOrdersFeatureProvider>
+    </AppMessagesProvider>
   );
 }

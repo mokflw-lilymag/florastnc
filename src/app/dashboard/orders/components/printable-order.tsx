@@ -51,6 +51,9 @@ export class PrintableOrder extends React.Component<PrintableOrderProps> {
                 mainpay: tf.f00211,
                 shopping_mall: tf.f00368,
                 epay: tf.f02604,
+                kakao: tf.f02604,
+                apple: tf.f02604,
+                unknown: "모름",
             };
             return map[m] || m;
         })();

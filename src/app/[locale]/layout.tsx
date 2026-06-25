@@ -1,14 +1,20 @@
 import { notFound } from "next/navigation";
-import { isSupportedLocale, resolveLocale } from "@/i18n/config";
+import { isSupportedLocale, resolveLocale, type AppLocale } from "@/i18n/config";
+import { MessagesProvider } from "@/i18n/messages-provider";
+import { loadPublicMessagesAsync } from "@/i18n/loadMessages";
+import type { AppMessages } from "@/i18n/types";
 
 type Props = {
   children: React.ReactNode;
-  params: Promise<any>;
+  params: Promise<{ locale: string }>;
 };
 
 export default async function LocaleLayout({ children, params }: Props) {
   const { locale } = await params;
   const canonical = resolveLocale(locale);
   if (canonical !== locale || !isSupportedLocale(canonical)) notFound();
-  return <>{children}</>;
+
+  const messages = (await loadPublicMessagesAsync(canonical as AppLocale)) as AppMessages;
+
+  return <MessagesProvider messages={messages}>{children}</MessagesProvider>;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect, useCallback, memo } from "react";
+import React, { useState, useMemo, useEffect, useCallback, memo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -36,6 +36,28 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetFooter
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
+import {
+  NEW_ORDER_PAYMENT_METHODS,
+  getNewOrderPaymentMethodLabel,
+  selectOrderPaymentMethod,
+  type OrderPaymentMethod,
+} from "@/lib/order-payment-methods";
+import { getMessages } from "@/i18n/getMessages";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { usePosConnection } from "@/hooks/use-pos-connection";
+import {
+  requiresPosApprovalBeforeSave,
+  requestPosPaymentApproval,
+  CARD_APPROVAL_FAILED_MESSAGE,
+} from "@/lib/order-payment-gate";
+import {
+  clearOrderFormDraft,
+  ORDER_SAVE_FAILED_KEEP_FORM_HINT,
+  type OrderFormDraft,
+} from "@/lib/order-form-draft";
+import { useOrderFormDraft } from "@/hooks/use-order-form-draft";
+import { CardPaymentConfirmDialog } from "../new/components/CardPaymentConfirmDialog";
+import { PaymentApprovalFailedBanner } from "../new/components/PaymentApprovalFailedBanner";
 
 // --- TYPES ---
 interface OrderItem extends Product {
@@ -44,7 +66,7 @@ interface OrderItem extends Product {
 }
 
 type ReceiptType = "store_pickup" | "pickup_reservation" | "delivery_reservation";
-type PaymentMethod = "card" | "cash" | "transfer" | "mainpay" | "shopping_mall" | "epay" | "kakao" | "apple";
+type PaymentMethod = OrderPaymentMethod;
 type PaymentStatus = "pending" | "paid" | "completed" | "split_payment";
 type MessageType = "card" | "ribbon" | "none";
 
@@ -135,6 +157,7 @@ const OrdererSection = memo(({
     ordererName, setOrdererName,
     ordererContact, setOrdererContact,
     ordererCompany, setOrdererCompany,
+    ordererEmail, setOrdererEmail,
     selectedCustomer, setSelectedCustomer,
     isRegisterCustomer, setIsRegisterCustomer,
     marketingConsent, setMarketingConsent,
@@ -152,10 +175,25 @@ const OrdererSection = memo(({
                 </CardTitle>
             </CardHeader>
             <CardContent className="p-4 pt-2 space-y-3">
-                <div>
-                    <Label className="text-xs text-muted-foreground">회사명</Label>
-                    <Input value={ordererCompany} onChange={e => setOrdererCompany(e.target.value)} className="h-9" placeholder="회사명을 입력하세요" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div>
+                        <Label className="text-xs text-muted-foreground">회사명</Label>
+                        <Input value={ordererCompany} onChange={e => setOrdererCompany(e.target.value)} className="h-9" placeholder="회사명을 입력하세요" />
+                    </div>
+                    <div>
+                        <Label className="text-xs text-muted-foreground">이메일 (선택)</Label>
+                        <Input
+                            type="email"
+                            value={ordererEmail}
+                            onChange={e => setOrdererEmail(e.target.value)}
+                            className="h-9"
+                            placeholder="example@email.com"
+                        />
+                    </div>
                 </div>
+                <p className="text-[10px] text-muted-foreground leading-snug -mt-1">
+                    제작·배송 완료 시 연락은 이메일로 전달됩니다.
+                </p>
                 <div className="flex gap-2">
                     <div className="flex-1">
                         <Label className="text-xs text-muted-foreground">이름</Label>
@@ -354,8 +392,14 @@ const MessagePaymentSection = memo(({
     selectedCustomer, usedPoints, setUsedPoints,
     orderSummary, handleUseAllPoints,
     paymentMethod, setPaymentMethod,
-    paymentStatus, setPaymentStatus
+    paymentStatus, setPaymentStatus,
+    cardApprovalError,
+    onClearCardApprovalError,
+    paymentSectionRef,
 }: any) => {
+    const locale = usePreferredLocale();
+    const tf = getMessages(locale).tenantFlows;
+
     return (
         <Card>
             <CardContent className="p-4 space-y-4">
@@ -487,19 +531,29 @@ const MessagePaymentSection = memo(({
                     </div>
                 )}
                 <Separator />
-                <div>
+                <div ref={paymentSectionRef} id="order-payment-section">
+                    {cardApprovalError ? (
+                        <div className="mb-3">
+                            <PaymentApprovalFailedBanner
+                                message={cardApprovalError}
+                                onClear={onClearCardApprovalError}
+                                setPaymentMethod={setPaymentMethod}
+                                setPaymentStatus={setPaymentStatus}
+                            />
+                        </div>
+                    ) : null}
                     <Label className="text-xs font-medium mb-2 block">결제 수단</Label>
                     <div className="grid grid-cols-4 gap-2">
-                        {["card", "cash", "transfer", "shopping_mall"].map((m) => (
-                            <div key={m} className={cn("border rounded p-2 text-center text-xs font-medium cursor-pointer transition-colors px-1", paymentMethod === m ? "bg-primary text-white border-primary" : "bg-white hover:bg-gray-50")} onClick={() => setPaymentMethod(m as PaymentMethod)}>
-                                {m === 'card' ? '카드' : m === 'cash' ? '현금' : m === 'transfer' ? '이체' : '쇼핑몰'}
-                            </div>
-                        ))}
-                    </div>
-                    <div className="grid grid-cols-4 gap-2 mt-2">
-                        {["mainpay", "epay", "kakao", "apple"].map((m) => (
-                            <div key={m} className={cn("border rounded p-2 text-center text-xs font-medium cursor-pointer transition-colors px-1", paymentMethod === m ? "bg-primary text-white border-primary" : "bg-white hover:bg-gray-50")} onClick={() => setPaymentMethod(m as PaymentMethod)}>
-                                {m === 'mainpay' ? '메인' : m === 'epay' ? '이페이' : m === 'kakao' ? '카카오' : '애플'}
+                        {NEW_ORDER_PAYMENT_METHODS.map((m) => (
+                            <div
+                                key={m}
+                                className={cn(
+                                    "border rounded p-2 text-center text-xs font-medium cursor-pointer transition-colors px-1",
+                                    paymentMethod === m ? "bg-primary text-white border-primary" : "bg-white hover:bg-gray-50"
+                                )}
+                                onClick={() => selectOrderPaymentMethod(m, setPaymentMethod, setPaymentStatus, onClearCardApprovalError)}
+                            >
+                                {getNewOrderPaymentMethodLabel(m, tf)}
                             </div>
                         ))}
                     </div>
@@ -711,6 +765,7 @@ export default function NewOrderMobilePage() {
     const [ordererName, setOrdererName] = useState("");
     const [ordererContact, setOrdererContact] = useState("");
     const [ordererCompany, setOrdererCompany] = useState("");
+    const [ordererEmail, setOrdererEmail] = useState("");
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [isAnonymous, setIsAnonymous] = useState(false);
     const [isRegisterCustomer, setIsRegisterCustomer] = useState(true);
@@ -821,11 +876,238 @@ export default function NewOrderMobilePage() {
     const [isCustomerSheetOpen, setIsCustomerSheetOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSummaryOpen, setIsSummaryOpen] = useState(false);
+    const [cardApprovalError, setCardApprovalError] = useState<string | null>(null);
+    const [cardPayDialogOpen, setCardPayDialogOpen] = useState(false);
+    const paymentSectionRef = useRef<HTMLDivElement>(null);
+    const cardPayResolverRef = useRef<((approved: boolean) => void) | null>(null);
+
+    const clearCardApprovalError = useCallback(() => setCardApprovalError(null), []);
+
+    const promptManualCardPayment = useCallback(() => {
+        return new Promise<{ ok: true } | { ok: false; message: string }>((resolve) => {
+            cardPayResolverRef.current = (approved: boolean) => {
+                if (approved) resolve({ ok: true });
+                else resolve({ ok: false, message: CARD_APPROVAL_FAILED_MESSAGE });
+            };
+            setCardPayDialogOpen(true);
+        });
+    }, []);
+
+    const scrollToPaymentSection = useCallback(() => {
+        paymentSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+        setIsSummaryOpen(true);
+    }, []);
 
     const [isCustomProductDialogOpen, setIsCustomProductDialogOpen] = useState(false);
     const [customProductName, setCustomProductName] = useState("");
     const [customProductPrice, setCustomProductPrice] = useState("");
     const [customProductQuantity, setCustomProductQuantity] = useState(1);
+
+    const { counterPaymentAvailable } = usePosConnection();
+
+    const orderFormDraftSaveTrigger = useMemo(
+        () =>
+            JSON.stringify({
+                orderItems,
+                ordererName,
+                ordererContact,
+                ordererCompany,
+                ordererEmail,
+                selectedCustomerId: selectedCustomer?.id ?? null,
+                isAnonymous,
+                isRegisterCustomer,
+                marketingConsent,
+                receipt_type,
+                scheduleDate: scheduleDate?.toISOString() ?? null,
+                scheduleTime,
+                recipientName,
+                recipientContact,
+                isSameAsOrderer,
+                deliveryAddress,
+                deliveryAddressDetail,
+                selectedDistrict,
+                deliveryFeeType,
+                manualDeliveryFee,
+                messageType,
+                messageContent,
+                specialRequest,
+                deliveryRequest,
+                paymentMethod,
+                paymentStatus,
+                usedPoints,
+                selectedDiscountRate,
+                customDiscountRate,
+            }),
+        [
+            orderItems,
+            ordererName,
+            ordererContact,
+            ordererCompany,
+            ordererEmail,
+            selectedCustomer,
+            isAnonymous,
+            isRegisterCustomer,
+            marketingConsent,
+            receipt_type,
+            scheduleDate,
+            scheduleTime,
+            recipientName,
+            recipientContact,
+            isSameAsOrderer,
+            deliveryAddress,
+            deliveryAddressDetail,
+            selectedDistrict,
+            deliveryFeeType,
+            manualDeliveryFee,
+            messageType,
+            messageContent,
+            specialRequest,
+            deliveryRequest,
+            paymentMethod,
+            paymentStatus,
+            usedPoints,
+            selectedDiscountRate,
+            customDiscountRate,
+        ]
+    );
+
+    const buildOrderFormDraft = useCallback((): OrderFormDraft | null => {
+        if (!tenantId) return null;
+        return {
+            version: 1,
+            tenantId,
+            variant: "mobile",
+            savedAt: new Date().toISOString(),
+            orderItems,
+            ordererName,
+            ordererContact,
+            ordererCompany,
+            ordererEmail: ordererEmail,
+            isAnonymous,
+            registerCustomer: isRegisterCustomer,
+            marketingConsent,
+            registerAnniversaryFromOrder: false,
+            selectedCustomer: selectedCustomer
+                ? {
+                      id: selectedCustomer.id,
+                      name: selectedCustomer.name,
+                      contact: selectedCustomer.contact,
+                      company_name: selectedCustomer.company_name,
+                      points: selectedCustomer.points,
+                  }
+                : null,
+            receipt_type,
+            scheduleDate: scheduleDate?.toISOString() ?? null,
+            scheduleTime,
+            recipientName,
+            recipientContact,
+            isSameAsOrderer,
+            deliveryAddress,
+            deliveryAddressDetail,
+            selectedDistrict,
+            deliveryFeeType,
+            manualDeliveryFee,
+            messageType,
+            messageContent,
+            specialRequest,
+            deliveryRequest,
+            paymentMethod,
+            paymentStatus,
+            usedPoints,
+            selectedDiscountRate,
+            customDiscountRate,
+        };
+    }, [
+        tenantId,
+        orderItems,
+        ordererName,
+        ordererContact,
+        ordererCompany,
+        ordererEmail,
+        isAnonymous,
+        isRegisterCustomer,
+        marketingConsent,
+        selectedCustomer,
+        receipt_type,
+        scheduleDate,
+        scheduleTime,
+        recipientName,
+        recipientContact,
+        isSameAsOrderer,
+        deliveryAddress,
+        deliveryAddressDetail,
+        selectedDistrict,
+        deliveryFeeType,
+        manualDeliveryFee,
+        messageType,
+        messageContent,
+        specialRequest,
+        deliveryRequest,
+        paymentMethod,
+        paymentStatus,
+        usedPoints,
+        selectedDiscountRate,
+        customDiscountRate,
+    ]);
+
+    const applyOrderFormDraft = useCallback((draft: OrderFormDraft) => {
+        setOrderItems(
+            draft.orderItems.map((item) => ({
+                ...item,
+                stock: item.stock ?? 999,
+            })) as OrderItem[]
+        );
+        setOrdererName(draft.ordererName);
+        setOrdererContact(draft.ordererContact);
+        setOrdererCompany(draft.ordererCompany);
+        setOrdererEmail(draft.ordererEmail || "");
+        setIsAnonymous(draft.isAnonymous);
+        setIsRegisterCustomer(draft.registerCustomer);
+        setMarketingConsent(draft.marketingConsent);
+        setSelectedCustomer(
+            draft.selectedCustomer
+                ? ({
+                      id: draft.selectedCustomer.id,
+                      name: draft.selectedCustomer.name,
+                      contact: draft.selectedCustomer.contact,
+                      company_name: draft.selectedCustomer.company_name ?? undefined,
+                      points: draft.selectedCustomer.points ?? 0,
+                  } as Customer)
+                : null
+        );
+        setReceiptType(draft.receipt_type);
+        if (draft.scheduleDate) {
+            const parsed = new Date(draft.scheduleDate);
+            if (!Number.isNaN(parsed.getTime())) setScheduleDate(parsed);
+        }
+        setScheduleTime(draft.scheduleTime);
+        setRecipientName(draft.recipientName);
+        setRecipientContact(draft.recipientContact);
+        setIsSameAsOrderer(draft.isSameAsOrderer);
+        setDeliveryAddress(draft.deliveryAddress);
+        setDeliveryAddressDetail(draft.deliveryAddressDetail);
+        setSelectedDistrict(draft.selectedDistrict);
+        setDeliveryFeeType(draft.deliveryFeeType);
+        setManualDeliveryFee(draft.manualDeliveryFee);
+        setMessageType(draft.messageType);
+        setMessageContent(draft.messageContent);
+        setSpecialRequest(draft.specialRequest);
+        if (draft.deliveryRequest !== undefined) setDeliveryRequest(draft.deliveryRequest);
+        setPaymentMethod(draft.paymentMethod);
+        setPaymentStatus(draft.paymentStatus);
+        setUsedPoints(draft.usedPoints);
+        setSelectedDiscountRate(draft.selectedDiscountRate);
+        setCustomDiscountRate(draft.customDiscountRate);
+    }, []);
+
+    useOrderFormDraft({
+        tenantId,
+        variant: "mobile",
+        enabled: true,
+        saveTrigger: orderFormDraftSaveTrigger,
+        getDraft: buildOrderFormDraft,
+        applyDraft: applyOrderFormDraft,
+    });
 
     // --- LOGIC ---
     const isAdmin = user?.role === '본사 관리자';
@@ -1009,6 +1291,28 @@ export default function NewOrderMobilePage() {
         if (orderItems.length === 0) return toast.error("상품을 담아주세요");
         setIsSubmitting(true);
         try {
+            if (
+                tenantId &&
+                requiresPosApprovalBeforeSave(paymentMethod, counterPaymentAvailable)
+            ) {
+                const approval = await requestPosPaymentApproval(
+                    {
+                        tenantId,
+                        amount: orderSummary.finalTotal,
+                        method: paymentMethod,
+                    },
+                    { onManualConfirm: promptManualCardPayment }
+                );
+                if (!approval.ok) {
+                    setCardApprovalError(approval.message);
+                    toast.error(approval.message, { description: ORDER_SAVE_FAILED_KEEP_FORM_HINT });
+                    scrollToPaymentSection();
+                    return;
+                }
+            }
+
+            setCardApprovalError(null);
+
             // 리본 메시지 파싱
             const buildMessage = () => {
                 if (messageType === 'ribbon') {
@@ -1041,7 +1345,7 @@ export default function NewOrderMobilePage() {
                     name: ordererName,
                     contact: ordererContact,
                     company: ordererCompany,
-                    email: ""
+                    email: ordererEmail
                 },
                 payment: {
                     method: paymentMethod,
@@ -1072,6 +1376,7 @@ export default function NewOrderMobilePage() {
 
             const result = await addOrder(orderPayload);
             if (result) {
+                if (tenantId) clearOrderFormDraft(tenantId, "mobile");
                 // --- PRINT QUEUE TRIGGER ---
                 let dbOrderType = 'store';
                 if (receipt_type === 'pickup_reservation') dbOrderType = 'pickup';
@@ -1079,13 +1384,13 @@ export default function NewOrderMobilePage() {
                 
                 await enqueuePrintJob(supabase, selectedBranch.id, result, dbOrderType as any, orderPayload);
 
-                // addOrder 내부에서 이미 성공 toast를 띄우므로 여기서는 페이지 이동만 처리
                 router.push('/dashboard/orders');
+            } else {
+                toast.error("주문 저장에 실패했습니다.", { description: ORDER_SAVE_FAILED_KEEP_FORM_HINT });
             }
-            // 실패 시에도 addOrder 내부에서 이미 에러 toast를 띄움
         } catch (e) {
             console.error('모바일 주문 접수 오류:', e);
-            toast.error("예상치 못한 오류가 발생했습니다." );
+            toast.error("예상치 못한 오류가 발생했습니다.", { description: ORDER_SAVE_FAILED_KEEP_FORM_HINT });
         } finally {
             setIsSubmitting(false);
         }
@@ -1115,6 +1420,7 @@ export default function NewOrderMobilePage() {
                     ordererName={ordererName} setOrdererName={setOrdererName}
                     ordererContact={ordererContact} setOrdererContact={setOrdererContact}
                     ordererCompany={ordererCompany} setOrdererCompany={setOrdererCompany}
+                    ordererEmail={ordererEmail} setOrdererEmail={setOrdererEmail}
                     selectedCustomer={selectedCustomer} setSelectedCustomer={setSelectedCustomer}
                     isRegisterCustomer={isRegisterCustomer} setIsRegisterCustomer={setIsRegisterCustomer}
                     marketingConsent={marketingConsent} setMarketingConsent={setMarketingConsent}
@@ -1163,6 +1469,9 @@ export default function NewOrderMobilePage() {
                     handleUseAllPoints={() => setUsedPoints(orderSummary.maxUsablePoints)}
                     paymentMethod={paymentMethod} setPaymentMethod={setPaymentMethod}
                     paymentStatus={paymentStatus} setPaymentStatus={setPaymentStatus}
+                    cardApprovalError={cardApprovalError}
+                    onClearCardApprovalError={clearCardApprovalError}
+                    paymentSectionRef={paymentSectionRef}
                 />
             </div>
             </div>{/* end scrollable area */}
@@ -1207,6 +1516,7 @@ export default function NewOrderMobilePage() {
                     setOrdererName(c.name);
                     setOrdererContact(c.contact);
                     setOrdererCompany(c.company_name || "");
+                    setOrdererEmail(c.email || "");
                     applyLastOrderPreferences(c.contact, c.company_name || undefined);
                 }}
                 customers={customers}
@@ -1223,6 +1533,29 @@ export default function NewOrderMobilePage() {
             />
 
             {/* Custom Product Dialog */}
+            <CardPaymentConfirmDialog
+                open={cardPayDialogOpen}
+                onOpenChange={(open) => {
+                    if (!open && cardPayResolverRef.current) {
+                        cardPayResolverRef.current(false);
+                        cardPayResolverRef.current = null;
+                    }
+                    setCardPayDialogOpen(open);
+                }}
+                amount={orderSummary.finalTotal}
+                method={paymentMethod}
+                onApproved={() => {
+                    cardPayResolverRef.current?.(true);
+                    cardPayResolverRef.current = null;
+                    setCardPayDialogOpen(false);
+                }}
+                onFailed={() => {
+                    cardPayResolverRef.current?.(false);
+                    cardPayResolverRef.current = null;
+                    setCardPayDialogOpen(false);
+                }}
+            />
+
             <Dialog open={isCustomProductDialogOpen} onOpenChange={setIsCustomProductDialogOpen}>
                 <DialogContent className="max-w-xs">
                     <DialogHeader>

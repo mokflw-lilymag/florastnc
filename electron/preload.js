@@ -24,4 +24,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
   clearOfflineData: () => ipcRenderer.invoke('clear-offline-data'),
   triggerBackup: () => ipcRenderer.invoke('trigger-backup'),
   triggerRestore: (data) => ipcRenderer.invoke('trigger-restore', data),
+  setSyncScope: (scope) => ipcRenderer.invoke('set-sync-scope', scope),
+  getStartupSetting: () => ipcRenderer.invoke('get-startup-setting'),
+  setStartupSetting: (enabled) => ipcRenderer.invoke('set-startup-setting', enabled),
+  deleteLocalRecord: (table, id) => ipcRenderer.invoke('delete-local-record', { table, id }),
+  syncDeletedOrders: () => ipcRenderer.invoke('sync-deleted-orders'),
+  requestImmediateSync: () => ipcRenderer.invoke('request-immediate-sync'),
+  getYearlyStats: (tenantId) => ipcRenderer.invoke('get-yearly-stats', tenantId),
+  downloadImage: (payload) => ipcRenderer.invoke('download-image', payload),
+  clearSpooler: () => ipcRenderer.invoke('clear-spooler'),
+  wakeUpWindow: () => ipcRenderer.invoke('wake-up-window'),
+  triggerKakaotalkPaste: (message, contact) =>
+    ipcRenderer.invoke('trigger-kakaotalk-paste', { message, contact }),
 });

@@ -119,7 +119,7 @@ export function PrintPreviewClient({ orderId }: PrintPreviewClientProps) {
         console.error("Error formatting delivery date:", e);
     }
 
-    // Mapping SaaS order to PrintableOrder format
+    // Mapping order to PrintableOrder format
     const printData: OrderPrintData = {
         orderDate: dateTimeWeekday(orderDateObject),
         ordererName: order.orderer?.name || tf.f00224,
