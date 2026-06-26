@@ -9,7 +9,7 @@ import { isElectronClient } from "@/lib/electron-env";
 
 const POLL_INTERVAL_REALTIME_MS = ADAPTIVE_POLL_MS.print.realtime;
 const POLL_INTERVAL_FALLBACK_MS = ADAPTIVE_POLL_MS.print.fallback;
-const MAX_JOBS_PER_POLL = 2;
+const MAX_JOBS_PER_POLL = 10;
 const MAX_JOB_AGE_MS = 4 * 60 * 60 * 1000;
 
 function normalizeJobRow(row: Record<string, unknown>) {
@@ -160,7 +160,7 @@ export function MobilePrintPoller() {
           .eq("tenant_id", tenantId)
           .eq("status", "pending")
           .order("created_at", { ascending: true })
-          .limit(50);
+          .limit(MAX_JOBS_PER_POLL);
 
         if (error) {
           console.error("[MobilePrintPoller] 조회 오류:", error);
