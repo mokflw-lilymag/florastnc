@@ -9,7 +9,9 @@ function initLocalDb(dbPath) {
     fs.mkdirSync(dir, { recursive: true });
   }
 
-  const db = new Database(dbPath, { verbose: console.log });
+  const { app } = require('electron');
+  const isDev = !app.isPackaged;
+  const db = new Database(dbPath, isDev ? { verbose: console.log } : {});
   db.pragma('journal_mode = WAL');
 
   // Create tables mimicking Supabase, with added sync_status fields
