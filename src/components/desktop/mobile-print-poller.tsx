@@ -7,7 +7,6 @@ import { useSettings } from "@/hooks/use-settings";
 import { ADAPTIVE_POLL_MS, isRealtimeSubscribed } from "@/lib/adaptive-polling";
 import { isElectronClient } from "@/lib/electron-env";
 
-const POLL_INTERVAL_REALTIME_MS = ADAPTIVE_POLL_MS.print.realtime;
 const POLL_INTERVAL_FALLBACK_MS = ADAPTIVE_POLL_MS.print.fallback;
 const MAX_JOBS_PER_POLL = 10;
 const MAX_JOB_AGE_MS = 4 * 60 * 60 * 1000;
@@ -139,15 +138,16 @@ export function MobilePrintPoller() {
     let pollTimer: ReturnType<typeof setTimeout> | null = null;
     let realtimeOk = false;
 
-    const getPollIntervalMs = () =>
-      realtimeOk ? POLL_INTERVAL_REALTIME_MS : POLL_INTERVAL_FALLBACK_MS;
-
     const schedulePoll = () => {
       if (pollTimer) clearTimeout(pollTimer);
+      if (realtimeOk) {
+        console.log('[MobilePrintPoller] Realtime 정상 작동 중 — 백업 폴링 중단 (트래픽 0)');
+        return;
+      }
       pollTimer = setTimeout(async () => {
         await processPendingJobs();
         schedulePoll();
-      }, getPollIntervalMs());
+      }, POLL_INTERVAL_FALLBACK_MS);
     };
 
     const processPendingJobs = async () => {
