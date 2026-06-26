@@ -95,10 +95,7 @@ class SyncWorker {
 
   getNextSyncDelayMs(pendingQueue = 0) {
     if (pendingQueue > 0) return syncConfig.SYNC_INTERVAL_ACTIVE_MS;
-    const idleMs = Date.now() - this.lastSyncWorkAt;
-    return idleMs >= syncConfig.IDLE_THRESHOLD_MS
-      ? syncConfig.SYNC_INTERVAL_IDLE_MS
-      : syncConfig.SYNC_INTERVAL_ACTIVE_MS;
+    return syncConfig.SYNC_INTERVAL_IDLE_MS;
   }
 
   requestImmediateSyncCycle() {
