@@ -69,72 +69,73 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --background: oklch(0.985 0.005 60); /* #fbf9f7 (Warm White) */
+  --foreground: oklch(0.18 0.005 60); /* #1b1c1b (Deep Charcoal) */
+  --card: oklch(1 0 0); /* #ffffff */
+  --card-foreground: oklch(0.18 0.005 60);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.35 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
+  --popover-foreground: oklch(0.18 0.005 60);
+  --primary: oklch(0.45 0.12 170); /* #006b5c (Mint Green) */
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.50 0.10 350); /* #7a5361 (Soft Pink) */
+  --secondary-foreground: oklch(1 0 0);
+  --muted: oklch(0.95 0.005 60); /* #f5f3f1 */
+  --muted-foreground: oklch(0.40 0.01 170); /* #3e4946 */
+  --accent: oklch(0.92 0.01 170); /* Light Mint Accent */
+  --accent-foreground: oklch(0.45 0.12 170);
+  --destructive: oklch(0.50 0.18 20); /* #ba1a1a */
+  --border: rgba(0, 107, 92, 0.08); /* Mint low-opacity border */
+  --input: rgba(0, 107, 92, 0.1);
+  --ring: oklch(0.45 0.12 170);
+  --chart-1: oklch(0.45 0.12 170);
+  --chart-2: oklch(0.50 0.10 350);
+  --chart-3: oklch(0.45 0.10 280); /* Lavender */
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --radius: 1rem;
+  --sidebar: oklch(0.985 0.005 60);
+  --sidebar-foreground: oklch(0.18 0.005 60);
+  --sidebar-primary: oklch(0.45 0.12 170);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.95 0.005 60);
+  --sidebar-accent-foreground: oklch(0.18 0.005 60);
+  --sidebar-border: rgba(0, 107, 92, 0.08);
+  --sidebar-ring: oklch(0.45 0.12 170);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  /* 다크 모드도 Luminous 컨셉에 맞추어 포근한 다크 민트 파스텔 톤 적용 */
+  --background: oklch(0.15 0.01 170); 
+  --foreground: oklch(0.95 0.005 60);
+  --card: oklch(0.18 0.01 170);
+  --card-foreground: oklch(0.95 0.005 60);
+  --popover: oklch(0.18 0.01 170);
+  --popover-foreground: oklch(0.95 0.005 60);
+  --primary: oklch(0.75 0.10 170); /* Soft Mint Green */
+  --primary-foreground: oklch(0.15 0.05 170);
+  --secondary: oklch(0.75 0.08 350); /* Soft Pink */
+  --secondary-foreground: oklch(0.15 0.05 350);
+  --muted: oklch(0.20 0.01 170);
+  --muted-foreground: oklch(0.80 0.01 170);
+  --accent: oklch(0.22 0.01 170);
+  --accent-foreground: oklch(0.75 0.10 170);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
+  --border: rgba(122, 215, 194, 0.15);
+  --input: rgba(122, 215, 194, 0.2);
+  --ring: oklch(0.75 0.10 170);
+  --chart-1: oklch(0.75 0.10 170);
+  --chart-2: oklch(0.75 0.08 350);
+  --chart-3: oklch(0.75 0.08 280);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar: oklch(0.18 0.01 170);
+  --sidebar-foreground: oklch(0.95 0.005 60);
+  --sidebar-primary: oklch(0.75 0.10 170);
+  --sidebar-primary-foreground: oklch(0.15 0.05 170);
+  --sidebar-accent: oklch(0.20 0.01 170);
+  --sidebar-accent-foreground: oklch(0.95 0.005 60);
+  --sidebar-border: rgba(122, 215, 194, 0.15);
+  --sidebar-ring: oklch(0.75 0.10 170);
 }
 
 @layer base {
@@ -143,6 +144,23 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+
+  /* ── 텍스트 선택(드래그) 스타일 ───────────────────────────────
+     bg-clip-text / text-transparent (Tailwind) 조합 시
+     선택하면 글자가 사라지는 버그를 강제로 수정합니다.
+     !important 없이는 -webkit-text-fill-color: transparent가
+     ::selection 안에서도 계속 적용돼서 글자가 안 보입니다.
+  ─────────────────────────────────────────────────────────── */
+  *::selection {
+    background-color: rgba(16, 185, 129, 0.35) !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+  }
+
+  *::-moz-selection {
+    background-color: rgba(16, 185, 129, 0.35) !important;
+    color: #ffffff !important;
   }
 }
 
@@ -173,6 +191,45 @@ body {
   border-right: 1px solid rgba(255, 255, 255, 0.05);
   border-left: 1px solid rgba(255, 255, 255, 0.05);
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+}
+
+/* 샤방샤방 Candy Theme Style Classes */
+.glass-card { 
+  background: rgba(255, 255, 255, 0.75); 
+  backdrop-filter: blur(16px); 
+  border: 1px solid rgba(255, 255, 255, 0.6); 
+}
+.candy-gradient { 
+  background: linear-gradient(135deg, #fdf2f8 0%, #e0fff8 100%); 
+}
+.text-gradient { 
+  background: linear-gradient(135deg, #006b5c 0%, #665590 100%); 
+  -webkit-background-clip: text; 
+  -webkit-text-fill-color: transparent; 
+}
+.pink-gradient-text { 
+  background: linear-gradient(135deg, #e91e63 0%, #9c27b0 100%); 
+  -webkit-background-clip: text; 
+  -webkit-text-fill-color: transparent; 
+}
+.soft-glow { 
+  box-shadow: 0 20px 40px -15px rgba(0, 107, 92, 0.15); 
+}
+.pink-glow { 
+  box-shadow: 0 20px 40px -15px rgba(255, 121, 198, 0.2); 
+}
+.feature-card { 
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); 
+}
+.feature-card:hover { 
+  transform: translateY(-8px) scale(1.02); 
+  box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.08); 
+}
+.section-pink { 
+  background: linear-gradient(180deg, #ffffff 0%, #fff5f7 100%); 
+}
+.section-mint { 
+  background: linear-gradient(180deg, #ffffff 0%, #f0fffb 100%); 
 }
 
 /* 리본 프린터 미리보기: 대시보드와 맞는 중립 종이 톤 + 글자 대비 */
