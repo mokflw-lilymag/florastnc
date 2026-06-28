@@ -24,7 +24,7 @@ interface ProductSectionProps {
 }
 
 const DEFAULT_CATEGORIES = [
-    '꽃다발', '꽃바구니', '센터피스', '경조화환', '플랜트', '동양란', '서양란', '기타'
+    '꽃다발', '꽃바구니', '센터피스', '경조화환', '플랜트', '동양란', '서양란', '자재'
 ];
 
 export function ProductSection({
@@ -42,8 +42,18 @@ export function ProductSection({
     const { results, loading, searchProducts } = useProductSearch();
 
     useEffect(() => {
-        searchProducts(debouncedSearchTerm, activeTab, 50);
+        searchProducts(debouncedSearchTerm, activeTab, 500); // 50개 제한에서 500개 전체 조회로 확장
     }, [debouncedSearchTerm, activeTab, searchProducts]);
+
+    // 가격 낮은 순 정렬 처리
+    const sortedProducts = React.useMemo(() => {
+        return [...results].sort((a, b) => {
+            if (a.price !== b.price) {
+                return a.price - b.price; // 가격순 정렬
+            }
+            return (a.name || "").localeCompare(b.name || "");
+        });
+    }, [results]);
 
     const ProductGrid = ({ products }: { products: Product[] }) => {
         if (loading) {
@@ -53,26 +63,28 @@ export function ProductSection({
             return <div className="text-center py-8 text-muted-foreground text-sm">{tf.f00168}</div>;
         }
         return (
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                {products.map((product) => (
-                    <Button
-                        key={product.id}
-                        variant="outline"
-                        className="h-auto py-3 min-h-[5rem] flex flex-col items-center justify-center space-y-1 hover:border-primary hover:bg-primary/5 hover:text-primary transition-all shadow-sm"
-                        onClick={() => onAddProduct(product)}
-                        disabled={product.stock <= 0}
-                    >
-                        <span className="font-bold text-sm text-center leading-tight break-keep line-clamp-2 text-foreground group-hover:text-primary">
-                            {product.name}
-                        </span>
-                        <span className="text-sm font-bold text-primary">
-                            {product.price.toLocaleString()}{tf.f00487}
-                        </span>
-                        {product.stock <= 0 && <Badge variant="destructive" className="text-[10px] h-5 px-1 mt-1">{tf.f00747}</Badge>}
-                        {product.stock > 0 && <span className="text-[10px] text-muted-foreground">{tf.f00538}: {product.stock}</span>}
-                    </Button>
-                ))}
-            </div>
+            <ScrollArea className="h-[210px] pr-2.5">
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 pb-2">
+                    {products.map((product) => (
+                        <Button
+                            key={product.id}
+                            variant="outline"
+                            className="h-auto py-3 min-h-[5rem] flex flex-col items-center justify-center space-y-1 hover:border-primary hover:bg-primary/5 hover:text-primary transition-all shadow-sm w-full"
+                            onClick={() => onAddProduct(product)}
+                            disabled={product.stock <= 0}
+                        >
+                            <span className="font-bold text-sm text-center leading-tight break-keep line-clamp-2 text-foreground group-hover:text-primary">
+                                {product.name}
+                            </span>
+                            <span className="text-sm font-bold text-primary">
+                                {product.price.toLocaleString()}{tf.f00487}
+                            </span>
+                            {product.stock <= 0 && <Badge variant="destructive" className="text-[10px] h-5 px-1 mt-1">{tf.f00747}</Badge>}
+                            {product.stock > 0 && <span className="text-[10px] text-muted-foreground">{tf.f00538}: {product.stock}</span>}
+                        </Button>
+                    ))}
+                </div>
+            </ScrollArea>
         );
     };
 
@@ -119,7 +131,7 @@ export function ProductSection({
                                     />
                                 </div>
                             </div>
-                            <ProductGrid products={results} />
+                            <ProductGrid products={sortedProducts} />
                         </div>
                     </TabsContent>
                 </Tabs>
