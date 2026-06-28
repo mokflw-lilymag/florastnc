@@ -1,4 +1,4 @@
-export type ScheduleEventKind = "pickup" | "delivery" | "fixed_cost" | "expense" | "staff";
+export type ScheduleEventKind = "pickup" | "delivery" | "fixed_cost" | "expense" | "staff" | "note";
 
 export type ScheduleCalendarEvent = {
   id: string;
@@ -17,6 +17,7 @@ export type ScheduleLayerFilters = {
   fixed_cost: boolean;
   expense: boolean;
   staff: boolean;
+  note: boolean;
 };
 
 export const DEFAULT_SCHEDULE_FILTERS: ScheduleLayerFilters = {
@@ -25,6 +26,7 @@ export const DEFAULT_SCHEDULE_FILTERS: ScheduleLayerFilters = {
   fixed_cost: true,
   expense: true,
   staff: true,
+  note: true,
 };
 
 export type StaffShift = {
@@ -36,6 +38,12 @@ export type StaffShift = {
   memo?: string;
 };
 
+export type ScheduleNote = {
+  id: string;
+  dateYmd: string;
+  content: string;
+};
+
 export type DayScheduleSummary = {
   dateYmd: string;
   pickups: number;
@@ -43,5 +51,6 @@ export type DayScheduleSummary = {
   fixedCosts: number;
   expenses: number;
   staff: number;
+  notes: number;
   events: ScheduleCalendarEvent[];
 };

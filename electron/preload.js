@@ -39,6 +39,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   clearExternalOrderBadge: () => ipcRenderer.invoke('clear-external-order-badge'),
   triggerKakaotalkPaste: (message, contact) =>
     ipcRenderer.invoke('trigger-kakaotalk-paste', { message, contact }),
+  triggerMessengerPaste: (payload) =>
+    ipcRenderer.invoke('trigger-messenger-paste', payload),
   openReminderWindow: (data) => ipcRenderer.send('open-reminder-window', data),
   getReminderData: () => ipcRenderer.invoke('get-reminder-data'),
   closeReminderWindow: () => ipcRenderer.send('close-reminder-window'),

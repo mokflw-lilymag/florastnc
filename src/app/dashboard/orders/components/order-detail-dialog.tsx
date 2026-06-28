@@ -70,6 +70,19 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
   const { user, tenantId, profile } = useAuth();
   const { updateOrder } = useOrders();
   const { settings } = useSettings();
+  const resolvedMessenger =
+    settings?.preferredMessenger ||
+    (settings?.country === 'VN' ? 'zalo' : settings?.country === 'JP' ? 'line' : 'kakaotalk');
+
+  const messengerNames: Record<string, string> = {
+    kakaotalk: '카카오톡',
+    zalo: 'Zalo',
+    line: 'LINE',
+    whatsapp: 'WhatsApp',
+    sms: '일반 문자',
+  };
+  const currentMessengerName = messengerNames[resolvedMessenger] || '메신저';
+
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
   const [isDateEditing, setIsDateEditing] = useState(false);
@@ -290,25 +303,40 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
 
       if (contact) {
         const { buildKakaoPcNotificationMessage } = await import('@/lib/kakao/build-kakao-pc-message');
-        const { launchKakaotalkMessage } = await import('@/lib/kakaotalk-helper');
+        const { launchMessengerMessage } = await import('@/lib/messenger-helper');
         const message = buildKakaoPcNotificationMessage(type, settings, {
           customerName,
           tenantShopName,
           photoUrl,
         });
-        const kakaoResult = await launchKakaotalkMessage(contact, message, customerName);
-        if (!kakaoResult.success) {
-          throw new Error('카카오톡 실행에 실패했습니다.');
+
+        // 1. 선호 메신저 결정 (설정값 우선 -> 국가 코드에 따른 폴백)
+        const resolvedMessenger =
+          settings.preferredMessenger ||
+          (settings.country === 'VN' ? 'zalo' : settings.country === 'JP' ? 'line' : 'kakaotalk');
+
+        const messengerNames: Record<string, string> = {
+          kakaotalk: '카카오톡',
+          zalo: 'Zalo',
+          line: 'LINE',
+          whatsapp: 'WhatsApp',
+          sms: '일반 문자',
+        };
+        const currentMessengerName = messengerNames[resolvedMessenger] || '메신저';
+
+        const messengerResult = await launchMessengerMessage(resolvedMessenger, contact, message, customerName);
+        if (!messengerResult.success) {
+          throw new Error(`${currentMessengerName} 실행에 실패했습니다.`);
         }
         kakaoSent = true;
-      }
 
-      if (emailSent && kakaoSent) {
-        toast.success('이메일 발송 + 카카오톡 메시지 복사가 완료되었습니다. (Ctrl+V로 붙여넣기)');
+        if (emailSent) {
+          toast.success(`이메일 발송 + ${currentMessengerName} 메시지 복사가 완료되었습니다. (Ctrl+V로 붙여넣기)`);
+        } else {
+          toast.success(`${currentMessengerName}이 실행되었습니다. 메시지를 Ctrl+V로 붙여넣어 전송하세요.`);
+        }
       } else if (emailSent) {
         toast.success(type === 'production' ? '제작완료 이메일을 발송했습니다.' : '배송완료 이메일을 발송했습니다.');
-      } else if (kakaoSent) {
-        toast.success('카카오톡이 열렸습니다. 메시지를 Ctrl+V로 붙여넣어 보내주세요.');
       }
     } catch (e: unknown) {
       console.error(e);
@@ -546,7 +574,7 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
                     <div className="bg-blue-50/50 rounded-2xl p-4 border border-blue-100 space-y-3">
                        <Label className="text-xs font-bold text-blue-800 flex items-center gap-1.5">
                          <Mail className="h-3.5 w-3.5" />
-                         알림 발송 (이메일 + 카카오톡 PC)
+                         알림 발송 (이메일 + {currentMessengerName} PC)
                        </Label>
                        <Input
                          type="email"
@@ -558,12 +586,12 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
                        {customerContact ? (
                          <p className="text-[10px] text-slate-600 flex items-center gap-1">
                            <MessageCircle className="h-3 w-3 text-yellow-600" />
-                           카카오톡: {customerContact}
+                           {currentMessengerName}: {customerContact}
                            {order.completionPhotoUrl ? ' · 완성사진 링크 포함' : ''}
                          </p>
                        ) : (
                          <p className="text-[10px] text-amber-600">
-                           * 연락처가 없으면 카카오톡 알림은 보낼 수 없습니다.
+                           * 연락처가 없으면 {currentMessengerName} 알림은 보낼 수 없습니다.
                          </p>
                        )}
                        <div className="flex gap-2">
@@ -607,7 +635,7 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
                        {customerContact && (
                          <p className="text-[10px] text-yellow-700 flex items-center gap-1 font-medium">
                            <Check className="h-3 w-3" />
-                           카카오톡: 메시지 복사 후 PC 카카오톡에서 Ctrl+V (사진은 URL 링크)
+                           {currentMessengerName}: 메시지 복사 후 {currentMessengerName}에서 Ctrl+V (사진은 URL 링크)
                          </p>
                        )}
                     </div>

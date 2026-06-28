@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 웹 PP 브릿지와 동일: HTML → PDF → pdf-to-printer(Sumatra)
  */
 const path = require('path');
@@ -185,7 +185,7 @@ async function htmlToPdfWithElectron(html, logFn, isLabel = false) {
     return { tempPdfPath, heightInMm };
   } finally {
     try {
-      if (!printWin.isDestroyed()) printWin.close();
+      if (!printWin.isDestroyed()) printWin.destroy();
     } catch (_) {}
     try {
       if (fs.existsSync(tempHtml)) fs.unlinkSync(tempHtml);

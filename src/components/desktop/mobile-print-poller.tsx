@@ -45,6 +45,14 @@ export function MobilePrintPoller() {
   const processingIds = useRef(new Set<string>());
   const failedStaleIds = useRef(new Set<string>());
 
+  const settingsRef = useRef(settings);
+  useEffect(() => {
+    settingsRef.current = settings;
+  }, [settings]);
+
+  const printerNameDep = settings.printerName || settings.posPrinterName || '';
+  const labelPrinterNameDep = settings.labelPrinterName || '';
+
   useEffect(() => {
     if (
       !tenantId ||
@@ -63,8 +71,9 @@ export function MobilePrintPoller() {
 
     if (!api?.printJob) return;
 
-    const printerName = settings.printerName || settings.posPrinterName;
-    const labelPrinterName = settings.labelPrinterName;
+    const generalSettings = settingsRef.current;
+    const printerName = generalSettings.printerName || generalSettings.posPrinterName;
+    const labelPrinterName = generalSettings.labelPrinterName;
     if (!printerName && !labelPrinterName) {
       console.warn("[MobilePrintPoller] 프린터 미설정 — 감시 생략");
       return;
@@ -121,7 +130,7 @@ export function MobilePrintPoller() {
             payload: job.data || job.payload,
             order_id: job.order_id,
           },
-          settings,
+          settings: generalSettings,
           branchName: tenantId,
         });
 
@@ -223,14 +232,23 @@ export function MobilePrintPoller() {
         if (wasOk !== realtimeOk) schedulePoll();
       });
 
+    const handleOnline = () => {
+      console.log('[MobilePrintPoller] 네트워크 복구 감지 — 미처리 작업 즉시 확인 및 Realtime 재연결 대기');
+      realtimeOk = false;
+      processPendingJobs();
+      schedulePoll();
+    };
+    window.addEventListener('online', handleOnline);
+
     console.log(`[MobilePrintPoller] tenant=${tenantId} 적응형 감시 시작`);
 
     return () => {
+      window.removeEventListener('online', handleOnline);
       if (pollTimer) clearTimeout(pollTimer);
       void supabase.removeChannel(channel);
       processingIds.current.clear();
     };
-  }, [tenantId, settings, settingsLoading]);
+  }, [tenantId, printerNameDep, labelPrinterNameDep, settingsLoading]);
 
   return null;
 }

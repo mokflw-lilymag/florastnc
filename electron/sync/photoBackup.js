@@ -310,115 +310,87 @@ async function runPhotoBackupForMonth(db, tenantId, targetMonth, options = {}) {
     receiptRows = await collectReceiptRowsForMonth(db, tenantId, targetMonth, supabase);
   }
 
-  const AdmZip = require('adm-zip');
-  let deliveryCount = 0;
-  let receiptCount = 0;
-  let receiptSimpleCount = 0;
-  let receiptExpensesCount = 0;
-
-  const tempDeliveryDir = path.join(deliveryBackupDir, `_tmp_del_${Date.now()}`);
-  const tempReceiptDir = path.join(receiptBackupDir, `_tmp_rcp_${Date.now()}`);
-
+  let deliveryItems = [];
   if (needDeliveryBackup) {
-    if (!fs.existsSync(deliveryBackupDir)) fs.mkdirSync(deliveryBackupDir, { recursive: true });
-
     const candidates = orders
       .map((order) => ({ order, proofUrl: resolveDeliveryProofUrl(order) }))
       .filter((row) => row.proofUrl);
-
-    if (candidates.length > 0) fs.mkdirSync(tempDeliveryDir, { recursive: true });
-
     const usedNames = new Set();
     for (const { order, proofUrl } of candidates) {
-      try {
-        const fileName = uniqueFileName(buildDeliveryFileName(order, proofUrl), usedNames);
-        await downloadFile(proofUrl, path.join(tempDeliveryDir, fileName));
-        deliveryCount += 1;
-      } catch (err) {
-        console.error(`[PhotoBackup] delivery order ${order.id}:`, err);
-      }
-    }
-
-    try {
-      const zip = new AdmZip();
-      if (deliveryCount > 0 && fs.existsSync(tempDeliveryDir)) {
-        for (const file of fs.readdirSync(tempDeliveryDir)) {
-          zip.addLocalFile(path.join(tempDeliveryDir, file));
-        }
-      } else {
-        zip.addFile(
-          'readme.txt',
-          Buffer.from(`FloXync monthly delivery backup\nMonth: ${targetMonth}\nNo delivery proof images.\n`, 'utf8'),
-        );
-      }
-      zip.writeZip(deliveryZipPath);
-      console.log(`[PhotoBackup] Delivery zip: ${deliveryZipPath} (${deliveryCount} files)`);
-    } finally {
-      if (fs.existsSync(tempDeliveryDir)) {
-        for (const file of fs.readdirSync(tempDeliveryDir)) {
-          fs.unlinkSync(path.join(tempDeliveryDir, file));
-        }
-        fs.rmdirSync(tempDeliveryDir);
-      }
+      const fileName = uniqueFileName(buildDeliveryFileName(order, proofUrl), usedNames);
+      deliveryItems.push({ url: proofUrl, fileName });
     }
   }
 
+  let receiptItems = [];
   if (needReceiptBackup) {
-    if (!fs.existsSync(receiptBackupDir)) fs.mkdirSync(receiptBackupDir, { recursive: true });
-    if (receiptRows.length > 0) fs.mkdirSync(tempReceiptDir, { recursive: true });
-
     const usedNames = new Set();
     for (const expense of receiptRows) {
-      try {
-        if (!expense.receipt_url) continue;
-        const fileName = uniqueFileName(buildReceiptFileName(expense), usedNames);
-        await downloadFile(expense.receipt_url, path.join(tempReceiptDir, fileName));
-        receiptCount += 1;
-        if (expense._backup_source === 'expenses') receiptExpensesCount += 1;
-        else receiptSimpleCount += 1;
-      } catch (err) {
-        console.error(`[PhotoBackup] receipt ${expense._backup_source || 'expense'} ${expense.id}:`, err);
-      }
-    }
-
-    try {
-      const zip = new AdmZip();
-      if (receiptCount > 0 && fs.existsSync(tempReceiptDir)) {
-        for (const file of fs.readdirSync(tempReceiptDir)) {
-          zip.addLocalFile(path.join(tempReceiptDir, file));
-        }
-      } else {
-        zip.addFile(
-          'readme.txt',
-          Buffer.from(
-            `FloXync monthly receipt backup\nMonth: ${targetMonth}\nSources: simple_expenses + expenses (지출관리)\nNo expense receipt images.\n`,
-            'utf8',
-          ),
-        );
-      }
-      zip.writeZip(receiptZipPath);
-      console.log(
-        `[PhotoBackup] Receipt zip: ${receiptZipPath} (${receiptCount} files — simple:${receiptSimpleCount}, expenses:${receiptExpensesCount})`,
-      );
-    } finally {
-      if (fs.existsSync(tempReceiptDir)) {
-        for (const file of fs.readdirSync(tempReceiptDir)) {
-          fs.unlinkSync(path.join(tempReceiptDir, file));
-        }
-        fs.rmdirSync(tempReceiptDir);
-      }
+      if (!expense.receipt_url) continue;
+      const fileName = uniqueFileName(buildReceiptFileName(expense), usedNames);
+      const isExp = expense._backup_source === 'expenses';
+      receiptItems.push({ url: expense.receipt_url, fileName, isExpenses: isExp });
     }
   }
+
+  const { Worker } = require('worker_threads');
+  const workerPath = path.join(__dirname, 'photoBackupWorker.js');
+  if (!fs.existsSync(workerPath)) {
+    console.error('[PhotoBackup] Worker file not found:', workerPath);
+    return { ok: false, error: 'Worker file not found' };
+  }
+
+  const basePath = getBaseBackupPath(tenantId);
+  const cacheBaseDir = path.join(basePath, 'ImageCache');
+  const deliveryCacheDir = path.join(cacheBaseDir, 'DeliveryPhotos');
+  const receiptCacheDir = path.join(cacheBaseDir, 'ReceiptPhotos');
+
+  // Ensure cache directories exist
+  if (!fs.existsSync(deliveryCacheDir)) fs.mkdirSync(deliveryCacheDir, { recursive: true });
+  if (!fs.existsSync(receiptCacheDir)) fs.mkdirSync(receiptCacheDir, { recursive: true });
+
+  await new Promise((resolve) => {
+    const worker = new Worker(workerPath, {
+      workerData: {
+        deliveryItems,
+        receiptItems,
+        deliveryBackupDir,
+        receiptBackupDir,
+        deliveryZipPath,
+        receiptZipPath,
+        deliveryCacheDir,
+        receiptCacheDir,
+        folderName: targetMonth.replace('-', '_'),
+      },
+    });
+
+    worker.on('message', (msg) => {
+      if (msg.type === 'log') console.log(`[PhotoBackup] ${msg.msg}`);
+      if (msg.type === 'warn') console.warn(`[PhotoBackup] ${msg.msg}`);
+      if (msg.type === 'error') console.error(`[PhotoBackup] Worker error: ${msg.msg}`);
+      if (msg.type === 'done') resolve();
+    });
+
+    worker.on('error', (err) => {
+      console.error('[PhotoBackup] Worker exception:', err);
+      resolve();
+    });
+
+    worker.on('exit', (code) => {
+      if (code !== 0) console.warn(`[PhotoBackup] Worker exited with code ${code}`);
+      resolve();
+    });
+  });
 
   return {
     ok: true,
     targetMonth,
     deliveryZip: deliveryZipPath,
     receiptZip: receiptZipPath,
-    deliveryCount,
-    receiptCount,
-    receiptSimpleCount,
-    receiptExpensesCount,
+    deliveryCount: deliveryItems.length,
+    receiptCount: receiptItems.length,
+    receiptSimpleCount: receiptItems.filter(i => !i.isExpenses).length,
+    receiptExpensesCount: receiptItems.filter(i => i.isExpenses).length,
   };
 }
 
@@ -459,4 +431,5 @@ module.exports = {
   collectReceiptRowsForMonth,
   runPhotoBackupForMonth,
   checkAndRunPhotoBackup,
+  downloadFile,
 };

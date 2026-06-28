@@ -721,6 +721,21 @@ ipcMain.handle('trigger-kakaotalk-paste', async (_event, { message }) => {
   return { success: true };
 });
 
+ipcMain.handle('trigger-messenger-paste', async (_event, { protocol, message }) => {
+  const { clipboard, shell } = require('electron');
+  if (message) {
+    clipboard.writeText(message);
+  }
+  try {
+    if (protocol) {
+      await shell.openExternal(protocol);
+    }
+  } catch (e) {
+    console.error(`${protocol} 실행 실패:`, e.message);
+  }
+  return { success: true };
+});
+
 ipcMain.handle('get-print-log', async () => {
   const logPath = getPrintLogPath();
   const userData = app.getPath('userData');
@@ -790,7 +805,12 @@ const bridgeAssetsPath = app.isPackaged
 
 function appendPrintLog(msg) {
   try {
-    fs.appendFileSync(getPrintLogPath(), `${new Date().toISOString()} ${msg}\n`);
+    const logPath = getPrintLogPath();
+    if (fs.existsSync(logPath) && fs.statSync(logPath).size > 500 * 1024) {
+      const lines = fs.readFileSync(logPath, 'utf8').split('\n');
+      fs.writeFileSync(logPath, lines.slice(-200).join('\n') + '\n');
+    }
+    fs.appendFileSync(logPath, `${new Date().toISOString()} ${msg}\n`);
   } catch (_) {}
 }
 
@@ -920,7 +940,7 @@ async function printHtmlToDevice(html, configuredPrinter, opts = {}) {
   });
 
   const cleanup = () => {
-    if (!printWin.isDestroyed()) printWin.close();
+    if (!printWin.isDestroyed()) printWin.destroy();
     try {
       if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
     } catch (_) {}

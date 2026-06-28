@@ -108,6 +108,8 @@ export interface SystemSettings {
   kakaoTemplateDeliveryComplete?: string;
   /** Windows 앱 로컬 저장·백업 루트 (비우면 문서/Floxync) */
   localBackupPath?: string;
+  /** 기본 알림 메신저 (kakaotalk | zalo | line | whatsapp | sms) */
+  preferredMessenger?: 'kakaotalk' | 'zalo' | 'line' | 'whatsapp' | 'sms';
 }
 
 export const defaultSettings: SystemSettings = {
@@ -116,6 +118,7 @@ export const defaultSettings: SystemSettings = {
   contactPhone: "",
   address: "",
   country: "KR",
+  preferredMessenger: "kakaotalk",
   pointRate: 0,
   minPointUsage: 0,
   discountRates: [5, 10, 15, 20],

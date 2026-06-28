@@ -192,6 +192,12 @@ class SyncWorker {
         }
       } catch (_) {}
 
+      if (hadWork || this.syncCycleCount === 1) {
+        this.downloadImageCacheBackground().catch((err) => {
+          console.error('[ImageCache] Background cache download error:', err);
+        });
+      }
+
       return { hadWork, pendingQueue };
     } finally {
       this.isSyncing = false;
@@ -519,6 +525,96 @@ class SyncWorker {
         });
       }
     })(data);
+  }
+
+  async downloadImageCacheBackground() {
+    if (!this.tenantId) return;
+    const {
+      resolveDeliveryProofUrl,
+      buildDeliveryFileName,
+      buildReceiptFileName,
+      collectReceiptRowsForMonth,
+      getBaseBackupPath,
+      downloadFile,
+    } = require('./photoBackup');
+
+    const basePath = getBaseBackupPath(this.tenantId);
+    const cacheBaseDir = path.join(basePath, 'ImageCache');
+    const deliveryCacheDir = path.join(cacheBaseDir, 'DeliveryPhotos');
+    const receiptCacheDir = path.join(cacheBaseDir, 'ReceiptPhotos');
+
+    if (!fs.existsSync(deliveryCacheDir)) fs.mkdirSync(deliveryCacheDir, { recursive: true });
+    if (!fs.existsSync(receiptCacheDir)) fs.mkdirSync(receiptCacheDir, { recursive: true });
+
+    // 1. 배송 사진 캐시 대상 조회
+    try {
+      const pendingOrders = this.db
+        .prepare(
+          `SELECT * FROM orders
+           WHERE tenant_id = ?
+             AND status = 'completed'
+           LIMIT 100`,
+        )
+        .all(this.tenantId);
+
+      for (const order of pendingOrders) {
+        try {
+          const proofUrl = resolveDeliveryProofUrl(order);
+          if (!proofUrl) continue;
+
+          const fileName = buildDeliveryFileName(order, proofUrl);
+          const destPath = path.join(deliveryCacheDir, fileName);
+
+          if (!fs.existsSync(destPath)) {
+            console.log(`[ImageCache] 백그라운드 배송사진 캐시 다운로드 시작: ${fileName}`);
+            await downloadFile(proofUrl, destPath);
+          }
+        } catch (e) {
+          console.warn(`[ImageCache] 배송사진 다운로드 캐시 실패 order=${order.id}:`, e.message);
+        }
+      }
+    } catch (err) {
+      console.warn('[ImageCache] Orders scan failed:', err.message);
+    }
+
+    // 2. 영수증 사진 캐시 대상 조회
+    try {
+      let receiptRows = [];
+      try {
+        const targetMonths = [];
+        const now = new Date();
+        for (let i = 0; i < 3; i++) {
+          const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+          const yyyy = d.getFullYear();
+          const mm = String(d.getMonth() + 1).padStart(2, '0');
+          targetMonths.push(`${yyyy}-${mm}`);
+        }
+
+        for (const month of targetMonths) {
+          const monthReceipts = await collectReceiptRowsForMonth(this.db, this.tenantId, month, this.supabase);
+          receiptRows.push(...monthReceipts);
+        }
+      } catch (e) {
+        console.warn('[ImageCache] collectReceiptRowsForMonth failed:', e.message);
+      }
+
+      for (const exp of receiptRows.slice(0, 100)) {
+        try {
+          if (!exp.receipt_url) continue;
+          const fileName = buildReceiptFileName(exp);
+          const destPath = path.join(receiptCacheDir, fileName);
+
+          if (!fs.existsSync(destPath)) {
+            console.log(`[ImageCache] 백그라운드 영수증사진 캐시 다운로드 시작: ${fileName}`);
+            await downloadFile(exp.receipt_url, destPath);
+          }
+        } catch (e) {
+          console.warn(`[ImageCache] 영수증사진 다운로드 캐시 실패 expense=${exp.id}:`, e.message);
+        }
+      }
+    } catch (err) {
+      console.warn('[ImageCache] Expenses scan failed:', err.message);
+    }
   }
 
   getBackupData() {
