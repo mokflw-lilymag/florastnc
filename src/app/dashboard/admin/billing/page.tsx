@@ -1,376 +1,606 @@
 "use client";
+import { getMessages } from "@/i18n/getMessages";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
-import Link from "next/link";
+import React, { useState, useEffect } from "react";
+import { 
+    CreditCard, TrendingUp, Users, DollarSign, Download, Calendar, 
+    Wallet, ArrowUpRight, ArrowDownLeft, CheckCircle2, AlertCircle, Search,
+    FileSpreadsheet, Cpu, AlertTriangle, Eye, RefreshCw, Loader2
+} from "lucide-react";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { PageHeader } from "@/components/page-header";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
 import { AccessDenied } from "@/components/access-denied";
 import { createClient } from "@/utils/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { toast } from "sonner";
-import {
-  Loader2,
-  CreditCard,
-  TrendingUp,
-  AlertTriangle,
-  RefreshCw,
-  DollarSign,
-  Globe,
-  BarChart3,
-  History,
-  Store,
-} from "lucide-react";
 import { format, parseISO } from "date-fns";
-import {
-  buildSubscriptionOverview,
-  resolveSubscriptionTenure,
-  tenureDaysLabelKo,
-} from "@/lib/subscription/subscription-tenure";
-import {
-  ExpiringTenantsPanel,
-  SubscriptionOverviewCards,
-} from "@/components/admin/ExpiringTenantsPanel";
-import { TENANT_COUNTRY_META } from "@/lib/admin/tenant-country-meta";
-
-// ─── 타입 ────────────────────────────────────────────────
-type TenantBillingRow = {
-  id: string;
-  name: string;
-  plan: string | null;
-  subscription_start: string | null;
-  subscription_end: string | null;
-  status: string | null;
-  is_premium: boolean | null;
-  country: string | null;
-  currency: string | null;
-};
-
-// 플랜별 월 단가 (원화 환산 기준)
-const PLAN_MRR_USD: Record<string, number> = {
-  free: 0,
-  ribbon_only: 15000,
-  light: 25000,
-  pro: 40000,
-  pro_plus: 60000,
-};
-
-const PLAN_LABELS: Record<string, string> = {
-  free: "무료 체험판",
-  ribbon_only: "리본 라이센스 (리본 전용)",
-  light: "플로비서 라이트",
-  pro: "플로비서 프로",
-  pro_plus: "플로비서 프로 플러스",
-};
-
-const PLAN_COLORS = ["#10b981", "#8b5cf6", "#14b8a6", "#3b82f6", "#64748b"];
-const PLANS = ["pro_plus", "pro", "light", "ribbon_only", "free"];
-
-// ─── 간단한 도넛 차트 (SVG) ─────────────────────────────
-function DonutChart({ data }: { data: { label: string; value: number; color: string }[] }) {
-  const total = data.reduce((s, d) => s + d.value, 0);
-  if (total === 0) return <div className="text-center text-slate-400 text-sm py-4">데이터 없음</div>;
-
-  let offset = 0;
-  const r = 45;
-  const cx = 60;
-  const cy = 60;
-  const circ = 2 * Math.PI * r;
-
-  return (
-    <div className="flex items-center gap-4">
-      <svg width="120" height="120" viewBox="0 0 120 120">
-        {data.map((d, i) => {
-          const pct = d.value / total;
-          const dash = pct * circ;
-          const gap = circ - dash;
-          const rotation = (offset / total) * 360 - 90;
-          offset += d.value;
-          if (d.value === 0) return null;
-          return (
-            <circle
-              key={i}
-              r={r}
-              cx={cx}
-              cy={cy}
-              fill="none"
-              stroke={d.color}
-              strokeWidth="20"
-              strokeDasharray={`${dash} ${gap}`}
-              transform={`rotate(${rotation} ${cx} ${cy})`}
-              style={{ transition: "stroke-dasharray 0.3s ease" }}
-            />
-          );
-        })}
-        <circle r="28" cx={cx} cy={cy} fill="white" />
-        <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle" fontSize="14" fontWeight="bold" fill="#1e293b">
-          {total}
-        </text>
-      </svg>
-      <div className="space-y-1.5">
-        {data.filter((d) => d.value > 0).map((d, i) => (
-          <div key={i} className="flex items-center gap-1.5 text-xs">
-            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: d.color }} />
-            <span className="text-slate-600">{d.label}</span>
-            <span className="font-bold ml-auto pl-2">{d.value}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
+import Link from "next/link";
+import { pickUiText } from "@/i18n/pick-ui-text";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ExpenseManagement } from "./components/expense-management";
 
 export default function BillingAdminPage() {
-  const supabase = createClient();
-  const { isSuperAdmin, isLoading: authLoading } = useAuth();
+    const supabase = createClient();
+    const { profile, isLoading: authLoading } = useAuth();
+    const isSuperAdmin = profile?.role === 'super_admin' || profile?.role === '본사 관리자';
 
-  const [tenants, setTenants] = useState<TenantBillingRow[]>([]);
-  const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(true);
+    const [stats, setStats] = useState({
+        networkCommission: 0,
+        totalFloat: 0,
+        activeShops: 0,
+        pendingCancellationsCount: 0
+    });
+    const [tenants, setTenants] = useState<any[]>([]);
+    const [withdrawals, setWithdrawals] = useState<any[]>([]);
+    const [cancellations, setCancellations] = useState<any[]>([]);
+    const [search, setSearch] = useState("");
+    const [isExportingExcel, setIsExportingExcel] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const { data: tData } = await supabase
-        .from("tenants")
-        .select("id, name, plan, subscription_start, subscription_end, status, is_premium")
-        .order("subscription_end", { ascending: true, nullsFirst: true });
+    const locale = usePreferredLocale();
+    const tf = getMessages(locale).tenantFlows;
+    const baseLocale = toBaseLocale(locale);
 
-      const ids = (tData ?? []).map((t) => t.id);
-      const { data: sData } = await supabase
-        .from("system_settings")
-        .select("tenant_id, data")
-        .in("tenant_id", ids);
+    useEffect(() => {
+        if (isSuperAdmin) {
+            fetchAdminData();
+        }
+    }, [isSuperAdmin]);
 
-      const settingsMap: Record<string, { country?: string; currency?: string }> = {};
-      for (const s of sData ?? []) {
-        settingsMap[s.tenant_id] = {
-          country: (s.data as Record<string, unknown>)?.country as string ?? null,
-          currency: (s.data as Record<string, unknown>)?.currency as string ?? null,
-        };
-      }
+    const fetchAdminData = async () => {
+        setLoading(true);
+        try {
+            // 1. Fetch all wallets and tenants
+            const { data: walletData } = await supabase
+                .from('wallets')
+                .select('*, tenant:tenants(id, name, logo_url, plan, subscription_status)');
+            
+            setTenants(walletData || []);
 
-      setTenants((tData ?? []).map((t) => ({
-        ...t,
-        country: settingsMap[t.id]?.country ?? null,
-        currency: settingsMap[t.id]?.currency ?? null,
-      })));
-    } catch (e) {
-      console.error(e);
-      toast.error("데이터 로드 실패");
-    } finally {
-      setLoading(false);
-    }
-  }, [supabase]);
+            // 2. Fetch withdrawal requests
+            const { data: reqs } = await supabase
+                .from('withdrawal_requests')
+                .select('*, tenant:tenants(name)')
+                .order('created_at', { ascending: false });
+            
+            setWithdrawals(reqs || []);
 
-  useEffect(() => {
-    if (!authLoading && isSuperAdmin) load();
-    else if (!authLoading && !isSuperAdmin) setLoading(false);
-  }, [authLoading, isSuperAdmin, load]);
+            // 3. Fetch pending cancellations
+            const { data: cancels } = await supabase
+                .from('subscription_cancellations')
+                .select('*, tenant:tenants(id, name, subscription_end)')
+                .order('created_at', { ascending: false });
+            
+            setCancellations(cancels || []);
 
-  if (authLoading || (isSuperAdmin && loading)) {
-    return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-violet-500" /></div>;
-  }
-  if (!isSuperAdmin) return <AccessDenied requiredTier="System Admin" />;
+            // 4. Calculate Stats
+            const { data: networkOrders } = await supabase.from('external_orders').select('platform_fee');
+            const commission = networkOrders?.reduce((acc, curr) => acc + (curr.platform_fee || 0), 0) || 0;
+            const float = walletData?.reduce((acc, curr) => acc + (curr.balance || 0), 0) || 0;
+            
+            const pendingCancels = cancels?.filter(c => c.status === 'pending').length || 0;
 
-  // ─── 계산 ──────────────────────────────────────────────
-  const overview = useMemo(() => buildSubscriptionOverview(tenants), [tenants]);
-  const totalMRR = tenants.reduce((s, t) => s + (PLAN_MRR_USD[t.plan ?? "free"] ?? 0), 0);
-  const paidCount = tenants.filter((t) => t.plan && t.plan !== "free").length;
+            setStats({
+                networkCommission: commission,
+                totalFloat: float,
+                activeShops: walletData?.length || 0,
+                pendingCancellationsCount: pendingCancels
+            });
 
-  const donutData = PLANS.map((p, i) => ({
-    label: PLAN_LABELS[p],
-    value: tenants.filter((t) => (t.plan ?? "free") === p).length,
-    color: PLAN_COLORS[i],
-  }));
+        } catch (error) {
+            console.error(error);
+            toast.error(tf.f00965);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-  // 국가별 MRR
-  const countryMRR = Object.entries(
-    tenants.reduce((acc, t) => {
-      const c = t.country ?? "KR";
-      acc[c] = (acc[c] ?? 0) + (PLAN_MRR_USD[t.plan ?? "free"] ?? 0);
-      return acc;
-    }, {} as Record<string, number>)
-  ).sort((a, b) => b[1] - a[1]);
+    // Cancellation Process approvals
+    const handleApproveCancellation = async (cancelId: string, tenantId: string, printerSn: string | null) => {
+        if (!confirm("이 가맹점의 해지 신청을 최종 승인하시겠습니까? 즉시 요금제가 무료로 강제 원복됩니다.")) return;
 
-  return (
-    <div className="container max-w-6xl mx-auto p-6 space-y-8">
-      {/* 헤더 */}
-      <div className="flex items-end justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow">
-            <DollarSign className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-black tracking-tight">SaaS 구독 대시보드</h1>
-            <p className="text-slate-500 text-sm">
-              Floxync 플랜·MRR·만료 현황 (매장 지갑·출금은{" "}
-              <Link href="/dashboard/billing-admin" className="text-emerald-600 hover:underline font-medium">
-                지갑·출금
-              </Link>
-              과 별도)
-            </p>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <Link
-            href="/dashboard/admin/subscription-events"
-            className={buttonVariants({ variant: "outline", size: "sm", className: "gap-1.5 h-9" })}
-          >
-            <History className="w-3.5 h-3.5" /> 결제 이력
-          </Link>
-          <Button variant="outline" onClick={load} className="gap-1.5 h-9">
-            <RefreshCw className="w-3.5 h-3.5" /> 새로고침
-          </Button>
-        </div>
-      </div>
+        try {
+            // 1. Update cancellation status
+            const { error: cancelError } = await supabase
+                .from("subscription_cancellations")
+                .update({ status: "completed" })
+                .eq("id", cancelId);
+            
+            if (cancelError) throw cancelError;
 
-      {/* KPI */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { label: "예상 MRR (KRW)", value: `₩${totalMRR.toLocaleString()}`, icon: TrendingUp, color: "text-emerald-600", bg: "bg-emerald-50" },
-          { label: "유료 구독 수", value: paidCount, icon: CreditCard, color: "text-blue-600", bg: "bg-blue-50" },
-          { label: "7일 내 만료", value: overview.expiring7, icon: AlertTriangle, color: "text-amber-600", bg: "bg-amber-50" },
-          { label: "연체/만료", value: overview.expired, icon: AlertTriangle, color: "text-red-600", bg: "bg-red-50" },
-        ].map((k) => (
-          <Card key={k.label} className="border-0 shadow-sm ring-1 ring-slate-100">
-            <CardContent className="pt-5 pb-4">
-              <div className="flex items-center gap-2 mb-1">
-                <div className={`w-7 h-7 rounded-lg ${k.bg} flex items-center justify-center`}>
-                  <k.icon className={`w-3.5 h-3.5 ${k.color}`} />
+            // 2. Reset tenant plan to free
+            const { error: tenantError } = await supabase
+                .from("tenants")
+                .update({
+                    plan: "free",
+                    subscription_status: "none",
+                    subscription_end: null
+                })
+                .eq("id", tenantId);
+            
+            if (tenantError) throw tenantError;
+
+            // 3. If printer serial is associated, update printer lifecycle status back to 'available' and unbind tenant
+            if (printerSn) {
+                const { data: device } = await supabase
+                    .from("tenant_devices")
+                    .select("history_logs")
+                    .eq("serial_number", printerSn)
+                    .maybeSingle();
+
+                const updatedLogs = [
+                    ...(device?.history_logs || []),
+                    { action: "returned", date: new Date().toISOString(), note: "구독 해지 완료에 따른 정상 반납 회수 처리" }
+                ];
+
+                await supabase
+                    .from("tenant_devices")
+                    .update({
+                        status: "available",
+                        tenant_id: null,
+                        history_logs: updatedLogs
+                    })
+                    .eq("serial_number", printerSn);
+            }
+
+            toast.success("구독 해지 승인이 완료되었습니다. 지점의 멤버십이 무료(Free) 등급으로 즉시 환원되었습니다.");
+            fetchAdminData();
+        } catch (err: any) {
+            toast.error("해지 승인 처리 오류", { description: err.message });
+        }
+    };
+
+    // Export Tax Excel sheet (forex adjustments + toss domestic 10% vs stripe zero VAT)
+    const handleExportTaxExcel = async () => {
+        setIsExportingExcel(true);
+        try {
+            // Simulated transaction records for subscription billing (Toss + Stripe)
+            // Fetch logs from Supabase
+            const { data: payments } = await supabase
+                .from("wallet_transactions")
+                .select("*, tenant:tenants(name, subscription_status)")
+                .order("created_at", { ascending: false });
+
+            if (!payments || payments.length === 0) {
+                toast.error("엑셀로 추출할 정산/결제 이력이 존재하지 않습니다.");
+                setIsExportingExcel(false);
+                return;
+            }
+
+            // CSV/Excel formatting structure
+            let csvContent = "\uFEFF"; // BOM for Excel Korean encoding
+            csvContent += "결제시각,가맹점명,구분,총결제금액(원화),공급가액,부가세(10%),Stripe 수수료(원화),환전 차손익 보정액,정산유형,증빙구분\n";
+
+            payments.forEach((p) => {
+                const dateStr = format(parseISO(p.created_at), "yyyy-MM-dd HH:mm");
+                const shopName = p.tenant?.name || "알수없음";
+                const amt = p.amount;
+                const isStripe = p.metadata?.provider === "stripe";
+
+                let vat = 0;
+                let supplyAmt = amt;
+                let stripeFee = 0;
+                let forexAdjustment = 0;
+                let taxType = "국내 과세 (Toss)";
+                let receiptType = "신용카드영수증";
+
+                if (isStripe) {
+                    // Foreign Stripe payment logic
+                    vat = 0; // 0% VAT for export software
+                    supplyAmt = amt;
+                    stripeFee = Math.round(amt * 0.034); // Stripe standard processing fee representation (3.4%)
+                    forexAdjustment = Math.round(amt * 0.012); // Forex difference calculation (approx 1.2% buffer loss)
+                    taxType = "국외 영세율 (Stripe)";
+                    receiptType = "외화수출정산";
+                } else {
+                    // Toss payment has standard 10% VAT inclusion
+                    vat = Math.round(amt / 11);
+                    supplyAmt = amt - vat;
+                }
+
+                csvContent += `${dateStr},${shopName},구독료,${amt},${supplyAmt},${vat},${stripeFee},${forexAdjustment},${taxType},${receiptType}\n`;
+            });
+
+            // Trigger file download
+            const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", `Floxync_Tax_Report_${format(new Date(), "yyyyMMdd")}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            toast.success("국세청 세무 신고용 통합 정산 엑셀 파일이 성공적으로 다운로드되었습니다.");
+        } catch (err: any) {
+            toast.error("엑셀 다운로드 오류", { description: err.message });
+        } finally {
+            setIsExportingExcel(false);
+        }
+    };
+
+    const handleRecharge = async (tenantId: string, currentBalance: number) => {
+        const amountStr = prompt(tf.f02032);
+        if (!amountStr) return;
+        const amount = parseInt(amountStr);
+        if (isNaN(amount) || amount <= 0) return;
+
+        try {
+            const { error: updateError } = await supabase
+                .from('wallets')
+                .update({ balance: currentBalance + amount })
+                .eq('tenant_id', tenantId);
+
+            if (updateError) throw updateError;
+
+            await supabase.from('wallet_transactions').insert([{
+                tenant_id: tenantId,
+                amount: amount,
+                type: 'recharge',
+                status: 'completed',
+                metadata: { admin_id: profile?.id, note: tf.f00966 }
+            }]);
+
+            toast.success(tf.f01601);
+            fetchAdminData();
+        } catch (error) {
+            console.error(error);
+            toast.error(tf.f02031);
+        }
+    };
+
+    const handleWithdrawalStatus = async (id: string, tenantId: string, amount: number, status: string) => {
+        try {
+            const { error } = await supabase
+                .from('withdrawal_requests')
+                .update({ status: status })
+                .eq('id', id);
+
+            if (error) throw error;
+
+            if (status === 'paid') {
+                toast.success(tf.f01901);
+            } else if (status === 'rejected') {
+                const { data: wallet } = await supabase.from('wallets').select('balance').eq('tenant_id', tenantId).single();
+                await supabase.from('wallets').update({ balance: (wallet?.balance || 0) + amount }).eq('tenant_id', tenantId);
+                toast.info(tf.f01223);
+            }
+
+            fetchAdminData();
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    if (authLoading) return null;
+    if (!isSuperAdmin) return <AccessDenied requiredTier="System Admin" />;
+
+    const walletPageTitle = pickUiText(
+        baseLocale,
+        "본사 세무 · 지출 · 가맹 관리",
+        "HQ Tax · Billing · Cancellation",
+    );
+    const walletPageDesc = pickUiText(
+        baseLocale,
+        "본사 지출 장부, 프린터 물류 재고, 해약 위약 정산 및 해외 영세율 부가세 자료 엑셀 추출입니다.",
+        "Management of expenses, devices inventory, and tax reportings for HQ admin.",
+    );
+
+    return (
+        <div className="p-6 max-w-7xl mx-auto space-y-6 pb-20 animate-in fade-in duration-500 text-slate-900">
+            <PageHeader 
+                title={walletPageTitle} 
+                description={walletPageDesc} 
+                icon={Wallet}
+            >
+                <div className="flex gap-3">
+                    <Button 
+                        onClick={handleExportTaxExcel}
+                        disabled={isExportingExcel}
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl"
+                    >
+                        {isExportingExcel ? <Loader2 className="h-4 w-4 animate-spin" /> : <><FileSpreadsheet className="mr-2 h-4 w-4" /> 국세청 세무 엑셀 추출</>}
+                    </Button>
+                    <Link
+                        href="/dashboard/admin/billing"
+                        className={buttonVariants({ variant: "outline", className: "border-slate-200 rounded-xl" })}
+                    >
+                        SaaS 요금제 락 설정 →
+                    </Link>
                 </div>
-                <span className="text-xs text-slate-500">{k.label}</span>
-              </div>
-              <p className="text-2xl font-black">{k.value}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+            </PageHeader>
 
-      <SubscriptionOverviewCards overview={overview} />
-
-      <ExpiringTenantsPanel
-        overview={overview}
-        locale="ko"
-        maxRows={15}
-        tenantsHref="/dashboard/tenants"
-        billingHref="/dashboard/admin/billing"
-      />
-
-      {/* 도넛 + 국가별 MRR */}
-      <div className="grid md:grid-cols-2 gap-4">
-        <Card className="border-0 shadow-sm ring-1 ring-slate-100">
-          <CardHeader><CardTitle className="text-sm flex items-center gap-1.5"><BarChart3 className="w-4 h-4" />플랜별 분포</CardTitle></CardHeader>
-          <CardContent><DonutChart data={donutData} /></CardContent>
-        </Card>
-        <Card className="border-0 shadow-sm ring-1 ring-slate-100">
-          <CardHeader><CardTitle className="text-sm flex items-center gap-1.5"><Globe className="w-4 h-4" />국가별 MRR (KRW)</CardTitle></CardHeader>
-          <CardContent className="space-y-2">
-            {countryMRR.filter(([, v]) => v > 0).map(([code, mrr]) => {
-              const meta = TENANT_COUNTRY_META[code];
-              const maxMRR = countryMRR[0]?.[1] ?? 1;
-              return (
-                <div key={code} className="flex items-center gap-2">
-                  <span className="text-base">{meta?.flag ?? "🌐"}</span>
-                  <span className="text-xs font-medium w-20 shrink-0">{meta?.name ?? code}</span>
-                  <div className="flex-1 bg-slate-100 rounded-full h-2">
-                    <div className="bg-emerald-500 h-2 rounded-full" style={{ width: `${(mrr / maxMRR) * 100}%` }} />
-                  </div>
-                  <span className="text-xs font-mono text-slate-500 w-20 text-right">₩{mrr.toLocaleString()}</span>
-                </div>
-              );
-            })}
-            {countryMRR.filter(([, v]) => v > 0).length === 0 && (
-              <p className="text-sm text-slate-400 text-center py-4">유료 구독 데이터 없음</p>
+            {stats.pendingCancellationsCount > 0 && (
+                <Alert className="rounded-2xl border-red-100 bg-red-50/50 flex items-start gap-3">
+                    <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5" />
+                    <div>
+                        <AlertTitle className="text-sm font-extrabold text-red-900">
+                            가맹점 해지/해약 신청 접수 대기 중
+                        </AlertTitle>
+                        <AlertDescription className="text-xs text-red-800/90 mt-1">
+                            현재 반납 장비 검수 및 해지 처리가 필요한 대기 건이 <b>{stats.pendingCancellationsCount}건</b> 있습니다. '해지 신청 현황' 탭에서 확인해 주십시오.
+                        </AlertDescription>
+                    </div>
+                </Alert>
             )}
-          </CardContent>
-        </Card>
-      </div>
 
-      {/* 전체 구독 목록 */}
-      <Card className="border-0 shadow-sm ring-1 ring-slate-100">
-        <CardHeader>
-          <CardTitle className="text-sm flex items-center gap-1.5">
-            <CreditCard className="w-4 h-4" />
-            전체 구독 현황
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-slate-50">
-                <TableHead className="text-xs">업체명</TableHead>
-                <TableHead className="text-xs">국가</TableHead>
-                <TableHead className="text-xs">플랜</TableHead>
-                <TableHead className="text-xs">월 구독료</TableHead>
-                <TableHead className="text-xs">구독 시작</TableHead>
-                <TableHead className="text-xs">잔여</TableHead>
-                <TableHead className="text-xs">구독 만료</TableHead>
-                <TableHead className="text-xs" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {tenants.filter((t) => t.plan && t.plan !== "free").map((t) => {
-                const meta = TENANT_COUNTRY_META[t.country ?? ""];
-                const mrr = PLAN_MRR_USD[t.plan ?? "free"] ?? 0;
-                const tenure = resolveSubscriptionTenure(t);
-                return (
-                  <TableRow key={t.id} className={tenure.isExpired ? "bg-red-50/30" : tenure.bucket === "warning" || tenure.bucket === "critical" ? "bg-amber-50/20" : ""}>
-                    <TableCell className="font-medium text-sm py-3">{t.name}</TableCell>
-                    <TableCell><span className="text-base">{meta?.flag ?? "🌐"}</span></TableCell>
-                    <TableCell>
-                      <Badge variant={tenure.isExpired ? "destructive" : "secondary"} className="text-xs">
-                        {PLAN_LABELS[t.plan ?? "free"] ?? t.plan}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-xs font-mono font-bold text-emerald-700">₩{mrr.toLocaleString()}/mo</TableCell>
-                    <TableCell className="text-xs text-slate-500">
-                      {t.subscription_start ? format(parseISO(t.subscription_start), "yyyy.MM.dd") : "-"}
-                    </TableCell>
-                    <TableCell className="text-xs font-bold tabular-nums">
-                      {tenureDaysLabelKo(tenure)}
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      {tenure.endDate ? (
-                        <span className={tenure.isExpired ? "text-red-500 font-bold" : "text-slate-500"}>
-                          {format(tenure.endDate, "yyyy.MM.dd")}
-                          {tenure.isExpired && " (만료)"}
-                        </span>
-                      ) : tenure.isLifetime ? "평생" : "-"}
-                    </TableCell>
-                    <TableCell>
-                      {tenure.isExpired && (
-                        <Link
-                          href="/dashboard/tenants"
-                          className={buttonVariants({
-                            size: "sm",
-                            variant: "outline",
-                            className: "h-6 text-xs gap-1 text-emerald-600 border-emerald-300 inline-flex items-center",
-                          })}
-                        >
-                          <Store className="w-3 h-3" /> 연장
-                        </Link>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-              {tenants.filter((t) => t.plan && t.plan !== "free").length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-12 text-slate-400 text-sm">유료 구독 데이터 없음</TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </div>
-  );
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card className="border-0 shadow-sm bg-indigo-50/50">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-xs font-bold text-indigo-600 uppercase tracking-wider">{tf.f01045}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-xl font-bold text-indigo-900">₩{stats.networkCommission.toLocaleString()}</div>
+                        <p className="text-[10px] text-indigo-500/80 mt-1">누적 충전/결제 실적</p>
+                    </CardContent>
+                </Card>
+                
+                <Card className="border-0 shadow-sm bg-emerald-50/50">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-xs font-bold text-emerald-600 uppercase tracking-wider">가맹점 예치 총액</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-xl font-bold text-emerald-900">₩{stats.totalFloat.toLocaleString()}</div>
+                        <p className="text-[10px] text-emerald-500/80 mt-1">네트워크 유통 가용 잔액</p>
+                    </CardContent>
+                </Card>
+
+                <Card className="border-0 shadow-sm bg-rose-50/50">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-xs font-bold text-rose-600 uppercase tracking-wider">출금 승인 대기</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-xl font-bold text-rose-900">₩{withdrawals.filter(w=>w.status==='pending').reduce((a,b)=>a+b.amount,0).toLocaleString()}</div>
+                        <p className="text-[10px] text-rose-500/80 mt-1">{withdrawals.filter(w=>w.status==='pending').length}{tf.f00901}</p>
+                    </CardContent>
+                </Card>
+
+                <Card className="border-0 shadow-sm bg-slate-50/50">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-xs font-bold text-slate-600 uppercase tracking-wider">활성 가맹점 수</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-xl font-bold text-slate-900">{stats.activeShops} Places</div>
+                        <p className="text-[10px] text-slate-500/80 mt-1">시스템 활성 가맹 지점</p>
+                    </CardContent>
+                </Card>
+            </div>
+
+            <Tabs defaultValue="wallets" className="space-y-4">
+                <TabsList className="bg-white p-1 h-12 rounded-2xl border border-slate-100 shadow-sm w-fit flex flex-wrap">
+                    <TabsTrigger value="wallets" className="rounded-xl px-6 data-[state=active]:bg-indigo-600 data-[state=active]:text-white">
+                        <Wallet className="w-4 h-4 mr-2" /> 가맹 예치 지갑
+                    </TabsTrigger>
+                    <TabsTrigger value="requests" className="rounded-xl px-6 data-[state=active]:bg-indigo-600 data-[state=active]:text-white">
+                        <AlertCircle className="w-4 h-4 mr-2" /> 가맹 출금 요청
+                    </TabsTrigger>
+                    <TabsTrigger value="cancellations" className="rounded-xl px-6 data-[state=active]:bg-indigo-600 data-[state=active]:text-white">
+                        <AlertTriangle className="w-4 h-4 mr-2" /> 해지 신청 현황
+                    </TabsTrigger>
+                    <TabsTrigger value="expenses" className="rounded-xl px-6 data-[state=active]:bg-indigo-600 data-[state=active]:text-white">
+                        <DollarSign className="w-4 h-4 mr-2" /> 본사 지출/임대 대장
+                    </TabsTrigger>
+                </TabsList>
+
+                {/* 1. Wallet tab */}
+                <TabsContent value="wallets">
+                    <Card className="border-0 shadow-xl rounded-3xl overflow-hidden bg-white">
+                        <div className="p-4 border-b border-slate-50 flex items-center gap-4">
+                            <div className="relative flex-1">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                <Input 
+                                    placeholder={tf.f02232} 
+                                    className="pl-10 rounded-xl border-slate-100 w-full"
+                                    value={search}
+                                    onChange={(e)=>setSearch(e.target.value)}
+                                />
+                            </div>
+                        </div>
+                        <Table>
+                            <TableHeader className="bg-slate-50/50">
+                                <TableRow>
+                                    <TableHead>{tf.f02233}</TableHead>
+                                    <TableHead>현재 등급</TableHead>
+                                    <TableHead className="text-right">{tf.f02189}</TableHead>
+                                    <TableHead>{tf.f01138}</TableHead>
+                                    <TableHead className="text-right pr-6">{tf.f01106}</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {tenants.filter(t => t.tenant?.name?.includes(search)).map(t => (
+                                    <TableRow key={t.tenant_id} className="hover:bg-slate-50/50 h-16">
+                                        <TableCell className="font-semibold text-slate-800">
+                                            {t.tenant?.name}
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge variant={t.tenant?.subscription_status === 'pending_cancel' ? 'destructive' : 'secondary'}>
+                                                {t.tenant?.plan} {t.tenant?.subscription_status === 'pending_cancel' && ' (해지대기)'}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className="text-right font-bold text-indigo-600">
+                                            ₩{t.balance.toLocaleString()}
+                                        </TableCell>
+                                        <TableCell className="text-xs text-slate-400 font-light">
+                                            {format(parseISO(t.updated_at), 'yyyy/MM/dd HH:mm')}
+                                        </TableCell>
+                                        <TableCell className="text-right pr-6">
+                                            <Button 
+                                                size="sm" 
+                                                className="bg-indigo-600 hover:bg-indigo-700 rounded-xl px-4"
+                                                onClick={() => handleRecharge(t.tenant_id, t.balance)}
+                                            >
+                                                {tf.f01600}
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </Card>
+                </TabsContent>
+
+                {/* 2. Withdrawal request tab */}
+                <TabsContent value="requests">
+                    <Card className="border-0 shadow-xl rounded-3xl overflow-hidden bg-white">
+                        <Table>
+                            <TableHeader className="bg-slate-50/50">
+                                <TableRow>
+                                    <TableHead>{tf.f01504}</TableHead>
+                                    <TableHead>{tf.f02229}</TableHead>
+                                    <TableHead className="text-right">{tf.f01503}</TableHead>
+                                    <TableHead>{tf.f01723}</TableHead>
+                                    <TableHead className="text-center">{tf.f00319}</TableHead>
+                                    <TableHead className="text-right pr-6">{tf.f01467}</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {withdrawals.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={6} className="h-40 text-center text-slate-400 font-light italic">
+                                            {tf.f02192}
+                                        </TableCell>
+                                    </TableRow>
+                                ) : (
+                                    withdrawals.map(req => (
+                                        <TableRow key={req.id} className="hover:bg-slate-50/50 px-4">
+                                            <TableCell className="text-xs text-slate-500 font-light italic">
+                                                {format(parseISO(req.created_at), 'MM/dd HH:mm')}
+                                            </TableCell>
+                                            <TableCell className="font-medium">{req.tenant?.name}</TableCell>
+                                            <TableCell className="text-right font-semibold text-rose-600">₩{req.amount.toLocaleString()}</TableCell>
+                                            <TableCell className="text-xs">
+                                                <div className="flex flex-col">
+                                                    <span className="font-semibold">{req.bank_info?.bank_name}</span>
+                                                    <span className="text-slate-500">{req.bank_info?.account_number} ({req.bank_info?.account_holder})</span>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="text-center">
+                                                <Badge variant="outline" className="font-light">{req.status}</Badge>
+                                            </TableCell>
+                                            <TableCell className="text-right pr-6 space-x-2">
+                                                {req.status === 'pending' && (
+                                                    <>
+                                                        <Button 
+                                                            size="sm" 
+                                                            className="bg-emerald-600 hover:bg-emerald-700 rounded-xl"
+                                                            onClick={() => handleWithdrawalStatus(req.id, req.tenant_id, req.amount, 'paid')}
+                                                        >
+                                                            {tf.f01900}
+                                                        </Button>
+                                                        <Button 
+                                                            variant="outline"
+                                                            size="sm" 
+                                                            className="text-rose-600 border-rose-100 hover:bg-rose-50 rounded-xl"
+                                                            onClick={() => handleWithdrawalStatus(req.id, req.tenant_id, req.amount, 'rejected')}
+                                                        >
+                                                            {tf.f00886}
+                                                        </Button>
+                                                    </>
+                                                )}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                    </Card>
+                </TabsContent>
+
+                {/* 3. Cancellation Management Tab */}
+                <TabsContent value="cancellations">
+                    <Card className="border-0 shadow-xl rounded-3xl overflow-hidden bg-white">
+                        <Table>
+                            <TableHeader className="bg-slate-50/50">
+                                <TableRow>
+                                    <TableHead>신청시각</TableHead>
+                                    <TableHead>가맹점명</TableHead>
+                                    <TableHead>요청자(IP)</TableHead>
+                                    <TableHead>구분</TableHead>
+                                    <TableHead>반납 프린터 S/N</TableHead>
+                                    <TableHead>반송 송장 (원클릭 추적)</TableHead>
+                                    <TableHead className="text-center">처리상태</TableHead>
+                                    <TableHead className="text-right pr-6">가맹 해지 제어</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {cancellations.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={8} className="h-40 text-center text-slate-400 font-light italic">
+                                            접수된 가맹점 해약 신청 건이 없습니다.
+                                        </TableCell>
+                                    </TableRow>
+                                ) : (
+                                    cancellations.map(c => (
+                                        <TableRow key={c.id} className="hover:bg-slate-50/50">
+                                            <TableCell className="text-xs text-slate-400">
+                                                {format(parseISO(c.created_at), 'yyyy/MM/dd HH:mm')}
+                                            </TableCell>
+                                            <TableCell className="font-bold text-slate-800">{c.tenant?.name}</TableCell>
+                                            <TableCell className="text-xs text-slate-500">
+                                                <div className="flex flex-col">
+                                                    <span>{c.request_user_email}</span>
+                                                    <span className="text-[10px] text-slate-400">IP: {c.request_ip}</span>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge variant={c.plan_type === 'annual' ? 'destructive' : 'secondary'}>
+                                                    {c.plan_type === 'annual' ? '연간계약' : '월구독'}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell className="font-mono text-xs font-semibold text-slate-600">
+                                                {c.printer_serial_number || "해당없음"}
+                                            </TableCell>
+                                            <TableCell className="text-xs">
+                                                {c.tracking_number ? (
+                                                    <a 
+                                                        href={`https://search.naver.com/search.naver?query=${c.courier_name}+${c.tracking_number}`}
+                                                        target="_blank"
+                                                        className="text-indigo-600 hover:text-indigo-800 underline font-bold"
+                                                    >
+                                                        {c.courier_name} {c.tracking_number} ↗
+                                                    </a>
+                                                ) : (
+                                                    <span className="text-slate-400">송장없음</span>
+                                                )}
+                                            </TableCell>
+                                            <TableCell className="text-center">
+                                                <Badge variant={c.status === 'pending' ? 'destructive' : 'outline'}>
+                                                    {c.status === 'pending' ? '승인대기' : '완료'}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell className="text-right pr-6">
+                                                {c.status === 'pending' && (
+                                                    <Button 
+                                                        size="sm"
+                                                        className="bg-red-600 hover:bg-red-700 text-white rounded-xl px-4"
+                                                        onClick={() => handleApproveCancellation(c.id, c.tenant_id, c.printer_serial_number)}
+                                                    >
+                                                        해지 확정 승인
+                                                    </Button>
+                                                )}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                    </Card>
+                </TabsContent>
+
+                {/* 4. HQ Expense and Inventory Tab */}
+                <TabsContent value="expenses">
+                    <Card className="border-0 shadow-xl rounded-3xl p-6 bg-white">
+                        <ExpenseManagement />
+                    </Card>
+                </TabsContent>
+            </Tabs>
+        </div>
+    );
 }
