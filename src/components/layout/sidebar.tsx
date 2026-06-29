@@ -259,7 +259,7 @@ export function Sidebar({
       id: "admin-wallet",
       label: adminWalletGroup,
       links: [
-        { name: adminWalletLabel, href: "/dashboard/billing-admin", icon: Wallet },
+        { name: adminWalletLabel, href: "/dashboard/admin/billing", icon: Wallet },
       ],
     },
     {

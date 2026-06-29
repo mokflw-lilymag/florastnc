@@ -188,14 +188,28 @@ export function ExpenseManagement() {
                   <Label>지출 구분</Label>
                   <Select value={category} onValueChange={(val) => setCategory(val || "infra")}>
                     <SelectTrigger className="rounded-xl">
-                      <SelectValue />
+                      <SelectValue>
+                        {category === "infra" && "서버 및 인프라 비용"}
+                        {category === "shipping" && "물류 및 택배 배송비"}
+                        {category === "labor" && "급여 및 인건비"}
+                        {category === "labor_insurance" && "4대보험 및 세무/보험료"}
+                        {category === "general" && "일반 관리비 및 월세"}
+                        {category === "device_loss" && "임대 장비 손실/폐기비"}
+                        {category === "meal" && "식비 및 복리후생비"}
+                        {category === "travel" && "교통비 및 출장 관련 비용"}
+                        {category === "etc" && "기타 잡비 및 수수료"}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="infra">서버 및 인프라 비용</SelectItem>
                       <SelectItem value="shipping">물류 및 택배 배송비</SelectItem>
-                      <SelectItem value="labor">개발 및 운영 인건비</SelectItem>
+                      <SelectItem value="labor">급여 및 인건비</SelectItem>
+                      <SelectItem value="labor_insurance">4대보험 및 세무/보험료</SelectItem>
                       <SelectItem value="general">일반 관리비 및 월세</SelectItem>
                       <SelectItem value="device_loss">임대 장비 손실/폐기비</SelectItem>
+                      <SelectItem value="meal">식비 및 복리후생비</SelectItem>
+                      <SelectItem value="travel">교통비 및 출장 관련 비용</SelectItem>
+                      <SelectItem value="etc">기타 잡비 및 수수료</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -238,7 +252,11 @@ export function ExpenseManagement() {
                   <Label>결제 수단</Label>
                   <Select value={paymentMethod} onValueChange={(val) => setPaymentMethod(val || "corporate_card")}>
                     <SelectTrigger className="rounded-xl">
-                      <SelectValue />
+                      <SelectValue>
+                        {paymentMethod === "corporate_card" && "법인 신용카드"}
+                        {paymentMethod === "bank_transfer" && "계좌 이체 (현금)"}
+                        {paymentMethod === "etc" && "기타/수수료 정산"}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="corporate_card">법인 신용카드</SelectItem>
@@ -271,7 +289,15 @@ export function ExpenseManagement() {
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-slate-900">{exp.description}</span>
                           <Badge variant="outline" className="text-[10px]">
-                            {exp.category === "infra" ? "서버/인프라" : exp.category === "shipping" ? "배송/물류" : exp.category === "labor" ? "인건비" : exp.category === "device_loss" ? "장비손실" : "일반"}
+                            {exp.category === "infra" && "서버/인프라"}
+                            {exp.category === "shipping" && "배송/물류"}
+                            {exp.category === "labor" && "급여/인건비"}
+                            {exp.category === "labor_insurance" && "4대보험/세금"}
+                            {exp.category === "device_loss" && "장비손실"}
+                            {exp.category === "meal" && "식비/복리후생"}
+                            {exp.category === "travel" && "교통/출장"}
+                            {exp.category === "etc" && "기타잡비"}
+                            {exp.category === "general" && "일반관리비"}
                           </Badge>
                         </div>
                         <p className="text-xs text-slate-400 font-medium">

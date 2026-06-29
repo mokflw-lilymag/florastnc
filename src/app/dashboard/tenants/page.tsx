@@ -267,6 +267,10 @@ export default function TenantsPage() {
   };
 
   const loadSubscriptionEvents = async (tenantId: string) => {
+    if (!tenantId || tenantId === "undefined") {
+      setSubscriptionEvents([]);
+      return;
+    }
     setEventsLoading(true);
     try {
       const res = await fetch(
