@@ -30,13 +30,13 @@ export async function POST(request: Request) {
     const period = body?.period as Period | undefined;
     const uiLocale = typeof body?.uiLocale === "string" ? body.uiLocale : null;
 
-    if (!planId || !period || !["ribbon_only", "erp_only", "pro"].includes(planId)) {
+    if (!planId || !period || !["ribbon_only", "light", "pro", "pro_plus"].includes(planId)) {
       return NextResponse.json(
         { message: tr(bl, "플랜 정보가 올바르지 않습니다.", "Invalid plan.") },
         { status: 400 },
       );
     }
-    if (!["1m", "3m", "6m", "12m"].includes(period)) {
+    if (!["1m", "12m"].includes(period)) {
       return NextResponse.json(
         { message: tr(bl, "기간 정보가 올바르지 않습니다.", "Invalid billing period.") },
         { status: 400 },

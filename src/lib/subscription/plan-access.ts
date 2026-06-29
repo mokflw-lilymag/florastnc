@@ -4,10 +4,10 @@ import { hasRegisteredStoreTenant } from "@/lib/subscription/guest-trial";
  * 테넌트 플랜 · 메뉴 · 기능 접근 (단일 소스)
  *
  * - `free`: 미구독·체험 — 리본·디자인 일부만 (구독 유도)
- * - `ribbon_only` | `erp_only` | `pro`: 유료 (구독 만료 시 free로 소프트 다운그레이드)
+ * - `ribbon_only` | `light` | `pro` | `pro_plus`: 유료 (구독 만료 시 free로 소프트 다운그레이드)
  */
 
-export const PAID_PLAN_IDS = ["ribbon_only", "erp_only", "pro"] as const;
+export const PAID_PLAN_IDS = ["ribbon_only", "light", "pro", "pro_plus"] as const;
 export type PaidPlanId = (typeof PAID_PLAN_IDS)[number];
 
 /** 결제·구독 페이지에서 판매하는 플랜 */
@@ -50,21 +50,21 @@ export function isPaidPlan(plan?: string | null): boolean {
 export function hasRibbonAccess(ctx: AccessContext): boolean {
   if (ctx.isSuperAdmin) return true;
   const access = resolveAccessPlan(ctx.plan, ctx);
-  return access === "free" || access === "ribbon_only" || access === "pro";
+  return access === "free" || access === "ribbon_only" || access === "light" || access === "pro" || access === "pro_plus";
 }
 
 /** 유료 ERP — DB 저장·연동 */
 export function hasErpAccess(ctx: AccessContext): boolean {
   if (ctx.isSuperAdmin) return true;
   const access = resolveAccessPlan(ctx.plan, ctx);
-  return access === "erp_only" || access === "pro";
+  return access === "light" || access === "pro" || access === "pro_plus";
 }
 
 /** ERP 메뉴 열람·체험 (무료 포함) */
 export function hasErpViewAccess(ctx: AccessContext): boolean {
   if (ctx.isSuperAdmin) return true;
   const access = resolveAccessPlan(ctx.plan, ctx);
-  return access === "free" || access === "erp_only" || access === "pro";
+  return access === "free" || access === "light" || access === "pro" || access === "pro_plus";
 }
 
 export function canPersistErp(ctx: AccessContext): boolean {
@@ -76,7 +76,7 @@ export function isErpTrialMode(ctx: AccessContext): boolean {
 }
 
 /** 사이드바 ERP 메뉴 tier */
-export const ERP_NAV_TIERS = ["pro", "erp_only", "free"] as const;
+export const ERP_NAV_TIERS = ["pro_plus", "pro", "light", "free"] as const;
 
 export function isFreeAccessTier(ctx: AccessContext): boolean {
   if (ctx.isSuperAdmin) return false;
@@ -105,8 +105,7 @@ export function normalizeSubscriptionPlanId(planId: string): PaidPlanId | null {
 }
 
 function freePrintStorageKey(tenantId: string): string {
-  const day = new Date().toISOString().slice(0, 10);
-  return `florasync_free_prints_${tenantId}_${day}`;
+  return `florasync_free_prints_lifetime_${tenantId}`;
 }
 
 export function getFreePrintsUsedToday(tenantId: string): number {
@@ -126,7 +125,8 @@ export function canUseFreeRibbonPrint(
   if (!tenantId || !hasRegisteredStoreTenant(tenantId, { isGuestTrial: opts?.isGuestTrial })) {
     return false;
   }
-  return getFreePrintsUsedToday(tenantId) < FREE_PRINTS_PER_DAY;
+  // 누적 5회 제한
+  return getFreePrintsUsedToday(tenantId) < 5;
 }
 
 export function recordFreeRibbonPrint(tenantId: string): void {

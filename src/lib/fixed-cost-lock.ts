@@ -63,15 +63,11 @@ export async function saveFixedCostLock(
 }
 
 export function isFixedCostUnlocked(tenantId: string): boolean {
-  if (typeof window === "undefined") return false;
-  return sessionStorage.getItem(fixedCostUnlockSessionKey(tenantId)) === "1";
+  return false;
 }
 
 export function setFixedCostUnlocked(tenantId: string, unlocked: boolean) {
-  if (typeof window === "undefined") return;
-  const key = fixedCostUnlockSessionKey(tenantId);
-  if (unlocked) sessionStorage.setItem(key, "1");
-  else sessionStorage.removeItem(key);
+  // No-op: We no longer store this in sessionStorage to enforce immediate lock on navigation
 }
 
 export function formatMonthlyDueDay(dueDay?: number): string | null {

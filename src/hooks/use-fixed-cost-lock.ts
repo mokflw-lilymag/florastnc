@@ -41,6 +41,20 @@ export function useFixedCostLock() {
     void reload();
   }, [reload]);
 
+  // 5분 자동 잠금
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    if (lockEnabled && unlocked) {
+      timeoutId = setTimeout(() => {
+        setUnlocked(false);
+        toast.info("보안을 위해 고정비 템플릿이 자동 잠금되었습니다.");
+      }, 5 * 60 * 1000); // 5분
+    }
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [lockEnabled, unlocked]);
+
   const verifyPin = useCallback(
     async (pin: string) => {
       if (!tenantId) return false;

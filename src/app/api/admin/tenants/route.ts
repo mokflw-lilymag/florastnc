@@ -41,7 +41,7 @@ export async function GET(req: Request) {
 
   const { data: profiles, error: pErr } = await admin
     .from("profiles")
-    .select("email, role, tenant_id")
+    .select("id, email, role, tenant_id")
     .not("tenant_id", "is", null);
 
   if (pErr) {
@@ -49,18 +49,87 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: errAdminDataLoadFailed(bl) }, { status: 500 });
   }
 
-  const byTenant = new Map<string, { email: string; role: string }[]>();
+  // settings_[id] 에서 프린터 임대 및 국가 정보 가져오기
+  const tenantIds = (tenants ?? []).map((t) => t.id);
+  const settingsIds = tenantIds.map((id) => `settings_${id}`);
+  const { data: settings } = await admin
+    .from("system_settings")
+    .select("tenant_id, data")
+    .in("id", settingsIds);
+
+  const settingsMap: Record<string, { 
+    country?: string; 
+    currency?: string; 
+    pos_printer_leased?: boolean; 
+    pos_printer_model?: string; 
+    pos_printer_date?: string; 
+    pos_printer_history?: any[];
+    label_printer_leased?: boolean;
+    label_printer_model?: string;
+    label_printer_date?: string;
+    label_printer_history?: any[];
+    // 사업자 정보
+    representative?: string;
+    businessNumber?: string;
+    contactPhone?: string;
+    address?: string;
+    siteWebsite?: string;
+    storeEmail?: string;
+  }> = {};
+  for (const s of settings ?? []) {
+    if (s.data && typeof s.data === "object") {
+      const d = s.data as Record<string, unknown>;
+      settingsMap[s.tenant_id] = {
+        country: d.country as string ?? null,
+        currency: d.currency as string ?? null,
+        pos_printer_leased: !!d.pos_printer_leased,
+        pos_printer_model: d.pos_printer_model as string ?? "",
+        pos_printer_date: d.pos_printer_date as string ?? null,
+        pos_printer_history: Array.isArray(d.pos_printer_history) ? d.pos_printer_history : [],
+        label_printer_leased: !!d.label_printer_leased,
+        label_printer_model: d.label_printer_model as string ?? "",
+        label_printer_date: d.label_printer_date as string ?? null,
+        label_printer_history: Array.isArray(d.label_printer_history) ? d.label_printer_history : [],
+        // 사업자 정보 (환경설정 store 탭에서 저장)
+        representative: d.representative as string ?? "",
+        businessNumber: d.businessNumber as string ?? "",
+        contactPhone: d.contactPhone as string ?? "",
+        address: d.address as string ?? "",
+        siteWebsite: d.siteWebsite as string ?? "",
+        storeEmail: d.storeEmail as string ?? "",
+      };
+    }
+  }
+
+  const byTenant = new Map<string, { id: string; email: string; role: string }[]>();
   for (const p of profiles ?? []) {
     const tid = p.tenant_id as string;
     if (!tid) continue;
     const list = byTenant.get(tid) ?? [];
-    list.push({ email: String(p.email ?? ""), role: String(p.role ?? "") });
+    list.push({ id: String(p.id ?? ""), email: String(p.email ?? ""), role: String(p.role ?? "") });
     byTenant.set(tid, list);
   }
 
   const merged = (tenants ?? []).map((t) => ({
     ...t,
     profiles: byTenant.get(t.id) ?? [],
+    pos_printer_leased: settingsMap[t.id]?.pos_printer_leased ?? false,
+    pos_printer_model: settingsMap[t.id]?.pos_printer_model ?? null,
+    pos_printer_date: settingsMap[t.id]?.pos_printer_date ?? null,
+    pos_printer_history: settingsMap[t.id]?.pos_printer_history ?? null,
+    label_printer_leased: settingsMap[t.id]?.label_printer_leased ?? false,
+    label_printer_model: settingsMap[t.id]?.label_printer_model ?? null,
+    label_printer_date: settingsMap[t.id]?.label_printer_date ?? null,
+    label_printer_history: settingsMap[t.id]?.label_printer_history ?? null,
+    country: settingsMap[t.id]?.country ?? null,
+    currency: settingsMap[t.id]?.currency ?? null,
+    // 사업자 정보
+    representative: settingsMap[t.id]?.representative ?? "",
+    businessNumber: settingsMap[t.id]?.businessNumber ?? "",
+    contactPhone: settingsMap[t.id]?.contactPhone ?? "",
+    address: settingsMap[t.id]?.address ?? "",
+    siteWebsite: settingsMap[t.id]?.siteWebsite ?? "",
+    storeEmail: settingsMap[t.id]?.storeEmail ?? "",
   }));
 
   return NextResponse.json({ tenants: merged });

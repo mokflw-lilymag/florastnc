@@ -211,8 +211,11 @@ export default function ResetPasswordPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 dark:bg-slate-950">
       <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+        <CardHeader className="text-center pb-2">
+          <div className="flex justify-center mb-4">
+            <img src="/floxync-logo.png" alt="Floxync Logo" className="h-8 object-contain" />
+          </div>
+          <CardTitle className="flex items-center justify-center gap-2">
             <Lock className="h-5 w-5" />
             {L(
               "비밀번호 재설정",

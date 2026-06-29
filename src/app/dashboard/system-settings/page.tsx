@@ -1,8 +1,9 @@
 "use client";
 import { getMessages } from "@/i18n/getMessages";
 
-import { Settings, Save, ShieldAlert, Globe, Bell, History } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { Settings, ShieldAlert, Globe, Bell, History, ExternalLink } from "lucide-react";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
 import { Input } from "@/components/ui/input";
@@ -33,9 +34,9 @@ export default function SystemSettingsPage() {
         description={tf.f01399} 
         icon={Settings}
       >
-        <Button className="bg-slate-900 dark:bg-slate-100 dark:text-slate-900">
-          <Save className="h-4 w-4 mr-2" /> {tf.f01252}
-        </Button>
+        <span className="text-xs text-muted-foreground hidden sm:inline">
+          플랫폼 수수료·알림은 준비 중입니다. 구독 감사는 결제 이력 메뉴를 이용하세요.
+        </span>
       </PageHeader>
 
       <Tabs defaultValue="general" className="w-full">
@@ -165,6 +166,52 @@ export default function SystemSettingsPage() {
                 </div>
                 <Switch defaultChecked />
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="notifications" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>{tf.f01527}</CardTitle>
+              <CardDescription>관리자 알림·이메일 템플릿은 추후 연동 예정입니다.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                만료 임박·연체 알림은 현재 대시보드와 SaaS 구독 메뉴에서 확인하세요.
+              </p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="audit" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <History className="h-4 w-4" />
+                {tf.f00854}
+              </CardTitle>
+              <CardDescription>
+                구독 실결제·관리자 부여 이력은 전용 화면에서 조회합니다.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-slate-600">
+                토스·Stripe 결제, 수동 연장(사유 포함)이 <code className="text-xs bg-slate-100 px-1 rounded">tenant_subscription_events</code> 테이블에 기록됩니다.
+              </p>
+              <Link
+                href="/dashboard/admin/subscription-events"
+                className={buttonVariants({ className: "gap-2" })}
+              >
+                <ExternalLink className="h-4 w-4" />
+                구독·결제 이력 열기
+              </Link>
+              <Link
+                href="/dashboard/tenants"
+                className={buttonVariants({ variant: "outline", className: "gap-2 ml-2" })}
+              >
+                매장 관리 (매장별 이력)
+              </Link>
             </CardContent>
           </Card>
         </TabsContent>

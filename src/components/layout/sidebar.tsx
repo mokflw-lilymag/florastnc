@@ -15,13 +15,14 @@ import {
   Receipt,
   ClipboardList,
   Database,
-  Globe,
   Languages,
   Key,
   BookOpen,
   Smartphone,
   TrendingUp,
   CalendarDays,
+  Wallet,
+  History,
 } from "lucide-react";
 import Image from "next/image";
 import { createClient } from "@/utils/supabase/client";
@@ -148,6 +149,85 @@ export function Sidebar({
 
   const filterCtx = { isSuperAdmin, isExpired, isSuspended, plan };
 
+  const adminSaasBillingLabel = pickUiText(
+    baseLocale,
+    "SaaS 구독",
+    "SaaS subscriptions",
+    "Đăng ký SaaS",
+    "SaaSサブスク",
+    "SaaS 订阅",
+    "Suscripciones SaaS",
+    "Assinaturas SaaS",
+    "Abonnements SaaS",
+    "SaaS-Abos",
+    "Подписки SaaS",
+  );
+  const adminSubscriptionLogLabel = pickUiText(
+    baseLocale,
+    "구독·결제 이력",
+    "Subscription & payment log",
+    "Nhật ký đăng ký & thanh toán",
+    "契約・決済履歴",
+    "订阅与付款记录",
+    "Registro de suscripción y pago",
+    "Histórico de assinatura e pagamento",
+    "Journal abonnements & paiements",
+    "Abo- & Zahlungsprotokoll",
+    "Журнал подписок и платежей",
+  );
+  const adminWalletLabel = pickUiText(
+    baseLocale,
+    "지갑·출금",
+    "Wallets & payouts",
+    "Ví & rút tiền",
+    "ウォレット・出金",
+    "钱包与提现",
+    "Carteras y retiros",
+    "Carteiras e saques",
+    "Portefeuilles & retraits",
+    "Wallets & Auszahlungen",
+    "Кошельки и вывод",
+  );
+  const adminSubscriptionGroup = pickUiText(
+    baseLocale,
+    "구독 · SaaS",
+    "Subscriptions · SaaS",
+    "Đăng ký · SaaS",
+    "契約 · SaaS",
+    "订阅 · SaaS",
+    "Suscripciones · SaaS",
+    "Assinaturas · SaaS",
+    "Abonnements · SaaS",
+    "Abos · SaaS",
+    "Подписки · SaaS",
+  );
+  const adminWalletGroup = pickUiText(
+    baseLocale,
+    "지갑 · 네트워크",
+    "Wallets · network",
+    "Ví · mạng lưới",
+    "ウォレット · ネットワーク",
+    "钱包 · 网络",
+    "Carteras · red",
+    "Carteiras · rede",
+    "Portefeuilles · réseau",
+    "Wallets · Netzwerk",
+    "Кошельки · сеть",
+  );
+  const adminGlobalGroup = pickUiText(
+    baseLocale,
+    "글로벌 · 연동",
+    "Global · integrations",
+    "Toàn cầu · tích hợp",
+    "グローバル · 連携",
+    "全球 · 集成",
+    "Global · integraciones",
+    "Global · integrações",
+    "Global · intégrations",
+    "Global · Integrationen",
+    "Глобаль · интеграции",
+  );
+
   const adminGroups: NavGroup[] = [
     {
       id: "admin-overview",
@@ -164,8 +244,22 @@ export function Sidebar({
         { name: t.sidebar.links.tenants, href: "/dashboard/tenants", icon: Store },
         { name: t.sidebar.links.seed, href: "/dashboard/admin/tenant-master-seed", icon: Database },
         { name: t.sidebar.links.organizations, href: "/dashboard/admin/organizations", icon: Building2 },
-        { name: t.sidebar.links.billing, href: "/dashboard/billing-admin", icon: CreditCard },
         { name: t.sidebar.links.announcements, href: "/dashboard/announcements", icon: ScrollText },
+      ],
+    },
+    {
+      id: "admin-subscription",
+      label: adminSubscriptionGroup,
+      links: [
+        { name: adminSaasBillingLabel, href: "/dashboard/admin/billing", icon: Gem },
+        { name: adminSubscriptionLogLabel, href: "/dashboard/admin/subscription-events", icon: History },
+      ],
+    },
+    {
+      id: "admin-wallet",
+      label: adminWalletGroup,
+      links: [
+        { name: adminWalletLabel, href: "/dashboard/billing-admin", icon: Wallet },
       ],
     },
     {
@@ -186,14 +280,14 @@ export function Sidebar({
     },
     {
       id: "admin-global",
-      label: "🌏 글로벌 관리",
+      label: adminGlobalGroup,
       links: [
-        { name: "국가별 API 키", href: "/dashboard/admin/regional-keys", icon: Key },
-        { name: "API 키 발급 가이드", href: "/dashboard/admin/regional-keys/guide", icon: BookOpen },
-        { name: "통합 운영 매뉴얼", href: "/dashboard/admin/manual/guide", icon: BookOpen },
-        { name: "테넌트 현황", href: "/dashboard/admin/tenants", icon: Globe },
-        { name: "구독/결제", href: "/dashboard/admin/billing", icon: CreditCard },
-        { name: "번역 관리", href: "/dashboard/admin/translations", icon: Languages },
+        { name: pickUiText(baseLocale, "국가별 API 키", "Regional API keys", "Khóa API theo quốc gia"), href: "/dashboard/admin/regional-keys", icon: Key },
+        { name: pickUiText(baseLocale, "API 키 발급 가이드", "API key guide", "Hướng dẫn khóa API"), href: "/dashboard/admin/regional-keys/guide", icon: BookOpen },
+        { name: pickUiText(baseLocale, "통합 운영 매뉴얼", "Operations manual", "Sổ tay vận hành"), href: "/dashboard/admin/manual/guide", icon: BookOpen },
+        { name: pickUiText(baseLocale, "임대 장비 관리", "Leased equipment", "Thiết bị cho thuê"), href: "/dashboard/admin/printers", icon: Printer },
+        { name: pickUiText(baseLocale, "해외 연동 수요", "Regional demand", "Nhu cầu tích hợp"), href: "/dashboard/admin/regional-demand", icon: TrendingUp },
+        { name: pickUiText(baseLocale, "번역 관리", "Translations", "Bản dịch"), href: "/dashboard/admin/translations", icon: Languages },
       ],
     },
   ];
@@ -218,6 +312,7 @@ export function Sidebar({
       hint: t.sidebar.hints.tenantHome,
       links: [
         { name: t.sidebar.links.home, href: "/dashboard", icon: LayoutDashboard },
+        { name: t.sidebar.links.schedule, href: "/dashboard/schedule", icon: CalendarDays, tier: [...ERP_NAV_TIERS] },
         ...(showOrgBoardLink
           ? [{ name: t.sidebar.links.hqBoard, href: "/dashboard/org-board", icon: Megaphone }]
           : []),
@@ -243,7 +338,6 @@ export function Sidebar({
           activeExcludePrefix: "/dashboard/orders/new",
         },
         { name: t.sidebar.links.delivery, href: "/dashboard/delivery", icon: Truck, tier: [...ERP_NAV_TIERS] },
-        { name: t.sidebar.links.schedule, href: "/dashboard/schedule", icon: CalendarDays, tier: [...ERP_NAV_TIERS] },
         { name: t.sidebar.links.crm, href: "/dashboard/customers", icon: Users, tier: [...ERP_NAV_TIERS] },
         ...(partnerOrdersEnabled || isSuperAdmin
           ? ([
@@ -281,7 +375,6 @@ export function Sidebar({
       hint: t.sidebar.hints.tenantMake,
       links: [
         { name: t.sidebar.links.printer, href: "/dashboard/printer", icon: Printer, tier: ["pro", "ribbon_only", "free"] },
-        { name: t.sidebar.links.designStudio, href: "/dashboard/design-studio", icon: Layout, tier: ["pro", "ribbon_only", "free"] },
       ],
     },
     {
@@ -289,7 +382,7 @@ export function Sidebar({
       label: t.sidebar.groups.tenantStore,
       hint: t.sidebar.hints.tenantStore,
       links: [
-        { name: t.sidebar.links.pos, href: "/dashboard/settings/pos", icon: Monitor, tier: ["pro", "erp_only"] },
+        { name: t.sidebar.links.pos, href: "/dashboard/settings/pos", icon: Monitor, tier: ["pro_plus", "pro", "light"] },
         { name: t.sidebar.links.settings, href: "/dashboard/settings", icon: Settings, activeExcludePrefix: "/dashboard/settings/pos" },
         { name: t.sidebar.links.subscription, href: "/dashboard/subscription", icon: Gem },
       ],

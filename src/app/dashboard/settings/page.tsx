@@ -88,6 +88,7 @@ import { pickUiText } from "@/i18n/pick-ui-text";
 import { DASHBOARD_LOCALE_SELECT_OPTIONS, resolveDashboardSelectLocale } from "@/i18n/ui-locale-options";
 import { BridgeOnboardingDialog } from "@/components/printer/BridgeOnboardingDialog";
 import { usePersistUiLocale } from "@/hooks/use-persist-ui-locale";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const MAJOR_CURRENCIES = [
   { code: 'KRW', symbol: '₩', flag: '🇰🇷', nameKo: '대한민국 원', nameEn: 'Korean Won' },
@@ -725,6 +726,15 @@ export default function SettingsPage() {
   const { persistUiLocale } = usePersistUiLocale();
   const { fees: regionFees, addFee, deleteFee, updateFee, importFees, loading: feesLoading } = useDeliveryFees();
 
+  // Subscription Cancellation Local States
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+  const [cancelPrinterSn, setCancelPrinterSn] = useState("");
+  const [cancelCourier, setCancelCourier] = useState("");
+  const [cancelTracking, setCancelTracking] = useState("");
+  const [agreeCancelTerms, setAgreeCancelTerms] = useState(false);
+  const [isCancelingSubscription, setIsCancelingSubscription] = useState(false);
+  const [assignedPrinterSn, setAssignedPrinterSn] = useState<string | null>(null);
+
   // Local State for Management
   const [storeName, setStoreName] = useState("");
   const [plan, setPlan] = useState("free");
@@ -737,6 +747,13 @@ export default function SettingsPage() {
   const [localEmail, setLocalEmail] = useState("");
   const [localWebsite, setLocalWebsite] = useState("");
   const [localCountry, setLocalCountry] = useState("KR");
+
+  // Password Change State
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [newPasswordConfirm, setNewPasswordConfirm] = useState("");
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+
   
   // Initialization State
   const [isInitDialogOpen, setIsInitDialogOpen] = useState(false);
@@ -763,6 +780,129 @@ export default function SettingsPage() {
       localStorage.removeItem('device_autoprint_disabled');
     }
   };
+
+  // Load Assigned Printer S/N for validation matching
+  useEffect(() => {
+    async function loadAssignedPrinter() {
+      if (!tenantId) return;
+      const { data, error } = await supabase
+        .from("tenant_devices")
+        .select("serial_number")
+        .eq("tenant_id", tenantId)
+        .eq("status", "leased")
+        .maybeSingle();
+      if (data) {
+        setAssignedPrinterSn(data.serial_number);
+      }
+    }
+    if (tenantId) loadAssignedPrinter();
+  }, [tenantId, supabase]);
+
+  const handleCancelSubscription = async () => {
+    if (!tenantId || !user) {
+      toast.error("인증 정보가 부족합니다.");
+      return;
+    }
+
+    const isAnnual = plan === "annual" || plan === "pro"; // Determine plan type
+
+    // Serial validation for annual packages (Only when printer has been lease-assigned to the tenant)
+    if (isAnnual && assignedPrinterSn) {
+      if (!cancelPrinterSn) {
+        toast.error("반납 기기의 시리얼 번호를 입력해주세요.");
+        return;
+      }
+      if (cancelPrinterSn !== assignedPrinterSn) {
+        toast.error("입력하신 시리얼 번호가 대여 장비의 고유 번호와 일치하지 않습니다. 다시 확인해주세요.");
+        return;
+      }
+      if (!cancelCourier || !cancelTracking) {
+        toast.error("반납 물류 택배 송장 정보를 정확하게 입력해주세요.");
+        return;
+      }
+    }
+
+    if (!agreeCancelTerms) {
+      toast.error("해약 신청 약정 및 위약 조항에 필수 동의해주셔야 신청이 접수됩니다.");
+      return;
+    }
+
+    setIsCancelingSubscription(true);
+
+    try {
+      // 1. Resolve user IP address
+      let ipAddr = "127.0.0.1";
+      try {
+        const ipRes = await fetch("https://api.ipify.org?format=json");
+        const ipJson = await ipRes.json();
+        if (ipJson.ip) ipAddr = ipJson.ip;
+      } catch (ipErr) {
+        console.error("IP lookup failed, fallback to default", ipErr);
+      }
+
+      // Calculate annual penalty
+      const penalty = isAnnual ? 30.00 : 0.00; // 30% penalty rate representation
+
+      // 2. Write cancellation document
+      const { error: cancelError } = await supabase
+        .from("subscription_cancellations")
+        .insert({
+          tenant_id: tenantId,
+          request_user_email: user.email,
+          request_ip: ipAddr,
+          plan_type: isAnnual ? "annual" : "monthly",
+          penalty_amount: penalty,
+          printer_serial_number: isAnnual ? cancelPrinterSn : null,
+          courier_name: isAnnual ? cancelCourier : null,
+          tracking_number: isAnnual ? cancelTracking : null,
+          status: "pending"
+        });
+
+      if (cancelError) throw cancelError;
+
+      // 3. Set tenant subscription state to pending_cancel
+      const { error: tenantError } = await supabase
+        .from("tenants")
+        .update({
+          subscription_status: "pending_cancel",
+          subscription_end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days grace period
+        })
+        .eq("id", tenantId);
+
+      if (tenantError) throw tenantError;
+
+      // 4. Send email notice to headquarters
+      try {
+        await fetch("/api/send-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            to: "admin@floxync.com",
+            subject: `[구독해지신청] ${storeName} 지점 해지 신청 접수`,
+            text: `가맹점: ${storeName}\n요청자 계정: ${user.email}\n요청 IP: ${ipAddr}\n플랜 유형: ${isAnnual ? "연간 패키지" : "월 구독"}\n프린터 S/N: ${cancelPrinterSn || "해당없음"}\n반납 송장: ${cancelCourier} ${cancelTracking}\n\n본사 관리자 페이지에서 반납 택배 실물을 검수하고 최종 해지 승인을 처리하십시오.`
+          })
+        });
+      } catch (mailErr) {
+        console.error("Failed to notify HQ via email", mailErr);
+      }
+
+      toast.success("해지 신청서가 무사히 접수되었습니다.", {
+        description: isAnnual 
+          ? "영업일 기준 7일의 유예 후 지점 권한이 정지됩니다. 프린터 미반납 시 위약금이 부과되오니 즉시 장비를 반송해 주십시오."
+          : "이번 결제 주기가 끝나는 결제일에 구독이 종료됩니다."
+      });
+
+      setIsCancelDialogOpen(false);
+      // Reload current configuration state
+      window.location.reload();
+    } catch (err: any) {
+      console.error("Cancellation process crashed", err);
+      toast.error("해지 신청 중 에러가 발생했습니다.", { description: err.message });
+    } finally {
+      setIsCancelingSubscription(false);
+    }
+  };
+
   const [isStorefrontPublic, setIsStorefrontPublic] = useState(false);
   const [partnerRegion, setPartnerRegion] = useState("");
   const [partnerCategory, setPartnerCategory] = useState("");
@@ -1251,6 +1391,35 @@ export default function SettingsPage() {
     }
   };
 
+  const handleChangePassword = async () => {
+    if (!newPassword || !newPasswordConfirm) {
+      toast.error(pickUiText(baseLocale, "비밀번호를 입력해주세요.", "Please enter a password.", "Vui lòng nhập mật khẩu."));
+      return;
+    }
+    if (newPassword !== newPasswordConfirm) {
+      toast.error(pickUiText(baseLocale, "비밀번호가 일치하지 않습니다.", "Passwords do not match.", "Mật khẩu không khớp."));
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast.error(pickUiText(baseLocale, "비밀번호는 6자 이상이어야 합니다.", "Password must be at least 6 characters.", "Mật khẩu phải có ít nhất 6 ký tự."));
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      toast.success(pickUiText(baseLocale, "비밀번호가 성공적으로 변경되었습니다.", "Password successfully changed.", "Đổi mật khẩu thành công."));
+      setIsChangePasswordOpen(false);
+      setNewPassword("");
+      setNewPasswordConfirm("");
+    } catch (err: any) {
+      toast.error(err.message || pickUiText(baseLocale, "비밀번호 변경에 실패했습니다.", "Failed to change password.", "Đổi mật khẩu thất bại."));
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
   if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -1263,21 +1432,23 @@ export default function SettingsPage() {
     switch (planCode) {
       case "pro":
         return <Badge className="bg-gradient-to-r from-blue-600 to-indigo-600 border-0">{tf.f02284}</Badge>;
-      case "erp_only":
+      case "pro_plus":
+        return <Badge className="bg-gradient-to-r from-emerald-600 to-teal-600 border-0">PRO PLUS</Badge>;
+      case "light":
         return (
           <Badge className="bg-emerald-600 border-0">
             {pickUiText(
               baseLocale,
-              "ERP 전용",
-              "ERP only",
-              "Chỉ ERP",
-              "ERP専用",
-              "仅 ERP",
-              "Solo ERP",
-              "Somente ERP",
-              "ERP uniquement",
-              "Nur ERP",
-              "Только ERP",
+              "라이트",
+              "Light",
+              "Light",
+              "ライト",
+              "轻量版",
+              "Light",
+              "Light",
+              "Light",
+              "Light",
+              "Лайт",
             )}
           </Badge>
         );
@@ -1374,8 +1545,11 @@ export default function SettingsPage() {
           <div className="flex-1 w-full min-w-0 pb-16">
             <TabsContent value="store" className="space-y-4">
               <Card className="border-0 shadow-sm ring-1 ring-slate-200">
-                <CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 pb-4">
                   <CardTitle className="text-lg font-bold">{t.store.title}</CardTitle>
+                  <Button variant="outline" size="sm" onClick={() => setIsChangePasswordOpen(true)} className="h-8 text-xs rounded-xl shadow-sm">
+                    {pickUiText(baseLocale, '비밀번호 변경', 'Change Password', 'Đổi mật khẩu')}
+                  </Button>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1949,6 +2123,24 @@ export default function SettingsPage() {
                   </label>
                   <Button variant="destructive" className="h-20 col-span-2" onClick={() => setIsInitDialogOpen(true)}>{tf.f01097}</Button>
                 </CardContent>
+                {/* Subtle Subscription Cancellation Option */}
+                {plan !== 'free' && (
+                  <CardFooter className="pt-2 pb-4 px-6 flex justify-end">
+                    <button 
+                      onClick={() => {
+                        // Reset form fields upon opening
+                        setCancelPrinterSn("");
+                        setCancelCourier("");
+                        setCancelTracking("");
+                        setAgreeCancelTerms(false);
+                        setIsCancelDialogOpen(true);
+                      }}
+                      className="text-[11px] font-medium text-slate-400 hover:text-red-500 hover:underline transition-colors cursor-pointer"
+                    >
+                      {pickUiText(baseLocale, '구독 해지 신청', 'Apply for cancellation', 'Hủy đăng ký dịch vụ')}
+                    </button>
+                  </CardFooter>
+                )}
               </Card>
             </TabsContent>
           </div>
@@ -1961,6 +2153,181 @@ export default function SettingsPage() {
           <DialogFooter>
             <Button variant="destructive" onClick={handleReset}>{tf.f01989}</Button>
             <Button variant="ghost" onClick={() => setIsInitDialogOpen(false)}>{tf.f00702}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isChangePasswordOpen} onOpenChange={setIsChangePasswordOpen}>
+        <DialogContent className="sm:max-w-md rounded-3xl p-8 border-none shadow-2xl bg-white border-0">
+          <DialogHeader className="border-0">
+            <DialogTitle className="font-semibold text-xl text-slate-900">
+              {pickUiText(baseLocale, '비밀번호 변경', 'Change Password', 'Đổi mật khẩu')}
+            </DialogTitle>
+            <DialogDescription className="font-normal pb-4 text-slate-500 border-0">
+              {pickUiText(baseLocale, '새로운 비밀번호를 입력해주세요. 비밀번호는 6자 이상이어야 합니다.', 'Please enter a new password. It must be at least 6 characters.', 'Vui lòng nhập mật khẩu mới. Mật khẩu phải có ít nhất 6 ký tự.')}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-6 py-2">
+            <div className="grid gap-2">
+              <Label htmlFor="change-new-password" className="font-normal text-slate-600 text-xs ml-1 border-0">
+                {pickUiText(baseLocale, '새 비밀번호', 'New Password', 'Mật khẩu mới')}
+              </Label>
+              <Input
+                id="change-new-password"
+                type="password"
+                className="rounded-2xl h-12 font-normal bg-slate-50/50 border-slate-100 text-slate-900 focus:bg-white border"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="change-confirm-password" className="font-normal text-slate-600 text-xs ml-1 border-0">
+                {pickUiText(baseLocale, '새 비밀번호 확인', 'Confirm New Password', 'Xác nhận mật khẩu mới')}
+              </Label>
+              <Input
+                id="change-confirm-password"
+                type="password"
+                className="rounded-2xl h-12 font-normal bg-slate-50/50 border-slate-100 text-slate-900 focus:bg-white border"
+                value={newPasswordConfirm}
+                onChange={(e) => setNewPasswordConfirm(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-3 sm:justify-end mt-4 border-0">
+            <Button variant="ghost" className="rounded-2xl px-6 text-slate-500 border-0" onClick={() => setIsChangePasswordOpen(false)}>
+              {pickUiText(baseLocale, '취소', 'Cancel', 'Hủy')}
+            </Button>
+            <Button 
+              className="bg-slate-900 rounded-2xl px-8 font-normal shadow-lg shadow-slate-200 text-white border-0" 
+              onClick={handleChangePassword}
+              disabled={isChangingPassword || !newPassword || !newPasswordConfirm}
+            >
+              {isChangingPassword && <Loader2 className="mr-2 h-4 w-4 animate-spin border-0" />}
+              {pickUiText(baseLocale, '변경하기', 'Change', 'Thay đổi')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Subscription Cancellation Dialog */}
+      <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
+        <DialogContent className="sm:max-w-xl rounded-3xl p-8 border-none shadow-2xl bg-white border-0 text-slate-900">
+          <DialogHeader className="border-0">
+            <DialogTitle className="font-extrabold text-2xl text-slate-900 tracking-tight">
+              {pickUiText(baseLocale, '구독 해지 신청', 'Cancel Subscription', 'Hủy đăng ký dịch vụ')}
+            </DialogTitle>
+            <DialogDescription className="text-slate-500 font-medium pb-2 border-0">
+              {pickUiText(
+                baseLocale, 
+                '이용 중인 요금제 및 환불 약정 조항을 확인하신 후 해약을 신청해 주세요.', 
+                'Please review the terms and complete the cancellation request.',
+                'Vui lòng đọc kỹ các điều khoản trước khi xác nhận hủy.'
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 max-h-[380px] overflow-y-auto pr-2">
+            {/* 1. Monthly Subscription Notices */}
+            {(plan !== 'annual' && plan !== 'pro') ? (
+              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-3">
+                <h4 className="font-bold text-sm text-slate-800">🚫 월간 정기구독 해지 안내</h4>
+                <ul className="text-xs text-slate-600 space-y-2 list-disc pl-4 leading-relaxed">
+                  <li>구독 신청 즉시 정지되지 않으며, 이미 결제 완료된 이번 달 구독 만료일까지 정상 이용 가능합니다.</li>
+                  <li>매장 내의 모든 주문 접수, 고객 정보 및 회계 매출 기록 등은 데이터 보존 의무에 따라 **해지 시점으로부터 3개월 보관 후 영구 삭제**됩니다.</li>
+                </ul>
+              </div>
+            ) : (
+              // 2. Annual Subscription Penalty Notices
+              <div className="space-y-4">
+                <div className="bg-red-50 p-5 rounded-2xl border border-red-100 space-y-3">
+                  <h4 className="font-black text-sm text-red-700">⚠️ 연간 계약 중도 해약 정산 조항 (필수 인지)</h4>
+                  <ul className="text-xs text-red-900 space-y-2 list-disc pl-4 leading-relaxed">
+                    <li><b>위약금 30% 발생:</b> 초기 인프라 세팅비, 서버 계정 개설 수수료, 패킹/택배 실비 보전을 위해 <b>연간 총 결제액의 30%</b>가 위약금으로 일괄 공제됩니다.</li>
+                    <li><b>무상 혜택 개월 무효화:</b> 연간 가입으로 부여받은 무상 혜택 개월은 소급 취소되며, 이용 기간은 월 정상가 기준으로 정산 공제됩니다.</li>
+                    <li><b>장비 임대료 공제:</b> 렌탈 프린터 무상 제공 혜택이 만료되어 실제 임대 기간만큼 <b>월 10,000원(부가세 별도)</b>의 대여료가 소급 적용되어 공제됩니다.</li>
+                    <li><b>프린터 장비 반납 의무:</b> 해지 신청 후 7일 이내에 임대 장비를 본사로 반송해야 하며, 미반납 또는 훼손 시 <b>100,000원의 장비 분실 위약금</b>이 청구됩니다. (과다 공제 시 정산액은 0원 처리)</li>
+                  </ul>
+                </div>
+
+                {/* Assigned device SN matched fields (Only render when print hardware is actually assigned) */}
+                {assignedPrinterSn ? (
+                  <div className="space-y-4 pt-2">
+                    <div className="grid gap-2">
+                      <Label htmlFor="cancel-sn" className="font-bold text-xs text-slate-700 ml-1">
+                        반납 프린터 기기 일련번호 (S/N)
+                      </Label>
+                      <Input 
+                        id="cancel-sn"
+                        placeholder="기기 바닥 스티커의 S/N 기입 (예: FP2026...)"
+                        value={cancelPrinterSn}
+                        onChange={(e) => setCancelPrinterSn(e.target.value)}
+                        className="rounded-2xl h-11 bg-slate-50 border-slate-100 text-slate-900 focus:bg-white"
+                      />
+                      <p className="text-[10px] text-slate-400 font-medium ml-1">
+                        * 대여 기기 번호: <span className="text-indigo-600 font-bold">{assignedPrinterSn}</span> (불일치 시 신청 접수 불가)
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="cancel-courier" className="font-bold text-xs text-slate-700 ml-1">택배사명</Label>
+                        <Input 
+                          id="cancel-courier"
+                          placeholder="우체국, CJ대한통운 등"
+                          value={cancelCourier}
+                          onChange={(e) => setCancelCourier(e.target.value)}
+                          className="rounded-2xl h-11 bg-slate-50 border-slate-100"
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="cancel-tracking" className="font-bold text-xs text-slate-700 ml-1">반송 택배 송장번호</Label>
+                        <Input 
+                          id="cancel-tracking"
+                          placeholder="송장 번호만 기입 ('-' 제외)"
+                          value={cancelTracking}
+                          onChange={(e) => setCancelTracking(e.target.value)}
+                          className="rounded-2xl h-11 bg-slate-50 border-slate-100"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 text-xs text-slate-600 mt-2">
+                    💡 고객님은 소프트웨어 단독 상품 이용자(또는 프린터 미임대 회원)이므로, 별도의 하드웨어 반납 절차 없이 위약금 규정 동의 후 즉시 해약이 완료됩니다.
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Electronic Agreement Guard */}
+            <div className="flex items-start space-x-2.5 pt-3 border-t border-slate-100">
+              <Checkbox 
+                id="agree-cancel-terms" 
+                checked={agreeCancelTerms}
+                onCheckedChange={(v) => setAgreeCancelTerms(!!v)}
+                className="mt-1"
+              />
+              <label 
+                htmlFor="agree-cancel-terms" 
+                className="text-xs font-semibold text-slate-600 cursor-pointer select-none leading-snug"
+              >
+                본 지점의 해약 및 환불 정산 조항, 장비 반납 의무 사항을 명확히 확인하였으며 이에 동의하여 해지를 접수합니다. (접수 시 서명자 이메일 및 IP 주소가 영구 보관됩니다.)
+              </label>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-3 sm:justify-end mt-6 border-0 pt-2">
+            <Button variant="ghost" className="rounded-2xl px-6 text-slate-500 hover:bg-slate-50 border-0" onClick={() => setIsCancelDialogOpen(false)}>
+              이용 유지하기
+            </Button>
+            <Button 
+              className="bg-red-600 hover:bg-red-700 text-white rounded-2xl px-8 font-bold shadow-lg shadow-red-100 border-0" 
+              onClick={handleCancelSubscription}
+              disabled={isCancelingSubscription || !agreeCancelTerms}
+            >
+              {isCancelingSubscription && <Loader2 className="mr-2 h-4 w-4 animate-spin border-0" />}
+              해약 신청서 제출
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

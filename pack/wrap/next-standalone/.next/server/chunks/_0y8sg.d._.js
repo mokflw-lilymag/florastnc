@@ -1,3 +1,0 @@
-module.exports=[986576,e=>{"use strict";async function r(r,s){if(!process.env.TRIGGER_SECRET_KEY)return console.warn(`[revenue] TRIGGER_SECRET_KEY missing — skip trigger ${r}`),{ok:!1,skipped:!0};try{let{tasks:t}=await e.A(659937),n=await t.trigger(r,s);return{ok:!0,runId:n.id}}catch(e){return console.error(`[revenue] trigger failed ${r}`,e),{ok:!1}}}e.s(["triggerRevenueTask",0,r])},659937,e=>{e.v(r=>Promise.all(["server/chunks/[root-of-the-server]__0dit1a5._.js","server/chunks/node_modules_0tl4~0o._.js"].map(r=>e.l(r))).then(()=>r(179855)))}];
-
-//# sourceMappingURL=_0y8sg.d._.js.map

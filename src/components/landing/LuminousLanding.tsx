@@ -134,6 +134,19 @@ export function LuminousLanding({ locale = 'ko' }: { locale?: AppLocale }) {
     ru?: string,
   ) => pickUiText(baseLocale, ko, en, vi, ja, zh, es, pt, fr, de, ru);
 
+  const pricingNavLabel = L(
+    "이용 요금",
+    "Pricing",
+    "Bảng giá",
+    "料金",
+    "价格",
+    "Precios",
+    "Preços",
+    "Tarifs",
+    "Preise",
+    "Цены",
+  );
+
   const [fullName, setFullName] = useState("");
   const [businessName, setBusinessName] = useState("");
   const [contact, setContact] = useState("");
@@ -301,7 +314,7 @@ export function LuminousLanding({ locale = 'ko' }: { locale?: AppLocale }) {
             <a className="text-sm font-semibold text-[#3e4946] hover:text-[#006b5c] transition-colors" href="#details">플랫폼 안내</a>
             <a className="text-sm font-semibold text-[#3e4946] hover:text-[#006b5c] transition-colors" href="#testimonials">후기</a>
             <Link className="text-sm font-semibold text-[#3e4946] hover:text-[#006b5c] transition-colors" href="/docs/manual">사용 설명서</Link>
-            <Link className="text-sm font-semibold text-[#3e4946] hover:text-[#006b5c] transition-colors" href={`/${locale}/pricing`}>이용 요금</Link>
+            <Link className="text-sm font-semibold text-[#3e4946] hover:text-[#006b5c] transition-colors" href={`/${locale}/pricing`}>{pricingNavLabel}</Link>
           </div>
 
           <div className="flex gap-4 items-center">
@@ -350,7 +363,7 @@ export function LuminousLanding({ locale = 'ko' }: { locale?: AppLocale }) {
               <a className="text-lg font-bold text-[#1b1c1b]" href="#details" onClick={() => setMobileMenuOpen(false)}>플랫폼 안내</a>
               <a className="text-lg font-bold text-[#1b1c1b]" href="#testimonials" onClick={() => setMobileMenuOpen(false)}>후기</a>
               <Link className="text-lg font-bold text-[#1b1c1b]" href="/docs/manual" onClick={() => setMobileMenuOpen(false)}>사용 설명서</Link>
-              <Link className="text-lg font-bold text-[#1b1c1b]" href={`/${locale}/pricing`} onClick={() => setMobileMenuOpen(false)}>이용 요금</Link>
+              <Link className="text-lg font-bold text-[#1b1c1b]" href={`/${locale}/pricing`} onClick={() => setMobileMenuOpen(false)}>{pricingNavLabel}</Link>
               <div className="flex flex-col gap-3 pt-4 border-t border-[#efedec]">
                 <Link href={loginHref} className="py-4 text-center font-bold text-[#3e4946] border border-[#bdc9c5]/30 rounded-full bg-white flex items-center justify-center gap-2">
                   <Smartphone size={18} /> 모바일 앱

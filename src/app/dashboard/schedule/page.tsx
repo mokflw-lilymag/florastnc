@@ -9,17 +9,20 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { StoreScheduleCalendar } from "@/components/schedule/store-schedule-calendar";
 import { ScheduleLayerFiltersBar } from "@/components/schedule/schedule-layer-filters";
-import { ScheduleDaySheet } from "@/components/schedule/schedule-day-sheet";
+import { ScheduleDayView } from "@/components/schedule/schedule-day-view";
 import { StaffShiftDialog } from "@/components/schedule/staff-shift-dialog";
+import { ScheduleNoteDialog } from "@/components/schedule/schedule-note-dialog";
 import { FixedCostPinDialog } from "@/components/expenses/fixed-cost-pin-dialog";
 import { useStaffShifts } from "@/hooks/use-staff-shifts";
-import { loadScheduleMonthEvents, maskFixedCostScheduleEvents } from "@/lib/schedule-calendar-data";
+import { useScheduleNotes } from "@/hooks/use-schedule-notes";
+import { loadScheduleMonthEvents, maskFixedCostScheduleEvents, staffShiftsToEvents, scheduleNotesToEvents } from "@/lib/schedule-calendar-data";
 import { shouldMaskFixedCosts } from "@/lib/fixed-cost-lock";
 import {
   DEFAULT_SCHEDULE_FILTERS,
   type ScheduleCalendarEvent,
   type ScheduleLayerFilters,
   type StaffShift,
+  type ScheduleNote,
 } from "@/types/schedule-calendar";
 import { Plus } from "lucide-react";
 
@@ -30,7 +33,6 @@ export default function SchedulePage() {
   const [events, setEvents] = useState<ScheduleCalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [daySheetOpen, setDaySheetOpen] = useState(false);
   const [selectedDateYmd, setSelectedDateYmd] = useState<string | null>(null);
   const [dayEvents, setDayEvents] = useState<ScheduleCalendarEvent[]>([]);
 
@@ -38,7 +40,12 @@ export default function SchedulePage() {
   const [editingShift, setEditingShift] = useState<StaffShift | null>(null);
   const [shiftDefaultDate, setShiftDefaultDate] = useState<string | undefined>();
 
+  const [noteDialogOpen, setNoteDialogOpen] = useState(false);
+  const [editingNote, setEditingNote] = useState<ScheduleNote | null>(null);
+  const [noteDefaultDate, setNoteDefaultDate] = useState<string | undefined>();
+
   const { shifts, upsertShift, deleteShift, reload: reloadShifts } = useStaffShifts();
+  const { notes, upsertNote, deleteNote, reload: reloadNotes } = useScheduleNotes();
   const {
     lockEnabled: fixedCostLockEnabled,
     unlocked: fixedCostUnlocked,
@@ -50,6 +57,29 @@ export default function SchedulePage() {
   const [fixedCostPinOpen, setFixedCostPinOpen] = useState(false);
 
   const maskFixedCosts = shouldMaskFixedCosts(fixedCostLockEnabled, fixedCostUnlocked);
+
+  // 암호 잠금 상태면 고정비 필터를 강제로 끕니다.
+  useEffect(() => {
+    if (maskFixedCosts && filters.fixed_cost) {
+      setFilters((prev) => ({ ...prev, fixed_cost: false }));
+    }
+  }, [maskFixedCosts, filters.fixed_cost]);
+
+  const handleFilterChange = (next: ScheduleLayerFilters) => {
+    if (next.fixed_cost !== filters.fixed_cost && next.fixed_cost === true && maskFixedCosts) {
+      setFixedCostPinOpen(true);
+      return;
+    }
+    setFilters(next);
+  };
+
+  const handleUnlock = async (pin: string) => {
+    const ok = await verifyPin(pin);
+    if (ok) {
+      setFilters((prev) => ({ ...prev, fixed_cost: true }));
+    }
+    return ok;
+  };
 
   const loadMonth = useCallback(async () => {
     if (!tenantId) return;
@@ -70,9 +100,18 @@ export default function SchedulePage() {
     void loadMonth();
   }, [loadMonth]);
 
+  const combinedEvents = useMemo(() => {
+    const baseEvents = events.filter((e) => e.kind !== "staff" && e.kind !== "note");
+    return [
+      ...baseEvents,
+      ...staffShiftsToEvents([...shifts].reverse()),
+      ...scheduleNotesToEvents([...notes].reverse()),
+    ];
+  }, [events, shifts, notes]);
+
   const filteredEvents = useMemo(
-    () => events.filter((e) => filters[e.kind]),
-    [events, filters],
+    () => combinedEvents.filter((e) => filters[e.kind]),
+    [combinedEvents, filters],
   );
 
   const displayEvents = useMemo(
@@ -81,15 +120,14 @@ export default function SchedulePage() {
   );
 
   useEffect(() => {
-    if (!daySheetOpen || !selectedDateYmd) return;
-    const list = events.filter((e) => e.dateYmd === selectedDateYmd && filters[e.kind]);
+    if (!selectedDateYmd) return;
+    const list = combinedEvents.filter((e) => e.dateYmd === selectedDateYmd && filters[e.kind]);
     setDayEvents(maskFixedCostScheduleEvents(list, maskFixedCosts));
-  }, [daySheetOpen, selectedDateYmd, events, filters, maskFixedCosts]);
+  }, [selectedDateYmd, combinedEvents, filters, maskFixedCosts]);
 
   const handleDayClick = (dateYmd: string, list: ScheduleCalendarEvent[]) => {
     setSelectedDateYmd(dateYmd);
     setDayEvents(list);
-    setDaySheetOpen(true);
   };
 
   const openAddShift = (dateYmd?: string) => {
@@ -123,6 +161,37 @@ export default function SchedulePage() {
     }
   };
 
+  const openAddNote = (dateYmd?: string) => {
+    setEditingNote(null);
+    setNoteDefaultDate(dateYmd);
+    setNoteDialogOpen(true);
+  };
+
+  const openEditNote = (id: string) => {
+    const found = notes.find((n) => n.id === id);
+    if (!found) return;
+    setEditingNote(found);
+    setNoteDefaultDate(undefined);
+    setNoteDialogOpen(true);
+  };
+
+  const handleSaveNote = async (note: ScheduleNote) => {
+    const ok = await upsertNote(note);
+    if (ok) {
+      await reloadNotes();
+      await loadMonth();
+    }
+    return ok;
+  };
+
+  const handleDeleteNote = async (id: string) => {
+    const ok = await deleteNote(id);
+    if (ok) {
+      await loadMonth();
+      setDayEvents((prev) => prev.filter((e) => e.id !== `note-${id}`));
+    }
+  };
+
   return (
     <div className="space-y-6 pb-10">
       <PageHeader
@@ -131,11 +200,17 @@ export default function SchedulePage() {
       />
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <ScheduleLayerFiltersBar filters={filters} onChange={setFilters} />
-        <Button type="button" variant="outline" size="sm" onClick={() => openAddShift()}>
-          <Plus className="h-4 w-4 mr-1" />
-          직원 스케줄
-        </Button>
+        <ScheduleLayerFiltersBar filters={filters} onChange={handleFilterChange} fixedCostLocked={maskFixedCosts} />
+        <div className="flex items-center gap-2">
+          <Button type="button" variant="outline" size="sm" onClick={() => openAddNote()}>
+            <Plus className="h-4 w-4 mr-1" />
+            특이/전달사항
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={() => openAddShift()}>
+            <Plus className="h-4 w-4 mr-1" />
+            직원 스케줄
+          </Button>
+        </div>
       </div>
 
       {loading ? (
@@ -151,24 +226,27 @@ export default function SchedulePage() {
         />
       )}
 
-      <ScheduleDaySheet
-        open={daySheetOpen}
-        onOpenChange={setDaySheetOpen}
-        dateYmd={selectedDateYmd}
-        events={dayEvents}
-        onAddStaff={(ymd) => openAddShift(ymd)}
-        onEditStaff={openEditShift}
-        onDeleteStaff={(id) => void handleDeleteShift(id)}
-        maskFixedCosts={maskFixedCosts}
-        onUnlockFixedCosts={() => setFixedCostPinOpen(true)}
-      />
+      {selectedDateYmd && (
+        <ScheduleDayView
+          dateYmd={selectedDateYmd}
+          events={dayEvents}
+          onAddStaff={openAddShift}
+          onEditStaff={openEditShift}
+          onDeleteStaff={handleDeleteShift}
+          onAddNote={openAddNote}
+          onEditNote={openEditNote}
+          onDeleteNote={handleDeleteNote}
+          maskFixedCosts={maskFixedCosts}
+          onUnlockFixedCosts={() => setFixedCostPinOpen(true)}
+        />
+      )}
 
       <FixedCostPinDialog
         open={fixedCostPinOpen}
         onOpenChange={setFixedCostPinOpen}
         mode="unlock"
         lockEnabled={fixedCostLockEnabled}
-        onUnlock={verifyPin}
+        onUnlock={handleUnlock}
         onSetPin={setPin}
         onChangePin={changePin}
         onRemovePin={removePin}
@@ -180,6 +258,14 @@ export default function SchedulePage() {
         initial={editingShift}
         defaultDateYmd={shiftDefaultDate}
         onSave={handleSaveShift}
+      />
+
+      <ScheduleNoteDialog
+        open={noteDialogOpen}
+        onOpenChange={setNoteDialogOpen}
+        initial={editingNote}
+        defaultDateYmd={noteDefaultDate}
+        onSave={handleSaveNote}
       />
     </div>
   );

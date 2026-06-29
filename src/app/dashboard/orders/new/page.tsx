@@ -874,6 +874,25 @@ export default function NewOrderPage() {
           toast.error(tf.f00603, { description: ORDER_SAVE_FAILED_KEEP_FORM_HINT });
         }
       } else {
+        // 주문량 한도 체크 (Hard Limit 차단)
+        if (tenantId) {
+          const { checkTenantOrderLimit } = await import("@/lib/subscription/limit-notifier");
+          const tenantPlan = (profile?.tenants as any)?.plan || "free";
+          const limitStatus = await checkTenantOrderLimit(supabase, tenantId, tenantPlan);
+          if (limitStatus.isOverHardLimit) {
+            toast.error("월 주문 등록 한도를 모두 초과하였습니다.", {
+              description: "추가 주문 등록을 위해 요금제 변경(업그레이드) 페이지로 이동하여 결제해 주세요.",
+              action: {
+                label: "업그레이드",
+                onClick: () => router.push("/dashboard/subscription")
+              },
+              duration: 8000
+            });
+            setIsSubmitting(false);
+            return;
+          }
+        }
+
         const resultId = await addOrder(orderPayload);
         if (resultId) {
           if (

@@ -12,9 +12,20 @@ import {
   isToday,
   addMonths,
   subMonths,
+  getDay,
 } from "date-fns";
 import { ko } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Package, Truck, CreditCard, Wallet, Users, Lock } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Package,
+  Truck,
+  CreditCard,
+  Wallet,
+  Users,
+  Lock,
+  FileText,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type {
@@ -63,6 +74,7 @@ export function StoreScheduleCalendar({
           fixedCosts: 0,
           expenses: 0,
           staff: 0,
+          notes: 0,
           events: [],
         };
         map.set(e.dateYmd, row);
@@ -70,9 +82,10 @@ export function StoreScheduleCalendar({
       row.events.push(e);
       if (e.kind === "pickup") row.pickups += 1;
       if (e.kind === "delivery") row.deliveries += 1;
-      if (e.kind === "fixed_cost") row.fixedCosts += 1;
-      if (e.kind === "expense") row.expenses += 1;
-      if (e.kind === "staff") row.staff += 1;
+      if (e.kind === "fixed_cost") row.fixedCosts++;
+      if (e.kind === "expense") row.expenses++;
+      if (e.kind === "staff") row.staff++;
+      if (e.kind === "note") row.notes++;
     }
     return map;
   }, [filtered]);
@@ -110,7 +123,7 @@ export function StoreScheduleCalendar({
         </div>
       </div>
 
-      <div className="grid grid-cols-7 border-b bg-slate-50">
+      <div className="grid grid-cols-7 border-b border-slate-300 bg-slate-50">
         {["일", "월", "화", "수", "목", "금", "토"].map((d, i) => (
           <div
             key={d}
@@ -124,12 +137,14 @@ export function StoreScheduleCalendar({
         ))}
       </div>
 
-      <div className="grid grid-cols-7 divide-x divide-y border-b border-r">
+      <div className="grid grid-cols-7 divide-x divide-y divide-slate-300 border-b border-r border-slate-300">
         {days.map((day) => {
           const dateYmd = format(day, "yyyy-MM-dd");
           const row = byDate.get(dateYmd);
           const inMonth = isSameMonth(day, monthStart);
           const today = isToday(day);
+
+          const isSunday = getDay(day) === 0;
 
           return (
             <button
@@ -137,16 +152,16 @@ export function StoreScheduleCalendar({
               type="button"
               onClick={() => onDayClick(dateYmd, row?.events ?? [])}
               className={cn(
-                "min-h-[108px] p-2 text-left transition-colors hover:bg-slate-50",
+                "min-h-[108px] p-2 flex flex-col justify-start items-stretch text-left transition-colors hover:bg-slate-50",
                 !inMonth && "bg-slate-50/60 text-slate-400",
                 inMonth && "bg-white",
               )}
             >
-              <div className="flex justify-between items-start mb-1">
+              <div className="flex justify-end items-start mb-1 w-full">
                 <span
                   className={cn(
                     "text-sm font-medium h-6 w-6 flex items-center justify-center rounded-full",
-                    today && "bg-blue-600 text-white",
+                    today ? "bg-blue-600 text-white" : isSunday ? "text-red-500" : "",
                   )}
                 >
                   {format(day, "d")}
@@ -178,6 +193,9 @@ export function StoreScheduleCalendar({
                   ) : null}
                   {filters.staff && row.staff > 0 ? (
                     <BadgeChip icon={Users} label={row.staff} className="bg-purple-50 text-purple-800 border-purple-100" />
+                  ) : null}
+                  {filters.note && row.notes > 0 ? (
+                    <BadgeChip icon={FileText} label={row.notes} className="bg-gray-50 text-gray-800 border-gray-200" />
                   ) : null}
                 </div>
               ) : null}

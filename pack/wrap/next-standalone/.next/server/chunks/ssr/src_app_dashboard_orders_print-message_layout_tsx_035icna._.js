@@ -1,3 +1,0 @@
-module.exports=[740597,a=>{"use strict";var b=a.i(905246),c=a.i(423109),d=a.i(225850);async function e(){let a=await (0,b.cookies)(),e=(0,c.resolveLocale)(a.get(c.LOCALE_COOKIE)?.value??null),f=(0,d.getMessages)(e).tenantFlows;return{title:f.f00204,description:f.f00210}}a.s(["default",0,function({children:a}){return a},"generateMetadata",0,e])},491289,a=>{a.n(a.i(740597))}];
-
-//# sourceMappingURL=src_app_dashboard_orders_print-message_layout_tsx_035icna._.js.map

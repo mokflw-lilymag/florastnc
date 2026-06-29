@@ -53,21 +53,16 @@ import {
 import { resolveBillingProvider, type SubscriptionBillingProvider } from "@/lib/subscription/billing-provider";
 import { PLAN_KRW_TOTAL, PLAN_USD_TOTAL_CENTS, formatUsdTotal } from "@/lib/subscription/pricing";
 import { buildSubscriptionOrderId } from "@/lib/subscription/order-id";
+import {
+  BILLING_PERIODS,
+  subscriptionDisplayMonths,
+  subscriptionMonths,
+} from "@/lib/subscription/subscription-period";
 
 const PLANS_BASE = [
   {
     id: "ribbon_only" as const,
-    name: "PRINT CORE",
-    price: "20,000",
-    yearlyPrice: "200,000",
-    monthlyEffective: "16,660",
-    savePercent: "17%",
-    pricing: {
-      "1m": { price: "20,000", total: "20,000" },
-      "3m": { price: "19,000", total: "57,000" },
-      "6m": { price: "18,330", total: "110,000" },
-      "12m": { price: "16,660", total: "200,000" },
-    },
+    name: "리본 라이센스",
     color: "slate",
     icon: Printer,
     popular: false,
@@ -75,18 +70,8 @@ const PLANS_BASE = [
     accent: "bg-slate-500",
   },
   {
-    id: "erp_only" as const,
-    name: "ERP SMART",
-    price: "30,000",
-    yearlyPrice: "300,000",
-    monthlyEffective: "25,000",
-    savePercent: "17%",
-    pricing: {
-      "1m": { price: "30,000", total: "30,000" },
-      "3m": { price: "28,330", total: "85,000" },
-      "6m": { price: "27,500", total: "165,000" },
-      "12m": { price: "25,000", total: "300,000" },
-    },
+    id: "light" as const,
+    name: "플로비서 라이트",
     color: "emerald",
     icon: TrendingUp,
     popular: false,
@@ -95,22 +80,21 @@ const PLANS_BASE = [
   },
   {
     id: "pro" as const,
-    name: "FLORA PRO",
-    price: "50,000",
-    yearlyPrice: "500,000",
-    monthlyEffective: "38,460",
-    savePercent: "23%",
-    pricing: {
-      "1m": { price: "50,000", total: "50,000" },
-      "3m": { price: "46,660", total: "140,000" },
-      "6m": { price: "45,830", total: "275,000" },
-      "12m": { price: "38,460", total: "500,000" },
-    },
+    name: "플로비서 프로",
     color: "indigo",
     icon: Crown,
     popular: true,
     themeColor: "indigo",
     accent: "bg-indigo-600",
+  },
+  {
+    id: "pro_plus" as const,
+    name: "프로 플러스",
+    color: "amber",
+    icon: Gem,
+    popular: false,
+    themeColor: "amber",
+    accent: "bg-amber-600",
   },
 ];
 
@@ -150,11 +134,35 @@ export default function SubscriptionPage() {
     "韓国: トス · 海外: Stripe",
     "韩国：Toss · 海外：Stripe",
   );
+  const billingPeriodNote = pickUiText(
+    baseLocale,
+    "월간·연간 2가지 · 연간 결제 시 보너스 이용 개월이 subscription에 반영됩니다. (월간 자동결제는 정식 오픈 시 연동 예정)",
+    "Monthly or annual billing · Annual plans include bonus months. Auto-renew for monthly plans coming at launch.",
+    "Thanh toán tháng hoặc năm · Gói năm có thêm tháng bonus. Tự động gia hạn tháng sẽ có khi ra mắt.",
+  );
   const payWithStripeLabel = pickUiText(
     baseLocale,
     "해외 카드로 결제 (Stripe)",
     "Pay with international card (Stripe)",
   );
+  const trPeriod = (p: Period) =>
+    pickUiText(
+      baseLocale,
+      PERIOD_LABELS[p][0],
+      PERIOD_LABELS[p][1],
+      PERIOD_LABELS[p][2],
+      PERIOD_LABELS[p][3],
+      PERIOD_LABELS[p][4],
+    );
+  const grantMonthsNote = (months: number) =>
+    pickUiText(
+      baseLocale,
+      `결제 시 ${months}개월 이용권 자동 적용`,
+      `${months} months of access applied automatically`,
+      `Tự động cấp ${months} tháng sử dụng`,
+      `お支払い後${months}ヶ月分を自動付与`,
+      `付款后自动开通 ${months} 个月`,
+    );
   const localizedPlans = useMemo(() => {
     const T = (row: LocalizedString) =>
       pickUiText(
@@ -180,11 +188,12 @@ export default function SubscriptionPage() {
         description: T(copy.description),
         features: copy.features.map(T),
         pricing: Object.fromEntries(
-          (Object.keys(plan.pricing) as Period[]).map((k) => {
-            const period = k as Period;
+          BILLING_PERIODS.map((k) => {
+            const period = k;
             if (useUsd) {
               const totalCents = PLAN_USD_TOTAL_CENTS[planId][period];
-              const months = period === "12m" ? 12 : period === "6m" ? 6 : period === "3m" ? 3 : 1;
+              const months = subscriptionDisplayMonths(planId, period);
+              const grantMonths = subscriptionMonths(planId, period);
               const perMonthCents = Math.round(totalCents / months);
               return [
                 k,
@@ -195,22 +204,24 @@ export default function SubscriptionPage() {
                   label: T(PERIOD_LABELS[k]),
                   discount: T(PLAN_DISCOUNTS[plan.id][k]),
                   currencyPrefix: "$",
+                  grantMonths,
                 },
               ];
             }
             const totalKrw = PLAN_KRW_TOTAL[planId][period];
-            const months = period === "12m" ? 12 : period === "6m" ? 6 : period === "3m" ? 3 : 1;
+            const months = subscriptionDisplayMonths(planId, period);
+            const grantMonths = subscriptionMonths(planId, period);
             const perMonthKrw = Math.round(totalKrw / months);
             return [
               k,
               {
-                ...plan.pricing[k],
                 price: perMonthKrw.toLocaleString("en-US"),
                 total: totalKrw.toLocaleString("en-US"),
                 totalRaw: totalKrw,
                 label: T(PERIOD_LABELS[k]),
                 discount: T(PLAN_DISCOUNTS[plan.id][k]),
                 currencyPrefix: "₩",
+                grantMonths,
               },
             ];
           }),
@@ -223,6 +234,7 @@ export default function SubscriptionPage() {
             label: string;
             discount: string;
             currencyPrefix: string;
+            grantMonths: number;
           }
         >,
       };
@@ -428,6 +440,7 @@ export default function SubscriptionPage() {
 
           <p className="text-center text-xs font-bold text-slate-500 max-w-xl mx-auto">
             {billingHint}
+            <span className="block mt-1 text-slate-400 font-medium">{billingPeriodNote}</span>
             {operatingCountry !== "KR" && (
               <span className="block mt-1 text-indigo-400/90">
                 {payWithStripeLabel} · {operatingCountry}
@@ -437,7 +450,7 @@ export default function SubscriptionPage() {
           
           <div className="flex justify-center pt-8">
             <div className="inline-flex flex-wrap items-center justify-center p-2 bg-white/5 backdrop-blur-3xl rounded-[32px] border border-white/10 shadow-3xl">
-               {(["1m", "3m", "6m", "12m"] as Period[]).map((p) => (
+               {BILLING_PERIODS.map((p) => (
                  <button
                    key={p}
                    onClick={() => setSelectedPeriod(p)}
@@ -449,7 +462,7 @@ export default function SubscriptionPage() {
                    )}
                  >
                    <span className="relative z-10">
-                     {p === "1m" ? tf.f02401 : p === "3m" ? tf.f02402 : p === "6m" ? tf.f02403 : tf.f02404}
+                     {trPeriod(p)}
                    </span>
                    {p === "12m" && (
                      <div className="absolute top-0 right-0 h-full w-full bg-indigo-600/10 pointer-events-none" />
@@ -493,6 +506,7 @@ export default function SubscriptionPage() {
                perMonthLabel={perMonthLabel}
                currencyPrefix={plan.pricing[selectedPeriod]?.currencyPrefix ?? "₩"}
                highlightRevenue={highlightRevenue && plan.id === "pro"}
+               grantMonthsNote={grantMonthsNote}
              />
              </div>
            ))}
@@ -590,6 +604,7 @@ function TiltCard({
   perMonthLabel,
   currencyPrefix,
   highlightRevenue,
+  grantMonthsNote,
 }: {
   plan: any;
   period: Period;
@@ -601,6 +616,7 @@ function TiltCard({
   tf: Record<string, string>;
   perMonthLabel: string;
   highlightRevenue?: boolean;
+  grantMonthsNote: (months: number) => string;
 }) {
   const x = useMotionValue(0);
   const y = useMotionValue(0);
@@ -674,6 +690,11 @@ function TiltCard({
                         {pricing.discount} {tf.f02412}
                       </span>
                    </div>
+                )}
+                {period === "12m" && pricing.grantMonths > 0 && (
+                  <p className="mt-3 text-[11px] font-bold text-indigo-300/90 leading-snug">
+                    {grantMonthsNote(pricing.grantMonths)}
+                  </p>
                 )}
              </div>
 

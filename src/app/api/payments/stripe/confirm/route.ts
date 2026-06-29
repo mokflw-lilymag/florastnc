@@ -117,13 +117,28 @@ export async function POST(request: Request) {
       );
     }
 
-    const result = await applySubscriptionToTenant(supabase, profile.tenant_id, planId, period);
+    const result = await applySubscriptionToTenant(
+      supabase,
+      profile.tenant_id,
+      planId,
+      period,
+      {
+        actorUserId: user.id,
+        actorEmail: user.email ?? undefined,
+        source: "stripe",
+        externalRef: sessionId,
+        amountCents: session.amount_total ?? undefined,
+        currency: (session.currency ?? "usd").toUpperCase(),
+        orderId: orderId ?? undefined,
+      },
+    );
 
     return NextResponse.json({
       success: true,
       message: tr(bl, "결제가 성공적으로 처리되었습니다.", "Payment was processed successfully."),
       plan: result.planId,
       expiry: result.expiry,
+      monthsGranted: result.monthsGranted,
     });
   } catch (e) {
     console.error("[stripe/confirm]", e);

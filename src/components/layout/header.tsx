@@ -54,9 +54,10 @@ interface HeaderProps {
 function planBadgeLabel(plan: string) {
   const map: Record<string, string> = {
     free: "FREE",
+    ribbon_only: "RIBBON",
+    light: "LIGHT",
     pro: "PRO",
-    erp_only: "ERP",
-    ribbon_only: "PRINT",
+    pro_plus: "PRO+",
   };
   return map[plan] ?? plan.toUpperCase();
 }
@@ -166,6 +167,26 @@ export function Header({
     return () => clearInterval(timer);
   }, []);
 
+  // 실시간 주문 수 로드
+  const [realtimeOrderCount, setRealtimeOrderCount] = useState(0);
+  useEffect(() => {
+    if (isSuperAdmin || sidebarHqOnly) return;
+    const fetchRealtimeCount = async () => {
+      const storeState = useAuthStore.getState();
+      const currentTenantId = storeState.tenantId;
+      if (!currentTenantId) return;
+
+      const { checkTenantOrderLimit } = await import("@/lib/subscription/limit-notifier");
+      const status = await checkTenantOrderLimit(supabase, currentTenantId, plan);
+      setRealtimeOrderCount(status.current);
+    };
+
+    fetchRealtimeCount();
+    // 30초마다 카운트 폴링 갱신
+    const interval = setInterval(fetchRealtimeCount, 30000);
+    return () => clearInterval(interval);
+  }, [supabase, plan, isSuperAdmin, sidebarHqOnly]);
+
   const handleLogout = async () => {
     if (typeof window !== "undefined" && (window as any).electronAPI) {
       try {
@@ -251,6 +272,59 @@ export function Header({
                   <span className="truncate">{subscriptionLine}</span>
                 </Link>
               )}
+
+              {/* 주문 사용량 실시간 게이지 프로그레스 바 노출 */}
+              {(() => {
+                if (isSuperAdmin || sidebarHqOnly) return null;
+                const limits = (() => {
+                  switch (plan) {
+                    case "free": return { max: 5, soft: 4 };
+                    case "light": return { max: 100, soft: 80 };
+                    case "pro": return { max: 200, soft: 160 };
+                    default: return { max: Infinity, soft: Infinity };
+                  }
+                })();
+
+                const currentCount = realtimeOrderCount;
+                if (limits.max === Infinity) return null;
+
+                const percent = Math.min(100, (currentCount / limits.max) * 100);
+                const isSoftLimit = currentCount >= limits.soft;
+                const isHardLimit = currentCount >= limits.max;
+
+                return (
+                  <Link
+                    href="/dashboard/subscription"
+                    className={cn(
+                      "flex items-center gap-2 px-2.5 py-1 rounded-lg border text-[10px] md:text-[11px] font-bold transition-all shadow-sm shrink-0",
+                      isHardLimit
+                        ? "bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100"
+                        : isSoftLimit
+                        ? "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100"
+                        : "bg-emerald-50/50 border-emerald-100 text-emerald-800 hover:bg-emerald-50"
+                    )}
+                    title={`월 주문 한도 게이지: ${currentCount} / ${limits.max} 건`}
+                  >
+                    <span>주문량: {currentCount}/{limits.max}건</span>
+                    <div className="w-12 h-1.5 bg-slate-200/80 rounded-full overflow-hidden inline-block relative">
+                      <div
+                        className={cn(
+                          "h-full rounded-full transition-all duration-500",
+                          isHardLimit ? "bg-rose-500 animate-pulse" : isSoftLimit ? "bg-amber-500" : "bg-emerald-500"
+                        )}
+                        style={{ width: `${percent}%` }}
+                      />
+                    </div>
+                    {(isSoftLimit || isHardLimit) && (
+                      <span className={cn(
+                        "w-1.5 h-1.5 rounded-full inline-block animate-ping",
+                        isHardLimit ? "bg-rose-500" : "bg-amber-500"
+                      )} />
+                    )}
+                  </Link>
+                );
+              })()}
+
               <Link
                 href="/dashboard/schedule"
                 title={dh.scheduleTitle}

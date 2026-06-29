@@ -7,12 +7,15 @@ import type { TenantMasterSeed } from "../types";
 import { TENANT_MASTER_SEED_DELIVERY_GWANGHWAMUN } from "./delivery-gwanghwamun";
 
 /**
- * 표준 시드 v2026-04-21 — 앱 기본 카테고리 + 샘플 마스터(최소 20건 단위로 구성).
+ * 표준 시드 v2026-04-21-kr — 한국 꽃집 카테고리 + 샘플 마스터 + 서울 권역 배송 템플릿.
  * 실제 운영 품목·단가는 매장에서 수정·확정.
  */
-export const TENANT_MASTER_SEED_V2026_04_21: TenantMasterSeed = {
-  version: "v2026-04-21",
-  label: "표준 초기 세팅 (카테고리 기본 + 샘플 마스터)",
+export const TENANT_MASTER_SEED_V2026_04_21_KR: TenantMasterSeed = {
+  version: "v2026-04-21-kr",
+  label: "표준 초기 세팅 (한국 · 카테고리 + 샘플 + 권역 배송)",
+  locale: "ko",
+  targetCountries: ["KR"],
+  deliveryTemplate: "korea_districts",
   productCategories: DEFAULT_PRODUCT_CATEGORIES,
   materialCategories: DEFAULT_MATERIAL_CATEGORIES,
   expenseCategories: DEFAULT_EXPENSE_CATEGORIES,
@@ -252,3 +255,6 @@ export const TENANT_MASTER_SEED_V2026_04_21: TenantMasterSeed = {
   ],
   delivery: { ...TENANT_MASTER_SEED_DELIVERY_GWANGHWAMUN },
 };
+
+/** @deprecated 감사 이력 호환 — registry 에서 v2026-04-21 별칭으로 동일 시드 노출 */
+export const TENANT_MASTER_SEED_V2026_04_21 = TENANT_MASTER_SEED_V2026_04_21_KR;

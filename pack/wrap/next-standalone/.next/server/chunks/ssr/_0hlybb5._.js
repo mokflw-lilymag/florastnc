@@ -1,3 +1,0 @@
-module.exports=[525333,a=>{a.v("/_next/static/media/icon.0k591d0dkwih7.png"+(globalThis.NEXT_CLIENT_ASSET_SUFFIX||""))},821646,a=>{"use strict";let b={src:a.i(525333).default,width:512,height:512};a.s(["default",0,b])},504276,(a,b,c)=>{let{createClientModuleProxy:d}=a.r(211857);a.n(d("[project]/node_modules/next/dist/client/components/builtin/global-error.js <module evaluation>"))},782509,(a,b,c)=>{let{createClientModuleProxy:d}=a.r(211857);a.n(d("[project]/node_modules/next/dist/client/components/builtin/global-error.js"))},866114,a=>{"use strict";a.i(504276);var b=a.i(782509);a.n(b)},262212,a=>{a.n(a.i(866114))}];
-
-//# sourceMappingURL=_0hlybb5._.js.map

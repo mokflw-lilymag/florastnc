@@ -33,9 +33,19 @@ export interface TenantMasterSeedDelivery {
   freeDeliveryThreshold?: number;
 }
 
+export type TenantMasterSeedLocale = "ko" | "en" | "vi";
+
+export type TenantMasterSeedDeliveryTemplate = "korea_districts" | "distance_zones";
+
 export interface TenantMasterSeed {
   version: string;
   label: string;
+  /** 시드 데이터 언어·문화권 (UI locale 과 별개) */
+  locale: TenantMasterSeedLocale;
+  /** 권장 ISO 국가 코드. 비우면 글로벌 팩 */
+  targetCountries?: string[];
+  /** 배송 템플릿 유형 — 관리 UI·안내 문구용 */
+  deliveryTemplate?: TenantMasterSeedDeliveryTemplate;
   productCategories: CategoryData;
   materialCategories: CategoryData;
   expenseCategories: CategoryData;

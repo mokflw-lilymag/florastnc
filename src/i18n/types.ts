@@ -20,16 +20,35 @@ export type LandingMessages = {
     line1: string;
     line2: string;
     line3: string;
-    description: string;
+    subtitle: string;
     start: string;
     demo: string;
     manual: string;
-    statStudios: string;
-    statDaily: string;
-    statRealtime: string;
-    statStability: string;
+    applyBeta: string;
+    downloadWindows: string;
+    bubble1: string;
+    bubble2: string;
+    bubble3: string;
+    bubble4: string;
+    bubble5: string;
+    bubble6: string;
+    devicePhone: string;
+    devicePhoneDesc: string;
+    devicePhoneSub: string;
+    devicePc: string;
+    devicePcDesc: string;
+    devicePcSub: string;
+    deviceWeb: string;
+    deviceWebDesc: string;
+    deviceWebSub: string;
     altBackground: string;
     altDashboard: string;
+    // legacy keys kept for backwards compat (optional)
+    description?: string;
+    statStudios?: string;
+    statDaily?: string;
+    statRealtime?: string;
+    statStability?: string;
   };
   features: {
     badge: string;
@@ -38,13 +57,14 @@ export type LandingMessages = {
     subtitle2: string;
     viewDetail: string;
     comingSoon: string;
-    integratedBadge: string;
-    integratedTitleLeft: string;
-    integratedTitleHighlight: string;
-    integratedDescription: string;
-    integratedItem1: string;
-    integratedItem2: string;
-    integratedItem3: string;
+    // legacy optional keys
+    integratedBadge?: string;
+    integratedTitleLeft?: string;
+    integratedTitleHighlight?: string;
+    integratedDescription?: string;
+    integratedItem1?: string;
+    integratedItem2?: string;
+    integratedItem3?: string;
     /** Home “technology” grid: card title + blurb per feature slug (see `LANDING_FEATURE_SLUGS`). */
     featureCards: Record<
       | "ai-order-concierge"

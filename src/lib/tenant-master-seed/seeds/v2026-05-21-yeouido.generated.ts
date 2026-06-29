@@ -9,6 +9,9 @@ import { TENANT_MASTER_SEED_DELIVERY_GWANGHWAMUN } from "./delivery-gwanghwamun"
 export const TENANT_MASTER_SEED_V2026_05_21_YEOUIDO: TenantMasterSeed = {
   version: "v2026-05-21-yeouido",
   label: "릴리맥여의도점 시트 스냅샷 (상품·자재·거래처)",
+  locale: "ko",
+  targetCountries: ["KR"],
+  deliveryTemplate: "korea_districts",
   productCategories: {
   main: ["어버이날상품", "플랜트", "기타상품", "플라워", "자재"],
   mid: {

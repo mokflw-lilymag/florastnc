@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
+import Link from "next/link";
 import { useAuth } from "@/hooks/use-auth";
 import { AccessDenied } from "@/components/access-denied";
 import { createClient } from "@/utils/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -21,13 +22,24 @@ import {
   CreditCard,
   TrendingUp,
   AlertTriangle,
-  CheckCircle2,
   RefreshCw,
   DollarSign,
   Globe,
   BarChart3,
+  History,
+  Store,
 } from "lucide-react";
-import { format, parseISO, differenceInDays } from "date-fns";
+import { format, parseISO } from "date-fns";
+import {
+  buildSubscriptionOverview,
+  resolveSubscriptionTenure,
+  tenureDaysLabelKo,
+} from "@/lib/subscription/subscription-tenure";
+import {
+  ExpiringTenantsPanel,
+  SubscriptionOverviewCards,
+} from "@/components/admin/ExpiringTenantsPanel";
+import { TENANT_COUNTRY_META } from "@/lib/admin/tenant-country-meta";
 
 // ─── 타입 ────────────────────────────────────────────────
 type TenantBillingRow = {
@@ -42,37 +54,25 @@ type TenantBillingRow = {
   currency: string | null;
 };
 
-// 플랜별 월 단가 (USD 기준)
+// 플랜별 월 단가 (원화 환산 기준)
 const PLAN_MRR_USD: Record<string, number> = {
   free: 0,
-  basic: 19,
-  pro: 49,
-  premium: 99,
-  enterprise: 299,
+  ribbon_only: 15000,
+  light: 25000,
+  pro: 40000,
+  pro_plus: 60000,
 };
 
 const PLAN_LABELS: Record<string, string> = {
-  free: "무료",
-  basic: "베이직",
-  pro: "프로",
-  premium: "프리미엄",
-  enterprise: "엔터프라이즈",
+  free: "무료 체험판",
+  ribbon_only: "리본 라이센스 (리본 전용)",
+  light: "플로비서 라이트",
+  pro: "플로비서 프로",
+  pro_plus: "플로비서 프로 플러스",
 };
 
-const COUNTRY_META: Record<string, { flag: string; name: string }> = {
-  KR: { flag: "🇰🇷", name: "대한민국" },
-  VN: { flag: "🇻🇳", name: "베트남" },
-  JP: { flag: "🇯🇵", name: "일본" },
-  ID: { flag: "🇮🇩", name: "인도네시아" },
-  MY: { flag: "🇲🇾", name: "말레이시아" },
-  TH: { flag: "🇹🇭", name: "태국" },
-  US: { flag: "🇺🇸", name: "미국" },
-  GB: { flag: "🇬🇧", name: "영국" },
-  SG: { flag: "🇸🇬", name: "싱가포르" },
-};
-
-const PLAN_COLORS = ["#6d28d9", "#3b82f6", "#10b981", "#f59e0b", "#ef4444"];
-const PLANS = ["enterprise", "premium", "pro", "basic", "free"];
+const PLAN_COLORS = ["#10b981", "#8b5cf6", "#14b8a6", "#3b82f6", "#64748b"];
+const PLANS = ["pro_plus", "pro", "light", "ribbon_only", "free"];
 
 // ─── 간단한 도넛 차트 (SVG) ─────────────────────────────
 function DonutChart({ data }: { data: { label: string; value: number; color: string }[] }) {
@@ -175,32 +175,15 @@ export default function BillingAdminPage() {
     else if (!authLoading && !isSuperAdmin) setLoading(false);
   }, [authLoading, isSuperAdmin, load]);
 
-  const handleGrantPremium = async (tenantId: string, tenantName: string) => {
-    const { error } = await supabase
-      .from("tenants")
-      .update({ plan: "premium", is_premium: true })
-      .eq("id", tenantId);
-    if (error) { toast.error("실패: " + error.message); return; }
-    toast.success(`✅ ${tenantName} 프리미엄 부여 완료`);
-    load();
-  };
-
   if (authLoading || (isSuperAdmin && loading)) {
     return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-violet-500" /></div>;
   }
   if (!isSuperAdmin) return <AccessDenied requiredTier="System Admin" />;
 
   // ─── 계산 ──────────────────────────────────────────────
+  const overview = useMemo(() => buildSubscriptionOverview(tenants), [tenants]);
   const totalMRR = tenants.reduce((s, t) => s + (PLAN_MRR_USD[t.plan ?? "free"] ?? 0), 0);
   const paidCount = tenants.filter((t) => t.plan && t.plan !== "free").length;
-  const expiringSoon = tenants.filter((t) => {
-    if (!t.subscription_end) return false;
-    return differenceInDays(parseISO(t.subscription_end), new Date()) <= 7 && differenceInDays(parseISO(t.subscription_end), new Date()) >= 0;
-  });
-  const expired = tenants.filter((t) => {
-    if (!t.subscription_end) return false;
-    return new Date(t.subscription_end) < new Date() && t.plan !== "free";
-  });
 
   const donutData = PLANS.map((p, i) => ({
     label: PLAN_LABELS[p],
@@ -226,22 +209,36 @@ export default function BillingAdminPage() {
             <DollarSign className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-black tracking-tight">구독 / 결제 대시보드</h1>
-            <p className="text-slate-500 text-sm">플랜별 구독 현황 및 만료 예정 테넌트 관리</p>
+            <h1 className="text-2xl font-black tracking-tight">SaaS 구독 대시보드</h1>
+            <p className="text-slate-500 text-sm">
+              Floxync 플랜·MRR·만료 현황 (매장 지갑·출금은{" "}
+              <Link href="/dashboard/billing-admin" className="text-emerald-600 hover:underline font-medium">
+                지갑·출금
+              </Link>
+              과 별도)
+            </p>
           </div>
         </div>
-        <Button variant="outline" onClick={load} className="gap-1.5 h-9">
-          <RefreshCw className="w-3.5 h-3.5" /> 새로고침
-        </Button>
+        <div className="flex gap-2">
+          <Link
+            href="/dashboard/admin/subscription-events"
+            className={buttonVariants({ variant: "outline", size: "sm", className: "gap-1.5 h-9" })}
+          >
+            <History className="w-3.5 h-3.5" /> 결제 이력
+          </Link>
+          <Button variant="outline" onClick={load} className="gap-1.5 h-9">
+            <RefreshCw className="w-3.5 h-3.5" /> 새로고침
+          </Button>
+        </div>
       </div>
 
       {/* KPI */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: "예상 MRR (USD)", value: `$${totalMRR.toLocaleString()}`, icon: TrendingUp, color: "text-emerald-600", bg: "bg-emerald-50" },
+          { label: "예상 MRR (KRW)", value: `₩${totalMRR.toLocaleString()}`, icon: TrendingUp, color: "text-emerald-600", bg: "bg-emerald-50" },
           { label: "유료 구독 수", value: paidCount, icon: CreditCard, color: "text-blue-600", bg: "bg-blue-50" },
-          { label: "7일 내 만료", value: expiringSoon.length, icon: AlertTriangle, color: "text-amber-600", bg: "bg-amber-50" },
-          { label: "연체/만료", value: expired.length, icon: AlertTriangle, color: "text-red-600", bg: "bg-red-50" },
+          { label: "7일 내 만료", value: overview.expiring7, icon: AlertTriangle, color: "text-amber-600", bg: "bg-amber-50" },
+          { label: "연체/만료", value: overview.expired, icon: AlertTriangle, color: "text-red-600", bg: "bg-red-50" },
         ].map((k) => (
           <Card key={k.label} className="border-0 shadow-sm ring-1 ring-slate-100">
             <CardContent className="pt-5 pb-4">
@@ -257,6 +254,16 @@ export default function BillingAdminPage() {
         ))}
       </div>
 
+      <SubscriptionOverviewCards overview={overview} />
+
+      <ExpiringTenantsPanel
+        overview={overview}
+        locale="ko"
+        maxRows={15}
+        tenantsHref="/dashboard/tenants"
+        billingHref="/dashboard/admin/billing"
+      />
+
       {/* 도넛 + 국가별 MRR */}
       <div className="grid md:grid-cols-2 gap-4">
         <Card className="border-0 shadow-sm ring-1 ring-slate-100">
@@ -264,10 +271,10 @@ export default function BillingAdminPage() {
           <CardContent><DonutChart data={donutData} /></CardContent>
         </Card>
         <Card className="border-0 shadow-sm ring-1 ring-slate-100">
-          <CardHeader><CardTitle className="text-sm flex items-center gap-1.5"><Globe className="w-4 h-4" />국가별 MRR (USD)</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-sm flex items-center gap-1.5"><Globe className="w-4 h-4" />국가별 MRR (KRW)</CardTitle></CardHeader>
           <CardContent className="space-y-2">
             {countryMRR.filter(([, v]) => v > 0).map(([code, mrr]) => {
-              const meta = COUNTRY_META[code];
+              const meta = TENANT_COUNTRY_META[code];
               const maxMRR = countryMRR[0]?.[1] ?? 1;
               return (
                 <div key={code} className="flex items-center gap-2">
@@ -276,7 +283,7 @@ export default function BillingAdminPage() {
                   <div className="flex-1 bg-slate-100 rounded-full h-2">
                     <div className="bg-emerald-500 h-2 rounded-full" style={{ width: `${(mrr / maxMRR) * 100}%` }} />
                   </div>
-                  <span className="text-xs font-mono text-slate-500 w-16 text-right">${mrr.toLocaleString()}</span>
+                  <span className="text-xs font-mono text-slate-500 w-20 text-right">₩{mrr.toLocaleString()}</span>
                 </div>
               );
             })}
@@ -286,54 +293,6 @@ export default function BillingAdminPage() {
           </CardContent>
         </Card>
       </div>
-
-      {/* 만료 임박 */}
-      {expiringSoon.length > 0 && (
-        <Card className="border-0 shadow-sm ring-1 ring-amber-200 bg-amber-50/30">
-          <CardHeader>
-            <CardTitle className="text-sm flex items-center gap-2 text-amber-700">
-              <AlertTriangle className="w-4 h-4" />
-              7일 내 구독 만료 예정 ({expiringSoon.length}개)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-xs">업체명</TableHead>
-                  <TableHead className="text-xs">국가</TableHead>
-                  <TableHead className="text-xs">플랜</TableHead>
-                  <TableHead className="text-xs">만료일</TableHead>
-                  <TableHead className="text-xs">D-day</TableHead>
-                  <TableHead className="text-xs" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {expiringSoon.map((t) => {
-                  const meta = COUNTRY_META[t.country ?? ""];
-                  const dday = differenceInDays(parseISO(t.subscription_end!), new Date());
-                  return (
-                    <TableRow key={t.id}>
-                      <TableCell className="font-medium text-sm">{t.name}</TableCell>
-                      <TableCell><span className="text-base mr-1">{meta?.flag ?? "🌐"}</span></TableCell>
-                      <TableCell><Badge variant="outline" className="text-xs">{PLAN_LABELS[t.plan ?? "free"] ?? t.plan}</Badge></TableCell>
-                      <TableCell className="text-xs">{format(parseISO(t.subscription_end!), "yyyy.MM.dd")}</TableCell>
-                      <TableCell><span className="text-xs font-bold text-amber-600">D-{dday}</span></TableCell>
-                      <TableCell>
-                        <Button size="sm" className="h-6 text-xs bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
-                          onClick={() => handleGrantPremium(t.id, t.name)}>
-                          <CheckCircle2 className="w-3 h-3" />
-                          프리미엄 연장
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      )}
 
       {/* 전체 구독 목록 */}
       <Card className="border-0 shadow-sm ring-1 ring-slate-100">
@@ -352,42 +311,52 @@ export default function BillingAdminPage() {
                 <TableHead className="text-xs">플랜</TableHead>
                 <TableHead className="text-xs">월 구독료</TableHead>
                 <TableHead className="text-xs">구독 시작</TableHead>
+                <TableHead className="text-xs">잔여</TableHead>
                 <TableHead className="text-xs">구독 만료</TableHead>
                 <TableHead className="text-xs" />
               </TableRow>
             </TableHeader>
             <TableBody>
               {tenants.filter((t) => t.plan && t.plan !== "free").map((t) => {
-                const meta = COUNTRY_META[t.country ?? ""];
+                const meta = TENANT_COUNTRY_META[t.country ?? ""];
                 const mrr = PLAN_MRR_USD[t.plan ?? "free"] ?? 0;
-                const isExpired = t.subscription_end ? new Date(t.subscription_end) < new Date() : false;
+                const tenure = resolveSubscriptionTenure(t);
                 return (
-                  <TableRow key={t.id} className={isExpired ? "bg-red-50/30" : ""}>
+                  <TableRow key={t.id} className={tenure.isExpired ? "bg-red-50/30" : tenure.bucket === "warning" || tenure.bucket === "critical" ? "bg-amber-50/20" : ""}>
                     <TableCell className="font-medium text-sm py-3">{t.name}</TableCell>
                     <TableCell><span className="text-base">{meta?.flag ?? "🌐"}</span></TableCell>
                     <TableCell>
-                      <Badge variant={isExpired ? "destructive" : "secondary"} className="text-xs">
+                      <Badge variant={tenure.isExpired ? "destructive" : "secondary"} className="text-xs">
                         {PLAN_LABELS[t.plan ?? "free"] ?? t.plan}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-xs font-mono font-bold text-emerald-700">${mrr}/mo</TableCell>
+                    <TableCell className="text-xs font-mono font-bold text-emerald-700">₩{mrr.toLocaleString()}/mo</TableCell>
                     <TableCell className="text-xs text-slate-500">
                       {t.subscription_start ? format(parseISO(t.subscription_start), "yyyy.MM.dd") : "-"}
                     </TableCell>
+                    <TableCell className="text-xs font-bold tabular-nums">
+                      {tenureDaysLabelKo(tenure)}
+                    </TableCell>
                     <TableCell className="text-xs">
-                      {t.subscription_end ? (
-                        <span className={isExpired ? "text-red-500 font-bold" : "text-slate-500"}>
-                          {format(parseISO(t.subscription_end), "yyyy.MM.dd")}
-                          {isExpired && " (만료)"}
+                      {tenure.endDate ? (
+                        <span className={tenure.isExpired ? "text-red-500 font-bold" : "text-slate-500"}>
+                          {format(tenure.endDate, "yyyy.MM.dd")}
+                          {tenure.isExpired && " (만료)"}
                         </span>
-                      ) : "-"}
+                      ) : tenure.isLifetime ? "평생" : "-"}
                     </TableCell>
                     <TableCell>
-                      {isExpired && (
-                        <Button size="sm" variant="outline" className="h-6 text-xs gap-1 text-emerald-600 border-emerald-300"
-                          onClick={() => handleGrantPremium(t.id, t.name)}>
-                          <CheckCircle2 className="w-3 h-3" /> 연장
-                        </Button>
+                      {tenure.isExpired && (
+                        <Link
+                          href="/dashboard/tenants"
+                          className={buttonVariants({
+                            size: "sm",
+                            variant: "outline",
+                            className: "h-6 text-xs gap-1 text-emerald-600 border-emerald-300 inline-flex items-center",
+                          })}
+                        >
+                          <Store className="w-3 h-3" /> 연장
+                        </Link>
                       )}
                     </TableCell>
                   </TableRow>

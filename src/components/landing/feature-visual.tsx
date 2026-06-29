@@ -1,6 +1,6 @@
 import type { ComponentType } from 'react';
 import type { LandingFeatureDefinition } from '@/data/landing-features';
-import { Cpu, Printer, RefreshCw, ShieldCheck, Smartphone, Zap, ReceiptText } from 'lucide-react';
+import { Cpu, Printer, RefreshCw, ShieldCheck, Calendar, Zap, ReceiptText } from 'lucide-react';
 import Image from 'next/image';
 
 const accentClasses: Record<LandingFeatureDefinition['accent'], string> = {
@@ -27,7 +27,7 @@ const iconBySlug: Record<LandingFeatureDefinition['slug'], ComponentType<{ class
   'smart-print-bridge': Printer,
   'ai-expense-magic': ReceiptText,
   'settlement-engine': ShieldCheck,
-  'mobile-premium': Smartphone,
+  'mobile-premium': Calendar,
 };
 
 export function FeatureVisual({

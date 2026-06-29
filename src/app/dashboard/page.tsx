@@ -30,6 +30,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Megaphone,
+  History,
 } from "lucide-react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -55,6 +56,11 @@ import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
 import { pickUiText } from "@/i18n/pick-ui-text";
 import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
+import {
+  ExpiringTenantsPanel,
+  SubscriptionOverviewCards,
+} from "@/components/admin/ExpiringTenantsPanel";
+import type { SubscriptionOverview } from "@/lib/subscription/subscription-tenure";
 
 // 🚀 Recharts lazy load — 차트가 필요할 때만 ~200KB 번들 로드
 const SalesChart = dynamic(() => import('./components/sales-chart'), {
@@ -203,6 +209,7 @@ export default function DashboardPage() {
   
   // Data for Tenants/Admin
   const [tenantStats, setTenantStats] = useState<{ total: number, active: number, pro: number, recent: any[] } | null>(null);
+  const [subscriptionOverview, setSubscriptionOverview] = useState<SubscriptionOverview | null>(null);
   const [adminLoading, setAdminLoading] = useState(false);
 
   useEffect(() => {
@@ -257,14 +264,29 @@ export default function DashboardPage() {
       const fetchAdminStats = async () => {
         try {
           setAdminLoading(true);
-          const { data: allTenants, error } = await supabase.from('tenants').select('*').order('created_at', { ascending: false });
-          if (!error && allTenants) {
+          const res = await fetch("/api/admin/subscription-overview");
+          const json = await res.json().catch(() => ({}));
+          if (res.ok && json.overview) {
+            setSubscriptionOverview(json.overview as SubscriptionOverview);
+            const allTenants = (json.tenants as any[]) ?? [];
             setTenantStats({
-              total: allTenants.length,
-              active: allTenants.filter((t: any) => t.status === 'active').length,
-              pro: allTenants.filter((t: any) => t.plan === 'pro').length,
-              recent: allTenants.slice(0, 5)
+              total: json.overview.total ?? allTenants.length,
+              active: json.overview.activePaid ?? 0,
+              pro: allTenants.filter((t: { plan?: string }) => t.plan === "pro" || t.plan === "pro_plus").length,
+              recent: [...allTenants].sort(
+                (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+              ).slice(0, 5),
             });
+          } else {
+            const { data: allTenants, error } = await supabase.from("tenants").select("*").order("created_at", { ascending: false });
+            if (!error && allTenants) {
+              setTenantStats({
+                total: allTenants.length,
+                active: allTenants.filter((t: { status?: string }) => t.status === "active").length,
+                pro: allTenants.filter((t: { plan?: string }) => t.plan === "pro").length,
+                recent: allTenants.slice(0, 5),
+              });
+            }
           }
         } finally {
           setAdminLoading(false);
@@ -272,7 +294,7 @@ export default function DashboardPage() {
       };
       fetchAdminStats();
     }
-  }, [isSuperAdmin]);
+  }, [isSuperAdmin, supabase]);
   
   const stats = useMemo(() => {
     if (isLoading || isSuperAdmin) return null;
@@ -427,10 +449,24 @@ export default function DashboardPage() {
         {/* Admin Stats Cards */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           <AdminStatCard icon={Store} label={tf.f01807} value={tenantStats?.total || 0} unit={tf.f00865} color="bg-indigo-600" />
-          <AdminStatCard icon={CheckCircle2} label={tf.f02224} value={tenantStats?.active || 0} unit={tf.f00865} color="bg-emerald-600" />
-          <AdminStatCard icon={Gem} label={tf.f02286} value={tenantStats?.pro || 0} unit={tf.f00865} color="bg-blue-600" />
-          <AdminStatCard icon={Calendar} label={tf.f01602} value={format(new Date(), "P", { locale: dfLoc })} unit="" color="bg-slate-800" />
+          <AdminStatCard icon={CheckCircle2} label="유료·정상 구독" value={subscriptionOverview?.activePaid ?? tenantStats?.active ?? 0} unit={tf.f00865} color="bg-emerald-600" />
+          <AdminStatCard icon={AlertCircle} label="7일 내 만료" value={subscriptionOverview?.expiring7 ?? 0} unit={tf.f00865} color="bg-amber-500" />
+          <AdminStatCard icon={AlertCircle} label="만료·연체" value={subscriptionOverview?.expired ?? 0} unit={tf.f00865} color="bg-red-600" />
         </div>
+
+        {subscriptionOverview && (
+          <SubscriptionOverviewCards overview={subscriptionOverview} />
+        )}
+
+        {subscriptionOverview && (
+          <ExpiringTenantsPanel
+            overview={subscriptionOverview}
+            locale={locale}
+            maxRows={10}
+            tenantsHref="/dashboard/tenants"
+            billingHref="/dashboard/admin/billing"
+          />
+        )}
 
         <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
           {/* Recent Tenant Signups */}
@@ -497,8 +533,9 @@ export default function DashboardPage() {
                 </CardHeader>
                 <CardContent className="grid grid-cols-2 gap-3 pt-2">
                    <DashboardIconButton icon={Store} label={tf.f02230} href="/dashboard/tenants" color="bg-indigo-600" />
-                   <DashboardIconButton icon={ScrollText} label={tf.f00958} href="/dashboard/announcements" color="bg-slate-700" />
-                   <DashboardIconButton icon={CreditCard} label={tf.f00911} href="/dashboard/billing-admin" color="bg-emerald-600" />
+                   <DashboardIconButton icon={Gem} label="SaaS 구독" href="/dashboard/admin/billing" color="bg-amber-600" />
+                   <DashboardIconButton icon={History} label="결제 이력" href="/dashboard/admin/subscription-events" color="bg-violet-600" />
+                   <DashboardIconButton icon={Wallet} label="지갑·출금" href="/dashboard/billing-admin" color="bg-emerald-600" />
                    <DashboardIconButton icon={Settings} label={tf.f01786} href="/dashboard/system-settings" color="bg-blue-600" />
                 </CardContent>
              </Card>

@@ -14,8 +14,17 @@ export type RevenueFeature =
 const FEATURE_MATRIX: Record<string, RevenueFeature[]> = {
   free: ["sns_manual"],
   ribbon_only: ["sns_manual"],
-  erp_only: ["anniversary_d7", "order_followup", "sns_manual", "attribution_detail"],
+  light: ["anniversary_d7", "order_followup", "sns_manual", "attribution_detail"],
   pro: [
+    "anniversary_d7",
+    "order_followup",
+    "sns_manual",
+    "sns_autopilot",
+    "attribution_detail",
+    "flash_sale",
+    "naver_seo_pack",
+  ],
+  pro_plus: [
     "anniversary_d7",
     "order_followup",
     "sns_manual",
@@ -48,9 +57,10 @@ export function getRevenueFeatureList(ctx: AccessContext): RevenueFeature[] {
 export function revenuePlanLabel(plan: string): string {
   const labels: Record<string, string> = {
     free: "Free",
-    ribbon_only: "PRINT CORE",
-    erp_only: "ERP SMART",
-    pro: "FLORA PRO",
+    ribbon_only: "Ribbon Only",
+    light: "Light",
+    pro: "Pro",
+    pro_plus: "Pro Plus",
   };
   return labels[plan] ?? plan;
 }

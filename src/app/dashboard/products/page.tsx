@@ -51,7 +51,7 @@ export default function ProductsPage() {
 
   const { productCategories } = useSettings();
 
-  const hasAccess = authLoading || isSuperAdmin || ['pro', 'erp_only'].includes(plan);
+  const hasAccess = authLoading || isSuperAdmin || ['light', 'pro', 'pro_plus'].includes(plan);
   const [searchTerm, setSearchTerm] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);

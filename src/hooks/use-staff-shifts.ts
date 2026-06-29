@@ -27,7 +27,29 @@ export function useStaffShifts() {
 
   useEffect(() => {
     void reload();
-  }, [reload]);
+    
+    if (!tenantId) return;
+    const supabase = createClient();
+    const staffId = `calendar_staff_${tenantId}`;
+    const channel = supabase.channel(`system_settings_staff_${tenantId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'system_settings',
+          filter: `id=eq.${staffId}`,
+        },
+        () => {
+          void reload();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [reload, tenantId]);
 
   const upsertShift = async (shift: StaffShift) => {
     if (!tenantId) return false;

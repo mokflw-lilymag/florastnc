@@ -20,7 +20,7 @@ import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
 
 const STORAGE_KEY_PREFIX = "floxync_renewal_notice_dismissed";
 
-/** 결제 시 subscription_start~end 간격이 길면 연간(12m) 등 장기 플랜으로 간주 (6m·월간 제외) */
+/** 결제 시 subscription_start~end 간격이 길면 연간(12m) 플랜으로 간주 */
 export function isAnnualBillingPeriod(
   subscriptionStart: string | null | undefined,
   subscriptionEnd: string | null | undefined

@@ -1,23 +1,39 @@
 @echo off
+setlocal
+cd /d "%~dp0"
+
 echo ==============================================
-echo Floxync / LilyMag ERP Universal Bridge Setup (v1.5.1)
+echo  Floxync PP Bridge Setup v2.6
 echo ==============================================
 echo.
-echo Starting bridge setup...
+echo Install folder: %~dp0
 echo.
-echo 1. Terminating existing background bridge services...
-taskkill /F /IM Floxync-Print-Bridge.exe /T >nul 2>&1
+
+if not exist "ppbridge.exe" (
+  echo [ERROR] ppbridge.exe not found in this folder.
+  echo Extract Floxync-Bridge-Setup.zip and run install.bat again.
+  echo.
+  pause
+  exit /b 1
+)
+
+echo [1/2] Stopping old bridge processes...
+taskkill /F /IM floxync-daemon.exe /T >nul 2>&1
+taskkill /F /IM ppbridge.exe /T >nul 2>&1
 taskkill /F /IM ppbridge-daemon.exe /T >nul 2>&1
 taskkill /F /IM Floxync-Print-Bridge.exe /T >nul 2>&1
+timeout /t 2 /nobreak >nul
+
+echo [2/2] Installing via ppbridge.exe ...
+echo Target folder: %APPDATA%\FloxyncBridge
 echo.
-echo 2. Installing bridge program as a background service...
-echo (Configured to hide the terminal window and run automatically.)
-echo Please wait...
-echo.
+
 ppbridge.exe
 
 echo.
-echo Setup (Update) complete!
-echo A popup will appear if the installation is successful.
-echo You can now close this window.
+echo Done. If a success popup appeared, the bridge is running.
+echo Open Floxync web app and check PP Bridge status is ON.
+echo Log: %APPDATA%\FloxyncBridge\daemon.log
+echo.
 pause
+exit /b 0

@@ -83,6 +83,7 @@ export default function LoginPage() {
   const [regPassword, setRegPassword] = useState('');
   const [regShopName, setRegShopName] = useState('');
   const [showRegPassword, setShowRegPassword] = useState(false);
+  const [agreeTerms, setAgreeTerms] = useState(false);
   const [regLoading, setRegLoading] = useState(false);
 
   // Forgot Password State
@@ -208,6 +209,15 @@ export default function LoginPage() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!agreeTerms) {
+      const errTermsMsg = pickUiText(
+        baseLocale,
+        "서비스 이용약관 및 개인정보 처리방침에 동의해 주셔야 가입이 가능합니다.",
+        "You must agree to the Terms of Service and Privacy Policy to register.",
+      );
+      toast.error(errTermsMsg);
+      return;
+    }
     setRegLoading(true);
 
     try {
@@ -480,6 +490,36 @@ export default function LoginPage() {
                       </Button>
                     </div>
                   </div>
+                  
+                  {/* Terms and conditions check guard */}
+                  <div className="flex items-start space-x-2 py-1.5">
+                    <Checkbox 
+                      id="agree-terms" 
+                      checked={agreeTerms} 
+                      onCheckedChange={(checked) => setAgreeTerms(!!checked)}
+                      className="mt-1"
+                    />
+                    <label 
+                      htmlFor="agree-terms" 
+                      className="text-xs font-medium text-slate-500 leading-snug cursor-pointer select-none"
+                    >
+                      {pickUiText(
+                        baseLocale,
+                        "서비스 이용약관 및 개인정보 처리방침에 동의합니다. (필수)",
+                        "I agree to the Terms of Service and Privacy Policy. (Required)",
+                      )}
+                      <span className="block text-[10px] text-slate-400 mt-0.5">
+                        <Link href="/legal/terms" target="_blank" className="text-indigo-500 underline hover:text-indigo-600">
+                          {pickUiText(baseLocale, "이용약관 보기", "View Terms")}
+                        </Link>
+                        {" · "}
+                        <Link href="/legal/privacy" target="_blank" className="text-indigo-500 underline hover:text-indigo-600">
+                          {pickUiText(baseLocale, "개인정보 처리방침 보기", "View Privacy")}
+                        </Link>
+                      </span>
+                    </label>
+                  </div>
+
                   <Button type="submit" className="w-full h-11 mt-2 text-md font-medium" disabled={regLoading}>
                     {regLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {L.creatingAccount}</> : L.registerSubmit}
                   </Button>
@@ -550,9 +590,12 @@ export default function LoginPage() {
         <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
           <DialogContent className="sm:max-w-md rounded-2xl">
             <DialogHeader>
-              <DialogTitle className="text-xl font-bold flex items-center gap-2 text-slate-900">
-                <Lock className="h-5 w-5 text-blue-500" />
-                {L.resetTitle}
+              <DialogTitle className="text-xl font-bold flex flex-col items-center gap-4 text-slate-900 pb-2">
+                <img src="/floxync-logo.png" alt="Floxync Logo" className="h-8 object-contain dark:hidden" />
+                <div className="flex items-center gap-2">
+                  <Lock className="h-5 w-5 text-blue-500" />
+                  {L.resetTitle}
+                </div>
               </DialogTitle>
               <DialogDescription className="text-slate-500">
                 {L.resetDescLine1}

@@ -1,6 +1,6 @@
 "use client";
 
-import { Package, Truck, CreditCard, Wallet, Users } from "lucide-react";
+import { Package, Truck, CreditCard, Wallet, Users, FileText, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ScheduleEventKind, ScheduleLayerFilters } from "@/types/schedule-calendar";
 
@@ -15,18 +15,21 @@ const LAYERS: {
   { key: "fixed_cost", label: "고정비", icon: CreditCard, activeClass: "border-violet-300 bg-violet-50 text-violet-900" },
   { key: "expense", label: "지출", icon: Wallet, activeClass: "border-emerald-300 bg-emerald-50 text-emerald-900" },
   { key: "staff", label: "직원 스케줄", icon: Users, activeClass: "border-purple-300 bg-purple-50 text-purple-900" },
+  { key: "note", label: "특이/전달사항", icon: FileText, activeClass: "border-gray-300 bg-gray-50 text-gray-900" },
 ];
 
 type Props = {
   filters: ScheduleLayerFilters;
   onChange: (next: ScheduleLayerFilters) => void;
+  fixedCostLocked?: boolean;
 };
 
-export function ScheduleLayerFiltersBar({ filters, onChange }: Props) {
+export function ScheduleLayerFiltersBar({ filters, onChange, fixedCostLocked }: Props) {
   return (
     <div className="flex flex-wrap gap-2">
       {LAYERS.map(({ key, label, icon: Icon, activeClass }) => {
         const on = filters[key];
+        const isLocked = key === "fixed_cost" && fixedCostLocked;
         return (
           <button
             key={key}
@@ -37,7 +40,7 @@ export function ScheduleLayerFiltersBar({ filters, onChange }: Props) {
               on ? activeClass : "border-slate-200 bg-white text-slate-400 line-through",
             )}
           >
-            <Icon className="h-3.5 w-3.5" />
+            {isLocked ? <Lock className="h-3.5 w-3.5" /> : <Icon className="h-3.5 w-3.5" />}
             {label}
           </button>
         );

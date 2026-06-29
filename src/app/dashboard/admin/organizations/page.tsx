@@ -93,11 +93,11 @@ export default function OrganizationsAdminPage() {
   const formatPlanLabel = (plan: string | null) => {
     if (!plan) return "—";
     const map: Record<string, string> = {
-      free: tf.f01206,
-      basic: tf.f01251,
-      pro: tf.f02138,
-      premium: tf.f02140,
-      enterprise: tf.f01555,
+      free: "무료 체험판",
+      ribbon_only: "리본 라이센스 (리본 전용)",
+      light: "플로비서 라이트",
+      pro: "플로비서 프로",
+      pro_plus: "플로비서 프로 플러스",
     };
     return map[plan] ?? plan;
   };

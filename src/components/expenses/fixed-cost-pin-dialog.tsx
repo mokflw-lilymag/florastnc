@@ -94,10 +94,11 @@ export function FixedCostPinDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-sm">
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-3 py-1">
+        <form onSubmit={(e) => { e.preventDefault(); void handleSubmit(); }}>
+          <DialogHeader>
+            <DialogTitle>{title}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-1">
           {mode === "unlock" ? (
             <p className="text-xs text-muted-foreground">
               이 매장에 설정된 암호를 입력하면 고정비 템플릿·캘린더 정보를 볼 수 있습니다. (이
@@ -156,14 +157,15 @@ export function FixedCostPinDialog({
             </p>
           ) : null}
         </div>
-        <DialogFooter className="gap-2 sm:gap-0">
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            취소
-          </Button>
-          <Button type="button" disabled={saving} onClick={() => void handleSubmit()}>
-            {mode === "unlock" ? "확인" : mode === "remove" ? "암호 해제" : "저장"}
-          </Button>
-        </DialogFooter>
+          <DialogFooter className="gap-2 sm:gap-0 mt-4">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              취소
+            </Button>
+            <Button type="submit" disabled={saving}>
+              {mode === "unlock" ? "확인" : mode === "remove" ? "암호 해제" : "저장"}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

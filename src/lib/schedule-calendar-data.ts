@@ -9,8 +9,11 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { OrderService } from "@/services/order-service";
 import type { Order } from "@/types/order";
 import type { FixedCostItem } from "@/types/simple-expense";
-import type { ScheduleCalendarEvent, StaffShift } from "@/types/schedule-calendar";
+import type { ScheduleCalendarEvent, StaffShift, ScheduleNote } from "@/types/schedule-calendar";
 import { getScheduleDate } from "@/lib/reminder-schedule-orders";
+import { DEFAULT_EXPENSE_CATEGORIES } from "@/lib/category-defaults";
+
+const fixedCostCategories = new Set(DEFAULT_EXPENSE_CATEGORIES.mid["고정비"] || []);
 
 const ORDER_SELECT = `
   id, tenant_id, order_number, status, receipt_type,
@@ -126,9 +129,15 @@ export async function fetchMonthExpenses(
 
   for (const row of simpleRes.error ? [] : simpleRes.data || []) {
     const ymd = format(new Date(row.expense_date), "yyyy-MM-dd");
+    const isFixedCost = 
+      row.category === "고정비" || 
+      fixedCostCategories.has(row.category) || 
+      fixedCostCategories.has(row.description) ||
+      fixedCostCategories.has(row.supplier);
+    
     events.push({
       id: `simple-${row.id}`,
-      kind: "expense",
+      kind: isFixedCost ? "fixed_cost" : "expense",
       dateYmd: ymd,
       title: row.description || row.supplier || "지출",
       subtitle: row.supplier || undefined,
@@ -139,9 +148,15 @@ export async function fetchMonthExpenses(
 
   for (const row of ocrRes.error ? [] : ocrRes.data || []) {
     const ymd = format(new Date(row.expense_date), "yyyy-MM-dd");
+    const isFixedCost = 
+      row.category === "고정비" || 
+      fixedCostCategories.has(row.category) ||
+      fixedCostCategories.has(row.sub_category) ||
+      fixedCostCategories.has(row.description);
+
     events.push({
       id: `exp-${row.id}`,
-      kind: "expense",
+      kind: isFixedCost ? "fixed_cost" : "expense",
       dateYmd: ymd,
       title: row.description || "지출",
       subtitle: row.sub_category || row.category,
@@ -191,6 +206,51 @@ export async function saveStaffShifts(
       id: staffSettingsId(tenantId),
       tenant_id: tenantId,
       data: { shifts },
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "id" },
+  );
+  if (error) throw error;
+}
+
+const NOTE_SETTINGS_PREFIX = "calendar_notes_";
+
+export function noteSettingsId(tenantId: string) {
+  return `${NOTE_SETTINGS_PREFIX}${tenantId}`;
+}
+
+export async function fetchScheduleNotes(
+  supabase: SupabaseClient,
+  tenantId: string,
+): Promise<ScheduleNote[]> {
+  try {
+    const { data, error } = await supabase
+      .from("system_settings")
+      .select("data")
+      .eq("id", noteSettingsId(tenantId))
+      .maybeSingle();
+    if (error) {
+      console.warn("[schedule] notes fetch failed", error);
+      return [];
+    }
+    const notes = (data?.data as { notes?: ScheduleNote[] } | null)?.notes;
+    return Array.isArray(notes) ? notes : [];
+  } catch (e) {
+    console.warn("[schedule] notes fetch failed", e);
+    return [];
+  }
+}
+
+export async function saveScheduleNotes(
+  supabase: SupabaseClient,
+  tenantId: string,
+  notes: ScheduleNote[],
+): Promise<void> {
+  const { error } = await supabase.from("system_settings").upsert(
+    {
+      id: noteSettingsId(tenantId),
+      tenant_id: tenantId,
+      data: { notes },
       updated_at: new Date().toISOString(),
     },
     { onConflict: "id" },
@@ -312,22 +372,33 @@ export function staffShiftsToEvents(shifts: StaffShift[]): ScheduleCalendarEvent
   }));
 }
 
+export function scheduleNotesToEvents(notes: ScheduleNote[]): ScheduleCalendarEvent[] {
+  return notes.map((n) => ({
+    id: `note-${n.id}`,
+    kind: "note" as const,
+    dateYmd: n.dateYmd,
+    title: n.content,
+  }));
+}
+
 export async function loadScheduleMonthEvents(
   supabase: SupabaseClient,
   tenantId: string,
   month: Date,
 ): Promise<ScheduleCalendarEvent[]> {
-  const [ordersResult, fixedResult, expensesResult, staffResult] = await Promise.allSettled([
+  const [ordersResult, fixedResult, expensesResult, staffResult, notesResult] = await Promise.allSettled([
     fetchScheduleOrdersForMonth(supabase, tenantId, month),
     fetchFixedCostTemplateItems(supabase, tenantId),
     fetchMonthExpenses(supabase, tenantId, month),
     fetchStaffShifts(supabase, tenantId),
+    fetchScheduleNotes(supabase, tenantId),
   ]);
 
   const orders = ordersResult.status === "fulfilled" ? ordersResult.value : [];
   const fixedItems = fixedResult.status === "fulfilled" ? fixedResult.value : [];
   const expenses = expensesResult.status === "fulfilled" ? expensesResult.value : [];
   const staff = staffResult.status === "fulfilled" ? staffResult.value : [];
+  const notes = notesResult.status === "fulfilled" ? notesResult.value : [];
 
   if (ordersResult.status === "rejected") {
     console.warn("[schedule] orders fetch failed", ordersResult.reason);
@@ -341,9 +412,17 @@ export async function loadScheduleMonthEvents(
   if (staffResult.status === "rejected") {
     console.warn("[schedule] staff fetch failed", staffResult.reason);
   }
+  if (notesResult.status === "rejected") {
+    console.warn("[schedule] notes fetch failed", notesResult.reason);
+  }
 
   const staffInMonth = staff.filter((s) => {
     const d = new Date(s.dateYmd);
+    return d >= startOfMonth(month) && d <= endOfMonth(month);
+  });
+  
+  const notesInMonth = notes.filter((n) => {
+    const d = new Date(n.dateYmd);
     return d >= startOfMonth(month) && d <= endOfMonth(month);
   });
 
@@ -352,5 +431,6 @@ export async function loadScheduleMonthEvents(
     ...buildFixedCostEventsForMonth(fixedItems, month),
     ...expenses,
     ...staffShiftsToEvents(staffInMonth),
+    ...scheduleNotesToEvents(notesInMonth),
   ];
 }

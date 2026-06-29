@@ -6,6 +6,10 @@ import type {
   TenantMasterSeedResult,
 } from "./types";
 import { resolvedMaterialSeedMemo, resolvedProductCode } from "./seed-db-shape";
+import {
+  SAMPLE_SUPPLIER_NAME_PATTERNS,
+  STANDARD_SEED_PRODUCT_VERSIONS,
+} from "./seed-locale-meta";
 
 /** 조직 일괄 시드 시 한 번에 처리할 매장 수 상한 */
 export const TENANT_MASTER_SEED_BULK_MAX = 200;
@@ -38,7 +42,9 @@ export async function runTenantMasterSeed(
 
   if (districtRows.length > 0) {
     warnings.push(
-      "배송비: 자치구별 금액은 delivery_fees_by_region 과 일반 설정의 districtDeliveryFees 에 함께 반영됩니다."
+      seed.deliveryTemplate === "distance_zones"
+        ? "배송비: 매장 기준 거리 구역 템플릿이 delivery_fees_by_region 및 일반 설정에 반영됩니다. 금액·구역명은 설정에서 수정하세요."
+        : "배송비: 권역별 금액이 delivery_fees_by_region 과 일반 설정의 districtDeliveryFees 에 함께 반영됩니다."
     );
   }
 
@@ -126,28 +132,27 @@ export async function runTenantMasterSeed(
   if (!opts.dryRun) {
     const now = new Date().toISOString();
 
-    // [기능 추가] 이스트폴 시드 등 새로운 시드를 덮어씌울 때, 기존 '표준 초기 시드(v2026-04-21)' 샘플 데이터를 자동 삭제합니다.
+    // 이스트폴·로케일 팩 교체 시 기존 표준 시드 샘플 정리
     try {
-      // 1. 표준 시드 상품 삭제 (extra_data->_seed->>version 이 v2026-04-21 인 것)
-      await admin
-        .from("products")
-        .delete()
-        .eq("tenant_id", tenantId)
-        .contains("extra_data", { _seed: { version: "v2026-04-21" } });
+      for (const ver of STANDARD_SEED_PRODUCT_VERSIONS) {
+        await admin
+          .from("products")
+          .delete()
+          .eq("tenant_id", tenantId)
+          .contains("extra_data", { _seed: { version: ver } });
+      }
 
-      // 2. 표준 시드 자재 삭제 (memo 가 FS-SEED|v2026-04-21| 로 시작하는 것)
-      await admin
-        .from("materials")
-        .delete()
-        .eq("tenant_id", tenantId)
-        .like("memo", "FS-SEED|v2026-04-21|%");
+      for (const ver of STANDARD_SEED_PRODUCT_VERSIONS) {
+        await admin
+          .from("materials")
+          .delete()
+          .eq("tenant_id", tenantId)
+          .like("memo", `FS-SEED|${ver}|%`);
+      }
 
-      // 3. 표준 시드 샘플 거래처 삭제 (이름에 '(샘플)'이 포함된 것)
-      await admin
-        .from("suppliers")
-        .delete()
-        .eq("tenant_id", tenantId)
-        .like("name", "%(샘플)%");
+      for (const pattern of SAMPLE_SUPPLIER_NAME_PATTERNS) {
+        await admin.from("suppliers").delete().eq("tenant_id", tenantId).like("name", pattern);
+      }
     } catch (cleanErr) {
       console.warn("[runTenantMasterSeed] 기존 표준 시드 정리 중 에러:", cleanErr);
     }

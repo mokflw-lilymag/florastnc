@@ -142,6 +142,15 @@ export async function POST(request: NextRequest) {
       profile.tenant_id,
       parsed.planId,
       parsed.period,
+      {
+        actorUserId: user.id,
+        actorEmail: user.email ?? undefined,
+        source: "toss",
+        externalRef: paymentKey,
+        amountCents: Number(amount),
+        currency: "KRW",
+        orderId,
+      },
     );
 
     return NextResponse.json({
@@ -149,6 +158,7 @@ export async function POST(request: NextRequest) {
       message: tr("결제가 성공적으로 처리되었습니다.", "Payment was processed successfully."),
       plan: result.planId,
       expiry: result.expiry,
+      monthsGranted: result.monthsGranted,
     });
 
   } catch (error: unknown) {

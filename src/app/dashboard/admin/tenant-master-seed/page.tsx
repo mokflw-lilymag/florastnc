@@ -27,8 +27,14 @@ import type { TenantMasterSeedBulkResult, TenantMasterSeedResult } from "@/lib/t
 import type { TenantSeedAppliedStatus } from "@/lib/tenant-master-seed/seed-audit-status";
 import { TENANT_MASTER_SEED_BULK_MAX } from "@/lib/tenant-master-seed/run-seed";
 import { resolvedMaterialSeedMemo, resolvedProductCode } from "@/lib/tenant-master-seed/seed-db-shape";
+import {
+  recommendSeedVersionForCountry,
+  seedLocaleMatchesCountry,
+} from "@/lib/tenant-master-seed/registry";
+import type { TenantMasterSeedVersionInfo } from "@/lib/tenant-master-seed/registry";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { type AppLocale, toBaseLocale } from "@/i18n/config";
+import { pickUiText } from "@/i18n/pick-ui-text";
 
 /** Base UI Select may treat value="" as uncontrolled, so empty uses sentinel only */
 const SELECT_TENANT_EMPTY = "__fs_seed_tenant_empty__";
@@ -57,6 +63,7 @@ type SeedDetailResponse = {
 interface TenantRow {
   id: string;
   name: string;
+  country?: string | null;
 }
 
 interface OrganizationRow {
@@ -279,7 +286,7 @@ function aggregateBulkSeedDeltas(tenants: TenantMasterSeedBulkResult["tenants"])
 export default function TenantMasterSeedPage() {
   const { isSuperAdmin, isLoading: authLoading } = useAuth();
   const [tenants, setTenants] = useState<TenantRow[]>([]);
-  const [versions, setVersions] = useState<{ id: string; label: string }[]>([]);
+  const [versions, setVersions] = useState<TenantMasterSeedVersionInfo[]>([]);
   const [tenantId, setTenantId] = useState<string>("");
   const [versionId, setVersionId] = useState<string>("");
   const [confirm, setConfirm] = useState(false);
@@ -349,12 +356,13 @@ export default function TenantMasterSeedPage() {
       if (!res.ok) {
         throw new Error(typeof json?.error === "string" ? json.error : res.statusText);
       }
-      const rows = (json.tenants as { id: string; name?: string | null }[]) ?? [];
+      const rows = (json.tenants as { id: string; name?: string | null; country?: string | null }[]) ?? [];
       setTenants(
         rows
           .map((t) => ({
             id: t.id,
             name: formatTenantDisplayName(t.name, t.id, messages),
+            country: t.country ?? null,
           }))
           .sort((a, b) => a.name.localeCompare(b.name, baseLocale))
       );
@@ -481,9 +489,57 @@ export default function TenantMasterSeedPage() {
   const versionTriggerText = useMemo(() => {
     if (!versionId) return null;
     const v = versions.find((x) => x.id === versionId);
-    if (v) return `${v.id} — ${v.label}`;
+    if (v) return `[${v.localeLabel}] ${v.id} — ${v.label}`;
     return versionId;
   }, [versionId, versions]);
+
+  const selectedTenant = useMemo(
+    () => tenants.find((t) => t.id === tenantId) ?? null,
+    [tenants, tenantId]
+  );
+
+  const selectedVersionMeta = useMemo(
+    () => versions.find((x) => x.id === versionId) ?? null,
+    [versions, versionId]
+  );
+
+  const recommendedVersionId = useMemo(() => {
+    if (!selectedTenant?.country && !tenantId) return null;
+    return recommendSeedVersionForCountry(selectedTenant?.country);
+  }, [selectedTenant?.country, tenantId]);
+
+  const seedLocaleMismatch = useMemo(() => {
+    if (!selectedTenant || !selectedVersionMeta) return false;
+    return !seedLocaleMatchesCountry(selectedVersionMeta.locale, selectedTenant.country);
+  }, [selectedTenant, selectedVersionMeta]);
+
+  const seedLocaleHint = pickUiText(
+    baseLocale,
+    "매장 국가와 시드 팩이 다릅니다. 권장 시드를 선택하세요.",
+    "Store country does not match this seed pack. Choose the recommended seed.",
+    "Quốc gia cửa hàng không khớp gói seed. Hãy chọn seed được đề xuất.",
+    "店舗の国とシードパックが一致しません。推奨シードを選んでください。",
+    "店铺国家与种子包不匹配，请选择推荐种子。",
+    "El país de la tienda no coincide con el paquete seed. Elija el seed recomendado.",
+    "O país da loja não corresponde ao pacote seed. Escolha o seed recomendado.",
+    "Le pays du magasin ne correspond pas au pack seed. Choisissez le seed recommandé.",
+    "Ländercode passt nicht zum Seed-Paket. Empfohlenen Seed wählen.",
+    "Страна магазина не совпадает с пакетом seed. Выберите рекомендуемый seed."
+  );
+
+  const deliveryZoneHint = pickUiText(
+    baseLocale,
+    "해외 시드는 매장 기준 거리 구역 배송 템플릿이 들어갑니다. 적용 후 설정 → 배송에서 금액·구역을 수정하세요.",
+    "International seeds include distance-zone delivery templates from your shop. Edit fees and zones under Settings → Delivery after apply.",
+    "Seed quốc tế có mẫu phí theo khoảng cách từ cửa hàng. Sau khi áp dụng, sửa trong Cài đặt → Giao hàng.",
+    "海外シードは店舗基準の距離ゾーン送料テンプレートを含みます。適用後、設定→配送で編集してください。",
+    "海外种子含距店铺的距离分区运费模板，应用后请在设置→配送中修改。",
+    "Los seeds internacionales incluyen plantilla por zonas de distancia. Edite en Ajustes → Entrega.",
+    "Seeds internacionais incluem zonas por distância. Edite em Configurações → Entrega.",
+    "Les seeds internationaux incluent des zones par distance. Modifiez dans Paramètres → Livraison.",
+    "Internationale Seeds enthalten Distanz-Zonen. Nach Anwendung unter Einstellungen → Lieferung bearbeiten.",
+    "Международные seed включают зоны по расстоянию. Измените в Настройки → Доставка."
+  );
 
   const orgTriggerText = useMemo(() => {
     if (!organizationId) return null;
@@ -835,11 +891,55 @@ export default function TenantMasterSeedPage() {
                 </SelectItem>
                 {versions.map((v) => (
                   <SelectItem key={v.id} value={v.id}>
-                    {v.id} — {v.label}
+                    <span className="flex flex-wrap items-center gap-1.5">
+                      <Badge variant="outline" className="text-[10px] font-normal">
+                        {v.localeLabel}
+                      </Badge>
+                      <span>
+                        {v.id} — {v.label}
+                      </span>
+                      {v.deliveryTemplate === "distance_zones" && (
+                        <Badge variant="secondary" className="text-[10px] font-normal">
+                          distance
+                        </Badge>
+                      )}
+                    </span>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            {selectedVersionMeta?.deliveryTemplate === "distance_zones" && (
+              <p className="text-[11px] text-muted-foreground leading-snug">{deliveryZoneHint}</p>
+            )}
+            {seedLocaleMismatch && recommendedVersionId && (
+              <Alert variant="destructive" className="rounded-xl">
+                <AlertTitle className="text-sm">{seedLocaleHint}</AlertTitle>
+                <AlertDescription className="text-xs space-y-2">
+                  <p>
+                    {pickUiText(
+                      baseLocale,
+                      `매장 국가: ${selectedTenant?.country ?? "KR"} · 선택 시드: ${selectedVersionMeta?.localeLabel}`,
+                      `Store: ${selectedTenant?.country ?? "KR"} · Seed: ${selectedVersionMeta?.localeLabel}`,
+                      `Cửa hàng: ${selectedTenant?.country ?? "KR"} · Seed: ${selectedVersionMeta?.localeLabel}`
+                    )}
+                  </p>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    className="h-8"
+                    onClick={() => setVersionId(recommendedVersionId)}
+                  >
+                    {pickUiText(
+                      baseLocale,
+                      `권장 시드 선택 (${recommendedVersionId})`,
+                      `Use recommended (${recommendedVersionId})`,
+                      `Chọn seed đề xuất (${recommendedVersionId})`
+                    )}
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
           </div>
 
           <Tabs
