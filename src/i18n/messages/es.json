@@ -2963,7 +2963,18 @@
     "f02652": "Formtec 3109 (12 celdas)",
     "f02653": "10k",
     "f02654": "M",
-    "f02655": "tr"
+    "f02655": "tr",
+    "f02657": "Período de transacción",
+    "f02658": "Semilla aplicada",
+    "f02659": "{version} · {date}",
+    "f02660": "No aplicada",
+    "f02661": "Versión actual",
+    "f02662": "Aplicada {applied} · Pendiente {pending}",
+    "f02663": "Otra versión ({version})",
+    "f02664": "Según datos DB",
+    "f02665": "Falta la tabla tenant_master_seed_audit; el estado se infiere de marcadores FS-SEED en productos/materiales. Ejecute supabase/tenant_master_seed_audit_schema.sql en Supabase SQL Editor para historial exacto.",
+    "f02666": "Última aplicación",
+    "f02667": "«Versión actual» / «Otra versión» compara cada tienda con la semilla seleccionada arriba. Marcadores FS-SEED antiguos pueden mostrar diferencias. Cada aplicación registra la última versión en system_settings."
   },
   "landing": {
     "navbar": {

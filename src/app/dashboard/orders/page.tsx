@@ -1114,7 +1114,7 @@ export default function OrdersPage() {
                                  )}>
                                    {receiptTypeLabels[order.receipt_type] || order.receipt_type}
                                  </Badge>
-                                 {order.transfer_info?.isTransferred && (
+                                 {order.transferInfo?.isTransferred && (
                                    <Badge className={cn(
                                      "text-[9px] font-bold px-2 py-0.5 rounded-full border-none shadow-sm",
                                      order.tenant_id === tenantId
@@ -1122,8 +1122,8 @@ export default function OrdersPage() {
                                        : "bg-emerald-50 text-emerald-700"
                                    )}>
                                      {order.tenant_id === tenantId 
-                                        ? `이관 발주 (${order.transfer_info.processBranchName || order.transfer_info.process_branch_name || "지점"})` 
-                                        : `이관 수주 (${order.transfer_info.originalBranchName || order.transfer_info.original_branch_name || "지점"})`}
+                                        ? `이관 발주 (${order.transferInfo.processBranchName || order.transferInfo.process_branch_name || "지점"})` 
+                                        : `이관 수주 (${order.transferInfo.originalBranchName || order.transferInfo.original_branch_name || "지점"})`}
                                    </Badge>
                                  )}
                                </div>
@@ -1328,7 +1328,7 @@ export default function OrdersPage() {
                             )}>
                               {statusLabels[order.status] || order.status}
                             </Badge>
-                            {order.transfer_info?.isTransferred && (
+                            {order.transferInfo?.isTransferred && (
                               <Badge className={cn(
                                 "rounded-full px-2 py-0.5 font-bold text-[9px] border-none shadow-sm",
                                 order.tenant_id === tenantId
@@ -1336,8 +1336,8 @@ export default function OrdersPage() {
                                   : "bg-emerald-50 text-emerald-700"
                               )}>
                                 {order.tenant_id === tenantId 
-                                        ? `이관 발주 (${order.transfer_info.processBranchName || order.transfer_info.process_branch_name || "지점"})` 
-                                        : `이관 수주 (${order.transfer_info.originalBranchName || order.transfer_info.original_branch_name || "지점"})`}
+                                        ? `이관 발주 (${order.transferInfo.processBranchName || order.transferInfo.process_branch_name || "지점"})` 
+                                        : `이관 수주 (${order.transferInfo.originalBranchName || order.transferInfo.original_branch_name || "지점"})`}
                               </Badge>
                             )}
                           </div>
@@ -1679,7 +1679,7 @@ export default function OrdersPage() {
                 <div className="flex justify-between">
                   <span className="text-slate-500 font-medium">배송 희망일:</span>
                   <span className="font-bold text-slate-900">
-                    {selectedOrderForPartner.delivery_info?.deliveryDate || selectedOrderForPartner.pickup_info?.pickupDate || "—"}
+                    {selectedOrderForPartner.delivery_info?.date || selectedOrderForPartner.pickup_info?.date || "—"}
                   </span>
                 </div>
                 <div className="flex justify-between">

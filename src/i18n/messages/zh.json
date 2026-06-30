@@ -2963,7 +2963,18 @@
     "f02652": "Formtec 3109（12 节电池）",
     "f02653": "만",
     "f02654": "M",
-    "f02655": "t"
+    "f02655": "t",
+    "f02657": "交易期间",
+    "f02658": "已应用种子",
+    "f02659": "{version} · {date}",
+    "f02660": "未应用",
+    "f02661": "当前版本",
+    "f02662": "已应用 {applied} · 待处理 {pending}",
+    "f02663": "其他版本 ({version})",
+    "f02664": "基于数据库",
+    "f02665": "缺少 tenant_master_seed_audit 表，因此从商品/物料上的 FS-SEED 标记推断应用状态。请在 Supabase SQL Editor 中运行 supabase/tenant_master_seed_audit_schema.sql 以获取准确历史。",
+    "f02666": "上次应用",
+    "f02667": "“当前版本”/“其他版本”将各门店与上方所选种子版本比较。旧的 FS-SEED 标记可能导致显示不一致。每次应用现已在 system_settings 中记录最后应用的版本。"
   },
   "landing": {
     "navbar": {

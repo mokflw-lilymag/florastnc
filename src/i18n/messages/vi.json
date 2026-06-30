@@ -2963,7 +2963,18 @@
     "f02652": "Formtec 3109 (12 ô)",
     "f02653": "10k",
     "f02654": "M",
-    "f02655": "tr"
+    "f02655": "tr",
+    "f02657": "Thời gian giao dịch",
+    "f02658": "Đã áp dụng seed",
+    "f02659": "{version} · {date}",
+    "f02660": "Chưa áp dụng",
+    "f02661": "Phiên bản hiện tại",
+    "f02662": "Đã áp dụng {applied} · Chờ {pending}",
+    "f02663": "Phiên bản khác ({version})",
+    "f02664": "Theo dữ liệu DB",
+    "f02665": "Thiếu bảng tenant_master_seed_audit nên trạng thái được suy ra từ dấu FS-SEED trên sản phẩm/vật tư. Chạy supabase/tenant_master_seed_audit_schema.sql trong Supabase SQL Editor để có lịch sử chính xác.",
+    "f02666": "Áp dụng lần cuối",
+    "f02667": "“Phiên bản hiện tại” / “Phiên bản khác” so sánh từng cửa hàng với phiên bản seed đã chọn. Dấu FS-SEED cũ có thể khiến cửa hàng hiển thị khác nhau. Mỗi lần áp dụng giờ ghi phiên bản cuối trong system_settings."
   },
   "landing": {
     "navbar": {

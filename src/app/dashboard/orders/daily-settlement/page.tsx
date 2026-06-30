@@ -675,7 +675,7 @@ export default function DailySettlementPage() {
                                                 </span>
                                                 <div className="flex items-center gap-1.5 mt-0.5">
                                                     <span className="font-mono text-[10px] text-slate-700 uppercase">{order.order_number}</span>
-                                                    {order.transfer_info?.isTransferred && (
+                                                    {(order as any).transfer_info?.isTransferred && (
                                                         <Badge className={cn(
                                                             "text-[9px] font-bold px-1.5 py-0 rounded-full border-none shadow-sm",
                                                             order.tenant_id === tenantId
@@ -683,8 +683,8 @@ export default function DailySettlementPage() {
                                                                 : "bg-emerald-50 text-emerald-700"
                                                         )}>
                                                             {order.tenant_id === tenantId 
-                                                                ? `이관 발주 (${order.transfer_info.processBranchName || order.transfer_info.process_branch_name || "지점"})` 
-                                                                : `이관 수주 (${order.transfer_info.originalBranchName || order.transfer_info.original_branch_name || "지점"})`}
+                                                                ? `이관 발주 (${(order as any).transfer_info.processBranchName || (order as any).transfer_info.process_branch_name || "지점"})` 
+                                                                : `이관 수주 (${(order as any).transfer_info.originalBranchName || (order as any).transfer_info.original_branch_name || "지점"})`}
                                                         </Badge>
                                                     )}
                                                 </div>
@@ -750,7 +750,7 @@ export default function DailySettlementPage() {
                                         <TableCell className="px-6 py-4">
                                             <div className="flex items-center gap-1.5">
                                                 <span className="font-mono text-[10px] text-slate-700 uppercase">{order.order_number}</span>
-                                                {order.transfer_info?.isTransferred && (
+                                                {(order as any).transfer_info?.isTransferred && (
                                                     <Badge className={cn(
                                                         "text-[9px] font-bold px-1.5 py-0 rounded-full border-none shadow-sm",
                                                         order.tenant_id === tenantId

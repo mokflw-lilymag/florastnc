@@ -77,6 +77,16 @@ function expenseCategoryLabel(category: string) {
   return map[category] || category || "기타";
 }
 
+function formatPaymentMethod(method: string) {
+  const map: Record<string, string> = {
+    card: "신용카드",
+    cash: "현금",
+    bank_transfer: "계좌이체",
+    other: "기타",
+  };
+  return map[method] || method || "미지정";
+}
+
 export default function HqBranchDetailPage({
   params,
 }: {
@@ -141,7 +151,7 @@ export default function HqBranchDetailPage({
       let settleAmountToday = 0;
 
       // 이관 수주 여부 체크 (타 지점에서 이 지점으로 보낸 수주 주문은 정산 수금액 0원 강제화)
-      const isTransferReceived = order.transfer_info?.isTransferred && order.tenant_id !== tenantId;
+      const isTransferReceived = (order as any).transfer_info?.isTransferred && order.tenant_id !== tenantId;
 
       const firstDate = p?.firstPaymentDate ? new Date(p.firstPaymentDate) : null;
       const secondDate = p?.secondPaymentDate ? new Date(p.secondPaymentDate) : null;
@@ -855,7 +865,7 @@ export default function HqBranchDetailPage({
                                 <span className="font-mono text-[10px] text-slate-700 uppercase">{order.order_number}</span>
                                 
                                 {/* 회원 수발주 배지 */}
-                                {(order.transfer_info?.isTransferred || order.outsource_info?.isTransferred) && (
+                                {((order as any).transfer_info?.isTransferred || order.outsource_info?.isTransferred) && (
                                   <Badge className={cn(
                                     "text-[9px] font-bold px-1.5 py-0 rounded-full border-none shadow-none",
                                     order.tenant_id === tenantId
@@ -863,8 +873,8 @@ export default function HqBranchDetailPage({
                                       : "bg-emerald-50 text-emerald-700"
                                   )}>
                                     {order.tenant_id === tenantId 
-                                      ? `이관 발주 (${order.transfer_info?.processBranchName || order.transfer_info?.process_branch_name || order.outsource_info?.processBranchName || order.outsource_info?.process_branch_name || "지점"})` 
-                                      : `이관 수주 (${order.transfer_info?.originalBranchName || order.transfer_info?.original_branch_name || order.outsource_info?.originalBranchName || order.outsource_info?.original_branch_name || "지점"})`}
+                                      ? `이관 발주 (${(order as any).transfer_info?.processBranchName || (order as any).transfer_info?.process_branch_name || order.outsource_info?.processBranchName || order.outsource_info?.process_branch_name || "지점"})` 
+                                      : `이관 수주 (${(order as any).transfer_info?.originalBranchName || (order as any).transfer_info?.original_branch_name || order.outsource_info?.originalBranchName || order.outsource_info?.original_branch_name || "지점"})`}
                                   </Badge>
                                 )}
 
@@ -892,7 +902,7 @@ export default function HqBranchDetailPage({
                           </TableCell>
                           <TableCell className="text-right text-xs text-slate-500">₩{(order.summary?.total || 0).toLocaleString()}</TableCell>
                           <TableCell className="text-right text-xs font-bold text-emerald-600">
-                            ₩{(order.transfer_info?.isTransferred && order.tenant_id !== tenantId) 
+                            ₩{((order as any).transfer_info?.isTransferred && order.tenant_id !== tenantId) 
                               ? "0" 
                               : ((order.payment?.isSplitPayment && order.payment?.secondPaymentDate?.startsWith(selectedDate)) ? (order.payment.secondPaymentAmount || 0).toLocaleString() : (order.summary?.total || 0).toLocaleString())}
                           </TableCell>
@@ -937,7 +947,7 @@ export default function HqBranchDetailPage({
                               <span className="font-mono text-[10px] text-slate-700 uppercase">{order.order_number}</span>
                               
                               {/* 회원 수발주 배지 */}
-                              {(order.transfer_info?.isTransferred || order.outsource_info?.isTransferred) && (
+                              {((order as any).transfer_info?.isTransferred || order.outsource_info?.isTransferred) && (
                                 <Badge className={cn(
                                   "text-[9px] font-bold px-1.5 py-0 rounded-full border-none shadow-none",
                                   order.tenant_id === tenantId
@@ -945,8 +955,8 @@ export default function HqBranchDetailPage({
                                     : "bg-emerald-50 text-emerald-700"
                                 )}>
                                   {order.tenant_id === tenantId 
-                                    ? `이관 발주 (${order.transfer_info?.processBranchName || order.transfer_info?.process_branch_name || order.outsource_info?.processBranchName || order.outsource_info?.process_branch_name || "지점"})` 
-                                    : `이관 수주 (${order.transfer_info?.originalBranchName || order.transfer_info?.original_branch_name || order.outsource_info?.originalBranchName || order.outsource_info?.original_branch_name || "지점"})`}
+                                    ? `이관 발주 (${(order as any).transfer_info?.processBranchName || (order as any).transfer_info?.process_branch_name || order.outsource_info?.processBranchName || order.outsource_info?.process_branch_name || "지점"})` 
+                                    : `이관 수주 (${(order as any).transfer_info?.originalBranchName || (order as any).transfer_info?.original_branch_name || order.outsource_info?.originalBranchName || order.outsource_info?.original_branch_name || "지점"})`}
                                 </Badge>
                               )}
 

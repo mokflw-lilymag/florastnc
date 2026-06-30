@@ -38,7 +38,7 @@ export const OrderService = {
       actual_delivery_payment_method: row.actual_delivery_payment_method,
       actual_delivery_payment_status: row.actual_delivery_payment_status,
       outsource_info: row.outsource_info,
-      transfer_info: row.transfer_info,
+      transferInfo: row.transfer_info,
       tenant_name: row.tenant_name,
       created_at: row.created_at,
       updated_at: row.updated_at,
