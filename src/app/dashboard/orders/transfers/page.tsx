@@ -235,7 +235,9 @@ export default function OrderTransfersPage() {
           transferId: transferId,
           status: newStatus,
           processBranchId: tenantId,
+          process_branch_id: tenantId,
           processBranchName: processBranchName,
+          process_branch_name: processBranchName,
         }
       };
 

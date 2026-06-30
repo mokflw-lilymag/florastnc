@@ -682,7 +682,9 @@ export default function DailySettlementPage() {
                                                                 ? "bg-indigo-50 text-indigo-700"
                                                                 : "bg-emerald-50 text-emerald-700"
                                                         )}>
-                                                            {order.tenant_id === tenantId ? "이관 발주" : "이관 수주"}
+                                                            {order.tenant_id === tenantId 
+                                                                ? `이관 발주 (${order.transfer_info.processBranchName || order.transfer_info.process_branch_name || "지점"})` 
+                                                                : `이관 수주 (${order.transfer_info.originalBranchName || order.transfer_info.original_branch_name || "지점"})`}
                                                         </Badge>
                                                     )}
                                                 </div>

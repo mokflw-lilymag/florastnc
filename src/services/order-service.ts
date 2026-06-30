@@ -108,7 +108,7 @@ export const OrderService = {
         actual_delivery_payment_method, actual_delivery_payment_status,
         outsource_info, created_at, completionphotourl, transfer_info, tenant_name
       `, { count: 'exact' })
-      .or(`tenant_id.eq.${tenantId},and(transfer_info->>processBranchId.eq.${tenantId},transfer_info->>status.in.(accepted,completed))`)
+      .or(`tenant_id.eq.${tenantId},and(transfer_info->>processBranchId.eq.${tenantId},transfer_info->>status.in.(accepted,completed)),and(transfer_info->>process_branch_id.eq.${tenantId},transfer_info->>status.in.(accepted,completed))`)
       .gte(dateField, start.toISOString())
       .lte(dateField, end.toISOString());
 
@@ -147,7 +147,7 @@ export const OrderService = {
     const { data, error } = await supabase
       .from('orders')
       .select('status, summary, order_date, transfer_info')
-      .or(`tenant_id.eq.${tenantId},and(transfer_info->>processBranchId.eq.${tenantId},transfer_info->>status.in.(accepted,completed))`)
+      .or(`tenant_id.eq.${tenantId},and(transfer_info->>processBranchId.eq.${tenantId},transfer_info->>status.in.(accepted,completed)),and(transfer_info->>process_branch_id.eq.${tenantId},transfer_info->>status.in.(accepted,completed))`)
       .gte(dateField, start.toISOString())
       .lte(dateField, end.toISOString());
 

@@ -150,7 +150,9 @@ export function RealtimeTransferListener() {
             transferId: activeTransfer.id,
             status: "accepted",
             processBranchId: tenantId,
+            process_branch_id: tenantId,
             processBranchName: activeTransfer.process_branch_name,
+            process_branch_name: activeTransfer.process_branch_name,
           }
         })
         .eq("id", activeTransfer.original_order_id);

@@ -908,6 +908,56 @@ export default function SettingsPage() {
   const [partnerCategory, setPartnerCategory] = useState("");
   const [partnerDescription, setPartnerDescription] = useState("");
 
+  // 협력사 네트워크 고도화 상태 및 핸들러
+  const [isPartnerSaving, setIsPartnerSaving] = useState(false);
+  const [partnerTenants, setPartnerTenants] = useState<any[]>([]);
+  const [loadingPartners, setLoadingPartners] = useState(false);
+
+  useEffect(() => {
+    async function loadPartnerTenants() {
+      setLoadingPartners(true);
+      try {
+        const { data, error } = await supabase
+          .from("tenants")
+          .select("id, name, country, partner_region, partner_category, partner_description")
+          .eq("can_receive_orders", true);
+        if (data && !error) {
+          setPartnerTenants(data);
+        }
+      } catch (err) {
+        console.error("Failed to load partner tenants:", err);
+      } finally {
+        setLoadingPartners(false);
+      }
+    }
+    if (tenantId) {
+      loadPartnerTenants();
+    }
+  }, [tenantId, supabase]);
+
+  const handleSavePartnerNetworkSettings = async () => {
+    if (!tenantId) return;
+    setIsPartnerSaving(true);
+    try {
+      const { error } = await supabase
+        .from("tenants")
+        .update({
+          can_receive_orders: canReceiveOrders,
+          partner_region: partnerRegion,
+          partner_category: partnerCategory,
+          partner_description: partnerDescription
+        })
+        .eq("id", tenantId);
+
+      if (error) throw error;
+      toast.success(pickUiText(baseLocale, "협력사 네트워크 설정이 저장되었습니다.", "Partner network settings saved."));
+    } catch (err: any) {
+      toast.error(pickUiText(baseLocale, "설정 저장 실패", "Failed to save settings") + `: ${err.message}`);
+    } finally {
+      setIsPartnerSaving(false);
+    }
+  };
+
   // POS Integration State
   const [posIntegration, setPosIntegration] = useState<any>(null);
   const [isPosLoading, setIsPosLoading] = useState(false);
@@ -1524,8 +1574,10 @@ export default function SettingsPage() {
               <Printer className="h-4 w-4 mr-3 text-slate-500" /> {t.tabs.printer}
             </TabsTrigger>
 
-            <TabsTrigger value="integrations" className="justify-start shrink-0 text-sm py-2.5 px-4 md:py-3 data-[state=active]:bg-white rounded-xl transition-all">
-              <LinkIcon className="h-4 w-4 mr-3 text-slate-500" /> {t.tabs.integrations}
+            <TabsTrigger value="integrations" disabled className="justify-start shrink-0 text-sm py-2.5 px-4 md:py-3 data-[state=active]:bg-white rounded-xl transition-all opacity-60 cursor-not-allowed">
+              <LinkIcon className="h-4 w-4 mr-3 text-slate-400" /> 
+              <span>{t.tabs.integrations}</span>
+              <Badge variant="secondary" className="ml-auto bg-slate-100 text-slate-500 font-bold text-[9px] border-none shadow-none">준비중</Badge>
             </TabsTrigger>
             <TabsTrigger value="email" className="justify-start shrink-0 text-sm py-2.5 px-4 md:py-3 data-[state=active]:bg-white rounded-xl transition-all">
               <Mail className="h-4 w-4 mr-3 text-blue-500" /> {pickUiText(baseLocale, "이메일", "Email")}
@@ -1533,9 +1585,7 @@ export default function SettingsPage() {
             <TabsTrigger value="partner-network" className="justify-start shrink-0 text-sm py-2.5 px-4 md:py-3 rounded-xl text-blue-700 bg-blue-50/30 data-[state=active]:bg-blue-600 data-[state=active]:text-white transition-all">
               <Share2 className="h-4 w-4 mr-3" /> {t.tabs.partner}
             </TabsTrigger>
-            <TabsTrigger value="account" className="justify-start shrink-0 text-sm py-2.5 px-4 md:py-3 data-[state=active]:bg-white rounded-xl transition-all">
-              <ShieldCheck className="h-4 w-4 mr-3 text-slate-500" /> {t.tabs.account}
-            </TabsTrigger>
+            
             <div className="w-px h-6 md:w-auto md:h-px shrink-0 bg-slate-200 mx-2 md:my-2"></div>
             <TabsTrigger value="data" className="justify-start shrink-0 text-sm py-2.5 px-4 md:py-3 rounded-xl text-rose-700 bg-rose-50/30 data-[state=active]:bg-rose-600 data-[state=active]:text-white transition-all">
               <Database className="h-4 w-4 mr-3" /> {t.tabs.data}
@@ -2094,17 +2144,137 @@ export default function SettingsPage() {
 
 
 
-            <TabsContent value="partner-network" className="space-y-6">
-              <Card className="border-0 shadow-sm ring-1 ring-blue-100">
-                <CardHeader className="bg-blue-600 text-white rounded-t-lg">
+            <TabsContent value="partner-network" className="space-y-6 animate-in fade-in duration-300">
+              {/* 1. 정책 수락 및 수주점 활성화 카드 */}
+              <Card className="border-0 shadow-lg ring-1 ring-blue-100 bg-white overflow-hidden rounded-2xl">
+                <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6">
                   <div className="flex items-center justify-between">
-                    <CardTitle>{tf.f02197}</CardTitle>
-                    <Switch checked={canReceiveOrders} onCheckedChange={setCanReceiveOrders} />
+                    <div className="space-y-1">
+                      <CardTitle className="text-lg font-bold flex items-center gap-2">
+                        <Share2 className="h-5 w-5" /> {tf.f02197 || "우리 지점 수주점 등록"}
+                      </CardTitle>
+                      <CardDescription className="text-blue-100 text-xs">
+                        다른 회원사들로부터 이관 주문을 위탁받아 제작 및 배송합니다.
+                      </CardDescription>
+                    </div>
+                    <Switch 
+                      checked={canReceiveOrders} 
+                      onCheckedChange={setCanReceiveOrders} 
+                      className="data-[state=checked]:bg-white data-[state=checked]:text-blue-600"
+                    />
                   </div>
                 </CardHeader>
-                <CardContent className="p-6 space-y-4">
-                  <Input placeholder={tf.f01456} value={partnerRegion} onChange={e => setPartnerRegion(e.target.value)} disabled={!canReceiveOrders} />
-                  <Button className="w-full" disabled={!canReceiveOrders}>{tf.f01048}</Button>
+                <CardContent className="p-6 space-y-5">
+                  {/* 정산 수수료 동의 안내 박스 */}
+                  <div className="p-4 rounded-xl bg-blue-50/50 border border-blue-100 flex gap-3 text-xs text-blue-800">
+                    <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <span className="font-bold">회원사 수발주 기본 정산 협약 (20% / 80%)</span>
+                      <p className="text-[11px] leading-relaxed text-blue-600 font-medium">
+                        본 협력사 네트워크에 참여하여 수주점으로 등록할 경우, 회원사 간 이관 주문 정산 시 
+                        <strong className="text-blue-900 mx-1">"발주사 몫 20%, 수주사 몫 80%"</strong> 
+                        수수료율을 준수하고 정산할 것에 자동 동의하는 것으로 처리됩니다.
+                      </p>
+                    </div>
+                  </div>
+
+                  {canReceiveOrders && (
+                    <div className="space-y-4 animate-in slide-in-from-top-4 duration-300">
+                      <div className="space-y-2">
+                        <Label className="text-xs font-bold text-slate-700">수주 가능 주요 지역</Label>
+                        <Input 
+                          placeholder="예: 서울 강남구 전 지역, 서초구 반포동" 
+                          value={partnerRegion} 
+                          onChange={e => setPartnerRegion(e.target.value)} 
+                          className="h-10 rounded-xl"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-xs font-bold text-slate-700">매장 전문 품목</Label>
+                        <Input 
+                          placeholder="예: 경조화환, 동양란/서양란, 프리미엄 꽃다발" 
+                          value={partnerCategory} 
+                          onChange={e => setPartnerCategory(e.target.value)} 
+                          className="h-10 rounded-xl"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-xs font-bold text-slate-700">매장 소개 설명</Label>
+                        <Input 
+                          placeholder="지점 네트워크 사장님들에게 어필할 매장 소개를 적어주세요." 
+                          value={partnerDescription} 
+                          onChange={e => setPartnerDescription(e.target.value)} 
+                          className="h-10 rounded-xl"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <Button 
+                    onClick={handleSavePartnerNetworkSettings}
+                    disabled={isPartnerSaving}
+                    className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
+                  >
+                    {isPartnerSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                    {tf.f01048 || "설정 저장"}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* 2. 글로벌 수주 대기 회원사 리스트 */}
+              <Card className="border-0 shadow-lg ring-1 ring-slate-100 bg-white rounded-2xl overflow-hidden">
+                <CardHeader className="border-b border-slate-50 p-6">
+                  <CardTitle className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <Globe className="h-4 w-4 text-indigo-500 animate-pulse" /> 
+                    글로벌 파트너스 네트워크 수주 대기 지점 현황
+                  </CardTitle>
+                  <CardDescription className="text-xs text-slate-400">
+                    전 세계 꽃집 사장님들이 수주를 대기 중인 활성 파트너 목록입니다.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <div className="max-h-[350px] overflow-y-auto">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50 text-slate-400 font-bold border-b border-slate-100">
+                          <th className="p-4 w-[16%]">국가</th>
+                          <th className="p-4 w-[34%]">지점명</th>
+                          <th className="p-4 w-[25%]">수주 가능 지역</th>
+                          <th className="p-4 w-[25%]">주요 품목</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {/* 실시간 DB 데이터 렌더링 */}
+                        {partnerTenants.filter(t => t.id !== tenantId).length > 0 ? (
+                          partnerTenants.filter(t => t.id !== tenantId).map((t) => {
+                            const flagMap: Record<string, string> = {
+                              KR: "🇰🇷", VN: "🇻🇳", JP: "🇯🇵", US: "🇺🇸", CN: "🇨🇳", ES: "🇪🇸", FR: "🇫🇷", DE: "🇩🇪", GB: "🇬🇧", AU: "🇦🇺", CA: "🇨🇦", SG: "🇸🇬"
+                            };
+                            const flag = flagMap[t.country] || "🌐";
+                            return (
+                              <tr key={t.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors font-medium">
+                                <td className="p-4 font-semibold text-slate-700 flex items-center gap-1.5 text-sm">
+                                  <span className="text-base select-none">{flag}</span>
+                                  <span>{t.country || "KR"}</span>
+                                </td>
+                                <td className="p-4 text-slate-900 font-bold">{t.name}</td>
+                                <td className="p-4 text-slate-500">{t.partner_region || "전 지역 가능"}</td>
+                                <td className="p-4 text-indigo-600 font-semibold">{t.partner_category || "전문 화훼 제작"}</td>
+                              </tr>
+                            );
+                          })
+                        ) : (
+                          <tr>
+                            <td colSpan={4} className="p-8 text-center text-slate-400 font-medium">
+                              현재 수주 가능한 실제 협력 회원사가 존재하지 않습니다.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>

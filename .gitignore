@@ -37,6 +37,10 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# temporary scratch scripts
+/scratch/
+scratch/
+
 # migration dumps & Vercel env backups (secrets)
 scripts/backups/
 

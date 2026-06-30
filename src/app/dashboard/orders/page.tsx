@@ -72,6 +72,7 @@ export default function OrdersPage() {
   const isSuperAdmin = profile?.role === 'super_admin';
   const supabase = createClient();
   const { settings } = useSettings();
+  const [hasActiveShopIntegration, setHasActiveShopIntegration] = useState(false);
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
   const baseLocale = toBaseLocale(locale);
@@ -179,6 +180,25 @@ export default function OrdersPage() {
   const searchParams = useSearchParams();
   const [currentPeriod, setCurrentPeriod] = useState<string | null>(searchParams.get('period') || '2months');
   const [filterBasis, setFilterBasis] = useState<'order_date' | 'created_at'>((searchParams.get('basis') as any) || 'order_date');
+
+  useEffect(() => {
+    if (isErpTrial || !tenantId) return;
+    const checkShopIntegrations = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('shop_integrations')
+          .select('is_active')
+          .eq('shop_id', tenantId)
+          .eq('is_active', true);
+        if (data && data.length > 0 && !error) {
+          setHasActiveShopIntegration(true);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    checkShopIntegrations();
+  }, [tenantId, supabase, isErpTrial]);
 
   useEffect(() => {
     if (isErpTrial) return;
@@ -743,24 +763,28 @@ export default function OrdersPage() {
             <Upload className="h-4 w-4 text-slate-500" />
             <span>{tf.f01086}</span>
           </Button>
-          <Button 
-            variant="outline" 
-            onClick={handleGoogleSheetExport}
-            disabled={isExporting}
-            className="flex-1 lg:flex-none h-11 lg:h-12 px-6 rounded-2xl border-2 border-emerald-100 bg-emerald-50/20 hover:bg-emerald-50 text-emerald-700 font-bold transition-all shadow-sm gap-2"
-          >
-            {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />} 
-            <span>{tf.f00091}</span>
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => syncShopOrders(false)}
-            disabled={isCafe24Syncing}
-            className="flex-1 lg:flex-none h-11 lg:h-12 px-6 rounded-2xl border-2 border-blue-100 bg-blue-50/20 hover:bg-blue-50 text-blue-700 font-bold transition-all shadow-sm gap-2"
-          >
-            {isCafe24Syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <CloudDownload className="h-4 w-4" />}
-            <span>{tf.f00369}</span>
-          </Button>
+          {settings.useGoogleSheets && (
+            <Button 
+              variant="outline" 
+              onClick={handleGoogleSheetExport}
+              disabled={isExporting}
+              className="flex-1 lg:flex-none h-11 lg:h-12 px-6 rounded-2xl border-2 border-emerald-100 bg-emerald-50/20 hover:bg-emerald-50 text-emerald-700 font-bold transition-all shadow-sm gap-2"
+            >
+              {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />} 
+              <span>{tf.f00091}</span>
+            </Button>
+          )}
+          {hasActiveShopIntegration && (
+            <Button
+              variant="outline"
+              onClick={() => syncShopOrders(false)}
+              disabled={isCafe24Syncing}
+              className="flex-1 lg:flex-none h-11 lg:h-12 px-6 rounded-2xl border-2 border-blue-100 bg-blue-50/20 hover:bg-blue-50 text-blue-700 font-bold transition-all shadow-sm gap-2"
+            >
+              {isCafe24Syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <CloudDownload className="h-4 w-4" />}
+              <span>{tf.f00369}</span>
+            </Button>
+          )}
           <Button 
             className="w-full lg:w-auto h-11 lg:h-12 px-8 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl shadow-lg shadow-slate-200 transition-all gap-2"
             onClick={() => {
@@ -1009,7 +1033,7 @@ export default function OrdersPage() {
                           <TableCell className="py-6 cursor-pointer" onClick={() => handleOrderClick(order)}>
                             <div className="space-y-1">
                               <div className="flex items-center gap-2">
-                                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">{order.order_number}</span>
+                                
                                 {order.source === 'pos' && (
                                   <Badge className="bg-indigo-600 text-white border-none h-4 px-1.5 text-[8px] font-bold gap-1 flex items-center shadow-sm">
                                     <Monitor className="w-2.5 h-2.5" /> POS
@@ -1083,7 +1107,9 @@ export default function OrdersPage() {
                                        ? "bg-indigo-50 text-indigo-700"
                                        : "bg-emerald-50 text-emerald-700"
                                    )}>
-                                     {order.tenant_id === tenantId ? "이관 발주" : "이관 수주"}
+                                     {order.tenant_id === tenantId 
+                                        ? `이관 발주 (${order.transfer_info.processBranchName || order.transfer_info.process_branch_name || "지점"})` 
+                                        : `이관 수주 (${order.transfer_info.originalBranchName || order.transfer_info.original_branch_name || "지점"})`}
                                    </Badge>
                                  )}
                                </div>
@@ -1255,7 +1281,7 @@ export default function OrdersPage() {
                               />
                             </div>
                             <div className="flex flex-col">
-                              <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">{order.order_number}</span>
+                              
                               <span className="text-[9px] font-bold text-slate-400">{tf.f00638}: {format(parseISO(order.created_at || new Date().toISOString()), 'MM-dd')}</span>
                             </div>
                             <div className="font-bold text-slate-900">
@@ -1292,7 +1318,9 @@ export default function OrdersPage() {
                                   ? "bg-indigo-50 text-indigo-700"
                                   : "bg-emerald-50 text-emerald-700"
                               )}>
-                                {order.tenant_id === tenantId ? "이관 발주" : "이관 수주"}
+                                {order.tenant_id === tenantId 
+                                        ? `이관 발주 (${order.transfer_info.processBranchName || order.transfer_info.process_branch_name || "지점"})` 
+                                        : `이관 수주 (${order.transfer_info.originalBranchName || order.transfer_info.original_branch_name || "지점"})`}
                               </Badge>
                             )}
                           </div>
