@@ -986,7 +986,7 @@ export default function HqBranchDetailPage({
                         <TableRow key={exp.id} className="group hover:bg-slate-50/50 border-b border-slate-50/50">
                           <TableCell className="px-6 py-4">
                             <span className="text-[10px] text-slate-400 font-semibold tabular-nums">
-                              {format(new Date(exp.expense_date), "PPp", { locale: dfLoc })}
+                              {format(new Date(exp.expense_date), "yyyy-MM-dd HH:mm")}
                             </span>
                           </TableCell>
                           <TableCell>
