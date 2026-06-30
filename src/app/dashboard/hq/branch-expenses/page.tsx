@@ -915,7 +915,7 @@ export default function HqBranchExpensesPage() {
           {/* 지점 필터 셀렉터 (UUID 버그 원천 교정) */}
           <div className="flex items-center gap-2">
             <span className="text-[11px] font-bold text-slate-500">{L("관측 지점 필터:", "Branch:")}</span>
-            <Select value={selectedBranchFilter} onValueChange={(val) => setSelectedBranchFilter(val)}>
+            <Select value={selectedBranchFilter} onValueChange={(val) => setSelectedBranchFilter(val || "all")}>
               <SelectTrigger className="w-[150px] rounded-xl text-xs font-bold border-slate-200 bg-slate-50/50">
                 <span>
                   {selectedBranchFilter === "all" 
