@@ -95,6 +95,7 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
 
   const [uploading, setUploading] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
+  const [isAcceptingPartner, setIsAcceptingPartner] = useState(false);
 
   useEffect(() => {
     if (order && isOpen) {
@@ -109,6 +110,65 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
   if (!order) return null;
 
   const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+
+  const handleAcceptPartnerTransfer = async () => {
+    if (!order || !tenantId) return;
+    setIsAcceptingPartner(true);
+    try {
+      const currentTrInfo = (order as any).transfer_info || (order as any).transferInfo || {};
+      const updatedTransferInfo = {
+        ...currentTrInfo,
+        status: 'accepted',
+        acceptedAt: new Date().toISOString()
+      };
+
+      const { error: dbError } = await supabase
+        .from('orders')
+        .update({
+          transfer_info: updatedTransferInfo
+        })
+        .eq('id', order.id);
+
+      if (dbError) throw dbError;
+
+      // 수락과 동시에 즉시 보안 마스킹된 인수증 인쇄 잡 발행
+      const logoUrl = currentTrInfo?.sendBranchLogo || currentTrInfo?.send_branch_logo || currentTrInfo?.sender_branding?.logo_url || currentTrInfo?.senderBranding?.logo_url;
+      const secureOrderData = {
+        ...order,
+        logo_url: logoUrl || null,
+        orderer: {
+          name: maskName(order.orderer?.name),
+          contact: maskPhone(order.orderer?.contact),
+          email: ""
+        },
+        orderer_name: maskName(order.orderer?.name),
+        customer_name: maskName(order.orderer?.name),
+        summary: {
+          ...order.summary,
+          total: order.transferInfo?.transferAmount || 0,
+          subtotal: order.transferInfo?.transferAmount || 0
+        }
+      };
+
+      let orderType: "store" | "pickup" | "delivery" = "store";
+      if (order.receipt_type === 'delivery_reservation' || (order.receipt_type as string) === 'delivery') {
+        orderType = "delivery";
+      } else if (order.receipt_type === 'pickup_reservation') {
+        orderType = "pickup";
+      }
+
+      await enqueuePrintJob(supabase, tenantId, order.id, orderType, secureOrderData, true, 'receipt');
+
+      toast.success("주문 인수를 수락하였으며, 프린터로 인수증 출력을 전송했습니다!");
+      if (onUpdate) onUpdate();
+      onOpenChange(false);
+    } catch (err: any) {
+      console.error("Partner accept error:", err);
+      toast.error("수락 및 인쇄 처리에 실패했습니다: " + err.message);
+    } finally {
+      setIsAcceptingPartner(false);
+    }
+  };
 
   const handleSaveDateCorrection = async () => {
     // Logic for date correction
@@ -128,7 +188,30 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
         orderType = "pickup";
       }
 
-      await enqueuePrintJob(createClient(), tenantId, order.id, orderType, order, true, reprintType);
+      // 회원사 수발주 건인 경우, 보안 가공한 페이로드로 인쇄 데몬에 전송
+      const trInfoForPrint = (order as any).transfer_info || (order as any).transferInfo;
+      if (trInfoForPrint?.type === 'partner' && order.tenant_id !== tenantId) {
+        const logoUrl = trInfoForPrint?.sendBranchLogo || trInfoForPrint?.send_branch_logo || trInfoForPrint?.sender_branding?.logo_url || trInfoForPrint?.senderBranding?.logo_url;
+        const secureOrderData = {
+          ...order,
+          logo_url: logoUrl || null,
+          orderer: {
+            name: maskName(order.orderer?.name),
+            contact: maskPhone(order.orderer?.contact),
+            email: ""
+          },
+          orderer_name: maskName(order.orderer?.name),
+          customer_name: maskName(order.orderer?.name),
+          summary: {
+            ...order.summary,
+            total: trInfoForPrint.transferAmount || 0,
+            subtotal: trInfoForPrint.transferAmount || 0
+          }
+        };
+        await enqueuePrintJob(createClient(), tenantId, order.id, orderType, secureOrderData, true, 'receipt');
+      } else {
+        await enqueuePrintJob(createClient(), tenantId, order.id, orderType, order, true, reprintType);
+      }
       toast.success(tf.f00720);
     } catch (e) {
       console.error('Reprint failed:', e);
@@ -426,7 +509,56 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
                 {tf.f00624}: <span className="font-mono font-semibold text-slate-900">{order.order_number}</span>
               </DialogDescription>
             </div>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
+               {/* 외부발주 뱃지 */}
+               {(() => {
+                 const outsourceInfo = (order as any).outsource_info || (order as any).outsourceInfo;
+                 if (outsourceInfo?.isOutsourced) {
+                   return (
+                     <Badge className="text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-amber-200 bg-amber-50 text-amber-700 shadow-sm select-none">
+                       외부발주
+                     </Badge>
+                   );
+                 }
+                 return null;
+               })()}
+
+               {/* 지점/회원 이관 수발주 5색 뱃지 */}
+               {(() => {
+                 const trInfo = (order as any).transfer_info || (order as any).transferInfo;
+                 if (!trInfo?.isTransferred) return null;
+                 
+                 const isPartner = trInfo.type === 'partner';
+                 const isSender = order.tenant_id === tenantId;
+                 
+                 let badgeStyle = "";
+                 let labelText = "";
+                 
+                 if (isPartner) {
+                   if (isSender) {
+                     badgeStyle = "bg-indigo-50 text-indigo-700 border-indigo-200";
+                     labelText = `회원발주 (${trInfo.processBranchName || trInfo.process_branch_name || "회원사"})`;
+                   } else {
+                     badgeStyle = "bg-purple-50 text-purple-700 border-purple-200";
+                     labelText = `회원수주 (${trInfo.sendBranchName || trInfo.send_branch_name || "회원사"})`;
+                   }
+                 } else {
+                   if (isSender) {
+                     badgeStyle = "bg-blue-50 text-blue-700 border-blue-200";
+                     labelText = `지점발주 (${trInfo.processBranchName || trInfo.process_branch_name || "지점"})`;
+                   } else {
+                     badgeStyle = "bg-emerald-50 text-emerald-700 border-emerald-200";
+                     labelText = `지점수주 (${trInfo.originalBranchName || trInfo.original_branch_name || "지점"})`;
+                   }
+                 }
+                 
+                 return (
+                   <Badge className={cn("text-[10px] font-bold px-2.5 py-0.5 rounded-full border shadow-sm select-none", badgeStyle)}>
+                     {labelText}
+                   </Badge>
+                 );
+               })()}
+
                {getStatusBadge(order.status)}
                {getPaymentStatusBadge(order)}
             </div>
@@ -483,7 +615,14 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
                 <div className="bg-slate-50/80 rounded-2xl p-4 border border-slate-100 space-y-3">
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-slate-500">{tf.f00640}</span>
-                    <span className="font-semibold">{order.orderer.name} ({order.orderer.contact})</span>
+                    <span className="font-semibold">
+                      {(() => {
+                        const trInfo = (order as any).transfer_info || (order as any).transferInfo;
+                        return trInfo?.type === 'partner' && order.tenant_id !== tenantId
+                          ? `${maskName(order.orderer?.name)} (${maskPhone(order.orderer?.contact)})`
+                          : `${order.orderer?.name || "-"} (${order.orderer?.contact || "-"})`;
+                      })()}
+                    </span>
                   </div>
                   <Separator className="bg-slate-100" />
                   <div className="flex justify-between items-center text-sm">
@@ -680,41 +819,73 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
           <DialogClose render={<Button variant="ghost" className="rounded-2xl h-12 px-8 font-semibold text-slate-500 hover:bg-slate-100" />}>
             {tf.f00149}
           </DialogClose>
-          {onPrintMessage && (
-            <Button variant="outline" onClick={() => onPrintMessage?.(order)} className={cn(buttonVariants({ variant: "outline" }), "rounded-2xl h-12 px-8 font-semibold border-2 border-slate-200 hover:bg-slate-50 text-slate-700 gap-2")}>
-              <Printer className="h-4 w-4" /> {tf.f00707}
-            </Button>
+          {(() => {
+            const trInfo = (order as any).transfer_info || (order as any).transferInfo;
+            const isPartnerReceiver = trInfo?.type === 'partner' && order.tenant_id !== tenantId;
+            if (isPartnerReceiver) {
+              return trInfo.status !== 'accepted' ? (
+                <Button 
+                  onClick={handleAcceptPartnerTransfer}
+                  disabled={isAcceptingPartner}
+                  className="rounded-2xl h-12 px-12 font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xl shadow-blue-100 gap-2 border-none"
+                >
+                  {isAcceptingPartner ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="h-4 w-4 text-emerald-300 animate-bounce" />
+                  )}
+                  인수 수락 및 인수증 출력
+                </Button>
+              ) : (
+                <Button 
+                  onClick={() => handleReprint('receipt')}
+                  className="rounded-2xl h-12 px-10 font-bold bg-slate-900 hover:bg-black text-white shadow-xl shadow-slate-200 gap-2"
+                >
+                  <Printer className="h-4 w-4" /> 인수증 재출력하기
+                </Button>
+              );
+            }
+            return null;
+          })()}
+          {((order as any).transfer_info || (order as any).transferInfo)?.type === 'partner' && order.tenant_id !== tenantId ? null : (
+            <>
+              {onPrintMessage && (
+                <Button variant="outline" onClick={() => onPrintMessage?.(order)} className={cn(buttonVariants({ variant: "outline" }), "rounded-2xl h-12 px-8 font-semibold border-2 border-slate-200 hover:bg-slate-50 text-slate-700 gap-2")}>
+                  <Printer className="h-4 w-4" /> {tf.f00707}
+                </Button>
+              )}
+              {onPrintRibbon && (
+                <Button variant="outline" onClick={() => onPrintRibbon?.(order)} className={cn(buttonVariants({ variant: "outline" }), "rounded-2xl h-12 px-8 font-semibold border-2 border-slate-200 hover:bg-slate-50 text-slate-700 gap-2")}>
+                  <Printer className="h-4 w-4 text-indigo-500" /> {tf.f00180}
+                </Button>
+              )}
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger render={<Button className="rounded-2xl h-12 px-10 font-bold bg-slate-900 hover:bg-black text-white shadow-xl shadow-slate-200 gap-2" />}>
+                  <Printer className="h-4 w-4" /> {tf.f00722}
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-80 rounded-xl p-2">
+                  <DropdownMenuItem onClick={() => handleReprint('both')} className="font-semibold text-blue-600 rounded-lg py-3 cursor-pointer">
+                    <Printer className="mr-2 h-4 w-4" />
+                    <span>{bothReprintLabel}</span>
+                  </DropdownMenuItem>
+                  <Separator className="my-1" />
+                  <DropdownMenuItem onClick={() => handleReprint('order_form')} className="rounded-lg py-2 cursor-pointer">
+                    <FileText className="mr-2 h-4 w-4 text-slate-500" />
+                    <span className="text-slate-700 font-medium">{tf.f00724}</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleReprint('receipt')} className="rounded-lg py-2 cursor-pointer">
+                    <Package className="mr-2 h-4 w-4 text-slate-500" />
+                    <span className="text-slate-700 font-medium">{receiptReprintLabel}</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleReprint('receipt_self')} className="rounded-lg py-2 cursor-pointer">
+                    <Package className="mr-2 h-4 w-4 text-emerald-600" />
+                    <span className="text-emerald-700 font-medium">{tf.f00726}</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
           )}
-          {onPrintRibbon && (
-            <Button variant="outline" onClick={() => onPrintRibbon?.(order)} className={cn(buttonVariants({ variant: "outline" }), "rounded-2xl h-12 px-8 font-semibold border-2 border-slate-200 hover:bg-slate-50 text-slate-700 gap-2")}>
-              <Printer className="h-4 w-4 text-indigo-500" /> {tf.f00180}
-            </Button>
-          )}
-          
-          <DropdownMenu>
-            <DropdownMenuTrigger render={<Button className="rounded-2xl h-12 px-10 font-bold bg-slate-900 hover:bg-black text-white shadow-xl shadow-slate-200 gap-2" />}>
-              <Printer className="h-4 w-4" /> {tf.f00722}
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-80 rounded-xl p-2">
-              <DropdownMenuItem onClick={() => handleReprint('both')} className="font-semibold text-blue-600 rounded-lg py-3 cursor-pointer">
-                <Printer className="mr-2 h-4 w-4" />
-                <span>{bothReprintLabel}</span>
-              </DropdownMenuItem>
-              <Separator className="my-1" />
-              <DropdownMenuItem onClick={() => handleReprint('order_form')} className="rounded-lg py-2 cursor-pointer">
-                <FileText className="mr-2 h-4 w-4 text-slate-500" />
-                <span className="text-slate-700 font-medium">{tf.f00724}</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleReprint('receipt')} className="rounded-lg py-2 cursor-pointer">
-                <Package className="mr-2 h-4 w-4 text-slate-500" />
-                <span className="text-slate-700 font-medium">{receiptReprintLabel}</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleReprint('receipt_self')} className="rounded-lg py-2 cursor-pointer">
-                <Package className="mr-2 h-4 w-4 text-emerald-600" />
-                <span className="text-emerald-700 font-medium">{tf.f00726}</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
 
           <Button className="rounded-2xl h-12 px-10 font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 shadow-sm gap-2">
             <RefreshCw className="h-4 w-4" /> {tf.f00598}
@@ -723,4 +894,26 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
       </DialogContent>
     </Dialog>
   );
+}
+
+// 개인정보 마스킹 헬퍼 함수
+function maskName(name?: string) {
+  if (!name) return "";
+  const trimmed = name.trim();
+  if (trimmed.length <= 1) return trimmed;
+  if (trimmed.length === 2) return trimmed[0] + "*";
+  return trimmed[0] + "*".repeat(trimmed.length - 2) + trimmed[trimmed.length - 1];
+}
+
+function maskPhone(phone?: string) {
+  if (!phone) return "";
+  const trimmed = phone.trim();
+  const parts = trimmed.split("-");
+  if (parts.length === 3) {
+    return `${parts[0]}-****-${parts[2]}`;
+  }
+  if (trimmed.length >= 8) {
+    return trimmed.slice(0, 3) + "****" + trimmed.slice(7);
+  }
+  return trimmed;
 }

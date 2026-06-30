@@ -484,7 +484,8 @@ function generateHtmlReceipt(job, settings = {}) {
       .replace('{{print_datetime}}', dateStr)
       .replace('{{orderer_name}}', orderer?.name || '')
       .replace('{{short_order_id}}', shortOrderId)
-      .replace('{{message_type_checkbox}}', messageTypeCheckHtml);
+      .replace('{{message_type_checkbox}}', messageTypeCheckHtml)
+      .replace('{{shop_info}}', shopInfoStr);
   }
 
   // ─── 배송 인수증 (기사용) ───

@@ -7,6 +7,12 @@ export interface OrderItem {
   price: number;
   source?: 'excel_upload' | 'manual';
   originalData?: string;
+  ribbonMessage?: {
+    ribbonLeft?: string;
+    ribbonRight?: string;
+    messageCard?: string;
+    cardMessage?: string;
+  };
 }
 
 export interface Order {

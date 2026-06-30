@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Textarea from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
-import { usePartners } from "@/hooks/use-partners";
+import { useSuppliers } from "@/hooks/use-suppliers";
 import { toast } from "sonner";
 import { Order } from "@/types/order";
 import { useExpenses } from "@/hooks/use-expenses";
@@ -74,13 +74,24 @@ export function OrderOutsourceDialog({
   const [searchTerm, setSearchTerm] = useState("");
   const [autoCalc, setAutoCalc] = useState(true);
   const [hideCustomerInfo, setHideCustomerInfo] = useState(false);
-  const [networkPartners, setNetworkPartners] = useState<any[]>([]);
   const [senderInfo, setSenderInfo] = useState<any>(null);
   const [paymentMethod, setPaymentMethod] = useState<'transfer' | 'cash'>('transfer');
   const [currentBranchName, setCurrentBranchName] = useState("");
+  const [isApp, setIsApp] = useState(false);
 
-  const { addExpense, updateExpenseByOrderId } = useExpenses();
-  const { partners, loading: partnersLoading } = usePartners();
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const checkApp = (
+        window.navigator.userAgent.toLowerCase().includes("electron") ||
+        window.navigator.userAgent.toLowerCase().includes("floxync-app") ||
+        !!(window as any).isFloxyncApp
+      );
+      setIsApp(checkApp);
+    }
+  }, []);
+
+  const { addExpense, updateExpenseByOrderId, deleteExpenseByOrderId } = useExpenses();
+  const { suppliers, loading: partnersLoading } = useSuppliers();
 
   // 현재 지점의 정확한 지점명 조회 (DB에 tenant_name이 누락된 과거 테스트 주문 대응)
   useEffect(() => {
@@ -109,16 +120,6 @@ export function OrderOutsourceDialog({
   }, [isOpen, order, supabase]);
 
   useEffect(() => {
-    async function fetchNetworkPartners() {
-      if (!tenantId) return;
-      const { data } = await supabase
-        .from("tenants")
-        .select("id, name, partner_region, partner_category, partner_description")
-        .eq("can_receive_orders", true)
-        .neq("id", tenantId);
-      if (data) setNetworkPartners(data);
-    }
-
     async function fetchSenderInfo() {
       if (!tenantId) return;
       const { data } = await supabase
@@ -130,16 +131,16 @@ export function OrderOutsourceDialog({
     }
 
     if (tenantId) {
-      fetchNetworkPartners();
       fetchSenderInfo();
     }
   }, [supabase, tenantId]);
 
   const allPartners = useMemo(() => {
-    const local = partners.map((p) => ({ ...p, isNetwork: false }));
-    const network = networkPartners.map((p) => ({ ...p, isNetwork: true }));
-    return [...local, ...network];
-  }, [partners, networkPartners]);
+    // 네트워크 파트너는 완전 배제하고, 오직 사장님이 직접 등록한 도매 거래처(suppliers)만 반환합니다.
+    return (suppliers || []).map((p) => ({ ...p, isNetwork: false })).sort((a, b) => {
+      return a.name.localeCompare(b.name);
+    });
+  }, [suppliers]);
 
   const filteredPartners = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
@@ -147,12 +148,11 @@ export function OrderOutsourceDialog({
 
     return allPartners.filter((p) => {
       const nameMatch = p.name.toLowerCase().includes(term);
-      const regionMatch = (p.partner_region || "").toLowerCase().includes(term);
-      const categoryMatch = (p.partner_category || p.category || "").toLowerCase().includes(term);
-      const descMatch = (p.partner_description || "").toLowerCase().includes(term);
-      const typeMatch = (p.type || "").toLowerCase().includes(term);
+      const regionMatch = (p.address || "").toLowerCase().includes(term);
+      const categoryMatch = (p.supplier_type || "").toLowerCase().includes(term);
+      const descMatch = (p.memo || "").toLowerCase().includes(term);
 
-      return nameMatch || regionMatch || categoryMatch || descMatch || typeMatch;
+      return nameMatch || regionMatch || categoryMatch || descMatch;
     });
   }, [allPartners, searchTerm]);
 
@@ -173,6 +173,8 @@ export function OrderOutsourceDialog({
 
   const orderTotal = order?.summary?.total || 0;
   const isEditMode = !!order?.outsource_info?.isOutsourced;
+  
+/* 중복 상태 제거 및 기존 senderInfo 활용 */
 
   useEffect(() => {
     if (isOpen && order) {
@@ -199,17 +201,78 @@ export function OrderOutsourceDialog({
   const profitMargin = orderTotal > 0 ? (senderProfit / orderTotal) * 100 : 0;
 
   // html-to-image 캡처 (클립보드로 복사)
-  const handleCopyReceipt = async () => {
+  // 텍스트 형태로 정보를 깔끔하게 복사
+  const handleCopyTextReceipt = async () => {
+    if (!order) return;
+    try {
+      const recipientName = order.delivery_info?.recipientName || "—";
+      const recipientContact = order.delivery_info?.recipientContact || "—";
+      const senderName = hideCustomerInfo ? "비공개" : (order.orderer?.name || "—");
+      const deliveryDate = `${order.delivery_info?.date || ""} ${order.delivery_info?.time || ""}`.trim() || "—";
+      const address = order.delivery_info?.address || "—";
+      
+      const itemsListText = (order.items || [])
+        .map((item) => `• ${item.name} x ${item.quantity}개`)
+        .join("\n");
+        
+      let ribbonMessageText = "";
+      const hasRibbon = (order.items || []).some(i => i.ribbonMessage);
+      if (hasRibbon) {
+        ribbonMessageText = "\n[🎀 리본/카드 메시지]\n" + (order.items || [])
+          .map((item) => {
+            if (!item.ribbonMessage) return "";
+            const left = item.ribbonMessage.ribbonLeft ? `경조사어: ${item.ribbonMessage.ribbonLeft}` : "";
+            const right = item.ribbonMessage.ribbonRight ? `보내는이: ${item.ribbonMessage.ribbonRight}` : "";
+            const card = item.ribbonMessage.messageCard ? `카드내용: ${item.ribbonMessage.messageCard}` : "";
+            return [left, right, card].filter(Boolean).join("\n");
+          })
+          .filter(Boolean)
+          .join("\n---\n");
+      }
+
+      const copyText = `[인수증]
+주문번호: #${order.order_number || "—"}
+
+• 받는 분: ${recipientName}
+• 연락처: ${recipientContact}
+• 보내는 분: ${senderName}
+• 배송희망일: ${deliveryDate}
+• 배송지 주소: ${address}
+
+[🌸 주문 상품 내역]
+${itemsListText}
+${ribbonMessageText ? "\n" + ribbonMessageText : ""}
+----------------------------------
+발행처: ${senderInfo?.name || currentBranchName || "발주 매장"}
+Floxync Automate System`;
+
+      await navigator.clipboard.writeText(copyText);
+      toast.success("인수증 텍스트가 클립보드에 복사되었습니다! 카카오톡이나 문자 창에 바로 붙여넣기 하실 수 있습니다.");
+    } catch (err) {
+      console.error("텍스트 복사 실패:", err);
+      toast.error("인수증 텍스트 복사 중 오류가 발생했습니다.");
+    }
+  };
+
+  // 고화질 이미지 캡처 복사
+  const handleCopyImageReceipt = async () => {
     if (!receiptRef.current) return;
     try {
-      // 투명 배경 버그 방지를 위해 복사할 때 하얀색 배경 강제 주입 옵션 지정
       const blob = await toBlob(receiptRef.current, {
         backgroundColor: "#ffffff",
         style: {
           transform: "scale(1)",
           transformOrigin: "top left",
         },
-      });
+        styleSheetsFilter: (sheet: any) => {
+          try {
+            const rules = sheet.cssRules;
+            return true;
+          } catch (e) {
+            return false;
+          }
+        }
+      } as any);
 
       if (!blob) throw new Error("이미지 캡처 실패");
 
@@ -226,27 +289,42 @@ export function OrderOutsourceDialog({
     }
   };
 
-  // html-to-image 다운로드 (저장)
-  const handleDownloadReceipt = async () => {
-    if (!receiptRef.current) return;
+  // 외부발주 해제 (취소) 처리
+  const handleCancelOutsource = async () => {
+    if (!order) return;
+    
+    // 아직 지정된 외부발주 정보가 없는데 취소를 누른 경우 차단 안내
+    if (!order.outsource_info?.isOutsourced) {
+      toast.error("등록된 외부발주 내역이 없습니다.");
+      return;
+    }
+
+    if (!window.confirm("외부발주 지정을 취소하시겠습니까? 등록된 지출 내역도 함께 삭제됩니다.")) return;
+    
+    setIsSubmitting(true);
     try {
-      const dataUrl = await toPng(receiptRef.current, {
-        backgroundColor: "#ffffff",
-        style: {
-          transform: "scale(1)",
-          transformOrigin: "top left",
-        },
-      });
+      // 1. 주문 테이블의 outsource_info 를 null 로 해제하고 상태를 pending 으로 복원
+      const { error: updateError } = await supabase
+        .from("orders")
+        .update({
+          outsource_info: null,
+          status: "processing",
+        })
+        .eq("id", order.id);
 
-      const link = document.createElement("a");
-      link.download = `인수증_${order?.order_number || "발주"}.png`;
-      link.href = dataUrl;
-      link.click();
+      if (updateError) throw updateError;
 
-      toast.success("인수증 이미지 파일이 저장되었습니다.");
-    } catch (err) {
-      console.error("인수증 이미지 저장 실패:", err);
-      toast.error("인수증 이미지를 저장하는 중 오류가 발생했습니다.");
+      // 2. 연동되어 생성되었던 지출 내역을 자동 삭제
+      await deleteExpenseByOrderId(order.id, "outsource");
+
+      toast.success("외부발주가 성공적으로 해제되었으며, 연동된 지출 내역이 취소(삭제)되었습니다.");
+      onSuccess?.();
+      onOpenChange(false);
+    } catch (error) {
+      console.error("외부발주 취소 오류:", error);
+      toast.error("외부발주 취소 처리 중 오류가 발생했습니다.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -384,8 +462,8 @@ export function OrderOutsourceDialog({
         category: "material",
         sub_category: "outsource",
         description: isEditMode
-          ? `외부발주(수정): ${itemsDescription} ${order.orderer?.name || ""}`
-          : `외부발주: ${itemsDescription} ${order.orderer?.name || ""}`,
+          ? `외부발주(수정): ${itemsDescription} [${selectedPartner?.name || "도매처"}]`
+          : `외부발주: ${itemsDescription} [${selectedPartner?.name || "도매처"}]`,
         supplier: selectedPartner?.name || tf.f00225,
         related_order_id: order.id,
         payment_method: paymentMethod,
@@ -442,7 +520,7 @@ export function OrderOutsourceDialog({
 
             {/* 파트너 수주처 선택 */}
             <div className="space-y-2">
-              <Label className="font-medium text-slate-700">{tf.f00492}</Label>
+              <Label className="font-medium text-slate-700">외부발주처 선택 *</Label>
               <div className="relative">
                 <Button
                   type="button"
@@ -458,7 +536,7 @@ export function OrderOutsourceDialog({
                     </div>
                   ) : (
                     partnerId
-                      ? partners.find((p) => p.id === partnerId)?.name
+                      ? allPartners.find((p) => p.id === partnerId)?.name
                       : tf.f00440
                   )}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -477,9 +555,14 @@ export function OrderOutsourceDialog({
                       />
                     </div>
                     <div className="max-h-[200px] overflow-y-auto p-1">
-                      {filteredPartners.length === 0 && (
+                      {allPartners.length === 0 ? (
+                        <div className="py-8 px-4 text-center text-xs text-rose-500 leading-relaxed font-semibold">
+                          ⚠️ 등록된 외부발주처(거래처)가 없습니다.<br />
+                          '거래처 관리' 메뉴에서 도매처를 먼저 등록해 주세요.
+                        </div>
+                      ) : filteredPartners.length === 0 ? (
                         <div className="py-6 text-center text-sm text-slate-400">{tf.f00036}</div>
-                      )}
+                      ) : null}
                       {filteredPartners.map((partner) => (
                         <div
                           key={partner.id}
@@ -498,24 +581,18 @@ export function OrderOutsourceDialog({
                           <div className="flex flex-col flex-1">
                             <div className="flex items-center justify-between">
                               <span className="font-semibold">{partner.name}</span>
-                              {partner.isNetwork ? (
-                                <Badge variant="outline" className="text-[9px] bg-blue-50 text-blue-600 border-blue-200">
-                                  {tf.f00140}
-                                </Badge>
-                              ) : (
-                                <Badge variant="outline" className="text-[9px] bg-slate-50 text-slate-500 border-slate-200">
-                                  {tf.f00178}
-                                </Badge>
-                              )}
+                              <Badge variant="outline" className="text-[9px] bg-amber-50 text-amber-700 border-amber-200 font-bold px-1.5 py-0.5">
+                                도매 거래처
+                              </Badge>
                             </div>
                             <div className="flex items-center gap-2 mt-0.5">
-                              {partner.partner_region && (
-                                <span className="text-[10px] text-blue-500 flex items-center gap-0.5">
-                                  <MapPin className="h-2 w-2" /> {partner.partner_region}
+                              {partner.address && (
+                                <span className="text-[10px] text-blue-500 flex items-center gap-0.5 max-w-[150px] truncate">
+                                  <MapPin className="h-2 w-2 shrink-0" /> {partner.address}
                                 </span>
                               )}
-                              {(partner.partner_category || partner.category) && (
-                                <span className="text-[10px] text-slate-400">· {partner.partner_category || partner.category}</span>
+                              {partner.supplier_type && (
+                                <span className="text-[10px] text-slate-400">· {partner.supplier_type}</span>
                               )}
                             </div>
                           </div>
@@ -547,35 +624,12 @@ export function OrderOutsourceDialog({
               {selectedPartner && (
                 <p className="text-[11px] text-slate-400 flex items-center gap-1 font-light">
                   <Info className="h-3 w-3" />
-                  {tf.f00092}: ₩{Math.round(orderTotal * (1 - (selectedPartner.default_margin_percent || 20) / 100)).toLocaleString()}
+                  {tf.f00092}: ₩{Math.round(orderTotal * (1 - ((selectedPartner as any).default_margin_percent || 20) / 100)).toLocaleString()}
                 </p>
               )}
             </div>
 
-            {/* 79/19/2 시뮬레이션 */}
-            <div className="bg-slate-50 border border-slate-200 p-4 rounded-lg space-y-3">
-              <div className="flex items-center gap-2 text-slate-700 font-medium text-sm">
-                <Calculator className="h-4 w-4" />
-                {tf.f00098}
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                <div className="bg-white p-2 rounded border border-slate-100">
-                  <p className="text-[9px] text-slate-500 mb-1">{tf.f00404}</p>
-                  <p className="text-xs font-semibold text-slate-900">₩{fulfillerAmount.toLocaleString()}</p>
-                </div>
-                <div className="bg-blue-50/50 p-2 rounded border border-blue-100">
-                  <p className="text-[9px] text-blue-600 mb-1">{tf.f00232}</p>
-                  <p className="text-xs font-semibold text-blue-700">₩{senderProfit.toLocaleString()}</p>
-                </div>
-                <div className="bg-amber-50/50 p-2 rounded border border-amber-100">
-                  <p className="text-[9px] text-amber-600 mb-1">{tf.f00392}</p>
-                  <p className="text-xs font-semibold text-amber-700">₩{platformFee.toLocaleString()}</p>
-                </div>
-              </div>
-              <p className="text-[10px] text-slate-400 font-light text-center">
-                {tf.f00233}: {profitMargin.toFixed(1)}%
-              </p>
-            </div>
+            {/* 외부발주는 도매 단가 그대로 지출 등록 */}
 
             {/* 개인 정보 가리기 필터 */}
             <div className="bg-slate-50 border border-slate-200 p-4 rounded-lg space-y-2">
@@ -615,7 +669,7 @@ export function OrderOutsourceDialog({
 
             {/* 전달사항 */}
             <div className="space-y-2">
-              <Label htmlFor="notes" className="font-medium text-slate-700">{tf.f00301}</Label>
+              <Label htmlFor="notes" className="font-medium text-slate-700">비고 (외부발주처 전달 사항)</Label>
               <Textarea
                 id="notes"
                 placeholder={tf.f00720}
@@ -626,25 +680,40 @@ export function OrderOutsourceDialog({
               />
             </div>
 
-            <DialogFooter className="pt-2">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => onOpenChange(false)}
-                disabled={isSubmitting}
-              >
-                {tf.f00702}
-              </Button>
-              <Button
-                type="submit"
-                disabled={isSubmitting || !partnerId || partnerPrice <= 0}
-              >
-                {isSubmitting ? (
-                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{tf.f00677}</>
-                ) : (
-                  isEditMode ? tf.f00566 : tf.f00231
+            <DialogFooter className="pt-2 flex justify-between items-center w-full">
+              <div>
+                {isEditMode && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700 bg-white"
+                    onClick={handleCancelOutsource}
+                    disabled={isSubmitting}
+                  >
+                    외부발주 취소
+                  </Button>
                 )}
-              </Button>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => onOpenChange(false)}
+                  disabled={isSubmitting}
+                >
+                  {tf.f00702}
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting || !partnerId || partnerPrice <= 0}
+                >
+                  {isSubmitting ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{tf.f00677}</>
+                  ) : (
+                    isEditMode ? "외부발주주문 수정" : "외부발주주문"
+                  )}
+                </Button>
+              </div>
             </DialogFooter>
           </form>
 
@@ -656,181 +725,181 @@ export function OrderOutsourceDialog({
                   <FileText className="h-4 w-4 text-indigo-600" />
                   발주 인수증 미리보기
                 </Label>
-                <div className="flex gap-1">
+                <div className="flex gap-1.5">
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
                     className="h-8 text-xs bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100"
-                    onClick={handleCopyReceipt}
-                    title="인수증 이미지를 클립보드에 복사 (카톡에 바로 붙여넣기 가능)"
+                    onClick={handleCopyTextReceipt}
+                    title="인수증 텍스트를 클립보드에 복사 (기사님 공유 시 강추)"
                   >
                     <Copy className="h-3.5 w-3.5 mr-1" />
-                    이미지 복사 📋
+                    텍스트 복사 📋
                   </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-8 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700"
-                    onClick={handleDownloadReceipt}
-                    title="인수증 이미지 파일로 다운로드"
-                  >
-                    <Download className="h-3.5 w-3.5 mr-1" />
-                    저장 📥
-                  </Button>
+                  {isApp && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
+                      onClick={handleCopyImageReceipt}
+                      title="인수증 이미지를 클립보드에 복사 (Ctrl + V 붙여넣기 가능)"
+                    >
+                      <FileText className="h-3.5 w-3.5 mr-1" />
+                      이미지 복사 🖼️
+                    </Button>
+                  )}
                 </div>
               </div>
 
-              {/* 실물 영수증 스타일의 캡처 대상 컨테이너 */}
-              <div className="border rounded-xl shadow-inner bg-slate-100 p-3 max-h-[460px] overflow-y-auto">
+              {/* 실물 영수증 스타일의 캡처 대상 컨테이너 (receipt-delivery-driver.html 동기화) */}
+              <div className="border rounded-xl shadow-inner bg-slate-100 p-4 max-h-[480px] overflow-y-auto">
                 <div
                   ref={receiptRef}
                   id="outsource-receipt-card"
-                  className="bg-white p-6 rounded-lg border shadow-sm space-y-4 text-slate-800 font-sans max-w-[360px] mx-auto text-xs leading-relaxed"
+                  className="bg-white p-6 border shadow-sm text-black font-extrabold max-w-[340px] mx-auto text-xs leading-relaxed select-none"
+                  style={{ width: "72mm", boxSizing: "border-box", fontFamily: "sans-serif" }}
                 >
-                  {/* 헤더 */}
-                  <div className="border-b-2 border-dashed border-slate-300 pb-3 text-center">
-                    <h2 className="text-base font-extrabold tracking-widest text-slate-900">발 주 인 수 증</h2>
-                    <p className="text-[9px] text-slate-400 mt-0.5">Floxync 다매장 연동 발주서</p>
-                  </div>
-
-                  {/* 지점 및 파트너 기본 정보 */}
-                  <div className="space-y-1 text-[11px]">
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">발주지점:</span>
-                      <span className="font-semibold text-slate-900">{currentBranchName || "로딩 중..."}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">수주처(도매):</span>
-                      <span className="font-semibold text-slate-900">{selectedPartner?.name || "—"}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">발주일시:</span>
-                      <span className="font-mono text-slate-900">
-                        {format(new Date(order.order_date || new Date()), "yyyy-MM-dd HH:mm")}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">주문번호:</span>
-                      <span className="font-mono text-slate-900">{order.order_number}</span>
-                    </div>
-                  </div>
-
-                  {/* 수령지 배송 정보 */}
-                  <div className="bg-slate-50 p-3 rounded-lg border space-y-1.5 text-[11px]">
-                    <h3 className="font-bold text-slate-900 border-b pb-1 mb-1.5">📦 배송 및 수령 정보</h3>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">배송구분:</span>
-                      <span className="font-semibold text-slate-900">
-                        {order.receipt_type === "delivery_reservation" ? "배송예약" :
-                         order.receipt_type === "pickup_reservation" ? "픽업예약" : "매장수령"}
-                      </span>
-                    </div>
-                    {order.delivery_info?.deliveryDate && (
-                      <div className="flex justify-between">
-                        <span className="text-slate-400">배송희망일:</span>
-                        <span className="font-semibold text-indigo-700">
-                          {order.delivery_info.deliveryDate} {order.delivery_info.deliveryTime || ""}
-                        </span>
-                      </div>
+                  {/* 헤더 로고/타이틀 */}
+                  <div className="text-center pb-2 flex flex-col items-center justify-center gap-1">
+                    {senderInfo?.logo_url && (
+                      <img src={senderInfo.logo_url} alt="Logo" className="max-h-12 w-auto object-contain mb-1.5 select-none" />
                     )}
+                    <h2 className="text-lg font-black tracking-wider text-black">인 수 증</h2>
+                    <p className="text-[9px] text-black font-bold mt-0.5">
+                      {format(new Date(order.order_date || new Date()), "yyyy-MM-dd HH:mm")}
+                    </p>
+                  </div>
+                  
+                  {/* 절단용 점선 */}
+                  <div className="border-t border-dashed border-black my-2.5"></div>
+
+                  {/* 수령인 성함 (초특대 28px 굵은 서체) */}
+                  <div className="text-center text-[28px] font-black tracking-tight leading-tight my-4">
+                    {order.delivery_info?.recipientName || "—"}
+                  </div>
+                  
+                  {/* 수령인 연락처 (16px) */}
+                  <div className="text-center text-base font-bold mb-3">
+                    {order.delivery_info?.recipientContact || "—"}
+                  </div>
+
+                  {/* 절단용 점선 */}
+                  <div className="border-t border-dashed border-black my-2.5"></div>
+
+                  {/* 기본 배송 정보 */}
+                  <div className="space-y-1 text-xs">
                     <div className="flex justify-between">
-                      <span className="text-slate-400">수령인명:</span>
-                      <span className="font-semibold text-slate-900">{order.delivery_info?.recipientName || "—"}</span>
+                      <span className="font-normal text-black">보내는 분:</span>
+                      <span className="font-bold">{hideCustomerInfo ? "비공개" : (order.orderer?.name || "—")}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-400">연락처:</span>
-                      <span className="font-mono text-slate-900">{order.delivery_info?.recipientContact || "—"}</span>
+                      <span className="font-normal text-black">배송희망일:</span>
+                      <span className="font-bold">
+                        {order.delivery_info?.date || ""} {order.delivery_info?.time || ""}
+                      </span>
                     </div>
-                    <div className="flex flex-col mt-1">
-                      <span className="text-slate-400">배송지 주소:</span>
-                      <span className="font-medium text-slate-950 mt-0.5 bg-white p-1.5 rounded border leading-relaxed">
+                    <div className="flex flex-col mt-2">
+                      <span className="font-normal text-black">배송지 주소:</span>
+                      <span className="font-bold text-[14px] leading-relaxed mt-1 whitespace-pre-wrap border border-black p-2 bg-slate-50/50 rounded">
                         {order.delivery_info?.address || "—"}
                       </span>
                     </div>
                   </div>
 
+                  {/* 절단용 점선 */}
+                  <div className="border-t border-dashed border-black my-2.5"></div>
+
                   {/* 발주 상품 내역 */}
                   <div className="space-y-1.5">
-                    <h3 className="font-bold text-slate-900 border-b pb-1 text-[11px]">🌸 발주 상품 내역</h3>
-                    <Table className="border-none">
-                      <TableBody>
-                        {(order.items || []).map((item, idx) => (
-                          <TableRow key={idx} className="border-b last:border-0 hover:bg-transparent">
-                            <TableCell className="p-1 font-medium text-slate-800 text-[11px]">{item.name}</TableCell>
-                            <TableCell className="p-1 text-right text-slate-900 font-mono text-[11px]">{item.quantity}개</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                    <span className="text-[10px] font-bold text-black uppercase tracking-wider block">🌸 주문 상품 내역</span>
+                    <ul className="space-y-1">
+                      {(order.items || []).map((item, idx) => (
+                        <li key={idx} className="flex justify-between py-1 border-b border-dotted border-black/30 last:border-b-0">
+                          <span className="font-bold">{item.name}</span>
+                          <span className="font-bold font-mono">{item.quantity}개</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
 
-                  {/* 리본 리포트 (중요) */}
+                  {/* 리본/카드 문구 */}
                   {((order.items || []).some(i => i.ribbonMessage) || order.memo) && (
-                    <div className="border-2 border-slate-800 p-3 rounded bg-amber-50/50 space-y-2">
-                      <h3 className="font-extrabold text-slate-950 text-center border-b border-slate-800 pb-1 text-[11px]">
-                        🎀 리본 / 카드 메시지
-                      </h3>
-                      {(order.items || []).map((item, idx) => {
-                        if (!item.ribbonMessage) return null;
-                        return (
-                          <div key={idx} className="space-y-1 text-[11px] border-b last:border-b-0 pb-1.5 last:pb-0">
-                            {item.ribbonMessage.ribbonLeft && (
-                              <div>
-                                <span className="text-slate-400 text-[9px] block">경조사어 (우측 리본):</span>
-                                <span className="font-bold text-slate-900">{item.ribbonMessage.ribbonLeft}</span>
-                              </div>
-                            )}
-                            {item.ribbonMessage.ribbonRight && (
-                              <div className="mt-1">
-                                <span className="text-slate-400 text-[9px] block">보내는 분 (좌측 리본):</span>
-                                <span className="font-bold text-slate-900">{item.ribbonMessage.ribbonRight}</span>
-                              </div>
-                            )}
-                            {item.ribbonMessage.cardMessage && (
-                              <div className="mt-1 bg-white p-1.5 rounded border border-slate-200">
-                                <span className="text-slate-400 text-[9px] block">카드 메시지:</span>
-                                <span className="font-medium text-slate-800 whitespace-pre-wrap leading-relaxed">{item.ribbonMessage.cardMessage}</span>
-                              </div>
-                            )}
+                    <>
+                      <div className="border-t border-dashed border-black my-2.5"></div>
+                      <div className="border-2 border-black p-2.5 space-y-2">
+                        <span className="text-[10px] font-bold block text-center border-b border-black pb-1">🎀 리본/카드 메시지</span>
+                        {(order.items || []).map((item, idx) => {
+                          if (!item.ribbonMessage) return null;
+                          return (
+                            <div key={idx} className="space-y-1 text-[11px] border-b border-black/20 last:border-b-0 pb-1.5 last:pb-0">
+                              {item.ribbonMessage.ribbonLeft && (
+                                <div>
+                                  <span className="text-[9px] font-normal block text-black/60">경조사어 (우측 리본):</span>
+                                  <span className="font-bold">{item.ribbonMessage.ribbonLeft}</span>
+                                </div>
+                              )}
+                              {item.ribbonMessage.ribbonRight && (
+                                <div className="mt-1">
+                                  <span className="text-[9px] font-normal block text-black/60">보내는 분 (좌측 리본):</span>
+                                  <span className="font-bold">{item.ribbonMessage.ribbonRight}</span>
+                                </div>
+                              )}
+                              {item.ribbonMessage.cardMessage && (
+                                <div className="mt-1 bg-slate-50 p-1.5 border border-black/30 rounded">
+                                  <span className="text-[9px] font-normal block text-black/60">카드 메시지:</span>
+                                  <span className="font-bold whitespace-pre-wrap leading-relaxed">{item.ribbonMessage.cardMessage}</span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                        {order.memo && (
+                          <div className="text-[11px] pt-1">
+                            <span className="text-[9px] font-normal block text-black/60">주문 특이사항:</span>
+                            <span className="font-bold italic">{order.memo}</span>
                           </div>
-                        );
-                      })}
-                      {order.memo && (
-                        <div className="text-[11px] pt-1">
-                          <span className="text-slate-400 text-[9px] block">주문 특이사항:</span>
-                          <span className="text-slate-800 font-light italic">{order.memo}</span>
-                        </div>
-                      )}
-                    </div>
+                        )}
+                      </div>
+                    </>
                   )}
 
-                  {/* 발주점 전달사항 (notes) */}
+                  {/* 도매상 전달사항 */}
                   {notes.trim() && (
-                    <div className="border-t pt-2.5">
-                      <span className="text-slate-400 text-[9px] block">도매상 전달사항:</span>
-                      <p className="text-[11px] font-medium text-indigo-800 whitespace-pre-wrap bg-indigo-50 p-2 rounded border border-indigo-100 leading-relaxed mt-0.5">
-                        {notes}
-                      </p>
-                    </div>
+                    <>
+                      <div className="border-t border-dashed border-black my-2.5"></div>
+                      <div className="bg-slate-50 p-2 border border-black rounded">
+                        <span className="text-[9px] font-normal block text-black/60">도매상 전달사항:</span>
+                        <p className="font-bold text-black whitespace-pre-wrap leading-relaxed mt-0.5">{notes}</p>
+                      </div>
+                    </>
                   )}
 
-                  {/* 하단 꼬리말 */}
-                  <div className="border-t border-dashed border-slate-300 pt-3 text-center text-[9px] text-slate-400">
-                    <p>본 인수증의 캡처본을 거래처에 전송하여 발주를 완료하세요.</p>
-                    <p className="mt-0.5 font-mono">Floxync © {new Date().getFullYear()}</p>
+                  {/* 절단용 점선 */}
+                  <div className="border-t border-dashed border-black my-2.5"></div>
+
+                  {/* 하단 인수 확인 서명란 (이식완료) */}
+                  <div className="py-2.5 text-[14px] font-black flex items-end">
+                    <span>인수자 확인</span>
+                    <span className="border-b-2 border-black w-36 ml-2 inline-block"></span>
+                  </div>
+
+                  {/* 하단 발행 매장처 */}
+                  <div className="border-t border-dashed border-black mt-3 pt-2 text-center text-[10px] font-bold">
+                    <p>{senderInfo?.name || currentBranchName || "발주 매장"}</p>
+                    {(senderInfo?.contact_phone || senderInfo?.contact) && (
+                      <p className="mt-0.5 font-mono text-[9px] font-medium text-black/80">
+                        {senderInfo.contact_phone || senderInfo.contact}
+                      </p>
+                    )}
+                    <p className="mt-0.5 font-mono text-[8px] text-slate-400/80">Floxync Automate System</p>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="bg-slate-50 border p-3 rounded-lg text-slate-600 text-xs leading-relaxed space-y-1">
-              <p className="font-semibold text-slate-900 flex items-center gap-1">💡 도매상 전송 팁 (카카오톡)</p>
-              <p className="font-light">1. **[이미지 복사]** 버튼을 클릭합니다.</p>
-              <p className="font-light">2. 카카오톡 대화방에 들어가 메시지 창을 클릭합니다.</p>
-              <p className="font-light">3. **Ctrl + V**를 누르면 인수증 그림이 즉시 톡방에 붙여넣기 되어 전송됩니다!</p>
-            </div>
+
           </div>
         </div>
       </DialogContent>
