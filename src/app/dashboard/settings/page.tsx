@@ -917,12 +917,18 @@ export default function SettingsPage() {
     async function loadPartnerTenants() {
       setLoadingPartners(true);
       try {
+        console.log("[PartnerDebug] tenants 쿼리 시작...");
         const { data, error } = await supabase
           .from("tenants")
-          .select("id, name, country, partner_region, partner_category, partner_description")
+          .select("id, name, partner_region, partner_category, partner_description")
           .eq("can_receive_orders", true);
-        if (data && !error) {
-          setPartnerTenants(data);
+        
+        if (error) {
+          console.error("[PartnerDebug] 쿼리 에러:", error);
+          toast.error("파트너 목록 로드 실패: " + error.message, { description: error.details || "RLS 차단 가능성 있음" });
+        } else {
+          console.log("[PartnerDebug] 수신 성공 데이터 수:", data?.length, data);
+          setPartnerTenants(data || []);
         }
       } catch (err) {
         console.error("Failed to load partner tenants:", err);
@@ -2175,6 +2181,9 @@ export default function SettingsPage() {
                         <strong className="text-blue-900 mx-1">"발주사 몫 20%, 수주사 몫 80%"</strong> 
                         수수료율을 준수하고 정산할 것에 자동 동의하는 것으로 처리됩니다.
                       </p>
+                      <div className="mt-1 text-[10px] text-red-500 font-semibold leading-normal border-t border-blue-100/50 pt-1">
+                        ⚠️ 면책 고지: 본 회원사 간 직거래 수발주 및 대금 정산 과정에서 발생하는 어떠한 사고나 분쟁에 대해서도 플로싱크는 일체의 중개/법적 책임을 지지 않습니다.
+                      </div>
                     </div>
                   </div>
 
@@ -2252,12 +2261,14 @@ export default function SettingsPage() {
                             const flagMap: Record<string, string> = {
                               KR: "🇰🇷", VN: "🇻🇳", JP: "🇯🇵", US: "🇺🇸", CN: "🇨🇳", ES: "🇪🇸", FR: "🇫🇷", DE: "🇩🇪", GB: "🇬🇧", AU: "🇦🇺", CA: "🇨🇦", SG: "🇸🇬"
                             };
-                            const flag = flagMap[t.country] || "🌐";
+                            // country 컬럼이 없으므로, blossomTV 등 데모 외 지점은 기본적으로 한국(KR) 국기로 렌더링
+                            const shopCountry = t.country || "KR";
+                            const flag = flagMap[shopCountry] || "🇰🇷";
                             return (
                               <tr key={t.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors font-medium">
                                 <td className="p-4 font-semibold text-slate-700 flex items-center gap-1.5 text-sm">
                                   <span className="text-base select-none">{flag}</span>
-                                  <span>{t.country || "KR"}</span>
+                                  <span>{shopCountry}</span>
                                 </td>
                                 <td className="p-4 text-slate-900 font-bold">{t.name}</td>
                                 <td className="p-4 text-slate-500">{t.partner_region || "전 지역 가능"}</td>
