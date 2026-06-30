@@ -151,15 +151,7 @@ export default function OrdersPage() {
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
   const [isExcelUploadOpen, setIsExcelUploadOpen] = useState(false);
 
-  // 회원사 수발주용 상태 변수 및 핸들러 추가
-  const [isPartnerTransferOpen, setIsPartnerTransferOpen] = useState(false);
-  const [selectedOrderForPartner, setSelectedOrderForPartner] = useState<Order | null>(null);
 
-  const handlePartnerTransferClick = (order: Order, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    setSelectedOrderForPartner(order);
-    setIsPartnerTransferOpen(true);
-  };
 
   // 회원사 수발주용 상태 변수 및 핸들러 추가
   const [isPartnerTransferOpen, setIsPartnerTransferOpen] = useState(false);
