@@ -207,14 +207,25 @@ export function FulfillRequestDialog({ request, open, onOpenChange, onSuccess }:
               value={paymentMethod}
               onValueChange={(v) => setPaymentMethod(v ?? "card")}
             >
-              <SelectTrigger>
-                <SelectValue />
+              <SelectTrigger className="h-10 rounded-xl border-slate-200 bg-slate-50/50 hover:bg-slate-100/80 transition-colors text-xs font-bold text-slate-700">
+                <SelectValue>
+                  {paymentMethod === "card" 
+                    ? "신용카드" 
+                    : paymentMethod === "cash" 
+                      ? "현금" 
+                      : paymentMethod === "bank_transfer" 
+                        ? "계좌이체" 
+                        : paymentMethod === "other" 
+                          ? "기타" 
+                          : "선택"
+                  }
+                </SelectValue>
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="card">{tf.f00704}</SelectItem>
-                <SelectItem value="cash">{tf.f00769}</SelectItem>
-                <SelectItem value="bank_transfer">{tf.f00057}</SelectItem>
-                <SelectItem value="other">{tf.f00115}</SelectItem>
+              <SelectContent className="rounded-xl">
+                <SelectItem value="card" className="text-xs font-medium">신용카드</SelectItem>
+                <SelectItem value="cash" className="text-xs font-medium">현금</SelectItem>
+                <SelectItem value="bank_transfer" className="text-xs font-medium">계좌이체</SelectItem>
+                <SelectItem value="other" className="text-xs font-medium">기타</SelectItem>
               </SelectContent>
             </Select>
           </div>
