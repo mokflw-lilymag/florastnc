@@ -456,112 +456,73 @@ export function MaterialRequestsConsolidationPanel({ requests, onReload }: Props
             <CardDescription>{tf.f02182}</CardDescription>
           </CardHeader>
           <CardContent className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-10" />
-                  <TableHead className="w-10">No</TableHead>
-                  <TableHead>{tf.f02124}</TableHead>
-                  <TableHead>{tf.f01290}</TableHead>
-                  <TableHead className="text-right">{tf.f02040}</TableHead>
-                  <TableHead>{tf.f00663}</TableHead>
-                  <TableHead className="hidden md:table-cell">{tf.f01302}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {consolidated.map((row, idx) => {
-                  const open = expanded.has(row.key);
-                  const byBranch = new Map<string, number>();
-                  for (const b of row.breakdown) {
-                    byBranch.set(b.tenant_name, (byBranch.get(b.tenant_name) ?? 0) + b.quantity);
-                  }
-                  return (
-                    <Fragment key={row.key}>
-                      <TableRow className={cn(open && "bg-muted/40")}>
-                        <TableCell className="p-1">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => toggleRow(row.key)}
-                            aria-expanded={open}
-                          >
-                            {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                          </Button>
-                        </TableCell>
-                        <TableCell className="tabular-nums text-muted-foreground">{idx + 1}</TableCell>
+            {/* 🏢 지점 목록 추출 (피벗 컬럼용) */}
+            {(() => {
+              const uniqueTenants = Array.from(
+                new Map(
+                  requests.map((r) => [r.tenant_id, r.tenant_name || r.tenant_id.slice(0, 8)])
+                ).entries()
+              ).sort((a, b) => a[1].localeCompare(b[1], baseLocale));
+
+              return (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-10">No</TableHead>
+                      <TableHead className="min-w-[180px]">{tf.f02124}</TableHead>
+                      <TableHead className="min-w-[140px]">{tf.f01290}</TableHead>
+                      {/* 동적 지점명 열(Column) 나열 */}
+                      {uniqueTenants.map(([tid, name]) => (
+                        <TableHead key={tid} className="text-center min-w-[90px] font-extrabold text-xs text-indigo-700 bg-indigo-50/30">
+                          {name.replace("릴리맥", "")}
+                        </TableHead>
+                      ))}
+                      <TableHead className="text-right font-extrabold text-xs min-w-[80px] bg-slate-50">{tf.f02040}</TableHead>
+                      <TableHead className="hidden lg:table-cell min-w-[150px]">{tf.f01302}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {consolidated.map((row, idx) => (
+                      <TableRow key={row.key} className="hover:bg-slate-50/50 transition-colors">
+                        <TableCell className="tabular-nums text-muted-foreground text-xs">{idx + 1}</TableCell>
                         <TableCell>
-                          <div className="font-medium">{row.name}</div>
+                          <div className="font-bold text-sm text-slate-800">{row.name}</div>
                           {row.material_id ? (
-                            <div className="text-[11px] text-muted-foreground font-mono mt-0.5">{tf.f01742} · {row.material_id.slice(0, 8)}…</div>
+                            <div className="text-[9px] text-slate-400 font-mono mt-0.5">{tf.f01742} · {row.material_id.slice(0, 8)}…</div>
                           ) : null}
                         </TableCell>
-                        <TableCell className="text-sm">
+                        <TableCell className="text-xs text-slate-500">
                           {row.main_category}
-                          <span className="text-muted-foreground"> · </span>
+                          <span className="text-slate-300"> / </span>
                           {row.mid_category}
                         </TableCell>
-                        <TableCell className="text-right font-semibold tabular-nums whitespace-nowrap">
+                        {/* 각 지점별 신청 수량 매핑 */}
+                        {uniqueTenants.map(([tid]) => {
+                          const match = row.breakdown.find((b) => b.tenant_id === tid);
+                          return (
+                            <TableCell key={tid} className="text-center font-bold text-xs tabular-nums">
+                              {match ? (
+                                <span className="text-slate-900 bg-slate-100/80 px-2 py-0.5 rounded-md border border-slate-200/40">
+                                  {match.quantity} {row.unit}
+                                </span>
+                              ) : (
+                                <span className="text-slate-200">—</span>
+                              )}
+                            </TableCell>
+                          );
+                        })}
+                        <TableCell className="text-right font-extrabold text-xs tabular-nums bg-slate-50/40">
                           {row.totalQuantity} {row.unit}
                         </TableCell>
-                        <TableCell>
-                          <Badge variant="secondary" className="font-bold text-xs py-0.5 px-2.5 rounded-full bg-indigo-50 text-indigo-700 border-none shadow-sm">
-                            {row.branchCount === 1 
-                              ? (row.breakdown[0]?.tenant_name?.replace("릴리맥", "") || "1개 매장")
-                              : `${row.breakdown[0]?.tenant_name?.replace("릴리맥", "")} ${baseLocale === "ko" ? "외" : "and"} ${row.branchCount - 1}${tf.f00945}`
-                            }
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="hidden md:table-cell text-xs text-muted-foreground max-w-[200px] truncate">
+                        <TableCell className="hidden lg:table-cell text-xs text-slate-450 max-w-[200px] truncate">
                           {row.specs.length ? row.specs.join("; ") : "—"}
                         </TableCell>
                       </TableRow>
-                      {open ? (
-                        <TableRow className="bg-muted/25 hover:bg-muted/25">
-                          <TableCell colSpan={7} className="p-0 border-b">
-                            <div className="px-4 py-3 text-sm space-y-2">
-                              <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{tf.f01919}</div>
-                              <ul className="grid gap-1 sm:grid-cols-2 lg:grid-cols-3">
-                                {[...byBranch.entries()]
-                                  .sort((a, b) => a[0].localeCompare(b[0], baseLocale))
-                                  .map(([name, q]) => (
-                                    <li
-                                      key={name}
-                                      className="flex justify-between gap-2 rounded-md border bg-background px-2 py-1.5"
-                                    >
-                                      <span className="truncate">{name}</span>
-                                      <span className="tabular-nums font-medium shrink-0">
-                                        {q} {row.unit}
-                                      </span>
-                                    </li>
-                                  ))}
-                              </ul>
-                              <div className="text-xs text-muted-foreground pt-1 border-t">
-                                {tf.f01625} ·{" "}
-                                {row.breakdown.map((b, i) => (
-                                  <span key={b.line_id}>
-                                    {i > 0 ? " · " : null}
-                                    <Link
-                                      href={`/dashboard/hq/branches/${b.tenant_id}`}
-                                      className="text-primary underline underline-offset-2"
-                                    >
-                                      {b.tenant_name}
-                                    </Link>{" "}
-                                    {b.quantity}
-                                    {row.unit}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ) : null}
-                    </Fragment>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                    ))}
+                  </TableBody>
+                </Table>
+              );
+            })()}
           </CardContent>
         </Card>
       )}
