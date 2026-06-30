@@ -294,13 +294,18 @@ export function FulfillRequestDialog({ request, open, onOpenChange, onSuccess }:
                         }
                         disabled={r.exclude || loadingSuppliers}
                       >
-                        <SelectTrigger className="h-8">
-                          <SelectValue placeholder={loadingSuppliers ? tf.f01292 : tf.f01403} />
+                        <SelectTrigger className="h-8 rounded-xl border-slate-200 bg-slate-50/50 hover:bg-slate-100/80 transition-colors text-xs font-bold text-slate-700">
+                          <SelectValue>
+                            {r.supplierId 
+                              ? (suppliers.find(s => s.id === r.supplierId)?.name || "지정된 거래처") 
+                              : tf.f00224
+                            }
+                          </SelectValue>
                         </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="__none__">{tf.f00224}</SelectItem>
+                        <SelectContent className="rounded-xl">
+                          <SelectItem value="__none__" className="text-xs font-bold">{tf.f00224}</SelectItem>
                           {suppliers.map((s) => (
-                            <SelectItem key={s.id} value={s.id}>
+                            <SelectItem key={s.id} value={s.id} className="text-xs font-medium">
                               {s.name}
                             </SelectItem>
                           ))}

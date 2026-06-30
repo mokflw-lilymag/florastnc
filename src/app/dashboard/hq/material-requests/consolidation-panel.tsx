@@ -506,8 +506,11 @@ export function MaterialRequestsConsolidationPanel({ requests, onReload }: Props
                           {row.totalQuantity} {row.unit}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="secondary" className="font-normal">
-                            {row.branchCount}{tf.f00945}
+                          <Badge variant="secondary" className="font-bold text-xs py-0.5 px-2.5 rounded-full bg-indigo-50 text-indigo-700 border-none shadow-sm">
+                            {row.branchCount === 1 
+                              ? (row.breakdown[0]?.tenant_name?.replace("릴리맥", "") || "1개 매장")
+                              : `${row.breakdown[0]?.tenant_name?.replace("릴리맥", "")} ${baseLocale === "ko" ? "외" : "and"} ${row.branchCount - 1}${tf.f00945}`
+                            }
                           </Badge>
                         </TableCell>
                         <TableCell className="hidden md:table-cell text-xs text-muted-foreground max-w-[200px] truncate">
