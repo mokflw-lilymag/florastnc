@@ -84,6 +84,7 @@ export interface Order {
   actual_delivery_cost_cash?: number;
   deliveryProfit?: number;
   tenantName?: string;
+  tenant_name?: string;
   transferInfo?: {
     isTransferred?: boolean;
     processBranchName?: string;

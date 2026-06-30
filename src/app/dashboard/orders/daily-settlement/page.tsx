@@ -23,6 +23,7 @@ import { createClient } from "@/utils/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import Link from 'next/link';
 import { Order } from "@/types/order";
+import { cn } from "@/lib/utils";
 import { parseDate } from "@/lib/date-utils";
 import { toast } from "sonner";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
@@ -672,7 +673,19 @@ export default function DailySettlementPage() {
                                                         { locale: dfLoc }
                                                     )}
                                                 </span>
-                                                <span className="font-mono text-[10px] text-slate-700 uppercase">{order.order_number}</span>
+                                                <div className="flex items-center gap-1.5 mt-0.5">
+                                                    <span className="font-mono text-[10px] text-slate-700 uppercase">{order.order_number}</span>
+                                                    {order.transfer_info?.isTransferred && (
+                                                        <Badge className={cn(
+                                                            "text-[9px] font-bold px-1.5 py-0 rounded-full border-none shadow-sm",
+                                                            order.tenant_id === tenantId
+                                                                ? "bg-indigo-50 text-indigo-700"
+                                                                : "bg-emerald-50 text-emerald-700"
+                                                        )}>
+                                                            {order.tenant_id === tenantId ? "이관 발주" : "이관 수주"}
+                                                        </Badge>
+                                                    )}
+                                                </div>
                                             </div>
                                         </TableCell>
                                         <TableCell className="tracking-tight">
@@ -733,7 +746,19 @@ export default function DailySettlementPage() {
                                 {stats.pendingOrdersToday.map((order) => (
                                     <TableRow key={order.id} className="group hover:bg-slate-50/50 transition-colors border-b border-slate-50/50">
                                         <TableCell className="px-6 py-4">
-                                            <span className="font-mono text-[10px] text-slate-700 uppercase">{order.order_number}</span>
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="font-mono text-[10px] text-slate-700 uppercase">{order.order_number}</span>
+                                                {order.transfer_info?.isTransferred && (
+                                                    <Badge className={cn(
+                                                        "text-[9px] font-bold px-1.5 py-0 rounded-full border-none shadow-sm",
+                                                        order.tenant_id === tenantId
+                                                            ? "bg-indigo-50 text-indigo-700"
+                                                            : "bg-emerald-50 text-emerald-700"
+                                                    )}>
+                                                        {order.tenant_id === tenantId ? "이관 발주" : "이관 수주"}
+                                                    </Badge>
+                                                )}
+                                            </div>
                                         </TableCell>
                                         <TableCell className="text-xs font-light tracking-tight">{order.orderer?.name}</TableCell>
                                         <TableCell className="text-right text-xs font-medium text-rose-600">₩{(order.summary?.total || 0).toLocaleString()}</TableCell>

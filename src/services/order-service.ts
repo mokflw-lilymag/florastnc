@@ -38,6 +38,8 @@ export const OrderService = {
       actual_delivery_payment_method: row.actual_delivery_payment_method,
       actual_delivery_payment_status: row.actual_delivery_payment_status,
       outsource_info: row.outsource_info,
+      transfer_info: row.transfer_info,
+      tenant_name: row.tenant_name,
       created_at: row.created_at,
       updated_at: row.updated_at,
       completed_at: row.completed_at,
@@ -56,9 +58,9 @@ export const OrderService = {
         delivery_provider, delivery_tracking_id, delivery_tracking_url, delivery_provider_status, delivery_provider_fee,
         memo, actual_delivery_cost, actual_delivery_cost_cash, 
         actual_delivery_payment_method, actual_delivery_payment_status,
-        outsource_info, created_at, completionphotourl
+        outsource_info, created_at, completionphotourl, transfer_info, tenant_name
       `)
-      .eq('tenant_id', tenantId)
+      .or(`tenant_id.eq.${tenantId},and(transfer_info->>processBranchId.eq.${tenantId},transfer_info->>status.in.(accepted,completed))`)
       .gte(dateField, startDateStr)
       .order(dateField, { ascending: false });
 
@@ -75,9 +77,9 @@ export const OrderService = {
         delivery_provider, delivery_tracking_id, delivery_tracking_url, delivery_provider_status, delivery_provider_fee,
         memo, actual_delivery_cost, actual_delivery_cost_cash, 
         actual_delivery_payment_method, actual_delivery_payment_status,
-        outsource_info, created_at, completionphotourl
+        outsource_info, created_at, completionphotourl, transfer_info, tenant_name
       `)
-      .eq('tenant_id', tenantId)
+      .or(`tenant_id.eq.${tenantId},and(transfer_info->>processBranchId.eq.${tenantId},transfer_info->>status.in.(accepted,completed))`)
       .gte(dateField, start.toISOString())
       .lte(dateField, end.toISOString())
       .order(dateField, { ascending: false });
@@ -104,9 +106,9 @@ export const OrderService = {
         delivery_provider, delivery_tracking_id, delivery_tracking_url, delivery_provider_status, delivery_provider_fee,
         memo, actual_delivery_cost, actual_delivery_cost_cash, 
         actual_delivery_payment_method, actual_delivery_payment_status,
-        outsource_info, created_at, completionphotourl
+        outsource_info, created_at, completionphotourl, transfer_info, tenant_name
       `, { count: 'exact' })
-      .eq('tenant_id', tenantId)
+      .or(`tenant_id.eq.${tenantId},and(transfer_info->>processBranchId.eq.${tenantId},transfer_info->>status.in.(accepted,completed))`)
       .gte(dateField, start.toISOString())
       .lte(dateField, end.toISOString());
 
@@ -144,8 +146,8 @@ export const OrderService = {
   ) {
     const { data, error } = await supabase
       .from('orders')
-      .select('status, summary, order_date')
-      .eq('tenant_id', tenantId)
+      .select('status, summary, order_date, transfer_info')
+      .or(`tenant_id.eq.${tenantId},and(transfer_info->>processBranchId.eq.${tenantId},transfer_info->>status.in.(accepted,completed))`)
       .gte(dateField, start.toISOString())
       .lte(dateField, end.toISOString());
 

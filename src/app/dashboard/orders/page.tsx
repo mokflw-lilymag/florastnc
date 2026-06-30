@@ -9,7 +9,7 @@ import {
   Package, Target, RefreshCw, Trash2, XCircle,
   Calendar as CalendarIcon, ExternalLink, Printer, ClipboardList, Info,
   TrendingUp, CreditCard, ShoppingBag, ArrowUpRight, Share2, Loader2, AlertCircle,
-  BarChart3, DollarSign, CheckCircle2, Monitor, CloudDownload
+  BarChart3, DollarSign, CheckCircle2, Monitor, CloudDownload, Building2
 } from "lucide-react";
 import { format, addMonths, startOfMonth, endOfMonth, isToday, isThisMonth, isThisYear, parseISO, startOfToday, subDays } from "date-fns";
 import { toast } from "sonner";
@@ -35,6 +35,7 @@ const OrderDetailDialog = dynamic(() => import("./components/order-detail-dialog
 const OrderEditDialog = dynamic(() => import("./components/order-edit-dialog").then(mod => mod.OrderEditDialog), { ssr: false });
 const MessagePrintDialog = dynamic(() => import("./components/message-print-dialog").then(mod => mod.MessagePrintDialog), { ssr: false });
 const OrderOutsourceDialog = dynamic(() => import("./components/order-outsource-dialog").then(mod => mod.OrderOutsourceDialog), { ssr: false });
+const OrderTransferDialog = dynamic(() => import("./components/order-transfer-dialog").then(mod => mod.OrderTransferDialog), { ssr: false });
 const OrderExcelUploadDialog = dynamic(() => import("./components/excel-upload-dialog").then(mod => mod.OrderExcelUploadDialog), { ssr: false });
 
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
@@ -139,6 +140,7 @@ export default function OrdersPage() {
   const [isOrderDetailOpen, setIsOrderDetailOpen] = useState(false);
   const [isOrderEditOpen, setIsOrderEditOpen] = useState(false);
   const [isOutsourceOpen, setIsOutsourceOpen] = useState(false);
+  const [isTransferOpen, setIsTransferOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -555,6 +557,12 @@ export default function OrdersPage() {
     e.stopPropagation();
     setSelectedOrder(order);
     setIsOutsourceOpen(true);
+  };
+
+  const handleTransferClick = (order: Order, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedOrder(order);
+    setIsTransferOpen(true);
   };
   
   const handleOrderPrint = (orderId: string, e: React.MouseEvent) => {
@@ -1061,12 +1069,24 @@ export default function OrdersPage() {
                                  <CalendarIcon className="h-3.5 w-3.5 text-slate-400" />
                                  {format(parseISO(order.order_date), "Pp", { locale: dfLoc })}
                                </div>
-                               <Badge variant="outline" className={cn(
-                                 "text-[10px] border-none font-black px-0 uppercase tracking-tighter",
-                                 order.receipt_type === 'delivery_reservation' ? "text-blue-500" : "text-amber-500"
-                               )}>
-                                 {receiptTypeLabels[order.receipt_type] || order.receipt_type}
-                               </Badge>
+                               <div className="flex items-center gap-2 mt-0.5">
+                                 <Badge variant="outline" className={cn(
+                                   "text-[10px] border-none font-black px-0 uppercase tracking-tighter",
+                                   order.receipt_type === 'delivery_reservation' ? "text-blue-500" : "text-amber-500"
+                                 )}>
+                                   {receiptTypeLabels[order.receipt_type] || order.receipt_type}
+                                 </Badge>
+                                 {order.transfer_info?.isTransferred && (
+                                   <Badge className={cn(
+                                     "text-[9px] font-bold px-2 py-0.5 rounded-full border-none shadow-sm",
+                                     order.tenant_id === tenantId
+                                       ? "bg-indigo-50 text-indigo-700"
+                                       : "bg-emerald-50 text-emerald-700"
+                                   )}>
+                                     {order.tenant_id === tenantId ? "이관 발주" : "이관 수주"}
+                                   </Badge>
+                                 )}
+                               </div>
                              </div>
                           </TableCell>
                           <TableCell className="py-6">
@@ -1156,7 +1176,10 @@ export default function OrdersPage() {
  
                                  <DropdownMenuSeparator className="mx-1 bg-gray-50" />
                                  <DropdownMenuGroup>
-                                   <DropdownMenuItem className="rounded-xl gap-2 font-bold py-3 px-4 focus:bg-slate-50" onClick={(e) => handleOutsourceClick(order, e)}>
+                                    <DropdownMenuItem className="rounded-xl gap-2 font-bold py-3 px-4 focus:bg-slate-50" onClick={(e) => handleTransferClick(order, e)}>
+                                      <Building2 className="h-4 w-4 text-indigo-500" /> 지점 이관 요청
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem className="rounded-xl gap-2 font-bold py-3 px-4 focus:bg-slate-50" onClick={(e) => handleOutsourceClick(order, e)}>
                                      <Share2 className="h-4 w-4" /> {tf.f00476}
                                    </DropdownMenuItem>
                                  </DropdownMenuGroup>
@@ -1253,14 +1276,26 @@ export default function OrdersPage() {
                                 : ""}
                             </div>
                           </div>
-                          <Badge className={cn(
-                            "rounded-full px-3 py-0.5 font-bold text-[10px] border-none shadow-none",
-                            order.status === 'completed' ? "bg-emerald-50 text-emerald-600" : 
-                            order.status === 'processing' ? "bg-amber-50 text-amber-600" : 
-                            "bg-rose-50 text-rose-600"
-                          )}>
-                            {statusLabels[order.status] || order.status}
-                          </Badge>
+                          <div className="flex items-center gap-1.5">
+                            <Badge className={cn(
+                              "rounded-full px-3 py-0.5 font-bold text-[10px] border-none shadow-none",
+                              order.status === 'completed' ? "bg-emerald-50 text-emerald-600" : 
+                              order.status === 'processing' ? "bg-amber-50 text-amber-600" : 
+                              "bg-rose-50 text-rose-600"
+                            )}>
+                              {statusLabels[order.status] || order.status}
+                            </Badge>
+                            {order.transfer_info?.isTransferred && (
+                              <Badge className={cn(
+                                "rounded-full px-2 py-0.5 font-bold text-[9px] border-none shadow-sm",
+                                order.tenant_id === tenantId
+                                  ? "bg-indigo-50 text-indigo-700"
+                                  : "bg-emerald-50 text-emerald-700"
+                              )}>
+                                {order.tenant_id === tenantId ? "이관 발주" : "이관 수주"}
+                              </Badge>
+                            )}
+                          </div>
                         </div>
                         
                         <div className="grid grid-cols-2 gap-4 mb-4">
@@ -1334,8 +1369,11 @@ export default function OrdersPage() {
                                 </DropdownMenuSub>
  
                                 <DropdownMenuSeparator className="mx-1 bg-gray-50" />
+                                <DropdownMenuItem className="rounded-xl gap-2 font-bold py-2.5 px-3 focus:bg-slate-50" onClick={(e) => { e.stopPropagation(); handleTransferClick(order, e as any); }}>
+                                  <Building2 className="h-4 w-4 text-indigo-500" /> 지점 이관 요청
+                                </DropdownMenuItem>
                                 <DropdownMenuItem className="rounded-xl gap-2 font-bold py-2.5 px-3 focus:bg-slate-50" onClick={(e) => { e.stopPropagation(); handleOutsourceClick(order, e as any); }}>
-                                  <Share2 className="h-4 w-4" /> {tf.f00476}
+                                  <Share2 className="h-4 w-4 text-slate-500" /> {tf.f00476}
                                 </DropdownMenuItem>
                                 
                                 <DropdownMenuSeparator className="mx-1 bg-gray-50" />
@@ -1486,6 +1524,12 @@ export default function OrdersPage() {
       <OrderOutsourceDialog
         isOpen={isOutsourceOpen}
         onOpenChange={setIsOutsourceOpen}
+        order={selectedOrder}
+        onSuccess={refreshOrders}
+      />
+      <OrderTransferDialog
+        isOpen={isTransferOpen}
+        onOpenChange={setIsTransferOpen}
         order={selectedOrder}
         onSuccess={refreshOrders}
       />

@@ -23,6 +23,7 @@ import {
   CalendarDays,
   Wallet,
   History,
+  RefreshCw,
 } from "lucide-react";
 import Image from "next/image";
 import { createClient } from "@/utils/supabase/client";
@@ -298,6 +299,7 @@ export function Sidebar({
     hint: t.sidebar.hints.hq,
     links: [
       { name: t.sidebar.links.hqOverview, href: "/dashboard/hq", icon: Building2 },
+      { name: pickUiText(baseLocale, "다매장 수발주 정산", "HQ Order Transfers", "Báo cáo điều chuyển"), href: "/dashboard/orders/transfers", icon: RefreshCw },
       { name: t.sidebar.links.sharedProducts, href: "/dashboard/hq/shared-products", icon: Package },
       { name: t.sidebar.links.branchExpenses, href: "/dashboard/hq/branch-expenses", icon: Receipt },
       { name: t.sidebar.links.hqMaterials, href: "/dashboard/hq/material-requests", icon: ClipboardList },
@@ -313,9 +315,6 @@ export function Sidebar({
       links: [
         { name: t.sidebar.links.home, href: "/dashboard", icon: LayoutDashboard },
         { name: t.sidebar.links.schedule, href: "/dashboard/schedule", icon: CalendarDays, tier: [...ERP_NAV_TIERS] },
-        ...(showOrgBoardLink
-          ? [{ name: t.sidebar.links.hqBoard, href: "/dashboard/org-board", icon: Megaphone }]
-          : []),
       ],
     },
     {
@@ -323,6 +322,33 @@ export function Sidebar({
       label: t.sidebar.groups.tenantOps,
       hint: t.sidebar.hints.tenantOps,
       links: [
+        // 1순위: 본사 게시판 (조직이 있을 때만)
+        ...(showOrgBoardLink
+          ? [{ name: t.sidebar.links.hqBoard, href: "/dashboard/org-board", icon: Megaphone }]
+          : []),
+        // 2순위: 본사 자재 요청 (조직이 있을 때만)
+        ...(showBranchMaterialRequestLink && !sidebarHqOnly
+          ? ([
+              {
+                name: t.sidebar.links.branchMaterials,
+                href: "/dashboard/material-requests",
+                icon: ClipboardList,
+                tier: [...ERP_NAV_TIERS],
+              },
+            ] as NavLinkItem[])
+          : []),
+        // 3순위: 지점 수발주 내역 (조직이 있을 때만)
+        ...(showOrgBoardLink
+          ? ([
+              {
+                name: pickUiText(baseLocale, "지점 수발주 내역", "Branch Transfers", "Nhật ký điều chuyển"),
+                href: "/dashboard/orders/transfers",
+                icon: RefreshCw,
+                tier: [...ERP_NAV_TIERS],
+              },
+            ] as NavLinkItem[])
+          : []),
+        
         {
           name: mobileStoreLabel,
           href: "/dashboard/mobile/pickup",
@@ -351,16 +377,6 @@ export function Sidebar({
           : []),
         { name: t.sidebar.links.products, href: "/dashboard/products", icon: Boxes, tier: [...ERP_NAV_TIERS] },
         { name: t.sidebar.links.inventory, href: "/dashboard/inventory", icon: Boxes, tier: [...ERP_NAV_TIERS] },
-        ...(showBranchMaterialRequestLink && !sidebarHqOnly
-          ? ([
-              {
-                name: t.sidebar.links.branchMaterials,
-                href: "/dashboard/material-requests",
-                icon: ClipboardList,
-                tier: [...ERP_NAV_TIERS],
-              },
-            ] as NavLinkItem[])
-          : []),
         { name: t.sidebar.links.suppliers, href: "/dashboard/suppliers", icon: Store, tier: [...ERP_NAV_TIERS] },
         { name: t.sidebar.links.purchases, href: "/dashboard/purchases", icon: ShoppingCart, tier: [...ERP_NAV_TIERS] },
         { name: t.sidebar.links.reports, href: "/dashboard/reports", icon: BarChart3, tier: [...ERP_NAV_TIERS] },

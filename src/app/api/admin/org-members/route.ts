@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { hqApiUiBase } from "@/lib/hq/hq-api-locale";
+import { isPlatformSuperEmail } from "@/lib/platform-super-emails";
 import {
   errAdminForbidden,
   errAdminInvalidBody,
@@ -12,7 +13,12 @@ import {
   errAdminUnauthorized,
 } from "@/lib/admin/admin-api-errors";
 
-async function assertSuperAdmin(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
+async function assertSuperAdmin(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  email?: string
+) {
+  if (email && isPlatformSuperEmail(email)) return true;
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", userId).maybeSingle();
   return profile?.role === "super_admin";
 }
@@ -25,7 +31,7 @@ export async function POST(req: Request) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: errAdminUnauthorized(blGate) }, { status: 401 });
 
-  if (!(await assertSuperAdmin(supabase, user.id))) {
+  if (!(await assertSuperAdmin(supabase, user.id, user.email))) {
     return NextResponse.json({ error: errAdminForbidden(blGate) }, { status: 403 });
   }
 
