@@ -2197,7 +2197,7 @@ export default function SettingsPage() {
                       <div className="space-y-2">
                         <Label className="text-xs font-bold text-slate-700">수주 가능 주요 지역</Label>
                         <Input 
-                          placeholder="예: 서울 강남구 전 지역, 서초구 반포동" 
+                          placeholder="한국: 구·군·시 단위(예: 서울 강남구) / 해외: 도시+suburb(예: Hanoi Tay Ho)" 
                           value={partnerRegion} 
                           onChange={e => setPartnerRegion(e.target.value)} 
                           className="h-10 rounded-xl"
