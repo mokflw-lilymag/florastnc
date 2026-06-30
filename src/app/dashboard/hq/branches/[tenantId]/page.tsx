@@ -61,6 +61,22 @@ type BranchDetailResponse = {
   warning: string | null;
 };
 
+function expenseCategoryLabel(category: string) {
+  const map: Record<string, string> = {
+    material: "자재비",
+    materials: "자재비",
+    rent: "임대료",
+    labor: "인건비",
+    salary: "인건비",
+    utility: "공과금",
+    utilities: "공과금",
+    delivery: "배송비",
+    transport: "배송비",
+    other: "기타",
+  };
+  return map[category] || category || "기타";
+}
+
 export default function HqBranchDetailPage({
   params,
 }: {
