@@ -9,11 +9,13 @@ import {
   Package, Target, RefreshCw, Trash2, XCircle,
   Calendar as CalendarIcon, ExternalLink, Printer, ClipboardList, Info,
   TrendingUp, CreditCard, ShoppingBag, ArrowUpRight, Share2, Loader2, AlertCircle,
-  BarChart3, DollarSign, CheckCircle2, Monitor, CloudDownload, Building2
+  BarChart3, DollarSign, CheckCircle2, Monitor, CloudDownload, Building2, Globe
 } from "lucide-react";
 import { format, addMonths, startOfMonth, endOfMonth, isToday, isThisMonth, isThisYear, parseISO, startOfToday, subDays } from "date-fns";
 import { toast } from "sonner";
 
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/page-header";
@@ -148,6 +150,16 @@ export default function OrdersPage() {
   const [isMessagePrintOpen, setIsMessagePrintOpen] = useState(false);
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
   const [isExcelUploadOpen, setIsExcelUploadOpen] = useState(false);
+
+  // 회원사 수발주용 상태 변수 및 핸들러 추가
+  const [isPartnerTransferOpen, setIsPartnerTransferOpen] = useState(false);
+  const [selectedOrderForPartner, setSelectedOrderForPartner] = useState<Order | null>(null);
+
+  const handlePartnerTransferClick = (order: Order, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setSelectedOrderForPartner(order);
+    setIsPartnerTransferOpen(true);
+  };
 
   // 회원사 수발주용 상태 변수 및 핸들러 추가
   const [isPartnerTransferOpen, setIsPartnerTransferOpen] = useState(false);
@@ -1416,6 +1428,9 @@ export default function OrdersPage() {
                                 <DropdownMenuItem className="rounded-xl gap-2 font-bold py-2.5 px-3 focus:bg-slate-50" onClick={(e) => { e.stopPropagation(); handleOutsourceClick(order, e as any); }}>
                                   <Share2 className="h-4 w-4 text-slate-500" /> {tf.f00476}
                                 </DropdownMenuItem>
+                                 <DropdownMenuItem className="rounded-xl gap-2 font-bold py-2.5 px-3 focus:bg-slate-50 text-blue-700 focus:text-blue-800 cursor-pointer" onClick={(e) => { e.stopPropagation(); handlePartnerTransferClick(order, e as any); }}>
+                                   <Globe className="h-4 w-4 text-blue-600 animate-pulse" /> 회원사 수발주
+                                 </DropdownMenuItem>
                                  <DropdownMenuItem className="rounded-xl gap-2 font-bold py-2.5 px-3 focus:bg-slate-50 text-blue-700 focus:text-blue-800 cursor-pointer" onClick={(e) => { e.stopPropagation(); handlePartnerTransferClick(order, e as any); }}>
                                    <Globe className="h-4 w-4 text-blue-600 animate-pulse" /> 회원사 수발주
                                  </DropdownMenuItem>
