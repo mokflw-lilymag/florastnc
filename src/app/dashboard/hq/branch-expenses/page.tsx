@@ -1602,7 +1602,7 @@ export default function HqBranchExpensesPage() {
 
               <div className="space-y-1.5">
                 <Label htmlFor="edit-payment" className="text-xs font-bold text-slate-500">{L("결제 수단", "Payment Method")}</Label>
-                <Select value={editPaymentMethod} onValueChange={(val) => setEditPaymentMethod(val)}>
+                <Select value={editPaymentMethod} onValueChange={(val) => setEditPaymentMethod(val || "")}>
                   <SelectTrigger id="edit-payment" className="rounded-xl text-xs">
                     <SelectValue placeholder={L("선택", "Select")} />
                   </SelectTrigger>
