@@ -912,6 +912,10 @@ export default function SettingsPage() {
   const [isPartnerSaving, setIsPartnerSaving] = useState(false);
   const [partnerTenants, setPartnerTenants] = useState<any[]>([]);
   const [loadingPartners, setLoadingPartners] = useState(false);
+  
+  // 파트너 상세 모달용 상태 추가
+  const [selectedPartner, setSelectedPartner] = useState<any | null>(null);
+  const [isPartnerDetailOpen, setIsPartnerDetailOpen] = useState(false);
 
   useEffect(() => {
     async function loadPartnerTenants() {
@@ -920,7 +924,7 @@ export default function SettingsPage() {
         console.log("[PartnerDebug] tenants 쿼리 시작...");
         const { data, error } = await supabase
           .from("tenants")
-          .select("id, name, partner_region, partner_category, partner_description")
+          .select("id, name, partner_region, partner_category, partner_description, contact_phone, address, created_at")
           .eq("can_receive_orders", true);
         
         if (error) {
@@ -2265,7 +2269,7 @@ export default function SettingsPage() {
                             const shopCountry = t.country || "KR";
                             const flag = flagMap[shopCountry] || "🇰🇷";
                             return (
-                              <tr key={t.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors font-medium">
+                              <tr key={t.id} onClick={() => { setSelectedPartner(t); setIsPartnerDetailOpen(true); }} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors font-medium cursor-pointer">
                                 <td className="p-4 font-semibold text-slate-700 flex items-center gap-1.5 text-sm">
                                   <span className="text-base select-none">{flag}</span>
                                   <span>{shopCountry}</span>
@@ -2510,6 +2514,97 @@ export default function SettingsPage() {
               해약 신청서 제출
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 파트너 꽃집 상세 정보 모달 */}
+      <Dialog open={isPartnerDetailOpen} onOpenChange={setIsPartnerDetailOpen}>
+        <DialogContent className="sm:max-w-[480px] rounded-3xl p-6 border-none shadow-2xl animate-in zoom-in-95 duration-200 bg-white">
+          {selectedPartner && (
+            <>
+              <DialogHeader className="pb-4 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-blue-50 rounded-2xl text-blue-600">
+                    <Building2 className="h-6 w-6" />
+                  </div>
+                  <div className="space-y-0.5">
+                    <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+                      <span>🇰🇷</span> {selectedPartner.name}
+                    </DialogTitle>
+                    <p className="text-xs text-slate-400 font-medium">플로싱크 협력 회원사</p>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              <div className="py-5 space-y-4 text-xs">
+                {/* 연락처 */}
+                <div className="space-y-1 bg-slate-50/50 p-3.5 rounded-2xl border border-slate-100/60">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                    📞 연락처 (위탁 발주 문의)
+                  </span>
+                  <p className="text-sm font-bold text-slate-900 mt-0.5 select-all">
+                    {selectedPartner.contact_phone || "등록된 연락처가 없습니다."}
+                  </p>
+                </div>
+
+                {/* 매장 주소 */}
+                <div className="space-y-1 bg-slate-50/50 p-3.5 rounded-2xl border border-slate-100/60">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                    🏠 매장 주소
+                  </span>
+                  <p className="text-xs font-semibold text-slate-800 leading-relaxed mt-0.5">
+                    {selectedPartner.address || "등록된 주소가 없습니다."}
+                  </p>
+                </div>
+
+                {/* 수주 가능 지역 및 전문 품목 */}
+                <div className="grid grid-cols-2 gap-3.5">
+                  <div className="bg-slate-50/50 p-3.5 rounded-2xl border border-slate-100/60 space-y-1">
+                    <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider">
+                      📍 수주 가능 지역
+                    </span>
+                    <p className="text-xs font-bold text-slate-950 mt-0.5">
+                      {selectedPartner.partner_region || "전 지역"}
+                    </p>
+                  </div>
+                  <div className="bg-slate-50/50 p-3.5 rounded-2xl border border-slate-100/60 space-y-1">
+                    <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">
+                      🏷️ 매장 전문 품목
+                    </span>
+                    <p className="text-xs font-bold text-slate-950 mt-0.5">
+                      {selectedPartner.partner_category || "화훼 제작"}
+                    </p>
+                  </div>
+                </div>
+
+                {/* 매장 소개글 */}
+                {selectedPartner.partner_description && (
+                  <div className="space-y-1.5 p-3.5 bg-blue-50/30 border border-blue-100/40 rounded-2xl">
+                    <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">
+                      📝 매장 소개 설명
+                    </span>
+                    <p className="text-xs text-blue-900 leading-relaxed font-medium">
+                      {selectedPartner.partner_description}
+                    </p>
+                  </div>
+                )}
+
+                {/* 등록 일자 */}
+                <div className="text-right text-[9px] text-slate-400 font-light">
+                  네트워크 등록일: {selectedPartner.created_at ? format(parseISO(selectedPartner.created_at), 'yyyy-MM-dd') : '—'}
+                </div>
+              </div>
+
+              <DialogFooter className="border-t border-slate-100 pt-4 flex gap-2">
+                <Button 
+                  onClick={() => setIsPartnerDetailOpen(false)}
+                  className="w-full h-11 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl transition-all"
+                >
+                  닫기
+                </Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>
