@@ -126,7 +126,6 @@ export default function OrderTransfersPage() {
   // 2. 이관 목록 조회
   async function loadTransfers() {
     const isHqUser = userRole === "super_admin" || userRole === "hq";
-    if (!tenantId && !orgId && !isHqUser) return;
     
     setLoading(true);
     try {
@@ -140,20 +139,12 @@ export default function OrderTransfersPage() {
         `)
         .order("created_at", { ascending: false });
 
-      if (!isHqUser && tenantId) {
+      if (tenantId && tenantId !== "all") {
         query = query.or(`order_branch_id.eq.${tenantId},process_branch_id.eq.${tenantId}`);
-      } else if (orgId) {
-        // 본사 계정이면 동일 조직 내의 모든 지점들 간의 이관 내역 필터링
-        // RLS 헬퍼 및 조회를 보조하기 위해, 현재 본사 조직에 엮인 지점 ID 목록을 구함
-        const { data: siblingTenants } = await supabase
-          .from("tenants")
-          .select("id")
-          .eq("organization_id", orgId);
-        
-        const branchIds = siblingTenants?.map(t => t.id) || [];
-        if (branchIds.length > 0) {
-          query = query.or(`order_branch_id.in.(${branchIds.join(",")}),process_branch_id.in.(${branchIds.join(",")})`);
-        }
+      } else {
+        setTransfers([]);
+        setLoading(false);
+        return;
       }
 
       const { data, error } = await query;

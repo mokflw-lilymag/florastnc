@@ -299,8 +299,12 @@ export function Sidebar({
     hint: t.sidebar.hints.hq,
     links: [
       { name: t.sidebar.links.hqOverview, href: "/dashboard/hq", icon: Building2 },
-      { name: pickUiText(baseLocale, "다매장 수발주 정산", "HQ Order Transfers", "Báo cáo điều chuyển"), href: "/dashboard/orders/transfers", icon: RefreshCw },
-      { name: t.sidebar.links.sharedProducts, href: "/dashboard/hq/shared-products", icon: Package },
+      { name: pickUiText(baseLocale, "다매장 수발주 정산", "HQ Order Transfers", "Báo cáo điều chuyển"), href: "/dashboard/hq/transfers", icon: RefreshCw },
+      { 
+        name: pickUiText(baseLocale, "공동상품/자재/카테고리관리", "Shared Products/Materials/Categories", "Quản lý sản phẩm/vật liệu/danh mục chung"), 
+        href: "/dashboard/hq/shared-products", 
+        icon: Package 
+      },
       { name: t.sidebar.links.branchExpenses, href: "/dashboard/hq/branch-expenses", icon: Receipt },
       { name: t.sidebar.links.hqMaterials, href: "/dashboard/hq/material-requests", icon: ClipboardList },
       { name: t.sidebar.links.hqBoard, href: "/dashboard/org-board", icon: Megaphone },

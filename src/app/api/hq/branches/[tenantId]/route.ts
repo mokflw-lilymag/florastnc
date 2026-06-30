@@ -133,6 +133,65 @@ export async function GET(req: Request, context: { params: Promise<{ tenantId: s
     ordererName: ordererName(o.orderer),
   }));
 
+  const dateParam = sp.get("date");
+  let settlementData = null;
+
+  if (dateParam && admin) {
+    try {
+      const dateFromFetch = new Date(dateParam);
+      dateFromFetch.setDate(dateFromFetch.getDate() - 30);
+      dateFromFetch.setHours(0, 0, 0, 0);
+
+      const dateToFetch = new Date(dateParam);
+      dateToFetch.setHours(23, 59, 59, 999);
+
+      const { data: sOrds } = await admin
+        .from("orders")
+        .select("id, tenant_id, order_number, status, order_date, created_at, payment, summary, items, orderer, transfer_info, outsource_info")
+        .eq("tenant_id", tenantId)
+        .gte("order_date", dateFromFetch.toISOString())
+        .lte("order_date", dateToFetch.toISOString());
+
+      const expFrom = new Date(dateParam);
+      expFrom.setHours(0, 0, 0, 0);
+
+      const expTo = new Date(dateParam);
+      expTo.setHours(23, 59, 59, 999);
+
+      const { data: sExps } = await admin
+        .from("expenses")
+        .select("*")
+        .eq("tenant_id", tenantId)
+        .gte("expense_date", expFrom.toISOString())
+        .lte("expense_date", expTo.toISOString());
+
+      const { data: sRec } = await admin
+        .from("daily_settlements")
+        .select("*")
+        .eq("tenant_id", tenantId)
+        .eq("date", dateParam)
+        .maybeSingle();
+
+      const { data: sPrev } = await admin
+        .from("daily_settlements")
+        .select("*")
+        .eq("tenant_id", tenantId)
+        .lt("date", dateParam)
+        .order("date", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      settlementData = {
+        orders: sOrds || [],
+        expenses: sExps || [],
+        settlementRecord: sRec || null,
+        prevSettlementRecord: sPrev || null
+      };
+    } catch (e) {
+      console.error("[hq/branches/tenantId] settlementData query error:", e);
+    }
+  }
+
   return NextResponse.json({
     tenant: {
       id: tenant.id,
@@ -148,6 +207,7 @@ export async function GET(req: Request, context: { params: Promise<{ tenantId: s
       avgOrderValue,
     },
     recentOrders,
+    settlementData,
     warning: null as string | null,
   });
 }
