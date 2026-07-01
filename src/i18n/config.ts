@@ -130,8 +130,26 @@ export function readDocumentBaseLocale(): AppLocale {
   return toBaseLocale(resolveLocale(cookieValue));
 }
 
+/** `app/[locale]/` 밖에 있는 앱 라우트 — URL에 `/ko` 접두사를 붙이지 않음 */
+const APP_ROUTES_WITHOUT_LOCALE_PREFIX = [
+  "/dashboard",
+  "/onboarding",
+  "/auth",
+  "/kiosk",
+  "/try",
+  "/reminder-popup",
+] as const;
+
+function isAppRouteWithoutLocalePrefix(path: string): boolean {
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  return APP_ROUTES_WITHOUT_LOCALE_PREFIX.some(
+    (base) => normalized === base || normalized.startsWith(`${base}/`),
+  );
+}
+
 export function localizePath(locale: AppLocale, path: string) {
-  if (!path.startsWith("/")) return `/${locale}/${path}`;
-  if (path === "/") return `/${locale}`;
-  return `/${locale}${path}`;
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  if (isAppRouteWithoutLocalePrefix(normalized)) return normalized;
+  if (normalized === "/") return `/${locale}`;
+  return `/${locale}${normalized}`;
 }

@@ -5,8 +5,9 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, Smartphone, Terminal, Globe } from 'lucide-react';
-import { AppLocale, LOCALE_COOKIE, localizePath, resolveLocale, SUPPORTED_LOCALES } from '@/i18n/config';
+import { AppLocale, LOCALE_COOKIE, localizePath, resolveLocale, SUPPORTED_LOCALES, toBaseLocale } from '@/i18n/config';
 import { getMessages } from '@/i18n/getMessages';
+import { pickUiText } from '@/i18n/pick-ui-text';
 import { LANDING_LOCALE_SELECT_OPTIONS, resolveLandingSelectLocale } from '@/i18n/ui-locale-options';
 
 export function Navbar({ locale }: { locale?: AppLocale }) {
@@ -53,9 +54,11 @@ export function Navbar({ locale }: { locale?: AppLocale }) {
   };
 
   const nav = getMessages(uiLocale).landing.navbar;
+  const baseLocale = toBaseLocale(uiLocale);
   const navLinks = [
     { name: '주요 기능', href: localizePath(uiLocale, '/#features-summary') },
     { name: '리본 솔루션', href: localizePath(uiLocale, '/#feature-ribbon') },
+    { name: pickUiText(baseLocale, '다매장·수발주', 'Multi-store & partners', 'Đa cửa hàng & đối tác', '多店舗・会員発注'), href: localizePath(uiLocale, '/#feature-scale') },
     { name: '플랫폼 안내', href: localizePath(uiLocale, '/#details') },
     { name: '후기', href: localizePath(uiLocale, '/#testimonials') },
     { name: '사용 설명서', href: '/docs/manual' },

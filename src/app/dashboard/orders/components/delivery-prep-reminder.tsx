@@ -18,7 +18,7 @@ import { DeliveryPrepReminderDialog } from "./delivery-prep-reminder-dialog";
  * - 메인 창: last_checked + count(head)만 — 주문 전체 로드 없음
  */
 export function DeliveryPrepReminder() {
-  const { user, tenantId, isSuperAdmin } = useAuth();
+  const { user, tenantId, isSuperAdmin, isLoading: authLoading } = useAuth();
   const { settings } = useSettings();
   const [lastCheckedDate, setLastCheckedDate] = useState<string | null>(null);
   const [lastCheckedReady, setLastCheckedReady] = useState(false);
@@ -55,7 +55,7 @@ export function DeliveryPrepReminder() {
   }, [reminderKey, storeName, tenantId, user?.email]);
 
   const tryShowReminder = useCallback(async () => {
-    if (!tenantId || isSuperAdmin || popupOpenRef.current || webDialogOpen) return;
+    if (!tenantId || isSuperAdmin || authLoading || popupOpenRef.current || webDialogOpen) return;
 
     const todayStr = format(new Date(), "yyyy-MM-dd");
     if (lastCheckedDate === todayStr) return;
@@ -69,7 +69,25 @@ export function DeliveryPrepReminder() {
     } catch (err) {
       console.warn("[DeliveryPrepReminder] check failed", err);
     }
-  }, [tenantId, isSuperAdmin, lastCheckedDate, isSnoozed, openReminder, webDialogOpen]);
+  }, [tenantId, isSuperAdmin, authLoading, lastCheckedDate, isSnoozed, openReminder, webDialogOpen]);
+
+  useEffect(() => {
+    if (!isElectronClient() || !tenantId || isSuperAdmin) return;
+
+    const api = (window as Window & {
+      electronAPI?: {
+        onLocalSyncStatus?: (cb: (s: { lastSyncAt?: string; lastError?: string }) => void) => () => void;
+      };
+    }).electronAPI;
+
+    const unsub = api?.onLocalSyncStatus?.((status) => {
+      if (status.lastSyncAt && !status.lastError) {
+        void tryShowReminder();
+      }
+    });
+
+    return () => unsub?.();
+  }, [tenantId, isSuperAdmin, tryShowReminder]);
 
   useEffect(() => {
     if (!isElectronClient()) return;
@@ -124,7 +142,7 @@ export function DeliveryPrepReminder() {
   }, [tenantId, isSuperAdmin]);
 
   useEffect(() => {
-    if (!tenantId || isSuperAdmin || !lastCheckedReady) return;
+    if (!tenantId || isSuperAdmin || !lastCheckedReady || authLoading) return;
 
     let idleId: number | undefined;
     let timeoutId: number | undefined;
@@ -148,7 +166,7 @@ export function DeliveryPrepReminder() {
       if (timeoutId != null) window.clearTimeout(timeoutId);
       window.clearInterval(intervalId);
     };
-  }, [tenantId, isSuperAdmin, lastCheckedReady, tryShowReminder]);
+  }, [tenantId, isSuperAdmin, lastCheckedReady, authLoading, tryShowReminder]);
 
   if (!tenantId || isSuperAdmin) return null;
 

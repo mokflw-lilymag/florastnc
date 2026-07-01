@@ -20,7 +20,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-def print_image_via_gdi(printer_name: str, image_paths: list, width_mm: float, segment_length_mm: float, margin_mm: float, offset_x_mm: float = 0.0) -> bool:
+def print_image_via_gdi(printer_name: str, image_paths: list, width_mm: float, segment_length_mm: float, margin_mm: float, offset_x_mm: float = 0.0, cutting_margin_mm: float = 0.0) -> bool:
     """이미지 객체를 프린터로 직접 출력 (GDI 방식 - 전문가용 패치)"""
     hdc_handle = None
     try:
@@ -53,8 +53,9 @@ def print_image_via_gdi(printer_name: str, image_paths: list, width_mm: float, s
                     
         image = stitched_image
         
-        # Calculate total paper length
-        total_length_mm = segment_length_mm * len(images)
+        # Calculate total paper length (content + scissors margin at tail)
+        content_length_mm = segment_length_mm * len(images)
+        total_length_mm = content_length_mm + max(0.0, cutting_margin_mm)
         
         # 1. 프린터 핸들 및 기본 설정 획득
         phandle = win32print.OpenPrinter(printer_name)
@@ -103,6 +104,7 @@ def print_image_via_gdi(printer_name: str, image_paths: list, width_mm: float, s
         
         phys_margin = int(true_margin_mm * printer_dpi_x / 25.4)
         phys_width = int(width_mm * printer_dpi_x / 25.4)
+        phys_content_length = int(content_length_mm * printer_dpi_y / 25.4)
         phys_length = int(total_length_mm * printer_dpi_y / 25.4)
         
         # Get offsets to adjust for unprintable areas
@@ -110,7 +112,7 @@ def print_image_via_gdi(printer_name: str, image_paths: list, width_mm: float, s
         offset_y = hdc.GetDeviceCaps(113) # PHYSICALOFFSETY
         
         logger.info(f"프린터: {printer_name}")
-        logger.info(f"규격: {width_mm}mm x {total_length_mm}mm (Margin: {margin_mm}mm, True Margin: {true_margin_mm}mm)")
+        logger.info(f"규격: {width_mm}mm x {total_length_mm}mm (콘텐츠 {content_length_mm}mm + 여백 {cutting_margin_mm}mm, Margin: {margin_mm}mm, True Margin: {true_margin_mm}mm)")
         logger.info(f"이미지 분할 수: {len(images)}")
         
         # 5. 인쇄 작업 시작
@@ -128,7 +130,7 @@ def print_image_via_gdi(printer_name: str, image_paths: list, width_mm: float, s
         draw_left = phys_margin + user_offset_x_px - offset_x
         draw_top = -offset_y
         draw_right = phys_margin + user_offset_x_px + phys_width - offset_x
-        draw_bottom = phys_length - offset_y
+        draw_bottom = phys_content_length - offset_y
         
         dib.draw(hdc.GetHandleOutput(), (draw_left, draw_top, draw_right, draw_bottom))
         
@@ -157,11 +159,20 @@ def main():
     parser.add_argument("--length", type=float, required=True, help="Length in mm")
     parser.add_argument("--margin", type=float, default=0.0, help="Margin offset in mm")
     parser.add_argument("--offset-x", type=float, default=0, help="가로 이동 오프셋 (mm)")
+    parser.add_argument("--cut-margin", type=float, default=0.0, help="Tail feed after print (mm) for scissors margin")
     parser.add_argument("--image", nargs='+', required=True, help="인쇄할 이미지 파일 경로 목록 (위에서 아래로 연결됨)")
     
     args = parser.parse_args()
     
-    success = print_image_via_gdi(args.printer, args.image, args.width, args.length, args.margin, args.offset_x)
+    success = print_image_via_gdi(
+        args.printer,
+        args.image,
+        args.width,
+        args.length,
+        args.margin,
+        args.offset_x,
+        args.cut_margin,
+    )
     if not success:
         sys.exit(1)
 

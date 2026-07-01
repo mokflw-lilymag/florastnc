@@ -6,8 +6,26 @@ const syncConfig = require('../sync-config');
 const { getSyncScope, shouldSkipPull, applyTenantFilter } = require('../syncScope');
 const { updateSyncState } = require('../syncState');
 const { checkAndRunPhotoBackup } = require('./photoBackup');
+const {
+  TENANT_UPDATED_AT_TABLES,
+  TENANT_CREATED_AT_TABLES,
+  createEmptyMemCursor,
+} = require('./localSyncConfig');
 
 const LOCAL_ONLY_COLUMNS = new Set(['sync_status', 'last_sync_time']);
+
+/** Node.js 20 — Supabase Realtime needs explicit ws transport */
+function createSyncSupabaseClient(url, key, options = {}) {
+  try {
+    const WebSocket = require('ws');
+    return createClient(url, key, {
+      ...options,
+      realtime: { transport: WebSocket, ...options.realtime },
+    });
+  } catch (_) {
+    return createClient(url, key, options);
+  }
+}
 
 class SyncWorker {
   constructor(db, supabaseUrl, supabaseAnonKey) {
@@ -24,7 +42,7 @@ class SyncWorker {
     this.isSyncing = false;
     this.syncCycleCount = 0;
     this.lastSyncWorkAt = Date.now();
-    this.memCursor = { orders: null, customers: null, simple_expenses: null, expenses: null };
+    this.memCursor = createEmptyMemCursor();
   }
 
   configure(session) {
@@ -34,7 +52,7 @@ class SyncWorker {
     }
     this.tenantId = session.tenant_id;
     this.accessToken = session.access_token;
-    this.supabase = createClient(this.supabaseUrl, this.supabaseAnonKey, {
+    this.supabase = createSyncSupabaseClient(this.supabaseUrl, this.supabaseAnonKey, {
       global: { headers: { Authorization: `Bearer ${session.access_token}` } },
     });
     console.log(`SyncWorker configured for tenant: ${this.tenantId}`);
@@ -75,7 +93,7 @@ class SyncWorker {
     this.supabase = null;
     this.tenantId = null;
     this.accessToken = null;
-    this.memCursor = { orders: null, customers: null, simple_expenses: null, expenses: null };
+    this.memCursor = createEmptyMemCursor();
     console.log('Sync worker stopped.');
   }
 
@@ -113,21 +131,24 @@ class SyncWorker {
   }
 
   resetSyncCursorsForScopeChange() {
-    this.memCursor = { orders: null, customers: null, simple_expenses: null, expenses: null };
+    this.memCursor = createEmptyMemCursor();
   }
 
   clearLocalData() {
     console.log('Clearing local SQLite data for security...');
     this.stop();
     try {
-      this.db.prepare('DELETE FROM orders').run();
-      this.db.prepare('DELETE FROM customers').run();
-      this.db.prepare('DELETE FROM simple_expenses').run();
-      this.db.prepare('DELETE FROM expenses').run();
-      this.db.prepare('DELETE FROM print_jobs').run();
-      this.db.prepare('DELETE FROM branches').run();
-      this.db.prepare('DELETE FROM sync_queue').run();
-      this.memCursor = { orders: null, customers: null, simple_expenses: null, expenses: null };
+      const tables = [
+        'orders', 'customers', 'simple_expenses', 'expenses', 'print_jobs', 'branches', 'sync_queue',
+        'products', 'materials', 'system_settings', 'suppliers', 'delivery_fees_by_region', 'tenants',
+        'purchases', 'daily_settlements', 'point_transactions', 'partners', 'external_orders', 'order_transfers',
+      ];
+      for (const table of tables) {
+        try {
+          this.db.prepare(`DELETE FROM ${table}`).run();
+        } catch (_) {}
+      }
+      this.memCursor = createEmptyMemCursor();
       console.log('Local data wiped successfully.');
     } catch (e) {
       console.error('Failed to wipe local data:', e);
@@ -146,27 +167,33 @@ class SyncWorker {
 
       let pulled = 0;
       if (!shouldSkipPull()) {
-        pulled += await this.syncTable('orders');
-        pulled += await this.syncTable('customers');
-        pulled += await this.syncTable('simple_expenses');
-        pulled += await this.syncExpensesTable();
+        for (const tableName of TENANT_UPDATED_AT_TABLES) {
+          pulled += await this.syncTable(tableName);
+        }
+        for (const tableName of TENANT_CREATED_AT_TABLES) {
+          pulled += await this.syncTableByCreatedAt(tableName);
+        }
         await this.pullBranches();
+        await this.pullTenants();
+        pulled += await this.pullDualTenantTable('external_orders', 'sender_tenant_id', 'receiver_tenant_id');
+        pulled += await this.pullDualTenantTable('order_transfers', 'order_branch_id', 'process_branch_id');
       } else {
         console.log('[SyncWorker] Pull skipped (idle scope)');
       }
 
       let deletedRemoved = 0;
-      if (this.syncCycleCount % syncConfig.DELETED_SYNC_ORDERS_EVERY_N === 0) {
-        deletedRemoved += await this.syncDeletedRecords('orders');
+      const deletedTables = [
+        ...TENANT_UPDATED_AT_TABLES,
+        ...TENANT_CREATED_AT_TABLES,
+      ];
+      for (const tableName of deletedTables) {
+        if (tableName === 'customers') continue;
+        if (this.syncCycleCount % syncConfig.DELETED_SYNC_ORDERS_EVERY_N === 0) {
+          deletedRemoved += await this.syncDeletedRecords(tableName);
+        }
       }
       if (this.syncCycleCount % syncConfig.DELETED_SYNC_CUSTOMERS_EVERY_N === 0) {
         deletedRemoved += await this.syncDeletedRecords('customers');
-      }
-      if (this.syncCycleCount % syncConfig.DELETED_SYNC_ORDERS_EVERY_N === 0) {
-        deletedRemoved += await this.syncDeletedRecords('simple_expenses');
-      }
-      if (this.syncCycleCount % syncConfig.DELETED_SYNC_ORDERS_EVERY_N === 0) {
-        deletedRemoved += await this.syncDeletedRecords('expenses');
       }
 
       const hadWork = pushedQueue > 0 || pulled > 0 || deletedRemoved > 0;
@@ -266,6 +293,41 @@ class SyncWorker {
     return pendingActions.length;
   }
 
+  upsertCloudRows(tableName, items) {
+    if (!items?.length) return 0;
+    const tableInfo = this.db.prepare(`PRAGMA table_info(${tableName})`).all();
+    const validColumns = new Set(tableInfo.map((c) => c.name));
+    const now = new Date().toISOString();
+
+    const insertMany = this.db.transaction((rows) => {
+      for (const item of rows) {
+        const filtered = {};
+        for (const key of Object.keys(item)) {
+          if (!validColumns.has(key)) continue;
+          let val = item[key];
+          if (val === undefined) val = null;
+          else if (typeof val === 'boolean') val = val ? 1 : 0;
+          else if (typeof val === 'object' && val !== null) val = JSON.stringify(val);
+          filtered[key] = val;
+        }
+        filtered.sync_status = 'synced';
+        filtered.last_sync_time = now;
+        const cols = Object.keys(filtered);
+        const placeholders = cols.map(() => '?').join(', ');
+        const updateSet = cols.map((c) => `${c} = excluded.${c}`).join(', ');
+        const values = cols.map((c) => filtered[c]);
+        this.db
+          .prepare(
+            `INSERT INTO ${tableName} (${cols.join(', ')}) VALUES (${placeholders})
+             ON CONFLICT(id) DO UPDATE SET ${updateSet}`,
+          )
+          .run(...values);
+      }
+    });
+    insertMany(items);
+    return items.length;
+  }
+
   async syncTable(tableName) {
     let totalRows = 0;
     let lastUpdated = this.memCursor[tableName];
@@ -301,36 +363,7 @@ class SyncWorker {
       if (data?.length) {
         totalRows += data.length;
         lastUpdated = data[data.length - 1].updated_at;
-        const tableInfo = this.db.prepare(`PRAGMA table_info(${tableName})`).all();
-        const validColumns = new Set(tableInfo.map((c) => c.name));
-        const now = new Date().toISOString();
-
-        const insertMany = this.db.transaction((items) => {
-          for (const item of items) {
-            const filtered = {};
-            for (const key of Object.keys(item)) {
-              if (!validColumns.has(key)) continue;
-              let val = item[key];
-              if (val === undefined) val = null;
-              else if (typeof val === 'boolean') val = val ? 1 : 0;
-              else if (typeof val === 'object' && val !== null) val = JSON.stringify(val);
-              filtered[key] = val;
-            }
-            filtered.sync_status = 'synced';
-            filtered.last_sync_time = now;
-            const cols = Object.keys(filtered);
-            const placeholders = cols.map(() => '?').join(', ');
-            const updateSet = cols.map((c) => `${c} = excluded.${c}`).join(', ');
-            const values = cols.map((c) => filtered[c]);
-            this.db
-              .prepare(
-                `INSERT INTO ${tableName} (${cols.join(', ')}) VALUES (${placeholders})
-                 ON CONFLICT(id) DO UPDATE SET ${updateSet}`,
-              )
-              .run(...values);
-          }
-        });
-        insertMany(data);
+        this.upsertCloudRows(tableName, data);
         isDone = data.length < 1000;
       } else {
         isDone = true;
@@ -341,15 +374,14 @@ class SyncWorker {
     return totalRows;
   }
 
-  /** expenses 테이블 — created_at 기준 pull-only (updated_at 없음) */
-  async syncExpensesTable() {
-    const tableName = 'expenses';
+  /** created_at 기준 증분 pull (expenses, point_transactions) */
+  async syncTableByCreatedAt(tableName) {
     if (!this.db.prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name=?`).get(tableName)) {
       return 0;
     }
 
     let totalRows = 0;
-    let lastCreated = this.memCursor.expenses;
+    let lastCreated = this.memCursor[tableName];
     if (!lastCreated) {
       const row = this.db
         .prepare(`SELECT MAX(created_at) as last_created FROM ${tableName} WHERE sync_status = 'synced' AND tenant_id = ?`)
@@ -382,51 +414,121 @@ class SyncWorker {
       if (data?.length) {
         totalRows += data.length;
         lastCreated = data[data.length - 1].created_at;
-        const tableInfo = this.db.prepare(`PRAGMA table_info(${tableName})`).all();
-        const validColumns = new Set(tableInfo.map((c) => c.name));
-        const now = new Date().toISOString();
-
-        const insertMany = this.db.transaction((items) => {
-          for (const item of items) {
-            const filtered = {};
-            for (const key of Object.keys(item)) {
-              if (!validColumns.has(key)) continue;
-              let val = item[key];
-              if (val === undefined) val = null;
-              else if (typeof val === 'boolean') val = val ? 1 : 0;
-              else if (typeof val === 'object' && val !== null) val = JSON.stringify(val);
-              filtered[key] = val;
-            }
-            filtered.sync_status = 'synced';
-            filtered.last_sync_time = now;
-            const cols = Object.keys(filtered);
-            const placeholders = cols.map(() => '?').join(', ');
-            const updateSet = cols.map((c) => `${c} = excluded.${c}`).join(', ');
-            const values = cols.map((c) => filtered[c]);
-            this.db
-              .prepare(
-                `INSERT INTO ${tableName} (${cols.join(', ')}) VALUES (${placeholders})
-                 ON CONFLICT(id) DO UPDATE SET ${updateSet}`,
-              )
-              .run(...values);
-          }
-        });
-        insertMany(data);
+        this.upsertCloudRows(tableName, data);
         isDone = data.length < 1000;
       } else {
         isDone = true;
       }
     }
 
-    this.memCursor.expenses = lastCreated;
+    this.memCursor[tableName] = lastCreated;
+    return totalRows;
+  }
+
+  async pullTenants() {
+    const tenantIds = new Set([this.tenantId]);
+    try {
+      const { data: partners } = await this.supabase
+        .from('partners')
+        .select('target_tenant_id')
+        .eq('tenant_id', this.tenantId);
+      for (const p of partners || []) {
+        if (p.target_tenant_id) tenantIds.add(p.target_tenant_id);
+      }
+    } catch (e) {
+      console.warn('[SyncWorker] pullTenants partners lookup failed:', e.message);
+    }
+
+    const { data, error } = await this.supabase.from('tenants').select('*').in('id', [...tenantIds]);
+    if (error) {
+      console.warn('[SyncWorker] pullTenants failed:', error.message);
+      return;
+    }
+    this.upsertCloudRows('tenants', data || []);
+  }
+
+  async pullDualTenantTable(tableName, leftCol, rightCol) {
+    if (!this.db.prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name=?`).get(tableName)) {
+      return 0;
+    }
+
+    let totalRows = 0;
+    let lastUpdated = this.memCursor[tableName];
+    if (!lastUpdated) {
+      const row = this.db
+        .prepare(
+          `SELECT MAX(updated_at) as last_updated FROM ${tableName}
+           WHERE sync_status = 'synced'
+             AND (${leftCol} = ? OR ${rightCol} = ?)`,
+        )
+        .get(this.tenantId, this.tenantId);
+      lastUpdated = row?.last_updated || '1970-01-01T00:00:00Z';
+      if (lastUpdated !== '1970-01-01T00:00:00Z') {
+        let dt = new Date(lastUpdated);
+        if (dt > new Date()) dt = new Date();
+        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        if (dt > sevenDaysAgo) dt = sevenDaysAgo;
+        else dt.setHours(dt.getHours() - 1);
+        lastUpdated = dt.toISOString();
+      }
+    }
+
+    const tenantId = this.tenantId;
+    let isDone = false;
+    while (!isDone) {
+      const { data, error } = await this.supabase
+        .from(tableName)
+        .select('*')
+        .or(`${leftCol}.eq.${tenantId},${rightCol}.eq.${tenantId}`)
+        .gt('updated_at', lastUpdated)
+        .order('updated_at', { ascending: true })
+        .order('id', { ascending: true })
+        .limit(1000);
+
+      if (error) throw new Error(`Supabase fetch error for ${tableName}: ${error.message}`);
+
+      if (data?.length) {
+        totalRows += data.length;
+        lastUpdated = data[data.length - 1].updated_at;
+        this.upsertCloudRows(tableName, data);
+        isDone = data.length < 1000;
+      } else {
+        isDone = true;
+      }
+    }
+
+    this.memCursor[tableName] = lastUpdated;
     return totalRows;
   }
 
   async syncDeletedRecords(tableName) {
-    const localIds = this.db
-      .prepare(`SELECT id FROM ${tableName} WHERE sync_status = 'synced' AND tenant_id = ?`)
-      .all(this.tenantId)
-      .map((r) => r.id);
+    if (tableName === 'tenants') return 0;
+
+    let localIds = [];
+    if (tableName === 'external_orders') {
+      localIds = this.db
+        .prepare(
+          `SELECT id FROM ${tableName}
+           WHERE sync_status = 'synced'
+             AND (sender_tenant_id = ? OR receiver_tenant_id = ?)`,
+        )
+        .all(this.tenantId, this.tenantId)
+        .map((r) => r.id);
+    } else if (tableName === 'order_transfers') {
+      localIds = this.db
+        .prepare(
+          `SELECT id FROM ${tableName}
+           WHERE sync_status = 'synced'
+             AND (order_branch_id = ? OR process_branch_id = ?)`,
+        )
+        .all(this.tenantId, this.tenantId)
+        .map((r) => r.id);
+    } else {
+      localIds = this.db
+        .prepare(`SELECT id FROM ${tableName} WHERE sync_status = 'synced' AND tenant_id = ?`)
+        .all(this.tenantId)
+        .map((r) => r.id);
+    }
     if (!localIds.length) return 0;
 
     const cloudIds = new Set();
@@ -619,18 +721,42 @@ class SyncWorker {
 
   getBackupData() {
     if (!this.tenantId) return null;
-    let expenses = [];
-    try {
-      expenses = this.db.prepare('SELECT * FROM expenses WHERE tenant_id = ?').all(this.tenantId);
-    } catch (_) {}
+    const tenantId = this.tenantId;
+    const byTenant = (table) => {
+      try {
+        return this.db.prepare(`SELECT * FROM ${table} WHERE tenant_id = ?`).all(tenantId);
+      } catch (_) {
+        return [];
+      }
+    };
     return {
       backupDate: new Date().toISOString(),
-      tenantId: this.tenantId,
-      customers: this.db.prepare('SELECT * FROM customers WHERE tenant_id = ?').all(this.tenantId),
-      orders: this.db.prepare('SELECT * FROM orders WHERE tenant_id = ?').all(this.tenantId),
-      simple_expenses: this.db.prepare('SELECT * FROM simple_expenses WHERE tenant_id = ?').all(this.tenantId),
-      expenses,
-      branches: this.db.prepare('SELECT * FROM branches WHERE tenant_id = ?').all(this.tenantId),
+      tenantId,
+      customers: byTenant('customers'),
+      orders: byTenant('orders'),
+      simple_expenses: byTenant('simple_expenses'),
+      expenses: byTenant('expenses'),
+      branches: byTenant('branches'),
+      products: byTenant('products'),
+      materials: byTenant('materials'),
+      system_settings: byTenant('system_settings'),
+      suppliers: byTenant('suppliers'),
+      delivery_fees_by_region: byTenant('delivery_fees_by_region'),
+      purchases: byTenant('purchases'),
+      daily_settlements: byTenant('daily_settlements'),
+      point_transactions: byTenant('point_transactions'),
+      partners: byTenant('partners'),
+      tenants: this.db.prepare('SELECT * FROM tenants WHERE id = ?').all(tenantId),
+      external_orders: this.db
+        .prepare(
+          `SELECT * FROM external_orders WHERE sender_tenant_id = ? OR receiver_tenant_id = ?`,
+        )
+        .all(tenantId, tenantId),
+      order_transfers: this.db
+        .prepare(
+          `SELECT * FROM order_transfers WHERE order_branch_id = ? OR process_branch_id = ?`,
+        )
+        .all(tenantId, tenantId),
     };
   }
 

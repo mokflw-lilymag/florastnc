@@ -213,7 +213,44 @@ console.error = function(...args) {
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
 let CURRENT_BRANCH_ID = process.env.CURRENT_BRANCH_ID || process.env.BRANCH_ID || '';
-const BRIDGE_VERSION = 'v2.6';
+const BRIDGE_VERSION = 'v2.7';
+
+const BRIDGE_TEMPLATE_FILES = [
+  'receipt-template.html',
+  'receipt-pickup.html',
+  'receipt-daily-settlement.html',
+  'receipt-delivery-shop.html',
+  'receipt-delivery-driver.html',
+  'receipt-market-list.html',
+  'receipt-labels.json',
+];
+
+/** 설치 후에도 버전 올리면 %AppData%\\FloxyncBridge 템플릿 자동 갱신 */
+function syncBundledTemplates() {
+  const versionFile = path.join(targetFolder, 'templates.version');
+  let prev = '';
+  try {
+    prev = fs.readFileSync(versionFile, 'utf8').trim();
+  } catch (_) {}
+  if (prev === BRIDGE_VERSION) return;
+
+  let updated = 0;
+  for (const tpl of BRIDGE_TEMPLATE_FILES) {
+    const bundled = path.join(__dirname, tpl);
+    const dest = path.join(targetFolder, tpl);
+    if (!fs.existsSync(bundled)) continue;
+    try {
+      fs.copyFileSync(bundled, dest);
+      updated += 1;
+    } catch (e) {
+      console.error(`[시스템] 템플릿 복사 실패 (${tpl}):`, e.message);
+    }
+  }
+  if (updated > 0) {
+    fs.writeFileSync(versionFile, BRIDGE_VERSION, 'utf8');
+    console.log(`[시스템] 영수증 템플릿 ${BRIDGE_VERSION} 동기화 (${updated}개)`);
+  }
+}
 
 function ensureBridgeAsset(filename) {
   const dest = path.join(targetFolder, filename);
@@ -238,6 +275,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 console.log(`[시스템] Supabase 연결: ${SUPABASE_URL}`);
 
 ensureBridgeAsset('receipt-labels.json');
+syncBundledTemplates();
 
 // 1. 윈도우 설치된 프린터 목록을 ERP(Supabase)에 동기화
 async function syncPrinters() {

@@ -56,6 +56,8 @@ import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
 import { pickUiText } from "@/i18n/pick-ui-text";
 import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
+import { resolveShopDisplayName } from "@/lib/shop-display-name";
+import { useDashboardStoreName } from "@/components/providers/dashboard-tenant-context";
 import {
   ExpiringTenantsPanel,
   SubscriptionOverviewCards,
@@ -69,6 +71,17 @@ const SalesChart = dynamic(() => import('./components/sales-chart'), {
 });
 
 type TenantSalesChartPeriod = "daily" | "weekly" | "monthly" | "yearly";
+
+function formatRecentOrderDateTime(
+  order: { order_date?: string | null; created_at?: string | null },
+  dfLoc: ReturnType<typeof dateFnsLocaleForBase>,
+): string {
+  const raw = order.order_date || order.created_at;
+  if (!raw) return "—";
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return "—";
+  return format(d, "yyyy-MM-dd HH:mm", { locale: dfLoc });
+}
 
 function buildTenantSalesChartData(
   chartPeriod: TenantSalesChartPeriod,
@@ -396,6 +409,18 @@ export default function DashboardPage() {
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
   const baseLocale = toBaseLocale(locale);
+  const layoutStoreName = useDashboardStoreName();
+  const shopGreetingName = useMemo(
+    () =>
+      layoutStoreName ||
+      resolveShopDisplayName({
+        tenantName: profile?.tenants?.name,
+        siteName: settings?.siteName,
+        fullName: profile?.full_name,
+        fallback: tf.f01322,
+      }),
+    [layoutStoreName, profile?.tenants?.name, profile?.full_name, settings?.siteName, tf.f01322],
+  );
   const dfLoc = dateFnsLocaleForBase(baseLocale);
   const chartOpts = useMemo(
     () => ({ isLoading, isSuperAdmin, settings }),
@@ -570,7 +595,15 @@ export default function DashboardPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
            <h1 className={cn("font-medium text-gray-900 tracking-tight", touchUi ? "text-2xl" : "text-3xl")}>
-             {tf.f01523} <span className="text-primary">{profile?.tenants?.name || profile?.full_name || tf.f01322}</span>{tf.f01057}
+             {tf.f01523}{" "}
+             <span className="text-primary">
+               {authLoading && !layoutStoreName && !profile?.tenants?.name && !settings?.siteName ? (
+                 <Skeleton className="inline-block h-8 w-28 align-middle" />
+               ) : (
+                 shopGreetingName
+               )}
+             </span>
+             {tf.f01057}
            </h1>
            <p className="text-slate-600 font-medium text-sm">
              {tf.f00458}{" "}
@@ -713,7 +746,12 @@ export default function DashboardPage() {
                     className="flex flex-col gap-2 px-4 py-4 active:bg-slate-50 transition-colors"
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <span className="font-mono text-[11px] font-semibold text-primary uppercase">{order.order_number}</span>
+                      <div className="flex min-w-0 flex-col gap-0.5">
+                        <span className="font-mono text-[11px] font-semibold text-primary uppercase">{order.order_number}</span>
+                        <span className="text-[10px] text-slate-400 font-medium tabular-nums">
+                          {formatRecentOrderDateTime(order, dfLoc)}
+                        </span>
+                      </div>
                       <Badge
                         variant="outline"
                         className={cn(
@@ -741,7 +779,7 @@ export default function DashboardPage() {
                 <table className="w-full text-left text-sm">
                    <thead className="bg-gray-50/50 text-slate-400 font-medium uppercase text-[11px] tracking-widest">
                       <tr>
-                         <th className="px-6 py-4">{tf.f00624}</th>
+                         <th className="px-6 py-4">{tf.f00128}</th>
                          <th className="px-6 py-4">{tf.f00640}</th>
                          <th className="px-6 py-4">{tf.f01350}</th>
                          <th className="px-6 py-4 text-right">{tf.f00097}</th>
@@ -751,7 +789,14 @@ export default function DashboardPage() {
                    <tbody className="divide-y divide-gray-50">
                       {stats?.recentOrders.map((order) => (
                         <tr key={order.id} className="hover:bg-gray-50/50 transition-colors">
-                           <td className="px-6 py-4 font-mono text-[11px] font-light text-primary uppercase">{order.order_number}</td>
+                           <td className="px-6 py-4">
+                              <div className="flex flex-col gap-0.5">
+                                <span className="font-mono text-[11px] font-light text-primary uppercase">{order.order_number}</span>
+                                <span className="text-[10px] text-slate-400 font-medium tabular-nums">
+                                  {formatRecentOrderDateTime(order, dfLoc)}
+                                </span>
+                              </div>
+                           </td>
                            <td className="px-6 py-4 font-light text-slate-800 text-xs">{order.orderer.name}</td>
                            <td className="px-6 py-4 text-gray-600 truncate max-w-[150px] text-xs font-medium">
                               {order.items[0]?.name} {order.items.length > 1 ? `${tf.f00475} ${order.items.length - 1}${tf.f00033}` : ''}

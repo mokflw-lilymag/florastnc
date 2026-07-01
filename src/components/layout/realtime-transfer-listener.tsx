@@ -1,16 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { createClient } from "@/utils/supabase/client";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { createClient, cloudFrom } from "@/utils/supabase/client";
+import { ADAPTIVE_POLL_MS, isRealtimeSubscribed } from "@/lib/adaptive-polling";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
+import { isElectronClient } from "@/lib/electron-env";
+import { wakeUpElectronWindow } from "@/lib/electron-desktop-api";
 import { 
   Building2, 
-  Clock, 
   Printer, 
-  X, 
-  CheckCircle2, 
-  AlertTriangle 
 } from "lucide-react";
 import {
   Dialog,
@@ -47,51 +46,13 @@ export function RealtimeTransferListener() {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTransfer, setActiveTransfer] = useState<TransferNotifyData | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const seenTransferIdsRef = useRef<Set<string>>(new Set());
+  const popupOpenRef = useRef(false);
 
-  useEffect(() => {
-    if (!tenantId) return;
-
-    // 1. order_transfers 테이블 실시간 INSERT 이벤트 감시
-    // 내가 수주 지점(process_branch_id)인 건만 필터링
-    const channel = supabase
-      .channel("realtime-order-transfers-notify")
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "order_transfers",
-          filter: `process_branch_id=eq.${tenantId}`,
-        },
-        async (payload) => {
-          const newRecord = payload.new as TransferNotifyData;
-          if (newRecord && newRecord.status === "pending") {
-            // 이관 요청 발견 시 소리 알림 (알림 벨 소리 플레이)
-            playAlertSound();
-            
-            // 알림 팝업 창 띄우기
-            setActiveTransfer(newRecord);
-            setIsOpen(true);
-            
-            toast.info(`[지점 이관] ${newRecord.order_branch_name} 지점으로부터 이관 요청이 도착했습니다.`, {
-              duration: 8000
-            });
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [tenantId, supabase]);
-
-  // 알림 벨 소리 재생 헬퍼
-  function playAlertSound() {
+  const playAlertSound = useCallback(() => {
     try {
-      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const audioCtx = new (window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)();
       
-      // 도미솔 코드음 연주 (세련된 비프음)
       const playTone = (freq: number, startTime: number, duration: number) => {
         const osc = audioCtx.createOscillator();
         const gainNode = audioCtx.createGain();
@@ -109,13 +70,122 @@ export function RealtimeTransferListener() {
       };
       
       const now = audioCtx.currentTime;
-      playTone(523.25, now, 0.15); // C5 (도)
-      playTone(659.25, now + 0.1, 0.15); // E5 (미)
-      playTone(783.99, now + 0.2, 0.3); // G5 (솔)
+      playTone(523.25, now, 0.15);
+      playTone(659.25, now + 0.1, 0.15);
+      playTone(783.99, now + 0.2, 0.3);
     } catch (e) {
       console.warn("오디오 재생 실패 (브라우저 정책 제한 등):", e);
     }
-  }
+  }, []);
+
+  const notifyIncomingTransfer = useCallback((newRecord: TransferNotifyData) => {
+    if (!newRecord?.id || newRecord.status !== "pending") return;
+    if (seenTransferIdsRef.current.has(newRecord.id)) return;
+    seenTransferIdsRef.current.add(newRecord.id);
+    if (seenTransferIdsRef.current.size > 100) {
+      const first = seenTransferIdsRef.current.values().next().value;
+      if (first) seenTransferIdsRef.current.delete(first);
+    }
+    if (popupOpenRef.current) return;
+
+    popupOpenRef.current = true;
+    playAlertSound();
+    setActiveTransfer(newRecord);
+    setIsOpen(true);
+
+    if (isElectronClient()) {
+      void wakeUpElectronWindow();
+    }
+
+    toast.info(`[지점 이관] ${newRecord.order_branch_name} 지점으로부터 이관 요청이 도착했습니다.`, {
+      duration: 8000,
+    });
+
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("refreshTransfersList"));
+    }
+  }, [playAlertSound]);
+
+  useEffect(() => {
+    if (!tenantId) return;
+
+    let isPolling = false;
+    let pollTimer: ReturnType<typeof setTimeout> | null = null;
+    let realtimeOk = false;
+
+    const pollPendingTransfers = async () => {
+      if (!tenantId || popupOpenRef.current || isPolling) return;
+      isPolling = true;
+      try {
+        const { data, error } = await cloudFrom("order_transfers")
+          .select("*")
+          .eq("process_branch_id", tenantId)
+          .eq("status", "pending")
+          .order("created_at", { ascending: false })
+          .limit(3);
+        if (error) throw error;
+        for (const row of (data || []) as TransferNotifyData[]) {
+          notifyIncomingTransfer(row);
+          if (popupOpenRef.current) break;
+        }
+      } catch (err) {
+        console.warn("[RealtimeTransferListener] 백업 폴링 실패:", err);
+      } finally {
+        isPolling = false;
+      }
+    };
+
+    const schedulePoll = () => {
+      if (pollTimer) clearTimeout(pollTimer);
+      if (realtimeOk) {
+        console.log("[RealtimeTransferListener] Realtime 정상 — 백업 폴링 중단");
+        return;
+      }
+      pollTimer = setTimeout(async () => {
+        await pollPendingTransfers();
+        schedulePoll();
+      }, ADAPTIVE_POLL_MS.transfer.fallback);
+    };
+
+    // 로그인·재접속 시 오프라인 중 누락분 1회 보완 (지속 폴링 아님)
+    void pollPendingTransfers();
+
+    const channel = supabase
+      .channel(`realtime-order-transfers-notify-${tenantId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "order_transfers",
+          filter: `process_branch_id=eq.${tenantId}`,
+        },
+        (payload) => {
+          notifyIncomingTransfer(payload.new as TransferNotifyData);
+        }
+      )
+      .subscribe((status) => {
+        const wasOk = realtimeOk;
+        realtimeOk = isRealtimeSubscribed(status);
+        if (wasOk !== realtimeOk) schedulePoll();
+      });
+
+    schedulePoll();
+
+    const handleOnline = () => {
+      console.log("[RealtimeTransferListener] 네트워크 복구 — 미처리 이관 확인");
+      realtimeOk = false;
+      void pollPendingTransfers();
+      schedulePoll();
+    };
+    window.addEventListener("online", handleOnline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      if (pollTimer) clearTimeout(pollTimer);
+      void supabase.removeChannel(channel);
+    };
+  }, [tenantId, supabase, notifyIncomingTransfer]);
 
   // 수락 및 자동 프린트 실행
   const handleAccept = async () => {
@@ -178,6 +248,7 @@ export function RealtimeTransferListener() {
       }
 
       setIsOpen(false);
+      popupOpenRef.current = false;
       // 이관 내역 페이지가 활성화되어 있으면 화면 새로고침 지원
       if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("refreshTransfersList"));
@@ -222,6 +293,7 @@ export function RealtimeTransferListener() {
 
       toast.success("이관 요청을 반려 처리했습니다.");
       setIsOpen(false);
+      popupOpenRef.current = false;
       if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("refreshTransfersList"));
       }
@@ -236,7 +308,13 @@ export function RealtimeTransferListener() {
   if (!activeTransfer) return null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        setIsOpen(open);
+        if (!open) popupOpenRef.current = false;
+      }}
+    >
       <DialogContent className="sm:max-w-[420px] rounded-3xl border-none shadow-2xl p-6 bg-slate-900 text-white overflow-hidden">
         {/* 장식 배경 */}
         <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-indigo-500/20 to-transparent rounded-full -mr-10 -mt-10 pointer-events-none" />
@@ -297,7 +375,10 @@ export function RealtimeTransferListener() {
           <Button
             type="button"
             variant="outline"
-            onClick={() => setIsOpen(false)}
+            onClick={() => {
+              setIsOpen(false);
+              popupOpenRef.current = false;
+            }}
             disabled={isSubmitting}
             className="border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl h-10 text-xs"
           >

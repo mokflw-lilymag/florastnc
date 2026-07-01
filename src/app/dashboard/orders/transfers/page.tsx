@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { createClient } from "@/utils/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
@@ -301,14 +302,18 @@ export default function OrderTransfersPage() {
         <div className="space-y-1">
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
             <Building2 className="h-6 w-6 text-indigo-600" />
-            {isHqView ? "다매장 수발주 정산 관리" : "지점 수발주(이관) 내역"}
+            {isHqView ? "다매장 지점 이관 정산" : "지점 주문이관"}
           </h1>
           <p className="text-sm text-slate-500">
             {isHqView 
-              ? "본사 및 하위 브랜드 지점들 간에 주고받은 주문 이관 상세 내역과 정산 정보를 집계합니다." 
-              : "타 지점으로 보내거나 타 지점으로부터 이관받은 주문의 정산율 및 상태를 관리합니다."}
+              ? "본사 및 하위 브랜드 지점들 간 주문 이관·정산 내역입니다." 
+              : "같은 조직(본사) 소속 지점 간 주문 이관입니다. 회원사 수발주와는 별도 기능입니다."}
           </p>
         </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" asChild className="h-9 rounded-xl font-bold">
+            <Link href="/dashboard/orders">주문 현황</Link>
+          </Button>
         <Button 
           variant="outline" 
           onClick={loadTransfers} 
@@ -318,6 +323,7 @@ export default function OrderTransfersPage() {
           <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           새로고침
         </Button>
+        </div>
       </div>
 
       {/* 통계 요약 카드 (Stats Dashboard) */}

@@ -4,6 +4,7 @@ import { Header } from "@/components/layout/header";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { RealtimeTransferListener } from "@/components/layout/realtime-transfer-listener";
+import { RealtimePartnerOrderListener } from "@/components/layout/realtime-partner-order-listener";
 
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { AnnualRenewalReminder } from "@/components/layout/annual-renewal-reminder";
@@ -72,6 +73,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <GuestBrowseBootstrap />
         <DashboardShell
           serverIsSuperAdmin={false}
+          storeDisplayName={storeName}
           sidebar={
             <Sidebar
               isSuperAdmin={false}
@@ -246,6 +248,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <DashboardShell
       serverIsSuperAdmin={isSuperAdmin}
       tenantId={hasOrgWorkContext ? profile?.org_work_tenant_id : profile?.tenant_id}
+      storeDisplayName={storeName}
       sidebar={
         <Sidebar
           isSuperAdmin={isSuperAdmin}
@@ -292,6 +295,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       }
     >
       <RealtimeTransferListener />
+      <RealtimePartnerOrderListener />
       {children}
     </DashboardShell>
     </PartnerOrdersFeatureProvider>

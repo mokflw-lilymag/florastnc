@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FloXync — 네온 테크 컨셉</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Noto+Sans+KR:wght@300;400;700;900&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    :root {
+      --bg: #070913;
+      --card-bg: rgba(15, 18, 36, 0.7);
+      --border: rgba(255, 255, 255, 0.08);
+      --primary: #3b82f6;
+      --secondary: #a855f7;
+      --accent: #10b981;
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+      --glow: rgba(59, 130, 246, 0.15);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Outfit', 'Noto Sans KR', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    /* Background glow effects */
+    .glow-blob {
+      position: absolute;
+      width: 600px;
+      height: 600px;
+      border-radius: 50%;
+      filter: blur(140px);
+      z-index: -1;
+      opacity: 0.25;
+      pointer-events: none;
+    }
+
+    .glow-1 {
+      top: -200px;
+      right: -100px;
+      background: radial-gradient(circle, var(--primary) 0%, transparent 70%);
+    }
+
+    .glow-2 {
+      top: 400px;
+      left: -200px;
+      background: radial-gradient(circle, var(--secondary) 0%, transparent 70%);
+    }
+
+    .glow-3 {
+      bottom: -100px;
+      right: -100px;
+      background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
+    }
+
+    /* Grid Overlay */
+    .grid-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+      background-size: 50px 50px;
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    /* Container */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Navbar */
+    header {
+      border-bottom: 1px solid var(--border);
+      background-color: rgba(7, 9, 19, 0.8);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .nav-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      height: 80px;
+    }
+
+    .logo {
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+    }
+
+    .logo span {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 32px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 600;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover {
+      color: #fff;
+    }
+
+    .btn-header {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 700;
+      transition: box-shadow 0.2s, transform 0.2s;
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn-header:hover {
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+      transform: translateY(-1px);
+    }
+
+    /* Hero Section */
+    .hero {
+      padding: 120px 0 80px;
+      text-align: center;
+      position: relative;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      padding: 6px 16px;
+      border-radius: 99px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #60a5fa;
+      margin-bottom: 24px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .badge i {
+      width: 14px;
+      height: 14px;
+    }
+
+    .hero h1 {
+      font-size: 64px;
+      font-weight: 900;
+      line-height: 1.15;
+      letter-spacing: -2px;
+      margin-bottom: 24px;
+      background: linear-gradient(180deg, #ffffff 0%, #a5b4fc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero h1 span.highlight {
+      background: linear-gradient(135deg, #60a5fa 0%, #c084fc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero p {
+      font-size: 20px;
+      color: var(--text-muted);
+      max-width: 700px;
+      margin: 0 auto 40px;
+      font-weight: 300;
+    }
+
+    .cta-group {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 60px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      color: white;
+      padding: 16px 36px;
+      border-radius: 12px;
+      text-decoration: none;
+      font-size: 16px;
+      font-weight: 700;
+      transition: all 0.3s;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 20px rgba(59, 130, 246, 0.2);
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 0 30px rgba(168, 85, 247, 0.4);
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      color: white;
+      padding: 16px 36px;
+      border-radius: 12px;
+      text-decoration: none;
+      font-size: 16px;
+      font-weight: 700;
+      transition: all 0.3s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
+    }
+
+    /* Selection Styles (드래그 시 텍스트 보존) */
+    *::selection {
+      background: var(--primary) !important;
+      color: white !important;
+      -webkit-text-fill-color: white !important;
+    }
+
+    /* Mockup */
+    .hero-mockup {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 12px;
+      max-width: 1000px;
+      margin: 0 auto;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 40px rgba(59, 130, 246, 0.05);
+      backdrop-filter: blur(10px);
+    }
+
+    .mockup-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px 12px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 16px;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    .dot-red { background: #ef4444; }
+    .dot-yellow { background: #f59e0b; }
+    .dot-green { background: #10b981; }
+
+    .mockup-body {
+      background: #02040a;
+      border-radius: 12px;
+      aspect-ratio: 16/9;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: var(--text-muted);
+      font-size: 14px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .mockup-content {
+      display: flex;
+      gap: 24px;
+      width: 100%;
+      height: 100%;
+      padding: 24px;
+      text-align: left;
+    }
+
+    .mockup-sidebar {
+      width: 220px;
+      border-right: 1px solid var(--border);
+      padding-right: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .sidebar-item {
+      height: 36px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      font-size: 13px;
+      color: var(--text-muted);
+      border: 1px solid transparent;
+    }
+
+    .sidebar-item.active {
+      background: rgba(59, 130, 246, 0.15);
+      border-color: rgba(59, 130, 246, 0.3);
+      color: #fff;
+    }
+
+    .mockup-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .main-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .main-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .status-badge {
+      padding: 4px 10px;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: var(--accent);
+      border-radius: 99px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .data-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .data-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border);
+      padding: 16px;
+      border-radius: 10px;
+    }
+
+    .card-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .card-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .chart-placeholder {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.01);
+      border: 1px dashed var(--border);
+      border-radius: 10px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+    }
+
+    .neon-line {
+      position: absolute;
+      width: 80%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--primary), var(--secondary), transparent);
+      animation: scan 3s infinite linear;
+    }
+
+    @keyframes scan {
+      0% { top: 10%; opacity: 0; }
+      50% { opacity: 1; }
+      100% { top: 90%; opacity: 0; }
+    }
+
+    /* Features Section */
+    .features {
+      padding: 100px 0;
+    }
+
+    .section-title {
+      text-align: center;
+      margin-bottom: 60px;
+    }
+
+    .section-title h2 {
+      font-size: 38px;
+      font-weight: 800;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .section-title p {
+      color: var(--text-muted);
+      font-size: 16px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 32px;
+    }
+
+    .feature-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      transition: all 0.3s;
+      position: relative;
+      overflow: hidden;
+      backdrop-filter: blur(10px);
+    }
+
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), transparent);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-6px);
+      border-color: rgba(59, 130, 246, 0.3);
+      box-shadow: 0 10px 30px rgba(59, 130, 246, 0.1);
+    }
+
+    .feature-card:hover::before {
+      opacity: 1;
+    }
+
+    .icon-wrapper {
+      width: 48px;
+      height: 48px;
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      border-radius: 12px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: var(--primary);
+      margin-bottom: 24px;
+    }
+
+    .feature-card:nth-child(2) .icon-wrapper {
+      background: rgba(168, 85, 247, 0.1);
+      border-color: rgba(168, 85, 247, 0.2);
+      color: var(--secondary);
+    }
+
+    .feature-card:nth-child(3) .icon-wrapper {
+      background: rgba(16, 185, 129, 0.1);
+      border-color: rgba(16, 185, 129, 0.2);
+      color: var(--accent);
+    }
+
+    .feature-card h3 {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: #fff;
+    }
+
+    .feature-card p {
+      color: var(--text-muted);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 60px 0;
+      background: #04060d;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    .footer-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 24px;
+    }
+
+    .footer-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+    }
+
+    .footer-links a:hover {
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="grid-overlay"></div>
+
+  <div class="glow-blob glow-1"></div>
+  <div class="glow-blob glow-2"></div>
+  <div class="glow-blob glow-3"></div>
+
+  <header>
+    <div class="container nav-container">
+      <a href="#" class="logo">
+        <i data-lucide="flower-2"></i>
+        <span>FloXync</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#features">주요 기능</a></li>
+        <li><a href="#demo">미리보기</a></li>
+        <li><a href="#pricing">요금제</a></li>
+      </ul>
+      <button class="btn-header">시작하기</button>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="container">
+      <div class="badge">
+        <i data-lucide="sparkles"></i> AI 기반 차세대 솔루션
+      </div>
+      <h1>어마어마한 꽃집 비서가<br><span class="highlight">나타났다!</span></h1>
+      <p>수작업 리본 인쇄부터 복잡한 장부 정합성 관리까지, 꽃집 운영의 모든 과정을 자동화하여 완벽한 솔루션을 제공합니다.</p>
+      
+      <div class="cta-group">
+        <button class="btn-primary">
+          무료로 시작하기 <i data-lucide="arrow-right"></i>
+        </button>
+        <a href="#demo" class="btn-secondary">데모 영상 보기</a>
+      </div>
+
+      <div class="hero-mockup" id="demo">
+        <div class="mockup-header">
+          <div class="dot dot-red"></div>
+          <div class="dot dot-yellow"></div>
+          <div class="dot dot-green"></div>
+        </div>
+        <div class="mockup-body">
+          <div class="mockup-content">
+            <div class="mockup-sidebar">
+              <div class="sidebar-item active">
+                <i data-lucide="layout-dashboard" style="width: 14px; margin-right: 8px;"></i> 대시보드
+              </div>
+              <div class="sidebar-item">
+                <i data-lucide="printer" style="width: 14px; margin-right: 8px;"></i> 리본 인쇄기
+              </div>
+              <div class="sidebar-item">
+                <i data-lucide="shopping-bag" style="width: 14px; margin-right: 8px;"></i> 연동 관리
+              </div>
+              <div class="sidebar-item">
+                <i data-lucide="receipt" style="width: 14px; margin-right: 8px;"></i> 지출/정산
+              </div>
+            </div>
+            <div class="mockup-main">
+              <div class="main-header">
+                <div class="main-title">금일 매출 요약</div>
+                <div class="status-badge">실시간 연동중</div>
+              </div>
+              <div class="data-grid">
+                <div class="data-card">
+                  <div class="card-label">총 매출액</div>
+                  <div class="card-value">₩ 2,450,000</div>
+                </div>
+                <div class="data-card">
+                  <div class="card-label">인쇄 건수</div>
+                  <div class="card-value">124 건</div>
+                </div>
+                <div class="data-card">
+                  <div class="card-label">신규 주문</div>
+                  <div class="card-value">48 건</div>
+                </div>
+              </div>
+              <div class="chart-placeholder">
+                <span>실시간 주문 유입 현황 그래프 (Visualizing...)</span>
+                <div class="neon-line"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="features" id="features">
+    <div class="container">
+      <div class="section-title">
+        <h2>스마트한 꽃집 관리를 위한 최첨단 기능</h2>
+        <p>복잡한 작업은 FloXync에게 맡기고, 사장님은 꽃과 고객에만 집중하세요.</p>
+      </div>
+
+      <div class="grid">
+        <div class="feature-card">
+          <div class="icon-wrapper">
+            <i data-lucide="printer"></i>
+          </div>
+          <h3>초고속 리본 인쇄</h3>
+          <p>원클릭으로 주문 데이터에서 리본 문구를 추출하여 초고속으로 인쇄합니다. 글자 정렬, 폰트 에러 없이 한 번에 완벽 출력.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="icon-wrapper">
+            <i data-lucide="refresh-cw"></i>
+          </div>
+          <h3>주문 실시간 연동</h3>
+          <p>네이버 스마트스토어, 카카오톡 주문서 등 다양한 채널의 주문을 실시간으로 가져와 하나의 대시보드에 모아줍니다.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="icon-wrapper">
+            <i data-lucide="shield-check"></i>
+          </div>
+          <h3>철저한 정합성 보안</h3>
+          <p>고객 정보 노출 없이 영수증 내역과 매출을 매칭하여 철저히 보안을 유지하고 정확한 정산 환경을 지원합니다.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container footer-container">
+      <div>&copy; 2026 FloXync. All rights reserved.</div>
+      <div class="footer-links">
+        <a href="#">개인정보처리방침</a>
+        <a href="#">이용약관</a>
+        <a href="#">고객센터</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>

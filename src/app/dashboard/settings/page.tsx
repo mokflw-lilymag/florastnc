@@ -78,6 +78,7 @@ import { OrderPolicySettings } from "./components/OrderPolicySettings";
 import { AutomationSettings } from "./components/AutomationSettings";
 import { EmailSettingsCard } from "./components/EmailSettingsCard";
 import { DesktopElectronSettingsCard } from "@/components/desktop/desktop-electron-settings-card";
+import { SettingsSubNav } from "./components/settings-sub-nav";
 import { KakaoPcSettingsCard } from "./components/KakaoPcSettingsCard";
 import { MallIntegrationCard } from "./components/MallIntegrationCard";
 import { RegionalIntegrationPanel } from "./components/RegionalIntegrationPanel";
@@ -1565,6 +1566,8 @@ export default function SettingsPage() {
            {getPlanBadge(plan)}
         </div>
       </div>
+
+      <SettingsSubNav />
 
       <Tabs defaultValue="store" orientation="vertical" className="w-full">
         <div className="flex flex-col md:flex-row gap-6 md:gap-8 lg:gap-10 w-full items-start">

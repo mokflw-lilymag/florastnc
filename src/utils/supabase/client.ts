@@ -7,7 +7,24 @@ import { isElectronClient } from "@/lib/electron-env";
 let client: SupabaseClient | null = null;
 let cloudFromFn: ((table: string) => ReturnType<SupabaseClient["from"]>) | null = null;
 
-const OFFLINE_PROXY_TABLES = new Set(["orders", "customers", "simple_expenses"]);
+const OFFLINE_PROXY_TABLES = new Set([
+  "orders",
+  "customers",
+  "simple_expenses",
+  "products",
+  "materials",
+  "system_settings",
+  "suppliers",
+  "delivery_fees_by_region",
+  "tenants",
+  "purchases",
+  "daily_settlements",
+  "point_transactions",
+  "partners",
+  "external_orders",
+  "order_transfers",
+  "expenses",
+]);
 
 type QueryChainStep = { method: string; args: unknown[] };
 

@@ -442,11 +442,26 @@ export default function OrganizationsAdminPage() {
                       <Link2 className="h-3.5 w-3.5 mr-1" />
                       {tf.f01912}
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => openMember(org.id)}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-slate-500 border-dashed"
+                      onClick={() => openMember(org.id)}
+                      title="플랫폼 온보딩·장애 대응용. 일반 고객은 본사 화면 › 본사 담당자 관리에서 1명 등록"
+                    >
                       <UserPlus className="h-3.5 w-3.5 mr-1" />
-                      {tf.f01269}
+                      {pickUiText(baseLocale, "플랫폼 초기 설정", "Platform bootstrap", "Thiết lập nền tảng", "プラットフォーム初期設定")}
                     </Button>
                   </div>
+                  <p className="text-xs text-muted-foreground -mt-2">
+                    {pickUiText(
+                      baseLocale,
+                      "※ 대표 본사 지점을 지정하면 점주가 본사 대표로 자동 등록됩니다. 추가 담당자 1명은 고객이 본사 메뉴 「본사 담당자 관리」에서 직접 등록합니다.",
+                      "HQ branch selection auto-links the manager. Customers add one delegate from HQ › Team.",
+                      "Chọn chi nhánh HQ tự động liên kết quản lý. Khách thêm 1 delegate tại HQ › Team.",
+                      "代表本店指定で店長が自動連携。追加1名は本部›担当者管理から。",
+                    )}
+                  </p>
 
                   <div>
                     <h4 className="text-sm font-semibold mb-2">{tf.f01563}</h4>
@@ -516,7 +531,13 @@ export default function OrganizationsAdminPage() {
                   <div>
                     <h4 className="text-sm font-semibold mb-1">{tf.f01268}</h4>
                     <p className="text-xs text-muted-foreground mb-3">
-                      ※ 이 조직의 마감 조회, 주문 수발주 등의 통합 업무를 전담할 다매장 사장님 또는 본사 관리자의 이메일을 배정합니다.
+                      {pickUiText(
+                        baseLocale,
+                        "대표 본사 점주는 자동 연동됩니다. 추가 담당자는 본사 화면에서 1명까지 등록합니다.",
+                        "HQ branch manager is auto-linked. One extra delegate is added from the HQ team page.",
+                        "Quản lý HQ tự động. Thêm tối đa 1 delegate tại HQ.",
+                        "代表本店店長は自動。追加1名は本部画面から。",
+                      )}
                     </p>
                     {mems.length === 0 ? (
                       <p className="text-sm text-muted-foreground">{tf.f01239}</p>
@@ -647,7 +668,13 @@ export default function OrganizationsAdminPage() {
               placeholder={phMemberEmail}
             />
             <p className="text-xs text-muted-foreground">
-              {tf.f01396}
+              {pickUiText(
+                baseLocale,
+                "플랫폼 관리자 전용 예외 등록입니다. 일반 운영 시 고객은 본사 › 본사 담당자 관리에서 담당자 1명을 등록합니다.",
+                "Platform-only bootstrap. Customers register one delegate under HQ › Team.",
+                "Chỉ dành cho nền tảng. Khách đăng ký tại HQ › Team.",
+                "プラットフォーム用。通常は本部›担当者管理から1名登録。",
+              )}
             </p>
           </div>
           <DialogFooter>

@@ -4,6 +4,8 @@
  * - idle: 로그아웃 — pull 중단, push 대기열 유지
  */
 
+const { TENANT_UPDATED_AT_TABLES, TENANT_CREATED_AT_TABLES } = require('./sync/localSyncConfig');
+
 /** @type {import('better-sqlite3').Database | null} */
 let dbRef = null;
 
@@ -42,92 +44,110 @@ function setSyncScope(next) {
   return { changed, scope: getSyncScope() };
 }
 
+function pruneTenantScopedTable(table, tenantId) {
+  try {
+    return dbRef
+      .prepare(
+        `DELETE FROM ${table}
+         WHERE sync_status = 'synced'
+           AND tenant_id IS NOT NULL
+           AND tenant_id != ?`,
+      )
+      .run(tenantId).changes || 0;
+  } catch (_) {
+    return 0;
+  }
+}
+
+function pruneSyncedTable(table) {
+  try {
+    return dbRef.prepare(`DELETE FROM ${table} WHERE sync_status = 'synced'`).run().changes || 0;
+  } catch (_) {
+    return 0;
+  }
+}
+
 /** scope 밖 synced 레코드 제거 (pending push 행은 유지) */
 function pruneLocalRowsOutsideScope() {
-  if (!dbRef) return { orders: 0, customers: 0, simple_expenses: 0 };
+  if (!dbRef) return {};
+
+  const tenantTables = [
+    ...new Set([...TENANT_UPDATED_AT_TABLES, ...TENANT_CREATED_AT_TABLES, 'branches']),
+  ].filter((t) => !['external_orders', 'order_transfers', 'tenants'].includes(t));
 
   if (syncScope.mode === 'tenant' && syncScope.tenantId) {
     const tenantId = syncScope.tenantId;
-    const ordersResult = dbRef
-      .prepare(
-        `DELETE FROM orders
-         WHERE sync_status = 'synced'
-           AND tenant_id IS NOT NULL
-           AND tenant_id != ?`,
-      )
-      .run(tenantId);
-    const customersResult = dbRef
-      .prepare(
-        `DELETE FROM customers
-         WHERE sync_status = 'synced'
-           AND tenant_id IS NOT NULL
-           AND tenant_id != ?`,
-      )
-      .run(tenantId);
-    const expensesResult = dbRef
-      .prepare(
-        `DELETE FROM simple_expenses
-         WHERE sync_status = 'synced'
-           AND tenant_id IS NOT NULL
-           AND tenant_id != ?`,
-      )
-      .run(tenantId);
-    let mainExpensesResult = { changes: 0 };
+    const removed = {};
+
+    for (const table of tenantTables) {
+      removed[table] = pruneTenantScopedTable(table, tenantId);
+    }
+
     try {
-      mainExpensesResult = dbRef
+      removed.tenants = dbRef
         .prepare(
-          `DELETE FROM expenses
+          `DELETE FROM tenants
            WHERE sync_status = 'synced'
-             AND tenant_id IS NOT NULL
-             AND tenant_id != ?`,
+             AND id != ?
+             AND id NOT IN (
+               SELECT target_tenant_id FROM partners
+               WHERE tenant_id = ? AND target_tenant_id IS NOT NULL
+             )`,
         )
-        .run(tenantId);
-    } catch (_) {}
-    const removed = {
-      orders: ordersResult.changes || 0,
-      customers: customersResult.changes || 0,
-      simple_expenses: expensesResult.changes || 0,
-      expenses: mainExpensesResult.changes || 0,
-    };
-    const total = removed.orders + removed.customers + removed.simple_expenses + removed.expenses;
+        .run(tenantId, tenantId).changes || 0;
+    } catch (_) {
+      removed.tenants = 0;
+    }
+
+    try {
+      removed.external_orders = dbRef
+        .prepare(
+          `DELETE FROM external_orders
+           WHERE sync_status = 'synced'
+             AND sender_tenant_id != ?
+             AND receiver_tenant_id != ?`,
+        )
+        .run(tenantId, tenantId).changes || 0;
+    } catch (_) {
+      removed.external_orders = 0;
+    }
+
+    try {
+      removed.order_transfers = dbRef
+        .prepare(
+          `DELETE FROM order_transfers
+           WHERE sync_status = 'synced'
+             AND order_branch_id != ?
+             AND process_branch_id != ?`,
+        )
+        .run(tenantId, tenantId).changes || 0;
+    } catch (_) {
+      removed.order_transfers = 0;
+    }
+
+    const total = Object.values(removed).reduce((a, b) => a + b, 0);
     if (total > 0) {
-      console.log(
-        `[SyncScope] Pruned other-tenant rows: orders=${removed.orders}, customers=${removed.customers}, simple_expenses=${removed.simple_expenses}, expenses=${removed.expenses}`,
-      );
+      console.log('[SyncScope] Pruned other-tenant rows:', JSON.stringify(removed));
     }
     return removed;
   }
 
   if (syncScope.mode === 'idle') {
-    const ordersResult = dbRef
-      .prepare(`DELETE FROM orders WHERE sync_status = 'synced'`)
-      .run();
-    const customersResult = dbRef
-      .prepare(`DELETE FROM customers WHERE sync_status = 'synced'`)
-      .run();
-    const expensesResult = dbRef
-      .prepare(`DELETE FROM simple_expenses WHERE sync_status = 'synced'`)
-      .run();
-    let mainExpensesResult = { changes: 0 };
-    try {
-      mainExpensesResult = dbRef.prepare(`DELETE FROM expenses WHERE sync_status = 'synced'`).run();
-    } catch (_) {}
-    const removed = {
-      orders: ordersResult.changes || 0,
-      customers: customersResult.changes || 0,
-      simple_expenses: expensesResult.changes || 0,
-      expenses: mainExpensesResult.changes || 0,
-    };
-    const total = removed.orders + removed.customers + removed.simple_expenses + removed.expenses;
+    const removed = {};
+    for (const table of tenantTables) {
+      removed[table] = pruneSyncedTable(table);
+    }
+    for (const table of ['tenants', 'external_orders', 'order_transfers']) {
+      removed[table] = pruneSyncedTable(table);
+    }
+    const total = Object.values(removed).reduce((a, b) => a + b, 0);
     if (total > 0) {
-      console.log(
-        `[SyncScope] Pruned synced rows on idle: orders=${removed.orders}, customers=${removed.customers}, simple_expenses=${removed.simple_expenses}, expenses=${removed.expenses}`,
-      );
+      console.log('[SyncScope] Pruned synced rows on idle:', JSON.stringify(removed));
     }
     return removed;
   }
 
-  return { orders: 0, customers: 0, simple_expenses: 0 };
+  return {};
 }
 
 module.exports = {

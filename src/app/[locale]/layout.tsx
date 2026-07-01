@@ -3,6 +3,7 @@ import { isSupportedLocale, resolveLocale, type AppLocale } from "@/i18n/config"
 import { MessagesProvider } from "@/i18n/messages-provider";
 import { loadPublicMessagesAsync } from "@/i18n/loadMessages";
 import type { AppMessages } from "@/i18n/types";
+import { LocaleElectronFrame } from "@/components/desktop/locale-electron-frame";
 
 type Props = {
   children: React.ReactNode;
@@ -16,5 +17,9 @@ export default async function LocaleLayout({ children, params }: Props) {
 
   const messages = (await loadPublicMessagesAsync(canonical as AppLocale)) as AppMessages;
 
-  return <MessagesProvider messages={messages}>{children}</MessagesProvider>;
+  return (
+    <MessagesProvider messages={messages}>
+      <LocaleElectronFrame>{children}</LocaleElectronFrame>
+    </MessagesProvider>
+  );
 }

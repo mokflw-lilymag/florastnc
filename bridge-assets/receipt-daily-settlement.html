@@ -1,11 +1,12 @@
 <!DOCTYPE html>
-<html lang="{{locale}}">
+<html>
 <head>
 <meta charset="UTF-8">
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap');
   @page { margin: 0; }
   body {
-      font-family: {{font_family}};
+      font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
       font-weight: 800;
       -webkit-font-smoothing: none;
       margin: 0;
@@ -95,49 +96,49 @@
 </head>
 <body>
 <div class="receipt-container">
-  <div class="header-title">{{label_daily_title}}</div>
+  <div class="header-title">일일 마감 정산서</div>
   <div class="info-box">
     <div>{{branch}}</div>
-    <div>{{label_date_prefix}}: {{date}}</div>
-    <div>{{label_print_datetime_prefix}}: {{print_datetime}}</div>
+    <div>일자: {{date}}</div>
+    <div>출력일시: {{print_datetime}}</div>
   </div>
 
   <div class="divider-bold"></div>
 
   <div class="balance-box">
-    <div class="balance-label">{{label_total_sales_today}}</div>
+    <div class="balance-label">금일 총매출 금액</div>
     <div class="balance-amount">{{orders_amount}}</div>
   </div>
   <div style="display: flex; justify-content: space-between; margin-top: 8px; gap: 6px;">
     <div style="flex: 1; border: 1.5px solid #000; padding: 7px 4px; text-align: center; border-radius: 4px;">
-      <div style="font-size: 11px; font-weight: 800; margin-bottom: 3px;">{{label_vault_balance}}</div>
+      <div style="font-size: 11px; font-weight: 800; margin-bottom: 3px;">시재잔액 (금고내현금액)</div>
       <div style="font-size: 17px; font-weight: 800;">{{vault_balance}}</div>
     </div>
     <div style="flex: 1; border: 2px solid #000; padding: 7px 4px; text-align: center; border-radius: 4px; background: #000; color: #fff;">
-      <div style="font-size: 11px; font-weight: 800; margin-bottom: 3px;">{{label_settlement_balance}}</div>
+      <div style="font-size: 11px; font-weight: 800; margin-bottom: 3px;">정산잔액</div>
       <div style="font-size: 17px; font-weight: 800;">{{settlement_balance}}</div>
     </div>
   </div>
 
   <div class="divider"></div>
 
-  <div class="section-title">{{label_expenses_section}}</div>
+  <div class="section-title">지출 내역</div>
   <div>
     {{expenses_html}}
   </div>
 
   <div class="divider"></div>
 
-  <div class="section-title">{{label_sales_summary}}</div>
+  <div class="section-title">매출 및 수금 요약</div>
   <div>
     <div class="row bold">
-      <span>{{label_total_orders}} ({{orders_count}}{{label_orders_unit}})</span>
+      <span>총 주문 ({{orders_count}}건)</span>
       <span>{{orders_amount}}</span>
     </div>
     {{today_orders_html}}
-  <div class="section-title">{{label_carried_collections}}</div>
+  <div class="section-title">이월주문 수금</div>
   <div class="row bold" style="margin-bottom: 6px; border-bottom: 1px dashed #000; padding-bottom: 4px;">
-    <span>{{label_collections_total}} ({{collections_count}}{{label_orders_unit}})</span>
+    <span>수금 총액 (총 {{collections_count}}건)</span>
     <span>{{collections_amount}}</span>
   </div>
   <div>
@@ -149,7 +150,7 @@
   <div class="divider-bold"></div>
   
   <div style="text-align: center; font-size: 11px; margin-top: 15px;">
-    - {{label_settlement_done}} -
+    - 정산 완료 -
   </div>
 </div>
 </body>

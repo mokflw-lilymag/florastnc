@@ -3,14 +3,18 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Cpu, Github, Monitor, Terminal } from 'lucide-react';
-import { AppLocale, localizePath } from '@/i18n/config';
+import { AppLocale, localizePath, toBaseLocale } from '@/i18n/config';
 import { getMessages } from '@/i18n/getMessages';
+import { pickUiText } from '@/i18n/pick-ui-text';
 
 export function Footer({ locale }: { locale?: AppLocale }) {
   const l = locale ?? 'ko';
   const { landing } = getMessages(l);
   const f = landing.footer;
   const nav = landing.navbar;
+  const baseLocale = toBaseLocale(l);
+  const multiStoreLabel = pickUiText(baseLocale, '다매장 관리', 'Multi-store management', 'Quản lý đa cửa hàng', '多店舗管理');
+  const partnerOrdersLabel = pickUiText(baseLocale, '회원사 수발주', 'Partner order network', 'Đặt hàng đối tác', '会員店発注');
   const home = localizePath(l, '/');
   const terms = localizePath(l, '/terms');
   const privacy = localizePath(l, '/privacy');
@@ -56,6 +60,8 @@ export function Footer({ locale }: { locale?: AppLocale }) {
                 <li><Link href={`${home}#feature-automation`} className="text-[#3e4946] hover:text-[#006b5c] transition-colors flex items-center gap-2 group"><Monitor size={14} className="opacity-50 group-hover:opacity-100" /> {f.coreEngine}</Link></li>
                 <li><Link href={`${home}#feature-connection`} className="text-[#3e4946] hover:text-[#006b5c] transition-colors flex items-center gap-2 group"><Terminal size={14} className="opacity-50 group-hover:opacity-100" /> {f.aiModules}</Link></li>
                 <li><Link href={`${home}#feature-ribbon`} className="text-[#665590] font-bold hover:text-[#006b5c] transition-colors flex items-center gap-2 group"><Cpu size={14} className="animate-pulse" /> {f.printBridge}</Link></li>
+                <li><Link href={`${home}#feature-multi-store`} className="text-[#3e4946] hover:text-[#006b5c] transition-colors flex items-center gap-2 group"><Monitor size={14} className="opacity-50 group-hover:opacity-100" /> {multiStoreLabel}</Link></li>
+                <li><Link href={`${home}#feature-partner-network`} className="text-[#3e4946] hover:text-[#006b5c] transition-colors flex items-center gap-2 group"><Terminal size={14} className="opacity-50 group-hover:opacity-100" /> {partnerOrdersLabel}</Link></li>
               </ul>
             </div>
             <div>

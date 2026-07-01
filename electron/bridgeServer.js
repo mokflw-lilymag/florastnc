@@ -183,7 +183,22 @@ function createBridgeServer(port = 8004) {
     console.log(`[Bridge] Port ${port} listen error:`, err.message);
   });
 
-  return server;
+  return {
+    stop() {
+      return new Promise((resolve) => {
+        if (pollTimer) {
+          clearInterval(pollTimer);
+          pollTimer = null;
+        }
+        if (!server) return resolve();
+        server.close(() => {
+          server = null;
+          console.log(`[Bridge] Embedded Server on :${port} stopped`);
+          resolve();
+        });
+      });
+    },
+  };
 }
 
 module.exports = { createBridgeServer };

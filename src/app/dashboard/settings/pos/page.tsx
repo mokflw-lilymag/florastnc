@@ -44,8 +44,11 @@ import { cn } from "@/lib/utils";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
 import { pickUiText } from "@/i18n/pick-ui-text";
+import { SettingsSubNav, POS_INTEGRATION_ENABLED } from "../components/settings-sub-nav";
+import { useRouter } from "next/navigation";
 
 export default function PosSettingsPage() {
+  const router = useRouter();
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
   const baseLocale = toBaseLocale(locale);
@@ -118,6 +121,12 @@ export default function PosSettingsPage() {
   const { status: posConnection, bridgeOnline, refreshBridge } = usePosConnection();
   const [activeTab, setActiveTab] = useState("general");
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!POS_INTEGRATION_ENABLED) {
+      router.replace("/dashboard/settings");
+    }
+  }, [router]);
 
   useEffect(() => {
     if (activeTab === "logs") {
@@ -209,6 +218,18 @@ export default function PosSettingsPage() {
     }
   ];
 
+  if (!POS_INTEGRATION_ENABLED) {
+    return (
+      <div className="max-w-5xl mx-auto p-4">
+        <SettingsSubNav />
+        <div className="flex items-center justify-center min-h-[200px] text-slate-400 text-sm">
+          <Loader2 className="h-5 w-5 animate-spin mr-2" />
+          {pickUiText(baseLocale, "준비중", "Coming soon")}
+        </div>
+      </div>
+    );
+  }
+
   if (loading && !integration) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
@@ -220,6 +241,7 @@ export default function PosSettingsPage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 pb-20 p-4">
+      <SettingsSubNav />
       {/* Header section with Premium feel */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-r from-slate-900 to-slate-800 p-8 rounded-[32px] text-white shadow-2xl overflow-hidden relative group">
         <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl group-hover:bg-primary/20 transition-all duration-700" />

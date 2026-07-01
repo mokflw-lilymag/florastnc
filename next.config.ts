@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Electron dev loads http://127.0.0.1 — without this, dev assets / server actions may fail
+  allowedDevOrigins: ['127.0.0.1'],
   images: {
     remotePatterns: [
       {

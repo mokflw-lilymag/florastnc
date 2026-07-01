@@ -43,6 +43,7 @@ extraResources:
     to: "bridge-installers"
     filter:
       - "receipt-*.html"
+      - "receipt-labels.json"
   - from: "vendor/ribbon-bridge/RibbonBridgePackage.zip"
     to: "bridge-installers/RibbonBridgePackage.zip"
   - from: "vendor/ribbon-bridge/RibbonBridge_Setup_v25_0.exe"

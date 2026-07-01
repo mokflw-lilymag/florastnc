@@ -44,6 +44,18 @@ export async function proxy(request: NextRequest) {
       target.pathname = tail.length > 0 ? `/ko/${tail.join("/")}` : "/ko";
       return NextResponse.redirect(target, 308);
     }
+
+    /** 대시보드는 `/dashboard`만 존재 — `/ko/dashboard` 등 잘못된 북마크·리다이렉트 보정 */
+    const firstSeg = segmentsEarly[0];
+    if (
+      firstSeg &&
+      isSupportedLocale(resolveLocale(firstSeg)) &&
+      segmentsEarly[1] === "dashboard"
+    ) {
+      const target = request.nextUrl.clone();
+      target.pathname = `/${segmentsEarly.slice(1).join("/")}`;
+      return NextResponse.redirect(target, 308);
+    }
   }
 
   const shouldLocalize =

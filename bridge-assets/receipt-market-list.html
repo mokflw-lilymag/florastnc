@@ -1,13 +1,13 @@
 <!DOCTYPE html>
-<html lang="{{locale}}">
+<html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>{{label_market_list_title}}</title>
+  <title>시장 장보기 리스트</title>
   <style>
     @page { margin: 0; }
     * { box-sizing: border-box; }
     body {
-      font-family: {{font_family}};
+      font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
       font-weight: 800;
       -webkit-font-smoothing: none;
       margin: 0;
@@ -76,10 +76,10 @@
   </style>
 </head>
 <body>
-  <div class="title">{{label_market_list_title}}</div>
+  <div class="title">장보기 리스트</div>
   <div class="subtitle">{{batch_name}}</div>
   <div class="info-row">
-    <span>{{label_print_datetime_prefix}}: {{print_datetime}}</span>
+    <span>출력일시: {{print_datetime}}</span>
     <span>{{branch_name}}</span>
   </div>
   
@@ -88,10 +88,10 @@
   <table>
     <thead>
       <tr>
-        <th class="checkbox-col center">{{label_confirm_col}}</th>
-        <th class="name-col">{{label_item_col}}</th>
-        <th class="qty-col center">{{label_qty}}</th>
-        <th class="price-col right">{{label_amount_col}}</th>
+        <th class="checkbox-col center">확인</th>
+        <th class="name-col">품목 / 매장</th>
+        <th class="qty-col center">수량</th>
+        <th class="price-col right">예정단가</th>
       </tr>
     </thead>
     <tbody>

@@ -237,6 +237,252 @@ function initLocalDb(dbPath) {
     db.exec(`ALTER TABLE orders ADD COLUMN completionphotourl TEXT`);
   } catch (_) {}
 
+  // ─── Phase A: 상품·재고·설정·거래처·배송비·매장 ───
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS products (
+      id TEXT PRIMARY KEY,
+      tenant_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      main_category TEXT,
+      mid_category TEXT,
+      price INTEGER,
+      stock INTEGER,
+      supplier TEXT,
+      code TEXT,
+      status TEXT,
+      extra_data TEXT,
+      supplier_id TEXT,
+      is_portfolio INTEGER,
+      image_url TEXT,
+      branch TEXT,
+      created_at TEXT,
+      updated_at TEXT,
+      sync_status TEXT DEFAULT 'synced',
+      last_sync_time TEXT
+    );
+    CREATE TABLE IF NOT EXISTS materials (
+      id TEXT PRIMARY KEY,
+      tenant_id TEXT,
+      name TEXT NOT NULL,
+      main_category TEXT NOT NULL,
+      mid_category TEXT,
+      unit TEXT,
+      spec TEXT,
+      price REAL,
+      stock REAL,
+      supplier TEXT,
+      memo TEXT,
+      color TEXT,
+      supplier_id TEXT,
+      current_stock REAL,
+      safety_stock REAL,
+      description TEXT,
+      created_at TEXT,
+      updated_at TEXT,
+      sync_status TEXT DEFAULT 'synced',
+      last_sync_time TEXT
+    );
+    CREATE TABLE IF NOT EXISTS system_settings (
+      id TEXT PRIMARY KEY,
+      tenant_id TEXT NOT NULL,
+      data TEXT NOT NULL,
+      updated_at TEXT,
+      sync_status TEXT DEFAULT 'synced',
+      last_sync_time TEXT
+    );
+    CREATE TABLE IF NOT EXISTS suppliers (
+      id TEXT PRIMARY KEY,
+      tenant_id TEXT,
+      name TEXT NOT NULL,
+      contact TEXT,
+      email TEXT,
+      address TEXT,
+      business_number TEXT,
+      memo TEXT,
+      supplier_type TEXT,
+      created_at TEXT,
+      updated_at TEXT,
+      sync_status TEXT DEFAULT 'synced',
+      last_sync_time TEXT
+    );
+    CREATE TABLE IF NOT EXISTS delivery_fees_by_region (
+      id TEXT PRIMARY KEY,
+      tenant_id TEXT,
+      region_name TEXT NOT NULL,
+      fee REAL,
+      created_at TEXT,
+      updated_at TEXT,
+      sync_status TEXT DEFAULT 'synced',
+      last_sync_time TEXT
+    );
+    CREATE TABLE IF NOT EXISTS tenants (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      plan TEXT,
+      created_at TEXT,
+      subscription_start TEXT,
+      subscription_end TEXT,
+      status TEXT,
+      can_receive_orders INTEGER,
+      partner_category TEXT,
+      partner_description TEXT,
+      partner_region TEXT,
+      logo_url TEXT,
+      portfolio_url TEXT,
+      portfolio_gdrive_id TEXT,
+      is_premium INTEGER,
+      gdrive_bouquet_id TEXT,
+      gdrive_basket_id TEXT,
+      gdrive_wreath_id TEXT,
+      gdrive_plant_id TEXT,
+      gdrive_orchid_id TEXT,
+      gdrive_condolence_id TEXT,
+      contact_phone TEXT,
+      address TEXT,
+      organization_id TEXT,
+      sync_status TEXT DEFAULT 'synced',
+      last_sync_time TEXT
+    );
+  `);
+
+  // ─── Phase B: 발주·정산·포인트·협력·외주·이관 ───
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS purchases (
+      id TEXT PRIMARY KEY,
+      tenant_id TEXT NOT NULL,
+      supplier_id TEXT,
+      material_id TEXT,
+      name TEXT,
+      status TEXT NOT NULL,
+      total_price REAL NOT NULL,
+      quantity REAL NOT NULL,
+      scheduled_date TEXT,
+      purchase_date TEXT,
+      payment_method TEXT,
+      expense_id TEXT,
+      notes TEXT,
+      batch_id TEXT,
+      batch_name TEXT,
+      main_category TEXT,
+      mid_category TEXT,
+      created_at TEXT,
+      updated_at TEXT,
+      sync_status TEXT DEFAULT 'synced',
+      last_sync_time TEXT
+    );
+    CREATE TABLE IF NOT EXISTS daily_settlements (
+      id TEXT PRIMARY KEY,
+      tenant_id TEXT NOT NULL,
+      date TEXT NOT NULL,
+      previous_vault_balance REAL NOT NULL,
+      cash_sales_today REAL NOT NULL,
+      delivery_cost_cash_today REAL NOT NULL,
+      cash_expense_today REAL NOT NULL,
+      vault_deposit REAL NOT NULL,
+      notes TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      sync_status TEXT DEFAULT 'synced',
+      last_sync_time TEXT
+    );
+    CREATE TABLE IF NOT EXISTS point_transactions (
+      id TEXT PRIMARY KEY,
+      tenant_id TEXT NOT NULL,
+      customer_id TEXT NOT NULL,
+      amount INTEGER NOT NULL,
+      type TEXT NOT NULL,
+      source TEXT NOT NULL,
+      description TEXT,
+      related_id TEXT,
+      created_at TEXT,
+      sync_status TEXT DEFAULT 'synced',
+      last_sync_time TEXT
+    );
+    CREATE TABLE IF NOT EXISTS partners (
+      id TEXT PRIMARY KEY,
+      tenant_id TEXT,
+      target_tenant_id TEXT,
+      name TEXT NOT NULL,
+      category TEXT,
+      contact_person TEXT,
+      contact TEXT,
+      email TEXT,
+      address TEXT,
+      business_number TEXT,
+      bank_account TEXT,
+      default_margin_percent REAL,
+      is_verified INTEGER,
+      memo TEXT,
+      created_at TEXT,
+      updated_at TEXT,
+      sync_status TEXT DEFAULT 'synced',
+      last_sync_time TEXT
+    );
+    CREATE TABLE IF NOT EXISTS external_orders (
+      id TEXT PRIMARY KEY,
+      sender_tenant_id TEXT,
+      receiver_tenant_id TEXT,
+      receiver_partner_id TEXT,
+      origin_order_id TEXT,
+      status TEXT,
+      total_amount REAL NOT NULL,
+      fulfillment_amount REAL NOT NULL,
+      sender_profit REAL NOT NULL,
+      platform_fee REAL NOT NULL,
+      order_data TEXT,
+      notes TEXT,
+      hide_customer_info INTEGER,
+      created_at TEXT,
+      updated_at TEXT,
+      sync_status TEXT DEFAULT 'synced',
+      last_sync_time TEXT
+    );
+    CREATE TABLE IF NOT EXISTS order_transfers (
+      id TEXT PRIMARY KEY,
+      original_order_id TEXT NOT NULL,
+      order_branch_id TEXT NOT NULL,
+      order_branch_name TEXT NOT NULL,
+      process_branch_id TEXT NOT NULL,
+      process_branch_name TEXT NOT NULL,
+      transfer_date TEXT,
+      transfer_reason TEXT,
+      transfer_by TEXT,
+      transfer_by_user TEXT,
+      status TEXT NOT NULL,
+      amount_split TEXT NOT NULL,
+      original_order_amount INTEGER NOT NULL,
+      notes TEXT,
+      accepted_at TEXT,
+      accepted_by TEXT,
+      rejected_at TEXT,
+      rejected_by TEXT,
+      completed_at TEXT,
+      completed_by TEXT,
+      cancelled_at TEXT,
+      cancelled_by TEXT,
+      created_at TEXT,
+      updated_at TEXT,
+      sync_status TEXT DEFAULT 'synced',
+      last_sync_time TEXT
+    );
+  `);
+
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_products_tenant ON products(tenant_id);
+    CREATE INDEX IF NOT EXISTS idx_materials_tenant ON materials(tenant_id);
+    CREATE INDEX IF NOT EXISTS idx_system_settings_tenant ON system_settings(tenant_id);
+    CREATE INDEX IF NOT EXISTS idx_suppliers_tenant ON suppliers(tenant_id);
+    CREATE INDEX IF NOT EXISTS idx_delivery_fees_tenant ON delivery_fees_by_region(tenant_id);
+    CREATE INDEX IF NOT EXISTS idx_purchases_tenant ON purchases(tenant_id);
+    CREATE INDEX IF NOT EXISTS idx_daily_settlements_tenant ON daily_settlements(tenant_id);
+    CREATE INDEX IF NOT EXISTS idx_point_transactions_tenant ON point_transactions(tenant_id);
+    CREATE INDEX IF NOT EXISTS idx_partners_tenant ON partners(tenant_id);
+    CREATE INDEX IF NOT EXISTS idx_external_orders_sender ON external_orders(sender_tenant_id);
+    CREATE INDEX IF NOT EXISTS idx_external_orders_receiver ON external_orders(receiver_tenant_id);
+    CREATE INDEX IF NOT EXISTS idx_order_transfers_order_branch ON order_transfers(order_branch_id);
+    CREATE INDEX IF NOT EXISTS idx_order_transfers_process_branch ON order_transfers(process_branch_id);
+  `);
+
   console.log("Local SQLite database initialized at", dbPath);
   return db;
 }

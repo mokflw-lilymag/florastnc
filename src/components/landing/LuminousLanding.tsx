@@ -1,14 +1,16 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, Globe, Terminal, Smartphone, FlaskConical, Send, Loader2, CheckCircle2, Mail, Cpu, Monitor, Github } from 'lucide-react';
+import { Menu, X, Globe, Terminal, Smartphone, FlaskConical, Send, Loader2, CheckCircle2, Mail, Cpu, Monitor, Github, LayoutDashboard } from 'lucide-react';
 import Image from 'next/image';
 import { AppLocale, LOCALE_COOKIE, localizePath, resolveLocale, SUPPORTED_LOCALES, toBaseLocale } from '@/i18n/config';
 import { LANDING_LOCALE_SELECT_OPTIONS, resolveLandingSelectLocale } from '@/i18n/ui-locale-options';
 import { getMessages } from "@/i18n/getMessages";
 import { pickUiText } from "@/i18n/pick-ui-text";
+import { createClient } from '@/utils/supabase/client';
+import { isElectronClient } from '@/lib/electron-env';
 
 const SUPPORT_EMAIL = "admin@floxync.com";
 
@@ -99,6 +101,14 @@ function buildMailtoBody(
 export function LuminousLanding({ locale = 'ko' }: { locale?: AppLocale }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [uiLocale, setUiLocale] = useState<AppLocale>(locale || 'ko');
+  const [hasSession, setHasSession] = useState(false);
+
+  useEffect(() => {
+    const supabase = createClient();
+    void supabase.auth.getSession().then(({ data: { session } }) => {
+      setHasSession(!!session);
+    });
+  }, []);
 
   const handleLocaleChange = (nextLocale: AppLocale) => {
     setUiLocale(nextLocale);
@@ -117,6 +127,8 @@ export function LuminousLanding({ locale = 'ko' }: { locale?: AppLocale }) {
   const selectLocale = resolveLandingSelectLocale(uiLocale);
   const homeHref = localizePath(uiLocale, '/');
   const loginHref = localizePath(uiLocale, '/login');
+  const dashboardHref = localizePath(uiLocale, '/dashboard');
+  const showWorkHome = isElectronClient() || hasSession;
 
   // Test User Application Form States
   const t = getMessages(uiLocale).landing.testApply;
@@ -145,6 +157,45 @@ export function LuminousLanding({ locale = 'ko' }: { locale?: AppLocale }) {
     "Tarifs",
     "Preise",
     "Цены",
+  );
+
+  const scaleNavLabel = L(
+    "다매장·수발주",
+    "Multi-store & partners",
+    "Đa cửa hàng & đối tác",
+    "多店舗・会員発注",
+    "多店与会员发单",
+    "Multi-tienda y socios",
+    "Multi-loja e parceiros",
+    "Multi-magasins & partenaires",
+    "Multi-Filiale & Partner",
+    "Сеть магазинов",
+  );
+
+  const summaryMultiStore = L(
+    "다매장 관리",
+    "Multi-store HQ",
+    "Quản lý đa cửa hàng",
+    "多店舗管理",
+    "多店管理",
+    "Multi-tienda",
+    "Multi-loja",
+    "Multi-magasins",
+    "Multi-Filiale",
+    "Сеть магазинов",
+  );
+
+  const summaryPartnerOrders = L(
+    "회원사 수발주",
+    "Partner orders",
+    "Đơn hàng đối tác",
+    "会員店受発注",
+    "会员店收发单",
+    "Pedidos entre socios",
+    "Pedidos entre parceiros",
+    "Commandes partenaires",
+    "Partner-Bestellungen",
+    "Заказы партнёров",
   );
 
   const [fullName, setFullName] = useState("");
@@ -311,6 +362,7 @@ export function LuminousLanding({ locale = 'ko' }: { locale?: AppLocale }) {
           <div className="hidden md:flex gap-8 items-center">
             <a className="text-sm font-semibold text-[#3e4946] hover:text-[#006b5c] transition-colors" href="#features-summary">주요 기능</a>
             <a className="text-sm font-semibold text-[#3e4946] hover:text-[#006b5c] transition-colors" href="#feature-ribbon">리본 솔루션</a>
+            <a className="text-sm font-semibold text-[#3e4946] hover:text-[#006b5c] transition-colors" href="#feature-scale">{scaleNavLabel}</a>
             <a className="text-sm font-semibold text-[#3e4946] hover:text-[#006b5c] transition-colors" href="#details">플랫폼 안내</a>
             <a className="text-sm font-semibold text-[#3e4946] hover:text-[#006b5c] transition-colors" href="#testimonials">후기</a>
             <Link className="text-sm font-semibold text-[#3e4946] hover:text-[#006b5c] transition-colors" href="/docs/manual">사용 설명서</Link>
@@ -337,9 +389,16 @@ export function LuminousLanding({ locale = 'ko' }: { locale?: AppLocale }) {
             <Link href={loginHref} className="text-sm font-semibold text-[#006b5c] hover:bg-[#006b5c]/5 px-4 py-2 rounded-full transition-all">
               로그인
             </Link>
-            <Link href={loginHref} className="bg-[#006b5c] text-white text-sm font-bold px-6 py-2.5 rounded-full shadow-lg shadow-[#006b5c]/20 hover:scale-105 active:scale-95 transition-all">
-              시작하기
-            </Link>
+            {showWorkHome ? (
+              <Link href={dashboardHref} className="inline-flex items-center gap-2 bg-emerald-600 text-white text-sm font-bold px-6 py-2.5 rounded-full shadow-lg shadow-emerald-600/20 hover:scale-105 active:scale-95 transition-all">
+                <LayoutDashboard className="h-4 w-4" aria-hidden />
+                대시보드
+              </Link>
+            ) : (
+              <Link href={loginHref} className="bg-[#006b5c] text-white text-sm font-bold px-6 py-2.5 rounded-full shadow-lg shadow-[#006b5c]/20 hover:scale-105 active:scale-95 transition-all">
+                시작하기
+              </Link>
+            )}
 
             <button className="md:hidden p-2 text-[#1b1c1b]" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
               {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
@@ -360,6 +419,7 @@ export function LuminousLanding({ locale = 'ko' }: { locale?: AppLocale }) {
             <div className="px-6 py-8 flex flex-col gap-5">
               <a className="text-lg font-bold text-[#1b1c1b]" href="#features-summary" onClick={() => setMobileMenuOpen(false)}>주요 기능</a>
               <a className="text-lg font-bold text-[#1b1c1b]" href="#feature-ribbon" onClick={() => setMobileMenuOpen(false)}>리본 솔루션</a>
+              <a className="text-lg font-bold text-[#1b1c1b]" href="#feature-scale" onClick={() => setMobileMenuOpen(false)}>{scaleNavLabel}</a>
               <a className="text-lg font-bold text-[#1b1c1b]" href="#details" onClick={() => setMobileMenuOpen(false)}>플랫폼 안내</a>
               <a className="text-lg font-bold text-[#1b1c1b]" href="#testimonials" onClick={() => setMobileMenuOpen(false)}>후기</a>
               <Link className="text-lg font-bold text-[#1b1c1b]" href="/docs/manual" onClick={() => setMobileMenuOpen(false)}>사용 설명서</Link>
@@ -368,9 +428,15 @@ export function LuminousLanding({ locale = 'ko' }: { locale?: AppLocale }) {
                 <Link href={loginHref} className="py-4 text-center font-bold text-[#3e4946] border border-[#bdc9c5]/30 rounded-full bg-white flex items-center justify-center gap-2">
                   <Smartphone size={18} /> 모바일 앱
                 </Link>
-                <Link href={loginHref} className="py-4 text-center font-bold bg-[#006b5c] text-white rounded-full">
-                  대시보드 시작
-                </Link>
+                {showWorkHome ? (
+                  <Link href={dashboardHref} className="py-4 text-center font-bold bg-emerald-600 text-white rounded-full flex items-center justify-center gap-2">
+                    <LayoutDashboard size={18} /> 대시보드
+                  </Link>
+                ) : (
+                  <Link href={loginHref} className="py-4 text-center font-bold bg-[#006b5c] text-white rounded-full">
+                    대시보드 시작
+                  </Link>
+                )}
               </div>
             </div>
           </motion.div>
@@ -394,9 +460,16 @@ export function LuminousLanding({ locale = 'ko' }: { locale?: AppLocale }) {
                 이제 번거로운 서류 작업은 저에게 맡기시고, 사장님은 예쁜 꽃들에만 집중하세요!
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                <Link href={loginHref} className="bg-[#006b5c] text-white font-bold text-center px-8 py-4 rounded-full shadow-xl shadow-[#006b5c]/20 hover:shadow-2xl transition-all">
-                  지금 무료로 시작하기
-                </Link>
+                {showWorkHome ? (
+                  <Link href={dashboardHref} className="inline-flex items-center justify-center gap-2 bg-emerald-600 text-white font-bold text-center px-8 py-4 rounded-full shadow-xl shadow-emerald-600/20 hover:shadow-2xl transition-all">
+                    <LayoutDashboard className="h-5 w-5" aria-hidden />
+                    대시보드으로 이동
+                  </Link>
+                ) : (
+                  <Link href={loginHref} className="bg-[#006b5c] text-white font-bold text-center px-8 py-4 rounded-full shadow-xl shadow-[#006b5c]/20 hover:shadow-2xl transition-all">
+                    지금 무료로 시작하기
+                  </Link>
+                )}
                 <a 
                   className="bg-white/70 border border-[#bdc9c5]/30 backdrop-blur-md text-[#1b1c1b] font-bold px-8 py-4 rounded-full flex items-center justify-center gap-2 hover:bg-white transition-all" 
                   href="#features-summary"
@@ -440,7 +513,7 @@ export function LuminousLanding({ locale = 'ko' }: { locale?: AppLocale }) {
               <h2 className="text-3xl lg:text-4xl font-extrabold mb-4 text-[#1b1c1b]">복잡한 일은 제가 다 할게요,<br />사장님은 꽃만 생각하세요</h2>
               <p className="text-base text-[#3e4946]">원하시는 기능을 클릭하시면 상세 안내로 이동합니다.</p>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <a className="bg-white/70 border border-[#006b5c]/20 backdrop-blur-md p-6 rounded-3xl flex flex-col items-center text-center gap-3 hover:bg-[#86e3ce]/10 transition-all duration-300" href="#feature-automation">
                 <span className="material-symbols-outlined text-[#006b5c] text-3xl">auto_mode</span>
                 <span className="text-sm font-bold text-[#1b1c1b]">원스톱 자동화</span>
@@ -464,6 +537,14 @@ export function LuminousLanding({ locale = 'ko' }: { locale?: AppLocale }) {
               <a className="bg-white/70 border border-pink-400/20 backdrop-blur-md p-6 rounded-3xl flex flex-col items-center text-center gap-3 hover:bg-pink-50 transition-all duration-300" href="#feature-notification">
                 <span className="material-symbols-outlined text-pink-600 text-3xl">notifications_active</span>
                 <span className="text-sm font-bold text-[#1b1c1b]">타이밍 알림</span>
+              </a>
+              <a className="bg-white/70 border border-violet-400/20 backdrop-blur-md p-6 rounded-3xl flex flex-col items-center text-center gap-3 hover:bg-violet-50 transition-all duration-300" href="#feature-multi-store">
+                <span className="material-symbols-outlined text-violet-600 text-3xl">corporate_fare</span>
+                <span className="text-sm font-bold text-[#1b1c1b]">{summaryMultiStore}</span>
+              </a>
+              <a className="bg-white/70 border border-teal-400/20 backdrop-blur-md p-6 rounded-3xl flex flex-col items-center text-center gap-3 hover:bg-teal-50 transition-all duration-300" href="#feature-partner-network">
+                <span className="material-symbols-outlined text-teal-600 text-3xl">hub</span>
+                <span className="text-sm font-bold text-[#1b1c1b]">{summaryPartnerOrders}</span>
               </a>
             </div>
           </div>
@@ -668,6 +749,129 @@ export function LuminousLanding({ locale = 'ko' }: { locale?: AppLocale }) {
                   <div className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-pink-600 animate-bounce">notifications</span>
                     <span className="text-xs font-bold text-pink-600">제작 시작 시간입니다!</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* 7. 확장 운영 — 다매장 & 회원사 수발주 */}
+          <section className="py-24 bg-white scroll-mt-28" id="feature-scale">
+            <div className="max-w-7xl mx-auto px-6">
+              <div className="text-center mb-16">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-100 text-violet-800 text-xs font-bold mb-4">
+                  {L("확장 운영", "Scale your shop", "Mở rộng vận hành", "拡張運営", "扩展运营", "Escala tu negocio", "Expanda sua loja", "Faites évoluer votre activité", "Skalierung", "Масштабирование")}
+                </div>
+                <h2 className="text-3xl lg:text-4xl font-extrabold mb-4 text-[#1b1c1b]">
+                  {L(
+                    "여러 지점도, 전국 꽃집 네트워크도",
+                    "Multi-store HQ & partner network",
+                    "Nhiều chi nhánh & mạng đối tác",
+                    "多店舗も、全国ネットワークも",
+                    "多门店与全国花店网络",
+                    "Multi-tienda y red nacional",
+                    "Multi-loja e rede nacional",
+                    "Multi-magasins & réseau national",
+                    "Multi-Filiale & Partnernetz",
+                    "Сеть филиалов и партнёров",
+                  )}
+                </h2>
+                <p className="text-base text-[#3e4946] max-w-2xl mx-auto">
+                  {L(
+                    "한 매장을 넘어 커지는 사장님을 위해 — 본사·지점 통합과 회원사 간 발주·수주를 한 흐름으로.",
+                    "For growing shops — HQ branch oversight and partner order handoffs in one flow.",
+                  )}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-10">
+                {/* 다매장 관리 */}
+                <div
+                  id="feature-multi-store"
+                  className="scroll-mt-28 rounded-[32px] border border-violet-200/60 bg-gradient-to-br from-violet-50/80 to-white p-8 lg:p-10 shadow-sm"
+                >
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-12 h-12 rounded-2xl bg-violet-600 text-white flex items-center justify-center shadow-lg shadow-violet-600/20">
+                      <span className="material-symbols-outlined text-[28px]">corporate_fare</span>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-violet-600 mb-0.5">
+                        {L("본사·다매장", "HQ & branches", "Trụ sở & chi nhánh", "本社・多店舗")}
+                      </p>
+                      <h3 className="text-xl lg:text-2xl font-extrabold text-[#1b1c1b]">{summaryMultiStore}</h3>
+                    </div>
+                  </div>
+                  <p className="text-sm lg:text-base text-[#3e4946] mb-6 leading-relaxed">
+                    {L(
+                      "여러 지점을 운영하시나요? 본사에서는 지점 매출·이관·정산을 한눈에, 각 지점에서는 평소처럼 주문만 받으시면 됩니다.",
+                      "Run multiple branches? HQ sees sales, transfers, and settlements — each branch keeps taking orders as usual.",
+                    )}
+                  </p>
+                  <ul className="space-y-3 mb-8">
+                    {[
+                      L("지점 간 주문 이관 — 수주 팝업 & 수락 시 주문서·인수증 자동 출력", "Branch order transfers — popup on receive, auto print on accept"),
+                      L("본사 대시보드 — 지점별 실적·지출·자재 요청 취합", "HQ dashboard — per-branch performance, expenses, material requests"),
+                      L("공동 상품·본사 게시판으로 지점 운영 표준화", "Shared products & HQ board to standardize branches"),
+                    ].map((line) => (
+                      <li key={line} className="flex items-start gap-2.5 text-sm text-[#1b1c1b]">
+                        <span className="material-symbols-outlined text-violet-600 text-[18px] mt-0.5 shrink-0">check_circle</span>
+                        {line}
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="rounded-2xl border border-violet-100 bg-white/80 p-4 flex items-start gap-3">
+                    <span className="material-symbols-outlined text-violet-600">store</span>
+                    <p className="text-xs text-[#3e4946] leading-relaxed">
+                      {L(
+                        "같은 조직(본사) 소속 지점끼리 주문 제작·배송을 나눠 맡길 때 사용합니다.",
+                        "For branches under the same organization sharing production and delivery.",
+                      )}
+                    </p>
+                  </div>
+                </div>
+
+                {/* 회원사간 수발주 */}
+                <div
+                  id="feature-partner-network"
+                  className="scroll-mt-28 rounded-[32px] border border-teal-200/60 bg-gradient-to-br from-teal-50/80 to-white p-8 lg:p-10 shadow-sm"
+                >
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-12 h-12 rounded-2xl bg-teal-600 text-white flex items-center justify-center shadow-lg shadow-teal-600/20">
+                      <span className="material-symbols-outlined text-[28px]">hub</span>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-teal-600 mb-0.5">
+                        {L("전국 네트워크", "Partner network", "Mạng đối tác", "全国ネットワーク")}
+                      </p>
+                      <h3 className="text-xl lg:text-2xl font-extrabold text-[#1b1c1b]">{summaryPartnerOrders}</h3>
+                    </div>
+                  </div>
+                  <p className="text-sm lg:text-base text-[#3e4946] mb-6 leading-relaxed">
+                    {L(
+                      "멀리 있는 배송·제작은 수주 등록 꽃집에 맡기세요. 발주하면 수주점 플로싱크 데스크탑에 실시간 알림, 수락 시 주문서·마스킹 인수증이 자동 출력됩니다.",
+                      "Hand off distant orders to partner shops. They get a real-time alert on the FloXync desktop app; accept prints order form + masked receipt.",
+                    )}
+                  </p>
+                  <ul className="space-y-3 mb-8">
+                    {[
+                      L("발주점 → 수주점 실시간 수주 요청 (팝업·알림음)", "Ordering shop → real-time partner alert (popup & sound)"),
+                      L("수락 & 인쇄 — 발주점 정보 주문서 + 고객 마스킹 인수증", "Accept & print — sender on order form, masked customer receipt"),
+                      L("수주함·발주함에서 이력 관리", "Received & sent history"),
+                    ].map((line) => (
+                      <li key={line} className="flex items-start gap-2.5 text-sm text-[#1b1c1b]">
+                        <span className="material-symbols-outlined text-teal-600 text-[18px] mt-0.5 shrink-0">check_circle</span>
+                        {line}
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="rounded-2xl border border-teal-100 bg-white/80 p-4 flex items-start gap-3">
+                    <span className="material-symbols-outlined text-teal-600">public</span>
+                    <p className="text-xs text-[#3e4946] leading-relaxed">
+                      {L(
+                        "서로 다른 가입 꽃집(회원사) 간 위탁 발주·수주입니다. 플랫폼은 중개 도구이며 대금 정산은 매장 간 직거래입니다.",
+                        "Between independent member shops — FloXync is the handoff tool; payment is between shops.",
+                      )}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -1211,6 +1415,8 @@ export function LuminousLanding({ locale = 'ko' }: { locale?: AppLocale }) {
                     <li><Link href={`${homeHref}#feature-automation`} className="text-[#3e4946] hover:text-[#006b5c] transition-colors flex items-center gap-2 group"><Monitor size={14} className="opacity-50 group-hover:opacity-100" /> {getMessages(uiLocale).landing.footer.coreEngine}</Link></li>
                     <li><Link href={`${homeHref}#feature-connection`} className="text-[#3e4946] hover:text-[#006b5c] transition-colors flex items-center gap-2 group"><Terminal size={14} className="opacity-50 group-hover:opacity-100" /> {getMessages(uiLocale).landing.footer.aiModules}</Link></li>
                     <li><Link href={`${homeHref}#feature-ribbon`} className="text-[#665590] font-bold hover:text-[#006b5c] transition-colors flex items-center gap-2 group"><Cpu size={14} className="animate-pulse" /> {getMessages(uiLocale).landing.footer.printBridge}</Link></li>
+                    <li><Link href={`${homeHref}#feature-multi-store`} className="text-[#3e4946] hover:text-[#006b5c] transition-colors flex items-center gap-2 group"><Monitor size={14} className="opacity-50 group-hover:opacity-100" /> {summaryMultiStore}</Link></li>
+                    <li><Link href={`${homeHref}#feature-partner-network`} className="text-[#3e4946] hover:text-[#006b5c] transition-colors flex items-center gap-2 group"><Terminal size={14} className="opacity-50 group-hover:opacity-100" /> {summaryPartnerOrders}</Link></li>
                   </ul>
                 </div>
                 <div>
@@ -1262,6 +1468,9 @@ export function LuminousLanding({ locale = 'ko' }: { locale?: AppLocale }) {
           </a>
           <a href="#feature-ribbon" className="w-8 h-8 rounded-full bg-[#efedec] text-[#3e4946] flex items-center justify-center text-xs font-bold hover:bg-[#006b5c] hover:text-white transition-all" title="리본 솔루션">
             3
+          </a>
+          <a href="#feature-scale" className="w-8 h-8 rounded-full bg-[#efedec] text-[#3e4946] flex items-center justify-center text-xs font-bold hover:bg-[#006b5c] hover:text-white transition-all" title={scaleNavLabel}>
+            7
           </a>
           <a href="#test-user-apply" className="w-8 h-8 rounded-full bg-[#86e3ce] text-[#006657] flex items-center justify-center text-[10px] font-black hover:bg-[#006b5c] hover:text-white transition-all" title="베타 신청">
             Apply

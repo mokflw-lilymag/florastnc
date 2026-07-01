@@ -4,7 +4,8 @@
   "private": true,
   "main": "electron/main.js",
   "scripts": {
-    "electron:dev": "electron .",
+    "electron:dev": "concurrently -k -n next,electron -c blue,green \"npm run dev\" \"wait-on http://127.0.0.1:3000 && electron .\"",
+    "electron:only": "electron .",
     "electron:build": "node electron-build.js",
     "dev": "next dev",
     "build": "next build",

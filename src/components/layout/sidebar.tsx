@@ -7,7 +7,7 @@ import type { LucideIcon } from "lucide-react";
 import { 
   Printer, ScrollText, Users, Store, 
   Settings, LayoutDashboard, ShieldCheck,
-  CreditCard, Boxes, Truck, BarChart3, Monitor,
+  CreditCard, Boxes, Truck, BarChart3,
   Zap, ArrowRight, Gem, Share2, FileText, PlusCircle, LogOut, ShoppingCart, Layout,
   Building2,
   Megaphone,
@@ -299,6 +299,11 @@ export function Sidebar({
     hint: t.sidebar.hints.hq,
     links: [
       { name: t.sidebar.links.hqOverview, href: "/dashboard/hq", icon: Building2 },
+      {
+        name: pickUiText(baseLocale, "본사 담당자 관리", "HQ team", "Quản lý đội HQ", "本部担当者管理"),
+        href: "/dashboard/hq/team",
+        icon: Users,
+      },
       { name: pickUiText(baseLocale, "다매장 수발주 정산", "HQ Order Transfers", "Báo cáo điều chuyển"), href: "/dashboard/hq/transfers", icon: RefreshCw },
       { 
         name: pickUiText(baseLocale, "공동상품/자재/카테고리관리", "Shared Products/Materials/Categories", "Quản lý sản phẩm/vật liệu/danh mục chung"), 
@@ -341,7 +346,7 @@ export function Sidebar({
               },
             ] as NavLinkItem[])
           : []),
-        // 3순위: 지점 수발주 내역 (조직이 있을 때만)
+        // 지점 주문이관 — 조직(본사·다매장) 소속만 사이드바 노출
         ...(showOrgBoardLink
           ? ([
               {
@@ -352,7 +357,6 @@ export function Sidebar({
               },
             ] as NavLinkItem[])
           : []),
-        
         {
           name: mobileStoreLabel,
           href: "/dashboard/mobile/pickup",
@@ -369,16 +373,6 @@ export function Sidebar({
         },
         { name: t.sidebar.links.delivery, href: "/dashboard/delivery", icon: Truck, tier: [...ERP_NAV_TIERS] },
         { name: t.sidebar.links.crm, href: "/dashboard/customers", icon: Users, tier: [...ERP_NAV_TIERS] },
-        ...(partnerOrdersEnabled || isSuperAdmin
-          ? ([
-              {
-                name: t.sidebar.links.externalOrders,
-                href: "/dashboard/external-orders",
-                icon: Share2,
-                tier: [...ERP_NAV_TIERS],
-              },
-            ] as NavLinkItem[])
-          : []),
         { name: t.sidebar.links.products, href: "/dashboard/products", icon: Boxes, tier: [...ERP_NAV_TIERS] },
         { name: t.sidebar.links.inventory, href: "/dashboard/inventory", icon: Boxes, tier: [...ERP_NAV_TIERS] },
         { name: t.sidebar.links.suppliers, href: "/dashboard/suppliers", icon: Store, tier: [...ERP_NAV_TIERS] },
@@ -402,8 +396,7 @@ export function Sidebar({
       label: t.sidebar.groups.tenantStore,
       hint: t.sidebar.hints.tenantStore,
       links: [
-        { name: t.sidebar.links.pos, href: "/dashboard/settings/pos", icon: Monitor, tier: ["pro_plus", "pro", "light"] },
-        { name: t.sidebar.links.settings, href: "/dashboard/settings", icon: Settings, activeExcludePrefix: "/dashboard/settings/pos" },
+        { name: t.sidebar.links.settings, href: "/dashboard/settings", icon: Settings },
         { name: t.sidebar.links.subscription, href: "/dashboard/subscription", icon: Gem },
       ],
     },

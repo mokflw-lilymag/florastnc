@@ -24,9 +24,13 @@ import { getMessages } from '@/i18n/getMessages';
 import { toBaseLocale } from "@/i18n/config";
 import { pickUiText } from "@/i18n/pick-ui-text";
 import { loginWithPassword } from "@/app/login/actions";
+import { isElectronClient } from "@/lib/electron-env";
+import { useRouter } from "next/navigation";
+import { localizePath } from "@/i18n/config";
 
 export default function LoginPage() {
   const supabase = createClient();
+  const router = useRouter();
   const locale = usePreferredLocale();
   const L = getMessages(locale).login;
   const baseLocale = toBaseLocale(locale);
@@ -101,6 +105,14 @@ export default function LoginPage() {
   }, []);
 
   useEffect(() => {
+    void supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        router.replace(localizePath(locale, "/dashboard"));
+      }
+    });
+  }, [locale, router]);
+
+  useEffect(() => {
     const saved = localStorage.getItem('floxync_saved_email');
     if (saved) {
       setEmail(saved);
@@ -172,34 +184,73 @@ export default function LoginPage() {
   };
 
 
+  const finishLoginRedirect = () => {
+    if (rememberEmail) {
+      localStorage.setItem("floxync_saved_email", email);
+    } else {
+      localStorage.removeItem("floxync_saved_email");
+    }
+    toast.success(L.toastWelcome, { description: L.toastWelcomeDesc });
+    window.location.replace("/auth/enter");
+  };
+
+  const loginErrorMessage = (message: string) => {
+    if (message.includes("Email not confirmed")) return L.errEmailNotConfirmed;
+    if (message === "Invalid login credentials") return L.errInvalidCreds;
+    return L.errInvalidCreds;
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
+      if (isElectronClient()) {
+        const trimmedEmail = email.trim();
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: trimmedEmail,
+          password,
+        });
+
+        if (error || !data.session) {
+          toast.error(L.errLoginFailed, {
+            description: loginErrorMessage(error?.message ?? "session_not_persisted"),
+          });
+          setLoading(false);
+          return;
+        }
+
+        const syncRes = await fetch(`${window.location.origin}/auth/sync`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            access_token: data.session.access_token,
+            refresh_token: data.session.refresh_token,
+          }),
+        });
+        const syncBody = (await syncRes.json()) as { ok?: boolean; message?: string };
+        if (!syncRes.ok || !syncBody.ok) {
+          toast.error(L.errLoginFailed, {
+            description: loginErrorMessage(syncBody.message ?? "session_not_persisted"),
+          });
+          setLoading(false);
+          return;
+        }
+
+        finishLoginRedirect();
+        return;
+      }
+
       const result = await loginWithPassword(email, password);
 
       if (!result.ok) {
-        let errorMessage = L.errInvalidCreds;
-        if (result.message.includes("Email not confirmed")) {
-          errorMessage = L.errEmailNotConfirmed;
-        } else if (result.message === "Invalid login credentials") {
-          errorMessage = L.errInvalidCreds;
-        }
-        toast.error(L.errLoginFailed, { description: errorMessage });
+        toast.error(L.errLoginFailed, { description: loginErrorMessage(result.message) });
         setLoading(false);
         return;
       }
 
-      if (rememberEmail) {
-        localStorage.setItem('floxync_saved_email', email);
-      } else {
-        localStorage.removeItem('floxync_saved_email');
-      }
-
-      toast.success(L.toastWelcome, { description: L.toastWelcomeDesc });
-      // Route Handler 302 → dashboard (RSC redirect 대신 전체 문서 이동)
-      window.location.replace("/auth/enter");
+      finishLoginRedirect();
     } catch (error: unknown) {
       console.error("Login error details:", error);
       toast.error(L.errLoginFailed, { description: L.errInvalidCreds });

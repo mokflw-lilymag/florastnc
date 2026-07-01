@@ -5,7 +5,6 @@ import { CreditCard, Settings as SettingsIcon, CheckCircle2, AlertCircle, Loader
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
@@ -98,11 +97,20 @@ export function PosIntegrationCard({ posIntegration, isLoading }: PosIntegration
             </p>
           )}
         </div>
-        <Link href="/dashboard/settings/pos">
-          <Button size="sm" variant="outline" className="gap-2 rounded-xl border-orange-200 text-orange-600 hover:bg-orange-50">
-            <SettingsIcon className="h-3 w-3" /> {tf.f01340}
-          </Button>
-        </Link>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled
+          className="gap-2 rounded-xl border-slate-200 text-slate-400 cursor-not-allowed"
+        >
+          <SettingsIcon className="h-3 w-3" /> {tf.f01340}
+          <Badge
+            variant="secondary"
+            className="ml-1 bg-slate-100 text-slate-500 font-bold text-[9px] border-none shadow-none"
+          >
+            {tr("준비중", "Coming soon")}
+          </Badge>
+        </Button>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -38,6 +38,7 @@ const OrderEditDialog = dynamic(() => import("./components/order-edit-dialog").t
 const MessagePrintDialog = dynamic(() => import("./components/message-print-dialog").then(mod => mod.MessagePrintDialog), { ssr: false });
 const OrderOutsourceDialog = dynamic(() => import("./components/order-outsource-dialog").then(mod => mod.OrderOutsourceDialog), { ssr: false });
 const OrderTransferDialog = dynamic(() => import("./components/order-transfer-dialog").then(mod => mod.OrderTransferDialog), { ssr: false });
+const PartnerOrderPlaceDialog = dynamic(() => import("./components/partner-order-place-dialog").then(mod => mod.PartnerOrderPlaceDialog), { ssr: false });
 const OrderExcelUploadDialog = dynamic(() => import("./components/excel-upload-dialog").then(mod => mod.OrderExcelUploadDialog), { ssr: false });
 
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
@@ -75,6 +76,7 @@ export default function OrdersPage() {
   const supabase = createClient();
   const { settings } = useSettings();
   const [hasActiveShopIntegration, setHasActiveShopIntegration] = useState(false);
+  const [hasOrgBranchTransfer, setHasOrgBranchTransfer] = useState(false);
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
   const baseLocale = toBaseLocale(locale);
@@ -212,6 +214,20 @@ export default function OrdersPage() {
       }
     };
     checkShopIntegrations();
+  }, [tenantId, supabase, isErpTrial]);
+
+  useEffect(() => {
+    if (isErpTrial || !tenantId) {
+      setHasOrgBranchTransfer(false);
+      return;
+    }
+    void supabase
+      .from("tenants")
+      .select("organization_id")
+      .eq("id", tenantId)
+      .maybeSingle()
+      .then(({ data }) => setHasOrgBranchTransfer(!!data?.organization_id))
+      .catch(() => setHasOrgBranchTransfer(false));
   }, [tenantId, supabase, isErpTrial]);
 
   useEffect(() => {
@@ -747,6 +763,16 @@ export default function OrdersPage() {
         className={touchUi ? "max-lg:mb-4" : undefined}
       >
         <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto mt-4 lg:mt-0 px-0 lg:px-0">
+          <Button
+            variant="outline"
+            asChild
+            className="flex-1 lg:flex-none h-11 lg:h-12 px-6 rounded-2xl border-2 border-blue-100 bg-blue-50/30 hover:bg-blue-50 font-bold transition-all shadow-sm gap-2 whitespace-nowrap text-blue-900"
+          >
+            <Link href="/dashboard/orders/partner-orders">
+              <Globe className="h-4 w-4 text-blue-600" />
+              <span>회원사 수발주</span>
+            </Link>
+          </Button>
           <Button 
             variant="outline" 
             onClick={() => router.push('/dashboard/orders/daily-settlement')}
@@ -1216,14 +1242,16 @@ export default function OrdersPage() {
  
                                  <DropdownMenuSeparator className="mx-1 bg-gray-50" />
                                  <DropdownMenuGroup>
+                                    {hasOrgBranchTransfer ? (
                                     <DropdownMenuItem className="rounded-xl gap-2 font-bold py-3 px-4 focus:bg-slate-50" onClick={(e) => handleTransferClick(order, e)}>
                                       <Building2 className="h-4 w-4 text-indigo-500" /> 지점 이관 요청
                                     </DropdownMenuItem>
+                                    ) : null}
                                     <DropdownMenuItem className="rounded-xl gap-2 font-bold py-3 px-4 focus:bg-slate-50" onClick={(e) => handleOutsourceClick(order, e)}>
                                      <Share2 className="h-4 w-4" /> {tf.f00476}
                                    </DropdownMenuItem>
                                    <DropdownMenuItem className="rounded-xl gap-2 font-bold py-3 px-4 focus:bg-slate-50 text-blue-700 focus:text-blue-800 cursor-pointer" onClick={(e) => handlePartnerTransferClick(order, e)}>
-                                     <Globe className="h-4 w-4 text-blue-600 animate-pulse" /> 회원사 수발주
+                                     <Globe className="h-4 w-4 text-blue-600" /> 회원사 수발주 발주
                                    </DropdownMenuItem>
                                  </DropdownMenuGroup>
                                  
@@ -1414,17 +1442,16 @@ export default function OrdersPage() {
                                 </DropdownMenuSub>
  
                                 <DropdownMenuSeparator className="mx-1 bg-gray-50" />
+                                {hasOrgBranchTransfer ? (
                                 <DropdownMenuItem className="rounded-xl gap-2 font-bold py-2.5 px-3 focus:bg-slate-50" onClick={(e) => { e.stopPropagation(); handleTransferClick(order, e as any); }}>
                                   <Building2 className="h-4 w-4 text-indigo-500" /> 지점 이관 요청
                                 </DropdownMenuItem>
+                                ) : null}
                                 <DropdownMenuItem className="rounded-xl gap-2 font-bold py-2.5 px-3 focus:bg-slate-50" onClick={(e) => { e.stopPropagation(); handleOutsourceClick(order, e as any); }}>
                                   <Share2 className="h-4 w-4 text-slate-500" /> {tf.f00476}
                                 </DropdownMenuItem>
                                  <DropdownMenuItem className="rounded-xl gap-2 font-bold py-2.5 px-3 focus:bg-slate-50 text-blue-700 focus:text-blue-800 cursor-pointer" onClick={(e) => { e.stopPropagation(); handlePartnerTransferClick(order, e as any); }}>
-                                   <Globe className="h-4 w-4 text-blue-600 animate-pulse" /> 회원사 수발주
-                                 </DropdownMenuItem>
-                                 <DropdownMenuItem className="rounded-xl gap-2 font-bold py-2.5 px-3 focus:bg-slate-50 text-blue-700 focus:text-blue-800 cursor-pointer" onClick={(e) => { e.stopPropagation(); handlePartnerTransferClick(order, e as any); }}>
-                                   <Globe className="h-4 w-4 text-blue-600 animate-pulse" /> 회원사 수발주
+                                   <Globe className="h-4 w-4 text-blue-600" /> 회원사 수발주 발주
                                  </DropdownMenuItem>
                                 
                                 <DropdownMenuSeparator className="mx-1 bg-gray-50" />
@@ -1641,167 +1668,12 @@ export default function OrdersPage() {
         onComplete={refreshOrders}
       />
 
-      {/* 회원사 수발주 위탁 처리 다이얼로그 */}
-      <Dialog open={isPartnerTransferOpen} onOpenChange={setIsPartnerTransferOpen}>
-        <DialogContent className="sm:max-w-[520px] rounded-3xl p-6 border-none shadow-2xl bg-white max-h-[90vh] overflow-y-auto">
-          <DialogHeader className="pb-4 border-b border-slate-100">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl">
-                <Globe className="h-6 w-6 animate-pulse" />
-              </div>
-              <div className="space-y-0.5">
-                <DialogTitle className="text-base font-bold text-slate-900">
-                  회원사 수발주 위탁 처리
-                </DialogTitle>
-                <p className="text-xs text-slate-400 font-medium">
-                  다른 수주점 회원사 사장님들에게 주문 제작 및 배송을 위탁합니다.
-                </p>
-              </div>
-            </div>
-          </DialogHeader>
-
-          {selectedOrderForPartner && (
-            <div className="space-y-5 py-4 text-xs">
-              {/* 위탁할 주문 정보 요약 */}
-              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100/80 space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-slate-500 font-medium">주문 상품:</span>
-                  <span className="font-bold text-slate-900">
-                    {selectedOrderForPartner.items[0]?.name} {selectedOrderForPartner.items.length > 1 ? `외 ${selectedOrderForPartner.items.length - 1}건` : ""}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500 font-medium">위탁 주문 금액:</span>
-                  <span className="font-extrabold text-blue-600 text-sm">
-                    ₩{(selectedOrderForPartner.summary?.total || 0).toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500 font-medium">배송 희망일:</span>
-                  <span className="font-bold text-slate-900">
-                    {selectedOrderForPartner.delivery_info?.date || selectedOrderForPartner.pickup_info?.date || "—"}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500 font-medium">배송지 주소:</span>
-                  <span className="font-bold text-slate-900 text-right max-w-[240px] truncate">
-                    {selectedOrderForPartner.delivery_info?.address || "매장 픽업 주문"}
-                  </span>
-                </div>
-              </div>
-
-              {/* 기본 정산 및 면책 배너 */}
-              <div className="p-4 rounded-2xl bg-blue-50/50 border border-blue-100 space-y-2 text-blue-800 leading-relaxed">
-                <div className="flex gap-2 items-start">
-                  <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-extrabold text-[11px] block">회원사 수발주 20% / 80% 정산 규약</span>
-                    <p className="text-[10px] text-blue-600 font-medium mt-0.5">
-                      본 수발주 거래는 플랫폼 표준 협약에 따라 **발주 지점 20% (₩{Math.round((selectedOrderForPartner.summary?.total || 0) * 0.2).toLocaleString()})** / **수주 지점 80% (₩{Math.round((selectedOrderForPartner.summary?.total || 0) * 0.8).toLocaleString()})** 로 정산이 약정됩니다.
-                    </p>
-                  </div>
-                </div>
-                <p className="text-[9px] text-red-500 font-semibold border-t border-blue-100/50 pt-2 flex gap-1 items-start">
-                  <span>⚠️</span> 면책 고지: 회원사 간의 직거래 중개용 주소록이며, 플로싱크는 대금 정산 및 거래 불이행 등에 대해 어떠한 대리 및 법적 책임도 부담하지 않습니다.
-                </p>
-              </div>
-
-              {/* 수주 가능 전국 회원사 주소록 */}
-              <div className="space-y-2.5">
-                <Label className="text-xs font-bold text-slate-700 block">수주 가입 꽃집 사장님 연락처 (발주 위탁처)</Label>
-                <div className="border border-slate-100 rounded-2xl overflow-hidden max-h-[220px] overflow-y-auto bg-white">
-                  <table className="w-full text-left text-xs border-collapse">
-                    <thead>
-                      <tr className="bg-slate-50 text-slate-400 font-bold border-b border-slate-100">
-                        <th className="p-3 w-[15%]">국가</th>
-                        <th className="p-3 w-[35%] font-bold">꽃집명</th>
-                        <th className="p-3 w-[25%]">수주 지역</th>
-                        <th className="p-3 w-[25%]">연락처</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {/* 수주점 불러와 렌더링 (실데이터) */}
-                      {(() => {
-                        const [partners, setPartners] = React.useState<any[]>([]);
-                        const [loading, setLoading] = React.useState(false);
-                        React.useEffect(() => {
-                          const loadPartners = async () => {
-                            setLoading(true);
-                            const { data, error } = await supabase
-                              .from("tenants")
-                              .select("id, name, country, partner_region, contact_phone")
-                              .eq("can_receive_orders", true)
-                              .neq("id", tenantId);
-                            if (data && !error) setPartners(data);
-                            setLoading(false);
-                          };
-                          loadPartners();
-                        }, []);
-
-                        if (loading) {
-                          return (
-                            <tr>
-                              <td colSpan={4} className="p-4 text-center text-slate-400">
-                                <Loader2 className="h-4 w-4 animate-spin mx-auto" />
-                              </td>
-                            </tr>
-                          );
-                        }
-
-                        if (partners.length === 0) {
-                          return (
-                            <tr>
-                              <td colSpan={4} className="p-6 text-center text-slate-400 font-medium">
-                                현재 등록된 외부 수주 회원사가 없습니다.
-                              </td>
-                            </tr>
-                          );
-                        }
-
-                        return partners.map(p => {
-                          const flagMap: Record<string, string> = {
-                            KR: "🇰🇷", VN: "🇻🇳", JP: "🇯🇵", US: "🇺🇸"
-                          };
-                          const flag = flagMap[p.country || "KR"] || "🇰🇷";
-                          return (
-                            <tr key={p.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors font-medium">
-                              <td className="p-3 text-sm select-none">{flag} {p.country || "KR"}</td>
-                              <td className="p-3 text-slate-900 font-bold">{p.name}</td>
-                              <td className="p-3 text-slate-500">{p.partner_region || "전지역"}</td>
-                              <td className="p-3">
-                                {p.contact_phone ? (
-                                  <a href={`tel:${p.contact_phone}`} className="text-blue-600 hover:underline font-bold select-all">
-                                    {p.contact_phone}
-                                  </a>
-                                ) : (
-                                  <span className="text-slate-400 font-normal">—</span>
-                                )}
-                              </td>
-                            </tr>
-                          );
-                        });
-                      })()}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              <div className="pt-2 text-[10px] text-slate-400 font-light leading-normal bg-slate-50 p-3 rounded-xl border border-dashed">
-                💡 **수발주 팁**: 원하는 지역을 맡고 있는 꽃집 사장님의 연락처를 터치(클릭)하여 전화를 하신 후, **"플로싱크 20%/80% 정산 규약으로 위탁 발주 진행하겠습니다"** 하고 거래를 조율하십시오!
-              </div>
-
-              <DialogFooter className="border-t border-slate-100 pt-4 flex gap-2">
-                <Button 
-                  onClick={() => setIsPartnerTransferOpen(false)}
-                  className="w-full h-11 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl transition-all"
-                >
-                  확인 완료
-                </Button>
-              </DialogFooter>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <PartnerOrderPlaceDialog
+        isOpen={isPartnerTransferOpen}
+        onOpenChange={setIsPartnerTransferOpen}
+        order={selectedOrderForPartner}
+        onSuccess={refreshOrders}
+      />
 
     </div>
   );

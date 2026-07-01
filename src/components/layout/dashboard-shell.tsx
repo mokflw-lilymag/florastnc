@@ -9,7 +9,10 @@ import { logError } from "@/lib/errorLogger";
 import { MobilePrintPoller } from "@/components/desktop/mobile-print-poller";
 import { DeliveryPrepReminder } from "@/app/dashboard/orders/components/delivery-prep-reminder";
 import { ExternalOrdersAlertProvider } from "@/components/desktop/external-orders-alert-provider";
+import { ElectronTitleBar } from "@/components/desktop/electron-title-bar";
 import { TenantLocaleSync } from "@/components/providers/tenant-locale-sync";
+import { DashboardStoreNameProvider } from "@/components/providers/dashboard-tenant-context";
+import { toast } from "sonner";
 
 type DashboardShellProps = {
   children: ReactNode;
@@ -18,6 +21,8 @@ type DashboardShellProps = {
   footer?: ReactNode;
   serverIsSuperAdmin?: boolean;
   tenantId?: string | null;
+  /** 헤더와 동일 — 서버에서 확정한 매장 표시명 */
+  storeDisplayName?: string | null;
 };
 
 async function startElectronSync(tenantId: string) {
@@ -48,19 +53,16 @@ export function DashboardShell({
   footer,
   serverIsSuperAdmin = false,
   tenantId,
+  storeDisplayName,
 }: DashboardShellProps) {
   const pathname = usePathname() ?? "";
   const isMobileWorkspace = pathname.startsWith("/dashboard/mobile");
   const isBarePrintDocument = isBarePrintDocumentPath(pathname);
 
-  const [isElectron, setIsElectron] = useState(false);
-  const [syncHint, setSyncHint] = useState<string | null>(null);
-
   useEffect(() => {
     if (typeof window === "undefined" || !(window as Window & { electronAPI?: unknown }).electronAPI) {
       return;
     }
-    setIsElectron(true);
 
     if (!tenantId) {
       void applyElectronSyncScope(null);
@@ -88,10 +90,8 @@ export function DashboardShell({
 
     const unsub = api?.onLocalSyncStatus?.((status) => {
       if (status.lastError) {
-        setSyncHint("동기화 오류 — 네트워크를 확인해 주세요");
+        toast.error("동기화 오류 — 네트워크를 확인해 주세요");
         void logError("Electron sync failed", new Error(status.lastError), "electron-sync");
-      } else if (status.lastSyncAt) {
-        setSyncHint(null);
       }
     });
 
@@ -108,41 +108,32 @@ export function DashboardShell({
   }, [tenantId]);
 
   if (isBarePrintDocument) {
-    return <div className="min-h-screen bg-white">{children}</div>;
+    return (
+      <DashboardStoreNameProvider storeName={storeDisplayName}>
+        <div className="min-h-screen bg-white">{children}</div>
+      </DashboardStoreNameProvider>
+    );
   }
 
   if (isMobileWorkspace) {
     return (
-      <div className="flex h-[100dvh] flex-col overflow-hidden bg-slate-50 dark:bg-slate-950">
-        <TenantLocaleSync />
-        {children}
-      </div>
+      <DashboardStoreNameProvider storeName={storeDisplayName}>
+        <div className="flex h-[100dvh] flex-col overflow-hidden bg-slate-50 dark:bg-slate-950">
+          <TenantLocaleSync />
+          {children}
+        </div>
+      </DashboardStoreNameProvider>
     );
   }
 
   return (
+    <DashboardStoreNameProvider storeName={storeDisplayName}>
     <div className="flex flex-col h-screen overflow-hidden">
       <TenantLocaleSync />
       <DeliveryPrepReminder />
       <ExternalOrdersAlertProvider />
       <MobilePrintPoller />
-      {isElectron && (
-        <div
-          className="shrink-0 h-10 w-full bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 select-none z-[9999]"
-          style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
-        >
-          <span className="text-xs font-bold text-slate-500 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            Floxync Desktop
-            <span className="text-[10px] font-normal text-slate-400">· 로컬 DB 우선 · Realtime 절약</span>
-          </span>
-          {syncHint ? (
-            <span className="text-[10px] text-amber-600" style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}>
-              {syncHint}
-            </span>
-          ) : null}
-        </div>
-      )}
+      <ElectronTitleBar />
       <div className="flex flex-1 overflow-hidden bg-slate-50 dark:bg-slate-950">
         {sidebar}
         <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -152,5 +143,6 @@ export function DashboardShell({
         </div>
       </div>
     </div>
+    </DashboardStoreNameProvider>
   );
 }

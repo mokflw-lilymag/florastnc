@@ -12,6 +12,8 @@ import {
   errAdminServerMisconfigured,
   errAdminUnauthorized,
 } from "@/lib/admin/admin-api-errors";
+import { loadOrgDelegateSnapshot } from "@/lib/hq/org-delegate-members";
+import { pickUiText } from "@/i18n/pick-ui-text";
 
 async function assertSuperAdmin(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -61,6 +63,40 @@ export async function POST(req: Request) {
   }
 
   if (action === "add") {
+    const snapshot = await loadOrgDelegateSnapshot(admin, organizationId);
+    const targetLower = (targetProfile.email ?? email).toLowerCase();
+    if (snapshot?.hqRepEmails.includes(targetLower)) {
+      return NextResponse.json(
+        {
+          error: pickUiText(
+            bl,
+            "대표 본사 지점 점주는 자동 연동됩니다.",
+            "HQ branch manager is linked automatically.",
+          ),
+        },
+        { status: 400 },
+      );
+    }
+    const already = snapshot?.members.some((m) => m.userId === targetProfile.id);
+    if (already) {
+      return NextResponse.json(
+        { error: pickUiText(bl, "이미 본사 사용자입니다.", "Already an HQ user.") },
+        { status: 400 },
+      );
+    }
+    if (snapshot && !snapshot.canAddDelegate) {
+      return NextResponse.json(
+        {
+          error: pickUiText(
+            bl,
+            `추가 담당자는 최대 ${snapshot.delegateSlotMax}명입니다. 본사 화면에서 기존 담당자를 삭제한 뒤 시도하세요.`,
+            `At most ${snapshot.delegateSlotMax} delegate allowed.`,
+          ),
+        },
+        { status: 400 },
+      );
+    }
+
     const { error: insErr } = await admin.from("organization_members").insert({
       organization_id: organizationId,
       user_id: targetProfile.id,

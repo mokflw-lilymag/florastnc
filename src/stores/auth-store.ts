@@ -18,6 +18,61 @@ import {
 
 let authListenerRegistered = false;
 
+const TENANT_PROFILE_SELECT =
+  "plan, name, logo_url, contact_phone, address, subscription_end, subscription_start, status" as const;
+
+async function enrichTenantProfile(
+  supabase: ReturnType<typeof createClient>,
+  tenantId: string | null | undefined,
+  tenantsInfo: Record<string, unknown> | null,
+): Promise<Record<string, unknown> | null> {
+  if (!tenantId) return tenantsInfo;
+  const existingName = typeof tenantsInfo?.name === "string" ? tenantsInfo.name.trim() : "";
+  if (existingName) return tenantsInfo;
+
+  const { data: tenantRow } = await supabase
+    .from("tenants")
+    .select(TENANT_PROFILE_SELECT)
+    .eq("id", tenantId)
+    .maybeSingle();
+
+  if (tenantRow?.name?.trim()) {
+    return { ...(tenantsInfo || {}), ...tenantRow };
+  }
+
+  const { data: settingsRow } = await supabase
+    .from("system_settings")
+    .select("data")
+    .eq("id", `settings_${tenantId}`)
+    .maybeSingle();
+
+  const rawData = settingsRow?.data;
+  const siteName =
+    rawData && typeof rawData === "object" && "siteName" in rawData
+      ? String((rawData as Record<string, unknown>).siteName ?? "").trim()
+      : "";
+
+  if (!siteName) return tenantsInfo;
+  return { ...(tenantsInfo || {}), name: siteName };
+}
+
+async function enrichCachedProfileTenant(set: (partial: Partial<AuthState>) => void, get: () => AuthState) {
+  const profile = get().profile;
+  const tid = profile?.org_work_tenant_id ?? profile?.tenant_id;
+  if (!tid || profile?.tenants?.name) return;
+
+  try {
+    const supabase = createClient();
+    const enriched = await enrichTenantProfile(supabase, tid, profile.tenants ?? null);
+    if (!enriched?.name) return;
+    const merged = { ...profile, tenants: enriched };
+    set({ profile: merged });
+    persistAuthCache(get().user, merged, get().tenantId, get().isSuperAdmin, get().isOrphaned);
+  } catch {
+    /* offline — cached profile 유지 */
+  }
+}
+
 function registerAuthOfflineListener() {
   if (authListenerRegistered || typeof window === "undefined") return;
   authListenerRegistered = true;
@@ -142,8 +197,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   initialize: async (force = false) => {
     if (get()._guestTrial && !force) return;
-    // 이미 초기화 완료 → 스킵 (강제 갱신 제외)
-    if (get()._initialized && !force) return;
+    // 이미 초기화 완료 → 스킵 (강제 갱신 제외). 단 tenants.name 이 비어 있으면 보강 시도.
+    if (get()._initialized && !force) {
+      void enrichCachedProfileTenant(set, get);
+      return;
+    }
     
     // 이미 진행 중인 fetch가 있으면 그걸 기다림 (중복 방지)
     const existing = get()._fetchPromise;
@@ -164,6 +222,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             return;
           }
           if (shouldUseOfflineAuthBypass() && applyCachedAuth(set)) {
+            void enrichCachedProfileTenant(set, get);
             return;
           }
           set({ isLoading: false, _initialized: true, _fetchPromise: null, isSuperAdmin: false });
@@ -219,6 +278,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               .maybeSingle();
             if (workTenant) tenantsInfo = workTenant;
           }
+          tenantsInfo = await enrichTenantProfile(supabase, effectiveTenantId, tenantsInfo);
           const merged = { ...data, tenants: tenantsInfo };
           
           // Check for orphaned profiles (non-admins with no tenant_id) — org_admin 은 본사 전용 계정 허용
@@ -243,6 +303,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         console.error("Error fetching user session:", error);
         const msg = error instanceof Error ? error.message : String(error);
         if (isOfflineAuthError(msg) && shouldUseOfflineAuthBypass() && applyCachedAuth(set)) {
+          void enrichCachedProfileTenant(set, get);
           return;
         }
       } finally {

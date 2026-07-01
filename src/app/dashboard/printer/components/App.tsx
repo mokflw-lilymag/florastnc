@@ -321,7 +321,7 @@ const DEFAULT_PHRASE_CATEGORIES = [
   {
     name: '🎉 환갑/칠순/팔순/행사',
     phrases: [
-      { text: '祝生日', desc: '축생일' }, { text: '祝생辰', desc: '축생신' }, { text: '祝華甲', desc: '축화갑(60)' },
+      { text: '祝生日', desc: '축생일' }, { text: '祝生辰', desc: '축생신' }, { text: '祝華甲', desc: '축화갑(60)' },
       { text: '祝壽宴', desc: '축수연(60)' }, { text: '祝回甲', desc: '축회갑(60)' }, { text: '祝古稀', desc: '축고희(70)' },
       { text: '祝七旬', desc: '축칠순(70)' }, { text: '祝喜壽', desc: '축희수(77)' }, { text: '祝八旬', desc: '축팔순(80)' },
       { text: '祝傘壽', desc: '축산수(80)' }, { text: '祝米壽', desc: '축미수(88)' }, { text: '祝白壽', desc: '축백수(99)' },
@@ -1029,17 +1029,19 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
 
   const loadPrinters = async () => {
     try {
-      const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI;
       let newPrinters: any[] = [];
-      
-      if (isElectron) {
-        const electronPrinters = await (window as any).electronAPI.getPrinters();
-        newPrinters = electronPrinters.map((name: string) => ({ name }));
-      } else {
+
+      try {
         const res = await fetch('http://127.0.0.1:8002/api/printers', { signal: AbortSignal.timeout(5000) });
         const data = await res.json();
         if (data.status === 'success' && Array.isArray(data.data)) {
           newPrinters = data.data;
+        }
+      } catch {
+        const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI;
+        if (isElectron) {
+          const electronPrinters = await (window as any).electronAPI.getPrinters();
+          newPrinters = electronPrinters.map((name: string) => ({ name }));
         }
       }
       
@@ -1151,7 +1153,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
     return fillDashboardTemplate(R.previewHeading, { target });
   }, [R, printTarget, printLayout]);
   const [mediaType, setMediaType] = useState<'roll' | 'cut'>('cut');
-  const [cuttingMargin, setCuttingMargin] = useState(50); // 커팅 여유분 (mm), 기본 5cm = 50mm
+  const [cuttingMargin, setCuttingMargin] = useState(20); // 커팅 여유분 (mm), Xprinter 기본 20mm
   const [printQuality, setPrintQuality] = useState<'fast' | 'high'>('high');
 
   const connectedPrintRef = useRef<HTMLDivElement>(null);
@@ -1563,22 +1565,8 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
 
         console.log(`[Print] 🚀 Sending ${jobLabel}: printer=${selectedPrinter}, segments=${images.length}, margin=${marginOffset}mm, width=${w}mm, length=${h}mm`);
 
-        // 로컬 브릿지 인쇄 시도
+        // 웹·윈도우앱 동일: Ribbon Bridge(8002) GDI 엔진 사용
         try {
-          const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI;
-          if (isElectron) {
-             await (window as any).electronAPI.printImage({
-              printerName: selectedPrinter,
-              images: images,
-              width_mm: w,
-              length_mm: h,
-              margin_offset_mm: (RIBBON_SPECS.find(r => r.id === ribbonType)?.marginOffset || 0) + marginOffset,
-              offset_x_mm: 0
-            });
-            console.log(`[Print] ✅ Local print success (native electron)`);
-            return;
-          }
-
           const controller = new AbortController();
           const timeout = setTimeout(() => controller.abort(), 60000); // 60s timeout
           
@@ -2102,7 +2090,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
                <option value="fast">⚡ {R.fastPrint}</option>
                <option value="high">💎 {R.highQuality}</option>
              </select>
-             {mediaType === 'roll' ? (
+             {mediaType === 'roll' || selectedPrinterType === 'xprinter' ? (
                <select 
                  value={cuttingMargin} 
                  onChange={e => setCuttingMargin(Number(e.target.value))}
@@ -2276,7 +2264,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
         </div>
 
         {/* Tip / Manual Button */}
-        <div className="mt-4 mb-2 w-full select-none">
+        <div className="mt-4 mb-10 w-full select-none">
           <button
             onClick={() => setIsManualOpen(true)}
             className="w-full flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 px-4 rounded-xl shadow-md border border-slate-700 transition-all hover:scale-[1.01] active:scale-[0.99]"
@@ -2284,26 +2272,6 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
             <BookOpen size={18} />
             {R.beginnerManual}
           </button>
-        </div>
-
-        {/* Customer Support / QA */}
-        <div className="mb-10 w-full select-none">
-          <div className="bg-white border border-slate-200 p-3.5 rounded-xl border-l-4 border-l-blue-600 flex flex-col gap-1 shadow-sm">
-            <h3 className="text-xs font-bold text-slate-800 flex items-center gap-1.5 mb-1">
-              🎧 {R.supportTitle}
-            </h3>
-            <p className="text-[10px] text-slate-600">{R.supportBody}</p>
-            <div className="flex flex-col gap-1 mt-1 text-[11px] font-mono text-slate-800 bg-slate-50 border border-slate-100 p-2 rounded-lg">
-              <div className="flex justify-between items-center">
-                <span>📞 {R.phoneLabel}:</span>
-                <span className="text-blue-700 font-bold">1588-0000</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span>💬 {R.kakaoLabel}:</span>
-                <span className="text-amber-800 font-bold cursor-pointer hover:underline">@ribbonprint</span>
-              </div>
-            </div>
-          </div>
         </div>
       </aside>
 
@@ -2971,12 +2939,6 @@ function PrintQueueMonitor({ isOpen, onClose }: { isOpen: boolean; onClose: () =
 
   const fetchQueue = async () => {
     try {
-      const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI;
-      if (isElectron) {
-        const electronQueue = await (window as any).electronAPI.getQueue();
-        setQueue(electronQueue);
-        return;
-      }
       const res = await fetch('http://127.0.0.1:8002/api/queue');
       const data = await res.json();
       if (data.status === 'success') setQueue(data.data);
@@ -2995,24 +2957,14 @@ function PrintQueueMonitor({ isOpen, onClose }: { isOpen: boolean; onClose: () =
 
   const handleRetry = async (id: string) => {
     try {
-      const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI;
-      if (isElectron) {
-        await (window as any).electronAPI.retryJob(id);
-      } else {
-        await fetch(`http://127.0.0.1:8002/api/queue/retry/${id}`, { method: 'POST' });
-      }
+      await fetch(`http://127.0.0.1:8002/api/queue/retry/${id}`, { method: 'POST' });
       fetchQueue();
     } catch (e) { toast.error(Rq.retryFailed); }
   };
 
   const handleDelete = async (id: string) => {
     try {
-      const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI;
-      if (isElectron) {
-        await (window as any).electronAPI.deleteJob(id);
-      } else {
-        await fetch(`http://127.0.0.1:8002/api/queue/${id}`, { method: 'DELETE' });
-      }
+      await fetch(`http://127.0.0.1:8002/api/queue/${id}`, { method: 'DELETE' });
       fetchQueue();
     } catch (e) { toast.error(Rq.deleteFailed); }
   };

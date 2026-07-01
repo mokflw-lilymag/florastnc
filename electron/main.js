@@ -41,8 +41,10 @@ function resolveAppIconPath() {
 }
 
 const EMBEDDED_PORT = 9003;
+const DEV_PORT = Number(process.env.PORT) || 3000;
 let embeddedServerProcess = null;
 let embeddedServerStartPromise = null;
+let embeddedBridgeHandle = null;
 
 function getStandaloneServerPath() {
   const fromResources = path.join(process.resourcesPath, 'next-standalone', 'server.js');
@@ -155,27 +157,88 @@ function waitForEmbeddedServer(maxMs = 90000) {
   });
 }
 
-function showLoadErrorPage(errMsg) {
+function showLoadErrorPage(errMsg, options = {}) {
   if (!mainWindow || mainWindow.isDestroyed()) return;
   const esc = String(errMsg)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
+  const retryUrl = options.retryUrl || `http://127.0.0.1:${EMBEDDED_PORT}/`;
   const logHint = path.join(app.getPath('userData'), 'embedded-server.log');
+  const devHint = isDev
+    ? '<li>터미널에서 <code>npm run electron:dev</code> 로 실행했는지 확인 (Next.js + Electron 동시 실행)</li>'
+    : '';
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Floxync</title>
 <style>body{font-family:"Malgun Gothic",sans-serif;padding:2rem;max-width:560px;line-height:1.65}
 button{padding:10px 20px;font-size:15px;cursor:pointer;margin:8px 8px 0 0}</style></head><body>
 <h2>화면을 불러오지 못했습니다</h2><p>${esc}</p>
 <p><b>해결 방법</b></p><ol>
+${devHint}
 <li>트레이 아이콘 우클릭 → <b>화면 새로고침</b> (또는 F5)</li>
 <li>안 되면 <b>완전 종료</b> 후 앱 다시 실행</li>
 <li>작업 관리자에서 Floxync / node 가 남아 있으면 종료</li>
 </ol>
 <p style="font-size:12px;color:#555">로그: ${logHint}</p>
-<button type="button" onclick="location.href='http://127.0.0.1:${EMBEDDED_PORT}/'">다시 연결</button>
+<button type="button" onclick="location.href='${retryUrl}'">다시 연결</button>
 <p style="font-size:12px">서버 재시작은 F5 또는 트레이 → 화면 새로고침</p>
 </body></html>`;
   mainWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+}
+
+function waitForDevServer(maxMs = 120000) {
+  const deadline = Date.now() + maxMs;
+  return new Promise((resolve, reject) => {
+    const poll = () => {
+      if (Date.now() > deadline) {
+        reject(
+          new Error(
+            `Next.js 개발 서버가 응답하지 않습니다 (http://127.0.0.1:${DEV_PORT}).\n` +
+              '다른 터미널에서 npm run dev 를 실행하거나, npm run electron:dev 로 함께 실행하세요.'
+          )
+        );
+        return;
+      }
+      const http = require('http');
+      const req = http.get(`http://127.0.0.1:${DEV_PORT}/`, { timeout: 4000 }, (res) => {
+        res.resume();
+        if (res.statusCode && res.statusCode < 500) resolve();
+        else setTimeout(poll, 800);
+      });
+      req.on('error', () => setTimeout(poll, 800));
+      req.on('timeout', () => {
+        req.destroy();
+        setTimeout(poll, 800);
+      });
+    };
+    poll();
+  });
+}
+
+async function loadDevUi() {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  const devPath = process.env.ELECTRON_DEV_PATH || '/login';
+  const devUrl = `http://127.0.0.1:${DEV_PORT}${devPath}`;
+  try {
+    await waitForDevServer();
+    await mainWindow.loadURL(devUrl);
+  } catch (e) {
+    console.error('[DevServer]', e.message);
+    showLoadErrorPage(e.message, { retryUrl: devUrl });
+  }
+}
+
+/** F5·트레이 새로고침 — 현재 페이지 유지 (세션 쿠키 보존). 오류 페이지만 /login 재진입 */
+function reloadMainWindowPreserveSession() {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  const url = mainWindow.webContents.getURL();
+  const needsFullReload =
+    !url || url === 'about:blank' || url.startsWith('data:');
+  if (needsFullReload) {
+    if (isDev) void loadDevUi();
+    else void reloadPackagedUi();
+    return;
+  }
+  mainWindow.webContents.reload();
 }
 
 async function loadPackagedUi() {
@@ -221,18 +284,110 @@ function killProcessOnPort(port) {
   );
 }
 
-function stopExternalBridge() {
-  console.log('[Bridge] Stopping external PP (8004)...');
+/** PP(8004)만 종료 — Ribbon(8002)은 웹·앱 공통 엔진이므로 유지 */
+function stopExternalPpBridge() {
+  console.log('[Bridge] Stopping external PP (8004) for embedded server...');
   killProcessOnPort(8004);
 }
 
-/** @param {{ force?: boolean }} [options] force=true: 창만 닫고 트레이에 남을 때도 웹 브릿지 복구 */
-function restoreExternalBridge(options = {}) {
+function stopExternalBridge() {
+  stopExternalPpBridge();
+}
+
+async function isRibbonBridgeHealthy() {
+  try {
+    const res = await fetch('http://127.0.0.1:8002/', { signal: AbortSignal.timeout(3000) });
+    const data = await res.json();
+    return data.status === 'ok' || data.status === 'success';
+  } catch {
+    return false;
+  }
+}
+
+function startRibbonBridgeProcess() {
+  const ribbonLauncher = path.join(
+    process.env.LOCALAPPDATA || '',
+    'RibbonBridge',
+    'launch_service.exe'
+  );
+  if (fs.existsSync(ribbonLauncher)) {
+    return new Promise((resolve) => {
+      exec(
+        `"${ribbonLauncher}"`,
+        { windowsHide: true, cwd: path.dirname(ribbonLauncher) },
+        (err) => {
+          if (err) console.log('[Bridge] Ribbon (8002) launch_service failed:', err.message);
+          else console.log('[Bridge] Ribbon bridge (8002) started:', ribbonLauncher);
+          resolve(!err);
+        }
+      );
+    });
+  }
+
+  const startupFolder = path.join(
+    os.homedir(),
+    'AppData',
+    'Roaming',
+    'Microsoft',
+    'Windows',
+    'Start Menu',
+    'Programs',
+    'Startup'
+  );
+  try {
+    const entries = fs.readdirSync(startupFolder);
+    const ribbonStarter = entries.find(
+      (name) =>
+        /ribbon/i.test(name) &&
+        (name.endsWith('.vbs') || name.endsWith('.lnk') || name.endsWith('.bat'))
+    );
+    if (ribbonStarter) {
+      const fullPath = path.join(startupFolder, ribbonStarter);
+      return new Promise((resolve) => {
+        exec(`cmd /c start "" "${fullPath}"`, { windowsHide: true }, (err) => {
+          if (err) console.log('[Bridge] Ribbon (8002) start failed:', err.message);
+          else console.log('[Bridge] Ribbon bridge starter launched:', ribbonStarter);
+          resolve(!err);
+        });
+      });
+    }
+  } catch (e) {
+    console.log('[Bridge] Could not scan startup folder for Ribbon:', e.message);
+  }
+
+  console.log('[Bridge] Ribbon not found (no %LOCALAPPDATA%\\RibbonBridge\\launch_service.exe)');
+  return Promise.resolve(false);
+}
+
+/** 리본 인쇄(8002) — 웹 브라우저와 동일 엔진 보장 */
+async function ensureRibbonBridgeRunning() {
+  if (await isRibbonBridgeHealthy()) {
+    console.log('[Bridge] Ribbon (8002) already running');
+    return true;
+  }
+
+  console.log('[Bridge] Ribbon (8002) not responding — starting...');
+  await startRibbonBridgeProcess();
+
+  for (let i = 0; i < 8; i++) {
+    await new Promise((r) => setTimeout(r, 500));
+    if (await isRibbonBridgeHealthy()) {
+      console.log('[Bridge] Ribbon (8002) ready');
+      return true;
+    }
+  }
+
+  console.log('[Bridge] Ribbon (8002) still not responding after start attempt');
+  return false;
+}
+
+/** @param {{ force?: boolean }} [options] force=true: 창만 닫고 트레이에 남을 때도 웹용 PP 복구 */
+function restoreExternalPpBridge(options = {}) {
   if (!options.force && !app.isQuiting) {
-    console.log('[Bridge] Skip restore — Electron app still running');
+    console.log('[Bridge] Skip PP restore — Electron app still running');
     return;
   }
-  console.log('[Bridge] Restoring external PP bridge for web browser use...');
+  console.log('[Bridge] Restoring external PP (8004) for web browser use...');
 
   const ppVbs = path.join(app.getPath('appData'), 'floxyncBridge', 'ppbridge.vbs');
   if (fs.existsSync(ppVbs)) {
@@ -243,8 +398,44 @@ function restoreExternalBridge(options = {}) {
   } else {
     console.log('[Bridge] ppbridge.vbs not found:', ppVbs);
   }
-  
-  // 리본 브릿지(8002)는 윈도우앱 켜질 때 끄지 않으므로, 닫을 때 다시 살릴 필요가 없습니다.
+}
+
+function restoreExternalBridge(options = {}) {
+  restoreExternalPpBridge(options);
+  void ensureRibbonBridgeRunning();
+}
+
+async function stopEmbeddedBridgeServer() {
+  if (!embeddedBridgeHandle?.stop) return;
+  try {
+    await embeddedBridgeHandle.stop();
+  } catch (e) {
+    console.log('[Bridge] stop embedded failed:', e.message);
+  }
+  embeddedBridgeHandle = null;
+}
+
+async function startEmbeddedBridgeServer() {
+  if (embeddedBridgeHandle) return;
+  try {
+    const { createBridgeServer } = require('./bridgeServer');
+    embeddedBridgeHandle = createBridgeServer(8004);
+  } catch (e) {
+    console.log('[Bridge] createBridgeServer failed:', e.message);
+  }
+}
+
+/** 데스크톱 앱: 외부 PP(8004)만 끄고 내장 PP 사용, Ribbon(8002)은 웹과 동일 엔진 유지 */
+async function handoffToDesktopBridges() {
+  stopExternalPpBridge();
+  await ensureRibbonBridgeRunning();
+  await startEmbeddedBridgeServer();
+}
+
+/** 트레이/종료 시: 내장 PP 끄고 브라우저용 외부 PP(8004)만 복구 (Ribbon 8002는 계속 실행) */
+async function handoffToWebBridges() {
+  await stopEmbeddedBridgeServer();
+  restoreExternalPpBridge({ force: true });
 }
 
 // Windows 시작 프로그램 — 설정 UI에서 토글 (기본값: 패키지 최초 실행 시 true)
@@ -273,8 +464,7 @@ function createTray() {
     {
       label: '화면 새로고침',
       click: () => {
-        if (!isDev && mainWindow && !mainWindow.isDestroyed()) reloadPackagedUi();
-        else if (mainWindow && !mainWindow.isDestroyed()) mainWindow.reload();
+        if (mainWindow && !mainWindow.isDestroyed()) reloadMainWindowPreserveSession();
       },
     },
     { type: 'separator' },
@@ -291,9 +481,9 @@ function createTray() {
   tray.on('double-click', () => showMainWindow());
 }
 
-/** ERP 창을 열 때는 외부 8002/8004 끔 → Electron 인쇄·충돌 방지 */
+/** 창을 열 때 외부 PP(8004)만 끔 → 내장 PP + Ribbon(8002) 사용 */
 function showMainWindow() {
-  stopExternalBridge();
+  void handoffToDesktopBridges();
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.show();
     mainWindow.focus();
@@ -305,13 +495,15 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
-    title: 'Floxync',
+    title: 'Floxync Desktop',
+    autoHideMenuBar: true,
     titleBarStyle: 'hidden',
     titleBarOverlay: {
-      color: '#0A0F0D',
-      symbolColor: '#ffffff',
-      height: 40
+      color: '#f1f5f9',
+      symbolColor: '#64748b',
+      height: 32,
     },
+    ...(process.platform === 'win32' ? { roundedCorners: true } : {}),
     ...(iconPath ? { icon: iconPath } : {}),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -327,26 +519,32 @@ function createWindow() {
     }
     if (input.type === 'keyDown' && input.key === 'F5') {
       event.preventDefault();
-      if (isDev) mainWindow.reload();
-      else reloadPackagedUi();
+      reloadMainWindowPreserveSession();
     }
   });
 
   mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
-    if (isDev || !validatedURL || validatedURL.startsWith('data:')) return;
+    if (!validatedURL || validatedURL.startsWith('data:')) return;
     if (errorCode === -3) return;
+    if (isDev) {
+      showLoadErrorPage(`${errorDescription} (${errorCode})`, {
+        retryUrl: `http://127.0.0.1:${DEV_PORT}${process.env.ELECTRON_DEV_PATH || '/login'}`,
+      });
+      return;
+    }
     appendEmbeddedServerLog(`did-fail-load ${errorCode} ${errorDescription} ${validatedURL}`);
     showLoadErrorPage(`${errorDescription} (${errorCode})`);
   });
 
   mainWindow.setMenu(null);
 
-  // X = 트레이로 숨김 + 웹용 PP/Ribbon 브릿지(8004/8002) 다시 켬
+  // X = 트레이로 숨김 + 웹용 외부 PP(8004) 복구 (Ribbon 8002는 유지)
   mainWindow.on('close', function (event) {
     if (!app.isQuiting) {
       event.preventDefault();
-      restoreExternalBridge({ force: true });
-      mainWindow.hide();
+      void handoffToWebBridges().then(() => {
+        if (mainWindow && !mainWindow.isDestroyed()) mainWindow.hide();
+      });
     }
     return false;
   });
@@ -377,8 +575,7 @@ function createWindow() {
   });
 
   if (isDev) {
-    const devPath = process.env.ELECTRON_DEV_PATH || '/login';
-    mainWindow.loadURL(`http://localhost:3000${devPath}`);
+    void loadDevUi();
     // mainWindow.webContents.openDevTools(); // 주석 처리하여 자동으로 뜨지 않게 함
   } else {
     loadPackagedUi();
@@ -397,7 +594,7 @@ if (!gotTheLock) {
     }
   });
 
-  app.whenReady().then(() => {
+  app.whenReady().then(async () => {
     loadElectronEnv(app.getPath('userData'));
 
     // Windows 바탕화면 바로가기 자동 복구 (업데이트 후 깨진 링크 방어)
@@ -429,20 +626,12 @@ if (!gotTheLock) {
 
     try {
       const { ensureWebBridgesOnFirstRun } = require('./ensureBridges');
-      ensureWebBridgesOnFirstRun();
+      await ensureWebBridgesOnFirstRun();
     } catch (e) {
       console.log('[Bridge] ensureWebBridgesOnFirstRun skipped:', e.message);
     }
 
-    stopExternalBridge();
-    
-    // 내장 8004 브릿지 서버 시작
-    try {
-      const { createBridgeServer } = require('./bridgeServer');
-      createBridgeServer(8004);
-    } catch (e) {
-      console.log('[Bridge] createBridgeServer failed:', e.message);
-    }
+    await handoffToDesktopBridges();
 
     createWindow();
     
@@ -523,8 +712,11 @@ if (!gotTheLock) {
         }
         if (input.type === 'keyDown' && input.key === 'F5') {
           event.preventDefault();
-          if (isDev) window.reload();
-          else reloadPackagedUi();
+          if (window === mainWindow) {
+            reloadMainWindowPreserveSession();
+          } else {
+            window.webContents.reload();
+          }
         }
       });
     });
@@ -683,6 +875,7 @@ ipcMain.handle('clear-external-order-badge', async () => {
 
 app.on('will-quit', () => {
   stopEmbeddedServer();
+  void stopEmbeddedBridgeServer();
   restoreExternalBridge({ force: true });
 });
 
@@ -1169,6 +1362,7 @@ const executeJob = async (job) => {
       '--length', job.length.toString(),
       '--margin', job.margin.toString(),
       '--offset-x', job.xOffset.toString(),
+      '--cut-margin', (job.cutMargin || 0).toString(),
       '--image', ...job.tempFiles
     ];
 
@@ -1194,13 +1388,14 @@ ipcMain.handle('retry-job', async (event, id) => {
   return { status: 'success' };
 });
 
-ipcMain.handle('print-image', async (event, { printerName, images, width_mm, length_mm, margin_offset_mm, offset_x_mm }) => {
+ipcMain.handle('print-image', async (event, { printerName, images, width_mm, length_mm, margin_offset_mm, offset_x_mm, cutting_margin_mm }) => {
   return new Promise(async (resolve, reject) => {
     try {
       if (!printerName) return reject(new Error('설정된 프린터가 없습니다.'));
       
       const offset = margin_offset_mm || 0;
       const xOffset = offset_x_mm || 0;
+      const cutMargin = Number(cutting_margin_mm) || 0;
 
       const tempFilePaths = [];
       try {
@@ -1223,6 +1418,7 @@ ipcMain.handle('print-image', async (event, { printerName, images, width_mm, len
           length: length_mm,
           margin: offset,
           xOffset: xOffset,
+          cutMargin,
           tempFiles: tempFilePaths
         };
         printQueue.unshift(newJob);
@@ -1415,6 +1611,18 @@ ipcMain.handle('query-db', async (event, { table, astChain }) => {
         return colStr;
       };
 
+      const parseInList = (val) => {
+        if (Array.isArray(val)) return val;
+        if (typeof val === 'string') {
+          const inner = val.replace(/^\s*\(\s*/, '').replace(/\s*\)\s*$/, '');
+          return inner
+            .split(',')
+            .map((s) => s.trim().replace(/^"|"$/g, ''))
+            .filter(Boolean);
+        }
+        return [];
+      };
+
       if (method === 'select') {
         selectFields = args[0] || '*';
         if (args[1]?.count === 'exact') isCount = true;
@@ -1438,18 +1646,20 @@ ipcMain.handle('query-db', async (event, { table, astChain }) => {
         whereClauses.push(`${parseCol(args[0])} <= ?`);
         whereValues.push(args[1]);
       } else if (method === 'in') {
-        const placeholders = args[1].map(() => '?').join(',');
+        const inVals = parseInList(args[1]);
+        const placeholders = inVals.map(() => '?').join(',');
         whereClauses.push(`${parseCol(args[0])} IN (${placeholders})`);
-        whereValues.push(...args[1]);
+        whereValues.push(...inVals);
       } else if (method === 'not') {
         const [notCol, notOp, notVal] = args;
         if (notOp === 'eq') {
           whereClauses.push(`${parseCol(notCol)} != ?`);
           whereValues.push(notVal);
         } else if (notOp === 'in') {
-          const placeholders = notVal.map(() => '?').join(',');
+          const inVals = parseInList(notVal);
+          const placeholders = inVals.map(() => '?').join(',');
           whereClauses.push(`${parseCol(notCol)} NOT IN (${placeholders})`);
-          whereValues.push(...notVal);
+          whereValues.push(...inVals);
         }
       } else if (method === 'range') {
         rangeOffset = args[0];
@@ -1486,7 +1696,7 @@ ipcMain.handle('query-db', async (event, { table, astChain }) => {
             whereClauses.push(`(${orClauses.join(' OR ')})`);
         }
       } else if (method === 'order') {
-        const orderCol = args[0];
+        const orderCol = parseCol(args[0]);
         const isAsc = args[1]?.ascending !== false;
         orderByClause = `ORDER BY ${orderCol} ${isAsc ? 'ASC' : 'DESC'}`;
       } else if (method === 'limit') {

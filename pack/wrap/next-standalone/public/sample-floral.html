@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FloXync — 봄날 플로럴 컨셉</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700;900&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    ::selection {
+      background: rgba(163, 120, 95, 0.25);
+      color: #2d1f14;
+    }
+
+    :root {
+      --cream: #FDF8F3;
+      --ivory: #F5EFE6;
+      --rose: #C9856A;
+      --rose-light: #E8B4A0;
+      --sage: #6B8F71;
+      --sage-dark: #4A6B50;
+      --brown: #3D2B1F;
+      --warm-gray: #8B7355;
+      --text: #2C1810;
+      --text-sub: #7A6050;
+    }
+
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      background: var(--cream);
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    /* NAV */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 60px;
+      height: 72px;
+      background: rgba(253, 248, 243, 0.92);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(163, 120, 95, 0.12);
+    }
+    .logo {
+      font-family: 'Noto Serif KR', serif;
+      font-weight: 900;
+      font-size: 22px;
+      color: var(--sage-dark);
+      letter-spacing: -0.5px;
+    }
+    .logo span { color: var(--rose); }
+    .nav-links { display: flex; gap: 36px; list-style: none; }
+    .nav-links a {
+      text-decoration: none;
+      color: var(--text-sub);
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--sage-dark); }
+    .nav-cta {
+      display: flex; gap: 12px; align-items: center;
+    }
+    .btn-outline {
+      padding: 10px 24px;
+      border: 1.5px solid var(--sage);
+      border-radius: 100px;
+      color: var(--sage-dark);
+      font-size: 13px; font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .btn-outline:hover { background: var(--sage); color: #fff; }
+    .btn-primary {
+      padding: 10px 24px;
+      background: var(--sage-dark);
+      border-radius: 100px;
+      color: #fff;
+      font-size: 13px; font-weight: 700;
+      text-decoration: none;
+      transition: all 0.3s;
+    }
+    .btn-primary:hover { background: var(--rose); transform: translateY(-1px); box-shadow: 0 8px 24px rgba(201, 133, 106, 0.35); }
+
+    /* HERO */
+    .hero {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      align-items: center;
+      padding: 120px 60px 80px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-bg {
+      position: absolute; inset: 0; z-index: 0;
+      background: radial-gradient(ellipse at 70% 50%, rgba(232, 180, 160, 0.18) 0%, transparent 60%),
+                  radial-gradient(ellipse at 30% 80%, rgba(107, 143, 113, 0.12) 0%, transparent 50%);
+    }
+    .hero-left { position: relative; z-index: 1; }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 8px 18px;
+      background: rgba(201, 133, 106, 0.12);
+      border: 1px solid rgba(201, 133, 106, 0.3);
+      border-radius: 100px;
+      font-size: 12px; font-weight: 600;
+      color: var(--rose);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 32px;
+    }
+    .hero-badge::before { content: '🌸'; font-size: 14px; }
+    h1 {
+      font-family: 'Noto Serif KR', serif;
+      font-size: 64px;
+      font-weight: 900;
+      line-height: 1.1;
+      letter-spacing: -2px;
+      margin-bottom: 28px;
+      color: var(--text);
+    }
+    h1 .accent {
+      background: linear-gradient(135deg, #C9856A 0%, #A0522D 50%, #6B8F71 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    h1 .accent::selection,
+    h1 .accent *::selection {
+      -webkit-text-fill-color: var(--text);
+    }
+    .hero-sub {
+      font-size: 17px;
+      line-height: 1.8;
+      color: var(--text-sub);
+      max-width: 460px;
+      margin-bottom: 40px;
+      font-weight: 300;
+    }
+    .hero-ctas {
+      display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
+      margin-bottom: 56px;
+    }
+    .cta-main {
+      padding: 16px 36px;
+      background: linear-gradient(135deg, var(--sage-dark), var(--sage));
+      color: #fff;
+      border-radius: 100px;
+      font-size: 15px; font-weight: 700;
+      text-decoration: none;
+      transition: all 0.3s;
+      box-shadow: 0 4px 20px rgba(74, 107, 80, 0.3);
+    }
+    .cta-main:hover { transform: translateY(-2px); box-shadow: 0 12px 36px rgba(74, 107, 80, 0.4); }
+    .cta-sub {
+      padding: 16px 28px;
+      border: 1.5px solid rgba(163, 120, 95, 0.35);
+      border-radius: 100px;
+      color: var(--warm-gray);
+      font-size: 14px; font-weight: 600;
+      text-decoration: none;
+      transition: all 0.3s;
+    }
+    .cta-sub:hover { border-color: var(--rose); color: var(--rose); background: rgba(201, 133, 106, 0.05); }
+    .hero-trust {
+      display: flex; align-items: center; gap: 20px;
+    }
+    .trust-item {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; color: var(--text-sub);
+    }
+    .trust-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--sage); }
+
+    /* 꽃 일러스트 */
+    .hero-right {
+      position: relative; z-index: 1;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .floral-card {
+      width: 480px; height: 520px;
+      background: rgba(245, 239, 230, 0.6);
+      border: 1px solid rgba(201, 133, 106, 0.2);
+      border-radius: 40px;
+      position: relative;
+      overflow: hidden;
+      backdrop-filter: blur(10px);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 20px 80px rgba(163, 120, 95, 0.15), inset 0 1px 0 rgba(255,255,255,0.8);
+    }
+    .floral-emoji {
+      font-size: 120px;
+      filter: drop-shadow(0 8px 24px rgba(201, 133, 106, 0.3));
+    }
+    .chat-bubble {
+      position: absolute;
+      background: rgba(253, 248, 243, 0.96);
+      border: 1px solid rgba(201, 133, 106, 0.25);
+      border-radius: 16px;
+      padding: 14px 20px;
+      font-size: 13px; font-weight: 500;
+      color: var(--text);
+      box-shadow: 0 8px 32px rgba(163, 120, 95, 0.12);
+      max-width: 220px;
+      line-height: 1.6;
+    }
+    .chat-bubble::before {
+      content: '🌿';
+      font-size: 15px;
+      display: block;
+      margin-bottom: 4px;
+    }
+    .chat-bubble:nth-child(2) { top: 60px; left: -30px; transform: rotate(-3deg); }
+    .chat-bubble:nth-child(3) { bottom: 80px; right: -20px; transform: rotate(2deg); }
+    .chat-bubble:nth-child(4) { top: 50%; left: -50px; transform: translateY(-50%) rotate(-1deg); }
+
+    /* 디바이스 카드 */
+    .devices {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+      margin-top: 80px; padding: 0 60px 0;
+    }
+    .device-card {
+      background: rgba(245, 239, 230, 0.7);
+      border: 1px solid rgba(201, 133, 106, 0.2);
+      border-radius: 20px;
+      padding: 28px;
+      transition: all 0.3s;
+    }
+    .device-card:hover { transform: translateY(-4px); box-shadow: 0 16px 48px rgba(163, 120, 95, 0.15); border-color: rgba(201, 133, 106, 0.4); }
+    .device-icon { font-size: 28px; margin-bottom: 12px; }
+    .device-title { font-family: 'Noto Serif KR', serif; font-size: 16px; font-weight: 700; margin-bottom: 6px; color: var(--text); }
+    .device-desc { font-size: 13px; color: var(--text-sub); line-height: 1.6; }
+    .device-tag {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 4px 12px;
+      background: rgba(107, 143, 113, 0.12);
+      border-radius: 100px;
+      font-size: 11px; font-weight: 600;
+      color: var(--sage-dark);
+    }
+
+    /* FEATURES */
+    .features {
+      padding: 120px 60px;
+      background: var(--ivory);
+      margin-top: 60px;
+    }
+    .section-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 12px; font-weight: 700;
+      color: var(--rose);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+    .section-title {
+      font-family: 'Noto Serif KR', serif;
+      font-size: 42px; font-weight: 900;
+      line-height: 1.2; letter-spacing: -1px;
+      margin-bottom: 16px; color: var(--text);
+    }
+    .section-sub { font-size: 16px; color: var(--text-sub); line-height: 1.8; margin-bottom: 64px; }
+    .features-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;
+    }
+    .feature-card {
+      background: var(--cream);
+      border: 1px solid rgba(201, 133, 106, 0.18);
+      border-radius: 24px;
+      padding: 36px;
+      transition: all 0.3s;
+    }
+    .feature-card:hover { transform: translateY(-6px); box-shadow: 0 20px 60px rgba(163, 120, 95, 0.12); border-color: rgba(201, 133, 106, 0.35); }
+    .feature-icon {
+      width: 56px; height: 56px;
+      background: linear-gradient(135deg, rgba(201, 133, 106, 0.15), rgba(107, 143, 113, 0.15));
+      border-radius: 16px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+    .feature-title { font-family: 'Noto Serif KR', serif; font-size: 18px; font-weight: 700; margin-bottom: 10px; color: var(--text); }
+    .feature-desc { font-size: 14px; color: var(--text-sub); line-height: 1.8; }
+
+    /* CTA SECTION */
+    .cta-section {
+      padding: 120px 60px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      background: var(--cream);
+    }
+    .cta-bg {
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse at center, rgba(201, 133, 106, 0.1) 0%, transparent 70%);
+    }
+    .cta-section h2 {
+      font-family: 'Noto Serif KR', serif;
+      font-size: 48px; font-weight: 900;
+      letter-spacing: -1.5px; line-height: 1.2;
+      margin-bottom: 20px; position: relative;
+    }
+    .cta-section p { font-size: 17px; color: var(--text-sub); margin-bottom: 40px; line-height: 1.8; position: relative; }
+    .cta-buttons { display: flex; gap: 16px; justify-content: center; position: relative; }
+
+    /* FOOTER */
+    footer {
+      background: var(--brown);
+      color: rgba(255,255,255,0.7);
+      padding: 60px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .footer-logo { font-family: 'Noto Serif KR', serif; font-size: 20px; font-weight: 900; color: #fff; }
+    .footer-logo span { color: var(--rose-light); }
+    .footer-tagline { font-size: 13px; margin-top: 6px; opacity: 0.6; }
+    .footer-right { font-size: 12px; text-align: right; opacity: 0.5; }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <div class="logo">Flo<span>X</span>ync</div>
+    <ul class="nav-links">
+      <li><a href="#">기능 소개</a></li>
+      <li><a href="#">가격</a></li>
+      <li><a href="#">매뉴얼</a></li>
+    </ul>
+    <div class="nav-cta">
+      <a href="#" class="btn-outline">로그인</a>
+      <a href="#" class="btn-primary">무료 시작</a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-left">
+      <div class="hero-badge">꽃집 사장님 AI 비서 · 베타 무료</div>
+      <h1>
+        어마어마한<br />
+        <span class="accent">꽃집 비서가</span><br />
+        나타났다 🌸
+      </h1>
+      <p class="hero-sub">
+        주문 넣으면 알아서 인쇄하고,<br />
+        영수증 찍으면 알아서 장부 쓰고,<br />
+        폰·PC·웹 어디서든 꽃집 옆에 있는 AI 비서예요.
+      </p>
+      <div class="hero-ctas">
+        <a href="#" class="cta-main">무료로 시작하기 →</a>
+        <a href="#" class="cta-sub">🌿 베타 신청하기</a>
+      </div>
+      <div class="hero-trust">
+        <div class="trust-item"><div class="trust-dot"></div> 베타 기간 무료</div>
+        <div class="trust-item"><div class="trust-dot"></div> 신용카드 불필요</div>
+        <div class="trust-item"><div class="trust-dot"></div> 언제든 해지 가능</div>
+      </div>
+    </div>
+    <div class="hero-right">
+      <div class="floral-card">
+        <div class="floral-emoji">🌹</div>
+        <div class="chat-bubble">🌿 주문서·픽업증 알아서 인쇄해 둘게요.</div>
+        <div class="chat-bubble">🌿 영수증 찍으면 장부에 쌓아 둘게요.</div>
+        <div class="chat-bubble">🌿 오늘 마감도 한곳에서 볼 수 있어요.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 디바이스 카드 -->
+  <div class="devices">
+    <div class="device-card">
+      <div class="device-icon">📱</div>
+      <div class="device-title">폰으로 바로 접수</div>
+      <div class="device-desc">앱 설치 없이 폰 브라우저에서 바로 주문·픽업·배송 관리</div>
+      <span class="device-tag">모바일 웹</span>
+    </div>
+    <div class="device-card">
+      <div class="device-icon">🖥</div>
+      <div class="device-title">카운터 자동 인쇄</div>
+      <div class="device-desc">PC 켜 두면 주문서·리본·영수증이 자동으로 나와요</div>
+      <span class="device-tag">Windows v0.1.2</span>
+    </div>
+    <div class="device-card">
+      <div class="device-icon">🌐</div>
+      <div class="device-title">어디서든 웹으로</div>
+      <div class="device-desc">주문·배송·지출·마감을 브라우저 하나로 전부 관리</div>
+      <span class="device-tag">웹 대시보드</span>
+    </div>
+  </div>
+
+  <!-- FEATURES -->
+  <section class="features">
+    <div class="section-badge">✦ 비서가 하는 일</div>
+    <h2 class="section-title">사장님이 꽃 만드는 동안<br />비서가 하나씩 해 드릴게요.</h2>
+    <p class="section-sub">FloXync AI 비서가 뒤에서 조용히 일하고 있어요.</p>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🖨️</div>
+        <div class="feature-title">자동 인쇄 비서</div>
+        <div class="feature-desc">주문이 들어오면 주문서·픽업증·인수증이 카운터 프린터에서 자동으로 나와요.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🎀</div>
+        <div class="feature-title">리본 글씨 제작</div>
+        <div class="feature-desc">리본 문구를 만들어서 감열 프린터로 바로 뽑아 드릴게요.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📸</div>
+        <div class="feature-title">지출 장부 정리</div>
+        <div class="feature-desc">영수증 사진만 찍으면 AI가 상호·금액을 읽어서 장부에 올려둘게요.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <div class="feature-title">일일 마감·정산</div>
+        <div class="feature-desc">오늘 주문·지출·배송 수수료까지 한곳에 모아서 마감 숫자를 정리해 드려요.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🛍️</div>
+        <div class="feature-title">온라인몰 연동</div>
+        <div class="feature-desc">네이버 스마트스토어·카페24 주문을 FloXync로 가져와요.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📱</div>
+        <div class="feature-title">폰으로 접수</div>
+        <div class="feature-desc">현장에서 폰으로 주문 바로 접수, 픽업·배송 확인까지.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta-section">
+    <div class="cta-bg"></div>
+    <h2>AI 비서, 무료로 써보세요 🌸</h2>
+    <p>지금은 베타 기간이라 무료로 사용하실 수 있어요.<br />꽃집에서 직접 써보시고 솔직한 의견 남겨주시면 함께 다듬어 나갈게요.</p>
+    <div class="cta-buttons">
+      <a href="#" class="cta-main">무료로 시작하기 →</a>
+      <a href="#" class="cta-sub">베타 신청하기</a>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div>
+      <div class="footer-logo">Flo<span>X</span>ync</div>
+      <div class="footer-tagline">꽃집 사장님 옆에서 조용히 일하는 AI 비서</div>
+    </div>
+    <div class="footer-right">
+      <div>© 2026 FloXync. 모든 권리 보유.</div>
+      <div style="margin-top:6px">이용약관 · 개인정보처리방침</div>
+    </div>
+  </footer>
+
+</body>
+</html>

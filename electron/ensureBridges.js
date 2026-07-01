@@ -1,43 +1,64 @@
-﻿const path = require('path');
+const path = require('path');
 const fs = require('fs');
 const { exec } = require('child_process');
 const { app } = require('electron');
 
-/** 설치 마법사 PP 실패 시 첫 실행에서 보완 */
-function ensureWebBridgesOnFirstRun() {
+function readBundleStamp() {
+  try {
+    return fs.readFileSync(path.join(app.getPath('userData'), 'bridge-bundle.version'), 'utf8').trim();
+  } catch {
+    return '';
+  }
+}
+
+function writeBundleStamp(version) {
+  try {
+    fs.writeFileSync(path.join(app.getPath('userData'), 'bridge-bundle.version'), version, 'utf8');
+  } catch (e) {
+    console.log('[Bridge] could not write bundle stamp:', e.message);
+  }
+}
+
+function runCmd(cmd, label) {
+  return new Promise((resolve) => {
+    exec(cmd, { windowsHide: true }, (err, stdout, stderr) => {
+      if (err) console.log(`[Bridge] ${label} failed:`, err.message, stderr || '');
+      else console.log(`[Bridge] ${label} OK`);
+      resolve(!err);
+    });
+  });
+}
+
+/**
+ * 설치본 첫 실행·앱 버전 업데이트 시 웹용 PP/Ribbon 브릿지를 resources 에서 재설치
+ */
+async function ensureWebBridgesOnFirstRun() {
   if (!app.isPackaged) return;
 
   const instDir = path.dirname(process.execPath);
-  const ppVbs = path.join(app.getPath('appData'), 'floxyncBridge', 'ppbridge.vbs');
-  const ppCmd = path.join(process.resourcesPath, 'install-pp-bridge.cmd');
+  const appVersion = app.getVersion();
+  const needsRefresh = readBundleStamp() !== appVersion;
 
-  if (!fs.existsSync(ppVbs) && fs.existsSync(ppCmd)) {
-    console.log('[Bridge] PP missing — running install-pp-bridge.cmd');
-    exec(`"${ppCmd}" "${instDir}"`, { windowsHide: true }, (err) => {
-      if (err) console.log('[Bridge] PP ensure failed:', err.message);
-      else console.log('[Bridge] PP ensure OK');
-    });
+  const ppVbs = path.join(app.getPath('appData'), 'floxyncBridge', 'ppbridge.vbs');
+  const ribbonLauncher = path.join(process.env.LOCALAPPDATA || '', 'RibbonBridge', 'launch_service.exe');
+  const ppCmd = path.join(process.resourcesPath, 'install-pp-bridge.cmd');
+  const ribbonCmd = path.join(process.resourcesPath, 'install-ribbon-bridge.cmd');
+
+  if ((needsRefresh || !fs.existsSync(ppVbs)) && fs.existsSync(ppCmd)) {
+    console.log('[Bridge] Installing/upgrading PP bridge...');
+    await runCmd(`"${ppCmd}" "${instDir}"`, 'PP bridge install');
   }
 
-  const ribbonLauncher = path.join(
-    process.env.LOCALAPPDATA || '',
-    'RibbonBridge',
-    'launch_service.exe'
-  );
-  const ribbonZip = path.join(process.resourcesPath, 'bridge-installers', 'RibbonBridgePackage.zip');
-  const ribbonPs = path.join(process.resourcesPath, 'install-bridges.ps1');
-
-  const ribbonCmd = path.join(process.resourcesPath, 'install-ribbon-bridge.cmd');
-  if (!fs.existsSync(ribbonLauncher) && fs.existsSync(ribbonCmd)) {
-    console.log('[Bridge] Ribbon missing — running install-ribbon-bridge.cmd');
-    exec(`"${ribbonCmd}" "${instDir}"`, { windowsHide: true }, (err) => {
-      if (err) console.log('[Bridge] Ribbon ensure failed:', err.message);
-    });
+  if ((needsRefresh || !fs.existsSync(ribbonLauncher)) && fs.existsSync(ribbonCmd)) {
+    console.log('[Bridge] Installing/upgrading Ribbon bridge...');
+    await runCmd(`"${ribbonCmd}" "${instDir}"`, 'Ribbon bridge install');
   }
 
   if (fs.existsSync(ribbonLauncher)) {
-    exec(`"${ribbonLauncher}"`, { windowsHide: true, cwd: path.dirname(ribbonLauncher) }, () => {});
+    await runCmd(`"${ribbonLauncher}"`, 'Ribbon bridge start');
   }
+
+  writeBundleStamp(appVersion);
 }
 
 module.exports = { ensureWebBridgesOnFirstRun };
