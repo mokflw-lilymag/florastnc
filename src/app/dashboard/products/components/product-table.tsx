@@ -39,7 +39,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { Product } from "@/types/product";
 import { isDirectInputPendingProduct } from "@/lib/direct-input-product";
-import { pickUiText } from "@/i18n/pick-ui-text";
 
 interface ProductTableProps {
   /** 현재 페이지에서 불러온 행(검색·필터 적용 후 표시) */
