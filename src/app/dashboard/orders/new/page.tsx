@@ -225,7 +225,7 @@ export default function NewOrderPage() {
           color: newProd.color,
           branch: newProd.branch,
           status: newProd.status,
-        } as Product,
+        } as unknown as Product,
         customProductQuantity,
       );
 
