@@ -14,6 +14,7 @@ interface Product {
   name: string;
   price: number;
   mainCategory: string;
+  midCategory?: string;
 }
 
 interface CartItem {
@@ -82,7 +83,7 @@ export default function QuickPOSPage() {
     try {
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, price, main_category")
+        .select("id, name, price, main_category, mid_category")
         .eq("branch", userBranch.trim()) // 공백 제거 매칭
         .order("main_category")
         .order("price");
@@ -97,6 +98,7 @@ export default function QuickPOSPage() {
             name: p.name,
             price: Number(p.price),
             mainCategory: p.main_category,
+            midCategory: p.mid_category,
           }))
       );
     } catch (err) {
@@ -132,6 +134,14 @@ export default function QuickPOSPage() {
     selectedCategory === "전체"
       ? products
       : products.filter((p) => p.mainCategory === selectedCategory);
+
+  // 빠른POS 리스트: 오직 가격순 오름차순 정렬
+  const sortedProducts = useMemo(() => {
+    return [...filteredProducts].sort((a, b) => {
+      if (a.price !== b.price) return a.price - b.price;
+      return a.name.localeCompare(b.name, 'ko');
+    });
+  }, [filteredProducts]);
 
   const addToCart = (product: Product) => {
     setCart((prev) => {
@@ -371,7 +381,7 @@ export default function QuickPOSPage() {
               <div className="text-center py-10 text-gray-400">상품 불러오는 중...</div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {filteredProducts.map((product) => {
+                {sortedProducts.map((product) => {
                   const cartItem = cart.find((c) => c.product.id === product.id);
                   return (
                     <button key={product.id} onClick={() => addToCart(product)}

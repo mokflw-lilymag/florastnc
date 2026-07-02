@@ -267,21 +267,17 @@ function getPrintLogPath() {
 
 /** 포트를 LISTEN 중인 프로세스 종료 (외부 브릿지 8002/8004) */
 function killProcessOnPort(port) {
+  const { execSync } = require('child_process');
   const ps = [
     `$conns = Get-NetTCPConnection -LocalPort ${port} -State Listen -ErrorAction SilentlyContinue`,
     `if ($conns) { $conns | Where-Object { $_.OwningProcess -ne ${process.pid} } | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue } }`,
   ].join('; ');
-  exec(
-    `powershell -NoProfile -ExecutionPolicy Bypass -Command "${ps}"`,
-    { windowsHide: true },
-    (err) => {
-      if (err) {
-        console.log(`[Bridge] port ${port}: no listener or kill skipped`, err.message);
-      } else {
-        console.log(`[Bridge] port ${port}: external listener stopped`);
-      }
-    }
-  );
+  try {
+    execSync(`powershell -NoProfile -ExecutionPolicy Bypass -Command "${ps}"`, { windowsHide: true });
+    console.log(`[Bridge] port ${port}: external listener stopped synchronously`);
+  } catch (err) {
+    console.log(`[Bridge] port ${port}: no listener or kill skipped`, err.message);
+  }
 }
 
 /** PP(8004)만 종료 — Ribbon(8002)은 웹·앱 공통 엔진이므로 유지 */
@@ -312,8 +308,8 @@ function startRibbonBridgeProcess() {
   );
   if (fs.existsSync(ribbonLauncher)) {
     return new Promise((resolve) => {
-      exec(
-        `"${ribbonLauncher}"`,
+      execFile(
+        ribbonLauncher,
         { windowsHide: true, cwd: path.dirname(ribbonLauncher) },
         (err) => {
           if (err) console.log('[Bridge] Ribbon (8002) launch_service failed:', err.message);
@@ -389,14 +385,16 @@ function restoreExternalPpBridge(options = {}) {
   }
   console.log('[Bridge] Restoring external PP (8004) for web browser use...');
 
-  const ppVbs = path.join(app.getPath('appData'), 'floxyncBridge', 'ppbridge.vbs');
-  if (fs.existsSync(ppVbs)) {
-    exec(`wscript.exe "${ppVbs}"`, { windowsHide: true }, (err) => {
+  const ppFolder = path.join(app.getPath('appData'), 'floxyncBridge');
+  const ppDaemon = path.join(ppFolder, 'ppbridge-daemon.exe');
+  if (fs.existsSync(ppDaemon)) {
+    // Windows Terminal 버그 방지를 위해 powershell/cmd 쉘을 거치지 않는 execFile을 직접 구동
+    execFile(ppDaemon, { windowsHide: true, cwd: ppFolder }, (err) => {
       if (err) console.log('[Bridge] PP (8004) start failed:', err.message);
-      else console.log('[Bridge] PP bridge (8004) started via ppbridge.vbs');
+      else console.log('[Bridge] PP bridge (8004) started directly via execFile');
     });
   } else {
-    console.log('[Bridge] ppbridge.vbs not found:', ppVbs);
+    console.log('[Bridge] ppbridge-daemon.exe not found:', ppDaemon);
   }
 }
 
@@ -1140,8 +1138,14 @@ async function printHtmlToDevice(html, configuredPrinter, opts = {}) {
   };
 
   try {
-    await printWin.loadFile(tempPath);
-    await new Promise((r) => setTimeout(r, 2500));
+    const loadPromise = printWin.loadFile(tempPath);
+    await new Promise((resolve) => {
+      let done = false;
+      const finish = () => { if (!done) { done = true; setTimeout(resolve, 300); } };
+      printWin.webContents.once('did-finish-load', finish);
+      loadPromise.then(finish).catch(finish);
+      setTimeout(finish, 2000); // Fallback timeout
+    });
 
     const installed = await getInstalledPrinterNames();
     let deviceName = matchInstalledPrinter(configuredPrinter, installed);
@@ -1201,7 +1205,7 @@ async function printHtmlToDevice(html, configuredPrinter, opts = {}) {
         setTimeout(() => reject(new Error('인쇄 응답 시간 초과(20초). 프린터 전원·연결을 확인하세요.')), 20000)
       ),
     ]);
-    await new Promise((r) => setTimeout(r, 3000));
+    await new Promise((r) => setTimeout(r, 500));
   } finally {
     cleanup();
   }
@@ -1277,29 +1281,53 @@ ipcMain.handle('print-job', async (event, { job, settings, branchName }) => {
     }
   }
 
-  // 설치본: Sumatra PDF는 “성공”인데 Xprinter에서 빈 출력되는 경우 → Chromium 직접 인쇄 우선
-  if (app.isPackaged) {
+  const isSam4s = targetPrinter.toLowerCase().includes('sam4s');
+
+  if (isSam4s) {
+    appendPrintLog('ENGINE=v4 sumatra (SAM4S는 기본 Sumatra PDF 우선 시도)');
     try {
-      appendPrintLog('ENGINE=v4 native (Chromium → 프린터, Sumatra 생략)');
-      await printHtmlToDevice(html, targetPrinter, {
+      await printReceiptHtml(html, targetPrinter, {
+        appIsPackaged: app.isPackaged,
+        resourcesPath: process.resourcesPath,
         receiptPrinterType: settings?.receiptPrinterType || 'pos',
+        logFn: (msg) => appendPrintLog(msg),
       });
-      appendPrintLog(`OK native job_type=${normalizedJob?.job_type} printer=${targetPrinter}`);
-      return { ok: true, printer: targetPrinter, engine: 'native' };
-    } catch (nativeErr) {
-      appendPrintLog(`native 실패: ${nativeErr.message} → Sumatra PDF 시도`);
+      appendPrintLog(`OK sumatra (SAM4S) job_type=${normalizedJob?.job_type} printer=${targetPrinter}`);
+      return { ok: true, printer: targetPrinter, engine: 'sumatra' };
+    } catch (sumatraErr) {
+      appendPrintLog(`Sumatra 실패: ${sumatraErr.message} → Native 시도`);
     }
   }
 
-  await printReceiptHtml(html, targetPrinter, {
-    appIsPackaged: app.isPackaged,
-    resourcesPath: process.resourcesPath,
-    receiptPrinterType: settings?.receiptPrinterType || 'pos',
-    logFn: (msg) => appendPrintLog(msg),
-  });
+  // Sumatra PDF로 인쇄가 Xprinter/BIXOLON 등에서 안 되는 기기들은 Chromium 네이티브 우선
+  try {
+    appendPrintLog('ENGINE=v4 native (Chromium 직접 인쇄, Sumatra 생략)');
+    await printHtmlToDevice(html, targetPrinter, {
+      receiptPrinterType: settings?.receiptPrinterType || 'pos',
+    });
+    appendPrintLog(`OK native job_type=${normalizedJob?.job_type} printer=${targetPrinter}`);
+    return { ok: true, printer: targetPrinter, engine: 'native' };
+  } catch (nativeErr) {
+    appendPrintLog(`native 실패: ${nativeErr.message} → Sumatra PDF 시도`);
+  }
 
-  appendPrintLog(`OK sumatra job_type=${normalizedJob?.job_type} printer=${targetPrinter}`);
-  return { ok: true, printer: targetPrinter, engine: 'sumatra' };
+  if (app.isPackaged || !isSam4s) {
+    try {
+      await printReceiptHtml(html, targetPrinter, {
+        appIsPackaged: app.isPackaged,
+        resourcesPath: process.resourcesPath,
+        receiptPrinterType: settings?.receiptPrinterType || 'pos',
+        logFn: (msg) => appendPrintLog(msg),
+      });
+      appendPrintLog(`OK sumatra fallback job_type=${normalizedJob?.job_type} printer=${targetPrinter}`);
+      return { ok: true, printer: targetPrinter, engine: 'sumatra' };
+    } catch (fallbackErr) {
+      appendPrintLog(`최종 Sumatra fallback 실패: ${fallbackErr.message}`);
+      throw new Error(`인쇄 실패: ${nativeErr?.message || '알 수 없는 오류'}`);
+    }
+  }
+
+  throw new Error('인쇄 엔진을 사용할 수 없습니다.');
 });
 
 let printQueue = [];
@@ -1592,7 +1620,7 @@ ipcMain.handle('query-db', async (event, { table, astChain }) => {
     
     let whereClauses = [];
     let whereValues = [];
-    let orderByClause = '';
+    let orderByParts = [];
     
     let insertData = null;
     let updateData = null;
@@ -1645,6 +1673,9 @@ ipcMain.handle('query-db', async (event, { table, astChain }) => {
       } else if (method === 'lte') {
         whereClauses.push(`${parseCol(args[0])} <= ?`);
         whereValues.push(args[1]);
+      } else if (method === 'ilike' || method === 'like') {
+        whereClauses.push(`${parseCol(args[0])} LIKE ?`);
+        whereValues.push(args[1]);
       } else if (method === 'in') {
         const inVals = parseInList(args[1]);
         const placeholders = inVals.map(() => '?').join(',');
@@ -1667,10 +1698,10 @@ ipcMain.handle('query-db', async (event, { table, astChain }) => {
       } else if (method === 'or') {
         // Parse Supabase .or("col1.eq.val1,col2.gte.val2") — value may contain dots (ISO dates)
         const orStr = args[0];
-        const conditions = orStr.split(',');
+        const conditions = orStr.split(/,(?![^(]*\))/);
         const orClauses = [];
         for (let cond of conditions) {
-            const m = cond.match(/^(.+?)\.(eq|gte|lte|in)\.(.+)$/);
+            const m = cond.match(/^(.+?)\.(eq|gte|lte|in|ilike|like)\.(.+)$/);
             if (!m) continue;
             const [, colPart, opPart, rawVal] = m;
             let val = rawVal.replace(/^"/, '').replace(/"$/, '');
@@ -1690,6 +1721,9 @@ ipcMain.handle('query-db', async (event, { table, astChain }) => {
                 const placeholders = vals.map(() => '?').join(',');
                 orClauses.push(`${col} IN (${placeholders})`);
                 whereValues.push(...vals);
+            } else if (opPart === 'ilike' || opPart === 'like') {
+                orClauses.push(`${col} LIKE ?`);
+                whereValues.push(val);
             }
         }
         if (orClauses.length > 0) {
@@ -1698,7 +1732,7 @@ ipcMain.handle('query-db', async (event, { table, astChain }) => {
       } else if (method === 'order') {
         const orderCol = parseCol(args[0]);
         const isAsc = args[1]?.ascending !== false;
-        orderByClause = `ORDER BY ${orderCol} ${isAsc ? 'ASC' : 'DESC'}`;
+        orderByParts.push(`${orderCol} ${isAsc ? 'ASC' : 'DESC'}`);
       } else if (method === 'limit') {
         limit = args[0];
       } else if (method === 'single' || method === 'maybeSingle') {
@@ -1706,6 +1740,9 @@ ipcMain.handle('query-db', async (event, { table, astChain }) => {
         limit = 1;
       } else if (method === 'insert') {
         action = 'insert';
+        insertData = Array.isArray(args[0]) ? args[0] : [args[0]];
+      } else if (method === 'upsert') {
+        action = 'upsert';
         insertData = Array.isArray(args[0]) ? args[0] : [args[0]];
       } else if (method === 'update') {
         action = 'update';
@@ -1716,16 +1753,31 @@ ipcMain.handle('query-db', async (event, { table, astChain }) => {
       }
     }
 
+    let orderByClause = '';
+    if (orderByParts.length > 0) {
+      orderByClause = `ORDER BY ${orderByParts.join(', ')}`;
+    }
+
     // Execute SQLite Query
     if (action === 'select' && !deleteMode) {
       let query = `SELECT ${selectFields} FROM ${table}`;
-      if (whereClauses.length > 0) {
-        query += ` WHERE ${whereClauses.join(' AND ')}`;
+      const activeClauses = whereClauses.filter(c => c && typeof c === 'string' && c.trim());
+      if (activeClauses.length > 0) {
+        query += ` WHERE ${activeClauses.join(' AND ')}`;
       }
       if (orderByClause) query += ` ${orderByClause}`;
       if (limit != null) query += ` LIMIT ${limit} OFFSET ${rangeOffset}`;
       
-      const stmt = db.prepare(query);
+      // 줄바꿈 및 여러 공백을 단일 공백으로 정규화
+      query = query.replace(/\s+/g, ' ').trim();
+      
+      let stmt;
+      try {
+        stmt = db.prepare(query);
+      } catch (prepErr) {
+        console.error(`[Electron DB Query Prepare Error] Failed query: "${query}"`, prepErr);
+        throw prepErr;
+      }
       const safeWhereValues = whereValues.map(v => {
         if (v === undefined) return null;
         if (typeof v === 'boolean') return v ? 1 : 0;
@@ -1748,11 +1800,15 @@ ipcMain.handle('query-db', async (event, { table, astChain }) => {
       if (isCount) finalResult.count = parsedRows.length;
       if (isHead) finalResult.data = null; // head query doesn't return rows
 
+      if (table === 'tenants') {
+        console.log(`[query-db] tenants select table: query="${query}" values=${JSON.stringify(safeWhereValues)} result:`, JSON.stringify(finalResult));
+      }
+
       return finalResult;
     }
     
     // Add logic for INSERT, UPDATE, DELETE
-    if (action === 'insert' || action === 'update' || action === 'delete') {
+    if (action === 'insert' || action === 'upsert' || action === 'update' || action === 'delete') {
       const now = new Date().toISOString();
       const insertQueue = db.prepare(
         `INSERT INTO sync_queue (action, table_name, record_id, payload, timestamp) VALUES (?, ?, ?, ?, ?)`,
@@ -1760,6 +1816,35 @@ ipcMain.handle('query-db', async (event, { table, astChain }) => {
       const bumpSync = () => {
         if (syncWorker?.requestImmediateSyncCycle) syncWorker.requestImmediateSyncCycle();
       };
+
+      if (action === 'upsert' && insertData) {
+        db.transaction((items) => {
+          for (const item of items) {
+            item.updated_at = item.updated_at || now;
+            item.sync_status = 'pending_insert';
+
+            const cols = Object.keys(item);
+            const placeholders = cols.map(() => '?').join(', ');
+            const updateSet = cols.map((c) => `${c} = excluded.${c}`).join(', ');
+            const values = cols.map((c) => {
+              const val = item[c];
+              if (val === undefined) return null;
+              if (typeof val === 'boolean') return val ? 1 : 0;
+              if (typeof val === 'object' && val !== null) return JSON.stringify(val);
+              return val;
+            });
+
+            db.prepare(`
+              INSERT INTO ${table} (${cols.join(', ')}) VALUES (${placeholders})
+              ON CONFLICT(id) DO UPDATE SET ${updateSet}
+            `).run(...values);
+            
+            insertQueue.run('INSERT', table, item.id, JSON.stringify(item), now);
+          }
+        })(insertData);
+        bumpSync();
+        return { data: insertData, error: null };
+      }
 
       if (action === 'insert' && insertData) {
         db.transaction((items) => {

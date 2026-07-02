@@ -284,7 +284,7 @@ export default function HqSharedProductsPage() {
 
   if (ctxLoading) {
     return (
-      <div className="container max-w-6xl mx-auto p-6 space-y-8">
+      <div className="max-w-none p-6 space-y-8">
         <PageHeader
           title="공동상품/자재/카테고리관리"
           description={tf.f01853}
@@ -299,7 +299,7 @@ export default function HqSharedProductsPage() {
 
   if (forbidden || (!isSuperAdmin && organizations.length === 0)) {
     return (
-      <div className="container max-w-6xl mx-auto p-6 space-y-6">
+      <div className="max-w-none p-6 space-y-6">
         <PageHeader
           title="공동상품/자재/카테고리관리"
           description={tf.f01832}
@@ -323,7 +323,7 @@ export default function HqSharedProductsPage() {
   }
 
   return (
-    <div className="container max-w-6xl mx-auto p-6 space-y-8 animate-in fade-in duration-500">
+    <div className="max-w-none p-6 space-y-8 animate-in fade-in duration-500">
       {/* 최상단 헤더 */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>

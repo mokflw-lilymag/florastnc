@@ -72,6 +72,8 @@ export interface SystemSettings {
   country: string;
   /** Tenant UI language — synced with mobile via system_settings.data */
   uiLocale?: string;
+  /** 영수증·주문서 출력 언어 — `auto`면 UI·국가 기본, `en` 등 지정 시 고정 */
+  receiptLocale?: string;
   /** 대시보드 상단 전광판(날씨·예약·본사 공지 흐름) — 표시 여부(하위 호환) */
   dashboardTickerEnabled: boolean;
   /** true면 사용자가 환경설정에서 전광판을 끔. 미설정/false면 표시(기본). 구버전 false만 있던 저장은 무시하고 표시. */
@@ -277,14 +279,30 @@ export function useSettings() {
       if (upsertError) throw upsertError;
       setSettings(newSettings);
       void syncTenantBackupPathToElectron(tid, newSettings.localBackupPath);
+      toast.success(
+        pickUiText(
+          baseLocale,
+          '설정이 성공적으로 저장되었습니다.',
+          'Settings saved successfully.',
+          'Đã lưu cài đặt thành công.'
+        )
+      );
       return true;
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error saving settings:', err);
+      toast.error(
+        pickUiText(
+          baseLocale,
+          '설정 저장에 실패했습니다: ' + err.message,
+          'Failed to save settings: ' + err.message,
+          'Lưu cài đặt thất bại: ' + err.message
+        )
+      );
       return false;
     } finally {
       setLoading(false);
     }
-  }, [tenantId, user?.tenant_id, supabase]);
+  }, [tenantId, user?.tenant_id, supabase, baseLocale]);
 
   const updateProductCategories = async (newData: CategoryData) => {
     const tid = tenantId || user?.tenant_id;

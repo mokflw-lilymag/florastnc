@@ -46,6 +46,26 @@ export function resolveEnvSmtpConfig(): SmtpConfig | null {
   };
 }
 
+export async function loadHqGeneralSettings(
+  db: SupabaseClient,
+): Promise<SystemSettings> {
+  const { data } = await db
+    .from('system_settings')
+    .select('data')
+    .eq('id', 'hq')
+    .maybeSingle();
+
+  const partial = (data?.data && typeof data.data === 'object' ? data.data : {}) as Partial<SystemSettings>;
+  return mergeTenantEmailSettings(partial) as SystemSettings;
+}
+
+export async function resolveSmtpForHq(
+  db: SupabaseClient,
+): Promise<SmtpConfig | null> {
+  const settings = await loadHqGeneralSettings(db);
+  return resolveSmtpFromSettings(settings, settings.siteName || 'FloXync') ?? resolveEnvSmtpConfig();
+}
+
 export async function loadTenantGeneralSettings(
   db: SupabaseClient,
   tenantId: string,
@@ -65,7 +85,7 @@ export async function resolveSmtpForTenant(
   tenantId: string,
 ): Promise<SmtpConfig | null> {
   const settings = await loadTenantGeneralSettings(db, tenantId);
-  return resolveSmtpFromSettings(settings, settings.siteName || 'FloXync') ?? resolveEnvSmtpConfig();
+  return resolveSmtpFromSettings(settings, settings.siteName || 'FloXync') ?? resolveSmtpForHq(db);
 }
 
 export async function sendMailViaSmtp(

@@ -32,10 +32,7 @@ export function DashboardMain({
       )}
     >
       <div
-        className={cn(
-          "h-full w-full transition-all duration-300",
-          isFullWidthPage ? "max-w-none" : "mx-auto max-w-7xl"
-        )}
+        className="h-full w-full transition-all duration-300 max-w-none"
       >
         <OrgWorkContextBanner />
         {children}

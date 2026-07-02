@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { format } from "date-fns";
 import { AlertTriangle, ArrowRight, Clock } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -88,9 +89,10 @@ export function ExpiringTenantsPanel({
   billingHref?: string;
   compact?: boolean;
 }) {
+  const [isExpanded, setIsExpanded] = useState(false);
   const dfLoc = dateFnsLocaleForBase(toBaseLocale(locale as Parameters<typeof toBaseLocale>[0]));
   const rows = overview.expiringSoonList.slice(0, maxRows);
-  const expiredPreview = overview.expiredList.slice(0, compact ? 3 : 5);
+  const expiredPreview = isExpanded ? overview.expiredList : overview.expiredList.slice(0, compact ? 3 : 5);
 
   return (
     <div className={cn("space-y-4", compact && "space-y-3")}>
@@ -194,11 +196,24 @@ export function ExpiringTenantsPanel({
                 ))}
               </TableBody>
             </Table>
-            {overview.expired > expiredPreview.length && (
+            {!isExpanded && overview.expired > expiredPreview.length && (
               <div className="p-3 text-center border-t">
-                <Link href={billingHref} className="text-xs text-red-600 hover:underline">
+                <button 
+                  onClick={() => setIsExpanded(true)} 
+                  className="text-xs text-red-600 hover:underline cursor-pointer bg-transparent border-0"
+                >
                   +{overview.expired - expiredPreview.length}곳 더 보기
-                </Link>
+                </button>
+              </div>
+            )}
+            {isExpanded && overview.expired > (compact ? 3 : 5) && (
+              <div className="p-3 text-center border-t">
+                <button 
+                  onClick={() => setIsExpanded(false)} 
+                  className="text-xs text-slate-500 hover:underline cursor-pointer bg-transparent border-0"
+                >
+                  접기
+                </button>
               </div>
             )}
           </CardContent>

@@ -214,7 +214,7 @@ export default function PrintersAdminPage() {
   const totalLabelLeased = inventory.filter(i => i.device_type === "label").reduce((acc, c) => acc + c.leased_count, 0);
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="p-6 space-y-6 max-w-none">
       {/* 타이틀 및 헤더 */}
       <div className="flex items-center justify-between pb-2">
         <div>
@@ -436,7 +436,7 @@ export default function PrintersAdminPage() {
                   if (filtered.length === 0) {
                     return (
                       <div className="text-center py-12 text-slate-400 text-xs">
-                        {selectedModel ? `${selectedModel}을 임대중인 화원사가 없습니다.` : "현재 임대중인 화원사가 없습니다."}
+                        {selectedModel ? `${selectedModel}을 임대중인 회원사가 없습니다.` : "현재 임대중인 회원사가 없습니다."}
                       </div>
                     );
                   }

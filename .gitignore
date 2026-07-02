@@ -70,4 +70,5 @@ scripts/.dashboard-ja-lingva-cache.json
 
 .trigger
 dist/
+electron/engine/build/
 .vercel

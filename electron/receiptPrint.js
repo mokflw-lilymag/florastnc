@@ -94,9 +94,13 @@ async function getPuppeteerBrowser(logFn) {
   }
   if (logFn) logFn('Puppeteer launch (PP 브릿지와 동일 경로)...');
   puppeteerBrowser = await puppeteer.launch({
-    headless: 'new',
+    headless: true,
     executablePath,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    args: [
+      '--headless',
+      '--no-sandbox',
+      '--disable-setuid-sandbox'
+    ],
   });
   return puppeteerBrowser;
 }
@@ -149,6 +153,9 @@ async function htmlToPdfWithElectron(html, logFn, isLabel = false) {
   const tempPdfPath = path.join(os.tmpdir(), `floxync_receipt_${Date.now()}.pdf`);
   const printWin = new BrowserWindow({
     show: false,
+    skipTaskbar: true,
+    x: -30000,
+    y: -30000,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -159,7 +166,7 @@ async function htmlToPdfWithElectron(html, logFn, isLabel = false) {
   try {
     fs.writeFileSync(tempHtml, html, 'utf8');
     await printWin.loadFile(tempHtml);
-    await new Promise((r) => setTimeout(r, 2500));
+    await new Promise((r) => setTimeout(r, 500));
 
     const scrollHeight = await printWin.webContents.executeJavaScript(
       'Math.max(document.body.scrollHeight, document.documentElement.scrollHeight, 200)'
@@ -274,7 +281,7 @@ async function printReceiptHtml(html, targetPrinter, options = {}) {
     if (!isLabel) {
       await ptp.print(tempPdfPath, { ...base, scale: 'noscale' });
       if (logFn) logFn('pdf-to-printer.print OK scale=noscale');
-      await new Promise((r) => setTimeout(r, 3000));
+      await new Promise((r) => setTimeout(r, 500));
       schedulePdfCleanup(tempPdfPath, logFn);
       return;
     }
@@ -316,7 +323,7 @@ async function printReceiptHtml(html, targetPrinter, options = {}) {
     if (lastErr) {
       throw lastErr;
     }
-    await new Promise((r) => setTimeout(r, 3000));
+    await new Promise((r) => setTimeout(r, 500));
     schedulePdfCleanup(tempPdfPath, logFn);
   } catch (printErr) {
     if (tempPdfPath) schedulePdfCleanup(tempPdfPath, logFn);

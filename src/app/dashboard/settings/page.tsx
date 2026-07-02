@@ -87,6 +87,16 @@ import { AppLocale, resolveLocale, toBaseLocale } from "@/i18n/config";
 import { readUiLocaleCookie } from "@/i18n/apply-ui-locale";
 import { getDashboardSettingsMessages } from "@/i18n/dashboard-settings-messages";
 import { pickUiText } from "@/i18n/pick-ui-text";
+import {
+  OPERATING_COUNTRIES,
+  operatingCountryDisplayName,
+  type OperatingCountryRow,
+} from "@/lib/operating-countries";
+import {
+  RECEIPT_LOCALE_SELECT_OPTIONS,
+  normalizeReceiptLocaleSetting,
+  receiptLocaleOptionLabel,
+} from "@/lib/receipt-locale-options";
 import { DASHBOARD_LOCALE_SELECT_OPTIONS, resolveDashboardSelectLocale } from "@/i18n/ui-locale-options";
 import { BridgeOnboardingDialog } from "@/components/printer/BridgeOnboardingDialog";
 import { usePersistUiLocale } from "@/hooks/use-persist-ui-locale";
@@ -110,6 +120,8 @@ const MAJOR_CURRENCIES = [
   { code: 'NZD', symbol: 'NZ$', flag: '🇳🇿', nameKo: '뉴질랜드 달러', nameEn: 'New Zealand Dollar' },
   { code: 'CLP', symbol: 'CLP$', flag: '🇨🇱', nameKo: '칠레 페소', nameEn: 'Chilean Peso' },
   { code: 'MZN', symbol: 'MT', flag: '🇲🇿', nameKo: '모잠비크 메티칼', nameEn: 'Mozambican Metical' },
+  { code: 'EGP', symbol: 'E£', flag: '🇪🇬', nameKo: '이집트 파운드', nameEn: 'Egyptian Pound' },
+  { code: 'ZAR', symbol: 'R', flag: '🇿🇦', nameKo: '남아프리카 랜드', nameEn: 'South African Rand' },
   { code: 'RUB', symbol: '₽', flag: '🇷🇺', nameKo: '러시아 루블', nameEn: 'Russian Ruble' },
   // 동남아 3개국
   { code: 'IDR', symbol: 'Rp', flag: '🇮🇩', nameKo: '인도네시아 루피아', nameEn: 'Indonesian Rupiah' },
@@ -118,332 +130,12 @@ const MAJOR_CURRENCIES = [
   { code: 'INR', symbol: '₹', flag: '🇮🇳', nameKo: '인도 루피', nameEn: 'Indian Rupee' },
   { code: 'AED', symbol: 'د.إ', flag: '🇦🇪', nameKo: 'UAE 디르함', nameEn: 'UAE Dirham' },
   { code: 'SAR', symbol: '﷼', flag: '🇸🇦', nameKo: '사우디 리얄', nameEn: 'Saudi Riyal' },
+  { code: 'TWD', symbol: 'NT$', flag: '🇹🇼', nameKo: '신타이완 달러', nameEn: 'New Taiwan Dollar' },
+  { code: 'HKD', symbol: 'HK$', flag: '🇭🇰', nameKo: '홍콩 달러', nameEn: 'Hong Kong Dollar' },
+  { code: 'PHP', symbol: '₱', flag: '🇵🇭', nameKo: '필리핀 페소', nameEn: 'Philippine Peso' },
+  { code: 'TRY', symbol: '₺', flag: '🇹🇷', nameKo: '터키 리라', nameEn: 'Turkish Lira' },
+  { code: 'PLN', symbol: 'zł', flag: '🇵🇱', nameKo: '폴란드 즐로티', nameEn: 'Polish Złoty' },
 ] as const;
-
-const OPERATING_COUNTRIES = [
-  { code: "KR", nameKo: "대한민국", nameEn: "Korea", nameVi: "Hàn Quốc", flag: "🇰🇷", defaultCurrency: "KRW" },
-  { code: "VN", nameKo: "베트남", nameEn: "Vietnam", nameVi: "Việt Nam", flag: "🇻🇳", defaultCurrency: "VND" },
-  { code: "US", nameKo: "미국", nameEn: "United States", nameVi: "Hoa Kỳ", flag: "🇺🇸", defaultCurrency: "USD" },
-  { code: "JP", nameKo: "일본", nameEn: "Japan", nameVi: "Nhật Bản", flag: "🇯🇵", defaultCurrency: "JPY" },
-  { code: "CN", nameKo: "중국", nameEn: "China", nameVi: "Trung Quốc", flag: "🇨🇳", defaultCurrency: "CNY" },
-  { code: "ES", nameKo: "스페인", nameEn: "Spain", nameVi: "Tây Ban Nha", flag: "🇪🇸", defaultCurrency: "EUR" },
-  { code: "FR", nameKo: "프랑스", nameEn: "France", nameVi: "Pháp", flag: "🇫🇷", defaultCurrency: "EUR" },
-  { code: "DE", nameKo: "독일", nameEn: "Germany", nameVi: "Đức", flag: "🇩🇪", defaultCurrency: "EUR" },
-  { code: "GB", nameKo: "영국", nameEn: "United Kingdom", nameVi: "Vương quốc Anh", flag: "🇬🇧", defaultCurrency: "GBP" },
-  { code: "AU", nameKo: "호주", nameEn: "Australia", nameVi: "Úc", flag: "🇦🇺", defaultCurrency: "AUD" },
-  { code: "CA", nameKo: "캐나다", nameEn: "Canada", nameVi: "Canada", flag: "🇨🇦", defaultCurrency: "CAD" },
-  { code: "SG", nameKo: "싱가포르", nameEn: "Singapore", nameVi: "Singapore", flag: "🇸🇬", defaultCurrency: "SGD" },
-  { code: "BR", nameKo: "브라질", nameEn: "Brazil", nameVi: "Brazil", flag: "🇧🇷", defaultCurrency: "BRL" },
-  { code: "MX", nameKo: "멕시코", nameEn: "Mexico", nameVi: "Mexico", flag: "🇲🇽", defaultCurrency: "MXN" },
-  { code: "PT", nameKo: "포르투갈", nameEn: "Portugal", nameVi: "Bồ Đào Nha", flag: "🇵🇹", defaultCurrency: "EUR" },
-  { code: "CH", nameKo: "스위스", nameEn: "Switzerland", nameVi: "Thụy Sĩ", flag: "🇨🇭", defaultCurrency: "CHF" },
-  { code: "AR", nameKo: "아르헨티나", nameEn: "Argentina", nameVi: "Argentina", flag: "🇦🇷", defaultCurrency: "ARS" },
-  { code: "NZ", nameKo: "뉴질랜드", nameEn: "New Zealand", nameVi: "New Zealand", flag: "🇳🇿", defaultCurrency: "NZD" },
-  { code: "CL", nameKo: "칠레", nameEn: "Chile", nameVi: "Chile", flag: "🇨🇱", defaultCurrency: "CLP" },
-  { code: "MZ", nameKo: "모잠비크", nameEn: "Mozambique", nameVi: "Mozambique", flag: "🇲🇿", defaultCurrency: "MZN" },
-  { code: "RU", nameKo: "러시아", nameEn: "Russia", nameVi: "Nga", flag: "🇷🇺", defaultCurrency: "RUB" },
-  // 동남아 3개국
-  { code: "ID", nameKo: "인도네시아", nameEn: "Indonesia", nameVi: "Indonesia", flag: "🇮🇩", defaultCurrency: "IDR" },
-  { code: "MY", nameKo: "말레이시아", nameEn: "Malaysia", nameVi: "Malaysia", flag: "🇲🇾", defaultCurrency: "MYR" },
-  { code: "TH", nameKo: "태국", nameEn: "Thailand", nameVi: "Thái Lan", flag: "🇹🇭", defaultCurrency: "THB" },
-  { code: "NL", nameKo: "네덜란드", nameEn: "Netherlands", nameVi: "Hà Lan", flag: "🇳🇱", defaultCurrency: "EUR" },
-  { code: "IT", nameKo: "이탈리아", nameEn: "Italy", nameVi: "Ý", flag: "🇮🇹", defaultCurrency: "EUR" },
-  { code: "IN", nameKo: "인도", nameEn: "India", nameVi: "Ấn Độ", flag: "🇮🇳", defaultCurrency: "INR" },
-  { code: "AE", nameKo: "아랍에미리트", nameEn: "United Arab Emirates", nameVi: "Các Tiểu vương quốc Ả Rập Thống nhất", flag: "🇦🇪", defaultCurrency: "AED" },
-  { code: "SA", nameKo: "사우디아라비아", nameEn: "Saudi Arabia", nameVi: "Ả Rập Xê Út", flag: "🇸🇦", defaultCurrency: "SAR" },
-] as const;
-
-type OperatingCountryRow = (typeof OPERATING_COUNTRIES)[number];
-
-/** ko·en·vi 외 로케일용 국가 표기 (ISO 코드별) */
-const OPERATING_COUNTRY_NAME_EXTRAS: Record<
-  OperatingCountryRow["code"],
-  { ja: string; zh: string; es: string; pt: string; fr: string; de: string; ru: string }
-> = {
-  KR: {
-    ja: "韓国",
-    zh: "韩国",
-    es: "Corea del Sur",
-    pt: "Coreia do Sul",
-    fr: "Corée du Sud",
-    de: "Südkorea",
-    ru: "Республика Корея",
-  },
-  VN: {
-    ja: "ベトナム",
-    zh: "越南",
-    es: "Vietnam",
-    pt: "Vietnã",
-    fr: "Viêt Nam",
-    de: "Vietnam",
-    ru: "Вьетнам",
-  },
-  US: {
-    ja: "アメリカ",
-    zh: "美国",
-    es: "Estados Unidos",
-    pt: "Estados Unidos",
-    fr: "États-Unis",
-    de: "USA",
-    ru: "США",
-  },
-  JP: {
-    ja: "日本",
-    zh: "日本",
-    es: "Japón",
-    pt: "Japão",
-    fr: "Japon",
-    de: "Japan",
-    ru: "Япония",
-  },
-  CN: {
-    ja: "中国",
-    zh: "中国",
-    es: "China",
-    pt: "China",
-    fr: "Chine",
-    de: "China",
-    ru: "Китай",
-  },
-  ES: {
-    ja: "スペイン",
-    zh: "西班牙",
-    es: "España",
-    pt: "Espanha",
-    fr: "Espagne",
-    de: "Spanien",
-    ru: "Испания",
-  },
-  FR: {
-    ja: "フランス",
-    zh: "法国",
-    es: "Francia",
-    pt: "França",
-    fr: "France",
-    de: "Frankreich",
-    ru: "Франция",
-  },
-  DE: {
-    ja: "ドイツ",
-    zh: "德国",
-    es: "Alemania",
-    pt: "Alemanha",
-    fr: "Allemagne",
-    de: "Deutschland",
-    ru: "Германия",
-  },
-  GB: {
-    ja: "イギリス",
-    zh: "英国",
-    es: "Reino Unido",
-    pt: "Reino Unido",
-    fr: "Royaume-Uni",
-    de: "Vereinigtes Königreich",
-    ru: "Великобритания",
-  },
-  AU: {
-    ja: "オーストラリア",
-    zh: "澳大利亚",
-    es: "Australia",
-    pt: "Austrália",
-    fr: "Australie",
-    de: "Australien",
-    ru: "Австралия",
-  },
-  CA: {
-    ja: "カナダ",
-    zh: "加拿大",
-    es: "Canadá",
-    pt: "Canadá",
-    fr: "Canada",
-    de: "Kanada",
-    ru: "Канада",
-  },
-  SG: {
-    ja: "シンガポール",
-    zh: "新加坡",
-    es: "Singapur",
-    pt: "Singapura",
-    fr: "Singapour",
-    de: "Singapur",
-    ru: "Сингапур",
-  },
-  BR: {
-    ja: "ブラジル",
-    zh: "巴西",
-    es: "Brasil",
-    pt: "Brasil",
-    fr: "Brésil",
-    de: "Brasilien",
-    ru: "Бразилия",
-  },
-  MX: {
-    ja: "メキシコ",
-    zh: "墨西哥",
-    es: "México",
-    pt: "México",
-    fr: "Mexique",
-    de: "Mexiko",
-    ru: "Мексика",
-  },
-  PT: {
-    ja: "ポルトガル",
-    zh: "葡萄牙",
-    es: "Portugal",
-    pt: "Portugal",
-    fr: "Portugal",
-    de: "Portugal",
-    ru: "Португалия",
-  },
-  CH: {
-    ja: "スイス",
-    zh: "瑞士",
-    es: "Suiza",
-    pt: "Suíça",
-    fr: "Suisse",
-    de: "Schweiz",
-    ru: "Швейцария",
-  },
-  AR: {
-    ja: "アルゼンチン",
-    zh: "阿根廷",
-    es: "Argentina",
-    pt: "Argentina",
-    fr: "Argentine",
-    de: "Argentinien",
-    ru: "Аргентина",
-  },
-  NZ: {
-    ja: "ニュージーランド",
-    zh: "新西兰",
-    es: "Nueva Zelanda",
-    pt: "Nova Zelândia",
-    fr: "Nouvelle-Zélande",
-    de: "Neuseeland",
-    ru: "Новая Зеландия",
-  },
-  CL: {
-    ja: "チリ",
-    zh: "智利",
-    es: "Chile",
-    pt: "Chile",
-    fr: "Chili",
-    de: "Chile",
-    ru: "Чили",
-  },
-  MZ: {
-    ja: "モザンビーク",
-    zh: "莫桑比克",
-    es: "Mozambique",
-    pt: "Moçambique",
-    fr: "Mozambique",
-    de: "Mosambik",
-    ru: "Мозамбик",
-  },
-  RU: {
-    ja: "ロシア",
-    zh: "俄罗斯",
-    es: "Rusia",
-    pt: "Rússia",
-    fr: "Russie",
-    de: "Russland",
-    ru: "Россия",
-  },
-  // 동남아 3개국
-  ID: {
-    ja: "インドネシア",
-    zh: "印度尼西亚",
-    es: "Indonesia",
-    pt: "Indonésia",
-    fr: "Indonésie",
-    de: "Indonesien",
-    ru: "Индонезия",
-  },
-  MY: {
-    ja: "マレーシア",
-    zh: "马来西亚",
-    es: "Malasia",
-    pt: "Malásia",
-    fr: "Malaisie",
-    de: "Malaysia",
-    ru: "Малайзия",
-  },
-  TH: {
-    ja: "タイ",
-    zh: "泰国",
-    es: "Tailandia",
-    pt: "Tailândia",
-    fr: "Thaïlande",
-    de: "Thailand",
-    ru: "Таиланд",
-  },
-  NL: {
-    ja: "オランダ",
-    zh: "荷兰",
-    es: "Países Bajos",
-    pt: "Países Baixos",
-    fr: "Pays-Bas",
-    de: "Niederlande",
-    ru: "Нидерланды",
-  },
-  IT: {
-    ja: "イタリア",
-    zh: "意大利",
-    es: "Italia",
-    pt: "Itália",
-    fr: "Italie",
-    de: "Italien",
-    ru: "Италия",
-  },
-  IN: {
-    ja: "インド",
-    zh: "印度",
-    es: "India",
-    pt: "Índia",
-    fr: "Inde",
-    de: "Indien",
-    ru: "Индия",
-  },
-  AE: {
-    ja: "アラブ首長国連邦",
-    zh: "阿拉伯联合酋长国",
-    es: "Emiratos Árabes Unidos",
-    pt: "Emirados Árabes Unidos",
-    fr: "Émirats arabes unis",
-    de: "Vereinigte Arabische Emirate",
-    ru: "ОАЭ",
-  },
-  SA: {
-    ja: "サウジアラビア",
-    zh: "沙特阿拉伯",
-    es: "Arabia Saudita",
-    pt: "Arábia Saudita",
-    fr: "Arabie Saoudite",
-    de: "Saudi-Arabien",
-    ru: "Саудовская Аравия",
-  },
-};
-
-function operatingCountryDisplayName(baseLocale: string, country: OperatingCountryRow): string {
-  // pack 누락 시(데이터 추가 누락 등) 런타임 크래시 대신 ko/en 폴백을 사용한다.
-  const x = OPERATING_COUNTRY_NAME_EXTRAS[country.code];
-  if (!x) {
-    return pickUiText(baseLocale, country.nameKo, country.nameEn, country.nameVi);
-  }
-  return pickUiText(
-    baseLocale,
-    country.nameKo,
-    country.nameEn,
-    country.nameVi,
-    x.ja,
-    x.zh,
-    x.es,
-    x.pt,
-    x.fr,
-    x.de,
-    x.ru,
-  );
-}
 
 type MajorCurrencyRow = (typeof MAJOR_CURRENCIES)[number];
 
@@ -622,6 +314,26 @@ const MAJOR_CURRENCY_NAME_PACKS: Record<
     de: "Mosambikanischer Metical",
     ru: "Мозамбикский метикал",
   },
+  EGP: {
+    vi: "Bảng Ai Cập",
+    ja: "エジプトポンド",
+    zh: "埃及镑",
+    es: "Libra egipcia",
+    pt: "Libra egípcia",
+    fr: "Livre égyptienne",
+    de: "Ägyptisches Pfund",
+    ru: "Египетский фунт",
+  },
+  ZAR: {
+    vi: "Rand Nam Phi",
+    ja: "南アフリカランド",
+    zh: "南非兰特",
+    es: "Rand sudafricano",
+    pt: "Rand sul-africano",
+    fr: "Rand sud-africain",
+    de: "Südafrikanischer Rand",
+    ru: "Южноафриканский рэнд",
+  },
   RUB: {
     vi: "Rúp Nga",
     ja: "ロシアルーブル",
@@ -691,6 +403,56 @@ const MAJOR_CURRENCY_NAME_PACKS: Record<
     fr: "Riyal saoudien",
     de: "Saudi-Riyal",
     ru: "Саудовский риял",
+  },
+  TWD: {
+    vi: "Đô la Đài Loan",
+    ja: "台湾ドル",
+    zh: "新台币",
+    es: "Nuevo dólar taiwanés",
+    pt: "Novo dólar taiwanês",
+    fr: "Nouveau dollar taïwanais",
+    de: "Neuer Taiwan-Dollar",
+    ru: "Новый тайваньский доллар",
+  },
+  HKD: {
+    vi: "Đô la Hồng Kông",
+    ja: "香港ドル",
+    zh: "港元",
+    es: "Dólar de Hong Kong",
+    pt: "Dólar de Hong Kong",
+    fr: "Dollar de Hong Kong",
+    de: "Hongkong-Dollar",
+    ru: "Гонконгский доллар",
+  },
+  PHP: {
+    vi: "Peso Philippines",
+    ja: "フィリピンペソ",
+    zh: "菲律宾比索",
+    es: "Peso filipino",
+    pt: "Peso filipino",
+    fr: "Peso philippin",
+    de: "Philippinischer Peso",
+    ru: "Филиппинское песо",
+  },
+  TRY: {
+    vi: "Lira Thổ Nhĩ Kỳ",
+    ja: "トルコリラ",
+    zh: "土耳其里拉",
+    es: "Lira turca",
+    pt: "Lira turca",
+    fr: "Livre turque",
+    de: "Türkische Lira",
+    ru: "Турецкая лира",
+  },
+  PLN: {
+    vi: "Zloty Ba Lan",
+    ja: "ポーランドズウォティ",
+    zh: "波兰兹罗提",
+    es: "Esloti polaco",
+    pt: "Zloty polaco",
+    fr: "Zloty polonais",
+    de: "Polnischer Złoty",
+    ru: "Польский злотый",
   },
 };
 
@@ -1685,6 +1447,27 @@ export default function SettingsPage() {
                         <p className="text-[11px] text-emerald-900/80">{t.store.presetDelivery}: {selectedCountryPreset.recommendedStack.delivery}</p>
                         <p className="text-[11px] text-emerald-900/80">{t.store.presetPayment}: {selectedCountryPreset.recommendedStack.payment}</p>
                         <p className="text-[11px] text-emerald-900/80">{t.store.presetTax}: {selectedCountryPreset.recommendedStack.tax}</p>
+                        {selectedCountryPreset.settings.currency ? (
+                          <p className="text-[11px] text-emerald-900/80">
+                            {pickUiText(baseLocale, "기본 통화", "Default currency", "Tiền tệ mặc định")}:{" "}
+                            <span className="font-semibold">{selectedCountryPreset.settings.currency}</span>
+                          </p>
+                        ) : null}
+                        {selectedCountryPreset.settings.preferredMessenger ? (
+                          <p className="text-[11px] text-emerald-900/80">
+                            {pickUiText(baseLocale, "기본 알림 메신저", "Default messenger", "Messenger mặc định")}:{" "}
+                            <span className="font-semibold">
+                              {{
+                                kakaotalk: "카카오톡",
+                                zalo: "Zalo",
+                                line: "LINE",
+                                whatsapp: "WhatsApp",
+                                sms: "SMS",
+                              }[selectedCountryPreset.settings.preferredMessenger] ??
+                                selectedCountryPreset.settings.preferredMessenger}
+                            </span>
+                          </p>
+                        ) : null}
                       {presetDiffItems.length > 0 ? (
                         <div className="mt-2 rounded-lg border border-emerald-300/50 bg-white/70 p-2.5 space-y-1">
                           <p className="text-[10px] font-bold text-emerald-900">{t.store.presetDiffTitle}</p>
@@ -2077,6 +1860,59 @@ export default function SettingsPage() {
                         </div>
                       </div>
                     )}
+                  </div>
+
+                  <Separator />
+
+                  {/* Receipt output language */}
+                  <div className="space-y-2">
+                    <Label htmlFor="receiptLocale">
+                      {pickUiText(
+                        baseLocale,
+                        "영수증·주문서 출력 언어",
+                        "Receipt / order print language",
+                        "Ngôn ngữ in hóa đơn / đơn hàng",
+                      )}
+                    </Label>
+                    <Select
+                      value={normalizeReceiptLocaleSetting(settings.receiptLocale)}
+                      onValueChange={(v) => {
+                        if (!v) return;
+                        saveSettings({
+                          ...settings,
+                          receiptLocale: v,
+                        });
+                      }}
+                    >
+                      <SelectTrigger id="receiptLocale">
+                        <SelectValue
+                          placeholder={pickUiText(
+                            baseLocale,
+                            "출력 언어 선택",
+                            "Select print language",
+                            "Chọn ngôn ngữ in",
+                          )}
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {RECEIPT_LOCALE_SELECT_OPTIONS.map((opt) => (
+                          <SelectItem key={opt} value={opt}>
+                            {receiptLocaleOptionLabel(
+                              opt,
+                              baseLocale === "vi" ? "vi" : baseLocale === "en" ? "en" : "ko",
+                            )}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[11px] text-slate-500">
+                      {pickUiText(
+                        baseLocale,
+                        "「매장 기본」은 UI 언어·운영 국가를 따릅니다. 예: 해외 매장에서도 영수증만 English로 고정하려면 English를 선택하세요. 상품명·카드 메시지 등 직접 입력한 내용은 번역되지 않습니다.",
+                        "Store default follows UI language and operating country. Choose English to force English labels on receipts even abroad. Product names and card messages are not translated.",
+                        "Mặc định cửa hàng theo ngôn ngữ UI và quốc gia. Chọn English để cố định nhãn hóa đơn bằng tiếng Anh. Tên sản phẩm và lời nhắn thẻ không được dịch.",
+                      )}
+                    </p>
                   </div>
 
                   <Separator />

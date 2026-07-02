@@ -103,7 +103,7 @@ export default function HqOrderTransfersPage() {
   }, [orgId, loadAllTransfers]);
 
   return (
-    <div className="container max-w-6xl mx-auto p-6 space-y-8 animate-in fade-in duration-500">
+    <div className="max-w-none p-6 space-y-8 animate-in fade-in duration-500">
       <PageHeader
         title={L("다매장 수발주 정산", "HQ Inter-Branch Transfers")}
         description={L("본사 관할 모든 지점들의 수발주(이관) 거래 내역과 정산 분배 금액을 한곳에서 모니터링합니다.", "Monitor all split settlements and real-time statuses.")}

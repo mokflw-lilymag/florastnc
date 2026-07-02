@@ -213,7 +213,7 @@ console.error = function(...args) {
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
 let CURRENT_BRANCH_ID = process.env.CURRENT_BRANCH_ID || process.env.BRANCH_ID || '';
-const BRIDGE_VERSION = 'v2.7';
+const BRIDGE_VERSION = 'v2.10';
 
 const BRIDGE_TEMPLATE_FILES = [
   'receipt-template.html',
@@ -223,6 +223,7 @@ const BRIDGE_TEMPLATE_FILES = [
   'receipt-delivery-driver.html',
   'receipt-market-list.html',
   'receipt-labels.json',
+  'receipt-i18n.js',
 ];
 
 /** 설치 후에도 버전 올리면 %AppData%\\FloxyncBridge 템플릿 자동 갱신 */
@@ -749,6 +750,7 @@ async function start() {
       executablePath: executablePath,
       userDataDir: profileDir,
       args: [
+        '--headless',
         '--no-sandbox', 
         '--disable-setuid-sandbox', 
         '--disable-dev-shm-usage', 
@@ -944,9 +946,9 @@ let printersPromise = null;
 
 function getFastPrinters() {
   return new Promise((resolve) => {
-    exec('powershell -NoProfile -Command "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Get-Printer | Select-Object -ExpandProperty Name"', { timeout: 3000, encoding: 'utf8' }, (error, stdout) => {
+    exec('powershell -NoProfile -Command "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Get-Printer | Select-Object -ExpandProperty Name"', { timeout: 3000, encoding: 'utf8', windowsHide: true }, (error, stdout) => {
       if (error) {
-        exec('cmd.exe /c chcp 65001 >NUL && wmic printer get name', { timeout: 3000, encoding: 'utf8' }, (err2, stdout2) => {
+        exec('cmd.exe /c chcp 65001 >NUL && wmic printer get name', { timeout: 3000, encoding: 'utf8', windowsHide: true }, (err2, stdout2) => {
            if (err2) return resolve([]);
            const lines = stdout2.split('\n').map(l => l.trim()).filter(l => l && l.toLowerCase() !== 'name');
            resolve(lines);

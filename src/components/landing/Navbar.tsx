@@ -5,9 +5,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, Smartphone, Terminal, Globe } from 'lucide-react';
-import { AppLocale, LOCALE_COOKIE, localizePath, resolveLocale, SUPPORTED_LOCALES, toBaseLocale } from '@/i18n/config';
+import { AppLocale, LOCALE_COOKIE, localizePath, resolveLocale, SUPPORTED_LOCALES } from '@/i18n/config';
 import { getMessages } from '@/i18n/getMessages';
-import { pickUiText } from '@/i18n/pick-ui-text';
 import { LANDING_LOCALE_SELECT_OPTIONS, resolveLandingSelectLocale } from '@/i18n/ui-locale-options';
 
 export function Navbar({ locale }: { locale?: AppLocale }) {
@@ -54,13 +53,7 @@ export function Navbar({ locale }: { locale?: AppLocale }) {
   };
 
   const nav = getMessages(uiLocale).landing.navbar;
-  const baseLocale = toBaseLocale(uiLocale);
   const navLinks = [
-    { name: '주요 기능', href: localizePath(uiLocale, '/#features-summary') },
-    { name: '리본 솔루션', href: localizePath(uiLocale, '/#feature-ribbon') },
-    { name: pickUiText(baseLocale, '다매장·수발주', 'Multi-store & partners', 'Đa cửa hàng & đối tác', '多店舗・会員発注'), href: localizePath(uiLocale, '/#feature-scale') },
-    { name: '플랫폼 안내', href: localizePath(uiLocale, '/#details') },
-    { name: '후기', href: localizePath(uiLocale, '/#testimonials') },
     { name: '사용 설명서', href: '/docs/manual' },
     { name: '이용 요금', href: localizePath(uiLocale, '/pricing') },
   ];
@@ -80,16 +73,16 @@ export function Navbar({ locale }: { locale?: AppLocale }) {
       <div className="container mx-auto px-6 md:px-12 flex items-center justify-between">
         {/* Logo */}
         <Link href={homeHref} className="flex items-center gap-3 group relative">
-          <Image src="/images/floxync-logo-dark.png" alt={nav.logoAlt} width={160} height={112} className="h-20 md:h-28 w-auto object-contain" />
+          <Image src="/images/floxync-logo-dark.png" alt={nav.logoAlt} width={160} height={112} className="h-14 md:h-16 w-auto object-contain flex-shrink-0" />
         </Link>
 
         {/* Desktop Nav */}
-        <nav className="hidden lg:flex items-center gap-10">
+        <nav className="hidden lg:flex items-center gap-8">
           {navLinks.map((link) => (
             <Link 
               key={link.name} 
               href={link.href} 
-              className="group relative text-xs font-black text-[#3e4946] hover:text-[#006b5c] transition-colors uppercase tracking-widest font-sans"
+              className="group relative text-sm font-bold text-[#3e4946] hover:text-[#006b5c] transition-colors whitespace-nowrap"
             >
               {link.name}
               <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#006b5c] transition-all duration-300 group-hover:w-full" />
@@ -98,7 +91,7 @@ export function Navbar({ locale }: { locale?: AppLocale }) {
         </nav>
 
         {/* Desktop Actions */}
-        <div className="hidden md:flex items-center gap-6">
+        <div className="hidden md:flex items-center gap-4 flex-shrink-0">
           {/* Language Switcher */}
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#efedec] bg-white/70 hover:bg-white shadow-sm transition-colors cursor-pointer group">
             <Globe size={14} className="text-[#3e4946] group-hover:text-[#006b5c] transition-colors" />
@@ -118,14 +111,14 @@ export function Navbar({ locale }: { locale?: AppLocale }) {
           <Link
             href={loginHref}
             prefetch={false}
-            className="text-xs font-black text-[#3e4946] hover:text-[#006b5c] transition-colors uppercase tracking-[0.2em]"
+            className="text-sm font-bold text-[#3e4946] hover:text-[#006b5c] transition-colors whitespace-nowrap"
           >
             {nav.login}
           </Link>
           <Link
             href={loginHref}
             prefetch={false}
-            className="group relative px-6 py-2.5 bg-gradient-to-r from-[#86e3ce] to-[#dbcaff] text-[#006657] font-black text-xs rounded-full overflow-hidden border border-[#006b5c]/25 shadow-sm transition-all uppercase tracking-[0.1em]"
+            className="group relative px-5 py-2.5 bg-gradient-to-r from-[#86e3ce] to-[#dbcaff] text-[#006657] font-bold text-sm rounded-full overflow-hidden border border-[#006b5c]/25 shadow-sm transition-all whitespace-nowrap"
           >
             <span className="relative z-10 flex items-center gap-2">
               {nav.getStarted} <Terminal size={14} className="animate-pulse" />

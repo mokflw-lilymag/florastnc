@@ -417,7 +417,7 @@ export default function RegionalKeysPage() {
   if (!isSuperAdmin) return <AccessDenied requiredTier="System Admin" />;
 
   return (
-    <div className="container max-w-5xl mx-auto p-6 space-y-8">
+    <div className="max-w-none p-6 space-y-8">
       {/* 헤더 */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-center gap-3">

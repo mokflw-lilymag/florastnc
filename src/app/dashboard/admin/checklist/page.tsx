@@ -193,7 +193,7 @@ export default function DailyChecklistPage() {
   }, [allMasterTasks, newMasterTask.role, newMasterTask.frequency]);
 
   return (
-    <div className="flex-1 space-y-8 p-8 pt-6 max-w-5xl mx-auto pb-32">
+    <div className="flex-1 space-y-8 p-8 pt-6 max-w-none pb-32">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="space-y-1">
           <Badge className="bg-indigo-600 text-white border-none font-black text-[10px] tracking-widest px-2 py-0.5 uppercase">Operational Protocol</Badge>

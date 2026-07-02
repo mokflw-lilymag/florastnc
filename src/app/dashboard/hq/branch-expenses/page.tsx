@@ -538,7 +538,7 @@ export default function HqBranchExpensesPage() {
 
   if (forbidden) {
     return (
-      <div className="container max-w-6xl mx-auto p-6 space-y-6">
+      <div className="max-w-none p-6 space-y-6">
         <PageHeader
           title={tf.f01923}
           description={tf.f01436}
@@ -566,7 +566,7 @@ export default function HqBranchExpensesPage() {
   const topMaterialCost = globalTopMaterials[0] ? `${globalTopMaterials[0].name} (${globalTopMaterials[0].percent}%)` : "—";
 
   return (
-    <div className="container max-w-6xl mx-auto p-6 space-y-8 animate-in fade-in duration-700">
+    <div className="max-w-none p-6 space-y-8 animate-in fade-in duration-700">
       
       {/* 👑 비주얼 관제탑 헤더 */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-100 pb-6 gap-4">

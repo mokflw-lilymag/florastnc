@@ -56,7 +56,7 @@ export function RibbonPrintLayout({ order, initialContent, initialSender }: Ribb
         <div className="h-full bg-slate-50 flex flex-col overflow-hidden">
             {/* Control Bar - Hidden when printing */}
             <div className="bg-white border-b p-4 print:hidden shrink-0">
-                <div className="max-w-7xl mx-auto flex items-center justify-between">
+                <div className="max-w-none flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <Button variant="ghost" onClick={() => router.back()} className="rounded-xl">
                             <ArrowLeft className="w-4 h-4 mr-2" /> {tf.f00159}

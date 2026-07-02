@@ -209,7 +209,7 @@ export default function DeliveryManagementPage() {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6 animate-in slide-in-from-bottom-4 duration-500 pb-20">
+    <div className="p-6 max-w-none space-y-6 animate-in slide-in-from-bottom-4 duration-500 pb-20">
       <PageHeader 
         title={tf.f00243} 
         description={tf.f00466}

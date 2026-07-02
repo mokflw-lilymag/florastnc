@@ -618,11 +618,21 @@ class SyncWorker {
     this.db.transaction((branches) => {
       for (const b of branches) {
         stmt.run({
-          ...b,
+          id: b.id,
           tenant_id: this.tenantId,
-          delivery_fees: b.delivery_fees ? JSON.stringify(b.delivery_fees) : null,
-          surcharges: b.surcharges ? JSON.stringify(b.surcharges) : null,
-          extra_data: b.extra_data ? JSON.stringify(b.extra_data) : null,
+          name: b.name || '',
+          type: b.type || null,
+          address: b.address || null,
+          phone: b.phone || null,
+          manager: b.manager || null,
+          business_number: b.business_number || null,
+          employee_count: typeof b.employee_count === 'number' ? b.employee_count : null,
+          delivery_fees: b.delivery_fees ? (typeof b.delivery_fees === 'object' ? JSON.stringify(b.delivery_fees) : b.delivery_fees) : null,
+          surcharges: b.surcharges ? (typeof b.surcharges === 'object' ? JSON.stringify(b.surcharges) : b.surcharges) : null,
+          account: b.account ? (typeof b.account === 'object' ? JSON.stringify(b.account) : b.account) : null,
+          seeded: b.seeded ? 1 : 0,
+          extra_data: b.extra_data ? (typeof b.extra_data === 'object' ? JSON.stringify(b.extra_data) : b.extra_data) : null,
+          created_at: b.created_at || null,
           now,
         });
       }

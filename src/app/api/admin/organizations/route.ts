@@ -32,27 +32,30 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: errAdminServerMisconfigured(bl) }, { status: 500 });
   }
 
-  // 1) 조직 목록 조회
-  const { data: orgs, error: oErr } = await admin
-    .from("organizations")
-    .select("id, name, created_at, hq_tenant_id")
-    .order("created_at", { ascending: false });
+  // 1) 조직 목록 및 지점 목록 병렬 조회
+  const [orgsRes, tenantsRes] = await Promise.all([
+    admin
+      .from("organizations")
+      .select("id, name, created_at, hq_tenant_id")
+      .order("created_at", { ascending: false }),
+    admin
+      .from("tenants")
+      .select("id, name, organization_id, plan")
+      .order("name", { ascending: true })
+  ]);
 
-  if (oErr) {
-    console.error("admin organizations list:", oErr);
+  if (orgsRes.error) {
+    console.error("admin organizations list:", orgsRes.error);
     return NextResponse.json({ error: errAdminDataLoadFailed(bl) }, { status: 500 });
   }
 
-  // 2) 지점 목록 조회
-  const { data: tenants, error: tErr } = await admin
-    .from("tenants")
-    .select("id, name, organization_id, plan")
-    .order("name", { ascending: true });
-
-  if (tErr) {
-    console.error("admin organizations tenants:", tErr);
+  if (tenantsRes.error) {
+    console.error("admin organizations tenants:", tenantsRes.error);
     return NextResponse.json({ error: errAdminDataLoadFailed(bl) }, { status: 500 });
   }
+
+  const orgs = orgsRes.data;
+  const tenants = tenantsRes.data;
 
   // 3) 각 지점별 점주(tenant_admin / org_admin) 이메일 일괄 매핑 (수퍼관리자 계정은 원천 제외)
   const tenantIds = tenants?.map((t) => t.id) ?? [];

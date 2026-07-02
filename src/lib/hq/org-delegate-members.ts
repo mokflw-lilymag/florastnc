@@ -80,22 +80,25 @@ export async function loadOrgDelegateSnapshot(
   admin: AdminClient,
   organizationId: string,
 ): Promise<OrgDelegateSnapshot | null> {
-  const { data: org } = await admin
-    .from("organizations")
-    .select("id, name")
-    .eq("id", organizationId)
-    .maybeSingle();
+  const [orgRes, hqRepEmails, memsRes] = await Promise.all([
+    admin
+      .from("organizations")
+      .select("id, name")
+      .eq("id", organizationId)
+      .maybeSingle(),
+    getHqRepEmailsForOrg(admin, organizationId),
+    admin
+      .from("organization_members")
+      .select("user_id")
+      .eq("organization_id", organizationId)
+      .eq("role", "org_admin")
+  ]);
 
+  const org = orgRes.data;
   if (!org) return null;
 
-  const hqRepEmails = await getHqRepEmailsForOrg(admin, organizationId);
   const hqRepSet = new Set(hqRepEmails);
-
-  const { data: mems } = await admin
-    .from("organization_members")
-    .select("user_id")
-    .eq("organization_id", organizationId)
-    .eq("role", "org_admin");
+  const mems = memsRes.data;
 
   const userIds = [...new Set((mems ?? []).map((m) => m.user_id as string))];
   let emailByUserId: Record<string, string> = {};

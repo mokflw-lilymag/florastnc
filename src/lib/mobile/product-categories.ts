@@ -13,7 +13,6 @@ export const MOBILE_PRODUCT_ALL_CATEGORY = "전체";
 
 /** 모바일 상품선택 카테고리 탭에서 숨길 분류 */
 export const MOBILE_HIDDEN_PRODUCT_CATEGORIES = new Set([
-  "경조사화환",
   "경조화환",
   "꽃다발",
   "꽃바구니",

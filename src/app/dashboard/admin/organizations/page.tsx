@@ -373,7 +373,7 @@ export default function OrganizationsAdminPage() {
   const linkCandidates = tenants.filter((t) => t.organization_id !== linkOrgId);
 
   return (
-    <div className="container max-w-5xl mx-auto p-6 space-y-8">
+    <div className="max-w-none p-6 space-y-8">
       <PageHeader
         title={tf.f01846}
         description="다매장 사장님을 위해 지점들을 묶어주고, 수발주/통계 등의 통합 제어 권한을 가질 대표 본사 지점을 지정합니다."

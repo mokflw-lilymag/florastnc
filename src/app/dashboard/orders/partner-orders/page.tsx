@@ -18,7 +18,7 @@ import { createClient } from "@/utils/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -197,9 +197,12 @@ export default function PartnerOrdersPage() {
         description="발주는 모든 매장이 이용할 수 있습니다. 수주·수락은 환경설정에서 수주점으로 등록한 매장만 가능합니다."
       >
         <div className="flex flex-wrap gap-2 mt-4 lg:mt-0">
-          <Button variant="outline" asChild className="rounded-2xl font-bold">
-            <Link href="/dashboard/orders">주문 현황</Link>
-          </Button>
+          <Link
+            href="/dashboard/orders"
+            className={cn(buttonVariants({ variant: "outline" }), "rounded-2xl font-bold")}
+          >
+            주문 현황
+          </Link>
           <Button
             variant="outline"
             onClick={() => void loadRows()}

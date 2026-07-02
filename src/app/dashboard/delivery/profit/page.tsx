@@ -51,7 +51,7 @@ export default function DeliveryProfitPage() {
   }, [deliveryOrders]);
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="p-6 max-w-none space-y-6">
       <PageHeader 
         title={tf.f00263} 
         description={tf.f00083}

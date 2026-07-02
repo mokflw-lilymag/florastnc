@@ -19,7 +19,8 @@ import {
   Loader2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { Order } from "@/types/order";
 import { enqueuePrintJob } from "@/lib/print-service";
 
@@ -311,9 +312,12 @@ export default function OrderTransfersPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" asChild className="h-9 rounded-xl font-bold">
-            <Link href="/dashboard/orders">주문 현황</Link>
-          </Button>
+          <Link
+            href="/dashboard/orders"
+            className={cn(buttonVariants({ variant: "outline" }), "h-9 rounded-xl font-bold inline-flex items-center")}
+          >
+            주문 현황
+          </Link>
         <Button 
           variant="outline" 
           onClick={loadTransfers} 

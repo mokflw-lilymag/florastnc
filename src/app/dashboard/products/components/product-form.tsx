@@ -24,6 +24,11 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Product, ProductData } from "@/types/product";
+import {
+  isDirectInputPendingProduct,
+  normalizeDirectInputProductOnSave,
+} from "@/lib/direct-input-product";
+import { pickUiText } from "@/i18n/pick-ui-text";
 
 import { useSettings, DEFAULT_PRODUCT_CATEGORIES } from "@/hooks/use-settings";
 
@@ -37,7 +42,8 @@ interface ProductFormProps {
 export function ProductForm({ isOpen, onOpenChange, onSubmit, product }: ProductFormProps) {
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
-  const baseLocale = toBaseLocale(locale);  const sizeLabels = useMemo<Record<string, string>>(
+  const baseLocale = toBaseLocale(locale);
+  const sizeLabels = useMemo<Record<string, string>>(
     () => ({
       small: tf.f01440,
       medium: tf.f01891,
@@ -119,8 +125,11 @@ export function ProductForm({ isOpen, onOpenChange, onSubmit, product }: Product
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    const payload = normalizeDirectInputProductOnSave(formData, product);
+    onSubmit(payload);
   };
+
+  const showDirectInputNotice = Boolean(product && isDirectInputPendingProduct(product));
 
   const mainCategory = formData.main_category as string;
   const subCategories = (mainCategory && CATEGORIES.mid[mainCategory]) || [];
@@ -136,6 +145,23 @@ export function ProductForm({ isOpen, onOpenChange, onSubmit, product }: Product
             {tf.f01364}
           </DialogDescription>
         </DialogHeader>
+        {showDirectInputNotice && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            {pickUiText(
+              baseLocale,
+              "주문 접수 시 직접입력으로 등록된 상품입니다. 대·중분류를 실제 분류로 바꾸고 저장하면 이 안내가 사라집니다.",
+              "This product was added via order direct entry. Save with real main/mid categories to clear this notice.",
+              "Sản phẩm được thêm khi nhập đơn thủ công. Đổi phân loại thật rồi lưu để gỡ nhãn.",
+              "注文の直接入力で登録された商品です。実際の分類に変更して保存すると表示が消えます。",
+              "此商品来自订单直接输入。改为真实分类并保存后，提示将消失。",
+              "Producto añadido por entrada manual en pedido. Guarde con categorías reales para quitar el aviso.",
+              "Produto adicionado por entrada manual no pedido. Salve com categorias reais para remover o aviso.",
+              "Produit ajouté via saisie directe. Enregistrez avec de vraies catégories pour retirer l’avertissement.",
+              "Per Direkteingabe in der Bestellung angelegt. Mit echten Kategorien speichern, um den Hinweis zu entfernen.",
+              "Товар добавлен прямым вводом в заказе. Сохраните с реальными категориями, чтобы убрать метку.",
+            )}
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="space-y-5 py-4">
           <div className="grid gap-4">
             <div className="grid gap-2">

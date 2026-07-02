@@ -130,7 +130,7 @@ export function MobilePrintPoller() {
             payload: job.data || job.payload,
             order_id: job.order_id,
           },
-          settings: generalSettings,
+          settings: settingsRef.current,
           branchName: tenantId,
         });
 

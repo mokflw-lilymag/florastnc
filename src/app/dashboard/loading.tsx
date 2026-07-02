@@ -1,6 +1,6 @@
 export default function DashboardLoading() {
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto animate-pulse">
+    <div className="p-6 space-y-6 max-w-none animate-pulse">
       {/* Header skeleton */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

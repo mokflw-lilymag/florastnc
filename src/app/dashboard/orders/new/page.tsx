@@ -52,6 +52,9 @@ import {
   type OrderFormDraft,
 } from "@/lib/order-form-draft";
 import { useOrderFormDraft } from "@/hooks/use-order-form-draft";
+import { useProducts } from "@/hooks/use-products";
+import { findSimilarProducts } from "@/lib/custom-product-similarity";
+import { generateCompactProductBarcode } from "@/lib/compact-product-barcode";
 
 interface OrderItem {
   id: string;
@@ -136,6 +139,113 @@ export default function NewOrderPage() {
   const [customProductName, setCustomProductName] = useState("");
   const [customProductPrice, setCustomProductPrice] = useState("");
   const [customProductQuantity, setCustomProductQuantity] = useState(1);
+
+  const { products: allProducts } = useProducts(true, true, true);
+
+  const similarProducts = useMemo(() => {
+    return findSimilarProducts(allProducts, customProductName, {
+      branchName: selectedBranch?.name,
+      getBranch: (product) => (product as Product & { branch?: string }).branch,
+    });
+  }, [customProductName, allProducts, selectedBranch?.name]);
+
+  const addProductToOrder = useCallback((product: Product, quantity = 1) => {
+    setOrderItems((prev) => {
+      const idx = prev.findIndex((item) => item.id === product.id);
+      if (idx > -1) {
+        return prev.map((item, i) =>
+          i === idx ? { ...item, quantity: item.quantity + quantity } : item,
+        );
+      }
+      return [...prev, { ...product, quantity }];
+    });
+
+    if (product.extra_data?.item_size) {
+      setItemSize(product.extra_data.item_size);
+    }
+    if (product.extra_data?.ribbon_size) {
+      setMessageType(product.extra_data.ribbon_size !== "none" ? "ribbon" : "card");
+    }
+  }, []);
+
+  const resetCustomProductDialog = useCallback(() => {
+    setCustomProductName("");
+    setCustomProductPrice("");
+    setCustomProductQuantity(1);
+    setIsCustomProductDialogOpen(false);
+  }, []);
+
+  const handleAddCustomProduct = useCallback(async () => {
+    if (!customProductName.trim() || !customProductPrice.trim()) {
+      toast.error("상품명과 가격을 모두 입력해주세요.");
+      return;
+    }
+    if (!tenantId) {
+      toast.error("매장 정보를 확인할 수 없습니다.");
+      return;
+    }
+    const price = Number(customProductPrice);
+    if (Number.isNaN(price) || price <= 0) return;
+
+    try {
+      const barcodeCode = generateCompactProductBarcode();
+
+      const { data: newProd, error } = await supabase
+        .from("products")
+        .insert([{
+          id: crypto.randomUUID(),
+          tenant_id: tenantId,
+          name: customProductName.trim(),
+          price,
+          main_category: "기타",
+          mid_category: "직접입력",
+          supplier: "직접입력",
+          size: "기타",
+          color: "기타",
+          branch: selectedBranch?.name || "",
+          status: "active",
+          code: barcodeCode,
+          stock: 9999,
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      addProductToOrder(
+        {
+          id: newProd.id,
+          name: newProd.name,
+          price: Number(newProd.price),
+          stock: newProd.stock,
+          main_category: newProd.main_category,
+          mid_category: newProd.mid_category,
+          supplier: newProd.supplier,
+          size: newProd.size,
+          color: newProd.color,
+          branch: newProd.branch,
+          status: newProd.status,
+        } as Product,
+        customProductQuantity,
+      );
+
+      resetCustomProductDialog();
+      toast.success("직접 입력한 상품이 데이터베이스에 등록되고 주문서에 추가되었습니다.");
+    } catch (err: unknown) {
+      console.error(err);
+      const message = err instanceof Error ? err.message : "알 수 없는 오류";
+      toast.error(`상품 등록 중 오류가 발생했습니다: ${message}`);
+    }
+  }, [
+    addProductToOrder,
+    customProductName,
+    customProductPrice,
+    customProductQuantity,
+    resetCustomProductDialog,
+    selectedBranch?.name,
+    supabase,
+    tenantId,
+  ]);
 
   // Delivery Fee
   const [deliveryFeeType, setDeliveryFeeType] = useState<"auto" | "manual">("auto");
@@ -1057,26 +1167,7 @@ export default function NewOrderPage() {
 
           <ProductSection
             initialCategory={initialCategory || undefined}
-            onAddProduct={(p: Product) => {
-              // 1. Add/Update order items
-              setOrderItems(prev => {
-                const idx = prev.findIndex(item => item.id === p.id);
-                if (idx > -1) return prev.map((item, i) => i === idx ? { ...item, quantity: item.quantity + 1 } : item);
-                return [...prev, { ...p, quantity: 1 }];
-              });
-
-              // 2. Auto-set size and ribbon if provided in extra_data
-              if (p.extra_data?.item_size) {
-                setItemSize(p.extra_data.item_size);
-              }
-              if (p.extra_data?.ribbon_size) {
-                if (p.extra_data.ribbon_size !== 'none') {
-                  setMessageType('ribbon');
-                } else {
-                  setMessageType('card');
-                }
-              }
-            }}
+            onAddProduct={(p: Product) => addProductToOrder(p)}
             onOpenCustomProductDialog={() => setIsCustomProductDialogOpen(true)}
           />
 
@@ -1271,72 +1362,76 @@ export default function NewOrderPage() {
         <DialogContent className="rounded-3xl">
           <DialogHeader>
             <DialogTitle className="text-slate-900">{tf.f00374}</DialogTitle>
+            <DialogDescription>
+              등록되지 않은 상품을 임의 가격으로 주문에 추가합니다.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-               <Label className="text-slate-700">{tf.f00338}</Label>
-               <Input value={customProductName} onChange={e => setCustomProductName(e.target.value)} />
+              <Label className="text-slate-700" htmlFor="custom-product-name">{tf.f00338}</Label>
+              <Input
+                id="custom-product-name"
+                value={customProductName}
+                onChange={(e) => setCustomProductName(e.target.value)}
+                placeholder="상품명을 입력하세요"
+              />
+              {similarProducts.length > 0 && (
+                <div className="mt-1.5 space-y-1.5 rounded-md border border-amber-200 bg-amber-50 p-2">
+                  <div className="flex items-center gap-1 text-[11px] font-semibold text-amber-800">
+                    ⚠️ {tf.f01657}
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    {similarProducts.map((product) => (
+                      <div
+                        key={product.id}
+                        className="flex items-center justify-between rounded border border-amber-100 bg-white p-1.5 text-[11px] shadow-sm"
+                      >
+                        <span className="font-medium text-gray-700">
+                          {product.name} ({Number(product.price).toLocaleString()}원)
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-6 border-amber-500 px-2 text-[10px] text-amber-700 hover:bg-amber-50"
+                          onClick={() => {
+                            addProductToOrder(product, customProductQuantity);
+                            resetCustomProductDialog();
+                          }}
+                        >
+                          기존 상품 선택
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
             <div className="space-y-2">
-               <Label className="text-slate-700">{tf.f00021}</Label>
-               <Input type="number" value={customProductPrice} onChange={e => setCustomProductPrice(e.target.value)} />
+              <Label className="text-slate-700" htmlFor="custom-product-price">{tf.f00021}</Label>
+              <Input
+                id="custom-product-price"
+                type="number"
+                value={customProductPrice}
+                onChange={(e) => setCustomProductPrice(e.target.value)}
+                placeholder="가격을 입력하세요"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-slate-700" htmlFor="custom-product-quantity">{tf.f00377}</Label>
+              <Input
+                id="custom-product-quantity"
+                type="number"
+                min={1}
+                value={customProductQuantity}
+                onChange={(e) => setCustomProductQuantity(Number(e.target.value))}
+              />
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={async () => {
-              const price = Number(customProductPrice);
-              if (!customProductName || price <= 0) return;
-              
-              try {
-                // 10자리 콤팩트 바코드 발급
-                const randomPart = Math.random().toString(36).substring(2, 11).toUpperCase().padEnd(9, 'X');
-                const barcodeCode = `P${randomPart}`;
-
-                const { data: newProd, error } = await supabase
-                  .from('products')
-                  .insert([{
-                    id: crypto.randomUUID(),
-                    name: customProductName.trim(),
-                    price,
-                    main_category: '기타',
-                    mid_category: '직접입력',
-                    supplier: '직접입력',
-                    size: '기타',
-                    color: '기타',
-                    branch: selectedBranch?.name || "",
-                    status: 'active',
-                    code: barcodeCode,
-                    stock: 9999
-                  }])
-                  .select()
-                  .single();
-
-                if (error) throw error;
-
-                setOrderItems(prev => [...prev, { 
-                  id: newProd.id, 
-                  name: newProd.name, 
-                  price: newProd.price, 
-                  quantity: 1, 
-                  stock: newProd.stock,
-                  mainCategory: newProd.main_category,
-                  midCategory: newProd.mid_category,
-                  supplier: newProd.supplier,
-                  size: newProd.size,
-                  color: newProd.color,
-                  branch: newProd.branch,
-                  status: newProd.status,
-                }]);
-                
-                setCustomProductName("");
-                setCustomProductPrice("");
-                setIsCustomProductDialogOpen(false);
-                toast.success('직접 입력한 상품이 데이터베이스에 등록되고 주문서에 추가되었습니다.');
-              } catch (err: any) {
-                console.error(err);
-                toast.error(`상품 등록 중 오류가 발생했습니다: ${err.message}`);
-              }
-            }}>{tf.f00697}</Button>
+            <Button variant="outline" onClick={() => setIsCustomProductDialogOpen(false)}>
+              {tf.f00702}
+            </Button>
+            <Button onClick={handleAddCustomProduct}>{tf.f00697}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

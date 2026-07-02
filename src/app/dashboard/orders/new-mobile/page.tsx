@@ -60,6 +60,8 @@ import {
 import { useOrderFormDraft } from "@/hooks/use-order-form-draft";
 import { CardPaymentConfirmDialog } from "../new/components/CardPaymentConfirmDialog";
 import { PaymentApprovalFailedBanner } from "../new/components/PaymentApprovalFailedBanner";
+import { findSimilarProducts } from "@/lib/custom-product-similarity";
+import { generateCompactProductBarcode } from "@/lib/compact-product-barcode";
 
 // --- TYPES ---
 interface OrderItem extends Product {
@@ -907,6 +909,13 @@ export default function NewOrderMobilePage() {
     const [customProductPrice, setCustomProductPrice] = useState("");
     const [customProductQuantity, setCustomProductQuantity] = useState(1);
 
+    const similarProducts = useMemo(() => {
+        return findSimilarProducts(allProducts, customProductName, {
+            branchName: selectedBranch?.name,
+            getBranch: (product) => (product as Product & { branch?: string }).branch,
+        });
+    }, [customProductName, allProducts, selectedBranch?.name]);
+
     const { counterPaymentAvailable } = usePosConnection();
 
     const orderFormDraftSaveTrigger = useMemo(
@@ -1265,13 +1274,94 @@ export default function NewOrderMobilePage() {
         setOrderItems(prev => prev.filter(i => i.id !== id));
     }, []);
 
-    const handleAddProduct = useCallback((product: Product) => {
+    const handleAddProduct = useCallback((product: Product, quantity = 1) => {
         setOrderItems(prev => {
             const existing = prev.find(i => i.id === product.id);
-            if (existing) return prev.map(i => i.id === product.id ? { ...i, quantity: i.quantity + 1 } : i);
-            return [...prev, { ...product, quantity: 1 }];
+            if (existing) {
+                return prev.map(i =>
+                    i.id === product.id ? { ...i, quantity: i.quantity + quantity } : i,
+                );
+            }
+            return [...prev, { ...product, quantity, isCustomProduct: false }];
         });
     }, []);
+
+    const resetCustomProductDialog = useCallback(() => {
+        setCustomProductName("");
+        setCustomProductPrice("");
+        setCustomProductQuantity(1);
+        setIsCustomProductDialogOpen(false);
+    }, []);
+
+    const handleAddCustomProduct = useCallback(async () => {
+        const price = parseInt(customProductPrice) || 0;
+        if (!customProductName.trim() || price <= 0) {
+            toast.error("상품명과 가격을 모두 입력해주세요.");
+            return;
+        }
+        if (!tenantId) {
+            toast.error("매장 정보를 확인할 수 없습니다.");
+            return;
+        }
+
+        try {
+            const barcodeCode = generateCompactProductBarcode();
+
+            const { data: newProd, error } = await supabase
+                .from('products')
+                .insert([{
+                    id: crypto.randomUUID(),
+                    tenant_id: tenantId,
+                    name: customProductName.trim(),
+                    price,
+                    main_category: '기타',
+                    mid_category: '직접입력',
+                    supplier: '직접입력',
+                    size: '기타',
+                    color: '기타',
+                    branch: selectedBranch?.name || "",
+                    status: 'active',
+                    code: barcodeCode,
+                    stock: 9999
+                }])
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            handleAddProduct({
+                id: newProd.id,
+                tenant_id: newProd.tenant_id,
+                name: newProd.name,
+                price: newProd.price,
+                stock: newProd.stock,
+                main_category: newProd.main_category,
+                mid_category: newProd.mid_category,
+                supplier: newProd.supplier,
+                code: newProd.code,
+                status: newProd.status,
+                supplier_id: newProd.supplier_id ?? null,
+                extra_data: newProd.extra_data,
+                created_at: newProd.created_at,
+                updated_at: newProd.updated_at,
+            } as Product, customProductQuantity);
+
+            resetCustomProductDialog();
+            toast.success('직접 입력한 상품이 데이터베이스에 등록되고 주문서에 추가되었습니다.');
+        } catch (err: unknown) {
+            console.error(err);
+            const message = err instanceof Error ? err.message : "알 수 없는 오류";
+            toast.error(`상품 등록 중 오류가 발생했습니다: ${message}`);
+        }
+    }, [
+        customProductName,
+        customProductPrice,
+        customProductQuantity,
+        handleAddProduct,
+        resetCustomProductDialog,
+        selectedBranch?.name,
+        tenantId,
+    ]);
 
     const handleAddressSearch = () => {
         if (window.daum && window.daum.Postcode) {
@@ -1577,68 +1667,41 @@ export default function NewOrderMobilePage() {
                     <div className="space-y-3 py-2">
                         <Label className="text-xs">상품명</Label>
                         <Input value={customProductName} onChange={e => setCustomProductName(e.target.value)} />
+                        {similarProducts.length > 0 && (
+                            <div className="mt-1.5 p-2 bg-amber-50 rounded-md border border-amber-200 space-y-1.5">
+                                <div className="text-[10px] font-semibold text-amber-800 flex items-center gap-1">
+                                    ⚠️ 등록되어 있는 유사 상품 목록:
+                                </div>
+                                <div className="flex flex-col gap-1 max-h-[120px] overflow-y-auto">
+                                    {similarProducts.map((p) => (
+                                        <div key={p.id} className="flex items-center justify-between text-[10px] bg-white p-1.5 rounded border border-amber-100 shadow-sm">
+                                            <span className="font-medium text-gray-700 max-w-[130px] truncate">{p.name} ({p.price.toLocaleString()}원)</span>
+                                            <Button 
+                                                size="sm" 
+                                                variant="outline" 
+                                                className="h-6 px-1.5 text-[9px] text-amber-700 border-amber-500 hover:bg-amber-50"
+                                                onClick={() => {
+                                                    handleAddProduct(p, customProductQuantity);
+                                                    resetCustomProductDialog();
+                                                    toast.success("기존 등록 상품으로 추가되었습니다.");
+                                                }}
+                                            >
+                                                선택
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                         <Label className="text-xs">가격</Label>
                         <Input type="number" value={customProductPrice} onChange={e => setCustomProductPrice(e.target.value)} />
                         <Label className="text-xs">수량</Label>
                         <Input type="number" value={customProductQuantity} onChange={e => setCustomProductQuantity(Number(e.target.value))} />
                     </div>
-                    <DialogFooter><Button onClick={async () => {
-                        const price = parseInt(customProductPrice) || 0;
-                        if (!customProductName.trim() || price <= 0) return;
-                        
-                        try {
-                            // 10자리 콤팩트 바코드 발급
-                            const randomPart = Math.random().toString(36).substring(2, 11).toUpperCase().padEnd(9, 'X');
-                            const barcodeCode = `P${randomPart}`;
-
-                            const { data: newProd, error } = await supabase
-                                .from('products')
-                                .insert([{
-                                    id: crypto.randomUUID(),
-                                    name: customProductName.trim(),
-                                    price,
-                                    main_category: '기타',
-                                    mid_category: '직접입력',
-                                    supplier: '직접입력',
-                                    size: '기타',
-                                    color: '기타',
-                                    branch: selectedBranch?.name || "",
-                                    status: 'active',
-                                    code: barcodeCode,
-                                    stock: 9999
-                                }])
-                                .select()
-                                .single();
-
-                            if (error) throw error;
-
-                            const newItem = { 
-                                id: newProd.id, 
-                                name: newProd.name, 
-                                price: newProd.price, 
-                                quantity: customProductQuantity, 
-                                stock: newProd.stock,
-                                mainCategory: newProd.main_category,
-                                midCategory: newProd.mid_category,
-                                supplier: newProd.supplier,
-                                size: newProd.size,
-                                color: newProd.color,
-                                branch: newProd.branch,
-                                status: newProd.status,
-                                isCustomProduct: true 
-                            } as any;
-                            
-                            setOrderItems(prev => [...prev, newItem]);
-                            setCustomProductName(""); 
-                            setCustomProductPrice(""); 
-                            setCustomProductQuantity(1); 
-                            setIsCustomProductDialogOpen(false);
-                            toast.success('직접 입력한 상품이 데이터베이스에 등록되고 주문서에 추가되었습니다.');
-                        } catch (err: any) {
-                            console.error(err);
-                            toast.error(`상품 등록 중 오류가 발생했습니다: ${err.message}`);
-                        }
-                    }}>추가하기</Button></DialogFooter>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsCustomProductDialogOpen(false)}>취소</Button>
+                        <Button onClick={handleAddCustomProduct}>추가하기</Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </div>

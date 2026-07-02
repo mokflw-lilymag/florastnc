@@ -894,7 +894,7 @@ export default function BranchMaterialRequestsPage() {
   );
 
   return (
-    <div className="container max-w-7xl mx-auto p-4 md:p-6 space-y-6 pb-28 lg:pb-8">
+    <div className="max-w-none p-4 md:p-6 space-y-6 pb-28 lg:pb-8">
       <PageHeader title={tf.f01270} description={tf.f01745} icon={ClipboardList} />
 
       <div className="flex flex-wrap gap-2">

@@ -26,7 +26,7 @@ export default function CategorySettingsPage() {
   } = useSettings();
   
   return (
-    <div className="max-w-7xl mx-auto space-y-8 pb-32 px-4 md:px-8 pt-8">
+    <div className="max-w-none space-y-8 pb-32 px-4 md:px-8 pt-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <PageHeader
           title={tf.f02084}

@@ -134,6 +134,7 @@ export async function runTenantMasterSeed(
 
     // 이스트폴·로케일 팩 교체 시 기존 표준 시드 샘플 정리
     try {
+      // 1. 제품(Products) 정리
       for (const ver of STANDARD_SEED_PRODUCT_VERSIONS) {
         await admin
           .from("products")
@@ -141,7 +142,15 @@ export async function runTenantMasterSeed(
           .eq("tenant_id", tenantId)
           .contains("extra_data", { _seed: { version: ver } });
       }
+      
+      // 이름에 '(샘플)'이 들어가거나 코드가 'SAMPLE-'로 시작하는 제품 강제 정리 (시드 외 수동 샘플 방어)
+      await admin
+        .from("products")
+        .delete()
+        .eq("tenant_id", tenantId)
+        .or("name.ilike.%(샘플)%,name.ilike.%(sample)%,name.ilike.%(Sample)%,code.ilike.SAMPLE-%");
 
+      // 2. 자재(Materials) 정리
       for (const ver of STANDARD_SEED_PRODUCT_VERSIONS) {
         await admin
           .from("materials")
@@ -149,7 +158,15 @@ export async function runTenantMasterSeed(
           .eq("tenant_id", tenantId)
           .like("memo", `FS-SEED|${ver}|%`);
       }
+      
+      // 이름에 '(샘플)'이 들어가는 자재 강제 정리
+      await admin
+        .from("materials")
+        .delete()
+        .eq("tenant_id", tenantId)
+        .or("name.ilike.%(샘플)%,name.ilike.%(sample)%,name.ilike.%(Sample)%");
 
+      // 3. 거래처(Suppliers) 정리
       for (const pattern of SAMPLE_SUPPLIER_NAME_PATTERNS) {
         await admin.from("suppliers").delete().eq("tenant_id", tenantId).like("name", pattern);
       }

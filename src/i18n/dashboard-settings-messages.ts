@@ -43,6 +43,7 @@ type SettingsMessages = {
       useKakaoTalk: string;
       autoDeliveryBooking: string;
       deliveryCarriers: string;
+      preferredMessenger: string;
     };
   };
 };
@@ -88,6 +89,7 @@ const KO: SettingsMessages = {
       useKakaoTalk: "카카오톡 연동",
       autoDeliveryBooking: "자동 배송 접수",
       deliveryCarriers: "배송사 기본값",
+      preferredMessenger: "기본 알림 메신저",
     },
   },
 };
@@ -133,6 +135,7 @@ const VI: SettingsMessages = {
       useKakaoTalk: "Tích hợp KakaoTalk",
       autoDeliveryBooking: "Tự động nhận giao hàng",
       deliveryCarriers: "Đơn vị vận chuyển mặc định",
+      preferredMessenger: "Messenger mặc định",
     },
   },
 };
@@ -178,6 +181,7 @@ const EN: SettingsMessages = {
       useKakaoTalk: "KakaoTalk integration",
       autoDeliveryBooking: "Auto delivery booking",
       deliveryCarriers: "Default delivery carriers",
+      preferredMessenger: "Default messenger",
     },
   },
 };
@@ -223,6 +227,7 @@ const JA: SettingsMessages = {
       useKakaoTalk: "KakaoTalk 連携",
       autoDeliveryBooking: "配送の自動受付",
       deliveryCarriers: "配送業者の既定値",
+      preferredMessenger: "既定メッセンジャー",
     },
   },
 };
@@ -268,6 +273,7 @@ const ZH: SettingsMessages = {
       useKakaoTalk: "KakaoTalk 集成",
       autoDeliveryBooking: "自动接单配送",
       deliveryCarriers: "默认承运商",
+      preferredMessenger: "默认通知应用",
     },
   },
 };
@@ -313,6 +319,7 @@ const ES: SettingsMessages = {
       useKakaoTalk: "Integración con KakaoTalk",
       autoDeliveryBooking: "Recepción automática de envíos",
       deliveryCarriers: "Transportistas predeterminados",
+      preferredMessenger: "Mensajero predeterminado",
     },
   },
 };
@@ -358,6 +365,7 @@ const PT: SettingsMessages = {
       useKakaoTalk: "Integração KakaoTalk",
       autoDeliveryBooking: "Recebimento automático de entregas",
       deliveryCarriers: "Transportadoras padrão",
+      preferredMessenger: "Messenger padrão",
     },
   },
 };
@@ -403,6 +411,7 @@ const FR: SettingsMessages = {
       useKakaoTalk: "Intégration KakaoTalk",
       autoDeliveryBooking: "Prise en charge auto des livraisons",
       deliveryCarriers: "Transporteurs par défaut",
+      preferredMessenger: "Messagerie par défaut",
     },
   },
 };
@@ -448,6 +457,7 @@ const DE: SettingsMessages = {
       useKakaoTalk: "KakaoTalk-Integration",
       autoDeliveryBooking: "Automatische Lieferaufträge",
       deliveryCarriers: "Standard-Versanddienste",
+      preferredMessenger: "Standard-Messenger",
     },
   },
 };
@@ -493,6 +503,7 @@ const RU: SettingsMessages = {
       useKakaoTalk: "Интеграция KakaoTalk",
       autoDeliveryBooking: "Автоприём доставок",
       deliveryCarriers: "Службы доставки по умолчанию",
+      preferredMessenger: "Мессенджер по умолчанию",
     },
   },
 };

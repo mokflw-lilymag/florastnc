@@ -113,7 +113,7 @@ export default function ReportsPage() {
   const loading = ordersLoading || expensesLoading;
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-700 pb-20">
+    <div className="p-6 max-w-none space-y-8 animate-in fade-in duration-700 pb-20">
       <PageHeader 
         title={tf.f01254} 
         description={tf.f01001}

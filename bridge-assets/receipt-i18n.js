@@ -3,31 +3,63 @@ const path = require('path');
 
 const COUNTRY_LOCALE = {
   KR: 'ko',
-  VN: 'vi',
-  CN: 'zh',
-  TW: 'zh',
-  HK: 'zh',
   JP: 'ja',
-  US: 'en',
-  GB: 'en',
-  CA: 'en',
-  AU: 'en',
-  SG: 'en',
-  ES: 'es',
-  MX: 'es',
-  FR: 'fr',
-  DE: 'de',
-  PT: 'pt',
-  BR: 'pt',
-  TH: 'th',
+  CN: 'zh',
+  TW: 'zh-TW',
+  HK: 'zh-TW',
+  VN: 'vi',
   ID: 'id',
   MY: 'en',
-  NL: 'en',
-  IT: 'en',
+  TH: 'th',
+  SG: 'en',
+  PH: 'en',
   IN: 'en',
-  RU: 'ru',
-  SA: 'ar',
   AE: 'ar',
+  SA: 'ar',
+  TR: 'tr',
+  ES: 'es',
+  FR: 'fr',
+  DE: 'de',
+  GB: 'en',
+  PT: 'pt',
+  CH: 'de',
+  NL: 'en',
+  PL: 'pl',
+  IT: 'en',
+  RU: 'ru',
+  US: 'en',
+  CA: 'en',
+  BR: 'pt',
+  MX: 'es',
+  AR: 'es',
+  CL: 'es',
+  AU: 'en',
+  NZ: 'en',
+  MZ: 'pt',
+  EG: 'ar',
+  ZA: 'en',
+};
+
+const REGIONAL_RECEIPT_LOCALE = {
+  'zh-tw': 'zh-TW',
+  'zh-hk': 'zh-TW',
+  'zh-cn': 'zh',
+  'pt-br': 'pt',
+  'pt-mz': 'pt',
+  'pt-pt': 'pt',
+  'es-es': 'es',
+  'es-mx': 'es',
+  'es-ar': 'es',
+  'es-cl': 'es',
+  'de-ch': 'de',
+  'fr-ca': 'fr',
+  'en-us': 'en',
+  'en-gb': 'en',
+  'en-au': 'en',
+  'en-sg': 'en',
+  'en-ca': 'en',
+  'en-nz': 'en',
+  'ru-ru': 'ru',
 };
 
 let labelsCache = null;
@@ -57,21 +89,55 @@ function loadAllLabels(assetsPath) {
   return labelsCache;
 }
 
+function normalizeReceiptLocale(input) {
+  if (input == null || input === '') return null;
+  const raw = String(input).trim().replace(/_/g, '-');
+  if (!raw) return null;
+  const lower = raw.toLowerCase();
+  if (REGIONAL_RECEIPT_LOCALE[lower]) return REGIONAL_RECEIPT_LOCALE[lower];
+  if (lower.includes('-')) {
+    const [lang, region] = lower.split('-');
+    const compound = `${lang}-${region}`;
+    if (REGIONAL_RECEIPT_LOCALE[compound]) return REGIONAL_RECEIPT_LOCALE[compound];
+    if (lang === 'zh' && (region === 'tw' || region === 'hk')) return 'zh-TW';
+    return `${lang}-${region.toUpperCase()}`;
+  }
+  return lower;
+}
+
 function resolveReceiptLocale(settings = {}) {
-  if (settings.receiptLocale) return settings.receiptLocale;
-  if (settings.locale) return String(settings.locale).split('-')[0];
+  const explicit = settings.receiptLocale;
+  if (explicit && String(explicit).trim() && String(explicit).toLowerCase() !== 'auto') {
+    return normalizeReceiptLocale(explicit) || 'ko';
+  }
+  if (settings.uiLocale) return normalizeReceiptLocale(settings.uiLocale) || 'ko';
+  if (settings.locale) return normalizeReceiptLocale(settings.locale) || 'ko';
   const country = settings.country || 'KR';
-  return COUNTRY_LOCALE[country] || 'ko';
+  return COUNTRY_LOCALE[country] || 'en';
 }
 
 function getLabels(assetsPath, locale) {
   const all = loadAllLabels(assetsPath);
-  const base = String(locale || 'ko').split('-')[0];
-  return all[locale] || all[base] || all.en || all.ko || {};
+  const raw = String(locale || 'ko');
+  const lower = raw.toLowerCase();
+  const base = raw.split('-')[0];
+  return (
+    all[raw] ||
+    all[lower] ||
+    (lower === 'zh-tw' || lower === 'zh-hk' ? all['zh-TW'] : null) ||
+    all[base] ||
+    all.en ||
+    all.ko ||
+    {}
+  );
 }
 
 function fontFamilyForLocale(locale) {
-  const base = String(locale || 'ko').split('-')[0];
+  const lower = String(locale || 'ko').toLowerCase();
+  if (lower === 'zh-tw' || lower === 'zh-hk') {
+    return "'Noto Sans TC', 'Microsoft JhengHei', 'PingFang TC', sans-serif";
+  }
+  const base = lower.split('-')[0];
   if (base === 'ko') return "'Noto Sans KR', 'Malgun Gothic', sans-serif";
   if (base === 'ja') return "'Noto Sans JP', 'Hiragino Sans', sans-serif";
   if (base === 'zh') return "'Noto Sans SC', 'Microsoft YaHei', sans-serif";
@@ -84,7 +150,7 @@ function formatReceiptMoney(amount, currency = 'KRW', locale = 'ko') {
   if (amount == null || amount === '') return '';
   const num = Number(amount);
   if (!Number.isFinite(num)) return String(amount);
-  const intCurrencies = new Set(['KRW', 'VND', 'JPY']);
+  const intCurrencies = new Set(['KRW', 'VND', 'JPY', 'TWD', 'CLP']);
   try {
     return new Intl.NumberFormat(locale, {
       style: 'currency',
@@ -169,6 +235,8 @@ function createReceiptContext(settings, assetsPath) {
 
 module.exports = {
   COUNTRY_LOCALE,
+  REGIONAL_RECEIPT_LOCALE,
+  normalizeReceiptLocale,
   resolveReceiptLocale,
   getLabels,
   fontFamilyForLocale,

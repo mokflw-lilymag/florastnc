@@ -381,7 +381,7 @@ export default function HqBranchDetailPage({
 
   if (error || !data) {
     return (
-      <div className="container max-w-6xl mx-auto p-6 space-y-6">
+      <div className="max-w-none p-6 space-y-6">
         <PageHeader title={tf.f01909} description={tf.f01438} />
         <Card className="max-w-lg border-slate-200">
           <CardHeader>
@@ -453,7 +453,7 @@ export default function HqBranchDetailPage({
   };
 
   return (
-    <div className="container max-w-6xl mx-auto p-6 space-y-8 animate-in fade-in duration-500">
+    <div className="max-w-none p-6 space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <PageHeader
           title={tenant.name}

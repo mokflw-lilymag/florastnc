@@ -124,7 +124,7 @@ export default function HqMaterialRequestsPage() {
 
   if (forbidden) {
     return (
-      <div className="container max-w-6xl mx-auto p-6 space-y-6">
+      <div className="max-w-none p-6 space-y-6">
         <PageHeader
           title={tf.f01915}
           description={tf.f01851}
@@ -146,7 +146,7 @@ export default function HqMaterialRequestsPage() {
   }
 
   return (
-    <div className="container max-w-6xl mx-auto p-6 space-y-8">
+    <div className="max-w-none p-6 space-y-8">
       <PageHeader
         title={tf.f01915}
         description={tf.f02042}

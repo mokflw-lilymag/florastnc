@@ -17,7 +17,9 @@ import { toast } from "sonner";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
 import { pickUiText } from "@/i18n/pick-ui-text";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ExpenseManagement } from "./components/expense-management";
+import { SaasRevenueDashboard } from "./components/saas-revenue-dashboard";
 
 export default function BillingAdminPage() {
     const supabase = createClient();
@@ -176,17 +178,17 @@ export default function BillingAdminPage() {
 
     const walletPageTitle = pickUiText(
         baseLocale,
-        "본사 지출 및 세무 관리",
-        "HQ Expense & Tax Ledger",
+        "SaaS 구독 · 지출 관리",
+        "SaaS Revenue & HQ Expense Ledger",
     );
     const walletPageDesc = pickUiText(
         baseLocale,
-        "본사 지출 대장 관리, 프린터 물류 재고 및 국세청 증빙용 Toss/Stripe 세무 매출 자료 엑셀 추출입니다.",
-        "Management of expenses, printer inventory, and tax reportings for HQ admin.",
+        "가맹점 SaaS 구독료 매출(Toss/Stripe) 추이와 본사 지출 대장, 세무 자료 엑셀 추출을 관리합니다.",
+        "Management of SaaS subscription revenues, HQ expenses, and tax reportings.",
     );
 
     return (
-        <div className="p-6 max-w-7xl mx-auto space-y-6 pb-20 animate-in fade-in duration-500 text-slate-900">
+        <div className="p-6 max-w-none space-y-6 pb-20 animate-in fade-in duration-500 text-slate-900">
             <PageHeader 
                 title={walletPageTitle} 
                 description={walletPageDesc} 
@@ -206,56 +208,50 @@ export default function BillingAdminPage() {
                     </Button>
                 </div>
             </PageHeader>
+            <Tabs defaultValue="revenue" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 max-w-md bg-slate-100/80 p-1 rounded-xl mb-6">
+                    <TabsTrigger value="revenue" className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-sm">
+                        <TrendingUp className="w-4 h-4 mr-2" /> SaaS 매출 대시보드
+                    </TabsTrigger>
+                    <TabsTrigger value="expenses" className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-rose-700 data-[state=active]:shadow-sm">
+                        <Wallet className="w-4 h-4 mr-2" /> 본사 지출 및 임대
+                    </TabsTrigger>
+                </TabsList>
 
-            {/* 4대 지출 및 국내/해외 세무 구분 카드 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card className="border-0 shadow-sm bg-indigo-50/50">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-xs font-bold text-indigo-600 uppercase tracking-wider">국내 누적 매출 (Toss)</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-xl font-bold text-indigo-900">₩{stats.domesticSales.toLocaleString()}</div>
-                        <p className="text-[10px] text-indigo-500/80 mt-1">10% 부가세 과세 대상 매출액</p>
-                    </CardContent>
-                </Card>
-                
-                <Card className="border-0 shadow-sm bg-purple-50/50">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-xs font-bold text-purple-600 uppercase tracking-wider">해외 누적 매출 (Stripe)</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-xl font-bold text-purple-900">₩{stats.overseasSales.toLocaleString()}</div>
-                        <p className="text-[10px] text-purple-500/80 mt-1">0% 영세율 면세 대상 매출액</p>
-                    </CardContent>
-                </Card>
+                <TabsContent value="revenue" className="space-y-6">
+                    <SaasRevenueDashboard stats={stats} />
+                </TabsContent>
 
-                <Card className="border-0 shadow-sm bg-rose-50/50">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-xs font-bold text-rose-600 uppercase tracking-wider">당월 본사 총 지출</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-xl font-bold text-rose-900">₩{stats.monthlyExpenses.toLocaleString()}</div>
-                        <p className="text-[10px] text-rose-500/80 mt-1">인건비 · 4대보험 · 인프라비 당월 합계</p>
-                    </CardContent>
-                </Card>
+                <TabsContent value="expenses" className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <Card className="border-0 shadow-sm bg-rose-50/50">
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-xs font-bold text-rose-600 uppercase tracking-wider">당월 본사 총 지출</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-xl font-bold text-rose-900">₩{stats.monthlyExpenses.toLocaleString()}</div>
+                                <p className="text-[10px] text-rose-500/80 mt-1">인건비 · 4대보험 · 인프라비 당월 합계</p>
+                            </CardContent>
+                        </Card>
 
-                <Card className="border-0 shadow-sm bg-slate-50/50">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-xs font-bold text-slate-600 uppercase tracking-wider">임대 장비 상태</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-sm font-bold text-slate-900">
-                            보관 {stats.deviceSummary.available}대 / 임대 {stats.deviceSummary.leased}대
-                        </div>
-                        <p className="text-[10px] text-slate-500/80 mt-1">고장·폐기: {stats.deviceSummary.damagedOrDisposed}대</p>
-                    </CardContent>
-                </Card>
-            </div>
+                        <Card className="border-0 shadow-sm bg-slate-50/50">
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-xs font-bold text-slate-600 uppercase tracking-wider">임대 장비 상태</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-sm font-bold text-slate-900">
+                                    보관 {stats.deviceSummary.available}대 / 임대 {stats.deviceSummary.leased}대
+                                </div>
+                                <p className="text-[10px] text-slate-500/80 mt-1">고장·폐기: {stats.deviceSummary.damagedOrDisposed}대</p>
+                            </CardContent>
+                        </Card>
+                    </div>
 
-            {/* 좌/우 2분할 탭 배제 레이아웃 */}
-            <div className="bg-white rounded-3xl p-6 shadow-xl border border-slate-50">
-                <ExpenseManagement />
-            </div>
+                    <div className="bg-white rounded-3xl p-6 shadow-xl border border-slate-50">
+                        <ExpenseManagement />
+                    </div>
+                </TabsContent>
+            </Tabs>
         </div>
     );
 }

@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { useProductSearch } from "@/hooks/use-product-search";
 import { useDebounce } from "@/hooks/use-debounce";
+import { useSettings, DEFAULT_PRODUCT_CATEGORIES } from "@/hooks/use-settings";
 
 interface ProductSectionProps {
     initialCategory?: string;
@@ -22,10 +23,6 @@ interface ProductSectionProps {
     onOpenCustomProductDialog: () => void;
     onTabChange?: (tab: string) => void;
 }
-
-const DEFAULT_CATEGORIES = [
-    '꽃다발', '꽃바구니', '센터피스', '경조화환', '플랜트', '동양란', '서양란', '자재'
-];
 
 export function ProductSection({
     initialCategory,
@@ -35,25 +32,77 @@ export function ProductSection({
 }: ProductSectionProps) {
     const locale = usePreferredLocale();
     const tf = getMessages(locale).tenantFlows;
-    const [activeTab, setActiveTab] = useState(initialCategory || DEFAULT_CATEGORIES[0]);
-    const [searchTerm, setSearchTerm] = useState("");
-    const debouncedSearchTerm = useDebounce(searchTerm, 300);
+    const { productCategories } = useSettings();
     
     const { results, loading, searchProducts } = useProductSearch();
 
-    useEffect(() => {
-        searchProducts(debouncedSearchTerm, activeTab, 500); // 50개 제한에서 500개 전체 조회로 확장
-    }, [debouncedSearchTerm, activeTab, searchProducts]);
+    // 2차 카테고리(중분류) 정렬을 위한 레퍼런스 기준 정의
+    const REFERENCE_MID_ORDER = [
+        // 1. 꽃다발 / 꽃바구니 / 경조화환 (가장 주요 카테고리)
+        '꽃다발', '꽃바구니', '경조화환', '센터피스', '플라워박스', '행사용꽃',
+        // 2. 어버이날 기획상품
+        '어버이날컬렉션',
+        // 3. 플랜트 (분화/관엽)
+        '소품', '중품', '대품', '동서양난',
+        // 4. 자재/부자재
+        '드라이플라워카드/토퍼', '바구니', '화병/화기', '원예자재', '포장자재',
+        // 5. 기타
+        '기타'
+    ];
 
-    // 가격 낮은 순 정렬 처리
-    const sortedProducts = React.useMemo(() => {
-        return [...results].sort((a, b) => {
-            if (a.price !== b.price) {
-                return a.price - b.price; // 가격순 정렬
+    // 1안: 로컬 상품들의 2차 카테고리(중분류)를 추출하여 레퍼런스 순서대로 정렬
+    const categories = React.useMemo(() => {
+        const mids = new Set<string>();
+        results.forEach(p => {
+            if (p.mid_category) {
+                mids.add(p.mid_category);
             }
-            return (a.name || "").localeCompare(b.name || "");
+        });
+        if (mids.size === 0) return ['일반'];
+        
+        return Array.from(mids).sort((a, b) => {
+            const idxA = REFERENCE_MID_ORDER.indexOf(a);
+            const idxB = REFERENCE_MID_ORDER.indexOf(b);
+            
+            if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+            if (idxA !== -1) return -1;
+            if (idxB !== -1) return 1;
+            return a.localeCompare(b, 'ko');
         });
     }, [results]);
+
+    const [activeTab, setActiveTab] = useState(initialCategory || categories[0]);
+    const [searchTerm, setSearchTerm] = useState("");
+    const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
+    // 컴포넌트 마운트 시 전체 활성 상품 로드 (최대 1000개)
+    useEffect(() => {
+        searchProducts("", undefined, 1000);
+    }, [searchProducts]);
+
+    useEffect(() => {
+        if (!activeTab || !categories.includes(activeTab)) {
+            setActiveTab(categories[0]);
+        }
+    }, [categories, activeTab]);
+
+    // 가격 낮은 순 정렬 및 로컬 필터링 처리 (1안 - 중분류 매칭 + 검색어 매칭)
+    const sortedProducts = React.useMemo(() => {
+        return results
+            .filter(p => {
+                const matchesTab = p.mid_category === activeTab || (!p.mid_category && activeTab === '일반');
+                const matchesSearch = !debouncedSearchTerm || 
+                    (p.name && p.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase())) ||
+                    (p.code && p.code.toLowerCase().includes(debouncedSearchTerm.toLowerCase()));
+                return matchesTab && matchesSearch;
+            })
+            .sort((a, b) => {
+                if (a.price !== b.price) {
+                    return a.price - b.price; // 가격순 정렬
+                }
+                return (a.name || "").localeCompare(b.name || "");
+            });
+    }, [results, activeTab, debouncedSearchTerm]);
 
     const ProductGrid = ({ products }: { products: Product[] }) => {
         if (loading) {
@@ -102,29 +151,26 @@ export function ProductSection({
                     setActiveTab(val);
                     onTabChange?.(val);
                 }} className="w-full">
-                    <ScrollArea className="w-full whitespace-nowrap rounded-lg border bg-slate-50 p-1 mb-6">
-                        <TabsList className="inline-flex w-max min-w-full justify-start h-10 p-0 bg-transparent gap-1">
-                            {DEFAULT_CATEGORIES.map((cat) => (
-                                <TabsTrigger
-                                    key={cat}
-                                    value={cat}
-                                    className="data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm px-4 py-2 text-sm font-medium transition-all rounded-md"
-                                >
-                                    {cat}
-                                </TabsTrigger>
-                            ))}
-                        </TabsList>
-                        <ScrollBar orientation="horizontal" />
-                    </ScrollArea>
+                    <TabsList className="flex flex-wrap w-full justify-start h-auto p-1 bg-slate-100/70 border rounded-xl gap-1.5 mb-6">
+                        {categories.map((cat) => (
+                            <TabsTrigger
+                                key={cat}
+                                value={cat}
+                                className="data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm px-4 py-2 text-sm font-medium transition-all rounded-lg flex-none border border-transparent data-[state=active]:border-slate-200 whitespace-nowrap"
+                            >
+                                {cat}
+                            </TabsTrigger>
+                        ))}
+                    </TabsList>
 
                     <TabsContent value={activeTab} className="space-y-4">
                         <div className="space-y-2">
                             <div className="flex items-center justify-between mb-2">
-                                <h4 className="text-sm font-medium text-muted-foreground">{activeTab} {tf.f00726}</h4>
+                                <h4 className="text-sm font-medium text-muted-foreground">{activeTab} {tf.f00214}</h4>
                                 <div className="relative w-48">
                                     <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
                                     <Input
-                                        placeholder={tf.f00503}
+                                        placeholder={tf.f00339}
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
                                         className="pl-8 h-8 text-sm"

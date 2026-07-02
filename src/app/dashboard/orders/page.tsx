@@ -221,13 +221,18 @@ export default function OrdersPage() {
       setHasOrgBranchTransfer(false);
       return;
     }
-    void supabase
-      .from("tenants")
-      .select("organization_id")
-      .eq("id", tenantId)
-      .maybeSingle()
-      .then(({ data }) => setHasOrgBranchTransfer(!!data?.organization_id))
-      .catch(() => setHasOrgBranchTransfer(false));
+    void (async () => {
+      try {
+        const { data } = await supabase
+          .from("tenants")
+          .select("organization_id")
+          .eq("id", tenantId)
+          .maybeSingle();
+        setHasOrgBranchTransfer(!!data?.organization_id);
+      } catch {
+        setHasOrgBranchTransfer(false);
+      }
+    })();
   }, [tenantId, supabase, isErpTrial]);
 
   useEffect(() => {
@@ -763,16 +768,16 @@ export default function OrdersPage() {
         className={touchUi ? "max-lg:mb-4" : undefined}
       >
         <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto mt-4 lg:mt-0 px-0 lg:px-0">
-          <Button
-            variant="outline"
-            asChild
-            className="flex-1 lg:flex-none h-11 lg:h-12 px-6 rounded-2xl border-2 border-blue-100 bg-blue-50/30 hover:bg-blue-50 font-bold transition-all shadow-sm gap-2 whitespace-nowrap text-blue-900"
+          <Link
+            href="/dashboard/orders/partner-orders"
+            className={cn(
+              buttonVariants({ variant: "outline" }),
+              "flex-1 lg:flex-none h-11 lg:h-12 px-6 rounded-2xl border-2 border-blue-100 bg-blue-50/30 hover:bg-blue-50 font-bold transition-all shadow-sm gap-2 whitespace-nowrap text-blue-900 inline-flex items-center justify-center",
+            )}
           >
-            <Link href="/dashboard/orders/partner-orders">
-              <Globe className="h-4 w-4 text-blue-600" />
-              <span>회원사 수발주</span>
-            </Link>
-          </Button>
+            <Globe className="h-4 w-4 text-blue-600" />
+            <span>회원사 수발주</span>
+          </Link>
           <Button 
             variant="outline" 
             onClick={() => router.push('/dashboard/orders/daily-settlement')}

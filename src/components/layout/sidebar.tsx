@@ -152,7 +152,7 @@ export function Sidebar({
 
   const adminSaasBillingLabel = pickUiText(
     baseLocale,
-    "SaaS 구독",
+    "SaaS 구독 · 지출 관리",
     "SaaS subscriptions",
     "Đăng ký SaaS",
     "SaaSサブスク",
@@ -254,13 +254,6 @@ export function Sidebar({
       links: [
         { name: adminSaasBillingLabel, href: "/dashboard/admin/billing", icon: Gem },
         { name: adminSubscriptionLogLabel, href: "/dashboard/admin/subscription-events", icon: History },
-      ],
-    },
-    {
-      id: "admin-wallet",
-      label: adminWalletGroup,
-      links: [
-        { name: adminWalletLabel, href: "/dashboard/admin/billing", icon: Wallet },
       ],
     },
     {

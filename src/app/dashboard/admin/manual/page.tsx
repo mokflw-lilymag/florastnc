@@ -71,7 +71,7 @@ export default function AdminManualPage() {
   ];
 
   return (
-    <div className="flex-1 space-y-8 p-8 pt-6 max-w-7xl mx-auto">
+    <div className="flex-1 space-y-8 p-8 pt-6 max-w-none">
       <div className="flex items-center justify-between">
         <div className="space-y-1">
           <Badge variant="outline" className="mb-2 text-indigo-600 bg-indigo-50 border-indigo-200 uppercase tracking-widest text-[10px] font-black"> Floxync Headquarters </Badge>

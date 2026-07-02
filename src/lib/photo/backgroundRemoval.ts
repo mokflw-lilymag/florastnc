@@ -6,6 +6,8 @@
  * WASM 기반 클라이언트 사이드 처리 (서버 불필요)
  */
 
+import { toast } from 'sonner';
+
 let isInitialized = false;
 
 /**
@@ -16,42 +18,9 @@ export async function removeImageBackground(
   imageUrl: string,
   onProgress?: (progress: number) => void
 ): Promise<string> {
-  // Dynamic import to prevent SSR issues
-  const { removeBackground } = await import('@imgly/background-removal');
-
-  onProgress?.(10);
-
-  // Convert URL to blob if needed
-  let inputSource: string | Blob = imageUrl;
-  if (imageUrl.startsWith('data:')) {
-    const res = await fetch(imageUrl);
-    inputSource = await res.blob();
-  }
-
-  onProgress?.(30);
-
-  const resultBlob = await removeBackground(inputSource, {
-    debug: false,
-    model: 'isnet_quint8', // Fastest model, good quality
-    // CDN으로 WASM 파일 서빙 (Turbopack 번들 호환성 문제 해결)
-    publicPath: 'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/dist/',
-    output: {
-      format: 'image/png', // PNG to preserve transparency
-      quality: 0.95,
-    },
-  });
-
-  onProgress?.(90);
-
-  // Convert blob to data URL
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      onProgress?.(100);
-      resolve(e.target?.result as string);
-    };
-    reader.readAsDataURL(resultBlob);
-  });
+  // Background removal has been disabled and library removed
+  toast.error("배경 제거 기능이 비활성화되었습니다.");
+  return imageUrl;
 }
 
 /**

@@ -179,33 +179,37 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: errAdminUnauthorized(bl) }, { status: 401 });
   }
 
-  const { data: memberships } = await supabase
-    .from("organization_members")
-    .select("organization_id, role")
-    .eq("user_id", user.id);
+  const [membershipsRes, profileRes] = await Promise.all([
+    supabase
+      .from("organization_members")
+      .select("organization_id, role")
+      .eq("user_id", user.id),
+    supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle()
+  ]);
+
+  const memberships = membershipsRes.data;
+  const profileRow = profileRes.data;
 
   const hasOrgAccess = (memberships?.length ?? 0) > 0;
   if (!hasOrgAccess) {
     return NextResponse.json({ error: errAdminForbidden(bl) }, { status: 403 });
   }
-
-  const { data: profileRow } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
   const canManageAnnouncements =
     profileRow?.role === "super_admin" ||
     (memberships ?? []).some((m) => m.role === "org_admin");
 
   const orgIds = memberships!.map((m) => m.organization_id);
 
-  const { data: orgs } = await supabase.from("organizations").select("id,name").in("id", orgIds);
-
-  const { data: tenants } = await supabase
-    .from("tenants")
-    .select("id,name,organization_id,plan")
-    .in("organization_id", orgIds);
+  const [orgsRes, tenantsRes] = await Promise.all([
+    supabase.from("organizations").select("id,name").in("id", orgIds),
+    supabase.from("tenants").select("id,name,organization_id,plan").in("organization_id", orgIds)
+  ]);
+  const orgs = orgsRes.data;
+  const tenants = tenantsRes.data;
 
   const tenantIds = (tenants ?? []).map((t) => t.id);
   const tenantNameById = Object.fromEntries((tenants ?? []).map((t) => [t.id, t.name]));
@@ -256,30 +260,33 @@ export async function GET(req: Request) {
     });
   }
 
-  // 1) 차트를 그릴 수 있도록 넓은 범위(fromStr ~ toStr)로 매출 데이터 긁어오기
-  const { data: orders, error } = await admin
-    .from("orders")
-    .select("tenant_id, summary, status, order_date, receipt_type, items")
-    .in("tenant_id", tenantIds)
-    .gte("order_date", fromStr)
-    .lte("order_date", toStr);
+  // 🚀 [PERFORMANCE OPTIMIZATION] 1, 2번 데이터를 넓은 범위로 병렬 호출
+  const [ordersRes, expensesRes] = await Promise.all([
+    admin
+      .from("orders")
+      .select("tenant_id, summary, status, order_date, receipt_type, items")
+      .in("tenant_id", tenantIds)
+      .gte("order_date", fromStr)
+      .lte("order_date", toStr),
+    admin
+      .from("expenses")
+      .select("tenant_id, amount, category, description, expense_date")
+      .in("tenant_id", tenantIds)
+      .gte("expense_date", `${fromStr}T00:00:00.000Z`)
+      .lte("expense_date", `${toStr}T23:59:59.999Z`)
+  ]);
 
-  if (error) {
-    console.error("[hq/summary] orders", error);
+  if (ordersRes.error) {
+    console.error("[hq/summary] orders", ordersRes.error);
     return NextResponse.json({ error: errAdminDataLoadFailed(bl) }, { status: 500 });
   }
 
-  // 2) 넓은 범위로 지출 데이터 긁어오기
-  const { data: expenses, error: expErr } = await admin
-    .from("expenses")
-    .select("tenant_id, amount, category, description, expense_date")
-    .in("tenant_id", tenantIds)
-    .gte("expense_date", `${fromStr}T00:00:00.000Z`)
-    .lte("expense_date", `${toStr}T23:59:59.999Z`);
-
-  if (expErr) {
-    console.error("[hq/summary] expenses load error:", expErr);
+  if (expensesRes.error) {
+    console.error("[hq/summary] expenses load error:", expensesRes.error);
   }
+
+  const orders = ordersRes.data;
+  const expenses = expensesRes.data;
 
   // --- [차트 데이터 연산 - 넓은 범위(fromStr ~ toStr) 기준] ---
   const chartBucketKeys = new Set(chartBucketMeta.map((b) => b.key));

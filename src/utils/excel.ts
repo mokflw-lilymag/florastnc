@@ -19,7 +19,7 @@ export async function downloadTemplate(type: "product" | "material" | "supplier"
   if (type === "product") {
     if (base === "ko") {
       headers = ["상품코드", "상품명", "대분류", "중분류", "판매가", "재고", "공급처", "상태(active/inactive)"];
-      sample = [["P01", "축하화환 3단", "경조사화환", "축하화환", 100000, 10, "자체제작", "active"]];
+      sample = [["P01", "축하화환 3단", "경조화환", "축하화환", 100000, 10, "자체제작", "active"]];
       filename = "상품등록_양식.xlsx";
     } else if (base === "vi") {
       headers = [

@@ -177,7 +177,7 @@ export default function RegionalDemandPage() {
   const uniquePlatforms = new Set(rows.map((r) => r.platform)).size;
 
   return (
-    <div className="container max-w-6xl mx-auto p-6 space-y-8">
+    <div className="max-w-none p-6 space-y-8">
       {/* 헤더 */}
       <div className="flex items-end justify-between">
         <div>

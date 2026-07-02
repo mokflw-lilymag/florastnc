@@ -70,7 +70,7 @@ export const TENANT_MASTER_SEED_V2026_04_21_KR: TenantMasterSeed = {
     },
     {
       name: "축하 화환 3단(샘플)",
-      main_category: "경조사화환",
+      main_category: "경조화환",
       mid_category: "축하 3단",
       code: "SAMPLE-WREATH-CONGRATS-3",
       price: 0,
@@ -124,7 +124,7 @@ export const TENANT_MASTER_SEED_V2026_04_21_KR: TenantMasterSeed = {
     },
     {
       name: "근조 화환 3단(샘플)",
-      main_category: "경조사화환",
+      main_category: "경조화환",
       mid_category: "근조 3단",
       code: "SAMPLE-WREATH-FUNERAL-3",
       price: 0,

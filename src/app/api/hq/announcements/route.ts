@@ -51,31 +51,38 @@ function shouldIgnoreReadsTable(error: { code?: string; message?: string } | nul
 async function resolveOrganizationIdsForUser(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string
-): Promise<string[]> {
+): Promise<{ orgIds: string[], branchOrgId: string | null }> {
+  const [membershipsRes, profileRes] = await Promise.all([
+    supabase
+      .from("organization_members")
+      .select("organization_id")
+      .eq("user_id", userId),
+    supabase
+      .from("profiles")
+      .select("tenant_id")
+      .eq("id", userId)
+      .maybeSingle()
+  ]);
+
   const ids = new Set<string>();
+  for (const m of membershipsRes.data ?? []) ids.add(m.organization_id);
 
-  const { data: memberships } = await supabase
-    .from("organization_members")
-    .select("organization_id")
-    .eq("user_id", userId);
-  for (const m of memberships ?? []) ids.add(m.organization_id);
+  let branchOrgId: string | null = null;
+  const tenantId = profileRes.data?.tenant_id;
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("tenant_id")
-    .eq("id", userId)
-    .maybeSingle();
-
-  if (profile?.tenant_id) {
+  if (tenantId) {
     const { data: tenant } = await supabase
       .from("tenants")
       .select("organization_id")
-      .eq("id", profile.tenant_id)
+      .eq("id", tenantId)
       .maybeSingle();
-    if (tenant?.organization_id) ids.add(tenant.organization_id);
+    if (tenant?.organization_id) {
+      ids.add(tenant.organization_id);
+      branchOrgId = tenant.organization_id;
+    }
   }
 
-  return [...ids];
+  return { orgIds: Array.from(ids), branchOrgId };
 }
 
 function isLegacyBoardSchemaError(error: { code?: string; message?: string } | null): boolean {
@@ -128,30 +135,18 @@ export async function GET(req: Request) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: errAdminUnauthorized(bl) }, { status: 401 });
 
-  let orgIds = await resolveOrganizationIdsForUser(supabase, user.id);
+  const resolved = await resolveOrganizationIdsForUser(supabase, user.id);
+  let orgIds = resolved.orgIds;
 
   const branchOnly =
     sp.get("branchOnly") === "1" ||
     sp.get("branchOnly") === "true";
 
   if (branchOnly) {
-    const { data: profileBranch } = await supabase
-      .from("profiles")
-      .select("tenant_id")
-      .eq("id", user.id)
-      .maybeSingle();
-    if (profileBranch?.tenant_id) {
-      const { data: tenantBranch } = await supabase
-        .from("tenants")
-        .select("organization_id")
-        .eq("id", profileBranch.tenant_id)
-        .maybeSingle();
-      const branchOrgId = tenantBranch?.organization_id as string | null | undefined;
-      if (branchOrgId) {
-        orgIds = orgIds.filter((id) => id === branchOrgId);
-      } else {
-        orgIds = [];
-      }
+    if (resolved.branchOrgId) {
+      orgIds = [resolved.branchOrgId];
+    } else {
+      orgIds = [];
     }
   }
 

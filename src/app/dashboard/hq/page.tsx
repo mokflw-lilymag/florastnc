@@ -241,7 +241,7 @@ export default function HqDashboardPage() {
     receiptMix.other;
 
   return (
-    <div className="container max-w-6xl mx-auto p-6 space-y-8 animate-in fade-in duration-500">
+    <div className="max-w-none p-6 space-y-8 animate-in fade-in duration-500">
       <PageHeader
         title={tf.f01278}
         description={L("조직 내 모든 지점의 매출과 지출 장부를 통합 분석하여 본사 차원의 손익마진을 실시간 통제합니다.", "Analyze revenues and expenses across all branches for corporate net profit control.")}

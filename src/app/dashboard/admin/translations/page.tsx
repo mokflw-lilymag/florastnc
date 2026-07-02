@@ -121,7 +121,7 @@ export default function TranslationsAdminPage() {
   const availableLocales = LOCALES;
 
   return (
-    <div className="container max-w-7xl mx-auto p-6 space-y-8">
+    <div className="max-w-none p-6 space-y-8">
       {/* 헤더 */}
       <div className="flex items-end justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">

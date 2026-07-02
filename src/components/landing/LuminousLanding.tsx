@@ -11,6 +11,7 @@ import { getMessages } from "@/i18n/getMessages";
 import { pickUiText } from "@/i18n/pick-ui-text";
 import { createClient } from '@/utils/supabase/client';
 import { isElectronClient } from '@/lib/electron-env';
+import { LandingSectionNav } from '@/components/landing/LandingSectionNav';
 
 const SUPPORT_EMAIL = "admin@floxync.com";
 
@@ -349,34 +350,37 @@ export function LuminousLanding({ locale = 'ko' }: { locale?: AppLocale }) {
       <div className="absolute top-0 -left-64 w-[500px] h-[500px] bg-[#96f4de]/20 rounded-full blur-[80px] pointer-events-none z-0" />
       <div className="absolute bottom-0 -right-32 w-[400px] h-[400px] bg-[#e9ddff]/20 rounded-full blur-[80px] pointer-events-none z-0" />
 
-      <nav className="bg-[#fbf9f7]/80 backdrop-blur-md border-b border-[#bdc9c5]/30 sticky top-0 z-50 py-6 md:py-8 flex items-center">
-        <div className="flex justify-between items-center w-full px-6 max-w-7xl mx-auto">
-          <div className="flex items-center">
-            <img 
-              alt="Floxync Logo" 
-              className="h-20 md:h-28 w-auto object-contain" 
-              src="/images/floxync-logo-dark.png" 
+      <nav className="bg-[#fbf9f7]/80 backdrop-blur-md border-b border-[#bdc9c5]/30 sticky top-0 z-50 py-4 md:py-5">
+        <div className="flex justify-between items-center w-full px-4 sm:px-6 max-w-7xl mx-auto gap-4">
+          <Link href={homeHref} className="flex-shrink-0">
+            <img
+              alt="Floxync Logo"
+              className="h-14 sm:h-16 md:h-[4.5rem] w-auto object-contain"
+              src="/images/floxync-logo-dark.png"
             />
-          </div>
+          </Link>
 
-          <div className="hidden md:flex gap-8 items-center">
-            <a className="text-sm font-semibold text-[#3e4946] hover:text-[#006b5c] transition-colors" href="#features-summary">주요 기능</a>
-            <a className="text-sm font-semibold text-[#3e4946] hover:text-[#006b5c] transition-colors" href="#feature-ribbon">리본 솔루션</a>
-            <a className="text-sm font-semibold text-[#3e4946] hover:text-[#006b5c] transition-colors" href="#feature-scale">{scaleNavLabel}</a>
-            <a className="text-sm font-semibold text-[#3e4946] hover:text-[#006b5c] transition-colors" href="#details">플랫폼 안내</a>
-            <a className="text-sm font-semibold text-[#3e4946] hover:text-[#006b5c] transition-colors" href="#testimonials">후기</a>
-            <Link className="text-sm font-semibold text-[#3e4946] hover:text-[#006b5c] transition-colors" href="/docs/manual">사용 설명서</Link>
-            <Link className="text-sm font-semibold text-[#3e4946] hover:text-[#006b5c] transition-colors" href={`/${locale}/pricing`}>{pricingNavLabel}</Link>
-          </div>
+          <div className="flex items-center gap-2 sm:gap-3 md:gap-4 flex-shrink-0">
+            <Link
+              className="hidden md:inline-flex text-sm font-semibold text-[#3e4946] hover:text-[#006b5c] transition-colors whitespace-nowrap"
+              href="/docs/manual"
+            >
+              사용 설명서
+            </Link>
+            <Link
+              className="hidden md:inline-flex text-sm font-semibold text-[#3e4946] hover:text-[#006b5c] transition-colors whitespace-nowrap"
+              href={`/${locale}/pricing`}
+            >
+              {pricingNavLabel}
+            </Link>
 
-          <div className="flex gap-4 items-center">
             {/* Language Switcher */}
-            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full border border-[#bdc9c5]/30 bg-white/70 hover:bg-white transition-colors cursor-pointer">
-              <Globe size={13} className="text-[#3e4946]" />
+            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#bdc9c5]/30 bg-white/70 hover:bg-white transition-colors cursor-pointer">
+              <Globe size={13} className="text-[#3e4946] flex-shrink-0" />
               <select
                 value={selectLocale}
                 onChange={(e) => handleLocaleChange(e.target.value as AppLocale)}
-                className="bg-transparent text-[10px] font-black text-[#3e4946] outline-none cursor-pointer uppercase tracking-tight"
+                className="bg-transparent text-[10px] font-black text-[#3e4946] outline-none cursor-pointer uppercase tracking-tight max-w-[5.5rem]"
               >
                 {LANDING_LOCALE_SELECT_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value} className="bg-white text-[#1b1c1b]">
@@ -386,21 +390,34 @@ export function LuminousLanding({ locale = 'ko' }: { locale?: AppLocale }) {
               </select>
             </div>
 
-            <Link href={loginHref} className="text-sm font-semibold text-[#006b5c] hover:bg-[#006b5c]/5 px-4 py-2 rounded-full transition-all">
+            <Link
+              href={loginHref}
+              className="hidden sm:inline-flex text-sm font-semibold text-[#006b5c] hover:bg-[#006b5c]/5 px-3 py-2 rounded-full transition-all whitespace-nowrap"
+            >
               로그인
             </Link>
             {showWorkHome ? (
-              <Link href={dashboardHref} className="inline-flex items-center gap-2 bg-emerald-600 text-white text-sm font-bold px-6 py-2.5 rounded-full shadow-lg shadow-emerald-600/20 hover:scale-105 active:scale-95 transition-all">
-                <LayoutDashboard className="h-4 w-4" aria-hidden />
+              <Link
+                href={dashboardHref}
+                className="inline-flex items-center gap-2 bg-emerald-600 text-white text-sm font-bold px-4 sm:px-5 py-2.5 rounded-full shadow-lg shadow-emerald-600/20 hover:scale-[1.02] active:scale-[0.98] transition-all whitespace-nowrap"
+              >
+                <LayoutDashboard className="h-4 w-4 flex-shrink-0" aria-hidden />
                 대시보드
               </Link>
             ) : (
-              <Link href={loginHref} className="bg-[#006b5c] text-white text-sm font-bold px-6 py-2.5 rounded-full shadow-lg shadow-[#006b5c]/20 hover:scale-105 active:scale-95 transition-all">
+              <Link
+                href={loginHref}
+                className="inline-flex bg-[#006b5c] text-white text-sm font-bold px-4 sm:px-5 py-2.5 rounded-full shadow-lg shadow-[#006b5c]/20 hover:scale-[1.02] active:scale-[0.98] transition-all whitespace-nowrap"
+              >
                 시작하기
               </Link>
             )}
 
-            <button className="md:hidden p-2 text-[#1b1c1b]" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+            <button
+              className="md:hidden p-2 text-[#1b1c1b] flex-shrink-0"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label="메뉴"
+            >
               {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
           </div>
@@ -417,11 +434,6 @@ export function LuminousLanding({ locale = 'ko' }: { locale?: AppLocale }) {
             className="absolute top-20 left-0 right-0 bg-[#fbf9f7] border-b border-[#bdc9c5]/30 shadow-2xl overflow-hidden md:hidden z-40"
           >
             <div className="px-6 py-8 flex flex-col gap-5">
-              <a className="text-lg font-bold text-[#1b1c1b]" href="#features-summary" onClick={() => setMobileMenuOpen(false)}>주요 기능</a>
-              <a className="text-lg font-bold text-[#1b1c1b]" href="#feature-ribbon" onClick={() => setMobileMenuOpen(false)}>리본 솔루션</a>
-              <a className="text-lg font-bold text-[#1b1c1b]" href="#feature-scale" onClick={() => setMobileMenuOpen(false)}>{scaleNavLabel}</a>
-              <a className="text-lg font-bold text-[#1b1c1b]" href="#details" onClick={() => setMobileMenuOpen(false)}>플랫폼 안내</a>
-              <a className="text-lg font-bold text-[#1b1c1b]" href="#testimonials" onClick={() => setMobileMenuOpen(false)}>후기</a>
               <Link className="text-lg font-bold text-[#1b1c1b]" href="/docs/manual" onClick={() => setMobileMenuOpen(false)}>사용 설명서</Link>
               <Link className="text-lg font-bold text-[#1b1c1b]" href={`/${locale}/pricing`} onClick={() => setMobileMenuOpen(false)}>{pricingNavLabel}</Link>
               <div className="flex flex-col gap-3 pt-4 border-t border-[#efedec]">
@@ -1454,29 +1466,17 @@ export function LuminousLanding({ locale = 'ko' }: { locale?: AppLocale }) {
         </footer>
       </main>
 
-      {/* Floating Section Navigator (Bottom Right) */}
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2 bg-white/70 backdrop-blur-md p-3 rounded-full border border-[#bdc9c5]/40 shadow-xl max-w-[280px]">
-        <div className="flex flex-col gap-1.5">
-          <a href="#" className="w-8 h-8 rounded-full bg-[#006b5c]/10 text-[#006b5c] flex items-center justify-center text-xs font-bold hover:bg-[#006b5c] hover:text-white transition-all" title="위로 가기">
-            <span className="material-symbols-outlined text-[16px]">arrow_upward</span>
-          </a>
-          <a href="#features-summary" className="w-8 h-8 rounded-full bg-[#efedec] text-[#3e4946] flex items-center justify-center text-xs font-bold hover:bg-[#006b5c] hover:text-white transition-all" title="주요기능 요약">
-            1
-          </a>
-          <a href="#feature-automation" className="w-8 h-8 rounded-full bg-[#efedec] text-[#3e4946] flex items-center justify-center text-xs font-bold hover:bg-[#006b5c] hover:text-white transition-all" title="원스톱 자동화">
-            2
-          </a>
-          <a href="#feature-ribbon" className="w-8 h-8 rounded-full bg-[#efedec] text-[#3e4946] flex items-center justify-center text-xs font-bold hover:bg-[#006b5c] hover:text-white transition-all" title="리본 솔루션">
-            3
-          </a>
-          <a href="#feature-scale" className="w-8 h-8 rounded-full bg-[#efedec] text-[#3e4946] flex items-center justify-center text-xs font-bold hover:bg-[#006b5c] hover:text-white transition-all" title={scaleNavLabel}>
-            7
-          </a>
-          <a href="#test-user-apply" className="w-8 h-8 rounded-full bg-[#86e3ce] text-[#006657] flex items-center justify-center text-[10px] font-black hover:bg-[#006b5c] hover:text-white transition-all" title="베타 신청">
-            Apply
-          </a>
-        </div>
-      </div>
+      <LandingSectionNav
+        items={[
+          { id: 'top', label: '맨 위', kind: 'top' },
+          { id: 'features-summary', label: '주요 기능', num: '01', kind: 'section' },
+          { id: 'feature-automation', label: '원스톱 자동화', num: '02', kind: 'section' },
+          { id: 'feature-ribbon', label: '리본 솔루션', num: '03', kind: 'section' },
+          { id: 'feature-scale', label: scaleNavLabel, num: '04', kind: 'section' },
+          { id: 'testimonials', label: '후기', num: '05', kind: 'section' },
+          { id: 'test-user-apply', label: '베타 신청', kind: 'cta' },
+        ]}
+      />
     </div>
   );
 }

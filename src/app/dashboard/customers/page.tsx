@@ -325,7 +325,7 @@ export default function CustomersPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="max-w-none space-y-6">
       {isErpTrial ? <ErpTrialBanner /> : null}
       <PageHeader
         title={tf.f00061}

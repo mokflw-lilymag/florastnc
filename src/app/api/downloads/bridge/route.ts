@@ -37,6 +37,12 @@ export async function GET(request: Request) {
     const tpl6 = path.join(process.cwd(), 'bridge-app', 'receipt-market-list.html');
     if (fs.existsSync(tpl6)) zip.addLocalFile(tpl6);
 
+    const labelsPath = path.join(process.cwd(), 'bridge-app', 'receipt-labels.json');
+    if (fs.existsSync(labelsPath)) zip.addLocalFile(labelsPath);
+
+    const i18nPath = path.join(process.cwd(), 'bridge-app', 'receipt-i18n.js');
+    if (fs.existsSync(i18nPath)) zip.addLocalFile(i18nPath);
+
     const batPath = path.join(process.cwd(), 'bridge-app', 'install.bat');
     if (fs.existsSync(batPath)) zip.addLocalFile(batPath);
 

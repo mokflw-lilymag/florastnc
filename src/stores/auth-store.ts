@@ -28,7 +28,8 @@ async function enrichTenantProfile(
 ): Promise<Record<string, unknown> | null> {
   if (!tenantId) return tenantsInfo;
   const existingName = typeof tenantsInfo?.name === "string" ? tenantsInfo.name.trim() : "";
-  if (existingName) return tenantsInfo;
+  const existingPlan = typeof tenantsInfo?.plan === "string" ? tenantsInfo.plan.trim() : "";
+  if (existingName && existingPlan && existingPlan !== "free") return tenantsInfo;
 
   const { data: tenantRow } = await supabase
     .from("tenants")
@@ -59,7 +60,9 @@ async function enrichTenantProfile(
 async function enrichCachedProfileTenant(set: (partial: Partial<AuthState>) => void, get: () => AuthState) {
   const profile = get().profile;
   const tid = profile?.org_work_tenant_id ?? profile?.tenant_id;
-  if (!tid || profile?.tenants?.name) return;
+  const existingName = typeof profile?.tenants?.name === "string" ? profile.tenants.name.trim() : "";
+  const existingPlan = typeof profile?.tenants?.plan === "string" ? profile.tenants.plan.trim() : "";
+  if (!tid || (existingName && existingPlan && existingPlan !== "free")) return;
 
   try {
     const supabase = createClient();

@@ -22,6 +22,8 @@ export function ExpenseManagement() {
   const [expDate, setExpDate] = useState(new Date().toISOString().split("T")[0]);
   const [desc, setDesc] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("corporate_card");
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [uploadingReceipt, setUploadingReceipt] = useState(false);
 
   // Device state
   const [devices, setDevices] = useState<any[]>([]);
@@ -60,20 +62,47 @@ export function ExpenseManagement() {
     }
 
     try {
+      setUploadingReceipt(true);
+      let receiptUrl = "";
+
+      if (receiptFile) {
+        const fileExt = receiptFile.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+        const filePath = `hq/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("receipts")
+          .upload(filePath, receiptFile);
+
+        if (uploadError) throw new Error("영수증 업로드 중 오류가 발생했습니다: " + uploadError.message);
+
+        const { data: publicUrlData } = supabase.storage
+          .from("receipts")
+          .getPublicUrl(filePath);
+          
+        receiptUrl = publicUrlData.publicUrl;
+      }
+
       const { error } = await supabase.from("expenses").insert({
         amount: parseFloat(amount),
         category,
         expense_date: expDate,
         description: desc,
-        payment_method: paymentMethod
+        payment_method: paymentMethod,
+        receipt_url: receiptUrl || null
       });
       if (error) throw error;
       toast.success("지출 내역이 장부에 기록되었습니다.");
       setAmount("");
       setDesc("");
+      setReceiptFile(null);
+      const fileInput = document.getElementById("exp-receipt") as HTMLInputElement;
+      if (fileInput) fileInput.value = "";
       loadExpenses();
     } catch (err: any) {
       toast.error("지출 등록 실패", { description: err.message });
+    } finally {
+      setUploadingReceipt(false);
     }
   };
 
@@ -266,8 +295,20 @@ export function ExpenseManagement() {
                   </Select>
                 </div>
 
-                <Button type="submit" className="w-full rounded-xl">
-                  <Plus className="mr-2 h-4 w-4" /> 장부 기입하기
+                <div className="space-y-2">
+                  <Label htmlFor="exp-receipt">영수증 첨부 (선택)</Label>
+                  <Input 
+                    id="exp-receipt" 
+                    type="file" 
+                    accept="image/*,.pdf"
+                    onChange={e => setReceiptFile(e.target.files?.[0] || null)}
+                    className="rounded-xl"
+                  />
+                </div>
+
+                <Button type="submit" disabled={uploadingReceipt} className="w-full rounded-xl">
+                  {uploadingReceipt ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />} 
+                  {uploadingReceipt ? "업로드 및 기입 중..." : "장부 기입하기"}
                 </Button>
               </form>
             </CardContent>
@@ -286,8 +327,14 @@ export function ExpenseManagement() {
                   {expenses.map((exp) => (
                     <div key={exp.id} className="flex justify-between items-center p-4 bg-slate-50 hover:bg-slate-100 rounded-xl transition-all border border-slate-100">
                       <div className="space-y-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-bold text-slate-900">{exp.description}</span>
+                          {exp.receipt_url && (
+                            <a href={exp.receipt_url} target="_blank" rel="noopener noreferrer" className="text-indigo-500 hover:text-indigo-700 inline-flex items-center bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
+                              <Receipt className="h-3 w-3 mr-1" />
+                              <span className="text-[10px] font-medium">영수증 보기</span>
+                            </a>
+                          )}
                           <Badge variant="outline" className="text-[10px]">
                             {exp.category === "infra" && "서버/인프라"}
                             {exp.category === "shipping" && "배송/물류"}

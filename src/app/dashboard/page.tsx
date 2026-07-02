@@ -458,7 +458,7 @@ export default function DashboardPage() {
   // --- SUPER ADMIN VIEW ---
   if (isSuperAdmin) {
     return (
-      <div className="p-6 space-y-8 max-w-7xl mx-auto animate-in fade-in duration-700 pb-12 font-light">
+      <div className="p-6 space-y-8 max-w-none animate-in fade-in duration-700 pb-12 font-light">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
              <h1 className="text-3xl font-medium text-gray-900 tracking-tight">
@@ -588,7 +588,7 @@ export default function DashboardPage() {
   // --- REGULAR TENANT VIEW ---
   return (
     <div className={cn(
-      "space-y-6 max-w-7xl mx-auto animate-in fade-in duration-700 font-light",
+      "space-y-6 max-w-none animate-in fade-in duration-700 font-light",
       touchUi ? "p-4 pb-8 sm:p-6" : "p-6 pb-12"
     )}>
       <DashboardTicker />

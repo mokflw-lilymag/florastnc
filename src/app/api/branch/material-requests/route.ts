@@ -60,19 +60,23 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: errAdminUnauthorized(bl) }, { status: 401 });
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("tenant_id, org_work_tenant_id, role")
-    .eq("id", user.id)
-    .maybeSingle();
+  const [profileRes, membershipsRes] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("tenant_id, org_work_tenant_id, role")
+      .eq("id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("organization_members")
+      .select("organization_id")
+      .eq("user_id", user.id)
+  ]);
+
+  const profile = profileRes.data;
+  const memberships = membershipsRes.data;
 
   const effectiveTenant = profile?.org_work_tenant_id ?? profile?.tenant_id ?? null;
   const isSuper = profile?.role === "super_admin";
-
-  const { data: memberships } = await supabase
-    .from("organization_members")
-    .select("organization_id")
-    .eq("user_id", user.id);
 
   const orgIds = [...new Set((memberships ?? []).map((m) => m.organization_id))];
 

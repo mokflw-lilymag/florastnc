@@ -179,7 +179,7 @@ export default function SubscriptionEventsAdminPage() {
   if (!isSuperAdmin) return <AccessDenied requiredTier="System Admin" />;
 
   return (
-    <div className="container max-w-6xl mx-auto p-6 space-y-6">
+    <div className="max-w-none p-6 space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow">
@@ -228,7 +228,11 @@ export default function SubscriptionEventsAdminPage() {
             </div>
             <Select value={eventType} onValueChange={(v) => setEventType(v ?? FILTER_ALL)}>
               <SelectTrigger className="w-[140px] rounded-xl">
-                <SelectValue placeholder="유형" />
+                <SelectValue placeholder="유형">
+                  {eventType === FILTER_ALL && "전체 유형"}
+                  {eventType === "payment" && "실결제"}
+                  {eventType === "admin_grant" && "관리자 부여"}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={FILTER_ALL}>전체 유형</SelectItem>
@@ -238,7 +242,12 @@ export default function SubscriptionEventsAdminPage() {
             </Select>
             <Select value={source} onValueChange={(v) => setSource(v ?? FILTER_ALL)}>
               <SelectTrigger className="w-[140px] rounded-xl">
-                <SelectValue placeholder="출처" />
+                <SelectValue placeholder="출처">
+                  {source === FILTER_ALL && "전체 출처"}
+                  {source === "toss" && "토스"}
+                  {source === "stripe" && "Stripe"}
+                  {source === "admin" && "관리자"}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={FILTER_ALL}>전체 출처</SelectItem>

@@ -64,7 +64,7 @@ export default function OrderDetailPage() {
 
   if (loading) {
     return (
-      <div className="p-6 space-y-6 max-w-5xl mx-auto flex flex-col items-center justify-center min-h-[60vh]">
+      <div className="p-6 space-y-6 max-w-none flex flex-col items-center justify-center min-h-[60vh]">
         <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4" />
         <p className="text-slate-500 font-medium">{tf.f00618}</p>
       </div>
@@ -73,7 +73,7 @@ export default function OrderDetailPage() {
 
   if (!order) {
     return (
-      <div className="p-6 space-y-6 max-w-5xl mx-auto">
+      <div className="p-6 space-y-6 max-w-none">
         <Button variant="ghost" onClick={() => router.back()} className="mb-4">
           <ArrowLeft className="w-4 h-4 mr-2" /> {tf.f00162}
         </Button>
@@ -103,7 +103,7 @@ export default function OrderDetailPage() {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
+    <div className="p-6 space-y-6 max-w-none animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
       <div className="flex items-center justify-between gap-4 mb-2">
         <Button 
           variant="outline" 

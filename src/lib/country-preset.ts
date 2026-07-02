@@ -1,5 +1,6 @@
 import type { SystemSettings } from "@/hooks/use-settings";
 import countryPresetsJson from "@/data/country-presets.json";
+import { getFallbackCountryPreset } from "@/lib/country-preset-fallbacks";
 
 export type CountryPreset = {
   countryCode: string;
@@ -34,8 +35,18 @@ export type CountryPresetDiffItem = {
   after: SystemSettings[keyof SystemSettings];
 };
 
-export function getCountryPreset(countryCode: string) {
-  return COUNTRY_PRESET_MAP[countryCode];
+export function getCountryPreset(countryCode: string): CountryPreset | undefined {
+  const json = COUNTRY_PRESET_MAP[countryCode];
+  const fallback = getFallbackCountryPreset(countryCode);
+  if (json && fallback) {
+    return {
+      ...fallback,
+      ...json,
+      recommendedStack: { ...fallback.recommendedStack, ...json.recommendedStack },
+      settings: { ...fallback.settings, ...json.settings },
+    };
+  }
+  return json ?? fallback;
 }
 
 function isEqualValue(a: unknown, b: unknown) {

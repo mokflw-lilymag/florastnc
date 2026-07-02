@@ -2,7 +2,7 @@ export const SAMPLE_PRODUCTS = [
   {
     name: "축하화환 3단",
     code: "GIFT-001",
-    main_category: "경조사화환",
+    main_category: "경조화환",
     mid_category: "축하화환",
     price: 100000,
     stock: 10,

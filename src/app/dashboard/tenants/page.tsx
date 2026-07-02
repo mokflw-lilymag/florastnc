@@ -130,6 +130,13 @@ export default function TenantsPage() {
   const [resetTargetUser, setResetTargetUser] = useState<{ id: string; email: string } | null>(null);
   const [newPassword, setNewPassword] = useState("");
   const [isResetting, setIsResetting] = useState(false);
+  const [sendEmail, setSendEmail] = useState(true);
+
+  // Tenant Deletion states
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [deleteTargetTenant, setDeleteTargetTenant] = useState<TenantWithProfile | null>(null);
+  const [deleteConfirmationName, setDeleteConfirmationName] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Form states
   const [newName, setNewName] = useState("");
@@ -347,6 +354,40 @@ export default function TenantsPage() {
     }
   };
 
+  const handleDeleteTenant = async () => {
+    if (!deleteTargetTenant) return;
+    
+    // 이중 확인
+    if (deleteConfirmationName !== deleteTargetTenant.name) {
+      toast.error("매장 이름이 일치하지 않습니다.");
+      return;
+    }
+
+    try {
+      setIsDeleting(true);
+      const res = await fetch(`/api/admin/tenants/${deleteTargetTenant.id}?uiLocale=${encodeURIComponent(locale)}`, {
+        method: "DELETE",
+      });
+      const json = await res.json().catch(() => ({}));
+      
+      if (!res.ok) {
+        throw new Error(typeof json?.error === "string" ? json.error : res.statusText);
+      }
+      
+      toast.success("매장 및 연관된 데이터가 성공적으로 삭제되었습니다.");
+      setIsDeleteOpen(false);
+      setDeleteTargetTenant(null);
+      setDeleteConfirmationName("");
+      fetchTenants();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("Error deleting tenant:", msg, err);
+      toast.error(msg || "매장 삭제 중 오류가 발생했습니다.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const handleResetPassword = async () => {
     if (!resetTargetUser || !newPassword.trim()) {
       toast.error("비밀번호를 입력해주세요.");
@@ -361,6 +402,7 @@ export default function TenantsPage() {
         body: JSON.stringify({
           userId: resetTargetUser.id,
           newPassword: newPassword.trim(),
+          sendEmail
         }),
       });
 
@@ -591,7 +633,7 @@ export default function TenantsPage() {
   };
 
   return (
-    <div className="container mx-auto py-8 space-y-8">
+    <div className="w-full max-w-[98%] 2xl:max-w-[1920px] mx-auto px-4 md:px-6 py-8 space-y-8">
       <PageHeader 
         title={tf.f01780} 
         description={tf.f01789} 
@@ -781,7 +823,7 @@ export default function TenantsPage() {
                     </div>
                   </TableHead>
                   <TableHead className="font-medium text-slate-600 py-5 uppercase tracking-wider text-[11px]">구독 상태</TableHead>
-                  <TableHead className="text-right px-8 font-medium text-slate-600 py-5 uppercase tracking-wider text-[11px]">{tf.f01530}</TableHead>
+                  <TableHead className="sticky right-0 bg-slate-50/90 backdrop-blur-sm z-10 text-right px-4 font-medium text-slate-600 py-5 uppercase tracking-wider text-[11px]">{tf.f01530}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -918,7 +960,7 @@ export default function TenantsPage() {
                     <TableCell className="border-0">
                       <SubscriptionTenureBadge tenure={tenure} locale={locale} />
                     </TableCell>
-                    <TableCell className="text-right px-8 border-0" onClick={(e) => e.stopPropagation()}>
+                    <TableCell className="sticky right-0 bg-white/90 backdrop-blur-sm z-10 text-right px-4 border-0" onClick={(e) => e.stopPropagation()}>
                       <DropdownMenu>
                         <DropdownMenuTrigger className={cn(
                           buttonVariants({ variant: "ghost", size: "icon" }),
@@ -943,6 +985,18 @@ export default function TenantsPage() {
                           >
                             <MessageSquare className="h-4 w-4 mr-2" />
                             {tf.f01511}
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            className="font-normal text-sm p-2.5 cursor-pointer text-red-600 font-bold hover:text-red-700 hover:bg-red-50"
+                            onClick={() => {
+                              setDeleteTargetTenant(tenant);
+                              setDeleteConfirmationName("");
+                              setIsDeleteOpen(true);
+                            }}
+                          >
+                            <AlertCircle className="h-4 w-4 mr-2" />
+                            매장 및 데이터 영구 삭제
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -1069,6 +1123,7 @@ export default function TenantsPage() {
                         className="h-8 rounded-lg text-xs font-medium text-slate-600 bg-white"
                         onClick={() => {
                           setResetTargetUser({ id: p.id, email: p.email });
+                          setNewPassword(Math.random().toString(36).slice(-6) + Math.floor(Math.random() * 10) + "!");
                           setIsResetPasswordOpen(true);
                         }}
                       >
@@ -1441,6 +1496,18 @@ export default function TenantsPage() {
                 onChange={(e) => setNewPassword(e.target.value)}
               />
             </div>
+            <div className="grid gap-2 mt-4">
+              <Label className="flex items-center gap-2 cursor-pointer text-sm font-medium text-slate-800">
+                <input 
+                  type="checkbox" 
+                  className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                  checked={sendEmail}
+                  onChange={(e) => setSendEmail(e.target.checked)}
+                />
+                사용자 이메일({resetTargetUser?.email})로 임시 비밀번호 전송
+              </Label>
+              <p className="text-[11px] text-slate-500 ml-6">체크 시, 위 비밀번호가 사용자 메일로 자동 발송됩니다.</p>
+            </div>
           </div>
           <DialogFooter className="gap-3 sm:justify-end mt-4 border-0">
             <Button variant="ghost" className="rounded-2xl px-6 text-slate-500 border-0" onClick={() => setIsResetPasswordOpen(false)}>취소</Button>
@@ -1451,6 +1518,51 @@ export default function TenantsPage() {
             >
               {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin border-0" />}
               비밀번호 변경
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 매장 영구 삭제 다이얼로그 */}
+      <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <DialogContent className="sm:max-w-md rounded-3xl p-8 border-none shadow-2xl bg-white border-0">
+          <DialogHeader className="border-0">
+            <DialogTitle className="font-semibold text-xl text-red-600">매장 및 데이터 영구 삭제</DialogTitle>
+            <DialogDescription className="font-normal pb-4 text-slate-600 border-0">
+              <span className="font-bold text-slate-900">{deleteTargetTenant?.name}</span> 매장을 삭제합니다. 이 작업은 되돌릴 수 없으며, 매장과 연결된 <span className="font-bold text-red-500">모든 사용자 및 데이터가 함께 영구 삭제</span>됩니다.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-6 py-2">
+            <div className="grid gap-2">
+              <Label htmlFor="confirm-delete-name" className="font-normal text-slate-600 text-xs ml-1 border-0">
+                삭제를 확인하려면 <span className="font-bold text-slate-900">"{deleteTargetTenant?.name}"</span> 를 정확히 입력하세요.
+              </Label>
+              <Input
+                id="confirm-delete-name"
+                type="text"
+                placeholder={deleteTargetTenant?.name}
+                className="rounded-2xl h-12 font-normal bg-slate-50/50 border-slate-100 text-slate-900 focus:bg-white border"
+                value={deleteConfirmationName}
+                onChange={(e) => setDeleteConfirmationName(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-3 sm:justify-end mt-4 border-0">
+            <Button variant="ghost" className="rounded-2xl px-6 text-slate-500 border-0" onClick={() => {
+              setIsDeleteOpen(false);
+              setDeleteTargetTenant(null);
+              setDeleteConfirmationName("");
+            }}>
+              취소
+            </Button>
+            <Button 
+              variant="destructive"
+              className="rounded-2xl px-8 font-normal shadow-lg shadow-red-200 border-0" 
+              onClick={handleDeleteTenant}
+              disabled={isDeleting || deleteConfirmationName !== deleteTargetTenant?.name}
+            >
+              {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin border-0" />}
+              영구 삭제
             </Button>
           </DialogFooter>
         </DialogContent>

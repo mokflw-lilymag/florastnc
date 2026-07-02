@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import {
   resolveEnvSmtpConfig,
   resolveSmtpForTenant,
+  resolveSmtpForHq,
   sendMailViaSmtp,
 } from '@/lib/email/smtp-server';
 
@@ -22,6 +23,12 @@ export async function POST(req: Request) {
         process.env.SUPABASE_SERVICE_ROLE_KEY,
       );
       smtpConfig = await resolveSmtpForTenant(supabaseAdmin, tenantId);
+    } else if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      const supabaseAdmin = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.SUPABASE_SERVICE_ROLE_KEY,
+      );
+      smtpConfig = await resolveSmtpForHq(supabaseAdmin);
     } else {
       smtpConfig = resolveEnvSmtpConfig();
     }

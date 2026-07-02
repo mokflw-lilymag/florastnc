@@ -62,15 +62,19 @@ export async function GET(req: Request) {
 
   const orgIds = memberships.map((m) => m.organization_id);
 
-  const { data: orgs } = await supabase
-    .from("organizations")
-    .select("id, name")
-    .in("id", orgIds);
+  const [orgsRes, tenantsRes] = await Promise.all([
+    supabase
+      .from("organizations")
+      .select("id, name")
+      .in("id", orgIds),
+    supabase
+      .from("tenants")
+      .select("id, name, organization_id, plan")
+      .in("organization_id", orgIds)
+  ]);
 
-  const { data: tenants } = await supabase
-    .from("tenants")
-    .select("id, name, organization_id, plan")
-    .in("organization_id", orgIds);
+  const orgs = orgsRes.data;
+  const tenants = tenantsRes.data;
 
   const tenantIds = (tenants ?? []).map((t) => t.id);
   const tenantNameById = Object.fromEntries((tenants ?? []).map((t) => [t.id, t.name]));

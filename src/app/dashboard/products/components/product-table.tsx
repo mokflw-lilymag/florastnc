@@ -38,6 +38,8 @@ import { MoreHorizontal, Pencil, Trash2, Package } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { Product } from "@/types/product";
+import { isDirectInputPendingProduct } from "@/lib/direct-input-product";
+import { pickUiText } from "@/i18n/pick-ui-text";
 
 interface ProductTableProps {
   /** 현재 페이지에서 불러온 행(검색·필터 적용 후 표시) */
@@ -156,8 +158,30 @@ export function ProductTable({
                       />
                     </TableCell>
                     <TableCell>
-                      <div className="flex flex-col">
-                        <span className="font-medium text-slate-900">{product.name}</span>
+                      <div className="flex flex-col gap-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-medium text-slate-900">{product.name}</span>
+                          {isDirectInputPendingProduct(product) && (
+                            <Badge
+                              variant="outline"
+                              className="border-amber-300 bg-amber-50 text-[10px] font-semibold text-amber-800"
+                            >
+                              {pickUiText(
+                                baseLocale,
+                                "직접입력 · 분류 미정",
+                                "Direct entry · category pending",
+                                "Nhập tay · chưa phân loại",
+                                "直接入力 · 分類未設定",
+                                "直接输入 · 分类待定",
+                                "Entrada manual · categoría pendiente",
+                                "Entrada manual · categoria pendente",
+                                "Saisie directe · catégorie à définir",
+                                "Direkteingabe · Kategorie offen",
+                                "Прямой ввод · категория не задана",
+                              )}
+                            </Badge>
+                          )}
+                        </div>
                         {product.code && (
                           <span className="text-xs text-slate-500 font-mono">{product.code}</span>
                         )}

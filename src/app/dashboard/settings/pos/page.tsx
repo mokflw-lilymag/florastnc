@@ -220,7 +220,7 @@ export default function PosSettingsPage() {
 
   if (!POS_INTEGRATION_ENABLED) {
     return (
-      <div className="max-w-5xl mx-auto p-4">
+      <div className="max-w-none p-4">
         <SettingsSubNav />
         <div className="flex items-center justify-center min-h-[200px] text-slate-400 text-sm">
           <Loader2 className="h-5 w-5 animate-spin mr-2" />
@@ -240,7 +240,7 @@ export default function PosSettingsPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 pb-20 p-4">
+    <div className="max-w-none space-y-8 pb-20 p-4">
       <SettingsSubNav />
       {/* Header section with Premium feel */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-r from-slate-900 to-slate-800 p-8 rounded-[32px] text-white shadow-2xl overflow-hidden relative group">

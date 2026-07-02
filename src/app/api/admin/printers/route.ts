@@ -104,7 +104,7 @@ export async function GET(req: Request) {
 
     const resolvedLeasedTenants = leasedTenants.map((item) => ({
       ...item,
-      tenant_name: tenantNameMap[item.tenant_id] || "알 수 없는 화원사",
+      tenant_name: tenantNameMap[item.tenant_id] || "알 수 없는 회원사",
     })).sort((a, b) => {
       const dateA = a.date || "";
       const dateB = b.date || "";
@@ -122,7 +122,7 @@ export async function GET(req: Request) {
     for (const s of settings ?? []) {
       if (s.data && typeof s.data === "object") {
         const d = s.data as Record<string, any>;
-        const tName = tenantNameMap[s.tenant_id] || "알 수 없는 화원사";
+        const tName = tenantNameMap[s.tenant_id] || "알 수 없는 회원사";
 
         if (d.pos_printer_leased && d.pos_printer_model) {
           currentLeases.push({

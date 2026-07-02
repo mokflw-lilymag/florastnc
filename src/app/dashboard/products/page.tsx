@@ -30,6 +30,8 @@ import Link from "next/link";
 import { SAMPLE_PRODUCTS } from "@/utils/sample-data";
 import { DASHBOARD_LIST_PAGE_SIZE } from "@/lib/dashboard-list-limit";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { isDirectInputPendingProduct } from "@/lib/direct-input-product";
+import { Badge } from "@/components/ui/badge";
 
 export default function ProductsPage() {
   const { profile, isSuperAdmin, isLoading: authLoading } = useAuth();
@@ -53,6 +55,7 @@ export default function ProductsPage() {
 
   const hasAccess = authLoading || isSuperAdmin || ['light', 'pro', 'pro_plus'].includes(plan);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showDirectInputOnly, setShowDirectInputOnly] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -60,13 +63,22 @@ export default function ProductsPage() {
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
   const filteredProducts = useMemo(() => {
-    if (!searchTerm) return products;
+    let rows = products;
+    if (showDirectInputOnly) {
+      rows = rows.filter((p) => isDirectInputPendingProduct(p));
+    }
+    if (!searchTerm) return rows;
     const lowerSearch = searchTerm.toLowerCase();
-    return products.filter(p => 
-      p.name.toLowerCase().includes(lowerSearch) || 
+    return rows.filter(p =>
+      p.name.toLowerCase().includes(lowerSearch) ||
       (p.code?.toLowerCase().includes(lowerSearch))
     );
-  }, [products, searchTerm]);
+  }, [products, searchTerm, showDirectInputOnly]);
+
+  const directInputPendingCount = useMemo(
+    () => products.filter((p) => isDirectInputPendingProduct(p)).length,
+    [products],
+  );
 
   const handleCreateNew = () => {
     setEditingProduct(null);
@@ -165,7 +177,7 @@ export default function ProductsPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="max-w-none space-y-6">
       <PageHeader
         title={tf.f01351}
         description={tf.f02098}
@@ -296,6 +308,23 @@ export default function ProductsPage() {
             className="pl-10 border-slate-200 bg-white shadow-sm focus:ring-blue-500/20"
           />
         </div>
+        {directInputPendingCount > 0 && (
+          <Button
+            type="button"
+            variant={showDirectInputOnly ? "default" : "outline"}
+            size="sm"
+            className={showDirectInputOnly ? "bg-amber-600 hover:bg-amber-700 text-white" : "border-amber-200 text-amber-800"}
+            onClick={() => setShowDirectInputOnly((prev) => !prev)}
+          >
+            {tf.f00668}
+            <Badge
+              variant="secondary"
+              className="ml-2 bg-white/90 text-amber-900 hover:bg-white/90"
+            >
+              {directInputPendingCount}
+            </Badge>
+          </Button>
+        )}
       </div>
 
       {/* Product Table */}

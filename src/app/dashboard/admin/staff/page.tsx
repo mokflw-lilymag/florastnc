@@ -121,7 +121,7 @@ export default function StaffManagementPage() {
   };
 
   return (
-    <div className="flex-1 space-y-8 p-8 pt-6 max-w-7xl mx-auto">
+    <div className="flex-1 space-y-8 p-8 pt-6 max-w-none">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="space-y-1">
           <Badge variant="outline" className="text-indigo-600 bg-indigo-50/50 border-indigo-100 font-black text-[10px] tracking-widest px-2 py-0.5 uppercase">{tf.f01831}</Badge>

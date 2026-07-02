@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { differenceInCalendarDays, format } from "date-fns";
-import { User, LogOut, Settings, Bell, BookOpen, Wifi, WifiOff, Globe } from "lucide-react";
+import { User, LogOut, Settings, BookOpen, Wifi, WifiOff, Globe } from "lucide-react";
+import { NotificationBell } from "@/components/layout/notification-bell";
 import { MobileSidebar } from "./mobile-sidebar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -419,11 +420,7 @@ export function Header({
           </Button>
         )}
 
-        {/* Notification Bell */}
-        <Button variant="ghost" size="icon" className="relative text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-all rounded-full">
-          <Bell className="h-5 w-5" />
-          <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-slate-900"></span>
-        </Button>
+        <NotificationBell />
 
         {/* User Dropdown Profile */}
         <DropdownMenu>

@@ -22,22 +22,10 @@ import {
   IntegrationStatus,
 } from "@/lib/regional-integrations";
 
-// ─── 국가 메타 ──────────────────────────────────────────
-const COUNTRY_META: Record<string, { flag: string; name: string }> = {
-  KR: { flag: "🇰🇷", name: "대한민국" },
-  VN: { flag: "🇻🇳", name: "베트남" },
-  JP: { flag: "🇯🇵", name: "일본" },
-  CN: { flag: "🇨🇳", name: "중국" },
-  ID: { flag: "🇮🇩", name: "인도네시아" },
-  MY: { flag: "🇲🇾", name: "말레이시아" },
-  TH: { flag: "🇹🇭", name: "태국" },
-  US: { flag: "🇺🇸", name: "미국" },
-  GB: { flag: "🇬🇧", name: "영국" },
-  FR: { flag: "🇫🇷", name: "프랑스" },
-  DE: { flag: "🇩🇪", name: "독일" },
-  ES: { flag: "🇪🇸", name: "스페인" },
-  RU: { flag: "🇷🇺", name: "러시아" },
-};
+import {
+  tenantCountryFlag,
+  tenantCountryLabel,
+} from "@/lib/admin/tenant-country-meta";
 
 const SECTION_LABELS: Record<string, string> = {
   delivery: "🚚 배달 대행",
@@ -187,7 +175,6 @@ export function RegionalIntegrationPanel({
   tenantId: string;
 }) {
   const config = getRegionalIntegrations(countryCode);
-  const meta = COUNTRY_META[countryCode];
   const sections = (["delivery", "messaging", "ecommerce"] as const).filter(
     (s) => config[s].length > 0
   );
@@ -196,10 +183,10 @@ export function RegionalIntegrationPanel({
     <Card className="border-0 shadow-sm ring-1 ring-violet-200 bg-violet-50/10 overflow-hidden my-6">
       <CardHeader className="bg-gradient-to-r from-violet-600 to-indigo-600 text-white">
         <div className="flex items-center gap-2">
-          <span className="text-xl">{meta?.flag ?? "🌐"}</span>
+          <span className="text-xl">{tenantCountryFlag(countryCode)}</span>
           <div>
             <CardTitle className="text-base">
-              {meta?.name ?? countryCode} 지역 서비스 연동
+              {tenantCountryLabel(countryCode)} 지역 서비스 연동
             </CardTitle>
             <p className="text-violet-200 text-xs mt-0.5">
               현재 국가에서 사용 가능한 배달·메신저·쇼핑몰 앱을 연결하세요

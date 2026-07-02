@@ -64,7 +64,7 @@ export async function POST(req: Request) {
 
   if (action === "add") {
     const snapshot = await loadOrgDelegateSnapshot(admin, organizationId);
-    const targetLower = (targetProfile.email ?? email).toLowerCase();
+    const targetLower = email.toLowerCase();
     if (snapshot?.hqRepEmails.includes(targetLower)) {
       return NextResponse.json(
         {

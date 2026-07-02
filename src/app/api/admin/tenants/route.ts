@@ -27,35 +27,34 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: errAdminServerMisconfigured(bl) }, { status: 500 });
   }
 
-  const { data: tenants, error: tErr } = await admin
-    .from("tenants")
-    .select(
-      "id, name, plan, status, subscription_start, subscription_end, created_at, organization_id"
-    )
-    .order("created_at", { ascending: false });
+  // 🚀 [PERFORMANCE OPTIMIZATION] Execute database queries in parallel
+  const [tenantsRes, profilesRes, settingsRes] = await Promise.all([
+    admin
+      .from("tenants")
+      .select("id, name, plan, status, subscription_start, subscription_end, created_at, organization_id")
+      .order("created_at", { ascending: false }),
+    admin
+      .from("profiles")
+      .select("id, email, role, tenant_id")
+      .not("tenant_id", "is", null),
+    admin
+      .from("system_settings")
+      .select("tenant_id, data")
+      .like("id", "settings_%")
+  ]);
 
-  if (tErr) {
-    console.error("admin tenants list:", tErr);
+  if (tenantsRes.error) {
+    console.error("admin tenants list:", tenantsRes.error);
+    return NextResponse.json({ error: errAdminDataLoadFailed(bl) }, { status: 500 });
+  }
+  if (profilesRes.error) {
+    console.error("admin tenants profiles:", profilesRes.error);
     return NextResponse.json({ error: errAdminDataLoadFailed(bl) }, { status: 500 });
   }
 
-  const { data: profiles, error: pErr } = await admin
-    .from("profiles")
-    .select("id, email, role, tenant_id")
-    .not("tenant_id", "is", null);
-
-  if (pErr) {
-    console.error("admin tenants profiles:", pErr);
-    return NextResponse.json({ error: errAdminDataLoadFailed(bl) }, { status: 500 });
-  }
-
-  // settings_[id] 에서 프린터 임대 및 국가 정보 가져오기
-  const tenantIds = (tenants ?? []).map((t) => t.id);
-  const settingsIds = tenantIds.map((id) => `settings_${id}`);
-  const { data: settings } = await admin
-    .from("system_settings")
-    .select("tenant_id, data")
-    .in("id", settingsIds);
+  const tenants = tenantsRes.data;
+  const profiles = profilesRes.data;
+  const settings = settingsRes.data;
 
   const settingsMap: Record<string, { 
     country?: string; 
