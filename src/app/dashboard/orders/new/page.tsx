@@ -1283,11 +1283,59 @@ export default function NewOrderPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={() => {
+            <Button onClick={async () => {
               const price = Number(customProductPrice);
               if (!customProductName || price <= 0) return;
-              setOrderItems(prev => [...prev, { id: `custom_${Date.now()}`, name: customProductName, price, quantity: 1, stock: 999 }]);
-              setIsCustomProductDialogOpen(false);
+              
+              try {
+                // 10자리 콤팩트 바코드 발급
+                const randomPart = Math.random().toString(36).substring(2, 11).toUpperCase().padEnd(9, 'X');
+                const barcodeCode = `P${randomPart}`;
+
+                const { data: newProd, error } = await supabase
+                  .from('products')
+                  .insert([{
+                    id: crypto.randomUUID(),
+                    name: customProductName.trim(),
+                    price,
+                    main_category: '기타',
+                    mid_category: '직접입력',
+                    supplier: '직접입력',
+                    size: '기타',
+                    color: '기타',
+                    branch: selectedBranch?.name || "",
+                    status: 'active',
+                    code: barcodeCode,
+                    stock: 9999
+                  }])
+                  .select()
+                  .single();
+
+                if (error) throw error;
+
+                setOrderItems(prev => [...prev, { 
+                  id: newProd.id, 
+                  name: newProd.name, 
+                  price: newProd.price, 
+                  quantity: 1, 
+                  stock: newProd.stock,
+                  mainCategory: newProd.main_category,
+                  midCategory: newProd.mid_category,
+                  supplier: newProd.supplier,
+                  size: newProd.size,
+                  color: newProd.color,
+                  branch: newProd.branch,
+                  status: newProd.status,
+                }]);
+                
+                setCustomProductName("");
+                setCustomProductPrice("");
+                setIsCustomProductDialogOpen(false);
+                toast.success('직접 입력한 상품이 데이터베이스에 등록되고 주문서에 추가되었습니다.');
+              } catch (err: any) {
+                console.error(err);
+                toast.error(`상품 등록 중 오류가 발생했습니다: ${err.message}`);
+              }
             }}>{tf.f00697}</Button>
           </DialogFooter>
         </DialogContent>

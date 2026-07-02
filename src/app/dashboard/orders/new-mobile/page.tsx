@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import Textarea from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Minus, Plus, Trash2, Store, Search, Calendar as CalendarIcon, ChevronRight, User, MapPin, CreditCard, ShoppingBag, X, ChevronUp, ChevronDown } from "lucide-react";
+import { Minus, Plus, Trash2, Store, Search, Calendar as CalendarIcon, ChevronRight, User, MapPin, CreditCard, ShoppingBag, X, ChevronUp, ChevronDown, Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 type Branch = { id: string; name: string; type?: string; deliveryFees?: { district: string; fee: number }[]; };
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -24,10 +24,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { useProducts } from "@/hooks/use-products";
 import { Product } from "@/types/product";
-import { useCustomers } from "@/hooks/use-customers";
+import { useCustomerSearch } from "@/hooks/use-customer-search";
+import { useDebounce } from "@/hooks/use-debounce";
 import { Customer } from "@/types/customer";
 import { enqueuePrintJob } from "@/lib/print-service";
 import { useAuth } from "@/hooks/use-auth";
+import { useSettings, DEFAULT_PRODUCT_CATEGORIES } from "@/hooks/use-settings";
 import { useDiscountSettings } from "@/hooks/use-discount-settings";
 import { createClient } from '@/utils/supabase/client';
 const supabase = createClient();
@@ -572,20 +574,15 @@ const MessagePaymentSection = memo(({
 MessagePaymentSection.displayName = "MessagePaymentSection";
 
 // --- CUSTOMER SEARCH SHEET ---
-const CustomerSearchSheet = memo(({ open, onOpenChange, onSelect, customers }: any) => {
+const CustomerSearchSheet = memo(({ open, onOpenChange, onSelect, searchCustomers, searchResults, searchLoading }: any) => {
     const [searchQuery, setSearchQuery] = useState("");
-    const [searchResults, setSearchResults] = useState<Customer[]>([]);
+    const debouncedSearch = useDebounce(searchQuery, 300);
 
-    const handleSearch = useCallback(debounce((query: string) => {
-        if (query.length < 2) { setSearchResults([]); return; }
-        const searchTerm = query.toLowerCase();
-        const filtered = customers.filter((c: any) =>
-            c.name.toLowerCase().includes(searchTerm) ||
-            c.contact.includes(searchTerm) ||
-            c.company_name?.toLowerCase().includes(searchTerm)
-        );
-        setSearchResults(filtered);
-    }, 300), [customers]);
+    useEffect(() => {
+        if (open && debouncedSearch.length >= 2) {
+            searchCustomers(debouncedSearch);
+        }
+    }, [debouncedSearch, open, searchCustomers]);
 
     return (
         <Sheet open={open} onOpenChange={onOpenChange}>
@@ -598,28 +595,34 @@ const CustomerSearchSheet = memo(({ open, onOpenChange, onSelect, customers }: a
                     <Input
                         placeholder="이름, 전화번호 또는 회사명 검색"
                         value={searchQuery}
-                        onChange={(e) => {
-                            setSearchQuery(e.target.value);
-                            handleSearch(e.target.value);
-                        }}
+                        onChange={(e) => setSearchQuery(e.target.value)}
                         className="mt-2"
                     />
                 </SheetHeader>
                 <div className="flex-1 overflow-y-auto p-4">
-                    {searchResults.map(c => (
-                        <div key={c.id} className="py-2 border-b flex justify-between items-center" onClick={() => { onSelect(c); onOpenChange(false); }}>
-                            <div>
-                                <div className="font-bold text-sm">
-                                    {c.name}
-                                    {c.company_name && <span className="text-xs text-muted-foreground ml-1">({c.company_name})</span>}
-                                </div>
-                                <div className="text-xs text-gray-500">{c.contact}</div>
-                            </div>
-                            <Badge variant="outline" className="text-xs">{c.points?.toLocaleString() ?? 0}P</Badge>
+                    {searchLoading ? (
+                        <div className="text-center py-10 text-muted-foreground text-sm">
+                            <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2 text-slate-300" />
+                            검색 중...
                         </div>
-                    ))}
-                    {searchQuery.length >= 2 && searchResults.length === 0 && (
-                        <div className="text-center py-10 text-muted-foreground text-sm">검색 결과가 없습니다</div>
+                    ) : (
+                        <>
+                            {searchResults.map((c: any) => (
+                                <div key={c.id} className="py-2 border-b flex justify-between items-center" onClick={() => { onSelect(c); onOpenChange(false); }}>
+                                    <div>
+                                        <div className="font-bold text-sm">
+                                            {c.name}
+                                            {c.company_name && <span className="text-xs text-muted-foreground ml-1">({c.company_name})</span>}
+                                        </div>
+                                        <div className="text-xs text-gray-500">{c.contact}</div>
+                                    </div>
+                                    <Badge variant="outline" className="text-xs">{c.points?.toLocaleString() ?? 0}P</Badge>
+                                </div>
+                            ))}
+                            {debouncedSearch.length >= 2 && searchResults.length === 0 && (
+                                <div className="text-center py-10 text-muted-foreground text-sm">검색 결과가 없습니다</div>
+                            )}
+                        </>
                     )}
                 </div>
             </SheetContent>
@@ -732,8 +735,9 @@ export default function NewOrderMobilePage() {
     const branchesLoading = authLoading;
     const { products: allProducts, loading: productsLoading, fetchProducts } = useProducts(true, true, true);
     const { orders, addOrder } = useOrders();
-    const { customers } = useCustomers();
+    const { results: customerSearchResults, loading: customerSearchLoading, searchCustomers } = useCustomerSearch();
     const { discountSettings, canApplyDiscount, getActiveDiscountRates } = useDiscountSettings();
+    const { productCategories } = useSettings();
       const router = useRouter();
 
     // 지점이 선택되면 해당 지점의 상품 목록을 가져옴
@@ -1234,7 +1238,10 @@ export default function NewOrderMobilePage() {
     const categorizedProducts = useMemo(() => {
         if (!selectedBranch || !branchProducts.length) return {};
 
-        const priority = ['꽃다발', '꽃바구니', '센터피스', '플랜트', '동서양란', '화환', '자재', '어버이날'];
+        const priority = productCategories && productCategories.main && productCategories.main.length > 0 
+            ? productCategories.main 
+            : DEFAULT_PRODUCT_CATEGORIES.main;
+            
         const sortedGroups: Record<string, any[]> = {};
 
         // PC 버전과 동일한 카테고리 구성
@@ -1246,7 +1253,7 @@ export default function NewOrderMobilePage() {
         });
 
         return sortedGroups;
-    }, [branchProducts, orders, selectedBranch, calculateTopProducts]);
+    }, [branchProducts, orders, selectedBranch, calculateTopProducts, productCategories]);
 
 
     // --- HANDLERS ---
@@ -1511,6 +1518,9 @@ export default function NewOrderMobilePage() {
             <CustomerSearchSheet
                 open={isCustomerSheetOpen}
                 onOpenChange={setIsCustomerSheetOpen}
+                searchCustomers={searchCustomers}
+                searchResults={customerSearchResults}
+                searchLoading={customerSearchLoading}
                 onSelect={(c: Customer) => {
                     setSelectedCustomer(c);
                     setOrdererName(c.name);
@@ -1519,7 +1529,7 @@ export default function NewOrderMobilePage() {
                     setOrdererEmail(c.email || "");
                     applyLastOrderPreferences(c.contact, c.company_name || undefined);
                 }}
-                customers={customers}
+
             />
 
             {/* Product Selection Sheet */}
@@ -1572,11 +1582,62 @@ export default function NewOrderMobilePage() {
                         <Label className="text-xs">수량</Label>
                         <Input type="number" value={customProductQuantity} onChange={e => setCustomProductQuantity(Number(e.target.value))} />
                     </div>
-                    <DialogFooter><Button onClick={() => {
+                    <DialogFooter><Button onClick={async () => {
                         const price = parseInt(customProductPrice) || 0;
-                        const newItem = { id: `custom-${Date.now()}`, name: customProductName, price, quantity: customProductQuantity, isCustomProduct: true } as any;
-                        setOrderItems(prev => [...prev, newItem]);
-                        setCustomProductName(""); setCustomProductPrice(""); setCustomProductQuantity(1); setIsCustomProductDialogOpen(false);
+                        if (!customProductName.trim() || price <= 0) return;
+                        
+                        try {
+                            // 10자리 콤팩트 바코드 발급
+                            const randomPart = Math.random().toString(36).substring(2, 11).toUpperCase().padEnd(9, 'X');
+                            const barcodeCode = `P${randomPart}`;
+
+                            const { data: newProd, error } = await supabase
+                                .from('products')
+                                .insert([{
+                                    id: crypto.randomUUID(),
+                                    name: customProductName.trim(),
+                                    price,
+                                    main_category: '기타',
+                                    mid_category: '직접입력',
+                                    supplier: '직접입력',
+                                    size: '기타',
+                                    color: '기타',
+                                    branch: selectedBranch?.name || "",
+                                    status: 'active',
+                                    code: barcodeCode,
+                                    stock: 9999
+                                }])
+                                .select()
+                                .single();
+
+                            if (error) throw error;
+
+                            const newItem = { 
+                                id: newProd.id, 
+                                name: newProd.name, 
+                                price: newProd.price, 
+                                quantity: customProductQuantity, 
+                                stock: newProd.stock,
+                                mainCategory: newProd.main_category,
+                                midCategory: newProd.mid_category,
+                                supplier: newProd.supplier,
+                                size: newProd.size,
+                                color: newProd.color,
+                                branch: newProd.branch,
+                                status: newProd.status,
+                                isCustomProduct: true 
+                            } as any;
+                            
+                            setOrderItems(prev => [...prev, newItem]);
+                            setCustomProductName(""); 
+                            setCustomProductPrice(""); 
+                            setCustomProductQuantity(1); 
+                            setIsCustomProductDialogOpen(false);
+                            toast.success('직접 입력한 상품이 데이터베이스에 등록되고 주문서에 추가되었습니다.');
+                        } catch (err: any) {
+                            console.error(err);
+                            toast.error(`상품 등록 중 오류가 발생했습니다: ${err.message}`);
+                        }
                     }}>추가하기</Button></DialogFooter>
                 </DialogContent>
             </Dialog>
