@@ -34,6 +34,7 @@ import { getMessages } from "@/i18n/getMessages";
 import { toBaseLocale } from "@/i18n/config";
 import { pickUiText } from "@/i18n/pick-ui-text";
 import { ERP_NAV_TIERS, navTierAllows } from "@/lib/subscription/plan-access";
+import { MobileAppQrButton } from "@/components/layout/mobile-app-qr-button";
 
 interface SidebarProps {
   isSuperAdmin: boolean;
@@ -506,6 +507,9 @@ export function Sidebar({
             </div>
           </div>
         ))}
+        <div className="px-3 mb-2">
+          <MobileAppQrButton />
+        </div>
         <button
           onClick={handleLogout}
           className="w-full group flex items-center px-3 py-2.5 text-sm font-normal rounded-lg transition-all duration-200 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"

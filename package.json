@@ -8,6 +8,7 @@
     "electron:only": "electron .",
     "electron:build": "node electron-build.js",
     "dev": "next dev",
+    "warm:dev": "node scripts/warm-dev-routes.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

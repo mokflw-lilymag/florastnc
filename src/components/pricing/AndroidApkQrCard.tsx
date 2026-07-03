@@ -2,7 +2,7 @@
 
 import QRCode from "react-qr-code";
 import { Smartphone } from "lucide-react";
-import { ANDROID_APK_DRIVE_URL } from "@/lib/downloads/android-apk";
+import { ANDROID_APK_DOWNLOAD_URL, ANDROID_APK_DRIVE_URL } from "@/lib/downloads/android-apk";
 
 type Props = {
   buttonLabel: string;
@@ -27,7 +27,7 @@ export function AndroidApkQrCard({
         aria-label={qrAlt}
       >
         <QRCode
-          value={ANDROID_APK_DRIVE_URL}
+          value={ANDROID_APK_DOWNLOAD_URL}
           size={148}
           level="M"
           bgColor="#ffffff"

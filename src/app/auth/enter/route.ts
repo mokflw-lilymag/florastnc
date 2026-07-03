@@ -21,5 +21,7 @@ export async function GET(request: Request) {
   }
 
   const redirectTo = await resolvePostLoginPath(supabase, user.id, user.email ?? undefined);
-  return NextResponse.redirect(`${origin}${redirectTo}`, 303);
+  const waitingUrl = new URL("/auth/waiting", origin);
+  waitingUrl.searchParams.set("next", redirectTo);
+  return NextResponse.redirect(waitingUrl.toString(), 303);
 }
