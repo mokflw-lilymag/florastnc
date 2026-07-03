@@ -5,6 +5,7 @@ import { createClient } from '@/utils/supabase/client';
 import { useAuth } from './use-auth';
 import { useUiText } from '@/hooks/use-ui-text';
 import { toast } from 'sonner';
+import { deleteById, isDeleteNoRows } from '@/lib/supabase/delete-by-id';
 
 export interface Partner {
   id: string;
@@ -155,13 +156,12 @@ export function usePartners() {
     if (!tenantId) return false;
 
     try {
-      const { error } = await supabase
-        .from('partners')
-        .delete()
-        .eq('id', id)
-        .eq('tenant_id', tenantId);
-
-      if (error) throw error;
+      const result = await deleteById(supabase, 'partners', id);
+      if (result.error) throw result.error;
+      if (isDeleteNoRows(result)) {
+        toast.error(tr('삭제된 행이 없습니다.', 'No row was deleted.'));
+        return false;
+      }
       setPartners(prev => prev.filter(p => p.id !== id));
       toast.success(
         tr(

@@ -1,4 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js';
+import { deleteById } from '@/lib/supabase/delete-by-id';
 import { Order, OrderData } from '@/types/order';
 import { subDays, startOfDay } from 'date-fns';
 
@@ -305,13 +306,11 @@ export const OrderService = {
     }
   },
 
-  async deleteOrder(supabase: SupabaseClient, tenantId: string, id: string): Promise<void> {
-    const { error } = await supabase
-      .from('orders')
-      .delete()
-      .eq('id', id)
-      .eq('tenant_id', tenantId);
-
-    if (error) throw error;
+  async deleteOrder(supabase: SupabaseClient, _tenantId: string, id: string): Promise<void> {
+    const result = await deleteById(supabase, 'orders', id);
+    if (result.error) throw result.error;
+    if (!result.ok) {
+      throw new Error('삭제된 행이 없습니다. 권한이 없거나, 이미 삭제된 주문일 수 있습니다.');
+    }
   }
 };

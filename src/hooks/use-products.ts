@@ -250,18 +250,18 @@ export function useProducts(initialFetch = true, fetchAll = false, skipStats = f
     }
 
     try {
-      const { data, error } = await supabase
+      // RLS가 테넌트 범위를 제어하므로 id만 지정 (레퍼런스 ERP와 동일).
+      // .select()는 RETURNING 시 SELECT RLS와 충돌해 빈 배열이 올 수 있어 count로 확인합니다.
+      const { error, count } = await supabase
         .from("products")
-        .delete()
-        .eq("id", id)
-        .eq("tenant_id", tenantId)
-        .select("id");
+        .delete({ count: "exact" })
+        .eq("id", id);
 
       if (error) {
         console.error("Error deleting product:", error);
         return { ok: false, message: formatProductDeleteError(error) };
       }
-      if (!data?.length) {
+      if (!count) {
         return {
           ok: false,
           message: tr(

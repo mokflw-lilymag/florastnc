@@ -12,6 +12,7 @@ import { pickUiText } from "@/i18n/pick-ui-text";
 import { createClient } from '@/utils/supabase/client';
 import { isElectronClient } from '@/lib/electron-env';
 import { LandingSectionNav } from '@/components/landing/LandingSectionNav';
+import { LANDING_IMAGES } from '@/data/landing-images';
 
 const SUPPORT_EMAIL = "admin@floxync.com";
 
@@ -498,7 +499,7 @@ export function LuminousLanding({ locale = 'ko' }: { locale?: AppLocale }) {
                   <img 
                     alt="Flower Shop Dashboard" 
                     className="w-full h-auto rounded-[36px] shadow-inner" 
-                    src="https://lh3.googleusercontent.com/aida/AP1WRLuKBxyzYKGC9FdfQp9uyM3Pa2VRCQDtMjX1S2XfwonfzhJm0wfBipr8ftndylNn7pBJE0DRmOHCfww0bhFrayHuBUaBWQq8uFUiqW4cwMYpzIBJ2LZGoCBKxqTnR6YAR2-KDdFYyKcT5v0M8EVzi5FrYVtPsuoHgH_SjBK7dMIsfhDTjsTzvg4p5poBM4wpApyP4kpkE17k5HabChM_878cGbCuvms1ESe8PjeihhNVJCCtZFvsmw7aCHU" 
+                    src={LANDING_IMAGES.hero}
                   />
                 </div>
               </div>
@@ -588,7 +589,7 @@ export function LuminousLanding({ locale = 'ko' }: { locale?: AppLocale }) {
               </div>
               <div className="flex-1 w-full max-w-[500px] lg:max-w-none">
                 <div className="bg-white/70 border border-white/60 backdrop-blur-md rounded-[40px] p-3 shadow-xl">
-                  <img alt="One-stop Automation Dashboard" className="w-full h-auto rounded-[32px]" src="https://lh3.googleusercontent.com/aida/AP1WRLuKBxyzYKGC9FdfQp9uyM3Pa2VRCQDtMjX1S2XfwonfzhJm0wfBipr8ftndylNn7pBJE0DRmOHCfww0bhFrayHuBUaBWQq8uFUiqW4cwMYpzIBJ2LZGoCBKxqTnR6YAR2-KDdFYyKcT5v0M8EVzi5FrYVtPsuoHgH_SjBK7dMIsfhDTjsTzvg4p5poBM4wpApyP4kpkE17k5HabChM_878cGbCuvms1ESe8PjeihhNVJCCtZFvsmw7aCHU" />
+                  <img alt="One-stop Automation Dashboard" className="w-full h-auto rounded-[32px]" src={LANDING_IMAGES.automation} />
                 </div>
               </div>
             </div>
@@ -605,7 +606,7 @@ export function LuminousLanding({ locale = 'ko' }: { locale?: AppLocale }) {
               <div className="flex flex-col lg:flex-row items-center gap-16 lg:gap-24">
                 <div className="flex-1 w-full max-w-[500px] lg:max-w-none">
                   <div className="bg-white/70 border border-[#7a5361]/10 backdrop-blur-md rounded-[40px] p-4 shadow-xl">
-                    <img alt="Ribbon Printing Solution" className="w-full h-auto rounded-[32px]" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDryQHuOlCPPZPuq8nUvVWc-qOBL0qfHlM1qbTE0WHDbRGOMXLp3qmiKTddyFWl2uT1Br_fKaV2U2FdjJ2rcDzF1NoV4076fHmGFx4_nXBBPEOs7TikCyFuVsMbpP5yizeLLTNIbZ4PXqv7dB4AJ_sTgtp0_T2bvi87iy_gzPxHKh7EINCzbeBguGc2jdi8ZkMdca2upNRxs04W5TRNfehzQI9k2nMNfBJDaxVBkuhApFogVbXs8ErivGf4XOlpLhQ_ia1Cpckj71r8" />
+                    <img alt="Ribbon Printing Solution" className="w-full h-auto rounded-[32px]" src={LANDING_IMAGES.ribbon} />
                   </div>
                 </div>
                 <div className="flex-1 space-y-6 w-full">
@@ -657,7 +658,7 @@ export function LuminousLanding({ locale = 'ko' }: { locale?: AppLocale }) {
               </div>
               <div className="flex-1 w-full max-w-[500px] lg:max-w-none relative">
                 <div className="bg-white/70 border border-white/60 backdrop-blur-md rounded-[40px] p-3 shadow-xl">
-                  <img alt="Background Service Connection" className="w-full h-auto rounded-[32px]" src="https://lh3.googleusercontent.com/aida/AP1WRLuKBxyzYKGC9FdfQp9uyM3Pa2VRCQDtMjX1S2XfwonfzhJm0wfBipr8ftndylNn7pBJE0DRmOHCfww0bhFrayHuBUaBWQq8uFUiqW4cwMYpzIBJ2LZGoCBKxqTnR6YAR2-KDdFYyKcT5v0M8EVzi5FrYVtPsuoHgH_SjBK7dMIsfhDTjsTzvg4p5poBM4wpApyP4kpkE17k5HabChM_878cGbCuvms1ESe8PjeihhNVJCCtZFvsmw7aCHU" />
+                  <img alt="Background Service Connection" className="w-full h-auto rounded-[32px]" src={LANDING_IMAGES.connection} />
                 </div>
                 {/* Floating reminder panel */}
                 <div className="absolute -top-6 -right-6 bg-white/90 border border-[#dbcaff]/50 backdrop-blur-md p-5 rounded-3xl shadow-2xl max-w-[240px] z-10">
@@ -703,7 +704,7 @@ export function LuminousLanding({ locale = 'ko' }: { locale?: AppLocale }) {
               </div>
               <div className="flex-1 w-full max-w-[500px] lg:max-w-none">
                 <div className="bg-white/70 border border-white/60 backdrop-blur-md rounded-[40px] p-3 shadow-xl">
-                  <img alt="Receipt AI OCR" className="w-full h-auto rounded-[32px]" src="https://lh3.googleusercontent.com/aida/AP1WRLuKBxyzYKGC9FdfQp9uyM3Pa2VRCQDtMjX1S2XfwonfzhJm0wfBipr8ftndylNn7pBJE0DRmOHCfww0bhFrayHuBUaBWQq8uFUiqW4cwMYpzIBJ2LZGoCBKxqTnR6YAR2-KDdFYyKcT5v0M8EVzi5FrYVtPsuoHgH_SjBK7dMIsfhDTjsTzvg4p5poBM4wpApyP4kpkE17k5HabChM_878cGbCuvms1ESe8PjeihhNVJCCtZFvsmw7aCHU" />
+                  <img alt="Receipt AI OCR" className="w-full h-auto rounded-[32px]" src={LANDING_IMAGES.receipt} />
                 </div>
               </div>
             </div>
@@ -729,7 +730,7 @@ export function LuminousLanding({ locale = 'ko' }: { locale?: AppLocale }) {
               </div>
               <div className="flex-1 w-full max-w-[500px] lg:max-w-none">
                 <div className="bg-white/70 border border-white/60 backdrop-blur-md rounded-[40px] p-3 shadow-xl">
-                  <img alt="Settlement Engine" className="w-full h-auto rounded-[32px]" src="https://lh3.googleusercontent.com/aida/AP1WRLuKBxyzYKGC9FdfQp9uyM3Pa2VRCQDtMjX1S2XfwonfzhJm0wfBipr8ftndylNn7pBJE0DRmOHCfww0bhFrayHuBUaBWQq8uFUiqW4cwMYpzIBJ2LZGoCBKxqTnR6YAR2-KDdFYyKcT5v0M8EVzi5FrYVtPsuoHgH_SjBK7dMIsfhDTjsTzvg4p5poBM4wpApyP4kpkE17k5HabChM_878cGbCuvms1ESe8PjeihhNVJCCtZFvsmw7aCHU" />
+                  <img alt="Settlement Engine" className="w-full h-auto rounded-[32px]" src={LANDING_IMAGES.settlement} />
                 </div>
               </div>
             </div>
@@ -755,7 +756,7 @@ export function LuminousLanding({ locale = 'ko' }: { locale?: AppLocale }) {
               </div>
               <div className="flex-1 w-full max-w-[300px] flex justify-center relative">
                 <div className="rounded-[3rem] border-[8px] border-[#30302f] shadow-2xl overflow-hidden aspect-[9/19.5] w-full bg-white">
-                  <img alt="Smart Notification Screen" className="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida/AP1WRLuKBxyzYKGC9FdfQp9uyM3Pa2VRCQDtMjX1S2XfwonfzhJm0wfBipr8ftndylNn7pBJE0DRmOHCfww0bhFrayHuBUaBWQq8uFUiqW4cwMYpzIBJ2LZGoCBKxqTnR6YAR2-KDdFYyKcT5v0M8EVzi5FrYVtPsuoHgH_SjBK7dMIsfhDTjsTzvg4p5poBM4wpApyP4kpkE17k5HabChM_878cGbCuvms1ESe8PjeihhNVJCCtZFvsmw7aCHU" />
+                  <img alt="Smart Notification Screen" className="w-full h-full object-cover object-top" src={LANDING_IMAGES.notificationMobile} />
                 </div>
                 <div className="absolute -bottom-6 -right-6 bg-white/90 border border-pink-200 p-4 rounded-2xl shadow-xl z-10">
                   <div className="flex items-center gap-2">
@@ -918,7 +919,7 @@ export function LuminousLanding({ locale = 'ko' }: { locale?: AppLocale }) {
               </div>
               <div className="flex-1 w-full max-w-[500px] lg:max-w-none">
                 <div className="bg-white/70 border border-[#bdc9c5]/20 backdrop-blur-md rounded-[32px] p-2 shadow-2xl">
-                  <img alt="Windows PC App" className="w-full h-auto rounded-[24px]" src="https://lh3.googleusercontent.com/aida/AP1WRLuKBxyzYKGC9FdfQp9uyM3Pa2VRCQDtMjX1S2XfwonfzhJm0wfBipr8ftndylNn7pBJE0DRmOHCfww0bhFrayHuBUaBWQq8uFUiqW4cwMYpzIBJ2LZGoCBKxqTnR6YAR2-KDdFYyKcT5v0M8EVzi5FrYVtPsuoHgH_SjBK7dMIsfhDTjsTzvg4p5poBM4wpApyP4kpkE17k5HabChM_878cGbCuvms1ESe8PjeihhNVJCCtZFvsmw7aCHU" />
+                  <img alt="Windows PC App" className="w-full h-auto rounded-[24px]" src={LANDING_IMAGES.windowsDesktop} />
                 </div>
               </div>
             </div>
@@ -955,7 +956,7 @@ export function LuminousLanding({ locale = 'ko' }: { locale?: AppLocale }) {
               </div>
               <div className="flex-1 w-full max-w-[280px] flex justify-center relative">
                 <div className="rounded-[3rem] border-[8px] border-[#30302f] shadow-2xl overflow-hidden aspect-[9/19.5] w-full bg-white">
-                  <img alt="Mobile App Screen" className="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida/AP1WRLuKBxyzYKGC9FdfQp9uyM3Pa2VRCQDtMjX1S2XfwonfzhJm0wfBipr8ftndylNn7pBJE0DRmOHCfww0bhFrayHuBUaBWQq8uFUiqW4cwMYpzIBJ2LZGoCBKxqTnR6YAR2-KDdFYyKcT5v0M8EVzi5FrYVtPsuoHgH_SjBK7dMIsfhDTjsTzvg4p5poBM4wpApyP4kpkE17k5HabChM_878cGbCuvms1ESe8PjeihhNVJCCtZFvsmw7aCHU" />
+                  <img alt="Mobile App Screen" className="w-full h-full object-cover object-top" src={LANDING_IMAGES.androidMobile} />
                 </div>
                 <div className="absolute -bottom-6 -right-6 bg-white/90 border border-[#fdcada]/50 backdrop-blur-md p-4 rounded-2xl shadow-xl z-10">
                   <div className="flex items-center gap-2">
@@ -975,7 +976,7 @@ export function LuminousLanding({ locale = 'ko' }: { locale?: AppLocale }) {
             <p className="text-base lg:text-lg text-[#3e4946] mb-12 max-w-2xl mx-auto">매장의 모든 상황을 가장 직관적으로 정리해 드릴게요.</p>
             <div className="relative mx-auto max-w-5xl">
               <div className="bg-white/70 border border-[#bdc9c5]/30 backdrop-blur-md rounded-[40px] p-3 shadow-2xl overflow-hidden">
-                <img alt="Dashboard Full View" className="w-full h-auto rounded-[30px]" src="https://lh3.googleusercontent.com/aida/AP1WRLuKBxyzYKGC9FdfQp9uyM3Pa2VRCQDtMjX1S2XfwonfzhJm0wfBipr8ftndylNn7pBJE0DRmOHCfww0bhFrayHuBUaBWQq8uFUiqW4cwMYpzIBJ2LZGoCBKxqTnR6YAR2-KDdFYyKcT5v0M8EVzi5FrYVtPsuoHgH_SjBK7dMIsfhDTjsTzvg4p5poBM4wpApyP4kpkE17k5HabChM_878cGbCuvms1ESe8PjeihhNVJCCtZFvsmw7aCHU" />
+                <img alt="Dashboard Full View" className="w-full h-auto rounded-[30px]" src={LANDING_IMAGES.platformOverview} />
               </div>
             </div>
           </div>

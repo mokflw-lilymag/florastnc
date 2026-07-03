@@ -4,6 +4,7 @@ import { createClient } from '@/utils/supabase/client';
 import { useAuth } from './use-auth';
 import { useUiText } from '@/hooks/use-ui-text';
 import { toast } from 'sonner';
+import { deleteById, isDeleteNoRows } from '@/lib/supabase/delete-by-id';
 import { useSupplierStore, Supplier } from '@/stores/supplier-store';
 import { useEffect } from 'react';
 
@@ -118,8 +119,25 @@ export function useSuppliers() {
 
     const deleteSupplier = async (id: string) => {
         try {
-            const { error } = await supabase.from('suppliers').delete().eq('id', id);
-            if (error) throw error;
+            const result = await deleteById(supabase, 'suppliers', id);
+            if (result.error) throw result.error;
+            if (isDeleteNoRows(result)) {
+                toast.error(
+                    tr(
+                        '삭제된 행이 없습니다. 권한이 없거나, 이미 삭제된 거래처일 수 있습니다.',
+                        'No row was deleted. You may lack permission or the supplier was already removed.',
+                        'Không có dòng nào bị xóa.',
+                        '削除された行がありません。',
+                        '没有删除任何行。',
+                        'No se eliminó ninguna fila.',
+                        'Nenhuma linha foi excluída.',
+                        'Aucune ligne supprimée.',
+                        'Keine Zeile gelöscht.',
+                        'Поставщик не удалён.',
+                    ),
+                );
+                return false;
+            }
             removeSupplierFromStore(id);
             toast.success(
                 tr(

@@ -7,6 +7,7 @@ import { useUiText } from '@/hooks/use-ui-text';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { validateAndOptimizeImage } from '@/lib/image-optimizer';
+import { deleteById, deleteRows, isDeleteNoRows } from '@/lib/supabase/delete-by-id';
 import type { Expense } from '@/types/expense';
 
 export type { Expense };
@@ -153,7 +154,6 @@ export function useExpenses() {
         .from('expenses')
         .select('receipt_file_id')
         .eq('id', id)
-        .eq('tenant_id', tenantId)
         .single();
 
       if (selErr) throw selErr;
@@ -164,13 +164,25 @@ export function useExpenses() {
         if (rmErr) console.warn("[expenses] failed to delete receipt from storage:", rmErr);
       }
 
-      const { error } = await supabase
-        .from('expenses')
-        .delete()
-        .eq('id', id)
-        .eq('tenant_id', tenantId);
-
-      if (error) throw error;
+      const result = await deleteById(supabase, 'expenses', id);
+      if (result.error) throw result.error;
+      if (isDeleteNoRows(result)) {
+        toast.error(
+          tr(
+            '삭제된 행이 없습니다. 권한이 없거나, 이미 삭제된 지출일 수 있습니다.',
+            'No row was deleted. You may lack permission or the expense was already removed.',
+            'Không có dòng nào bị xóa.',
+            '削除された行がありません。',
+            '没有删除任何行。',
+            'No se eliminó ninguna fila.',
+            'Nenhuma linha foi excluída.',
+            'Aucune ligne supprimée.',
+            'Keine Zeile gelöscht.',
+            'Расход не удалён.',
+          ),
+        );
+        return false;
+      }
       setExpenses(prev => prev.filter(e => e.id !== id));
       toast.success(
         tr(
@@ -334,18 +346,14 @@ export function useExpenses() {
     if (!tenantId) return false;
 
     try {
-      let query = supabase
-        .from('expenses')
-        .delete()
-        .eq('related_order_id', orderId)
-        .eq('tenant_id', tenantId);
+      const filters: Record<string, string> = {
+        related_order_id: orderId,
+        tenant_id: tenantId,
+      };
+      if (subCategory) filters.sub_category = subCategory;
 
-      if (subCategory) {
-          query = query.eq('sub_category', subCategory);
-      }
-
-      const { error } = await query;
-      if (error) throw error;
+      const result = await deleteRows(supabase, 'expenses', filters);
+      if (result.error) throw result.error;
       
       await fetchExpenses();
       return true;

@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { ArrowRight, Bot, Download, Sparkles } from 'lucide-react';
 import { AppLocale, localizePath, toBaseLocale } from '@/i18n/config';
 import { getMessages } from '@/i18n/getMessages';
+import { LANDING_IMAGES } from '@/data/landing-images';
 import { pickUiText } from '@/i18n/pick-ui-text';
 
 const BUBBLE_ICONS = ['🖨️', '🎀', '📱', '🖥️', '📸', '📊'];
@@ -193,7 +194,7 @@ export function Hero({ locale = 'ko' }: { locale?: AppLocale }) {
               {/* 실제 대시보드 스크린샷 영역 */}
               <div className="relative rounded-[30px] overflow-hidden border border-[#efedec] bg-[#fbf9f7] aspect-[1.45/1] shadow-inner">
                 <Image
-                  src="https://lh3.googleusercontent.com/aida/AP1WRLvQwZj48SWOxMRNa6yQuksjVhHMQt42fNeAUyoJvm0qosWzRzqB-aqUrb4WM0vkgVsiMvogG-KsFN7179mrJoGpYpvB0hcufbT8fv2iIJIUB3B7uB9Nq_dU26RS7BJEA_kXX7EpqYQBe3jPrurmAfA_iejIvJqo-zelRT2HyqClAX2hRrk71TWDdzTvsNyXmweOEHz08j-Zubf5H5jngDnRDkv4Ivwr9Py_jt_B-F1YyK95xfg_azh6nVnK"
+                  src={LANDING_IMAGES.hero}
                   alt="Floxync Luminous Dashboard"
                   fill
                   priority

@@ -4,6 +4,7 @@ import { createClient } from '@/utils/supabase/client';
 import { useAuth } from './use-auth';
 import { useUiText } from '@/hooks/use-ui-text';
 import { toast } from 'sonner';
+import { deleteById, isDeleteNoRows } from '@/lib/supabase/delete-by-id';
 
 export interface RegionDeliveryFee {
     id: string;
@@ -89,12 +90,25 @@ export function useDeliveryFees() {
 
     const deleteFee = async (id: string) => {
         try {
-            const { error } = await supabase
-                .from('delivery_fees_by_region')
-                .delete()
-                .eq('id', id);
-            
-            if (error) throw error;
+            const result = await deleteById(supabase, 'delivery_fees_by_region', id);
+            if (result.error) throw result.error;
+            if (isDeleteNoRows(result)) {
+                toast.error(
+                    tr(
+                        '삭제된 행이 없습니다.',
+                        'No row was deleted.',
+                        'Không có dòng nào bị xóa.',
+                        '削除された行がありません。',
+                        '没有删除任何行。',
+                        'No se eliminó ninguna fila.',
+                        'Nenhuma linha foi excluída.',
+                        'Aucune ligne supprimée.',
+                        'Keine Zeile gelöscht.',
+                        'Строка не удалена.',
+                    ),
+                );
+                return;
+            }
             toast.success(
                 tr(
                     '삭제되었습니다.',

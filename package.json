@@ -28,7 +28,7 @@
     "i18n:check-ribbon-phrase-desc": "node scripts/check-ribbon-phrase-desc-keys.mjs",
     "i18n:check": "npm run i18n:check-tenant-flow-keys && npm run i18n:check-dashboard-keys && npm run i18n:check-core-en-parity && npm run i18n:check-ribbon-phrase-desc",
     "i18n:find-short-pickui": "node scripts/find-short-pickui.mjs",
-    "ci": "npm run i18n:check && npm run build",
+    "capture:landing": "node scripts/capture-landing-screenshots.mjs",
     "i18n:apply-tenantflow-ui-parity": "node scripts/apply-tenantflow-ui-parity.mjs",
     "i18n:apply-landing-en-parity": "node scripts/apply-landing-en-parity.mjs",
     "i18n:apply-core-ui-en-parity": "node scripts/apply-core-ui-en-parity.mjs",
@@ -105,6 +105,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.1",
     "google-translate-api-x": "^10.7.2",
+    "playwright": "^1.52.0",
     "tailwindcss": "^4",
     "typescript": "^5",
     "wait-on": "^9.0.10"

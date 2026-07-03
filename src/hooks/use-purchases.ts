@@ -8,6 +8,7 @@ import { usePurchaseStore, Purchase } from '@/stores/purchase-store';
 import { useMaterialStore } from '@/stores/material-store';
 import { useEffect, useMemo } from 'react';
 import { PurchaseService } from '@/services/purchase-service';
+import { deleteById, isDeleteNoRows } from '@/lib/supabase/delete-by-id';
 
 export type { Purchase };
 
@@ -186,12 +187,25 @@ export function usePurchases() {
 
   const deletePurchase = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('purchases')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+      const result = await deleteById(supabase, 'purchases', id);
+      if (result.error) throw result.error;
+      if (isDeleteNoRows(result)) {
+        toast.error(
+          tr(
+            '삭제된 행이 없습니다. 권한이 없거나, 이미 삭제된 매입 내역일 수 있습니다.',
+            'No row was deleted. You may lack permission or the purchase was already removed.',
+            'Không có dòng nào bị xóa.',
+            '仕入れが削除されていない可能性があります。',
+            '没有删除任何行。',
+            'No se eliminó ninguna fila.',
+            'Nenhuma linha foi excluída.',
+            'Aucune ligne supprimée.',
+            'Keine Zeile gelöscht.',
+            'Закупка не удалена.',
+          ),
+        );
+        return false;
+      }
       removePurchaseFromStore(id);
       toast.success(
         tr(

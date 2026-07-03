@@ -62,6 +62,7 @@ import { CardPaymentConfirmDialog } from "../new/components/CardPaymentConfirmDi
 import { PaymentApprovalFailedBanner } from "../new/components/PaymentApprovalFailedBanner";
 import { findSimilarProducts } from "@/lib/custom-product-similarity";
 import { generateCompactProductBarcode } from "@/lib/compact-product-barcode";
+import { AiOrderConcierge } from "../new/components/AiOrderConcierge";
 
 // --- TYPES ---
 interface OrderItem extends Product {
@@ -1363,6 +1364,78 @@ export default function NewOrderMobilePage() {
         tenantId,
     ]);
 
+    const handleApplyAiData = useCallback((data: any) => {
+        if (data.orderer) {
+            if (data.orderer.name) setOrdererName(data.orderer.name);
+            if (data.orderer.contact) setOrdererContact(formatPhoneNumber(data.orderer.contact));
+            if (data.orderer.company) setOrdererCompany(data.orderer.company);
+            if (data.orderer.email) setOrdererEmail(data.orderer.email);
+        }
+
+        if (data.recipient) {
+            if (data.recipient.name) setRecipientName(data.recipient.name);
+            if (data.recipient.contact) setRecipientContact(formatPhoneNumber(data.recipient.contact));
+            if (data.recipient.address) setDeliveryAddress(data.recipient.address);
+            if (data.recipient.detailAddress) setDeliveryAddressDetail(data.recipient.detailAddress);
+            setIsSameAsOrderer(false);
+        }
+
+        if (data.items && Array.isArray(data.items) && data.items.length > 0) {
+            const matched: OrderItem[] = [];
+            for (const item of data.items) {
+                const name = String(item.name || "").trim();
+                const qty = Number(item.quantity) || 1;
+                const price = Number(item.price) || 0;
+                if (!name) continue;
+
+                const similar = findSimilarProducts(allProducts, name);
+                const exact = similar.find((p) => p.name.trim() === name) ?? similar[0];
+                if (exact) {
+                    matched.push({
+                        ...exact,
+                        quantity: qty,
+                        isCustomProduct: false,
+                    } as OrderItem);
+                } else {
+                    matched.push({
+                        id: `ai_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+                        name,
+                        price,
+                        quantity: qty,
+                        stock: 999,
+                        isCustomProduct: true,
+                    } as OrderItem);
+                }
+            }
+            if (matched.length > 0) setOrderItems(matched);
+        }
+
+        if (data.delivery) {
+            if (data.delivery.type) setReceiptType(data.delivery.type);
+            if (data.delivery.date) {
+                try {
+                    const parsedDate = new Date(data.delivery.date);
+                    if (!Number.isNaN(parsedDate.getTime())) setScheduleDate(parsedDate);
+                } catch {
+                    /* ignore */
+                }
+            }
+            if (data.delivery.time) setScheduleTime(data.delivery.time);
+        }
+
+        const aiMessageText =
+            (typeof data.message?.content === "string" && data.message.content.trim()) ||
+            (typeof data.ribbonMessage === "string" && data.ribbonMessage.trim()) ||
+            "";
+        if (aiMessageText) {
+            setMessageContent(aiMessageText);
+            setMessageType(aiMessageText.includes("리본") || aiMessageText.includes("근조") || aiMessageText.includes("축") ? "ribbon" : "card");
+        }
+        if (data.memo) setSpecialRequest(String(data.memo));
+
+        toast.success("AI 분석 결과가 주문서에 반영되었습니다.");
+    }, [allProducts, tenantId]);
+
     const handleAddressSearch = () => {
         if (window.daum && window.daum.Postcode) {
             new window.daum.Postcode({
@@ -1513,6 +1586,10 @@ export default function NewOrderMobilePage() {
 
             <div className="flex-1 overflow-y-auto">
             <div className="p-4 space-y-4 pb-4">
+                <div className="flex justify-end">
+                    <AiOrderConcierge onApply={handleApplyAiData} />
+                </div>
+
                 <OrdererSection
                     ordererName={ordererName} setOrdererName={setOrdererName}
                     ordererContact={ordererContact} setOrdererContact={setOrdererContact}

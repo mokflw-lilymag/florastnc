@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { toast } from "sonner";
+import { deleteById, deleteRows, isDeleteNoRows } from "@/lib/supabase/delete-by-id";
 const supabase = createClient();
 import { useMaterials } from '@/hooks/use-materials';
 import { useProducts } from '@/hooks/use-products';
@@ -338,8 +339,9 @@ export function useSimpleExpenses({ enableRealtime = false }: { enableRealtime?:
   const deleteExpense = useCallback(async (expenseId: string): Promise<boolean> => {
     if (!user) return false;
     try {
-      const { error } = await supabase.from('simple_expenses').delete().eq('id', expenseId);
-      if (error) throw error;
+      const result = await deleteById(supabase, 'simple_expenses', expenseId);
+      if (result.error) throw result.error;
+      if (isDeleteNoRows(result)) return false;
       toast.success("성공했습니다.");
       await fetchExpenses();
       return true;
@@ -354,15 +356,16 @@ export function useSimpleExpenses({ enableRealtime = false }: { enableRealtime?:
     try {
       // 'related_order_id' column doesn't exist, check extra_data->>related_order_id
       // 'related_order_id' column doesn't exist, check extra_data using contains
-      let query = supabase.from('simple_expenses').delete()
+      let query = supabase.from('simple_expenses').delete({ count: 'exact' })
         .contains('extra_data', { related_order_id: orderId });
 
       if (matchSubCategory) {
         query = query.eq('sub_category', matchSubCategory);
       }
 
-      const { error } = await query;
+      const { error, count } = await query;
       if (error) throw error;
+      if (!count) return false;
       await fetchExpenses();
       return true;
     } catch (error) {
@@ -504,12 +507,11 @@ export function useSimpleExpenses({ enableRealtime = false }: { enableRealtime?:
   // 자재요청 ID로 자동 생성된 지출 삭제 (배송완료 취소 시 사용)
   const deleteExpenseByRequestId = useCallback(async (requestId: string): Promise<boolean> => {
     try {
-      const { error } = await supabase
-        .from('simple_expenses')
-        .delete()
-        .eq('related_request_id', requestId);
-      if (error) throw error;
-      return true;
+      const result = await deleteRows(supabase, 'simple_expenses', {
+        related_request_id: requestId,
+      });
+      if (result.error) throw result.error;
+      return result.ok;
     } catch (error) {
       console.error('자재요청 지출 삭제 오류:', error);
       return false;
