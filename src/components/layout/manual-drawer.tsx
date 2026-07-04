@@ -78,16 +78,16 @@ function buildSections(M: ManualDrawerMessages, tr: Tr): Section[] {
                   {M.step1.bridgeBefore}
                   <Badge variant="outline" className="text-[9px] h-4">
                     {tr(
-                      "v25.0 브릿지",
-                      "v25.0 Bridge",
-                      "v25.0 Bridge",
-                      "v25.0 ブリッジ",
-                      "v25.0 桥接",
-                      "Puente v25.0",
-                      "Ponte v25.0",
-                      "Pont v25.0",
-                      "v25.0 Bridge",
-                      "Мост v25.0",
+                      "인쇄 연결",
+                      "Print link",
+                      "Kết nối in",
+                      "印刷連携",
+                      "打印连接",
+                      "Enlace de impresión",
+                      "Ligação de impressão",
+                      "Lien d'impression",
+                      "Druckverbindung",
+                      "Связь с печатью",
                     )}
                   </Badge>
                   {M.step1.bridgeAfter}

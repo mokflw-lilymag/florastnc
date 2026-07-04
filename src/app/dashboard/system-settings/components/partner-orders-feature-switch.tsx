@@ -28,8 +28,8 @@ export function PartnerOrdersFeatureSwitch() {
 
   const title = pickUiText(
     baseLocale,
-    "협력사 수발주 메뉴",
-    "Partner orders menu",
+    "회원사 수발주 메뉴",
+    "Member store orders menu",
     "Menu don doi tac",
     "Torihikisaki hacchu menu",
     "Hezuo dingdan caidan",
@@ -41,8 +41,8 @@ export function PartnerOrdersFeatureSwitch() {
   );
   const desc = pickUiText(
     baseLocale,
-    "켜면 ERP/Pro/무료 체험 매장 사이드바에 협력사 수발주가 보입니다. 끄면 메뉴가 숨겨지고 해당 페이지는 준비 중 안내가 표시됩니다.",
-    "When on, stores see Partner orders in the sidebar. When off, the menu is hidden.",
+    "켜면 ERP/Pro/무료 체험 매장 사이드바에 회원사 수발주가 보입니다. 끄면 메뉴가 숨겨지고 해당 페이지는 준비 중 안내가 표시됩니다.",
+    "When on, stores see member store orders in the sidebar. When off, the menu is hidden.",
     "Bat: hien menu. Tat: an menu.",
     "ON de hyoji, OFF de kakusu.",
     "Kaiqi hou xianshi; guanbi ze yincang.",

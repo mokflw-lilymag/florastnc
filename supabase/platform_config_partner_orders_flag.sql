@@ -1,4 +1,4 @@
--- 협력사 수발주 전역 플래그: 일반 매장도 읽기 가능 (메뉴 표시 여부)
+-- 회원사 수발주 전역 플래그: 일반 매장도 읽기 가능 (메뉴 표시 여부)
 -- 쓰기는 기존 super_admin 정책 유지 (platform_config_schema.sql)
 --
 -- Supabase SQL Editor에서 실행

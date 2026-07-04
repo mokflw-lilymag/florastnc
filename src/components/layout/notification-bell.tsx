@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { Bell, Building2, Loader2, Megaphone } from "lucide-react";
+import { Bell, Building2, Headphones, Loader2, Megaphone } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -67,7 +67,11 @@ export function NotificationBell() {
     const readUrl =
       item.source === "platform"
         ? `/api/platform/announcements/${item.id}/read`
-        : `/api/hq/announcements/${item.id}/read`;
+        : item.source === "hq"
+          ? `/api/hq/announcements/${item.id}/read`
+          : item.source === "support_ticket" || item.source === "support_reply"
+            ? `/api/support/notifications/${item.id}/read`
+            : `/api/hq/announcements/${item.id}/read`;
 
     try {
       await fetch(readUrl, {
@@ -139,11 +143,17 @@ export function NotificationBell() {
                   <div
                     className={cn(
                       "mt-0.5 shrink-0 rounded-md p-1",
-                      item.source === "platform" ? "bg-indigo-100 text-indigo-600" : "bg-violet-100 text-violet-600",
+                      item.source === "platform"
+                        ? "bg-indigo-100 text-indigo-600"
+                        : item.source === "support_ticket" || item.source === "support_reply"
+                          ? "bg-amber-100 text-amber-700"
+                          : "bg-violet-100 text-violet-600",
                     )}
                   >
                     {item.source === "platform" ? (
                       <Megaphone className="h-3.5 w-3.5" />
+                    ) : item.source === "support_ticket" || item.source === "support_reply" ? (
+                      <Headphones className="h-3.5 w-3.5" />
                     ) : (
                       <Building2 className="h-3.5 w-3.5" />
                     )}
@@ -155,7 +165,9 @@ export function NotificationBell() {
                           ? item.category
                             ? PLATFORM_CATEGORY_LABELS[item.category]
                             : "FloXync"
-                          : item.organization_name ?? "본사"}
+                          : item.source === "support_ticket" || item.source === "support_reply"
+                            ? "고객센터"
+                            : item.organization_name ?? "본사"}
                       </span>
                       {item.priority === "high" && (
                         <span className="text-[9px] font-bold text-orange-600 bg-orange-50 px-1 rounded">중요</span>

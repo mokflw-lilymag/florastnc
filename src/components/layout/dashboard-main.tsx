@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { usePartnerTouchUi } from "@/hooks/use-partner-touch-ui";
 import { OrgWorkContextBanner } from "@/components/hq/org-work-context-banner";
+import { WorkContextExpiryWatcher } from "@/components/hq/work-context-expiry-watcher";
 
 export function DashboardMain({
   children,
@@ -35,6 +36,7 @@ export function DashboardMain({
         className="h-full w-full transition-all duration-300 max-w-none"
       >
         <OrgWorkContextBanner />
+        <WorkContextExpiryWatcher />
         {children}
       </div>
     </main>

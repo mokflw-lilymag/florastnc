@@ -4,10 +4,60 @@ import { createAdminClient } from "@/utils/supabase/admin";
 import { hqApiUiBase } from "@/lib/hq/hq-api-locale";
 import { errHqBranchNotFound, errHqServiceRoleRequired } from "@/lib/hq/hq-branch-work-api-errors";
 import { errAdminForbidden, errAdminOperationFailed, errAdminUnauthorized } from "@/lib/admin/admin-api-errors";
+import { clearOrgWorkContext, setOrgWorkContext } from "@/lib/hq/set-org-work-context";
+import { isWorkContextExpired } from "@/lib/hq/work-context-session";
 
 /**
  * 본사(org_admin) / super_admin 이 지점 업무 화면으로 전환할 때 profiles.org_work_tenant_id 설정·해제
  */
+export async function GET(req: Request) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const sp = new URL(req.url).searchParams;
+  const bl = await hqApiUiBase(req, sp.get("uiLocale"));
+  if (!user) {
+    return NextResponse.json({ error: errAdminUnauthorized(bl) }, { status: 401 });
+  }
+
+  const admin = createAdminClient();
+  if (!admin) {
+    return NextResponse.json({ error: errHqServiceRoleRequired(bl) }, { status: 500 });
+  }
+
+  const { data: profile, error: profileErr } = await admin
+    .from("profiles")
+    .select("org_work_tenant_id, org_work_context_at")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  let tenantId = (profile?.org_work_tenant_id as string | null) ?? null;
+  let startedAt = (profile?.org_work_context_at as string | null) ?? null;
+
+  if (profileErr?.message?.includes("org_work_context_at")) {
+    const { data: fallback } = await admin
+      .from("profiles")
+      .select("org_work_tenant_id")
+      .eq("id", user.id)
+      .maybeSingle();
+    tenantId = (fallback?.org_work_tenant_id as string | null) ?? null;
+    startedAt = null;
+  }
+
+  if (tenantId && isWorkContextExpired(startedAt)) {
+    await clearOrgWorkContext(admin, user.id);
+    return NextResponse.json({ active: false, expired: true, tenantId: null });
+  }
+
+  return NextResponse.json({
+    active: !!tenantId,
+    expired: false,
+    tenantId,
+    startedAt,
+  });
+}
+
 export async function POST(req: Request) {
   const supabase = await createClient();
   const {
@@ -34,14 +84,7 @@ export async function POST(req: Request) {
   }
 
   if (tenantId === null) {
-    const { error } = await admin
-      .from("profiles")
-      .update({ org_work_tenant_id: null })
-      .eq("id", user.id);
-    if (error) {
-      console.error("[hq/work-context] clear", error);
-      return NextResponse.json({ error: errAdminOperationFailed(bl) }, { status: 500 });
-    }
+    await clearOrgWorkContext(admin, user.id);
     return NextResponse.json({ ok: true, tenantId: null });
   }
 
@@ -50,12 +93,9 @@ export async function POST(req: Request) {
     if (!t) {
       return NextResponse.json({ error: errHqBranchNotFound(bl) }, { status: 404 });
     }
-    const { error } = await admin
-      .from("profiles")
-      .update({ org_work_tenant_id: tenantId })
-      .eq("id", user.id);
-    if (error) {
-      console.error("[hq/work-context] super set", error);
+    const ctxResult = await setOrgWorkContext(admin, user.id, tenantId);
+    if (!ctxResult.ok) {
+      console.error("[hq/work-context] super set", ctxResult.error);
       return NextResponse.json({ error: errAdminOperationFailed(bl) }, { status: 500 });
     }
     return NextResponse.json({ ok: true, tenantId });
@@ -84,13 +124,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: errAdminForbidden(bl) }, { status: 403 });
   }
 
-  const { error } = await admin
-    .from("profiles")
-    .update({ org_work_tenant_id: tenantId })
-    .eq("id", user.id);
-
-  if (error) {
-    console.error("[hq/work-context] org_admin set", error);
+  const ctxResult = await setOrgWorkContext(admin, user.id, tenantId);
+  if (!ctxResult.ok) {
+    console.error("[hq/work-context] org_admin set", ctxResult.error);
     return NextResponse.json({ error: errAdminOperationFailed(bl) }, { status: 500 });
   }
 

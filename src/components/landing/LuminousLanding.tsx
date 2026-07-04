@@ -519,6 +519,54 @@ export function LuminousLanding({ locale = 'ko' }: { locale?: AppLocale }) {
           </div>
         </section>
 
+        {toBaseLocale(uiLocale) === "ko" && getMessages(uiLocale).landing.philosophy ? (
+          <section className="py-20 bg-white scroll-mt-20 border-y border-[#bdc9c5]/20" id="philosophy-hardware">
+            <div className="max-w-5xl mx-auto px-6">
+              {(() => {
+                const p = getMessages(uiLocale).landing.philosophy!;
+                return (
+                  <>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-[#006657] mb-3 text-center">{p.badge}</p>
+                    <h2 className="text-3xl lg:text-4xl font-extrabold text-center text-[#1b1c1b] mb-4 leading-tight">
+                      {p.title}<br />
+                      <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#006b5c] to-[#665590]">{p.titleAccent}</span>
+                    </h2>
+                    <p className="text-center text-[#3e4946] text-base leading-relaxed max-w-3xl mx-auto mb-10">{p.lead}</p>
+                    <div className="grid sm:grid-cols-3 gap-4 mb-12">
+                      <div className="p-6 rounded-3xl bg-[#f5f3f1]/60 border border-[#006b5c]/15 text-center">
+                        <p className="text-2xl mb-2">🎀</p>
+                        <p className="font-bold text-[#006b5c] mb-1">{p.ribbonTitle}</p>
+                        <p className="text-xs text-[#3e4946]">{p.ribbonDesc}</p>
+                      </div>
+                      <div className="p-6 rounded-3xl bg-[#f5f3f1]/60 border border-[#7a5361]/15 text-center">
+                        <p className="text-2xl mb-2">🏷️</p>
+                        <p className="font-bold text-[#7a5361] mb-1">{p.labelTitle}</p>
+                        <p className="text-xs text-[#3e4946]">{p.labelDesc}</p>
+                      </div>
+                      <div className="p-6 rounded-3xl bg-[#f5f3f1]/60 border border-orange-200 text-center">
+                        <p className="text-2xl mb-2">📠</p>
+                        <p className="font-bold text-orange-800 mb-1">{p.posTitle}</p>
+                        <p className="text-xs text-[#3e4946]">{p.posDesc}</p>
+                      </div>
+                    </div>
+                    <h3 className="text-lg font-black text-[#1b1c1b] mb-4 text-center">{p.featuresTitle}</h3>
+                    <ol className="space-y-3 text-sm text-[#3e4946] max-w-2xl mx-auto list-decimal pl-5 leading-relaxed mb-8">
+                      <li>{p.f1}</li>
+                      <li>{p.f2}</li>
+                      <li>{p.f3}</li>
+                      <li>{p.f4}</li>
+                      <li>{p.f5}</li>
+                      <li>{p.f6}</li>
+                      <li>{p.f7}</li>
+                    </ol>
+                    <p className="text-center text-sm text-[#006657] font-semibold">{p.footer}</p>
+                  </>
+                );
+              })()}
+            </div>
+          </section>
+        ) : null}
+
         {/* Service Summary Section */}
         <section className="py-20 bg-[#f5f3f1]/40 scroll-mt-20" id="features-summary">
           <div className="max-w-7xl mx-auto px-6">
@@ -1167,6 +1215,25 @@ export function LuminousLanding({ locale = 'ko' }: { locale?: AppLocale }) {
                   처음부터 일일이 입력하실 필요 없이, 사장님 매장에 맞게 살짝만 수정해서 즉시 시작해 보세요!
                 </div>
               </div>
+              {toBaseLocale(uiLocale) === "ko" && t.printerPromo ? (
+                <div className="mb-6 p-5 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-start gap-3 text-sm text-emerald-950 leading-relaxed shadow-sm">
+                  <span className="material-symbols-outlined text-emerald-600 shrink-0">print</span>
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-emerald-700 mb-1.5">
+                      {t.printerPromo.badge}
+                    </p>
+                    <p className="font-black text-emerald-900 mb-2">📠 {t.printerPromo.title}</p>
+                    <p
+                      className="mb-2"
+                      dangerouslySetInnerHTML={{ __html: t.printerPromo.body }}
+                    />
+                    <p
+                      className="text-xs text-emerald-800/90"
+                      dangerouslySetInnerHTML={{ __html: t.printerPromo.footnote }}
+                    />
+                  </div>
+                </div>
+              ) : null}
               <div className="grid md:grid-cols-2 gap-6 mb-8 text-sm text-[#3e4946] leading-relaxed">
                 <div className="p-5 rounded-2xl bg-white border border-[#bdc9c5]/30">
                   <p className="font-black text-[#006657] text-xs uppercase tracking-widest mb-2">{t.sectionUser}</p>

@@ -1,7 +1,8 @@
 "use client";
 import { getMessages } from "@/i18n/getMessages";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { toast } from "sonner";
 import { Plus, Edit2, Trash2, Search, ArrowUpDown, Bot } from "lucide-react";
@@ -27,12 +28,15 @@ interface Faq {
 export default function AdminFaqPage() {
   const supabase = createClient();
   const locale = usePreferredLocale();
+  const searchParams = useSearchParams();
   const tf = getMessages(locale).tenantFlows;
   const [faqs, setFaqs] = useState<Faq[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "draft">("all");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const highlightId = searchParams.get("highlight");
 
   // Form State
   const [category, setCategory] = useState(tf.f02142);
@@ -57,6 +61,11 @@ export default function AdminFaqPage() {
   );
 
   const categories = Array.from(new Set(faqs.map(f => f.category)));
+
+  useEffect(() => {
+    const f = searchParams.get("filter");
+    if (f === "draft" || f === "active" || f === "all") setStatusFilter(f);
+  }, [searchParams]);
 
   useEffect(() => {
     fetchFaqs();
@@ -108,6 +117,13 @@ export default function AdminFaqPage() {
     setIsActive(faq.is_active);
     setModalOpen(true);
   };
+
+  useEffect(() => {
+    if (!highlightId || loading || faqs.length === 0) return;
+    const target = faqs.find((f) => f.id === highlightId);
+    if (target) openEditModal(target);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- open once when highlight param present
+  }, [highlightId, loading, faqs]);
 
   const handleSave = async () => {
     if (!question.trim() || !answer.trim() || !category.trim()) {
@@ -170,7 +186,19 @@ export default function AdminFaqPage() {
     }
   };
 
-  const filteredFaqs = faqs.filter(f => f.question.toLowerCase().includes(search.toLowerCase()) || f.category.toLowerCase().includes(search.toLowerCase()));
+  const filteredFaqs = useMemo(() => {
+    return faqs.filter((f) => {
+      const matchesSearch =
+        f.question.toLowerCase().includes(search.toLowerCase()) ||
+        f.category.toLowerCase().includes(search.toLowerCase());
+      if (!matchesSearch) return false;
+      if (statusFilter === "active") return f.is_active;
+      if (statusFilter === "draft") return !f.is_active;
+      return true;
+    });
+  }, [faqs, search, statusFilter]);
+
+  const draftCount = faqs.filter((f) => !f.is_active).length;
 
   return (
     <div className="p-8 space-y-6">
@@ -189,7 +217,7 @@ export default function AdminFaqPage() {
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200">
-        <div className="p-4 border-b border-slate-100 flex items-center gap-4">
+        <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <Input 
@@ -198,6 +226,35 @@ export default function AdminFaqPage() {
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9 bg-slate-50 border-transparent focus-visible:bg-white rounded-xl"
             />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant={statusFilter === "all" ? "default" : "outline"}
+              onClick={() => setStatusFilter("all")}
+            >
+              전체
+            </Button>
+            <Button
+              size="sm"
+              variant={statusFilter === "active" ? "default" : "outline"}
+              onClick={() => setStatusFilter("active")}
+            >
+              활성
+            </Button>
+            <Button
+              size="sm"
+              variant={statusFilter === "draft" ? "default" : "outline"}
+              onClick={() => setStatusFilter("draft")}
+              className="relative"
+            >
+              초안
+              {draftCount > 0 && (
+                <span className="ml-1.5 rounded-full bg-amber-500 text-white text-[10px] px-1.5 py-0.5 font-bold">
+                  {draftCount}
+                </span>
+              )}
+            </Button>
           </div>
         </div>
 
@@ -219,7 +276,12 @@ export default function AdminFaqPage() {
                 <tr><td colSpan={5} className="text-center py-10 text-slate-400">{tf.f01123}</td></tr>
               ) : (
                 filteredFaqs.map((faq) => (
-                  <tr key={faq.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
+                  <tr
+                    key={faq.id}
+                    className={`border-b border-slate-50 hover:bg-slate-50/50 transition-colors ${
+                      faq.id === highlightId ? "bg-amber-50/80" : ""
+                    }`}
+                  >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <span className="text-lg">{faq.category_icon}</span>

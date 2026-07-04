@@ -2,13 +2,12 @@
 import { getMessages } from "@/i18n/getMessages";
 
 import Link from "next/link";
-import { Settings, ShieldAlert, Globe, Bell, History, ExternalLink, Loader2, Save } from "lucide-react";
+import { Settings, ShieldAlert, Globe, Mail, History, ExternalLink, Loader2, Save } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
 import { AccessDenied } from "@/components/access-denied";
@@ -97,9 +96,6 @@ export default function SystemSettingsPage() {
           <TabsTrigger value="security" className="gap-2 rounded-lg data-[state=active]:bg-white">
             <ShieldAlert className="h-4 w-4" /> 정산 및 보안
           </TabsTrigger>
-          <TabsTrigger value="notifications" className="gap-2 rounded-lg data-[state=active]:bg-white">
-            <Bell className="h-4 w-4" /> 본사 메일 및 알림
-          </TabsTrigger>
           <TabsTrigger value="audit" className="gap-2 rounded-lg data-[state=active]:bg-white">
             <History className="h-4 w-4" /> {tf.f00854}
           </TabsTrigger>
@@ -107,6 +103,26 @@ export default function SystemSettingsPage() {
 
         <TabsContent value="general" className="space-y-4">
           <PartnerOrdersFeatureSwitch />
+          <Card className="rounded-3xl shadow-sm border-emerald-100 bg-emerald-50/30">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Mail className="h-4 w-4 text-emerald-700" />
+                본사 메일 · SMTP
+              </CardTitle>
+              <CardDescription>
+                비밀번호 초기화, 베타·계약·출고 안내 등 본사 발송 메일은 <strong>이메일 허브</strong>에서 SMTP·템플릿·발송을 한곳에서 관리합니다.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link
+                href="/dashboard/admin/email-hub"
+                className={buttonVariants({ className: "gap-2 rounded-xl bg-emerald-700 hover:bg-emerald-800" })}
+              >
+                <ExternalLink className="h-4 w-4" />
+                이메일 · SMTP 허브 열기
+              </Link>
+            </CardContent>
+          </Card>
           <Card className="rounded-3xl shadow-sm border-slate-100">
             <CardHeader>
               <CardTitle>{tf.f01400}</CardTitle>
@@ -204,81 +220,6 @@ export default function SystemSettingsPage() {
                      <span className="text-amber-500">{tf.f01886}</span>
                      <span className="font-bold text-amber-600">{(settings.platformRate ?? 2) * 1000}원</span>
                   </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="notifications" className="space-y-4">
-          <Card className="rounded-3xl shadow-sm border-slate-100">
-            <CardHeader>
-              <CardTitle>본사 메일(SMTP) 설정</CardTitle>
-              <CardDescription>플랫폼 내역 알림, 사용자 비밀번호 초기화 메일 등에 사용되는 본사 공식 이메일 발송 서버 설정입니다. 이곳의 설정은 .env 환경변수보다 우선 적용됩니다.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center justify-between py-4 border-b border-slate-100">
-                <div className="space-y-0.5">
-                  <Label className="text-base">SMTP 활성화</Label>
-                  <p className="text-xs text-muted-foreground">본사 이메일 시스템 사용 여부</p>
-                </div>
-                <Switch 
-                  checked={settings.smtpEnabled ?? true} 
-                  onCheckedChange={(c) => updateSetting("smtpEnabled", c)} 
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="smtp-host">SMTP 호스트명</Label>
-                  <Input 
-                    id="smtp-host" 
-                    value={settings.smtpHost ?? "smtp.gmail.com"} 
-                    onChange={(e) => updateSetting("smtpHost", e.target.value)}
-                    placeholder="예: smtp.gmail.com"
-                    className="rounded-xl bg-slate-50/50" 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="smtp-port">SMTP 포트</Label>
-                  <Input 
-                    id="smtp-port" 
-                    type="number" 
-                    value={settings.smtpPort ?? 587} 
-                    onChange={(e) => updateSetting("smtpPort", Number(e.target.value))}
-                    className="rounded-xl bg-slate-50/50"
-                  />
-                </div>
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="smtp-sender-name">발신자 명칭</Label>
-                  <Input 
-                    id="smtp-sender-name" 
-                    value={settings.smtpSenderName ?? "FloXync"} 
-                    onChange={(e) => updateSetting("smtpSenderName", e.target.value)}
-                    className="rounded-xl bg-slate-50/50"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="smtp-user">계정 (이메일)</Label>
-                  <Input 
-                    id="smtp-user" 
-                    value={settings.smtpUser ?? ""} 
-                    onChange={(e) => updateSetting("smtpUser", e.target.value)}
-                    placeholder="admin@example.com"
-                    className="rounded-xl bg-slate-50/50" 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="smtp-pass">앱 비밀번호</Label>
-                  <Input 
-                    id="smtp-pass" 
-                    type="password" 
-                    value={settings.smtpPass ?? ""} 
-                    onChange={(e) => updateSetting("smtpPass", e.target.value)}
-                    placeholder="••••••••••••••••"
-                    className="rounded-xl bg-slate-50/50" 
-                  />
-                  <p className="text-[10px] text-slate-400">구글 로그인 비밀번호가 아닌, 보안 설정에서 발급받은 16자리 '앱 비밀번호'를 입력하세요.</p>
                 </div>
               </div>
             </CardContent>

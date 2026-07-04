@@ -79,6 +79,7 @@ import { AutomationSettings } from "./components/AutomationSettings";
 import { EmailSettingsCard } from "./components/EmailSettingsCard";
 import { DesktopElectronSettingsCard } from "@/components/desktop/desktop-electron-settings-card";
 import { SettingsSubNav } from "./components/settings-sub-nav";
+import { RemoteSettingsAssistBanner } from "./components/remote-settings-assist-banner";
 import { KakaoPcSettingsCard } from "./components/KakaoPcSettingsCard";
 import { MallIntegrationCard } from "./components/MallIntegrationCard";
 import { RegionalIntegrationPanel } from "./components/RegionalIntegrationPanel";
@@ -672,7 +673,7 @@ export default function SettingsPage() {
   const [partnerCategory, setPartnerCategory] = useState("");
   const [partnerDescription, setPartnerDescription] = useState("");
 
-  // 협력사 네트워크 고도화 상태 및 핸들러
+  // 회원사 수발주 네트워크 설정
   const [isPartnerSaving, setIsPartnerSaving] = useState(false);
   const [partnerTenants, setPartnerTenants] = useState<any[]>([]);
   const [loadingPartners, setLoadingPartners] = useState(false);
@@ -724,7 +725,7 @@ export default function SettingsPage() {
         .eq("id", tenantId);
 
       if (error) throw error;
-      toast.success(pickUiText(baseLocale, "협력사 네트워크 설정이 저장되었습니다.", "Partner network settings saved."));
+      toast.success(pickUiText(baseLocale, "회원사 수발주 설정이 저장되었습니다.", "Member store order settings saved."));
     } catch (err: any) {
       toast.error(pickUiText(baseLocale, "설정 저장 실패", "Failed to save settings") + `: ${err.message}`);
     } finally {
@@ -1317,6 +1318,7 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
+      <RemoteSettingsAssistBanner />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-3">
@@ -2033,7 +2035,7 @@ export default function SettingsPage() {
                     <div className="space-y-1">
                       <span className="font-bold">회원사 수발주 기본 정산 협약 (20% / 80%)</span>
                       <p className="text-[11px] leading-relaxed text-blue-600 font-medium">
-                        본 협력사 네트워크에 참여하여 수주점으로 등록할 경우, 회원사 간 이관 주문 정산 시 
+                        본 회원사 수발주 네트워크에 참여하여 수주점으로 등록할 경우, 회원사 간 이관 주문 정산 시 
                         <strong className="text-blue-900 mx-1">"발주사 몫 20%, 수주사 몫 80%"</strong> 
                         수수료율을 준수하고 정산할 것에 자동 동의하는 것으로 처리됩니다.
                       </p>

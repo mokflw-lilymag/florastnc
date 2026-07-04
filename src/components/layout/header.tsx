@@ -399,7 +399,7 @@ export function Header({
 
         {/* Quick Manual Link */}
         <Link
-          href="/docs/manual"
+          href="/docs/manual#sit-hub"
           title={dh.manualTitle}
           className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-indigo-200 bg-white text-lg hover:bg-indigo-50 transition-colors shadow-sm"
           aria-label={dh.manualOpenAria}

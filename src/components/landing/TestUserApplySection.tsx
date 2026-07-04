@@ -289,6 +289,23 @@ export function TestUserApplySection({ locale = "ko" }: { locale?: AppLocale }) 
           transition={{ delay: 0.1 }}
           className="rounded-[2rem] border border-white/10 bg-white/[0.03] backdrop-blur-xl p-6 md:p-10 shadow-[0_0_60px_rgba(16,185,129,0.08)]"
         >
+          {baseLocale === "ko" && t.printerPromo ? (
+            <div className="mb-6 p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 text-sm text-emerald-50 leading-relaxed">
+              <p className="text-[10px] font-black uppercase tracking-widest text-emerald-400/90 mb-1.5">
+                {t.printerPromo.badge}
+              </p>
+              <p className="font-black text-white mb-2">📠 {t.printerPromo.title}</p>
+              <p
+                className="text-slate-200 mb-2"
+                dangerouslySetInnerHTML={{ __html: t.printerPromo.body }}
+              />
+              <p
+                className="text-xs text-slate-400"
+                dangerouslySetInnerHTML={{ __html: t.printerPromo.footnote }}
+              />
+            </div>
+          ) : null}
+
           <div className="grid md:grid-cols-2 gap-6 mb-8 text-sm text-slate-300 leading-relaxed">
             <div className="p-5 rounded-2xl bg-black/30 border border-white/5">
               <p className="font-black text-emerald-400/90 text-xs uppercase tracking-widest mb-2">{t.sectionUser}</p>

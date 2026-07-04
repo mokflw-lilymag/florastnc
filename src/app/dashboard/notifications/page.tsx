@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { format } from "date-fns";
-import { Bell, Building2, Loader2, Megaphone } from "lucide-react";
+import { Bell, Building2, Headphones, Loader2, Megaphone } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -67,7 +67,11 @@ export default function NotificationsPage() {
     const readUrl =
       item.source === "platform"
         ? `/api/platform/announcements/${item.id}/read`
-        : `/api/hq/announcements/${item.id}/read`;
+        : item.source === "hq"
+          ? `/api/hq/announcements/${item.id}/read`
+          : item.source === "support_ticket" || item.source === "support_reply"
+            ? `/api/support/notifications/${item.id}/read`
+            : `/api/hq/announcements/${item.id}/read`;
 
     try {
       await fetch(readUrl, {
@@ -127,6 +131,8 @@ export default function NotificationsPage() {
                 <div className="flex items-center gap-2 mb-1">
                   {item.source === "platform" ? (
                     <Megaphone className="h-3.5 w-3.5 text-indigo-500" />
+                  ) : item.source === "support_ticket" || item.source === "support_reply" ? (
+                    <Headphones className="h-3.5 w-3.5 text-amber-600" />
                   ) : (
                     <Building2 className="h-3.5 w-3.5 text-violet-500" />
                   )}
@@ -135,7 +141,9 @@ export default function NotificationsPage() {
                       ? item.category
                         ? PLATFORM_CATEGORY_LABELS[item.category]
                         : "FloXync"
-                      : item.organization_name ?? "본사"}
+                      : item.source === "support_ticket" || item.source === "support_reply"
+                        ? "고객센터"
+                        : item.organization_name ?? "본사"}
                   </span>
                   {!item.read_at && <span className="h-1.5 w-1.5 rounded-full bg-red-500" />}
                 </div>

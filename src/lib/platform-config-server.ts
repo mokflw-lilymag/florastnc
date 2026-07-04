@@ -4,7 +4,7 @@ import {
   parsePlatformConfigBoolean,
 } from "@/lib/platform-feature-flags";
 
-/** 전역 협력사 수발주 기능 — DB 미설정 시 false(비공개) */
+/** 전역 회원사 수발주 기능 — DB 미설정 시 false(비공개) */
 export async function getPartnerOrdersEnabled(): Promise<boolean> {
   try {
     const supabase = await createClient();

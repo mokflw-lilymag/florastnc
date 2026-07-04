@@ -76,6 +76,27 @@ export type LandingMessages = {
       { title: string; description: string }
     >;
   };
+  philosophy?: {
+    badge: string;
+    title: string;
+    titleAccent: string;
+    lead: string;
+    ribbonTitle: string;
+    ribbonDesc: string;
+    labelTitle: string;
+    labelDesc: string;
+    posTitle: string;
+    posDesc: string;
+    featuresTitle: string;
+    f1: string;
+    f2: string;
+    f3: string;
+    f4: string;
+    f5: string;
+    f6: string;
+    f7: string;
+    footer: string;
+  };
   testApply: {
     title: string;
     description: string;
@@ -99,6 +120,13 @@ export type LandingMessages = {
     policy: string;
     reasonPlaceholder: string;
     notesPlaceholder: string;
+    /** 한국 로케일 전용 — 베타 테스터 포스프린터 무상 임대 안내 */
+    printerPromo?: {
+      badge: string;
+      title: string;
+      body: string;
+      footnote: string;
+    };
   };
   footer: {
     line1: string;

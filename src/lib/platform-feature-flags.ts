@@ -1,4 +1,4 @@
-/** platform_config.key — 협력사 수발주 메뉴·기능 전역 스위치 */
+/** platform_config.key — 회원사 수발주 메뉴·기능 전역 스위치 */
 export const PARTNER_ORDERS_ENABLED_KEY = "partner_orders_enabled";
 
 export function parsePlatformConfigBoolean(

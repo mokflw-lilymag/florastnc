@@ -19,11 +19,12 @@ import {
   Key,
   BookOpen,
   Smartphone,
-  TrendingUp,
   CalendarDays,
   Wallet,
   History,
   RefreshCw,
+  Headphones,
+  Mail,
 } from "lucide-react";
 import Image from "next/image";
 import { createClient } from "@/utils/supabase/client";
@@ -262,6 +263,8 @@ export function Sidebar({
       label: t.sidebar.groups.adminContent,
       links: [
         { name: t.sidebar.links.faq, href: "/dashboard/admin/faq", icon: FileText },
+        { name: pickUiText(baseLocale, "고객 문의", "Support tickets", "Yêu cầu hỗ trợ"), href: "/dashboard/admin/support", icon: Headphones },
+        { name: pickUiText(baseLocale, "이메일 · SMTP", "Email hub", "Email hub"), href: "/dashboard/admin/email-hub", icon: Mail },
         { name: t.sidebar.links.templates, href: "/dashboard/admin/design-templates", icon: Layout },
       ],
     },
@@ -277,11 +280,10 @@ export function Sidebar({
       id: "admin-global",
       label: adminGlobalGroup,
       links: [
-        { name: pickUiText(baseLocale, "국가별 API 키", "Regional API keys", "Khóa API theo quốc gia"), href: "/dashboard/admin/regional-keys", icon: Key },
-        { name: pickUiText(baseLocale, "API 키 발급 가이드", "API key guide", "Hướng dẫn khóa API"), href: "/dashboard/admin/regional-keys/guide", icon: BookOpen },
+        { name: pickUiText(baseLocale, "한국 연동 API", "Korea integrations", "Tích hợp Hàn Quốc"), href: "/dashboard/admin/regional-keys", icon: Key },
         { name: pickUiText(baseLocale, "통합 운영 매뉴얼", "Operations manual", "Sổ tay vận hành"), href: "/dashboard/admin/manual/guide", icon: BookOpen },
         { name: pickUiText(baseLocale, "임대 장비 관리", "Leased equipment", "Thiết bị cho thuê"), href: "/dashboard/admin/printers", icon: Printer },
-        { name: pickUiText(baseLocale, "해외 연동 수요", "Regional demand", "Nhu cầu tích hợp"), href: "/dashboard/admin/regional-demand", icon: TrendingUp },
+        { name: pickUiText(baseLocale, "출고 · 반납", "Shipment & return", "Xuất & trả"), href: "/dashboard/admin/printer-logistics", icon: Truck },
         { name: pickUiText(baseLocale, "번역 관리", "Translations", "Bản dịch"), href: "/dashboard/admin/translations", icon: Languages },
       ],
     },
@@ -390,6 +392,7 @@ export function Sidebar({
       label: t.sidebar.groups.tenantStore,
       hint: t.sidebar.hints.tenantStore,
       links: [
+        { name: pickUiText(baseLocale, "고객센터", "Support", "Hỗ trợ"), href: "/dashboard/support", icon: Headphones },
         { name: t.sidebar.links.settings, href: "/dashboard/settings", icon: Settings },
         { name: t.sidebar.links.subscription, href: "/dashboard/subscription", icon: Gem },
       ],

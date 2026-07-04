@@ -24,7 +24,7 @@ export type PlatformAnnouncement = {
 
 export type NotificationInboxItem = {
   id: string;
-  source: "platform" | "hq";
+  source: "platform" | "hq" | "support_ticket" | "support_reply";
   title: string;
   body: string;
   category?: PlatformAnnouncementCategory;
