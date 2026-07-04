@@ -9,6 +9,8 @@
     "electron:build": "node electron-build.js",
     "dev": "next dev",
     "warm:dev": "node scripts/warm-dev-routes.mjs",
+    "build:ppbridge": "cd bridge-app && npx pkg . --target node18-win-x64 --output ppbridge.exe",
+    "build:bridge": "npm run build:ppbridge && node scripts/build-bridge-zip.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

@@ -19,14 +19,26 @@ export function BridgeOnboardingDialog({ isOpen, onClose, tenantId }: BridgeOnbo
     setIsVerifying(true);
     setError(null);
     try {
-      // Simulate verification - in reality the bridge app would ping a heartbeat to Supabase or similar
-      // Check if there's any active heartbeat from this tenant's local agent
-      await new Promise(res => setTimeout(res, 2000));
-      
-      // Let's assume success for now. (You can implement a real heartbeat check later).
+      const endpoint = tenantId
+        ? `http://127.0.0.1:8004/set_tenant?id=${encodeURIComponent(tenantId)}`
+        : "http://127.0.0.1:8004/api/version";
+      const res = await fetch(endpoint, {
+        mode: "cors",
+        credentials: "omit",
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!res.ok) {
+        throw new Error("offline");
+      }
+      const data = await res.json().catch(() => ({}));
+      if (data?.status !== "ok" && data?.success !== true) {
+        throw new Error("bad_status");
+      }
       setStep(3);
-    } catch (err) {
-      setError("연결 확인 중 오류가 발생했습니다.");
+    } catch {
+      setError(
+        "PP 브릿지가 아직 연결되지 않았습니다. install.bat을 관리자 권한으로 실행했는지 확인하고, 브라우저에서 http://127.0.0.1:8004/api/version 이 열리는지 확인해 주세요.",
+      );
     } finally {
       setIsVerifying(false);
     }
@@ -67,8 +79,7 @@ export function BridgeOnboardingDialog({ isOpen, onClose, tenantId }: BridgeOnbo
                 </p>
               </div>
               <a 
-                href={`/api/downloads/bridge?tenantId=${tenantId}`} 
-                download="Floxync-Bridge-Setup.zip"
+                href="/api/downloads/bridge"
                 onClick={() => setStep(2)}
                 className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold flex items-center justify-center gap-3 transition-all hover:scale-[1.02] shadow-lg shadow-blue-900/20"
               >
@@ -93,7 +104,7 @@ export function BridgeOnboardingDialog({ isOpen, onClose, tenantId }: BridgeOnbo
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-white">2단계: 압축 해제 및 프로그램 실행</h3>
                 <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">
                   다운로드 받은 <b>Floxync-Bridge-Setup.zip</b> 압축을 풀고,<br/>
-                  <b>ppbridge.exe</b>를 실행한 후 아래 '활성화 확인' 버튼을 눌러주세요.
+                  <b>install.bat</b>을 <b>관리자 권한</b>으로 실행한 뒤 아래 「활성화 확인」을 눌러주세요.
                 </p>
               </div>
 

@@ -459,7 +459,7 @@ export function buildPublicPricingPageCopy(
     ),
     downloadWindows: T(
       baseLocale,
-      "윈도우프로그램 다운로드",
+      "윈도우 앱 다운로드",
       "Download Windows app",
       "Tải app Windows",
     ),

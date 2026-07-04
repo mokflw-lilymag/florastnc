@@ -2,7 +2,46 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { execSync, exec } = require('child_process');
+const http = require('http');
 const receiptI18n = require('./receipt-i18n.js');
+const bundledDefaults = require('./bundled-supabase');
+
+function showWinMessageBox(title, message, icon = 'Information') {
+  const safeMsg = String(message).replace(/'/g, "''").slice(0, 400);
+  const safeTitle = String(title).replace(/'/g, "''").slice(0, 80);
+  try {
+    execSync(
+      `powershell -NoProfile -Command "Add-Type -AssemblyName PresentationFramework; [System.Windows.MessageBox]::Show('${safeMsg}', '${safeTitle}', 'OK', '${icon}')"`,
+      { stdio: 'ignore', windowsHide: true },
+    );
+  } catch (_) {}
+}
+
+function waitForDaemonPortSync(maxMs = 18000) {
+  const started = Date.now();
+  while (Date.now() - started < maxMs) {
+    try {
+      const status = execSync(
+        'powershell -NoProfile -Command "(Invoke-WebRequest -UseBasicParsing -Uri http://127.0.0.1:8004/api/version -TimeoutSec 2).StatusCode"',
+        { stdio: 'pipe', windowsHide: true, encoding: 'utf8' },
+      );
+      if (String(status).trim() === '200') return true;
+    } catch (_) {}
+    try {
+      execSync('powershell -NoProfile -Command "Start-Sleep -Milliseconds 600"', { stdio: 'ignore', windowsHide: true });
+    } catch (_) {}
+  }
+  return false;
+}
+
+function unblockPath(targetPath) {
+  try {
+    execSync(
+      `powershell -NoProfile -Command "Unblock-File -LiteralPath '${String(targetPath).replace(/'/g, "''")}'"`,
+      { stdio: 'ignore', windowsHide: true },
+    );
+  } catch (_) {}
+}
 
 function parseEnvFile(filePath) {
   if (!filePath || !fs.existsSync(filePath)) return {};
@@ -30,15 +69,20 @@ function buildBridgeEnvContent(url, key, branchId) {
 function resolveBridgeCredentials(existingPath, installerFolder) {
   const existing = parseEnvFile(existingPath);
   const installer = parseEnvFile(path.join(installerFolder || '', '.env'));
+  const installerEnv = parseEnvFile(path.join(installerFolder || '', 'floxync-bridge.env'));
   const bundled = parseEnvFile(path.join(__dirname, '.env'));
 
   const branchId =
-    installer.CURRENT_BRANCH_ID ||
     installer.TENANT_ID ||
+    installer.CURRENT_BRANCH_ID ||
     installer.BRANCH_ID ||
+    installerEnv.TENANT_ID ||
+    installerEnv.CURRENT_BRANCH_ID ||
+    existing.TENANT_ID ||
     existing.CURRENT_BRANCH_ID ||
     existing.BRANCH_ID ||
-    existing.TENANT_ID ||
+    bundled.TENANT_ID ||
+    bundled.CURRENT_BRANCH_ID ||
     '';
 
   // Already configured: keep DB credentials (reinstall must not break working setup)
@@ -50,10 +94,12 @@ function resolveBridgeCredentials(existingPath, installerFolder) {
     };
   }
 
-  if (installer.SUPABASE_URL && installer.SUPABASE_SERVICE_KEY) {
+  const installerUrl = installer.SUPABASE_URL || installerEnv.SUPABASE_URL;
+  const installerKey = installer.SUPABASE_SERVICE_KEY || installerEnv.SUPABASE_SERVICE_KEY;
+  if (installerUrl && installerKey) {
     return {
-      url: installer.SUPABASE_URL,
-      key: installer.SUPABASE_SERVICE_KEY,
+      url: installerUrl,
+      key: installerKey,
       branchId,
     };
   }
@@ -61,10 +107,12 @@ function resolveBridgeCredentials(existingPath, installerFolder) {
   const url =
     bundled.SUPABASE_URL ||
     process.env.SUPABASE_URL ||
+    bundledDefaults.SUPABASE_URL ||
     '';
   const key =
     bundled.SUPABASE_SERVICE_KEY ||
     process.env.SUPABASE_SERVICE_KEY ||
+    bundledDefaults.SUPABASE_SERVICE_KEY ||
     '';
 
   return { url, key, branchId };
@@ -73,7 +121,9 @@ function resolveBridgeCredentials(existingPath, installerFolder) {
 function writeBridgeEnvFile(envPath, installerFolder) {
   const creds = resolveBridgeCredentials(envPath, installerFolder);
   if (!creds.url || !creds.key) {
-    throw new Error('Supabase credentials missing. Re-download bridge ZIP from Floxync settings.');
+    throw new Error(
+      'Supabase 설정을 찾을 수 없습니다. ZIP을 다시 다운로드하거나 Floxync 설정에서 브릿지를 받아 주세요.',
+    );
   }
   fs.writeFileSync(envPath, buildBridgeEnvContent(creds.url, creds.key, creds.branchId), 'utf8');
   return creds;
@@ -121,6 +171,7 @@ if (!isDaemon && currentFolder.toLowerCase() !== targetFolder.toLowerCase()) {
       'receipt-delivery-driver.html',
       'receipt-market-list.html',
       'receipt-labels.json',
+      'receipt-i18n.js',
       'SumatraPDF-3.4.6-32.exe'
     ];
     for (const tpl of templates) {
@@ -131,19 +182,13 @@ if (!isDaemon && currentFolder.toLowerCase() !== targetFolder.toLowerCase()) {
       if (fs.existsSync(localTpl)) {
         fs.copyFileSync(localTpl, targetTpl);
       } else if (fs.existsSync(bundledTpl)) {
-        // Extract bundled HTML from pkg snapshot
         fs.writeFileSync(targetTpl, fs.readFileSync(bundledTpl));
       }
+      if (fs.existsSync(targetTpl)) unblockPath(targetTpl);
     }
 
-    // 파일 복사 후 인터넷 다운로드 차단(Mark of the Web) 해제하여 VBS 실행 오류 방지
-    try {
-      execSync(`powershell -Command "Unblock-File -Path '${targetFolder}\\floxync-daemon.exe'"`, { stdio: 'ignore' });
-      execSync(`powershell -Command "Unblock-File -Path '${targetFolder}\\SumatraPDF-3.4.6-32.exe'"`, { stdio: 'ignore' });
-    } catch(e) {}
+    unblockPath(path.join(targetFolder, 'floxync-daemon.exe'));
 
-
-    // Create hidden VBS wrapper in targetFolder
     const vbsCode = `
 Set WshShell = CreateObject("WScript.Shell")
 WshShell.CurrentDirectory = "${targetFolder}"
@@ -151,11 +196,12 @@ WshShell.Run chr(34) & "${targetFolder}\\floxync-daemon.exe" & chr(34), 0, False
 Set WshShell = Nothing
     `.trim();
     const wrapperVbs = path.join(targetFolder, 'ppbridge.vbs');
-    fs.writeFileSync(wrapperVbs, vbsCode, 'utf8');
+    fs.writeFileSync(wrapperVbs, '\uFEFF' + vbsCode, 'utf16le');
+    unblockPath(wrapperVbs);
 
-    // Register in Registry for Auto-Start
     try {
-      execSync(`reg add HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run /v FloxyncBridge /t REG_SZ /d "wscript.exe \\"${wrapperVbs}\\"" /f`, { stdio: 'ignore' });
+      const runCmd = `powershell.exe -NoProfile -WindowStyle Hidden -Command "Start-Process '${targetFolder.replace(/'/g, "''")}\\\\floxync-daemon.exe' -WindowStyle Hidden"`;
+      execSync(`reg add HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run /v FloxyncBridge /t REG_SZ /d "${runCmd}" /f`, { stdio: 'ignore', windowsHide: true });
     } catch(e) {
       console.error("Registry add failed", e);
     }
@@ -163,22 +209,40 @@ Set WshShell = Nothing
     const envPath = path.join(targetFolder, '.env');
     writeBridgeEnvFile(envPath, currentFolder);
 
-    // Start the installed background copy
+    let started = false;
     try {
-      execSync(`wscript.exe "${wrapperVbs}"`, { stdio: 'ignore' });
+      execSync(`wscript.exe "${wrapperVbs}"`, { stdio: 'ignore', windowsHide: true });
+      started = true;
     } catch (err) {
       console.error("VBS execution failed, falling back to powershell", err);
       try {
-         execSync(`powershell -WindowStyle Hidden -Command "Start-Process '${targetFolder}\\floxync-daemon.exe' -WindowStyle Hidden"`, { stdio: 'ignore' });
-      } catch(e) {}
+        execSync(`powershell -NoProfile -WindowStyle Hidden -Command "Start-Process '${targetFolder.replace(/'/g, "''")}\\floxync-daemon.exe' -WindowStyle Hidden"`, { stdio: 'ignore', windowsHide: true });
+        started = true;
+      } catch (e) {
+        console.error("PowerShell start failed", e);
+      }
     }
 
-    // Show success message
-    execSync(`powershell -Command "Add-Type -AssemblyName PresentationFramework; [System.Windows.MessageBox]::Show('PP 브릿지 설치가 완료되었습니다!' + [Environment]::NewLine + [Environment]::NewLine + '이제 백그라운드에서 조용히 실행되며, 컴퓨터가 켜질 때마다 자동으로 시작됩니다.', 'LilyMag ERP', 'OK', 'Information')"`);
+    if (!started) {
+      throw new Error('브릿지 백그라운드 실행에 실패했습니다. 백신·Windows 보안에서 ppbridge.exe 실행을 허용해 주세요.');
+    }
+
+    const alive = waitForDaemonPortSync(18000);
+    if (!alive) {
+      throw new Error(
+        '브릿지가 포트 8004에서 응답하지 않습니다. install.bat을 관리자 권한으로 다시 실행하거나 %APPDATA%\\FloxyncBridge\\daemon.log 를 확인해 주세요.',
+      );
+    }
+
+    showWinMessageBox(
+      'FloXync',
+      'PP 브릿지 설치가 완료되었습니다!\n\n백그라운드에서 실행 중입니다. 웹앱을 새로고침하면 PP ON으로 표시됩니다.',
+      'Information',
+    );
 
     process.exit(0);
   } catch (error) {
-    execSync(`powershell -Command "Add-Type -AssemblyName PresentationFramework; [System.Windows.MessageBox]::Show('설치 중 오류가 발생했습니다: ${error.message}', 'LilyMag ERP 오류', 'OK', 'Error')"`);
+    showWinMessageBox('FloXync 설치 오류', `설치 중 오류가 발생했습니다:\n\n${error.message}`, 'Error');
     process.exit(1);
   }
 }
@@ -197,7 +261,6 @@ require('dotenv').config({ path: envPath });
 const { createClient } = require('@supabase/supabase-js');
 const puppeteer = require('puppeteer-core');
 const ptp = require('pdf-to-printer');
-const http = require('http');
 const WebSocket = require('ws');
 global.WebSocket = WebSocket;
 
@@ -212,8 +275,10 @@ console.error = function(...args) {
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
-let CURRENT_BRANCH_ID = process.env.CURRENT_BRANCH_ID || process.env.BRANCH_ID || '';
-const BRIDGE_VERSION = 'v2.10';
+let CURRENT_BRANCH_ID = process.env.CURRENT_BRANCH_ID || process.env.TENANT_ID || process.env.BRANCH_ID || '';
+const BRIDGE_VERSION = 'v2.12';
+/** 웹 탭 하트비트 없이도 외부 기기 주문 인쇄 유지 (매장 PC 데몬 상시 감시) */
+const REQUIRE_WEB_HEARTBEAT_FOR_PRINT = false;
 
 const BRIDGE_TEMPLATE_FILES = [
   'receipt-template.html',
@@ -781,31 +846,37 @@ async function start() {
     if (isProcessingQueue) return;
     isProcessingQueue = true;
     try {
-      if (!CURRENT_BRANCH_ID) return;
-
-      // Heartbeat Timeout Check (90 seconds)
-      if (lastHeartbeatTime > 0 && Date.now() - lastHeartbeatTime > 90000) {
+      if (!CURRENT_BRANCH_ID) {
         if (!isPausedLogged) {
-          console.log("⏸️ ERP 웹페이지가 꺼져 있거나 로그아웃 상태입니다. 인쇄를 일시 정지합니다.");
+          console.log('⚠️ 매장 ID가 설정되지 않았습니다. Floxync 웹앱에 한 번 로그인하면 자동 페어링됩니다.');
           isPausedLogged = true;
         }
         return;
-      } else {
-        if (isPausedLogged) {
-          console.log("▶️ ERP 웹페이지 접속이 확인되었습니다. 인쇄 대기열 감시를 재개합니다.");
-          isPausedLogged = false;
-        }
       }
 
-      // 10분 유효시간 제한
-      const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+      // (구 ERP) 웹 하트비트 90초 미수신 시 인쇄 일시정지 — Floxync 웹 단독·외부 접수는 상시 인쇄
+      if (REQUIRE_WEB_HEARTBEAT_FOR_PRINT && lastHeartbeatTime > 0 && Date.now() - lastHeartbeatTime > 90000) {
+        if (!isPausedLogged) {
+          console.log('⏸️ 웹앱 접속이 없어 인쇄를 일시 정지합니다.');
+          isPausedLogged = true;
+        }
+        return;
+      }
+      if (isPausedLogged && CURRENT_BRANCH_ID) {
+        console.log('▶️ 인쇄 대기열 감시 중 (지점: ' + CURRENT_BRANCH_ID + ')');
+        isPausedLogged = false;
+      }
+
+      // 외부 기기(모바일 등) 접수 포함 — 최대 4시간 대기 작업 처리
+      const maxJobAgeMs = 4 * 60 * 60 * 1000;
+      const jobSince = new Date(Date.now() - maxJobAgeMs).toISOString();
 
       const { data: pendingJobs, error: fetchError } = await supabase
         .from('print_jobs')
         .select('*')
         .eq('status', 'pending')
-        .eq('user_id', CURRENT_BRANCH_ID)
-        .gte('created_at', tenMinutesAgo)
+        .or(`user_id.eq.${CURRENT_BRANCH_ID},tenant_id.eq.${CURRENT_BRANCH_ID}`)
+        .gte('created_at', jobSince)
         .order('created_at', { ascending: true })
         .limit(5);
 
@@ -828,7 +899,7 @@ async function start() {
             .in('id', [`settings_${globalBranchName}`, `branch_settings_${globalBranchName}`]);
           
           let settings = {};
-          let isBridgeEnabled = false;
+          let isBridgeEnabled = true;
 
           if (settingsRows && settingsRows.length > 0) {
             const floxyncSettings = settingsRows.find(r => r.id === `settings_${globalBranchName}`);
@@ -1011,22 +1082,21 @@ const server = http.createServer(async (req, res) => {
   } else if (req.url.startsWith('/set_tenant')) {
     const url = new URL(req.url, `http://${req.headers.host}`);
     const newBranchId = url.searchParams.get('id');
-    if (newBranchId && newBranchId !== CURRENT_BRANCH_ID) {
-       console.log(`🔄 새로운 지점 접속 감지됨: ${newBranchId}. 페어링을 시작합니다.`);
-       CURRENT_BRANCH_ID = newBranchId;
-       
-       // .env 파일에 영구 저장하여 재부팅 시에도 유지되도록 함
-       const actualEnvPath = path.join(targetFolder, '.env');
-       try {
-         updateBranchIdInEnv(actualEnvPath, CURRENT_BRANCH_ID);
-         console.log(`✅ [시스템] 지점 정보(${CURRENT_BRANCH_ID})가 파일에 영구 저장되었습니다.`);
-       } catch (e) {
-         console.error("❌ 지점 정보 저장 실패:", e);
+    if (newBranchId) {
+       if (newBranchId !== CURRENT_BRANCH_ID) {
+         console.log(`🔄 매장(테넌트) 페어링: ${newBranchId}`);
+         CURRENT_BRANCH_ID = newBranchId;
+         const actualEnvPath = path.join(targetFolder, '.env');
+         try {
+           updateBranchIdInEnv(actualEnvPath, CURRENT_BRANCH_ID);
+           console.log(`✅ 지점 정보(${CURRENT_BRANCH_ID}) 영구 저장 — 외부 기기 주문도 이 PC에서 인쇄됩니다.`);
+         } catch (e) {
+           console.error("❌ 지점 정보 저장 실패:", e);
+         }
+         syncPrinters();
        }
-
-       syncPrinters(); // 새 지점에 맞게 프린터 목록 동기화
     }
-    lastHeartbeatTime = Date.now(); // 하트비트 갱신
+    lastHeartbeatTime = Date.now();
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ status: 'ok', branch_id: CURRENT_BRANCH_ID, version: BRIDGE_VERSION }));
   } else if (req.url === '/logs') {
@@ -1061,9 +1131,14 @@ server.on('error', (e) => {
 });
 
 server.listen(8004, '0.0.0.0', () => {
-  lastHeartbeatTime = Date.now(); // daemon start grace
+  lastHeartbeatTime = Date.now();
 
   console.log("🟢 [상태 확인] 브릿지 하트비트 서버가 포트 8004 (0.0.0.0)에서 실행 중입니다. (Universal PP 연동)");
+  if (CURRENT_BRANCH_ID) {
+    console.log(`🏪 페어링된 매장: ${CURRENT_BRANCH_ID} — 모바일·외부 접수 인쇄 감시 중`);
+  } else {
+    console.log('⚠️ 매장 ID 미설정 — Floxync 웹에 로그인하면 자동 페어링됩니다.');
+  }
 });
 
 start();

@@ -1767,7 +1767,12 @@ export default function SettingsPage() {
                       <div className="space-y-0.5">
                         <Label className="text-base">{pickUiText(baseLocale, '영수증/라벨 브릿지 사용', 'Enable POS/Label Bridge', 'Sử dụng Bridge cho POS/Nhãn')}</Label>
                         <p className="text-sm text-slate-500">
-                          {pickUiText(baseLocale, '영수증 및 라벨 프린터를 사용하려면 활성화하세요.', 'Enable to use POS and label printers.', 'Bật để sử dụng máy in hóa đơn và nhãn.')}
+                          {pickUiText(
+                            baseLocale,
+                            '모바일·외부 접수 주문도 이 PC에서 자동 인쇄됩니다. 웹 탭을 닫아도 브릿지 데몬만 실행 중이면 됩니다.',
+                            'Mobile and remote orders print here automatically. You can close the web tab if the bridge daemon is running.',
+                            'Đơn mobile/xa tự in trên PC này. Có thể đóng tab web nếu bridge đang chạy.',
+                          )}
                         </p>
                       </div>
                       <div className="flex items-center gap-4">
@@ -1776,8 +1781,7 @@ export default function SettingsPage() {
                           {pickUiText(baseLocale, '프린트 테스트', 'Print Test', 'In thử')}
                         </Button>
                         <a 
-                          href={`/api/downloads/bridge?tenantId=${tenantId}`}
-                          download="Floxync-Bridge-Setup.zip"
+                          href="/api/downloads/bridge"
                           className={buttonVariants({ variant: "outline", size: "sm" })}
                         >
                           <Download className="mr-2 h-4 w-4" />
@@ -1788,6 +1792,14 @@ export default function SettingsPage() {
                           onCheckedChange={(v) => saveSettings({ ...settings, ppBridgeEnabled: v })} 
                         />
                       </div>
+                      <p className="text-xs text-slate-500 leading-relaxed w-full basis-full">
+                        {pickUiText(
+                          baseLocale,
+                          '설치: ZIP 압축 해제 → install.bat 관리자 실행 → 웹앱 한 번 로그인(매장 페어링). 이후 모바일·외부 접수도 자동 인쇄됩니다.',
+                          'Install: extract ZIP → run install.bat as admin → log in to the web app once (store pairing). Then mobile/remote orders print automatically.',
+                          'Cài: giải nén ZIP → chạy install.bat quyền admin → đăng nhập web một lần (ghép cửa hàng). Sau đó đơn mobile/xa tự in.',
+                        )}
+                      </p>
                     </div>
                     
                     <div className="flex items-center justify-between">

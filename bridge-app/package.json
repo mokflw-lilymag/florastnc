@@ -26,7 +26,8 @@
       "*.html",
       "receipt-labels.json",
       "receipt-i18n.js",
-      "printEngine.js"
+      "printEngine.js",
+      "bundled-supabase.js"
     ]
   }
 }

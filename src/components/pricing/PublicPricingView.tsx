@@ -158,8 +158,7 @@ export function PublicPricingView({ locale }: Props) {
               </p>
               <div className="flex flex-col lg:flex-row gap-6 justify-center items-center lg:items-stretch">
                 <a
-                  href="/api/downloads/bridge"
-                  download="Floxync-Bridge-Setup.zip"
+                  href="/api/downloads/windows-app"
                   className="w-full sm:w-auto bg-[#665590] text-white font-bold px-6 py-3 rounded-full flex items-center justify-center gap-2 hover:bg-[#524475] transition-all shadow-md text-sm self-center"
                 >
                   <span className="material-symbols-outlined text-[20px]">download</span>

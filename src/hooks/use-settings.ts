@@ -162,7 +162,7 @@ export const defaultSettings: SystemSettings = {
   dashboardTickerEnabled: true,
   hideDashboardTicker: false,
   orderNotificationSound: true,
-  ppBridgeEnabled: false,
+  ppBridgeEnabled: true,
   ribbonBridgeEnabled: false,
   printerName: "",
   posPrinterName: "",
