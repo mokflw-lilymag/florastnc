@@ -28,6 +28,7 @@ interface MaterialRequest {
 }
 
 export function useSimpleExpenses({ enableRealtime = false }: { enableRealtime?: boolean } = {}) {
+  const supabase = createClient();
   const [expenses, setExpenses] = useState<SimpleExpense[]>([]);
   const [loading, setLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);

@@ -37,7 +37,8 @@ export function BarcodePrintModal({ isOpen, onClose, initialItems }: BarcodePrin
   }, []);
 
   // 프리셋이 변경될 때마다 localStorage에 저장
-  const handlePresetChange = (value: string) => {
+  const handlePresetChange = (value: string | null) => {
+    if (!value) return;
     setPresetId(value);
     localStorage.setItem("preferred_label_preset", value);
   };

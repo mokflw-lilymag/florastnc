@@ -904,8 +904,8 @@ export default function InventoryPage() {
                     <div className="bg-blue-50/50 p-3 rounded-lg border border-blue-100 space-y-2 animate-in fade-in slide-in-from-top-2">
                       <Label className="text-sm font-medium text-blue-900 block mb-1">어느 상품 카테고리에 복사할까요?</Label>
                       <Select 
-                        value={formData.linked_product_category || ""} 
-                        onValueChange={(val) => setFormData({...formData, linked_product_category: val})}
+                        value={formData.linked_product_category ?? undefined} 
+                        onValueChange={(val) => setFormData({...formData, linked_product_category: val || undefined})}
                       >
                         <SelectTrigger className="w-full bg-white border-blue-200">
                           <SelectValue placeholder="상품 카테고리 선택" />
