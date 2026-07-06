@@ -224,6 +224,7 @@ export default function DashboardPage() {
   const [tenantStats, setTenantStats] = useState<{ total: number, active: number, pro: number, recent: any[] } | null>(null);
   const [subscriptionOverview, setSubscriptionOverview] = useState<SubscriptionOverview | null>(null);
   const [adminLoading, setAdminLoading] = useState(false);
+  const [printerStats, setPrinterStats] = useState<{ overdue: number; today: number } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -277,14 +278,18 @@ export default function DashboardPage() {
       const fetchAdminStats = async () => {
         try {
           setAdminLoading(true);
-          const res = await fetch("/api/admin/subscription-overview");
-          const json = await res.json().catch(() => ({}));
-          if (res.ok && json.overview) {
-            setSubscriptionOverview(json.overview as SubscriptionOverview);
-            const allTenants = (json.tenants as any[]) ?? [];
+          const [subRes, logisticsRes] = await Promise.all([
+            fetch("/api/admin/subscription-overview"),
+            fetch("/api/admin/printer-logistics"),
+          ]);
+
+          const subJson = await subRes.json().catch(() => ({}));
+          if (subRes.ok && subJson.overview) {
+            setSubscriptionOverview(subJson.overview as SubscriptionOverview);
+            const allTenants = (subJson.tenants as any[]) ?? [];
             setTenantStats({
-              total: json.overview.total ?? allTenants.length,
-              active: json.overview.activePaid ?? 0,
+              total: subJson.overview.total ?? allTenants.length,
+              active: subJson.overview.activePaid ?? 0,
               pro: allTenants.filter((t: { plan?: string }) => t.plan === "pro" || t.plan === "pro_plus").length,
               recent: [...allTenants].sort(
                 (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
@@ -301,6 +306,33 @@ export default function DashboardPage() {
               });
             }
           }
+
+          if (logisticsRes.ok) {
+            const logisticsJson = await logisticsRes.json().catch(() => ({}));
+            const leases = (logisticsJson.leases as any[]) ?? [];
+
+            let overdueCount = 0;
+            let todayCount = 0;
+
+            const todayStr = format(new Date(), "yyyy-MM-dd");
+            const todayTime = new Date(todayStr + "T00:00:00").getTime();
+
+            leases.forEach((l) => {
+              if (l.leased && !l.return_completed && l.lease_end) {
+                const leaseEndStr = l.lease_end.slice(0, 10);
+                const leaseEndTime = new Date(leaseEndStr + "T00:00:00").getTime();
+                if (leaseEndTime < todayTime) {
+                  overdueCount++;
+                } else if (leaseEndTime === todayTime) {
+                  todayCount++;
+                }
+              }
+            });
+
+            setPrinterStats({ overdue: overdueCount, today: todayCount });
+          }
+        } catch (e) {
+          console.error("Admin stats fetch error:", e);
         } finally {
           setAdminLoading(false);
         }
@@ -472,11 +504,27 @@ export default function DashboardPage() {
         </div>
 
         {/* Admin Stats Cards */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          <AdminStatCard icon={Store} label={tf.f01807} value={tenantStats?.total || 0} unit={tf.f00865} color="bg-indigo-600" />
-          <AdminStatCard icon={CheckCircle2} label="유료·정상 구독" value={subscriptionOverview?.activePaid ?? tenantStats?.active ?? 0} unit={tf.f00865} color="bg-emerald-600" />
-          <AdminStatCard icon={AlertCircle} label="7일 내 만료" value={subscriptionOverview?.expiring7 ?? 0} unit={tf.f00865} color="bg-amber-500" />
-          <AdminStatCard icon={AlertCircle} label="만료·연체" value={subscriptionOverview?.expired ?? 0} unit={tf.f00865} color="bg-red-600" />
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-slate-500 tracking-wider uppercase">SaaS 매장 구독 현황</p>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            <AdminStatCard icon={Store} label={tf.f01807} value={tenantStats?.total || 0} unit={tf.f00865} color="bg-indigo-600" />
+            <AdminStatCard icon={CheckCircle2} label="유료·정상 구독" value={subscriptionOverview?.activePaid ?? tenantStats?.active ?? 0} unit={tf.f00865} color="bg-emerald-600" />
+            <AdminStatCard icon={AlertCircle} label="7일 내 만료" value={subscriptionOverview?.expiring7 ?? 0} unit={tf.f00865} color="bg-amber-500" />
+            <AdminStatCard icon={AlertCircle} label="만료·연체" value={subscriptionOverview?.expired ?? 0} unit={tf.f00865} color="bg-red-600" />
+          </div>
+        </div>
+
+        {/* Printer Lease logistics */}
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-slate-500 tracking-wider uppercase">임대 장비 반납/물류 현황</p>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            <Link href="/dashboard/admin/printer-logistics?filter=overdue" className="block transition-transform hover:-translate-y-0.5">
+              <AdminStatCard icon={Printer} label="임대장비 반납연체" value={printerStats?.overdue ?? 0} unit={tf.f00865} color="bg-rose-600" />
+            </Link>
+            <Link href="/dashboard/admin/printer-logistics?filter=today" className="block transition-transform hover:-translate-y-0.5">
+              <AdminStatCard icon={Clock} label="임대장비 오늘만료" value={printerStats?.today ?? 0} unit={tf.f00865} color="bg-amber-600" />
+            </Link>
+          </div>
         </div>
 
         {subscriptionOverview && (

@@ -265,7 +265,8 @@ export function Sidebar({
         { name: t.sidebar.links.faq, href: "/dashboard/admin/faq", icon: FileText },
         { name: pickUiText(baseLocale, "고객 문의", "Support tickets", "Yêu cầu hỗ trợ"), href: "/dashboard/admin/support", icon: Headphones },
         { name: pickUiText(baseLocale, "이메일 · SMTP", "Email hub", "Email hub"), href: "/dashboard/admin/email-hub", icon: Mail },
-        { name: t.sidebar.links.templates, href: "/dashboard/admin/design-templates", icon: Layout },
+        { name: pickUiText(baseLocale, "임대 장비 관리", "Leased equipment", "Thiết bị cho thuê"), href: "/dashboard/admin/printers", icon: Printer },
+        { name: pickUiText(baseLocale, "출고 · 반납", "Shipment & return", "Xuất & trả"), href: "/dashboard/admin/printer-logistics", icon: Truck },
       ],
     },
     {
@@ -282,8 +283,6 @@ export function Sidebar({
       links: [
         { name: pickUiText(baseLocale, "한국 연동 API", "Korea integrations", "Tích hợp Hàn Quốc"), href: "/dashboard/admin/regional-keys", icon: Key },
         { name: pickUiText(baseLocale, "통합 운영 매뉴얼", "Operations manual", "Sổ tay vận hành"), href: "/dashboard/admin/manual/guide", icon: BookOpen },
-        { name: pickUiText(baseLocale, "임대 장비 관리", "Leased equipment", "Thiết bị cho thuê"), href: "/dashboard/admin/printers", icon: Printer },
-        { name: pickUiText(baseLocale, "출고 · 반납", "Shipment & return", "Xuất & trả"), href: "/dashboard/admin/printer-logistics", icon: Truck },
         { name: pickUiText(baseLocale, "번역 관리", "Translations", "Bản dịch"), href: "/dashboard/admin/translations", icon: Languages },
       ],
     },

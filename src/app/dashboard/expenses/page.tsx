@@ -71,6 +71,8 @@ import { useMaterials } from "@/hooks/use-materials";
 import { useOrders } from "@/hooks/use-orders";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/hooks/use-auth";
+import { createClient } from "@/utils/supabase/client";
 import { toast } from 'sonner';
 import {
   setFloxyncFloatingUiSuppressed,
@@ -168,6 +170,129 @@ function receiptLinkHref(url: string): string | null {
   return u;
 }
 
+// 텍스트 정규화 (공백 및 특수 기호 제거 후 소문자화)
+function normalizeText(text: string): string {
+  return text.replace(/[\s\-_/,\.]/g, "").toLowerCase();
+}
+
+// 단어별 가나다 정렬 결합
+function getSortedTokenString(text: string): string {
+  const tokens = text.toLowerCase().split(/[\s\-_/,\.]/).filter(t => t.trim() !== "");
+  return tokens.sort().join("");
+}
+
+// 유사 거래처 매칭
+function findSimilarSupplier(name: string, suppliers: any[]): any | null {
+  if (!name || !name.trim()) return null;
+  const normName = normalizeText(name);
+  const sortedName = getSortedTokenString(name);
+
+  let found = suppliers.find(s => normalizeText(s.name) === normName);
+  if (found) return found;
+
+  found = suppliers.find(s => getSortedTokenString(s.name) === sortedName);
+  if (found) return found;
+
+  found = suppliers.find(s => {
+    const sNorm = normalizeText(s.name);
+    return sNorm.includes(normName) || normName.includes(sNorm);
+  });
+  return found || null;
+}
+
+// 유사 자재 매칭
+function findSimilarMaterial(name: string, materials: any[]): any | null {
+  if (!name || !name.trim()) return null;
+  const normName = normalizeText(name);
+  const sortedName = getSortedTokenString(name);
+
+  let found = materials.find(m => normalizeText(m.name) === normName);
+  if (found) return found;
+
+  found = materials.find(m => getSortedTokenString(m.name) === sortedName);
+  if (found) return found;
+
+  found = materials.find(m => {
+    const mNorm = normalizeText(m.name);
+    return mNorm.includes(normName) || normName.includes(mNorm);
+  });
+  return found || null;
+}
+
+// 10자 이내의 랜덤 콤팩트 바코드 코드 생성 (독립 매장용)
+function generateCompactBarcode(): string {
+  const chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  let result = "M";
+  for (let i = 0; i < 8; i++) {
+    result += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return result;
+}
+
+// 하이브리드 바코드 생성기 (본사 지점 결합형 vs 독립 매장형 분기)
+async function generateHybridBarcode(
+  supabase: any,
+  tenantId: string,
+  profile: any,
+  selectedBranchName: string,
+  mainCategory: string,
+  midCategory: string
+): Promise<string> {
+  const orgId = profile?.tenants?.organization_id;
+  if (!orgId) {
+    return generateCompactBarcode();
+  }
+
+  const MAIN_CAT_PREFIX: Record<string, string> = {
+    '생화': 'MF', '식물': 'MP', '바구니 / 화기': 'MB',
+    '소모품 및 부자재': 'MM', '조화': 'MA', '프리저브드': 'MR',
+  };
+  const prefix = MAIN_CAT_PREFIX[mainCategory] || 'MM';
+
+  const MID_CAT_CODE: Record<string, Record<string, string>> = {
+    'MF': { '장미류': '1', '거베라류': '2', '폼플라워': '3', '필러플라워': '4', '라인플라워': '5', '소재(그린)': '6', '국화류': '7', '카네이션류': '8', '리시안서스류': '9', '기타': '0', '매스플라워': 'A' },
+    'MP': { '관엽소형': '1', '관엽중형': '2', '관엽대형': '3', '서양란': '6', '동양란': '7', '기타식물': 'D', '다육선인장소형': '8', '다육선인장중형': '9', '다육선인장대형': '0' },
+    'MB': { '바구니': '1', '도자기': '2', '유리': '3', '테라조': '4', '테라코타(토분)': '5', '플라스틱': '6', '기타': '7' },
+    'MM': { '원예자재': '1', '데코자재': '2', '포장재': '3', '리본/텍': '4', '기타': '5', '제작도구': '6' },
+    'MA': { '장미류': '1', '카네이션류': '2', '리시안서스류': '3', '국화류': '4', '거베라류': '5', '폼플라워': '6', '라인플라워': '7', '필러플라워': '8', '소재(그린)': '9', '트리류': '0', '매스플라워': 'A' },
+    'MR': { '플라워': '1', '잎소재': '2', '열매': '3', '폼플라워': '4', '기타': '5' },
+  };
+  const midCode = (midCategory && MID_CAT_CODE[prefix]?.[midCategory]) || '0';
+
+  const BRANCH_CODE: Record<string, string> = {
+    '릴리맥여의도점': '1', '릴리맥여의도2호점': '2',
+    '릴리맥광화문점': '3', '릴리맥NC이스트폴점': '4',
+  };
+  const branchCode = BRANCH_CODE[selectedBranchName] || '1';
+
+  const pattern = `${prefix}${midCode}`;
+
+  try {
+    const { data } = await supabase
+      .from('materials')
+      .select('id')
+      .eq('tenant_id', tenantId)
+      .like('id', `${pattern}%`);
+
+    let maxSeq = 0;
+    if (data && data.length > 0) {
+      const regex = new RegExp(`^${pattern}(\\d{4})\\d$`);
+      for (const item of data) {
+        const match = item.id.match(regex);
+        if (match) {
+          const seq = parseInt(match[1], 10);
+          if (seq > maxSeq) maxSeq = seq;
+        }
+      }
+    }
+    const newSeq = String(maxSeq + 1).padStart(4, '0');
+    return `${pattern}${newSeq}${branchCode}`;
+  } catch (err) {
+    console.error("Error generating hybrid code:", err);
+    return generateCompactBarcode();
+  }
+}
+
 /** Run async work with a fixed concurrency (order of completion may differ from input). */
 async function runPool<T, R>(items: T[], concurrency: number, worker: (item: T, index: number) => Promise<R>): Promise<R[]> {
   if (items.length === 0) return [];
@@ -186,10 +311,12 @@ async function runPool<T, R>(items: T[], concurrency: number, worker: (item: T, 
 }
 
 export default function ExpensesPage() {
+  const supabase = createClient();
+  const { profile, tenantId } = useAuth();
   const { expenses, loading: expensesLoading, addExpense, addExpenses, updateExpense, deleteExpense } = useExpenses();
   const { uploadReceipt } = useExpenseStorage();
-  const { suppliers } = useSuppliers();
-  const { materials } = useMaterials();
+  const { suppliers, fetchSuppliers } = useSuppliers();
+  const { materials, fetchMaterials } = useMaterials();
   const { updateOrder } = useOrders(false);
   /** 목록은 지출만 로드되면 표시 (거래처·자재 로딩과 분리 — 로컬에서 자재/거래처 지연 시 스켈레톤만 보이던 현상 완화) */
   const listLoading = expensesLoading;
@@ -303,6 +430,7 @@ export default function ExpensesPage() {
   };
 
   const [formData, setFormData] = useState<ExpenseFormData>({ ...defaultFormData });
+  const [supplierSearchQuery, setSupplierSearchQuery] = useState("");
 
   // Add Item to Receipt
   const addReceiptItem = () => {
@@ -712,6 +840,80 @@ export default function ExpensesPage() {
       return;
     }
 
+    let finalSupplierId = formData.supplier_id === "none" ? undefined : formData.supplier_id;
+    let finalMaterialId = formData.material_id === "none" ? undefined : formData.material_id;
+
+    // 1. 신규 거래처 자동 등록 전처리
+    if (finalSupplierId && finalSupplierId.startsWith("new-supplier:")) {
+      const newSupplierName = finalSupplierId.substring("new-supplier:".length);
+      try {
+        const { data: newSup, error: supErr } = await supabase
+          .from('suppliers')
+          .insert([{
+            name: newSupplierName,
+            supplier_type: "기타",
+            memo: "지출 입력 시 자동 등록됨",
+            needs_review: true,
+            tenant_id: tenantId,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }])
+          .select()
+          .single();
+
+        if (supErr) throw supErr;
+        if (newSup) {
+          finalSupplierId = newSup.id;
+          await fetchSuppliers();
+        }
+      } catch (err) {
+        console.error("Failed to auto-create supplier:", err);
+      }
+    }
+
+    // 2. 신규 자재 자동 등록 전처리 (단일 품목 모드)
+    if (finalMaterialId && finalMaterialId.startsWith("new-material:")) {
+      const newMaterialName = finalMaterialId.substring("new-material:".length);
+      try {
+        const branchName = profile?.tenants?.name || "";
+        const generatedCode = await generateHybridBarcode(
+          supabase,
+          tenantId!,
+          profile,
+          branchName,
+          "소모품 및 부자재",
+          "포장재"
+        );
+        const { data: newMat, error: matErr } = await supabase
+          .from('materials')
+          .insert([{
+            id: generatedCode,
+            barcode: generatedCode,
+            name: newMaterialName,
+            main_category: "소모품 및 부자재",
+            mid_category: "포장재",
+            unit: formData.unit || "ea",
+            price: Number(formData.amount) || 0,
+            stock: Number(formData.quantity) || 0,
+            needs_review: true,
+            tenant_id: tenantId,
+            branch: branchName,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }])
+          .select()
+          .single();
+
+        if (matErr) throw matErr;
+        if (newMat) {
+          finalMaterialId = newMat.id;
+          await fetchMaterials();
+        }
+      } catch (err) {
+        console.error("Failed to auto-create material:", err);
+      }
+    }
+
     if (editingExpense) {
       const payload = {
         category: formData.category,
@@ -723,8 +925,8 @@ export default function ExpensesPage() {
         description: formData.description,
         expense_date: new Date(formData.expense_date).toISOString(),
         payment_method: formData.payment_method,
-        supplier_id: formData.supplier_id === "none" ? undefined : formData.supplier_id,
-        material_id: formData.material_id === "none" ? undefined : formData.material_id,
+        supplier_id: finalSupplierId,
+        material_id: finalMaterialId,
         quantity: formData.quantity,
         unit: formData.unit,
         receipt_url: formData.receipt_url.trim() ? formData.receipt_url : null,
@@ -739,19 +941,72 @@ export default function ExpensesPage() {
       }
     } else {
       if (formData.items.length > 0) {
-        const payloads = formData.items.map(item => ({
+        const processedItems = await Promise.all(formData.items.map(async (item) => {
+          let itemMatId = item.material_id === "none" ? undefined : item.material_id;
+          let itemMatName = item.material_name;
+          if (itemMatId && itemMatId.startsWith("new-material:")) {
+            const newMaterialName = itemMatId.substring("new-material:".length);
+            try {
+              const branchName = profile?.tenants?.name || "";
+              const generatedCode = await generateHybridBarcode(
+                supabase,
+                tenantId!,
+                profile,
+                branchName,
+                "소모품 및 부자재",
+                "포장재"
+              );
+              const { data: newMat, error: matErr } = await supabase
+                .from('materials')
+                .insert([{
+                  id: generatedCode,
+                  barcode: generatedCode,
+                  name: newMaterialName,
+                  main_category: "소모품 및 부자재",
+                  mid_category: "포장재",
+                  unit: item.unit || "ea",
+                  price: Number(item.unit_price) || 0,
+                  stock: Number(item.quantity) || 0,
+                  needs_review: true,
+                  tenant_id: tenantId,
+                  branch: branchName,
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString()
+                }])
+                .select()
+                .single();
+
+              if (matErr) throw matErr;
+              if (newMat) {
+                itemMatId = newMat.id;
+                itemMatName = newMat.name;
+              }
+            } catch (err) {
+              console.error("Failed to auto-create item material:", err);
+            }
+          }
+          return {
+            ...item,
+            material_id: itemMatId,
+            material_name: itemMatName
+          };
+        }));
+
+        await fetchMaterials();
+
+        const payloads = processedItems.map(item => ({
           category: formData.category,
           sub_category: item.sub_category || formData.sub_category,
           amount: item.amount,
           description:
             item.description ||
-            (item.material_id !== "none"
+            (item.material_id !== "none" && item.material_id
               ? tf.f02495.replace("{name}", item.material_name)
               : formData.description),
           expense_date: new Date(formData.expense_date).toISOString(),
           payment_method: formData.payment_method,
-          supplier_id: formData.supplier_id === "none" ? undefined : formData.supplier_id,
-          material_id: item.material_id === "none" ? undefined : item.material_id,
+          supplier_id: finalSupplierId,
+          material_id: item.material_id,
           quantity: item.quantity,
           unit: item.unit,
           receipt_url: formData.receipt_url,
@@ -768,8 +1023,8 @@ export default function ExpensesPage() {
           description: formData.description,
           expense_date: new Date(formData.expense_date).toISOString(),
           payment_method: formData.payment_method,
-          supplier_id: formData.supplier_id === "none" ? undefined : formData.supplier_id,
-          material_id: formData.material_id === "none" ? undefined : formData.material_id,
+          supplier_id: finalSupplierId,
+          material_id: finalMaterialId,
           quantity: formData.quantity,
           unit: formData.unit,
           receipt_url: formData.receipt_url,
@@ -1036,14 +1291,12 @@ export default function ExpensesPage() {
         const rawItems = (rc.items as Record<string, unknown>[] | undefined) || [];
         const items = rawItems.map((item: Record<string, unknown>) => {
           const materialName = String(item.material_name ?? "");
-          const foundMat = materials.find(
-            (m) => m.name.includes(materialName) || materialName.includes(m.name)
-          );
+          const foundMat = findSimilarMaterial(materialName, materials);
           const qty = Number(item.quantity) || 1;
           const unitPrice = Number(item.unit_price) || 0;
           return {
             id: crypto.randomUUID(),
-            material_id: foundMat?.id || "none",
+            material_id: foundMat?.id || (materialName.trim() ? `new-material:${materialName.trim()}` : "none"),
             material_name: foundMat?.name || materialName,
             description: String(item.description || materialName),
             quantity: qty,
@@ -1072,7 +1325,7 @@ export default function ExpensesPage() {
         ...prev,
         expense_date: mainDate || prev.expense_date,
         supplier_id: firstStore
-          ? suppliers.find((s) => s.name.includes(firstStore) || firstStore.includes(s.name))?.id || "none"
+          ? findSimilarSupplier(firstStore, suppliers)?.id || (firstStore.trim() ? `new-supplier:${firstStore.trim()}` : "none")
           : prev.supplier_id,
         amount: Math.trunc(
           receipts.reduce((sum, r) => sum + (Number((r as { total_amount?: unknown }).total_amount) || 0), 0)
@@ -1479,31 +1732,71 @@ export default function ExpensesPage() {
                       }
                     >
                       {formData.supplier_id && formData.supplier_id !== "none"
-                        ? suppliers.find(s => s.id === formData.supplier_id)?.name
+                        ? formData.supplier_id.startsWith("new-supplier:")
+                          ? `${formData.supplier_id.substring("new-supplier:".length)} (자동 등록 예정)`
+                          : suppliers.find(s => s.id === formData.supplier_id)?.name
                         : tf.f00878}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </PopoverTrigger>
                     <PopoverContent className="w-[300px] p-0" align="start">
                       <Command>
-                        <CommandInput placeholder={tf.f00873} />
+                        <CommandInput 
+                          placeholder={tf.f00873} 
+                          value={supplierSearchQuery}
+                          onValueChange={setSupplierSearchQuery}
+                        />
                         <CommandList>
-                          <CommandEmpty>{tf.f00907}</CommandEmpty>
+                          <CommandEmpty>
+                            <div>
+                              <p className="text-xs text-slate-500">{tf.f00907}</p>
+                              {supplierSearchQuery.trim() !== "" && (
+                                <Button
+                                  variant="link"
+                                  size="sm"
+                                  className="mt-1 text-primary text-xs font-semibold"
+                                  onClick={() => {
+                                    setFormData(prev => ({ ...prev, supplier_id: `new-supplier:${supplierSearchQuery.trim()}` }));
+                                    setIsSupplierOpen(false);
+                                    setSupplierSearchQuery("");
+                                  }}
+                                >
+                                  <Plus className="mr-1 h-3 w-3 inline" />
+                                  "{supplierSearchQuery.trim()}" 새 거래처로 자동 등록
+                                </Button>
+                              )}
+                            </div>
+                          </CommandEmpty>
                           <CommandGroup>
                             <CommandItem
                               onSelect={() => {
                                 setFormData(prev => ({ ...prev, supplier_id: "none" }));
                                 setIsSupplierOpen(false);
+                                setSupplierSearchQuery("");
                               }}
                             >
                               <Check className={cn("mr-2 h-4 w-4", formData.supplier_id === "none" ? "opacity-100" : "opacity-0")} />
                               {tf.f01406}
                             </CommandItem>
+                            {supplierSearchQuery.trim() !== "" && !suppliers.some(s => s.name.toLowerCase() === supplierSearchQuery.trim().toLowerCase()) && (
+                              <CommandItem
+                                onSelect={() => {
+                                  setFormData(prev => ({ ...prev, supplier_id: `new-supplier:${supplierSearchQuery.trim()}` }));
+                                  setIsSupplierOpen(false);
+                                  setSupplierSearchQuery("");
+                                }}
+                                className="text-primary font-medium"
+                              >
+                                <Plus className="mr-2 h-4 w-4" />
+                                "{supplierSearchQuery.trim()}" 새 거래처로 자동 등록
+                              </CommandItem>
+                            )}
                             {suppliers.map(s => (
                               <CommandItem
                                 key={s.id}
                                 onSelect={() => {
                                   setFormData(prev => ({ ...prev, supplier_id: s.id }));
                                   setIsSupplierOpen(false);
+                                  setSupplierSearchQuery("");
                                 }}
                               >
                                 <Check className={cn("mr-2 h-4 w-4", formData.supplier_id === s.id ? "opacity-100" : "opacity-0")} />
@@ -1605,7 +1898,9 @@ export default function ExpensesPage() {
                                   <div className="flex flex-col text-left overflow-hidden">
                                     <span className="truncate text-slate-700 font-medium leading-none mb-1">
                                       {item.material_id && item.material_id !== "none"
-                                        ? item.material_name
+                                        ? item.material_id.startsWith("new-material:")
+                                          ? `${item.material_name} (자동 등록 예정)`
+                                          : item.material_name
                                         : item.description || tf.f02127}
                                     </span>
                                     {item.main_category && (
@@ -1631,20 +1926,62 @@ export default function ExpensesPage() {
                                         <CommandEmpty>
                                           <div className="p-4 text-center">
                                             <p className="text-xs text-slate-500">{tf.f00036}</p>
-                                            <Button
-                                              variant="link"
-                                              size="sm"
-                                              className="text-[10px]"
-                                              onClick={() => {
-                                                setActiveItemPopover(null);
-                                                setItemSearchText("");
-                                              }}
-                                            >
-                                              {tf.f02517}
-                                            </Button>
+                                            {itemSearchText.trim() !== "" && (
+                                              <Button
+                                                variant="link"
+                                                size="sm"
+                                                className="text-xs font-semibold text-primary mt-1"
+                                                onClick={() => {
+                                                  updateReceiptItem(item.id, {
+                                                    material_id: `new-material:${itemSearchText.trim()}`,
+                                                    material_name: itemSearchText.trim(),
+                                                    description: tf.f02495.replace("{name}", itemSearchText.trim()),
+                                                    main_category: "소모품 및 부자재",
+                                                    mid_category: "자동등록"
+                                                  });
+                                                  setActiveItemPopover(null);
+                                                  setItemSearchText("");
+                                                }}
+                                              >
+                                                <Plus className="mr-1 h-3 w-3 inline" />
+                                                "{itemSearchText.trim()}" 새 자재로 자동 등록
+                                              </Button>
+                                            )}
+                                            <div className="mt-2">
+                                              <Button
+                                                variant="link"
+                                                size="sm"
+                                                className="text-[10px]"
+                                                onClick={() => {
+                                                  setActiveItemPopover(null);
+                                                  setItemSearchText("");
+                                                }}
+                                              >
+                                                {tf.f02517}
+                                              </Button>
+                                            </div>
                                           </div>
                                         </CommandEmpty>
                                         <CommandGroup heading={tf.f02518}>
+                                          {itemSearchText.trim() !== "" && !itemSearchList.some(m => m.name.toLowerCase() === itemSearchText.trim().toLowerCase()) && (
+                                            <CommandItem
+                                              onSelect={() => {
+                                                updateReceiptItem(item.id, {
+                                                  material_id: `new-material:${itemSearchText.trim()}`,
+                                                  material_name: itemSearchText.trim(),
+                                                  description: tf.f02495.replace("{name}", itemSearchText.trim()),
+                                                  main_category: "소모품 및 부자재",
+                                                  mid_category: "자동등록"
+                                                });
+                                                setActiveItemPopover(null);
+                                                setItemSearchText("");
+                                              }}
+                                              className="text-primary font-medium"
+                                            >
+                                              <Plus className="mr-2 h-4 w-4" />
+                                              "{itemSearchText.trim()}" 새 자재로 자동 등록
+                                            </CommandItem>
+                                          )}
                                           {itemSearchList.map(m => (
                                             <CommandItem
                                               key={m.id}

@@ -37,6 +37,8 @@ import {
 } from "@/lib/subscription/subscription-tenure";
 import { planIdLabel } from "@/lib/subscription/subscription-events";
 import Link from "next/link";
+import { LeaseExpiryBadge } from "@/components/admin/lease-expiry-badge";
+import { getLeaseStatus, leaseExpiryNeedsAttention } from "@/lib/admin/printer-logistics/lease-status";
 import {
   TENANT_COUNTRY_META,
   tenantCountryFlag,
@@ -901,9 +903,14 @@ export default function TenantsPage() {
                             </Badge>
                             {tenant.pos_printer_date && (
                               <span className="text-[9px] text-slate-400 font-mono font-normal flex items-center gap-1 ml-1">
-                                {tenant.pos_printer_date}
+                                출고 {tenant.pos_printer_date}
                               </span>
                             )}
+                            <LeaseExpiryBadge
+                              leaseEnd={tenant.subscription_end ? String(tenant.subscription_end).slice(0, 10) : null}
+                              leased
+                              compact
+                            />
                           </div>
                         ) : null}
 
@@ -914,11 +921,33 @@ export default function TenantsPage() {
                             </Badge>
                             {tenant.label_printer_date && (
                               <span className="text-[9px] text-slate-400 font-mono font-normal flex items-center gap-1 ml-1">
-                                {tenant.label_printer_date}
+                                출고 {tenant.label_printer_date}
                               </span>
                             )}
+                            <LeaseExpiryBadge
+                              leaseEnd={tenant.subscription_end ? String(tenant.subscription_end).slice(0, 10) : null}
+                              leased
+                              compact
+                            />
                           </div>
                         ) : null}
+
+                        {(tenant.pos_printer_leased || tenant.label_printer_leased) &&
+                          leaseExpiryNeedsAttention(
+                            getLeaseStatus(
+                              tenant.subscription_end ? String(tenant.subscription_end).slice(0, 10) : null,
+                              false,
+                              true,
+                            ),
+                          ) && (
+                            <Link
+                              href="/dashboard/admin/printer-logistics"
+                              className="text-[9px] text-emerald-700 underline font-medium ml-1"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              출고 · 반납 화면 →
+                            </Link>
+                          )}
 
                         {!tenant.pos_printer_leased && !tenant.label_printer_leased && (
                           <span className="text-slate-300">-</span>

@@ -119,60 +119,39 @@ export function MessagePrintLayout({
           @media print {
             @page {
               size: ${config.isThermal ? `${config.width} ${config.height}` : 'A4'};
-              margin: 0;
+              margin: 0 !important;
             }
-            body {
-              margin: 0;
-              padding: 0;
-            }
-            /* 사이드바와 네비게이션 완전히 숨기기 */
-            .sidebar, nav, header, .no-print, aside, [data-sidebar] {
-              display: none !important;
-            }
-            /* 메인 콘텐츠만 표시 */
-            main {
+            /* 부모 엘리먼트들이 인쇄 시 어떠한 여백이나 오프셋도 생성하지 않도록 완전 무력화 */
+            html, body, #__next, [data-overlay-container="true"], main, div {
               margin: 0 !important;
               padding: 0 !important;
-              width: 100% !important;
+              height: auto !important;
+              min-height: 0 !important;
+              position: static !important;
+              transform: none !important;
+              box-shadow: none !important;
             }
-            /* 전체 페이지 레이아웃 재설정 */
-            * {
-              visibility: hidden;
+            /* 모든 요소를 숨기기 */
+            body * {
+              visibility: hidden !important;
             }
-            #printable-area-wrapper, #printable-area-wrapper * {
-              visibility: visible;
+            /* 인쇄 대상 영역 및 내부 하위 자식 요소들만 보이도록 지정 */
+            #printable-area-wrapper,
+            #printable-area-wrapper * {
+              visibility: visible !important;
             }
             #printable-area-wrapper {
-              background: white;
-              box-shadow: none;
-              margin: 0;
-              width: ${config.isThermal ? config.width : '210mm'};
-              height: ${config.isThermal ? config.height : '297mm'};
-              position: relative;
-              overflow: hidden;
-            }
-
-            @media print {
-              #printable-area-wrapper {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: ${config.isThermal ? config.width : '210mm'};
-                height: ${config.isThermal ? config.height : '297mm'};
-                box-sizing: border-box;
-                margin: 0;
-                padding: 0;
-                overflow: hidden;
-                box-shadow: none;
-              }
-            }
-            /* 6칸 라벨용 여백 설정 */
-            #printable-area-wrapper[data-label-type="formtec-3107"] {
-              padding: 8mm 5mm 10mm 5mm;
-            }
-            /* 12칸 라벨용 여백 설정 */
-            #printable-area-wrapper[data-label-type="formtec-3109"] {
-              padding: 11mm 5mm 16mm 5mm;
+              visibility: visible !important;
+              position: absolute !important;
+              left: 0px !important;
+              top: 0px !important;
+              margin: 0px !important;
+              width: ${config.isThermal ? config.width : '210mm'} !important;
+              height: ${config.isThermal ? config.height : '297mm'} !important;
+              box-sizing: border-box !important;
+              background-color: white !important;
+              overflow: hidden !important;
+              box-shadow: none !important;
             }
           }
         `}</style>

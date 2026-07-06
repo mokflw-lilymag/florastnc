@@ -493,6 +493,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
+    show: false,
     title: 'Floxync Desktop',
     autoHideMenuBar: true,
     titleBarStyle: 'hidden',
@@ -560,9 +561,14 @@ function createWindow() {
       void shell.openExternal(url);
       return { action: 'deny' };
     }
+    const isBlankPopup = !url || url === 'about:blank';
     return {
       action: 'allow',
       overrideBrowserWindowOptions: {
+        show: false,
+        width: isBlankPopup ? 800 : 1024,
+        height: isBlankPopup ? 600 : 768,
+        autoHideMenuBar: true,
         webPreferences: {
           preload: path.join(__dirname, 'preload.js'),
           contextIsolation: true,
@@ -578,6 +584,18 @@ function createWindow() {
   } else {
     loadPackagedUi();
   }
+
+  mainWindow.once('ready-to-show', () => {
+    if (!app.isPackaged) {
+      mainWindow.show();
+      return;
+    }
+    const settings = app.getLoginItemSettings();
+    // 시작 프로그램으로 자동 켜진 것이 아니면 창 띄우기
+    if (!settings.wasOpenedAtLogin) {
+      mainWindow.show();
+    }
+  });
 }
 
 // Single instance lock for tray app
@@ -703,6 +721,19 @@ if (!gotTheLock) {
     });
     
     app.on('browser-window-created', (event, window) => {
+      if (window !== mainWindow) {
+        window.webContents.once('did-finish-load', () => {
+          if (window.isDestroyed()) return;
+          const currentUrl = window.webContents.getURL();
+          if (!currentUrl || currentUrl === 'about:blank') return;
+          // 인쇄/PDF 변환용 숨김 창 (floxync 영수증 등)은 노출 방지
+          if (/^file:\/\//i.test(currentUrl) && /floxync_receipt/i.test(currentUrl)) return;
+          // data: URL(업데이트 진행 등)은 각 창에서 직접 show 처리
+          if (currentUrl.startsWith('data:')) return;
+          window.show();
+        });
+      }
+
       window.webContents.on('before-input-event', (event, input) => {
         if (input.type === 'keyDown' && input.key === 'F12') {
           window.webContents.toggleDevTools();

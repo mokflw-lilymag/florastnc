@@ -250,6 +250,29 @@ export default function OrdersPage() {
     }
   }, [currentPeriod, filterBasis, searchParams, pathname, router, isErpTrial]);
 
+  // URL에서 돌아왔을 때 메시지 인쇄 다이얼로그 자동 복원 처리
+  useEffect(() => {
+    const openPrint = searchParams.get('openMessagePrint') === 'true';
+    const orderId = searchParams.get('orderId');
+    if (openPrint && orderId && orders.length > 0) {
+      const matched = orders.find(o => o.id === orderId);
+      if (matched) {
+        setSelectedOrder(matched);
+        setIsMessagePrintOpen(true);
+        // URL 쿼리 파라미터 정리하여 중복 트리거 방지
+        const cleanParams = new URLSearchParams(searchParams.toString());
+        cleanParams.delete('openMessagePrint');
+        cleanParams.delete('orderId');
+        cleanParams.delete('labelType');
+        cleanParams.delete('start');
+        cleanParams.delete('messageContent');
+        cleanParams.delete('positions');
+        const target = (pathname || "") + "?" + cleanParams.toString();
+        router.replace(target);
+      }
+    }
+  }, [searchParams, orders, pathname, router]);
+
   const getFetchDates = useCallback(() => {
     let start = subDays(new Date(), 60);
     if (currentPeriod === '3months') start = subDays(new Date(), 90);

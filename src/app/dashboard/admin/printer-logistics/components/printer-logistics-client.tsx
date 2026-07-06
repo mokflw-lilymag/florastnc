@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { format, parseISO } from "date-fns";
-import { Loader2, Truck, Search, Package, Mail, CheckCircle2 } from "lucide-react";
+import { Loader2, Truck, Search, Package, Mail, CheckCircle2, AlertTriangle, CalendarRange, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { AccessDenied } from "@/components/access-denied";
@@ -39,6 +40,9 @@ import {
   PRINTER_COURIERS,
   type PrinterLeaseRow,
 } from "@/lib/admin/printer-logistics/types";
+import { getLeaseStatus, leaseExpiryNeedsAttention } from "@/lib/admin/printer-logistics/lease-status";
+import { LeaseExpiryBadge } from "@/components/admin/lease-expiry-badge";
+import { cn } from "@/lib/utils";
 
 function fmtDate(v: string | null) {
   if (!v) return "—";
@@ -67,6 +71,36 @@ export function PrinterLogisticsClient() {
   const [sendShipmentEmail, setSendShipmentEmail] = useState(true);
   const [sendReturnEmail, setSendReturnEmail] = useState(true);
   const [saving, setSaving] = useState(false);
+  const searchParams = useSearchParams();
+  const filterQuery = searchParams.get("filter");
+  const [filterMode, setFilterMode] = useState<"all" | "overdue" | "expiring" | "today">("all");
+
+  useEffect(() => {
+    if (filterQuery === "overdue" || filterQuery === "expiring" || filterQuery === "today") {
+      setFilterMode(filterQuery);
+    } else {
+      setFilterMode("all");
+    }
+  }, [filterQuery]);
+
+  const stats = useMemo(() => {
+    let activeLeases = 0;
+    let overdueLeases = 0;
+    let expiringLeases = 0;
+    let todayLeases = 0;
+
+    leases.forEach((l) => {
+      if (l.leased && !l.return_completed) {
+        activeLeases++;
+        const status = getLeaseStatus(l.lease_end, l.return_completed, l.leased);
+        if (status.type === "overdue") overdueLeases++;
+        else if (status.type === "today") todayLeases++;
+        else if (status.type === "expiring") expiringLeases++;
+      }
+    });
+
+    return { activeLeases, overdueLeases, expiringLeases, todayLeases };
+  }, [leases]);
 
   const load = useCallback(async (q?: string) => {
     setLoading(true);
@@ -159,13 +193,97 @@ export function PrinterLogisticsClient() {
   const active = leases.filter((l) => l.leased && !l.return_completed);
   const returned = leases.filter((l) => l.return_completed);
 
+  const filteredActive = useMemo(() => {
+    return active.filter((l) => {
+      if (filterMode === "all") return true;
+      const status = getLeaseStatus(l.lease_end, l.return_completed, l.leased);
+      return status.type === filterMode;
+    });
+  }, [active, filterMode]);
+
   return (
     <div className="container mx-auto py-6 space-y-6 max-w-6xl">
       <PageHeader
         title="출고 · 반납"
-        description="임대 중인 프린터의 택배 출고·반납 처리 및 안내 메일 발송입니다. 회원사 관리 화면에는 임대 요약만 표시됩니다."
+        description="임대 만료일은 매장 구독 만료(subscription_end) 기준입니다. 연체·임박 장비는 상단 카드와 목록 배지로 확인하세요."
         icon={Truck}
       />
+
+      {/* 장비 물류 현황 전광판 */}
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+        <Card 
+          className={cn(
+            "cursor-pointer transition-all hover:border-slate-400 border border-transparent shadow-sm",
+            filterMode === "all" ? "border-slate-800 bg-slate-50/50 shadow-md" : "bg-white"
+          )}
+          onClick={() => setFilterMode("all")}
+        >
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs text-slate-500 font-medium">전체 임대 중</p>
+              <h3 className="text-2xl font-bold mt-1 text-slate-900">{stats.activeLeases}대</h3>
+            </div>
+            <div className="p-2 bg-slate-100 rounded-lg text-slate-600">
+              <Package className="w-5 h-5" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card 
+          className={cn(
+            "cursor-pointer transition-all hover:border-red-400 border border-transparent shadow-sm",
+            filterMode === "overdue" ? "border-red-600 bg-red-50/50 shadow-md" : "bg-white",
+            stats.overdueLeases > 0 ? "animate-pulse" : ""
+          )}
+          onClick={() => setFilterMode("overdue")}
+        >
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs text-red-500 font-semibold">반납 연체 중</p>
+              <h3 className="text-2xl font-bold mt-1 text-red-600">{stats.overdueLeases}대</h3>
+            </div>
+            <div className="p-2 bg-red-100 rounded-lg text-red-600">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card 
+          className={cn(
+            "cursor-pointer transition-all hover:border-amber-400 border border-transparent shadow-sm",
+            filterMode === "today" ? "border-amber-600 bg-amber-50/50 shadow-md" : "bg-white"
+          )}
+          onClick={() => setFilterMode("today")}
+        >
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs text-amber-600 font-semibold">오늘 만료 예정</p>
+              <h3 className="text-2xl font-bold mt-1 text-amber-700">{stats.todayLeases}대</h3>
+            </div>
+            <div className="p-2 bg-amber-100 rounded-lg text-amber-600">
+              <Clock className="w-5 h-5" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card 
+          className={cn(
+            "cursor-pointer transition-all hover:border-orange-400 border border-transparent shadow-sm",
+            filterMode === "expiring" ? "border-orange-600 bg-orange-50/50 shadow-md" : "bg-white"
+          )}
+          onClick={() => setFilterMode("expiring")}
+        >
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs text-orange-500 font-semibold">7일 내 반납 예정</p>
+              <h3 className="text-2xl font-bold mt-1 text-orange-600">{stats.expiringLeases}대</h3>
+            </div>
+            <div className="p-2 bg-orange-100 rounded-lg text-orange-600">
+              <CalendarRange className="w-5 h-5" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       <Card>
         <CardHeader className="pb-3">
@@ -173,6 +291,20 @@ export function PrinterLogisticsClient() {
             <div>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Package className="w-5 h-5" /> 임대 장비 물류
+                {filterMode !== "all" && (
+                  <Badge 
+                    variant="destructive" 
+                    className={cn(
+                      "cursor-pointer hover:bg-red-600 gap-1 text-[11px] font-bold px-2 py-0.5 ml-2",
+                      filterMode === "overdue" ? "bg-red-600 text-white" :
+                      filterMode === "today" ? "bg-amber-600 text-white" :
+                      "bg-orange-600 text-white"
+                    )}
+                    onClick={() => setFilterMode("all")}
+                  >
+                    필터: {filterMode === "overdue" ? "반납 연체" : filterMode === "today" ? "오늘 만료" : "7일 내 만료"} ✕
+                  </Badge>
+                )}
               </CardTitle>
               <CardDescription>택배사·송장·반납 완료를 기록하고 출고/반납 안내 메일을 보냅니다.</CardDescription>
             </div>
@@ -202,9 +334,9 @@ export function PrinterLogisticsClient() {
             <div className="space-y-8">
               <section>
                 <h3 className="text-sm font-semibold text-slate-700 mb-2">
-                  임대 중 ({active.length})
+                  임대 중 ({filteredActive.length} / {active.length})
                 </h3>
-                <LeaseTable rows={active} onRowClick={openRow} emptyText="임대 중인 장비가 없습니다." />
+                <LeaseTable rows={filteredActive} onRowClick={openRow} emptyText="필터 조건에 부합하는 임대 장비가 없습니다." />
               </section>
               {returned.length > 0 && (
                 <section>
@@ -373,32 +505,62 @@ function LeaseTable({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {rows.map((row) => (
+          {rows.map((row) => {
+            const expiry = getLeaseStatus(row.lease_end, row.return_completed, row.leased);
+            const attention = !muted && leaseExpiryNeedsAttention(expiry);
+            return (
             <TableRow
               key={`${row.tenant_id}-${row.device_type}`}
-              className={`cursor-pointer hover:bg-slate-50 ${muted ? "text-slate-500" : ""}`}
+              className={cn(
+                "cursor-pointer hover:bg-slate-50",
+                muted && "text-slate-500",
+                expiry.type === "overdue" && !muted && "bg-red-50/80 hover:bg-red-50",
+                expiry.type === "today" && !muted && "bg-amber-50/60 hover:bg-amber-50",
+              )}
               onClick={() => onRowClick(row)}
             >
               <TableCell className="font-medium">{row.tenant_name}</TableCell>
               <TableCell>{deviceLabel(row.device_type)}</TableCell>
               <TableCell>{row.model_name || "—"}</TableCell>
               <TableCell>{fmtDate(row.lease_start)}</TableCell>
-              <TableCell>{fmtDate(row.lease_end)}</TableCell>
+              <TableCell>
+                <div className="flex flex-col gap-1 items-start">
+                  <span className={cn(expiry.type === "overdue" && "text-red-700 font-semibold")}>
+                    {fmtDate(row.lease_end)}
+                  </span>
+                  {!row.return_completed && (
+                    <LeaseExpiryBadge
+                      leaseEnd={row.lease_end}
+                      leased={row.leased}
+                      returnCompleted={row.return_completed}
+                      compact
+                    />
+                  )}
+                </div>
+              </TableCell>
               <TableCell>{row.courier || "—"}</TableCell>
               <TableCell className="font-mono text-xs">{row.tracking_number || "—"}</TableCell>
               <TableCell>
-                {row.return_completed ? (
-                  <Badge variant="secondary">반납완료</Badge>
-                ) : row.tracking_number ? (
-                  <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100">출고</Badge>
-                ) : (
-                  <Badge variant="outline">임대중</Badge>
-                )}
+                <div className="flex flex-col gap-1 items-start">
+                  {row.return_completed ? (
+                    <Badge variant="secondary">반납완료</Badge>
+                  ) : (
+                    <>
+                      {row.tracking_number ? (
+                        <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100">출고</Badge>
+                      ) : (
+                        <Badge variant="outline">임대중</Badge>
+                      )}
+                    </>
+                  )}
+                </div>
               </TableCell>
             </TableRow>
-          ))}
+            );
+          })}
         </TableBody>
       </Table>
     </div>
   );
 }
+

@@ -1,7 +1,7 @@
 "use client";
 import { getMessages } from "@/i18n/getMessages";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, memo } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,12 +25,14 @@ import {
   Check,
   ChevronsUpDown,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Printer
 } from 'lucide-react';
 import { DASHBOARD_LIST_PAGE_SIZE } from '@/lib/dashboard-list-limit';
 import { useMaterials, Material } from '@/hooks/use-materials';
 import { useSuppliers } from '@/hooks/use-suppliers';
 import { SAMPLE_MATERIALS } from "@/utils/sample-data";
+import { PrintOptionsDialog } from "@/components/print-options-dialog";
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -80,6 +82,10 @@ export default function InventoryPage() {
   const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
   const [isImporting, setIsImporting] = useState(false);
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isPrintDialogOpen, setIsPrintDialogOpen] = useState(false);
+  const [printTargetIds, setPrintTargetIds] = useState<string[]>([]);
+  const [printTargetName, setPrintTargetName] = useState("");
 
   const CATEGORIES = materialCategories || DEFAULT_MATERIAL_CATEGORIES;
 
@@ -157,10 +163,14 @@ export default function InventoryPage() {
   };
 
   const handleSave = async () => {
+    const savePayload = {
+      ...formData,
+      needs_review: false
+    };
     if (editingMaterial) {
-      await updateMaterial(editingMaterial.id, formData);
+      await updateMaterial(editingMaterial.id, savePayload);
     } else {
-      await addMaterial(formData);
+      await addMaterial(savePayload);
     }
     setIsAddDialogOpen(false);
     setEditingMaterial(null);
@@ -177,6 +187,21 @@ export default function InventoryPage() {
       supplier_id: "",
       memo: ""
     });
+  };
+
+  const handlePrintSubmit = ({ items, startPosition, presetId }: { items: { id: string; quantity: number }[]; startPosition: number; presetId: string }) => {
+    if (items.length === 0) return;
+    
+    // items 파라미터를 id1:qty1,id2:qty2 형태로 변환하여 전달
+    const itemsParamValue = items.map(item => `${item.id}:${item.quantity}`).join(",");
+    const params = new URLSearchParams({
+      items: itemsParamValue,
+      type: 'material',
+      start: String(startPosition),
+      preset: presetId,
+    });
+    window.open(`/dashboard/print-labels?${params.toString()}`, '_blank');
+    setIsPrintDialogOpen(false);
   };
 
   const midCategoriesForSelected = useMemo(() => {
@@ -199,7 +224,7 @@ export default function InventoryPage() {
   }, [materials, selectedCategory, CATEGORIES.mid]);
 
   const filteredMaterials = useMemo(() => {
-    return materials.filter(m => {
+    const list = materials.filter(m => {
       // Main category filter
       if (selectedCategory !== "all" && m.main_category !== selectedCategory) {
         return false;
@@ -223,6 +248,13 @@ export default function InventoryPage() {
         m.id.toLowerCase().includes(searchLower)
       );
     });
+
+    // needs_review가 true인 항목이 가장 위로 올라오도록 정렬
+    return [...list].sort((a, b) => {
+      const aReview = (a as any).needs_review ? 1 : 0;
+      const bReview = (b as any).needs_review ? 1 : 0;
+      return bReview - aReview;
+    });
   }, [materials, searchTerm, selectedCategory, selectedMidCategory, suppliers]);
 
   const openEdit = (m: Material) => {
@@ -232,11 +264,88 @@ export default function InventoryPage() {
   };
 
   const getSupplierName = (m: Material) => {
-      if (m.supplier_id) {
-          return suppliers.find(s => s.id === m.supplier_id)?.name || m.supplier || "-";
-      }
-      return m.supplier || "-";
+    if (m.supplier_id) {
+      return suppliers.find(s => s.id === m.supplier_id)?.name || m.supplier || "-";
+    }
+    return m.supplier || "-";
   };
+
+  const tableBodyContent = useMemo(() => {
+    if (stats.totalTypes === 0 && materials.length === 0) {
+      return (
+        <TableRow>
+          <TableCell colSpan={9} className="h-96 text-center text-muted-foreground font-medium">
+            <div className="flex flex-col items-center justify-center space-y-6 py-12">
+               <div className="p-6 bg-slate-50 rounded-full border border-dashed border-slate-200">
+                 <Layers className="w-16 h-16 text-slate-300" />
+               </div>
+               <div className="space-y-2">
+                 <h3 className="text-xl font-bold text-slate-800">{tf.f01115}</h3>
+                 <p className="max-w-md text-slate-500">
+                   {tf.f01981}
+                 </p>
+               </div>
+               <div className="flex gap-3">
+                  <Button onClick={handleLoadSamples} variant="outline" className="bg-white border-orange-200 text-orange-700 hover:bg-orange-50">
+                    <RefreshCw className="w-4 h-4 mr-2 text-orange-500" />
+                    {tf.f01391}
+                  </Button>
+                  <Button onClick={() => {
+                    setEditingMaterial(null);
+                    setFormData({ name: "", main_category: CATEGORIES.main[0] || DEFAULT_MATERIAL_MAIN, mid_category: "", unit: "ea", spec: "", price: 0, color: "", stock: 0, supplier: "", supplier_id: "", memo: "" });
+                    setIsAddDialogOpen(true);
+                  }} className="bg-primary hover:bg-primary/90 text-white font-bold">
+                    <Plus className="w-4 h-4 mr-2" />
+                    {tf.f01983}
+                  </Button>
+               </div>
+            </div>
+          </TableCell>
+        </TableRow>
+      );
+    }
+
+    if (materials.length === 0 && stats.totalTypes > 0) {
+      return (
+        <TableRow>
+          <TableCell colSpan={9} className="h-64 text-center text-muted-foreground font-medium">
+            <p>{tf.f02391}</p>
+          </TableCell>
+        </TableRow>
+      );
+    }
+
+    if (filteredMaterials.length === 0) {
+      return (
+        <TableRow>
+          <TableCell colSpan={9} className="h-64 text-center text-muted-foreground font-medium">
+            <p>{tf.f00036}</p>
+          </TableCell>
+        </TableRow>
+      );
+    }
+
+    return filteredMaterials.map((material, idx) => (
+      <MaterialRow
+        key={material.id}
+        material={material}
+        isSelected={selectedIds.includes(material.id)}
+        onSelect={(id: string) => {
+          if (selectedIds.includes(id)) {
+            setSelectedIds(prev => prev.filter(x => x !== id));
+          } else {
+            setSelectedIds(prev => [...prev, id]);
+          }
+        }}
+        onClick={openEdit}
+        onEdit={openEdit}
+        onDelete={deleteMaterial}
+        getSupplierName={getSupplierName}
+      />
+    ));
+  }, [materials, filteredMaterials, selectedIds, stats.totalTypes, tf, CATEGORIES.main, DEFAULT_MATERIAL_MAIN, suppliers]);
+
+
 
   return (
     <div className="p-6 max-w-[1600px] mx-auto space-y-6 animate-in fade-in duration-500">
@@ -300,6 +409,20 @@ export default function InventoryPage() {
               {isImporting ? tf.f00850 : tf.f01086}
             </Button>
           </div>
+
+          {selectedIds.length > 0 && (
+            <Button
+              onClick={() => {
+                setPrintTargetIds(selectedIds);
+                setPrintTargetName(`선택한 자재 ${selectedIds.length}개`);
+                setIsPrintDialogOpen(true);
+              }}
+              className="bg-orange-600 hover:bg-orange-700 text-white shadow-lg shadow-orange-500/20 font-bold active:scale-95 transition-all"
+            >
+              <Package className="w-4 h-4 mr-2" />
+              바코드 라벨 인쇄 ({selectedIds.length})
+            </Button>
+          )}
 
           <Button 
             className="bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20 transition-all active:scale-95"
@@ -439,136 +562,32 @@ export default function InventoryPage() {
               <Table>
                 <TableHeader className="bg-gray-50/50">
                   <TableRow className="hover:bg-transparent border-b">
-                    <TableHead className="font-bold text-center w-12 text-gray-600">{tf.f01250}</TableHead>
-                    <TableHead className="font-bold text-gray-600">{tf.f01749}</TableHead>
+                    <TableHead className="w-10 text-center">
+                      <input
+                        type="checkbox"
+                        className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4 cursor-pointer"
+                        checked={filteredMaterials.length > 0 && selectedIds.length === filteredMaterials.length}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedIds(filteredMaterials.map(m => m.id));
+                          } else {
+                            setSelectedIds([]);
+                          }
+                        }}
+                      />
+                    </TableHead>
                     <TableHead className="font-bold text-gray-600">{tf.f01746}</TableHead>
-                    <TableHead className="font-bold text-gray-600">{tf.f01074}</TableHead>
-                    <TableHead className="font-bold text-gray-600">{tf.f01887}</TableHead>
+                    <TableHead className="font-bold text-gray-600">{tf.f01749}</TableHead>
                     <TableHead className="font-bold text-gray-600 text-center">{tf.f01066}</TableHead>
-                    <TableHead className="font-bold text-gray-600">{tf.f02374}</TableHead>
-                    <TableHead className="font-bold text-gray-600 text-right">{tf.f00021}</TableHead>
-                    <TableHead className="font-bold text-gray-600 text-center">{tf.f02375}</TableHead>
-                    <TableHead className="font-bold text-gray-600 text-center">{tf.f00538}</TableHead>
-                    <TableHead className="font-bold text-gray-600">{tf.f00950}</TableHead>
-                    <TableHead className="font-bold text-gray-600">{tf.f00197}</TableHead>
+                    <TableHead className="font-bold text-gray-600 hidden md:table-cell">{tf.f01074}</TableHead>
+                    <TableHead className="font-bold text-gray-600 text-right hidden sm:table-cell">{tf.f00021}</TableHead>
+                    <TableHead className="font-bold text-gray-600 hidden md:table-cell">{tf.f00950}</TableHead>
                     <TableHead className="font-bold text-gray-600 text-right">{tf.f00087}</TableHead>
+                    <TableHead className="w-16"><span className="sr-only">작업</span></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {stats.totalTypes === 0 && materials.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={13} className="h-96 text-center text-muted-foreground font-medium">
-                        <div className="flex flex-col items-center justify-center space-y-6 py-12">
-                           <div className="p-6 bg-slate-50 rounded-full border border-dashed border-slate-200">
-                             <Layers className="w-16 h-16 text-slate-300" />
-                           </div>
-                           <div className="space-y-2">
-                             <h3 className="text-xl font-bold text-slate-800">{tf.f01115}</h3>
-                             <p className="max-w-md text-slate-500">
-                               {tf.f01981}
-                             </p>
-                           </div>
-                           <div className="flex gap-3">
-                              <Button onClick={handleLoadSamples} variant="outline" className="bg-white border-orange-200 text-orange-700 hover:bg-orange-50">
-                                <RefreshCw className="w-4 h-4 mr-2 text-orange-500" />
-                                {tf.f01391}
-                              </Button>
-                              <Button onClick={() => {
-                                setEditingMaterial(null);
-                                setFormData({ name: "", main_category: CATEGORIES.main[0] || DEFAULT_MATERIAL_MAIN, mid_category: "", unit: "ea", spec: "", price: 0, color: "", stock: 0, supplier: "", supplier_id: "", memo: "" });
-                                setIsAddDialogOpen(true);
-                              }} className="bg-primary hover:bg-primary/90 text-white font-bold">
-                                <Plus className="w-4 h-4 mr-2" />
-                                {tf.f01983}
-                              </Button>
-                           </div>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ) : materials.length === 0 && stats.totalTypes > 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={13} className="h-64 text-center text-muted-foreground font-medium">
-                        <p>{tf.f02391}</p>
-                      </TableCell>
-                    </TableRow>
-                  ) : filteredMaterials.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={13} className="h-64 text-center text-muted-foreground font-medium">
-                        <p>{tf.f00036}</p>
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredMaterials.map((material, idx) => (
-                      <TableRow key={material.id} className="group hover:bg-gray-50/50 transition-colors">
-                        <TableCell className="text-center font-mono text-xs text-slate-400">
-                          {listPage * DASHBOARD_LIST_PAGE_SIZE + idx + 1}
-                        </TableCell>
-                        <TableCell className="font-mono text-[10px] text-slate-500 truncate max-w-[80px]" title={material.id}>
-                          {material.id.split('-')[0]}...
-                        </TableCell>
-                        <TableCell className="font-bold text-gray-800 tracking-tight whitespace-nowrap">
-                          {material.name}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="bg-white border-primary/20 text-primary px-2 py-0.5 whitespace-nowrap">
-                            {material.main_category}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-slate-500 text-sm whitespace-nowrap">
-                          {material.mid_category || '-'}
-                        </TableCell>
-                        <TableCell className="text-center text-slate-500">{material.unit}</TableCell>
-                        <TableCell className="text-slate-500 text-sm">{material.spec || '-'}</TableCell>
-                        <TableCell className="text-right font-medium text-gray-700">
-                          {material.price.toLocaleString()}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {material.color ? (
-                            <div className="flex items-center justify-center gap-1">
-                              <div 
-                                className="w-3 h-3 rounded-full border border-slate-200" 
-                                style={{ backgroundColor: material.color }}
-                              />
-                              <span className="text-xs text-slate-600">{material.color}</span>
-                            </div>
-                          ) : '-'}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-bold shadow-sm ${
-                            material.stock === 0 ? "bg-red-50 text-red-700 border border-red-100" :
-                            material.stock < 10 ? "bg-orange-50 text-orange-700 border border-orange-100" :
-                            "bg-green-50 text-green-700 border border-green-100"
-                          }`}>
-                            {material.stock.toLocaleString()}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-gray-500 text-sm">{getSupplierName(material)}</TableCell>
-                        <TableCell className="text-gray-400 text-xs max-w-[120px] truncate">{material.memo || '-'}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8 hover:text-blue-600 hover:bg-blue-50"
-                              onClick={() => openEdit(material)}
-                            >
-                              <Edit2 className="w-3.5 h-3.5" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8 hover:text-red-600 hover:bg-red-50"
-                              onClick={() => {
-                                if(window.confirm(tf.f01816)) deleteMaterial(material.id);
-                              }}
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
+                  {tableBodyContent}
                 </TableBody>
               </Table>
             </div>
@@ -820,6 +839,102 @@ export default function InventoryPage() {
         open={isCategoryDialogOpen} 
         onOpenChange={setIsCategoryDialogOpen} 
       />
+
+      <PrintOptionsDialog
+        isOpen={isPrintDialogOpen}
+        onOpenChange={setIsPrintDialogOpen}
+        onSubmit={handlePrintSubmit}
+        targetIds={printTargetIds}
+      />
     </div>
   );
 }
+
+const MaterialRow = memo(({
+  material,
+  isSelected,
+  onSelect,
+  onClick,
+  onEdit,
+  onDelete,
+  getSupplierName
+}: {
+  material: Material;
+  isSelected: boolean;
+  onSelect: (id: string) => void;
+  onClick: (material: Material) => void;
+  onEdit: (material: Material) => void;
+  onDelete: (docId: string) => void;
+  getSupplierName: (m: Material) => string;
+}) => {
+  const statusInfo = (stock: number) => {
+    if (stock === 0) return { text: '품절', variant: 'destructive' as const };
+    if (stock < 20) return { text: '재고 부족', variant: 'secondary' as const };
+    return { text: '입고중', variant: 'default' as const };
+  }
+
+  const info = statusInfo(material.stock);
+
+  return (
+    <TableRow>
+      <TableCell onClick={(e) => e.stopPropagation()}>
+        <input
+          type="checkbox"
+          className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4 cursor-pointer"
+          checked={isSelected}
+          onChange={() => onSelect(material.id)}
+          aria-label={`${material.name || '자재'} 선택`}
+        />
+      </TableCell>
+      <TableCell className="font-medium cursor-pointer" onClick={() => onClick(material)}>
+        {material.name || '이름 없음'}
+      </TableCell>
+      <TableCell className="cursor-pointer" onClick={() => onClick(material)}>
+        <div className="flex items-center gap-2 font-mono text-sm text-muted-foreground group">
+          {material.id}
+        </div>
+      </TableCell>
+      <TableCell className="cursor-pointer" onClick={() => onClick(material)}>
+        <Badge variant={info.variant}>
+          {info.text}
+        </Badge>
+      </TableCell>
+      <TableCell className="hidden md:table-cell cursor-pointer" onClick={() => onClick(material)}>
+        {material.main_category} &gt; {material.mid_category}
+      </TableCell>
+      <TableCell className="hidden sm:table-cell cursor-pointer" onClick={() => onClick(material)}>
+        ₩{material.price.toLocaleString()}
+      </TableCell>
+      <TableCell className="hidden md:table-cell cursor-pointer text-gray-500 text-sm" onClick={() => onClick(material)}>
+        {getSupplierName(material)}
+      </TableCell>
+      <TableCell className="text-right cursor-pointer" onClick={() => onClick(material)}>
+        {material.stock}
+      </TableCell>
+      <TableCell onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-end gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8 hover:text-blue-600 hover:bg-blue-50"
+            onClick={() => onEdit(material)}
+          >
+            <Edit2 className="w-3.5 h-3.5" />
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8 hover:text-red-600 hover:bg-red-50"
+            onClick={() => {
+              if (window.confirm("정말로 삭제하시겠습니까?")) onDelete(material.id);
+            }}
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </Button>
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+});
+
+MaterialRow.displayName = "MaterialRow";
