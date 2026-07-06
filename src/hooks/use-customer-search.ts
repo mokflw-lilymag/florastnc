@@ -28,9 +28,16 @@ export function useCustomerSearch() {
         const digits = q.replace(/[^0-9]/g, '');
         if (digits.length > 0) {
           orQuery += `,contact.ilike.%${digits}%`;
+          if (q !== digits) {
+            orQuery += `,contact.ilike.%${q}%`;
+          }
         }
       } else {
         orQuery += `,contact.ilike.%${q}%`;
+        const noSpace = q.replace(/\s+/g, '');
+        if (noSpace !== q) {
+            orQuery += `,name.ilike.%${noSpace}%`;
+        }
       }
 
       const { data, error } = await supabase
