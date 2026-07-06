@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 400" role="img">
+  <rect width="920" height="400" rx="16" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+  <rect x="24" y="24" width="872" height="48" rx="8" fill="#ecfdf5"/>
+  <text x="440" y="54" text-anchor="middle" font-family="Inter,Segoe UI,sans-serif" font-size="14" font-weight="700" fill="#047857">FloXync</text>
+  <text x="440" y="200" text-anchor="middle" font-family="Inter,Segoe UI,sans-serif" font-size="18" font-weight="700" fill="#0f172a">Instagram 연결</text>
+  <text x="440" y="230" text-anchor="middle" font-family="Inter,Segoe UI,sans-serif" font-size="12" fill="#64748b">revenue-05-instagram-connect.svg</text>
+  <text x="440" y="360" text-anchor="middle" font-family="Inter,Segoe UI,sans-serif" font-size="10" fill="#94a3b8">안내 목업 — 실제 캡처(PNG)로 교체 가능</text>
+</svg>
