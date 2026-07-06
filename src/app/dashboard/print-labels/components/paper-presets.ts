@@ -98,6 +98,44 @@ export const PAPER_PRESETS: PaperPreset[] = [
     gapY: "0mm"
   },
   {
+    // 폼텍 LQ-3109: 46×21.2mm × 4열 10행
+    id: "3109",
+    name: "폼텍 3109 (4열 10행, 40칸)",
+    type: "formtec",
+    columns: 4,
+    rows: 10,
+    totalLabels: 40,
+    width: "210mm",
+    height: "297mm",
+    padding: "11.2mm 9mm 11.2mm 9mm",
+    paddingTop: "11.2mm",
+    paddingRight: "9mm",
+    paddingBottom: "11.2mm",
+    paddingLeft: "9mm",
+    itemHeight: "21.2mm",
+    gapX: "2.5mm",
+    gapY: "0mm"
+  },
+  {
+    // 폼텍 LQ-3112: 46×15mm × 4열 14행
+    id: "3112",
+    name: "폼텍 3112 (4열 14행, 56칸)",
+    type: "formtec",
+    columns: 4,
+    rows: 14,
+    totalLabels: 56,
+    width: "210mm",
+    height: "297mm",
+    padding: "10.5mm 9mm 10.5mm 9mm",
+    paddingTop: "10.5mm",
+    paddingRight: "9mm",
+    paddingBottom: "10.5mm",
+    paddingLeft: "9mm",
+    itemHeight: "15mm",
+    gapX: "2.5mm",
+    gapY: "0mm"
+  },
+  {
     id: "roll4020",
     name: "롤 라벨 (40mm × 20mm)",
     type: "roll",

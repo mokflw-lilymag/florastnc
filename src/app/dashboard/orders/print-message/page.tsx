@@ -58,7 +58,7 @@ export default function PrintMessagePage() {
     const senderItalic = searchParams.get('senderItalic') === 'true';
     const messageContent = searchParams.get('messageContent') || '';
     const senderName = searchParams.get('senderName') || '';
-    const positionsParam = searchParams.get('positions') || '';
+    const positionsParam = searchParams.get('selectedPositions') || searchParams.get('positions') || '';
     const selectedPositions = positionsParam ? positionsParam.split(',').map(p => parseInt(p)).filter(p => !isNaN(p)) : [startPosition];
 
     useEffect(() => {

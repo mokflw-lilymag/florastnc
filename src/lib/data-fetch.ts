@@ -1,7 +1,11 @@
 import { createClient } from "@/utils/supabase/client";
 
-/** UUID에서 짧고 읽기 쉬운 바코드 코드를 생성 (M + UUID 앞 8자리 대문자) */
 export function uuidToShortCode(id: string): string {
+  // 이미 8~10자리 짧은 ID 체계 (예: MB123456)인 경우 그대로 사용
+  if (id.length <= 10) {
+    return id.toUpperCase();
+  }
+  // 구버전 긴 UUID인 경우 'M' + 앞 8자리
   return 'M' + id.replace(/-/g, '').substring(0, 8).toUpperCase();
 }
 

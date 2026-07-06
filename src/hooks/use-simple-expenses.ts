@@ -4,9 +4,9 @@ import { createClient } from '@/utils/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { toast } from "sonner";
 import { deleteById, deleteRows, isDeleteNoRows } from "@/lib/supabase/delete-by-id";
-const supabase = createClient();
 import { useMaterials } from '@/hooks/use-materials';
 import { useProducts } from '@/hooks/use-products';
+import { generateMaterialIdLocal } from '@/lib/constants/material-categories';
 import type {
   SimpleExpense,
   CreateSimpleExpenseData,
@@ -33,8 +33,24 @@ export function useSimpleExpenses({ enableRealtime = false }: { enableRealtime?:
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [supplierSuggestions, setSupplierSuggestions] = useState<SupplierSuggestion[]>([]);
   const { user } = useAuth();
-  const { materials } = useMaterials(); const updateMaterialStock = async (_items: any[], _dir?: string, _tenant?: string, _user?: string) => {}; const generateNewId = (_mainCat?: string, _midCat?: string, _tenant?: string) => "new-id";
-  const { products } = useProducts(); const updateProductStock = async (_items: any[], _dir?: string, _tenant?: string, _user?: string) => {};
+  const { materials, updateMaterial } = useMaterials();
+  const updateMaterialStock = useCallback(async (items: any[], dir?: string, tenantName?: string, worker?: string) => {
+    // items: [{ id, name, quantity, price }] 형태
+    for (const item of items) {
+      if (!item.id || item.id === 'new') continue;
+      const targetMaterial = materials.find(m => m.id === item.id);
+      if (targetMaterial) {
+        const change = dir === 'out' ? -Number(item.quantity) : Number(item.quantity);
+        const newStock = targetMaterial.stock + change;
+        await updateMaterial(item.id, { stock: newStock }, { worker: worker || "[지출관리]", logMemo: "간편지출 등록 (자동반영)" });
+      }
+    }
+  }, [materials, updateMaterial]);
+  const generateNewId = (mainCat?: string, midCat?: string, tenant?: string) => {
+    return generateMaterialIdLocal(materials.map(m => m.id), mainCat || '기타', midCat, '1');
+  };
+  const { products } = useProducts(); 
+  const updateProductStock = async (_items: any[], _dir?: string, _tenant?: string, _user?: string) => {};
 
   const mapRowToExpense = useCallback((row: any): SimpleExpense => ({
     id: row.id,

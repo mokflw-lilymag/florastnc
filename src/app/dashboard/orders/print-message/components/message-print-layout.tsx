@@ -122,7 +122,7 @@ export function MessagePrintLayout({
               margin: 0 !important;
             }
             /* 부모 엘리먼트들이 인쇄 시 어떠한 여백이나 오프셋도 생성하지 않도록 완전 무력화 */
-            html, body, #__next, [data-overlay-container="true"], main, div {
+            html, body, #__next, [data-overlay-container="true"], main {
               margin: 0 !important;
               padding: 0 !important;
               height: auto !important;
@@ -180,7 +180,10 @@ export function MessagePrintLayout({
           title="메시지 인쇄 미리보기"
           description={`주문자: ${order.orderer.name} / 라벨지: ${labelType} / 출력 위치: ${selectedPositions.join(', ')}`}
         >
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2">
+            <div className="text-red-500 font-bold text-sm bg-red-50 px-3 py-1.5 rounded-md flex items-center">
+              ⚠️ 인쇄 옵션의 '여백' 설정을 반드시 '없음'으로 선택해 주세요!
+            </div>
             <Button
               variant="outline"
               onClick={() => {

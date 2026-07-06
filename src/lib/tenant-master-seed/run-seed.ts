@@ -254,6 +254,14 @@ export async function runTenantMasterSeed(
       if (error) throw error;
     }
 
+    const { generateMaterialIdLocal } = await import("@/lib/constants/material-categories");
+    
+    const { data: allMatIds } = await admin
+      .from("materials")
+      .select("id")
+      .eq("tenant_id", tenantId);
+    let currentMaterialIds: string[] = (allMatIds || []).map((m: any) => m.id);
+
     for (let i = 0; i < seed.materials.length; i++) {
       const m = seed.materials[i];
       const memo = resolvedMaterialMemos[i];
@@ -271,9 +279,17 @@ export async function runTenantMasterSeed(
         .eq("name", m.name.trim())
         .limit(1);
 
-      if (existsMemo?.id || (existsName && existsName.length > 0)) continue;
+      if (existsMemo?.id || (existsName && existsName.length > 0)) {
+        if (existsMemo?.id) currentMaterialIds.push(existsMemo.id);
+        else if (existsName?.[0]?.id) currentMaterialIds.push(existsName[0].id);
+        continue;
+      }
+
+      const newId = generateMaterialIdLocal(currentMaterialIds, m.main_category, m.mid_category, '1');
+      currentMaterialIds.push(newId);
 
       const { error } = await admin.from("materials").insert({
+        id: newId,
         tenant_id: tenantId,
         name: m.name.trim(),
         main_category: m.main_category,

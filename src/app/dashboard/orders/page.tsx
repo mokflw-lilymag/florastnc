@@ -254,24 +254,45 @@ export default function OrdersPage() {
   useEffect(() => {
     const openPrint = searchParams.get('openMessagePrint') === 'true';
     const orderId = searchParams.get('orderId');
-    if (openPrint && orderId && orders.length > 0) {
-      const matched = orders.find(o => o.id === orderId);
-      if (matched) {
-        setSelectedOrder(matched);
-        setIsMessagePrintOpen(true);
-        // URL 쿼리 파라미터 정리하여 중복 트리거 방지
-        const cleanParams = new URLSearchParams(searchParams.toString());
-        cleanParams.delete('openMessagePrint');
-        cleanParams.delete('orderId');
-        cleanParams.delete('labelType');
-        cleanParams.delete('start');
-        cleanParams.delete('messageContent');
-        cleanParams.delete('positions');
-        const target = (pathname || "") + "?" + cleanParams.toString();
-        router.replace(target);
-      }
+    if (openPrint && orderId && !isErpTrial && tenantId) {
+      const checkAndOpenModal = async () => {
+        let matched = orders.find(o => o.id === orderId);
+        
+        if (!matched) {
+          try {
+            const { data } = await supabase
+              .from('orders')
+              .select('*')
+              .eq('id', orderId)
+              .eq('tenant_id', tenantId)
+              .maybeSingle();
+            if (data) {
+              matched = data as any;
+            }
+          } catch (e) {
+            console.error('Failed to fetch order for print modal restore', e);
+          }
+        }
+
+        if (matched) {
+          setSelectedOrder(matched);
+          setIsMessagePrintOpen(true);
+          // URL 쿼리 파라미터 정리하여 중복 트리거 방지
+          const cleanParams = new URLSearchParams(searchParams.toString());
+          cleanParams.delete('openMessagePrint');
+          cleanParams.delete('orderId');
+          cleanParams.delete('labelType');
+          cleanParams.delete('start');
+          cleanParams.delete('messageContent');
+          cleanParams.delete('positions');
+          const target = (pathname || "") + "?" + cleanParams.toString();
+          router.replace(target);
+        }
+      };
+
+      checkAndOpenModal();
     }
-  }, [searchParams, orders, pathname, router]);
+  }, [searchParams, orders, pathname, router, supabase, isErpTrial, tenantId]);
 
   const getFetchDates = useCallback(() => {
     let start = subDays(new Date(), 60);

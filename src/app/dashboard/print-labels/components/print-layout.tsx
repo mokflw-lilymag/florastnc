@@ -12,7 +12,7 @@ interface PrintLayoutProps {
   initialStart?: number;
 }
 
-export function PrintLayout({ rawLabels, initialPresetId = "3108", initialStart = 1 }: PrintLayoutProps) {
+export function PrintLayout({ rawLabels, initialPresetId = "3109", initialStart = 1 }: PrintLayoutProps) {
   const preset = useMemo(() => {
     return PAPER_PRESETS.find(p => p.id === initialPresetId) || PAPER_PRESETS[0];
   }, [initialPresetId]);

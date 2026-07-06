@@ -25,6 +25,7 @@ import {
   RefreshCw,
   Headphones,
   Mail,
+  ScanLine,
 } from "lucide-react";
 import Image from "next/image";
 import { createClient } from "@/utils/supabase/client";
@@ -369,7 +370,9 @@ export function Sidebar({
         { name: t.sidebar.links.delivery, href: "/dashboard/delivery", icon: Truck, tier: [...ERP_NAV_TIERS] },
         { name: t.sidebar.links.crm, href: "/dashboard/customers", icon: Users, tier: [...ERP_NAV_TIERS] },
         { name: t.sidebar.links.products, href: "/dashboard/products", icon: Boxes, tier: [...ERP_NAV_TIERS] },
-        { name: t.sidebar.links.inventory, href: "/dashboard/inventory", icon: Boxes, tier: [...ERP_NAV_TIERS] },
+        { name: t.sidebar.links.inventory, href: "/dashboard/inventory", icon: Boxes, tier: [...ERP_NAV_TIERS], activeExcludePrefix: "/dashboard/inventory/barcode-scanner" },
+        { name: pickUiText(baseLocale, "바코드 스캐너", "Barcode Scanner", "Máy quét mã vạch"), href: "/dashboard/inventory/barcode-scanner", icon: ScanLine, tier: [...ERP_NAV_TIERS] },
+        { name: pickUiText(baseLocale, "입출고 내역", "Inventory Logs", "Nhật ký tồn kho"), href: "/dashboard/inventory/logs", icon: ClipboardList, tier: [...ERP_NAV_TIERS] },
         { name: t.sidebar.links.suppliers, href: "/dashboard/suppliers", icon: Store, tier: [...ERP_NAV_TIERS] },
         { name: t.sidebar.links.purchases, href: "/dashboard/purchases", icon: ShoppingCart, tier: [...ERP_NAV_TIERS] },
         { name: t.sidebar.links.reports, href: "/dashboard/reports", icon: BarChart3, tier: [...ERP_NAV_TIERS] },
