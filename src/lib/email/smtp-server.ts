@@ -9,6 +9,7 @@ export type SmtpConfig = {
   secure: boolean;
   auth: { user: string; pass: string };
   senderName: string;
+  senderEmail?: string;
 };
 
 export function resolveSmtpFromSettings(
@@ -26,6 +27,9 @@ export function resolveSmtpFromSettings(
         pass: settings.smtpPass,
       },
       senderName: settings.smtpSenderName || settings.siteName || fallbackName,
+      senderEmail: (settings.storeEmail || settings.contactEmail || settings.smtpUser)?.includes('@') 
+        ? (settings.storeEmail || settings.contactEmail || settings.smtpUser) 
+        : 'admin@floxync.com',
     };
   }
   return null;
@@ -100,7 +104,7 @@ export async function sendMailViaSmtp(
   });
 
   const info = await transporter.sendMail({
-    from: `"${config.senderName}" <${config.auth.user}>`,
+    from: `"${config.senderName}" <${config.senderEmail || config.auth.user}>`,
     to: params.to,
     subject: params.subject,
     html: params.html,
