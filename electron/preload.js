@@ -52,4 +52,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   runMonthlyPhotoBackup: (payload) => ipcRenderer.invoke('run-monthly-photo-backup', payload || {}),
   openMonthlyBackupFolder: (payload) => ipcRenderer.invoke('open-monthly-backup-folder', payload),
+  onUpdaterStatus: (callback) => {
+    const handler = (_event, data) => callback(data);
+    ipcRenderer.on('updater-status', handler);
+    return () => ipcRenderer.removeListener('updater-status', handler);
+  },
+  installUpdate: () => ipcRenderer.invoke('install-update'),
 });

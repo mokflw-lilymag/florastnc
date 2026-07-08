@@ -54,6 +54,10 @@ export default function StaffManagementPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isRoleManagerOpen, setIsRoleManagerOpen] = useState(false);
   const [newRole, setNewRole] = useState({ role_key: '', role_name: '', description: '' });
+  const [isAddStaffOpen, setIsAddStaffOpen] = useState(false);
+  const [newStaffEmail, setNewStaffEmail] = useState('');
+  const [newStaffRole, setNewStaffRole] = useState('');
+  const [isInviting, setIsInviting] = useState(false);
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
   const baseLocale = toBaseLocale(locale);  const supabase = createClient();
@@ -110,6 +114,21 @@ export default function StaffManagementPage() {
       toast.success(tf.f01964);
       fetchInitialData();
     }
+  };
+
+  const inviteStaff = async () => {
+    if (!newStaffEmail || !newStaffRole) return toast.error('이메일과 직책을 모두 입력/선택해 주세요.');
+    setIsInviting(true);
+    try {
+      const res = await fetch('/api/hq/staff/invite', { method: 'POST', body: JSON.stringify({ email: newStaffEmail, role_key: newStaffRole }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to invite');
+      toast.success('초대 메일이 발송되었습니다.');
+      setIsAddStaffOpen(false);
+      setNewStaffEmail('');
+      setNewStaffRole('');
+      fetchInitialData();
+    } catch (e: any) { toast.error(e.message); } finally { setIsInviting(false); }
   };
 
   const filteredStaff = staff.filter(s => s.email.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -181,10 +200,36 @@ export default function StaffManagementPage() {
                 </DialogContent>
             </Dialog>
 
-            <Button className="bg-slate-900 hover:bg-slate-800 text-white rounded-[1.2rem] h-10 px-5 font-black gap-2">
-                <UserPlus className="w-4 h-4" />
-                {tf.f01956}
-            </Button>
+            <Dialog open={isAddStaffOpen} onOpenChange={setIsAddStaffOpen}>
+              <DialogTrigger render={<Button className="bg-slate-900 hover:bg-slate-800 text-white rounded-[1.2rem] h-10 px-5 font-black gap-2"><UserPlus className="w-4 h-4" />{tf.f01956}</Button>} />
+              <DialogContent className="max-w-md rounded-[2.5rem]">
+                  <DialogHeader>
+                      <DialogTitle className="text-2xl font-black">직원 초대</DialogTitle>
+                      <DialogDescription className="font-medium">
+                          초대할 직원의 이메일 주소와 직책을 선택하세요. 대상자에게 가입 초대 메일이 발송됩니다.
+                      </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 pt-4">
+                      <div className="space-y-2">
+                          <label className="text-xs font-black text-slate-400 uppercase tracking-widest">초대받을 이메일</label>
+                          <Input placeholder="example@floxync.com" type="email" value={newStaffEmail} onChange={(e) => setNewStaffEmail(e.target.value)} className="rounded-xl h-11 font-bold bg-white" />
+                      </div>
+                      <div className="space-y-2">
+                          <label className="text-xs font-black text-slate-400 uppercase tracking-widest">직책 선택</label>
+                          <select value={newStaffRole} onChange={(e) => setNewStaffRole(e.target.value)} className="flex h-11 w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold">
+                              <option value="" disabled>직책을 선택하세요</option>
+                              {hqRoles.map(role => (<option key={role.id} value={role.role_key}>{role.role_name}</option>))}
+                          </select>
+                      </div>
+                  </div>
+                  <DialogFooter className="pt-6">
+                      <Button variant="ghost" onClick={() => setIsAddStaffOpen(false)} className="rounded-xl h-11 font-bold">취소</Button>
+                      <Button onClick={inviteStaff} disabled={isInviting || !newStaffEmail || !newStaffRole} className="bg-slate-900 text-white rounded-xl h-11 font-black px-8">
+                          {isInviting ? "초대 발송 중..." : "초대하기"}
+                      </Button>
+                  </DialogFooter>
+              </DialogContent>
+            </Dialog>
         </div>
       </div>
 

@@ -27,7 +27,13 @@ export default function Auth({ onAuthenticated }: { onAuthenticated: () => void 
         if (error) throw error;
         onAuthenticated();
       } else {
-        const { error } = await supabase.auth.signUp({ email, password });
+        const { error } = await supabase.auth.signUp({ 
+          email, 
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/login`
+          }
+        });
         if (error) throw error;
         setMessage(R.authSignupEmailSent);
       }

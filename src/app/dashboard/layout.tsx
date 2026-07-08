@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { RealtimeTransferListener } from "@/components/layout/realtime-transfer-listener";
 import { RealtimePartnerOrderListener } from "@/components/layout/realtime-partner-order-listener";
+import { UpdaterBadge } from "@/components/updater-badge";
 
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { AnnualRenewalReminder } from "@/components/layout/annual-renewal-reminder";
@@ -296,6 +297,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     >
       <RealtimeTransferListener />
       <RealtimePartnerOrderListener />
+      <UpdaterBadge />
       {children}
     </DashboardShell>
     </PartnerOrdersFeatureProvider>

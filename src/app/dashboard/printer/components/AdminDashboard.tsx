@@ -172,7 +172,9 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
   const handleResetPasswordEmail = async (email: string) => {
     if (!confirm(fillRibbonTemplate(R.adminResetEmailConfirm, { email }))) return;
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      });
       if (error) toast.error(fillRibbonTemplate(R.adminMailSendFail, { msg: error.message }));
       else toast.success(R.adminMailSendOk);
     } catch (e: any) {

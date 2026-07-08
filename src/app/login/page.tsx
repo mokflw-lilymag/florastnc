@@ -129,18 +129,24 @@ export default function LoginPage() {
 
     setResetLoading(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
+      const res = await fetch('/api/public/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: resetEmail })
       });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || '발송 실패');
 
-      if (error) throw error;
-      
-      toast.success(L.toastResetSent, {
-        description: L.toastResetSentDesc,
+      toast.success('임시 비밀번호 발송 완료!', {
+        description: '이메일로 임시 비밀번호가 발송되었습니다. 로그인 후 비밀번호를 꼭 변경해 주세요.',
       });
       setIsResetDialogOpen(false);
     } catch (error: any) {
-      toast.error(L.toastSendFailed, { description: error.message });
+      let errorMsg = error.message;
+      if (errorMsg.includes('For security purposes')) {
+        errorMsg = '보안을 위해 30초 후에 다시 요청할 수 있습니다. 이미 발송된 메일이 있는지 확인해 주세요.';
+      }
+      toast.error(L.toastSendFailed, { description: errorMsg });
     } finally {
       setResetLoading(false);
     }
@@ -272,7 +278,6 @@ export default function LoginPage() {
     setRegLoading(true);
 
     try {
-      // Create user
       const { data, error } = await supabase.auth.signUp({
         email: regEmail,
         password: regPassword,
@@ -280,7 +285,8 @@ export default function LoginPage() {
           data: {
             shop_name: regShopName,
             role: 'tenant_admin'
-          }
+          },
+          emailRedirectTo: `${window.location.origin}/login`
         }
       });
 

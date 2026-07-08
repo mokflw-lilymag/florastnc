@@ -655,64 +655,47 @@ if (!gotTheLock) {
 
     // Auto Updater — 다운로드 진행 UI (ERP 패턴)
     if (!isDev) {
-      let progressWin = null;
-
-      autoUpdater.on('update-available', () => {
-        progressWin = new BrowserWindow({
-          width: 380,
-          height: 120,
-          alwaysOnTop: true,
-          frame: false,
-          resizable: false,
-          show: false,
-          webPreferences: { nodeIntegration: false, contextIsolation: true },
-        });
-        const htmlContent = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
-          body{font-family:'Malgun Gothic','Segoe UI',sans-serif;padding:20px;background:#fff;text-align:center;margin:0;display:flex;flex-direction:column;justify-content:center;height:100vh;box-sizing:border-box;border-radius:8px;box-shadow:0 4px 6px -1px rgba(0,0,0,.1)}
-          h3{margin:0 0 10px;font-size:15px;color:#1f2937}
-          .bar-wrap{width:100%;background:#e5e7eb;border-radius:9999px;overflow:hidden;margin-bottom:8px}
-          .bar{height:10px;background:#3b82f6;width:0%;transition:width .3s}
-          #status{font-size:13px;color:#6b7280}
-        </style></head><body>
-          <h3>FloXync 업데이트 다운로드 중...</h3>
-          <div class="bar-wrap"><div class="bar" id="bar"></div></div>
-          <div id="status">0.0%</div>
-        </body></html>`;
-        progressWin.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`);
-        progressWin.once('ready-to-show', () => progressWin?.show());
+      autoUpdater.on('update-available', (info) => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('updater-status', { status: 'available', version: info?.version });
+        }
       });
 
       autoUpdater.on('download-progress', (progressObj) => {
-        if (progressWin && !progressWin.isDestroyed()) {
-          const p = progressObj.percent.toFixed(1);
-          const s = (progressObj.bytesPerSecond / 1024 / 1024).toFixed(2);
-          progressWin.webContents.executeJavaScript(
-            `document.getElementById('bar').style.width='${p}%';document.getElementById('status').innerText='${p}% (${s} MB/s)';`,
-          ).catch(() => {});
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('updater-status', { 
+            status: 'downloading', 
+            percent: progressObj.percent,
+            speed: progressObj.bytesPerSecond
+          });
         }
       });
 
-      autoUpdater.checkForUpdatesAndNotify().catch(e => {
-        console.log('[AutoUpdater] checkForUpdatesAndNotify failed:', e.message);
+      autoUpdater.on('error', (err) => {
+        console.log('[AutoUpdater Error]', err);
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('updater-status', { status: 'error', message: err.message });
+        }
       });
       
       autoUpdater.on('update-downloaded', (info) => {
-        if (progressWin && !progressWin.isDestroyed()) {
-          progressWin.close();
-          progressWin = null;
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('updater-status', { status: 'downloaded', version: info?.version });
         }
-        console.log('[AutoUpdater] update-downloaded', info);
-        dialog.showMessageBox({
-          type: 'info',
-          title: '업데이트 준비 완료',
-          message: `새 버전(${info.version})이 다운로드되었습니다. 지금 재시작하여 업데이트하시겠습니까?`,
-          buttons: ['지금 재시작', '나중에 (앱 종료 시)']
-        }).then((result) => {
-          if (result.response === 0) {
-            autoUpdater.quitAndInstall();
-          }
-        });
       });
+
+      ipcMain.handle('install-update', () => {
+        app.isQuiting = true;
+        autoUpdater.quitAndInstall(false, true);
+      });
+
+      const checkUpdates = () => {
+        autoUpdater.checkForUpdatesAndNotify().catch(err => {
+          console.log('[AutoUpdater Error]', err);
+        });
+      };
+      checkUpdates();
+      setInterval(checkUpdates, 60 * 60 * 1000);
     }
 
     app.on('activate', function () {

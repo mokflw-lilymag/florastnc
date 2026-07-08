@@ -55,10 +55,22 @@ export async function PUT(req: Request) {
   try {
     const { settings } = await req.json();
 
+    // Get hq_tenant_id from organizations
+    const { data: orgData, error: orgError } = await admin
+      .from('organizations')
+      .select('hq_tenant_id')
+      .limit(1)
+      .single();
+
+    if (orgError || !orgData?.hq_tenant_id) {
+      throw new Error('HQ tenant ID not found in organizations table');
+    }
+
     const { error } = await admin
       .from('system_settings')
       .upsert({
         id: 'hq',
+        tenant_id: orgData.hq_tenant_id,
         data: settings,
       });
 
