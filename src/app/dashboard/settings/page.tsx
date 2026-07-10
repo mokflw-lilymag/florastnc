@@ -1835,28 +1835,6 @@ export default function SettingsPage() {
                           <Select 
                             value={settings.printerName || ""} 
                             onValueChange={(v) => saveSettings({ ...settings, printerName: v || "" })}
-                            disabled={settings.receiptPrinterType !== 'pos'}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder={pickUiText(baseLocale, '프린터를 선택하세요', 'Select a printer', 'Chọn một máy in')} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {(localPrinters.length > 0 ? localPrinters : settings.installedPrinters)?.map(p => (
-                                <SelectItem key={p} value={p}>{p}</SelectItem>
-                              ))}
-                              {(!(localPrinters.length > 0 ? localPrinters : settings.installedPrinters) || (localPrinters.length > 0 ? localPrinters : settings.installedPrinters)!.length === 0) && (
-                                <SelectItem value="none" disabled>{pickUiText(baseLocale, '설치된 프린터 없음', 'No printers installed', 'Không có máy in được cài đặt')}</SelectItem>
-                              )}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label>{pickUiText(baseLocale, '라벨 프린터', 'Label Printer', 'Máy in nhãn')}</Label>
-                          <Select 
-                            value={settings.labelPrinterName || ""} 
-                            onValueChange={(v) => saveSettings({ ...settings, labelPrinterName: v || "" })}
-                            disabled={settings.receiptPrinterType !== 'label'}
                           >
                             <SelectTrigger>
                               <SelectValue placeholder={pickUiText(baseLocale, '프린터를 선택하세요', 'Select a printer', 'Chọn một máy in')} />
@@ -1931,30 +1909,6 @@ export default function SettingsPage() {
                   <Separator />
 
                   {/* Print Options */}
-                  <div className="space-y-6">
-                    <div className="space-y-4">
-                      <div>
-                        <h3 className="text-sm font-semibold mb-1">{pickUiText(baseLocale, '기본 주문서/영수증 출력 방식', 'Default Receipt Print Type', 'Loại in hóa đơn mặc định')}</h3>
-                        <p className="text-sm text-slate-500 mb-3">
-                          {pickUiText(baseLocale, '주문 접수 시 출력될 프린터 종류를 선택하세요.', 'Select the printer type to output when an order is received.', 'Chọn loại máy in để xuất khi nhận được đơn hàng.')}
-                        </p>
-                      </div>
-                      <RadioGroup 
-                        value={settings.receiptPrinterType || 'pos'} 
-                        onValueChange={(v) => saveSettings({ ...settings, receiptPrinterType: v as 'pos' | 'label' })}
-                        className="flex flex-col space-y-2"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="pos" id="r-pos" />
-                          <Label htmlFor="r-pos">{pickUiText(baseLocale, '영수증(POS) 프린터로 출력', 'Print to POS Printer', 'In ra máy in POS')}</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="label" id="r-label" />
-                          <Label htmlFor="r-label">{pickUiText(baseLocale, '라벨 프린터로 출력', 'Print to Label Printer', 'In ra máy in nhãn')}</Label>
-                        </div>
-                      </RadioGroup>
-                    </div>
-
                     <div className="space-y-4 pt-4">
                       <h3 className="text-sm font-semibold mb-3">{pickUiText(baseLocale, '자동 출력 옵션', 'Auto-print Options', 'Tùy chọn tự động in')}</h3>
                       
