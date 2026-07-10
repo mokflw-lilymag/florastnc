@@ -104,8 +104,8 @@
       "pos": "POS",
       "settings": "設定",
       "subscription": "プラン",
-      "purchases": "Purchases",
-      "suppliers": "Suppliers"
+      "purchases": "購入品",
+      "suppliers": "サプライヤー"
     },
     "admin": {
       "newOrder": "新規注文",
@@ -121,22 +121,22 @@
       "storeSettings": "店舗設定"
     },
     "hub": {
-      "pageTitle": "Work hub",
-      "groupOrder": "Orders",
-      "groupManage": "Catalog & stock",
-      "groupSpend": "Purchasing & expenses",
-      "emptyTitle": "No shortcuts on this hub",
-      "emptyBody": "Your current plan hides order, inventory, and purchase shortcuts here. Open Subscription to check Pro or ERP plans, or use ribbon-only features on desktop web.",
-      "emptyCta": "View plans"
+      "pageTitle": "ワークハブ",
+      "groupOrder": "注文",
+      "groupManage": "カタログ＆在庫",
+      "groupSpend": "購入と経費",
+      "emptyTitle": "このハブにはショートカットはありません",
+      "emptyBody": "現在のプランでは、注文、在庫、購入のショートカットがここに表示されません。 サブスクリプションを開いて Pro プランまたは ERP プランを確認するか、デスクトップ Web でリボンのみの機能を使用します。",
+      "emptyCta": "プランを見る"
     },
     "contextNav": {
-      "ariaLabel": "Jump within this menu group",
-      "mainHome": "Home hub"
+      "ariaLabel": "このメニューグループ内でジャンプします",
+      "mainHome": "ホームハブ"
     },
     "superAdminBlock": {
-      "title": "Admin accounts",
-      "body": "Platform admin and system tools are for desktop web only. This app is for store day-to-day work.",
-      "logout": "Log out"
+      "title": "管理者アカウント",
+      "body": "プラットフォーム管理ツールとシステム ツールはデスクトップ Web 専用です。 このアプリは店舗の日常業務用です。",
+      "logout": "ログアウト"
     }
   },
   "dashboardHeader": {
@@ -3006,24 +3006,24 @@
       "statStability": "安定性",
       "altBackground": "花店向け業務テクノロジーの背景画像",
       "altDashboard": "Floxync ダッシュボードのプレビュー",
-      "subtitle": "FloXync AI secretary handles orders, printing & bookkeeping.\nAlways by your side — web, Windows, and mobile.",
-      "bubble1": "I'll auto-print order slips, pickup receipts & delivery forms.",
-      "bubble2": "I'll design ribbon text and print it for you too.",
-      "bubble3": "You can take orders right from your phone.",
-      "bubble4": "Leave the PC on and it prints at the counter automatically.",
-      "bubble5": "Just snap a receipt — I'll log it in the ledger.",
-      "bubble6": "I'll have today's closing summary ready for you.",
-      "applyBeta": "Apply for Beta",
-      "downloadWindows": "Download Windows App",
-      "devicePhone": "📱 Phone",
-      "devicePhoneDesc": "On-site orders · Pickup · Quick POS",
-      "devicePhoneSub": "Mobile web — no app install needed",
+      "subtitle": "FloXync AI 秘書が注文、印刷、簿記を処理します。 \nWeb、Windows、モバイルでいつでもあなたのそばに。",
+      "bubble1": "注文伝票、集荷受領書、配送フォームを自動印刷します。",
+      "bubble2": "リボンの文字もデザインして印刷させていただきます。",
+      "bubble3": "携帯電話から直接注文を受けることができます。",
+      "bubble4": "PC の電源を入れておくと、カウンターで自動的に印刷されます。",
+      "bubble5": "領収書を撮ってください。台帳に記録します。",
+      "bubble6": "本日の締めくくりのまとめをご用意させていただきます。",
+      "applyBeta": "ベータ版に申し込む",
+      "downloadWindows": "Windows アプリをダウンロード",
+      "devicePhone": "📱 電話",
+      "devicePhoneDesc": "オンサイト注文・ピックアップ・クイックPOS",
+      "devicePhoneSub": "モバイルウェブ - アプリのインストールは不要",
       "devicePc": "🖥 PC",
-      "devicePcDesc": "Auto-print at counter · Offline",
-      "devicePcSub": "Windows App v0.1.2",
-      "deviceWeb": "🌐 Web",
-      "deviceWebDesc": "Orders · Delivery · Expenses · Closing",
-      "deviceWebSub": "From any browser, anywhere"
+      "devicePcDesc": "カウンターでの自動印刷・オフライン",
+      "devicePcSub": "Windows アプリ v0.1.2",
+      "deviceWeb": "🌐 ウェブ",
+      "deviceWebDesc": "注文・配送・経費・決算",
+      "deviceWebSub": "どこからでもどのブラウザからでも"
     },
     "features": {
       "badge": "花屋運営に必要な主要機能",

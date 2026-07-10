@@ -84,8 +84,8 @@ export const marketingBulkEmail = task({
       port: smtp.port,
       secure: smtp.port === 465,
       auth: {
-        user: smtp.user,
-        pass: smtp.pass,
+        user: smtp.auth.user,
+        pass: smtp.auth.pass,
       },
     });
 
@@ -110,7 +110,7 @@ export const marketingBulkEmail = task({
         const html = formatMarketingMessage(contentTpl, data);
 
         await transporter.sendMail({
-          from: `"${shopName}" <${smtp.user}>`,
+          from: `"${shopName}" <${smtp.auth.user}>`,
           to: customer.email,
           subject,
           html,

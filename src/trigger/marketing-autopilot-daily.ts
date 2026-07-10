@@ -33,7 +33,7 @@ export const marketingAutopilotDaily = schedules.task({
     // Fetch all tenants
     const { data: tenants, error: tErr } = await db.from("tenants").select("id, name, settings, logo_url");
     if (tErr || !tenants) {
-      logger.error("Failed to fetch tenants", tErr);
+      logger.error("Failed to fetch tenants", { error: tErr });
       return { success: false };
     }
 
@@ -46,14 +46,14 @@ export const marketingAutopilotDaily = schedules.task({
 
       if (!autoDayOf && !autoD7) continue;
 
-      const smtp = resolveSmtpFromSettings(settings, tenantData.name || 'FloXync');
+      const smtp = resolveSmtpFromSettings(settings, tenant.name || 'FloXync');
       if (!smtp) continue; // Skip if SMTP is not configured
 
       const transporter = createTransport({
         host: smtp.host,
         port: smtp.port,
         secure: smtp.port === 465,
-        auth: { user: smtp.user, pass: smtp.pass },
+        auth: { user: smtp.auth.user, pass: smtp.auth.pass },
       });
 
       const shopName = resolveEmailShopName({ smtpSenderName: smtp.senderName, siteName: settings.siteName }, tenant.name);
@@ -116,14 +116,14 @@ export const marketingAutopilotDaily = schedules.task({
 
           try {
             await transporter.sendMail({
-              from: `"${shopName}" <${smtp.user}>`,
+              from: `"${shopName}" <${smtp.auth.user}>`,
               to: customer.email,
               subject,
               html,
             });
             sentCount++;
           } catch (e) {
-            logger.error(`Failed to send DayOf to ${customer.email}`, e);
+            logger.error(`Failed to send DayOf to ${customer.email}`, { error: e });
           }
         }
 
@@ -143,14 +143,14 @@ export const marketingAutopilotDaily = schedules.task({
 
           try {
             await transporter.sendMail({
-              from: `"${shopName}" <${smtp.user}>`,
+              from: `"${shopName}" <${smtp.auth.user}>`,
               to: customer.email,
               subject,
               html,
             });
             sentCount++;
           } catch (e) {
-            logger.error(`Failed to send D-7 to ${customer.email}`, e);
+            logger.error(`Failed to send D-7 to ${customer.email}`, { error: e });
           }
         }
       }

@@ -54,10 +54,13 @@ export function EmailSettingsCard({ settings, saveSettings }: EmailSettingsCardP
     emailTemplateAnniversaryD7: settings.emailTemplateAnniversaryD7,
     marketingEmailSubjectDayOf: settings.marketingEmailSubjectDayOf || '[{회사명}] 오늘 {기념일명}을 진심으로 축하드립니다!',
     marketingEmailContentDayOf: settings.marketingEmailContentDayOf || '',
+    marketingEmailAutoDayOf: settings.marketingEmailAutoDayOf ?? false,
     marketingEmailSubjectDaysBefore7: settings.marketingEmailSubjectDaysBefore7 || '[{회사명}] {고객명}님, 일주일 앞으로 다가온 {기념일명}을 준비해보세요.',
     marketingEmailContentDaysBefore7: settings.marketingEmailContentDaysBefore7 || '',
+    marketingEmailAutoDaysBefore7: settings.marketingEmailAutoDaysBefore7 ?? false,
     marketingEmailSubjectFirstPurchase: settings.marketingEmailSubjectFirstPurchase || '[{회사명}] {고객명}님, 첫 구매에 진심으로 감사드립니다!',
     marketingEmailContentFirstPurchase: settings.marketingEmailContentFirstPurchase || '',
+    marketingEmailAutoFirstPurchase: settings.marketingEmailAutoFirstPurchase ?? false,
     marketingAdTemplates: settings.marketingAdTemplates || [],
   });
 

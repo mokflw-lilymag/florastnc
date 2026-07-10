@@ -168,8 +168,8 @@ function maskPhone(contact) {
 // 공통 하단 지점 연락처 (로그인한 지점 1개만 출력되도록 개선)
 function generateFooterContact(payload, settings) {
   // 페이로드나 세팅에 있는 지점명 및 연락처 추출 (우선순위: payload > settings)
-  const branchName = payload?.branch_name || settings?.branchDisplayName || '릴리맥';
-  const branchContact = payload?.branch_contact || payload?.branch_phone || settings?.general?.branchContact || settings?.general?.phone || settings?.phone || '';
+  const branchName = payload?.shop_name || payload?.branch_name || settings?.branchDisplayName || '릴리맥';
+  const branchContact = payload?.shop_phone || payload?.branch_contact || payload?.branch_phone || settings?.general?.branchContact || settings?.general?.phone || settings?.phone || '';
 
   let bufs = [];
   bufs.push(CMD.LF);
@@ -178,12 +178,9 @@ function generateFooterContact(payload, settings) {
   if (branchContact) {
     bufs.push(textLine(`${branchName} : ${branchContact}`));
   } else {
-    // 연락처 정보가 아예 없더라도 지점명은 무조건 출력
     bufs.push(textLine(branchName));
   }
-  if (settings?.siteWebsite) {
-    bufs.push(textLine(`[웹사이트] ${settings.siteWebsite}`));
-  }
+  
   bufs.push(CMD.LF);
   
   return Buffer.concat(bufs);
@@ -253,10 +250,11 @@ function generateRawDeliveryShop(payload, settings, shortOrderId) {
   bufs.push(CMD.LF);
   
   // HTML 감성을 위한 크고 굵은 강조 텍스트
-  const rName = d.deliveryInfo?.recipientName || '';
-  const rContact = d.deliveryInfo?.recipientContact || '';
-  const dTime = `${d.deliveryInfo?.date || ''} ${d.deliveryInfo?.time || ''}`.trim();
-  const address = d.deliveryInfo?.address || '';
+  const delInfo = d.delivery_info || d.deliveryInfo || {};
+  const rName = delInfo.recipientName || delInfo.recipient_name || '';
+  const rContact = delInfo.recipientContact || delInfo.recipient_contact || '';
+  const dTime = `${delInfo.date || ''} ${delInfo.time || ''}`.trim();
+  const address = delInfo.address || '';
 
   bufs.push(CMD.BOLD_ON);
   bufs.push(CMD.DOUBLE_HEIGHT);
@@ -334,10 +332,11 @@ function generateRawDeliveryDriver(payload, settings, shortOrderId, jobType) {
   bufs.push(CMD.ALIGN_LEFT);
   bufs.push(hrEq());
   
-  const rName = d.deliveryInfo?.recipientName || '익명';
+  const delInfo = d.delivery_info || d.deliveryInfo || {};
+  const rName = delInfo.recipientName || delInfo.recipient_name || '익명';
   
   // 자체배송일 경우 연락처 마스킹 해제
-  const rawContact = d.deliveryInfo?.recipientContact || '';
+  const rawContact = delInfo.recipientContact || delInfo.recipient_contact || '';
   const rContact = (jobType === 'delivery_driver_self') ? rawContact : maskPhone(rawContact);
   
   // 수령인 이름 (가장 크게, 28px 느낌)
@@ -355,13 +354,13 @@ function generateRawDeliveryDriver(payload, settings, shortOrderId, jobType) {
   bufs.push(CMD.ALIGN_LEFT);
   bufs.push(hr());
   
-  const dTime = `${d.deliveryInfo?.date || ''} ${d.deliveryInfo?.time || ''}`.trim();
+  const dTime = `${delInfo.date || ''} ${delInfo.time || ''}`.trim();
   bufs.push(justify('배송일시', dTime));
   
   bufs.push(CMD.BOLD_ON);
   bufs.push(CMD.DOUBLE_HEIGHT);
   bufs.push(textLine(`배송지:`));
-  bufs.push(...wrapText(d.deliveryInfo?.address || '', '    '));
+  bufs.push(...wrapText(delInfo.address || '', '    '));
   bufs.push(CMD.DOUBLE_OFF);
   bufs.push(CMD.BOLD_OFF);
   bufs.push(hr());
@@ -411,10 +410,10 @@ function generateRawPickup(payload, settings, shortOrderId) {
   bufs.push(CMD.ALIGN_LEFT);
   bufs.push(hrEq());
   
-  const pInfo = d.pickupInfo || {};
+  const pInfo = d.pickup_info || d.pickupInfo || {};
   const pTime = `${pInfo.date || ''} ${pInfo.time || ''}`.trim();
-  const pName = pInfo.pickerName || '익명';
-  const pContactStr = pInfo.pickerContact || '';
+  const pName = pInfo.pickerName || pInfo.picker_name || '익명';
+  const pContactStr = pInfo.pickerContact || pInfo.picker_contact || '';
   const pContactLast4 = pContactStr.replace(/\D/g, '').slice(-4) || '****';
 
   // 픽업 시간 (18px 느낌 - 굵고 세로로만 살짝 큼)
@@ -478,7 +477,7 @@ function generateRawDailySettlement(payload, settings) {
   bufs.push(CMD.DOUBLE_OFF);
   bufs.push(CMD.LF);
   
-  const branchName = d.branch || settings?.branchDisplayName || '릴리맥';
+  const branchName = d.shop_name || d.branch || settings?.branchDisplayName || '릴리맥';
   bufs.push(textLine(`지점: ${branchName}`));
   bufs.push(textLine(`일자: ${d.date || ''}`));
   bufs.push(textLine(`출력일시: ${new Date().toLocaleString()}`));
@@ -556,7 +555,7 @@ function generateRawCustomer(payload, settings, shortOrderId) {
   bufs.push(CMD.LF);
   bufs.push(CMD.ALIGN_LEFT);
   
-  const branchName = d.branch_name || settings?.branchDisplayName || '릴리맥';
+  const branchName = d.shop_name || d.branch_name || settings?.branchDisplayName || '릴리맥';
   const bizNumber = d.branch_biz_number || settings?.general?.businessNumber || '';
   const customerName = d.customer_name || d.orderer?.name || '고객';
   
@@ -600,7 +599,6 @@ function generateRawCustomer(payload, settings, shortOrderId) {
   
   bufs.push(CMD.LF);
   bufs.push(CMD.ALIGN_CENTER);
-  bufs.push(textLine('이용해 주셔서 감사합니다.'));
   bufs.push(textLine(`${branchName} ${branchAddress ? '('+branchAddress+')' : ''}`));
   if (branchContact) bufs.push(textLine(`전화: ${branchContact}`));
   bufs.push(CMD.LF);
@@ -654,7 +652,7 @@ function generateRawSimpleReceipt(payload, settings) {
   bufs.push(hrEq());
   
   // 공급자 정보 (박스 형태 대신 텍스트로 깔끔하게)
-  const branchName = d.branch_name || settings?.branchDisplayName || '릴리맥';
+  const branchName = d.shop_name || d.branch_name || settings?.branchDisplayName || '릴리맥';
   const manager = d.branch_manager || settings?.general?.managerName || '';
   const bizNumber = d.branch_biz_number || settings?.general?.businessNumber || '';
   const address = d.branch_address || settings?.general?.branchAddress || '';
@@ -680,35 +678,6 @@ function generateRawSimpleReceipt(payload, settings) {
   return Buffer.concat(bufs);
 }
 
-function generateRawPrintTest(payload, settings, logoUrl) {
-  let bufs = [];
-  
-  bufs.push(CMD.ALIGN_CENTER);
-  bufs.push(CMD.DOUBLE_ON);
-  bufs.push(textLine('테스트 인쇄'));
-  bufs.push(CMD.DOUBLE_OFF);
-  bufs.push(CMD.LF);
-  bufs.push(textLine('FloXync POS Printer 연동 테스트'));
-  bufs.push(textLine('이 인쇄물이 정상적으로 출력되었다면'));
-  bufs.push(textLine('프린터가 올바르게 연결된 것입니다.'));
-  bufs.push(CMD.LF);
-  bufs.push(textLine(`출력일시: ${new Date().toLocaleString()}`));
-  bufs.push(CMD.LF);
-  bufs.push(hrEq());
-  
-  const branchName = payload?.branchName || settings?.siteName || settings?.branchDisplayName || '가맹점 미지정';
-  bufs.push(textLine(`지점명: ${branchName}`));
-  
-  bufs.push(hrEq());
-  bufs.push(CMD.LF);
-  bufs.push(textLine('축하합니다! 테스트 출력이 완료되었습니다.'));
-  bufs.push(CMD.LF);
-  bufs.push(CMD.LF);
-  bufs.push(CMD.LF);
-  
-  return Buffer.concat(bufs);
-}
-
 async function generateEscPosBuffer(job, settings, logoUrl) {
   const { job_type, payload = {} } = job || {};
   const rawOrderId = payload?.orderId || job.order_id || job.id || '';
@@ -716,8 +685,8 @@ async function generateEscPosBuffer(job, settings, logoUrl) {
 
   const initBuf = CMD.INIT;
   
-  // 로고 출력 분기 (인수증/영수증 에만 상단 로고 출력)
-  const isLogoNeeded = (job_type === 'customer' || job_type === 'delivery_driver' || job_type === 'delivery_driver_self');
+  // 로고 출력 분기 (인수증/영수증/간이영수증 에만 상단 로고 출력)
+  const isLogoNeeded = (job_type === 'customer' || job_type === 'delivery_driver' || job_type === 'delivery_driver_self' || job_type === 'simple_receipt');
   let logoBuf = Buffer.alloc(0);
   if (isLogoNeeded) {
     logoBuf = await generateLogoBuffer(logoUrl, settings);
@@ -727,9 +696,7 @@ async function generateEscPosBuffer(job, settings, logoUrl) {
 
   if (job_type === 'daily_settlement') {
     contentBuf = generateRawDailySettlement(payload, settings);
-  } else if (job_type === 'print_test') {
-    contentBuf = generateRawPrintTest(payload, settings, logoUrl);
-  } else if (job_type === 'pickup_memo' || job_type === 'pickup_shop' || job_type === 'store_shop') {
+  } else if (job_type === 'pickup_memo' || job_type === 'pickup_shop') {
     contentBuf = generateRawPickup(payload, settings, shortOrderId);
   } else if (job_type === 'delivery_driver' || job_type === 'delivery_driver_self') {
     contentBuf = generateRawDeliveryDriver(payload, settings, shortOrderId, job_type);

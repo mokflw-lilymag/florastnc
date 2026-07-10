@@ -1492,6 +1492,23 @@ ipcMain.handle('sync-deleted-orders', async () => {
   }
 });
 
+ipcMain.handle('check-offline-lock', async () => {
+  try {
+    const row = localDb.prepare(`SELECT value FROM local_meta WHERE key = 'last_online_timestamp'`).get();
+    if (row && row.value) {
+      const lastOnline = parseInt(row.value, 10);
+      const hoursOffline = (Date.now() - lastOnline) / (1000 * 60 * 60);
+      if (hoursOffline > 72) {
+        return { locked: true, hoursOffline };
+      }
+      return { locked: false, hoursOffline };
+    }
+  } catch (err) {
+    // Ignore error if table doesn't exist yet or similar
+  }
+  return { locked: false, hoursOffline: 0 };
+});
+
 ipcMain.handle('request-immediate-sync', async () => {
   if (syncWorker) {
     syncWorker.requestImmediateSyncCycle();

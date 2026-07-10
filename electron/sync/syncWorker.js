@@ -203,6 +203,13 @@ class SyncWorker {
       const ordersCount = this.db.prepare('SELECT COUNT(*) as c FROM orders WHERE tenant_id = ?').get(this.tenantId).c;
       const customersCount = this.db.prepare('SELECT COUNT(*) as c FROM customers WHERE tenant_id = ?').get(this.tenantId).c;
 
+      try {
+        this.db.prepare(`INSERT INTO local_meta (key, value) VALUES ('last_online_timestamp', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`)
+          .run(Date.now().toString());
+      } catch(err) {
+        console.error('[SyncWorker] Failed to update last_online_timestamp:', err);
+      }
+
       const patch = {
         ordersCount,
         customersCount,

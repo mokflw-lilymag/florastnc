@@ -211,8 +211,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
     ? profile?.org_work_tenant_id
     : profile?.tenant_id;
 
+  const rawLocaleCookie = cookieStore.get(LOCALE_COOKIE)?.value;
   let dashboardLocale = cookieLocale;
-  if (effectiveTenantId) {
+  
+  // 데스크톱 앱(오프라인) 환경을 위해 쿠키를 최우선으로 존중합니다.
+  // 쿠키가 아예 없는 최초 로그인 시에만 DB를 참조하여 깜빡임을 방지합니다.
+  if (!rawLocaleCookie && effectiveTenantId) {
     const { data: settingsRow } = await supabase
       .from("system_settings")
       .select("data")
@@ -224,7 +228,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     if (dbUiLocale) dashboardLocale = dbUiLocale;
   }
 
-  const localeCookie = cookieStore.get(LOCALE_COOKIE)?.value;
+  const localeCookie = rawLocaleCookie;
   const baseLocale = toBaseLocale(resolveLocale(localeCookie ?? dashboardLocale));
   const storeName =
     (hqMenuOnly

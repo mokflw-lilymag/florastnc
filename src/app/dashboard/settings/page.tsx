@@ -1411,8 +1411,18 @@ export default function SettingsPage() {
                     <select
                       id="country"
                       value={localCountry}
-                      onChange={(e) => setLocalCountry(e.target.value)}
+                      onChange={(e) => {
+                        const newCountry = e.target.value;
+                        setLocalCountry(newCountry);
+                        const countryObj = OPERATING_COUNTRIES.find(c => c.code === newCountry);
+                        if (countryObj?.defaultCurrency) {
+                          saveSettings({ ...settings, country: newCountry, currency: countryObj.defaultCurrency });
+                        } else {
+                          saveSettings({ ...settings, country: newCountry });
+                        }
+                      }}
                       className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+
                     >
                       {OPERATING_COUNTRIES.map((country) => (
                         <option key={country.code} value={country.code}>

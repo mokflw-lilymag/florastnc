@@ -483,6 +483,13 @@ function initLocalDb(dbPath) {
     CREATE INDEX IF NOT EXISTS idx_order_transfers_process_branch ON order_transfers(process_branch_id);
   `);
 
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS local_meta (
+      key TEXT PRIMARY KEY,
+      value TEXT
+    );
+  `);
+
   console.log("Local SQLite database initialized at", dbPath);
   return db;
 }

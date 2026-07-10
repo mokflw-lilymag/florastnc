@@ -104,8 +104,8 @@
       "pos": "POS",
       "settings": "设置",
       "subscription": "订阅",
-      "purchases": "Purchases",
-      "suppliers": "Suppliers"
+      "purchases": "购买",
+      "suppliers": "供应商"
     },
     "admin": {
       "newOrder": "新订单",
@@ -121,22 +121,22 @@
       "storeSettings": "门店设置"
     },
     "hub": {
-      "pageTitle": "Work hub",
-      "groupOrder": "Orders",
-      "groupManage": "Catalog & stock",
-      "groupSpend": "Purchasing & expenses",
-      "emptyTitle": "No shortcuts on this hub",
-      "emptyBody": "Your current plan hides order, inventory, and purchase shortcuts here. Open Subscription to check Pro or ERP plans, or use ribbon-only features on desktop web.",
-      "emptyCta": "View plans"
+      "pageTitle": "工作中心",
+      "groupOrder": "订单",
+      "groupManage": "目录和库存",
+      "groupSpend": "采购及费用",
+      "emptyTitle": "此中心没有快捷方式",
+      "emptyBody": "您当前的计划在此处隐藏了订单、库存和购买快捷方式。 打开订阅以检查 Pro 或 ERP 计划，或使用桌面 Web 上的仅功能区功能。",
+      "emptyCta": "查看计划"
     },
     "contextNav": {
-      "ariaLabel": "Jump within this menu group",
-      "mainHome": "Home hub"
+      "ariaLabel": "在此菜单组内跳转",
+      "mainHome": "家居中心"
     },
     "superAdminBlock": {
-      "title": "Admin accounts",
-      "body": "Platform admin and system tools are for desktop web only. This app is for store day-to-day work.",
-      "logout": "Log out"
+      "title": "管理员帐户",
+      "body": "平台管理和系统工具仅适用于桌面网络。 该应用程序适用于商店的日常工作。",
+      "logout": "退出"
     }
   },
   "dashboardHeader": {
@@ -3006,24 +3006,24 @@
       "statStability": "稳定性",
       "altBackground": "花店运营技术背景图",
       "altDashboard": "Floxync 控制台预览",
-      "subtitle": "FloXync AI secretary handles orders, printing & bookkeeping.\nAlways by your side — web, Windows, and mobile.",
-      "bubble1": "I'll auto-print order slips, pickup receipts & delivery forms.",
-      "bubble2": "I'll design ribbon text and print it for you too.",
-      "bubble3": "You can take orders right from your phone.",
-      "bubble4": "Leave the PC on and it prints at the counter automatically.",
-      "bubble5": "Just snap a receipt — I'll log it in the ledger.",
-      "bubble6": "I'll have today's closing summary ready for you.",
-      "applyBeta": "Apply for Beta",
-      "downloadWindows": "Download Windows App",
-      "devicePhone": "📱 Phone",
-      "devicePhoneDesc": "On-site orders · Pickup · Quick POS",
-      "devicePhoneSub": "Mobile web — no app install needed",
+      "subtitle": "FloXync AI 秘书处理订单、打印和簿记。 \n始终在您身边 — Web、Windows 和移动设备。",
+      "bubble1": "我将自动打印订单单、提货收据和送货单。",
+      "bubble2": "我也会为您设计丝带文本并打印。",
+      "bubble3": "您可以直接通过手机接受订单。",
+      "bubble4": "保持电脑开启，柜台就会自动打印。",
+      "bubble5": "只需拍一张收据即可——我会将其记录在分类账中。",
+      "bubble6": "我将为您准备好今天的总结摘要。",
+      "applyBeta": "申请测试版",
+      "downloadWindows": "下载Windows应用程序",
+      "devicePhone": "📱 电话",
+      "devicePhoneDesc": "现场下单·自提·快速POS",
+      "devicePhoneSub": "移动网络 — 无需安装应用程序",
       "devicePc": "🖥 PC",
-      "devicePcDesc": "Auto-print at counter · Offline",
-      "devicePcSub": "Windows App v0.1.2",
-      "deviceWeb": "🌐 Web",
-      "deviceWebDesc": "Orders · Delivery · Expenses · Closing",
-      "deviceWebSub": "From any browser, anywhere"
+      "devicePcDesc": "柜台自动打印 · 离线",
+      "devicePcSub": "Windows 应用程序 v0.1.2",
+      "deviceWeb": "🌐 网络",
+      "deviceWebDesc": "订单·交货·费用·结账",
+      "deviceWebSub": "从任何地方的任何浏览器"
     },
     "features": {
       "badge": "花店运营核心功能",

@@ -22,6 +22,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 🚀 [Phase 4] Offline Sync & Security
   startSync: (session) => ipcRenderer.invoke('start-sync', session),
   clearOfflineData: () => ipcRenderer.invoke('clear-offline-data'),
+  checkOfflineLock: () => ipcRenderer.invoke('check-offline-lock'),
   triggerBackup: () => ipcRenderer.invoke('trigger-backup'),
   triggerRestore: (data) => ipcRenderer.invoke('trigger-restore', data),
   setSyncScope: (scope) => ipcRenderer.invoke('set-sync-scope', scope),

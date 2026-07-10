@@ -104,8 +104,8 @@
       "pos": "POS",
       "settings": "Configurações",
       "subscription": "Assinatura",
-      "purchases": "Purchases",
-      "suppliers": "Suppliers"
+      "purchases": "Compras",
+      "suppliers": "Fornecedores"
     },
     "admin": {
       "newOrder": "Novo pedido",
@@ -121,22 +121,22 @@
       "storeSettings": "Configurações da loja"
     },
     "hub": {
-      "pageTitle": "Work hub",
-      "groupOrder": "Orders",
-      "groupManage": "Catalog & stock",
-      "groupSpend": "Purchasing & expenses",
-      "emptyTitle": "No shortcuts on this hub",
-      "emptyBody": "Your current plan hides order, inventory, and purchase shortcuts here. Open Subscription to check Pro or ERP plans, or use ribbon-only features on desktop web.",
-      "emptyCta": "View plans"
+      "pageTitle": "Centro de trabalho",
+      "groupOrder": "Pedidas",
+      "groupManage": "Catálogo e estoque",
+      "groupSpend": "Compras e despesas",
+      "emptyTitle": "Não há atalhos neste hub",
+      "emptyBody": "Seu plano atual oculta atalhos de pedidos, estoque e compras aqui. Abra a assinatura para verificar os planos Pro ou ERP ou use recursos somente da faixa de opções na web para desktop.",
+      "emptyCta": "Ver planos"
     },
     "contextNav": {
-      "ariaLabel": "Jump within this menu group",
-      "mainHome": "Home hub"
+      "ariaLabel": "Ir para este grupo de menu",
+      "mainHome": "Centro inicial"
     },
     "superAdminBlock": {
-      "title": "Admin accounts",
-      "body": "Platform admin and system tools are for desktop web only. This app is for store day-to-day work.",
-      "logout": "Log out"
+      "title": "Contas de administrador",
+      "body": "As ferramentas de administração e sistema da plataforma são apenas para desktop web. Este aplicativo é para o trabalho diário da loja.",
+      "logout": "Sair"
     }
   },
   "dashboardHeader": {
@@ -3006,24 +3006,24 @@
       "statStability": "Estabilidade",
       "altBackground": "Fundo: tecnologia para operações de floricultura",
       "altDashboard": "Pré-visualização do painel Floxync",
-      "subtitle": "FloXync AI secretary handles orders, printing & bookkeeping.\nAlways by your side — web, Windows, and mobile.",
-      "bubble1": "I'll auto-print order slips, pickup receipts & delivery forms.",
-      "bubble2": "I'll design ribbon text and print it for you too.",
-      "bubble3": "You can take orders right from your phone.",
-      "bubble4": "Leave the PC on and it prints at the counter automatically.",
-      "bubble5": "Just snap a receipt — I'll log it in the ledger.",
-      "bubble6": "I'll have today's closing summary ready for you.",
-      "applyBeta": "Apply for Beta",
-      "downloadWindows": "Download Windows App",
-      "devicePhone": "📱 Phone",
-      "devicePhoneDesc": "On-site orders · Pickup · Quick POS",
-      "devicePhoneSub": "Mobile web — no app install needed",
+      "subtitle": "A secretária FloXync AI cuida de pedidos, impressão e escrituração contábil. \nSempre ao seu lado — web, Windows e dispositivos móveis.",
+      "bubble1": "Imprimirei automaticamente recibos de pedidos, recibos de coleta e formulários de entrega.",
+      "bubble2": "Vou desenhar o texto da fita e imprimi-lo para você também.",
+      "bubble3": "Você pode receber pedidos diretamente do seu telefone.",
+      "bubble4": "Deixe o PC ligado e ele imprime no balcão automaticamente.",
+      "bubble5": "Basta tirar um recibo – vou registrá-lo no livro-razão.",
+      "bubble6": "Terei o resumo final de hoje pronto para você.",
+      "applyBeta": "Inscreva-se para a versão beta",
+      "downloadWindows": "Baixe o aplicativo do Windows",
+      "devicePhone": "📱 Telefone",
+      "devicePhoneDesc": "Pedidos no local · Retirada · PDV rápido",
+      "devicePhoneSub": "Web móvel – não é necessária instalação de aplicativo",
       "devicePc": "🖥 PC",
-      "devicePcDesc": "Auto-print at counter · Offline",
-      "devicePcSub": "Windows App v0.1.2",
-      "deviceWeb": "🌐 Web",
-      "deviceWebDesc": "Orders · Delivery · Expenses · Closing",
-      "deviceWebSub": "From any browser, anywhere"
+      "devicePcDesc": "Impressão automática no balcão · Off-line",
+      "devicePcSub": "Aplicativo do Windows v0.1.2",
+      "deviceWeb": "🌐 Rede",
+      "deviceWebDesc": "Pedidos · Entrega · Despesas · Fechamento",
+      "deviceWebSub": "De qualquer navegador, em qualquer lugar"
     },
     "features": {
       "badge": "Recursos essenciais para floriculturas",

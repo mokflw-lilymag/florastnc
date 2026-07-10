@@ -386,8 +386,8 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
 
       if (contact) {
         let customerPoint = 0;
-        if (order.customer_id) {
-          const { data: cData } = await supabase.from('customers').select('points').eq('id', order.customer_id).single();
+        if ((order as any).customer_id) {
+          const { data: cData } = await supabase.from('customers').select('points').eq('id', (order as any).customer_id).single();
           if (cData) customerPoint = cData.points || 0;
         }
 

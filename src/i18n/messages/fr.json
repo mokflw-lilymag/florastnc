@@ -104,8 +104,8 @@
       "pos": "POS",
       "settings": "Paramètres",
       "subscription": "Abonnement",
-      "purchases": "Purchases",
-      "suppliers": "Suppliers"
+      "purchases": "Achats",
+      "suppliers": "Fournisseuses"
     },
     "admin": {
       "newOrder": "Nouvelle commande",
@@ -121,22 +121,22 @@
       "storeSettings": "Paramètres du magasin"
     },
     "hub": {
-      "pageTitle": "Work hub",
-      "groupOrder": "Orders",
-      "groupManage": "Catalog & stock",
-      "groupSpend": "Purchasing & expenses",
-      "emptyTitle": "No shortcuts on this hub",
-      "emptyBody": "Your current plan hides order, inventory, and purchase shortcuts here. Open Subscription to check Pro or ERP plans, or use ribbon-only features on desktop web.",
-      "emptyCta": "View plans"
+      "pageTitle": "Centre de travail",
+      "groupOrder": "Ordres",
+      "groupManage": "Catalogue & stock",
+      "groupSpend": "Achats et dépenses",
+      "emptyTitle": "Aucun raccourci sur ce hub",
+      "emptyBody": "Votre forfait actuel masque ici les raccourcis de commande, d’inventaire et d’achat. Ouvrez l'abonnement pour vérifier les forfaits Pro ou ERP, ou utilisez les fonctionnalités du ruban uniquement sur le Web de bureau.",
+      "emptyCta": "Voir les forfaits"
     },
     "contextNav": {
-      "ariaLabel": "Jump within this menu group",
-      "mainHome": "Home hub"
+      "ariaLabel": "Aller dans ce groupe de menu",
+      "mainHome": "Centre d'accueil"
     },
     "superAdminBlock": {
-      "title": "Admin accounts",
-      "body": "Platform admin and system tools are for desktop web only. This app is for store day-to-day work.",
-      "logout": "Log out"
+      "title": "Comptes administrateur",
+      "body": "Les outils d’administration et système de la plateforme sont uniquement destinés au Web de bureau. Cette application est destinée au travail quotidien du magasin.",
+      "logout": "Se déconnecter"
     }
   },
   "dashboardHeader": {
@@ -3006,24 +3006,24 @@
       "statStability": "Stabilité",
       "altBackground": "Arrière-plan : technologie pour fleuristes",
       "altDashboard": "Aperçu du tableau de bord Floxync",
-      "subtitle": "FloXync AI secretary handles orders, printing & bookkeeping.\nAlways by your side — web, Windows, and mobile.",
-      "bubble1": "I'll auto-print order slips, pickup receipts & delivery forms.",
-      "bubble2": "I'll design ribbon text and print it for you too.",
-      "bubble3": "You can take orders right from your phone.",
-      "bubble4": "Leave the PC on and it prints at the counter automatically.",
-      "bubble5": "Just snap a receipt — I'll log it in the ledger.",
-      "bubble6": "I'll have today's closing summary ready for you.",
-      "applyBeta": "Apply for Beta",
-      "downloadWindows": "Download Windows App",
-      "devicePhone": "📱 Phone",
-      "devicePhoneDesc": "On-site orders · Pickup · Quick POS",
-      "devicePhoneSub": "Mobile web — no app install needed",
+      "subtitle": "La secrétaire de FloXync AI gère les commandes, l'impression et la comptabilité. \nToujours à vos côtés : Web, Windows et mobile.",
+      "bubble1": "J'imprimerai automatiquement les bons de commande, les reçus de ramassage et les formulaires de livraison.",
+      "bubble2": "Je vais concevoir le texte du ruban et l'imprimer pour vous également.",
+      "bubble3": "Vous pouvez prendre des commandes directement depuis votre téléphone.",
+      "bubble4": "Laissez le PC allumé et il imprime automatiquement au comptoir.",
+      "bubble5": "Prenez simplement un reçu – je l’enregistrerai dans le grand livre.",
+      "bubble6": "J'aurai le résumé de clôture d'aujourd'hui prêt pour vous.",
+      "applyBeta": "Postuler pour la version bêta",
+      "downloadWindows": "Téléchargez l'application Windows",
+      "devicePhone": "📱 Téléphone",
+      "devicePhoneDesc": "Commandes sur place · Retrait · Quick POS",
+      "devicePhoneSub": "Web mobile : aucune installation d'application nécessaire",
       "devicePc": "🖥 PC",
-      "devicePcDesc": "Auto-print at counter · Offline",
-      "devicePcSub": "Windows App v0.1.2",
-      "deviceWeb": "🌐 Web",
-      "deviceWebDesc": "Orders · Delivery · Expenses · Closing",
-      "deviceWebSub": "From any browser, anywhere"
+      "devicePcDesc": "Impression automatique au comptoir · Hors ligne",
+      "devicePcSub": "Application Windows v0.1.2",
+      "deviceWeb": "🌐Web",
+      "deviceWebDesc": "Commandes · Livraison · Dépenses · Clôture",
+      "deviceWebSub": "Depuis n’importe quel navigateur, n’importe où"
     },
     "features": {
       "badge": "Fonctions essentielles pour fleuristes",

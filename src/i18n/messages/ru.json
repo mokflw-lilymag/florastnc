@@ -104,8 +104,8 @@
       "pos": "POS",
       "settings": "Настройки",
       "subscription": "Подписка",
-      "purchases": "Purchases",
-      "suppliers": "Suppliers"
+      "purchases": "Покупки",
+      "suppliers": "Поставщики"
     },
     "admin": {
       "newOrder": "Новый заказ",
@@ -121,22 +121,22 @@
       "storeSettings": "Настройки магазина"
     },
     "hub": {
-      "pageTitle": "Work hub",
-      "groupOrder": "Orders",
-      "groupManage": "Catalog & stock",
-      "groupSpend": "Purchasing & expenses",
-      "emptyTitle": "No shortcuts on this hub",
-      "emptyBody": "Your current plan hides order, inventory, and purchase shortcuts here. Open Subscription to check Pro or ERP plans, or use ribbon-only features on desktop web.",
-      "emptyCta": "View plans"
+      "pageTitle": "Рабочий центр",
+      "groupOrder": "Заказы",
+      "groupManage": "Каталог и склад",
+      "groupSpend": "Закупки и расходы",
+      "emptyTitle": "В этом хабе нет ярлыков",
+      "emptyBody": "Ваш текущий план скрывает здесь ярлыки заказов, инвентаря и покупок. Откройте подписку, чтобы проверить планы Pro или ERP или использовать функции только на ленте в настольном Интернете.",
+      "emptyCta": "Посмотреть планы"
     },
     "contextNav": {
-      "ariaLabel": "Jump within this menu group",
-      "mainHome": "Home hub"
+      "ariaLabel": "Перейти в эту группу меню",
+      "mainHome": "Домашний хаб"
     },
     "superAdminBlock": {
-      "title": "Admin accounts",
-      "body": "Platform admin and system tools are for desktop web only. This app is for store day-to-day work.",
-      "logout": "Log out"
+      "title": "Учетные записи администратора",
+      "body": "Инструменты администрирования платформы и системные инструменты предназначены только для настольных компьютеров. Это приложение предназначено для повседневной работы магазина.",
+      "logout": "Выйти"
     }
   },
   "dashboardHeader": {
@@ -3006,24 +3006,24 @@
       "statStability": "Стабильность",
       "altBackground": "Фон: технологии для цветочного магазина",
       "altDashboard": "Превью панели Floxync",
-      "subtitle": "FloXync AI secretary handles orders, printing & bookkeeping.\nAlways by your side — web, Windows, and mobile.",
-      "bubble1": "I'll auto-print order slips, pickup receipts & delivery forms.",
-      "bubble2": "I'll design ribbon text and print it for you too.",
-      "bubble3": "You can take orders right from your phone.",
-      "bubble4": "Leave the PC on and it prints at the counter automatically.",
-      "bubble5": "Just snap a receipt — I'll log it in the ledger.",
-      "bubble6": "I'll have today's closing summary ready for you.",
-      "applyBeta": "Apply for Beta",
-      "downloadWindows": "Download Windows App",
-      "devicePhone": "📱 Phone",
-      "devicePhoneDesc": "On-site orders · Pickup · Quick POS",
-      "devicePhoneSub": "Mobile web — no app install needed",
+      "subtitle": "Секретарь FloXync AI занимается заказами, печатью и бухгалтерским учетом. \nВсегда рядом с вами — в Интернете, на Windows и на мобильных устройствах.",
+      "bubble1": "Я автоматически распечатаю квитанции о заказе, квитанции о получении и формы доставки.",
+      "bubble2": "Я нарисую текст на ленте и распечатаю его для вас.",
+      "bubble3": "Вы можете принимать заказы прямо с телефона.",
+      "bubble4": "Оставьте компьютер включенным, и он автоматически напечатает на стойке.",
+      "bubble5": "Просто снимите чек — я занесу его в бухгалтерскую книгу.",
+      "bubble6": "Я подготовлю для вас итоговое заключение сегодняшнего дня.",
+      "applyBeta": "Подать заявку на участие в бета-тестировании",
+      "downloadWindows": "Загрузите приложение для Windows",
+      "devicePhone": "📱 Телефон",
+      "devicePhoneDesc": "Заказы на месте · Самовывоз · Быстрый POS",
+      "devicePhoneSub": "Мобильный Интернет — установка приложения не требуется",
       "devicePc": "🖥 PC",
-      "devicePcDesc": "Auto-print at counter · Offline",
-      "devicePcSub": "Windows App v0.1.2",
-      "deviceWeb": "🌐 Web",
-      "deviceWebDesc": "Orders · Delivery · Expenses · Closing",
-      "deviceWebSub": "From any browser, anywhere"
+      "devicePcDesc": "Автоматическая печать на стойке · Не в сети",
+      "devicePcSub": "Приложение для Windows версии 0.1.2",
+      "deviceWeb": "🌐 Интернет",
+      "deviceWebDesc": "Заказы · Доставка · Расходы · Закрытие",
+      "deviceWebSub": "Из любого браузера, где угодно"
     },
     "features": {
       "badge": "Ключевые функции для цветочного бизнеса",

@@ -189,6 +189,11 @@ export function Header({
   }, [supabase, plan, isSuperAdmin, sidebarHqOnly]);
 
   const handleLogout = async () => {
+    if (!navigator.onLine) {
+      const confirmOffline = window.confirm("⚠️ 경고: 현재 인터넷이 끊긴 오프라인 상태입니다.\n\n이 상태에서 로그아웃하시면 서버로 올라가지 않은 방금 전 주문들이 모두 영구 삭제됩니다.\n\n정말로 로그아웃 하시겠습니까?");
+      if (!confirmOffline) return;
+    }
+
     if (typeof window !== "undefined" && (window as any).electronAPI) {
       try {
         await (window as any).electronAPI.clearOfflineData();

@@ -104,8 +104,8 @@
       "pos": "POS",
       "settings": "Einstellungen",
       "subscription": "Abonnement",
-      "purchases": "Purchases",
-      "suppliers": "Suppliers"
+      "purchases": "Einkäufe",
+      "suppliers": "Lieferanten"
     },
     "admin": {
       "newOrder": "Neue Bestellung",
@@ -121,22 +121,22 @@
       "storeSettings": "Laden-Einstellungen"
     },
     "hub": {
-      "pageTitle": "Work hub",
-      "groupOrder": "Orders",
-      "groupManage": "Catalog & stock",
-      "groupSpend": "Purchasing & expenses",
-      "emptyTitle": "No shortcuts on this hub",
-      "emptyBody": "Your current plan hides order, inventory, and purchase shortcuts here. Open Subscription to check Pro or ERP plans, or use ribbon-only features on desktop web.",
-      "emptyCta": "View plans"
+      "pageTitle": "Arbeitszentrum",
+      "groupOrder": "Bestellungen",
+      "groupManage": "Katalog & Lager",
+      "groupSpend": "Einkauf & Spesen",
+      "emptyTitle": "Keine Verknüpfungen auf diesem Hub",
+      "emptyBody": "Ihr aktueller Plan verbirgt hier Bestell-, Inventar- und Kaufverknüpfungen. Öffnen Sie das Abonnement, um Pro- oder ERP-Pläne zu prüfen, oder nutzen Sie nur die Ribbon-Funktionen im Desktop-Web.",
+      "emptyCta": "Pläne ansehen"
     },
     "contextNav": {
-      "ariaLabel": "Jump within this menu group",
-      "mainHome": "Home hub"
+      "ariaLabel": "Springen Sie innerhalb dieser Menügruppe",
+      "mainHome": "Home-Hub"
     },
     "superAdminBlock": {
-      "title": "Admin accounts",
-      "body": "Platform admin and system tools are for desktop web only. This app is for store day-to-day work.",
-      "logout": "Log out"
+      "title": "Admin-Konten",
+      "body": "Plattformadministrator- und Systemtools sind nur für Desktop-Web geeignet. Diese App ist für die tägliche Arbeit im Geschäft gedacht.",
+      "logout": "Abmelden"
     }
   },
   "dashboardHeader": {
@@ -3006,24 +3006,24 @@
       "statStability": "Stabilität",
       "altBackground": "Hintergrund: Technologie für Blumenfachhandel",
       "altDashboard": "Vorschau des Floxync-Dashboards",
-      "subtitle": "FloXync AI secretary handles orders, printing & bookkeeping.\nAlways by your side — web, Windows, and mobile.",
-      "bubble1": "I'll auto-print order slips, pickup receipts & delivery forms.",
-      "bubble2": "I'll design ribbon text and print it for you too.",
-      "bubble3": "You can take orders right from your phone.",
-      "bubble4": "Leave the PC on and it prints at the counter automatically.",
-      "bubble5": "Just snap a receipt — I'll log it in the ledger.",
-      "bubble6": "I'll have today's closing summary ready for you.",
-      "applyBeta": "Apply for Beta",
-      "downloadWindows": "Download Windows App",
-      "devicePhone": "📱 Phone",
-      "devicePhoneDesc": "On-site orders · Pickup · Quick POS",
-      "devicePhoneSub": "Mobile web — no app install needed",
+      "subtitle": "Die KI-Sekretärin von FloXync kümmert sich um Bestellungen, Druck und Buchhaltung. \nImmer an Ihrer Seite – Web, Windows und Mobilgeräte.",
+      "bubble1": "Ich drucke automatisch Bestellscheine, Abholbelege und Lieferformulare aus.",
+      "bubble2": "Ich entwerfe den Bandtext und drucke ihn auch für Sie aus.",
+      "bubble3": "Sie können Bestellungen direkt von Ihrem Telefon aus entgegennehmen.",
+      "bubble4": "Lassen Sie den PC eingeschaltet und es wird automatisch am Schalter gedruckt.",
+      "bubble5": "Schnappen Sie sich einfach eine Quittung – ich trage sie ins Hauptbuch ein.",
+      "bubble6": "Die heutige Schlusszusammenfassung halte ich für Sie bereit.",
+      "applyBeta": "Beantragen Sie die Beta",
+      "downloadWindows": "Laden Sie die Windows-App herunter",
+      "devicePhone": "📱 Telefon",
+      "devicePhoneDesc": "Bestellungen vor Ort · Abholung · Quick POS",
+      "devicePhoneSub": "Mobiles Web – keine App-Installation erforderlich",
       "devicePc": "🖥 PC",
-      "devicePcDesc": "Auto-print at counter · Offline",
-      "devicePcSub": "Windows App v0.1.2",
-      "deviceWeb": "🌐 Web",
-      "deviceWebDesc": "Orders · Delivery · Expenses · Closing",
-      "deviceWebSub": "From any browser, anywhere"
+      "devicePcDesc": "Automatisches Drucken am Schalter · Offline",
+      "devicePcSub": "Windows-App v0.1.2",
+      "deviceWeb": "🌐 Im Web",
+      "deviceWebDesc": "Bestellungen · Lieferung · Spesen · Abschluss",
+      "deviceWebSub": "Von jedem Browser und überall"
     },
     "features": {
       "badge": "Kernfunktionen für Blumenläden",

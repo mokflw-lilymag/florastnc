@@ -104,8 +104,8 @@
       "pos": "POS",
       "settings": "Cài đặt",
       "subscription": "Gói đăng ký",
-      "purchases": "Purchases",
-      "suppliers": "Suppliers"
+      "purchases": "Mua hàng",
+      "suppliers": "nhà cung cấp"
     },
     "admin": {
       "newOrder": "Đơn mới",
@@ -121,22 +121,22 @@
       "storeSettings": "Cài đặt cửa hàng"
     },
     "hub": {
-      "pageTitle": "Work hub",
-      "groupOrder": "Orders",
-      "groupManage": "Catalog & stock",
-      "groupSpend": "Purchasing & expenses",
-      "emptyTitle": "No shortcuts on this hub",
-      "emptyBody": "Your current plan hides order, inventory, and purchase shortcuts here. Open Subscription to check Pro or ERP plans, or use ribbon-only features on desktop web.",
-      "emptyCta": "View plans"
+      "pageTitle": "Trung tâm làm việc",
+      "groupOrder": "Đơn đặt hàng",
+      "groupManage": "Danh mục & kho",
+      "groupSpend": "Mua hàng và chi phí",
+      "emptyTitle": "Không có phím tắt trên trung tâm này",
+      "emptyBody": "Gói hiện tại của bạn ẩn các phím tắt đặt hàng, hàng tồn kho và mua hàng tại đây. Mở Đăng ký để kiểm tra các gói Pro hoặc ERP hoặc sử dụng các tính năng chỉ có trên ribbon trên web dành cho máy tính để bàn.",
+      "emptyCta": "Xem kế hoạch"
     },
     "contextNav": {
-      "ariaLabel": "Jump within this menu group",
-      "mainHome": "Home hub"
+      "ariaLabel": "Nhảy vào nhóm menu này",
+      "mainHome": "Trung tâm gia đình"
     },
     "superAdminBlock": {
-      "title": "Admin accounts",
-      "body": "Platform admin and system tools are for desktop web only. This app is for store day-to-day work.",
-      "logout": "Log out"
+      "title": "Tài khoản quản trị viên",
+      "body": "Công cụ quản trị nền tảng và hệ thống chỉ dành cho web trên máy tính để bàn. Ứng dụng này dành cho công việc hàng ngày của cửa hàng.",
+      "logout": "Đăng xuất"
     }
   },
   "dashboardHeader": {
@@ -3006,24 +3006,24 @@
       "statStability": "Độ ổn định",
       "altBackground": "Nền công nghệ vận hành cửa hàng hoa",
       "altDashboard": "Xem trước bảng điều khiển Floxync",
-      "subtitle": "FloXync AI secretary handles orders, printing & bookkeeping.\nAlways by your side — web, Windows, and mobile.",
-      "bubble1": "I'll auto-print order slips, pickup receipts & delivery forms.",
-      "bubble2": "I'll design ribbon text and print it for you too.",
-      "bubble3": "You can take orders right from your phone.",
-      "bubble4": "Leave the PC on and it prints at the counter automatically.",
-      "bubble5": "Just snap a receipt — I'll log it in the ledger.",
-      "bubble6": "I'll have today's closing summary ready for you.",
-      "applyBeta": "Apply for Beta",
-      "downloadWindows": "Download Windows App",
-      "devicePhone": "📱 Phone",
-      "devicePhoneDesc": "On-site orders · Pickup · Quick POS",
-      "devicePhoneSub": "Mobile web — no app install needed",
+      "subtitle": "Thư ký FloXync AI xử lý các đơn đặt hàng, in ấn và ghi sổ kế toán. \nLuôn ở bên cạnh bạn — web, Windows và di động.",
+      "bubble1": "Tôi sẽ tự động in phiếu đặt hàng, biên lai nhận hàng và phiếu giao hàng.",
+      "bubble2": "Tôi sẽ thiết kế văn bản ribbon và in nó cho bạn.",
+      "bubble3": "Bạn có thể nhận đơn đặt hàng ngay từ điện thoại của bạn.",
+      "bubble4": "Hãy để PC bật và nó sẽ tự động in tại quầy.",
+      "bubble5": "Chỉ cần chụp biên lai - tôi sẽ ghi vào sổ cái.",
+      "bubble6": "Tôi sẽ chuẩn bị sẵn bản tóm tắt cuối cùng của ngày hôm nay cho bạn.",
+      "applyBeta": "Đăng ký bản Beta",
+      "downloadWindows": "Tải xuống ứng dụng Windows",
+      "devicePhone": "📱 Điện thoại",
+      "devicePhoneDesc": "Đặt hàng tại chỗ · Nhận hàng · POS nhanh",
+      "devicePhoneSub": "Web di động - không cần cài đặt ứng dụng",
       "devicePc": "🖥 PC",
-      "devicePcDesc": "Auto-print at counter · Offline",
-      "devicePcSub": "Windows App v0.1.2",
-      "deviceWeb": "🌐 Web",
-      "deviceWebDesc": "Orders · Delivery · Expenses · Closing",
-      "deviceWebSub": "From any browser, anywhere"
+      "devicePcDesc": "Tự động in tại quầy · Ngoại tuyến",
+      "devicePcSub": "Ứng dụng Windows v0.1.2",
+      "deviceWeb": "🌐 Nền web",
+      "deviceWebDesc": "Đơn hàng · Giao hàng · Chi phí · Chốt đơn",
+      "deviceWebSub": "Từ mọi trình duyệt, mọi nơi"
     },
     "features": {
       "badge": "Tính năng cốt lõi cho shop hoa",

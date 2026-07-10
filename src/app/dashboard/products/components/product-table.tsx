@@ -5,6 +5,7 @@ import { useState, useMemo } from "react";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
 import { pickUiText } from "@/i18n/pick-ui-text";
+import { useSettings } from "@/hooks/use-settings";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -66,6 +67,18 @@ export function ProductTable({
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
   const baseLocale = toBaseLocale(locale);
+  const { settings } = useSettings();
+  const currencyCode = settings?.currency || "KRW";
+  
+  const currencySymbol = useMemo(() => {
+    try {
+      const parts = new Intl.NumberFormat(baseLocale, { style: 'currency', currency: currencyCode }).formatToParts(0);
+      return parts.find(p => p.type === 'currency')?.value || currencyCode;
+    } catch {
+      return currencyCode;
+    }
+  }, [baseLocale, currencyCode]);
+
   const pageRows = pageProducts ?? products;
   const emptyListMessage = useMemo(() => {
     if (pageRows.length > 0) return tf.f00036;
@@ -198,7 +211,7 @@ export function ProductTable({
                       </div>
                     </TableCell>
                     <TableCell className="font-mono text-slate-700">
-                      ₩{product.price.toLocaleString()}
+                      {currencySymbol}{product.price.toLocaleString()}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex flex-col items-end">
