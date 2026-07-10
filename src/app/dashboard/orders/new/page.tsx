@@ -1454,13 +1454,6 @@ export default function NewOrderPage() {
             {lastOrderId && receipt_type === 'delivery_reservation' && (
               <div className="flex flex-col gap-2 w-full">
                 <Button 
-                  variant="outline" 
-                  className="w-full rounded-2xl h-12 font-bold border-primary text-primary hover:bg-primary/5 flex items-center justify-center gap-2" 
-                  onClick={() => router.push(`/dashboard/orders/print-preview/${lastOrderId}`)}
-                >
-                  <Printer className="w-4 h-4" /> {tf.f00631}
-                </Button>
-                <Button 
                   variant="ghost" 
                   className="w-full rounded-2xl h-10 font-bold text-slate-500 flex items-center justify-center gap-2" 
                   onClick={() => router.push(`/dashboard/orders?openMessagePrint=true&orderId=${lastOrderId}`)}
