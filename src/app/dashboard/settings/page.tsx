@@ -1772,7 +1772,12 @@ export default function SettingsPage() {
                     <div className="flex flex-col gap-3">
                       <div className="flex items-center justify-between">
                         <div className="space-y-0.5">
-                          <Label className="text-base">{pickUiText(baseLocale, '통합 프린터 브릿지 사용', 'Enable Integrated Printer Bridge', 'Sử dụng Bridge in tích hợp')}</Label>
+                          <Label className="text-base flex items-center gap-2 flex-wrap">
+                            {pickUiText(baseLocale, '통합 프린터 브릿지 사용 (웹앱용)', 'Enable Integrated Printer Bridge (Web App)', 'Sử dụng Bridge in tích hợp (Web App)')}
+                            <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-md border border-red-200">
+                              {pickUiText(baseLocale, '🚨 윈도우앱 사용시 사용금지', '🚨 Do NOT use on Windows App', '🚨 KHÔNG dùng trên Windows App')}
+                            </span>
+                          </Label>
                           <p className="text-sm text-slate-500">
                             {pickUiText(
                               baseLocale,
