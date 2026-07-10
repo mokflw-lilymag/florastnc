@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;800&display=swap');
+    @page { margin: 0; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+      font-weight: 800;
+      -webkit-font-smoothing: none;
+      margin: 0;
+      padding: 8px 16px 8px 8px;
+      width: 72mm;
+      color: #000;
+      background: #fff;
+      font-size: 12px;
+    }
+    .receipt-container {
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 15px;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: 2px;
+    }
+    .header p {
+      margin: 4px 0 0 0;
+      font-size: 11px;
+    }
+    .divider {
+      border-top: 1px dashed #000;
+      margin: 10px 0;
+    }
+    .info-section {
+      font-size: 12px;
+      line-height: 1.4;
+      margin-bottom: 10px;
+    }
+    .info-section p {
+      margin: 2px 0;
+    }
+    .items-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    .items-table th {
+      border-top: 1px solid #000;
+      border-bottom: 1px solid #000;
+      padding: 6px 0;
+      text-align: left;
+    }
+    .items-table td {
+      padding: 5px 0;
+    }
+    .items-table .qty {
+      text-align: center;
+      width: 40px;
+    }
+    .items-table .price {
+      text-align: right;
+      width: 80px;
+    }
+    .summary-section {
+      margin-top: 10px;
+      font-size: 13px;
+    }
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 3px;
+    }
+    .summary-row.total {
+      font-size: 16px;
+      font-weight: bold;
+      border-top: 1px solid #000;
+      padding-top: 6px;
+      margin-top: 6px;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 11px;
+    }
+  </style>
+</head>
+<body>
+  <div class="receipt-container">
+    <div class="header">
+      <h1>영 수 증</h1>
+      <p>출력일시: {{print_datetime}}</p>
+    </div>
+    
+    <div class="info-section">
+      <p><b>주문번호:</b> {{short_order_id}}</p>
+      <p><b>주문일자:</b> {{order_date}}</p>
+      <p><b>지 점 명:</b> {{branch_name}}</p>
+      <p><b>등록번호:</b> {{branch_biz_number}}</p>
+      <p><b>고 객 명:</b> {{customer_name}}</p>
+    </div>
+    
+    <div class="divider"></div>
+    
+    <table class="items-table">
+      <thead>
+        <tr>
+          <th>품목명</th>
+          <th class="qty">수량</th>
+          <th class="price">금액</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{items_html}}
+      </tbody>
+    </table>
+    
+    <div class="divider"></div>
+    
+    <div class="summary-section">
+      <div class="summary-row">
+        <span>공급가액:</span>
+        <span>{{subtotal_amount}}원</span>
+      </div>
+      <div class="summary-row">
+        <span>부가세:</span>
+        <span>{{vat_amount}}원</span>
+      </div>
+      <div class="summary-row total">
+        <span>합계금액:</span>
+        <span>{{total_amount}}원</span>
+      </div>
+    </div>
+    
+    <div class="footer">
+      이용해 주셔서 감사합니다.<br/>
+      {{branch_name}} ({{branch_address}})<br/>
+      전화: {{branch_phone}}
+    </div>
+  </div>
+</body>
+</html>
