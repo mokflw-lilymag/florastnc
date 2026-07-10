@@ -707,7 +707,7 @@ function generateHtmlReceipt(job, settings = {}) {
     rContact = formatContact(deliveryInfo?.recipientContact);
     dDatetime = `${deliveryInfo?.date || ''} ${deliveryInfo?.time || ''}`.trim();
     dAddr = deliveryInfo?.address || '';
-    docTitle = labels.doc_receipt;
+    docTitle = job_type === 'delivery_shop' ? (labels.delivery_receipt || '인수증') : labels.doc_receipt;
   } else if (job_type === 'order_form') {
     if (deliveryInfo?.date || deliveryInfo?.address) {
       rName = deliveryInfo?.recipientName || '';
