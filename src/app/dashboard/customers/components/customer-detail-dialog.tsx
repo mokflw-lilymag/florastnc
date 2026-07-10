@@ -31,6 +31,7 @@ import {
   DialogDescription,
   DialogFooter
 } from "@/components/ui/dialog";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -55,6 +56,19 @@ import {
   isPlaceholderContact,
 } from "@/lib/customer-order-match";
 import { attachPointBalances } from "@/lib/customers/point-transactions";
+import { useSettings } from "@/hooks/use-settings";
+import { formatMarketingMessage, sendMarketingEmail } from "@/lib/marketing-helper";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Send, MessageSquare } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 
 interface CustomerDetailDialogProps {
   customer: Customer | null;
@@ -86,9 +100,83 @@ export function CustomerDetailDialog({
   const [anniversariesLoading, setAnniversariesLoading] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [isOrderDetailOpen, setIsOrderDetailOpen] = useState(false);
+  const [isSendingMarketing, setIsSendingMarketing] = useState(false);
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
   const dfLoc = dateFnsLocaleForBase(toBaseLocale(locale));
+  const { settings } = useSettings();
+  const { profile } = useAuth();
+  
+  const handleMarketingKakao = async (type: 'first' | 'd7' | 'dayOf') => {
+    if (!customer) return;
+    const tpl = type === 'first' ? settings.marketingKakaoTemplateFirstPurchase 
+              : type === 'd7' ? settings.marketingKakaoTemplateDaysBefore7 
+              : settings.marketingKakaoTemplateDayOf;
+    
+    const annName = anniversaries[0]?.label || pickUiText(toBaseLocale(locale), "기념일", "Anniversary");
+    
+    const msg = formatMarketingMessage(tpl || '', {
+      customerName: customer.name,
+      customerPoint: customer.points,
+      branchName: settings.siteName || profile?.tenants?.name || '',
+      anniversaryName: annName,
+      shopLogoUrl: (profile?.tenants as any)?.logo_url,
+      pointRate: settings.pointRate,
+      minPointUsage: settings.minPointUsage,
+      isPlainText: true,
+    });
+    
+    try {
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(msg);
+        toast.success(pickUiText(toBaseLocale(locale), '메시지 문구가 클립보드에 복사되었습니다. 원하는 곳에 붙여넣기 해주세요.', 'Message text copied to clipboard.'));
+      } else {
+        toast.error(pickUiText(toBaseLocale(locale), '클립보드 복사 기능을 지원하지 않는 브라우저입니다.', 'Clipboard API not supported.'));
+      }
+    } catch (e) {
+      toast.error(pickUiText(toBaseLocale(locale), '클립보드 복사에 실패했습니다.', 'Failed to copy to clipboard.'));
+    }
+  };
+
+  const handleMarketingEmail = async (type: 'first' | 'd7' | 'dayOf') => {
+    if (!customer?.email) {
+      toast.error(pickUiText(toBaseLocale(locale), '고객의 이메일 주소가 없습니다.', 'Customer has no email address.'));
+      return;
+    }
+    
+    const subjectTpl = type === 'first' ? settings.marketingEmailSubjectFirstPurchase 
+                     : type === 'd7' ? settings.marketingEmailSubjectDaysBefore7 
+                     : settings.marketingEmailSubjectDayOf;
+    const contentTpl = type === 'first' ? settings.marketingEmailContentFirstPurchase 
+                     : type === 'd7' ? settings.marketingEmailContentDaysBefore7 
+                     : settings.marketingEmailContentDayOf;
+
+    const annName = anniversaries[0]?.label || pickUiText(toBaseLocale(locale), "기념일", "Anniversary");
+    
+    const data = {
+      customerName: customer.name,
+      customerPoint: customer.points,
+      branchName: settings.siteName || profile?.tenants?.name || '',
+      anniversaryName: annName,
+      shopLogoUrl: (profile?.tenants as any)?.logo_url,
+      pointRate: settings.pointRate,
+      minPointUsage: settings.minPointUsage,
+    };
+
+    const subject = formatMarketingMessage(subjectTpl || '', data);
+    const content = formatMarketingMessage(contentTpl || '', data);
+
+    try {
+      setIsSendingMarketing(true);
+      toast.loading(pickUiText(toBaseLocale(locale), '이메일 발송 중...', 'Sending email...'), { id: 'marketing-email' });
+      await sendMarketingEmail(customer.email, subject, content, customer.tenant_id);
+      toast.success(pickUiText(toBaseLocale(locale), '이메일이 발송되었습니다.', 'Email sent.'), { id: 'marketing-email' });
+    } catch (e: any) {
+      toast.error(pickUiText(toBaseLocale(locale), '이메일 발송 실패: ', 'Email failed: ') + e.message, { id: 'marketing-email' });
+    } finally {
+      setIsSendingMarketing(false);
+    }
+  };
 
   const formatDayLabel = (d: Date) => format(d, "PPP", { locale: dfLoc });
 
@@ -277,6 +365,52 @@ export function CustomerDetailDialog({
                      <FileText className="h-4 w-4" />
                      {tf.f00041}
                   </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger render={
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={isSendingMarketing}
+                        className="h-9 hover:bg-pink-50 border-slate-200 gap-2 font-bold text-pink-600 bg-white"
+                      >
+                        <Send className="h-4 w-4" />
+                        마케팅 발송
+                      </Button>
+                    } />
+                    <DropdownMenuContent align="end" className="w-56 font-medium">
+                      <DropdownMenuGroup>
+                        <DropdownMenuLabel className="flex items-center gap-2 text-xs text-yellow-600">
+                          <MessageSquare className="h-3.5 w-3.5" />
+                          메시지 복사 (문자/카카오톡)
+                        </DropdownMenuLabel>
+                        <DropdownMenuItem disabled={!customer?.contact} onClick={() => handleMarketingKakao('first')}>
+                          첫 구매 감사 메시지
+                        </DropdownMenuItem>
+                        <DropdownMenuItem disabled={!customer?.contact} onClick={() => handleMarketingKakao('d7')}>
+                          기념일 D-7 안내
+                        </DropdownMenuItem>
+                        <DropdownMenuItem disabled={!customer?.contact} onClick={() => handleMarketingKakao('dayOf')}>
+                          당일 기념일 축하
+                        </DropdownMenuItem>
+                      </DropdownMenuGroup>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuGroup>
+                        <DropdownMenuLabel className="flex items-center gap-2 text-xs text-blue-600">
+                          <Send className="h-3.5 w-3.5" />
+                          이메일 발송
+                        </DropdownMenuLabel>
+                        <DropdownMenuItem disabled={!customer?.email} onClick={() => handleMarketingEmail('first')}>
+                          첫 구매 감사 메일
+                        </DropdownMenuItem>
+                        <DropdownMenuItem disabled={!customer?.email} onClick={() => handleMarketingEmail('d7')}>
+                          기념일 D-7 안내
+                        </DropdownMenuItem>
+                        <DropdownMenuItem disabled={!customer?.email} onClick={() => handleMarketingEmail('dayOf')}>
+                          당일 기념일 축하
+                        </DropdownMenuItem>
+                      </DropdownMenuGroup>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                </div>
             </div>
          </DialogHeader>

@@ -604,48 +604,8 @@ export default function DeliveryManagementPage() {
                               <TableCell className="align-top pt-5">
                                {isDelivery ? (
                                  <div className="flex flex-col gap-3 min-w-[140px]">
-                                   {/* 자동 배달앱(카카오T) 연동 UI 영역 */}
+                                   {/* 자동 배달앱(카카오T) 연동 UI 및 수동 배송업체 선택 통합 컴포넌트 */}
                                    <DeliveryTableAssigner order={order} />
-
-                                   {/* 수동 택배사/배송업체 지정 (배달앱 미사용 시) */}
-                                   {(!order.delivery_tracking_id || order.delivery_provider_status === 'cancelled') && (
-                                     editingOrderId === order.id ? (
-                                       <Select value={tempCarrier} onValueChange={(val: string | null) => setTempCarrier(val || "")}>
-                                          <SelectTrigger className="h-7 text-[10px] font-medium border-gray-300 bg-white">
-                                            <SelectValue placeholder={tf.f00375} />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            <SelectItem value="none">{tf.f00224}</SelectItem>
-                                            {(settings?.deliveryCarriers || []).map((carrier: string) => (
-                                              <SelectItem key={carrier} value={carrier}>{carrier}</SelectItem>
-                                            ))}
-                                          </SelectContent>
-                                       </Select>
-                                     ) : (
-                                       <div 
-                                         className="flex flex-col cursor-pointer group/carrier hover:bg-gray-50 p-1 rounded-md border border-dashed border-transparent hover:border-gray-200 transition-all opacity-70"
-                                         onClick={() => startEditing(order)}
-                                       >
-                                          <span className="text-[10px] font-bold text-gray-500 flex items-center justify-between">
-                                            {order.delivery_info?.driverAffiliation
-                                              ? `${pickUiText(
-                                                  baseLocale,
-                                                  "수동",
-                                                  "Manual",
-                                                  "Thủ công",
-                                                  "手動",
-                                                  "手动",
-                                                  "Manual",
-                                                  "Manual",
-                                                  "Manuel",
-                                                  "Manuell",
-                                                  "Вручную",
-                                                )}: ${order.delivery_info.driverAffiliation}`
-                                              : tf.f00376}
-                                          </span>
-                                       </div>
-                                     )
-                                   )}
                                  </div>
                                ) : (
                                  <span className="text-gray-300 text-xs">-</span>

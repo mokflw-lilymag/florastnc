@@ -16,15 +16,27 @@ import {
   DEFAULT_EMAIL_TEMPLATE_DELIVERY_COMPLETE,
   DEFAULT_EMAIL_TEMPLATE_PRODUCTION_COMPLETE,
   DEFAULT_EMAIL_TEMPLATE_ANNIVERSARY_D7,
+  DEFAULT_EMAIL_TEMPLATE_ANNIVERSARY_DAY_OF,
+  DEFAULT_EMAIL_TEMPLATE_FIRST_PURCHASE,
 } from '@/lib/email/default-templates';
 import {
   DEFAULT_KAKAO_TEMPLATE_DELIVERY_COMPLETE,
   DEFAULT_KAKAO_TEMPLATE_PRODUCTION_COMPLETE,
+  DEFAULT_KAKAO_TEMPLATE_MARKETING_DAY_OF,
+  DEFAULT_KAKAO_TEMPLATE_MARKETING_DAYS_BEFORE_7,
+  DEFAULT_KAKAO_TEMPLATE_MARKETING_FIRST_PURCHASE,
 } from '@/lib/kakao/default-pc-templates';
 import { syncTenantBackupPathToElectron } from '@/lib/electron-desktop-api';
 
 export type { CategoryData } from '@/lib/category-defaults';
 export { DEFAULT_PRODUCT_CATEGORIES, DEFAULT_MATERIAL_CATEGORIES, DEFAULT_EXPENSE_CATEGORIES };
+
+export interface MarketingAdTemplate {
+  id: string;
+  name: string;
+  subject: string;
+  content: string;
+}
 
 export interface SystemSettings {
   representative: string;
@@ -46,6 +58,7 @@ export interface SystemSettings {
   kakaoDefaultMessage: string;
   kakaoTDeliveryApiKey?: string;
   kakaoTDeliveryBizId?: string;
+  useKakaoTDelivery?: boolean;
   autoDeliveryBooking?: boolean;
   useGoogleSheets: boolean;
   googleSheetId: string;
@@ -108,6 +121,28 @@ export interface SystemSettings {
   /** PC 카카오톡 반자동 알림 텍스트 (클립보드 복사용, {사진링크} = URL) */
   kakaoTemplateProductionComplete?: string;
   kakaoTemplateDeliveryComplete?: string;
+  
+  /** 스마트 마케팅 카카오톡 템플릿 */
+  marketingKakaoTemplateDayOf?: string;
+  marketingKakaoTemplateDaysBefore7?: string;
+  marketingKakaoTemplateFirstPurchase?: string;
+
+  /** 스마트 마케팅 이메일 템플릿 */
+  marketingEmailSubjectDayOf?: string;
+  marketingEmailContentDayOf?: string;
+  marketingEmailAutoDayOf?: boolean;
+
+  marketingEmailSubjectDaysBefore7?: string;
+  marketingEmailContentDaysBefore7?: string;
+  marketingEmailAutoDaysBefore7?: boolean;
+
+  marketingEmailSubjectFirstPurchase?: string;
+  marketingEmailContentFirstPurchase?: string;
+  marketingEmailAutoFirstPurchase?: boolean;
+
+  /** 광고/마케팅 대량 메일 전용 커스텀 템플릿 목록 */
+  marketingAdTemplates?: MarketingAdTemplate[];
+
   /** Windows 앱 로컬 저장·백업 루트 (비우면 문서/Floxync) */
   localBackupPath?: string;
   /** 기본 알림 메신저 (kakaotalk | zalo | line | whatsapp | sms) */
@@ -136,6 +171,7 @@ export const defaultSettings: SystemSettings = {
   kakaoDefaultMessage: "",
   kakaoTDeliveryApiKey: "",
   kakaoTDeliveryBizId: "",
+  useKakaoTDelivery: false,
   autoDeliveryBooking: false,
   useGoogleSheets: false,
   googleSheetId: "",
@@ -187,6 +223,23 @@ export const defaultSettings: SystemSettings = {
   smtpSenderName: '',
   kakaoTemplateProductionComplete: DEFAULT_KAKAO_TEMPLATE_PRODUCTION_COMPLETE,
   kakaoTemplateDeliveryComplete: DEFAULT_KAKAO_TEMPLATE_DELIVERY_COMPLETE,
+  marketingKakaoTemplateDayOf: DEFAULT_KAKAO_TEMPLATE_MARKETING_DAY_OF,
+  marketingKakaoTemplateDaysBefore7: DEFAULT_KAKAO_TEMPLATE_MARKETING_DAYS_BEFORE_7,
+  marketingKakaoTemplateFirstPurchase: DEFAULT_KAKAO_TEMPLATE_MARKETING_FIRST_PURCHASE,
+  marketingAdTemplates: [],
+  marketingEmailSubjectDayOf: "오늘 {기념일명}을 진심으로 축하드립니다!",
+  marketingEmailContentDayOf: DEFAULT_EMAIL_TEMPLATE_ANNIVERSARY_DAY_OF,
+  marketingEmailAutoDayOf: false,
+
+  marketingEmailSubjectDaysBefore7: "{기념일명}이 일주일 앞으로 다가왔습니다.",
+  marketingEmailContentDaysBefore7: DEFAULT_EMAIL_TEMPLATE_ANNIVERSARY_D7,
+  marketingEmailAutoDaysBefore7: false,
+
+  marketingEmailSubjectFirstPurchase: "첫 구매를 진심으로 감사드립니다.",
+  marketingEmailContentFirstPurchase: DEFAULT_EMAIL_TEMPLATE_FIRST_PURCHASE,
+  marketingEmailAutoFirstPurchase: false,
+
+  localBackupPath: "",
 };
 
 function mergeTenantGeneralSettings(raw: unknown): SystemSettings {

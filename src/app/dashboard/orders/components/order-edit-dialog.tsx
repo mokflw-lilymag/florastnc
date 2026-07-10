@@ -96,6 +96,22 @@ export function OrderEditDialog({ isOpen, onOpenChange, order, trialMode }: Orde
     customer_paid_delivery_fee: 0
   });
 
+  const kakaoTAffiliation = pickUiText(
+    baseLocale,
+    "카카오T 배송",
+    "Kakao T Delivery",
+    "Giao hàng Kakao T",
+    "Kakao T配送",
+    "Kakao T 配送",
+    "Entrega Kakao T",
+    "Entrega Kakao T",
+    "Livraison Kakao T",
+    "Kakao T Zustellung",
+    "Доставка Kakao T"
+  );
+
+  const isKakaoTEnabled = settings?.useKakaoTDelivery && !!settings?.kakaoTDeliveryApiKey;
+
   useEffect(() => {
     if (order && isOpen) {
       setFormData({
@@ -361,13 +377,17 @@ export function OrderEditDialog({ isOpen, onOpenChange, order, trialMode }: Orde
                     <div className="space-y-2">
                       <Label className="text-slate-700">{tf.f00266}</Label>
                       <Select 
-                        value={formData.driverAffiliation || ""} 
-                        onValueChange={(val) => handleInputChange('driverAffiliation', '', val)}
+                        value={formData.driverAffiliation || "none"} 
+                        onValueChange={(val) => handleInputChange('driverAffiliation', '', val === "none" ? "" : val)}
                       >
                         <SelectTrigger><SelectValue placeholder={tf.f00269} /></SelectTrigger>
                         <SelectContent>
+                          <SelectItem value="none">{tf.f00224}</SelectItem>
+                          {isKakaoTEnabled && <SelectItem value={kakaoTAffiliation}>{kakaoTAffiliation}</SelectItem>}
                           {(settings?.deliveryCarriers || []).map((carrier) => (
-                            <SelectItem key={carrier} value={carrier}>{carrier}</SelectItem>
+                            carrier !== kakaoTAffiliation && (
+                              <SelectItem key={carrier} value={carrier}>{carrier}</SelectItem>
+                            )
                           ))}
                         </SelectContent>
                       </Select>

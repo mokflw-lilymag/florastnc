@@ -167,7 +167,7 @@ export function DeliverySettings({
                       </td>
                     </tr>
                   ) : regionFees.map(fee => (
-                    <tr key={fee.id} className="hover:bg-blue-50/30 transition-colors group" style={{ display: 'grid', gridTemplateColumns: '1fr 120px 80px' }}>
+                    <tr key={fee.id} className="w-full hover:bg-blue-50/30 transition-colors group" style={{ display: 'grid', gridTemplateColumns: '1fr 120px 80px' }}>
                       <td className="px-4 py-2 flex items-center font-medium text-slate-600 truncate">{fee.region_name}</td>
                       <td className="px-4 py-2 text-right">
                         <div className="relative inline-block w-full">
@@ -186,7 +186,7 @@ export function DeliverySettings({
                         </div>
                       </td>
                       <td className="px-4 py-2 flex items-center justify-center">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-300 hover:text-rose-500 hover:bg-rose-50 opacity-40 group-hover:opacity-100 transition-opacity" onClick={() => deleteFee(fee.id)}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-colors" onClick={() => deleteFee(fee.id)}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </td>

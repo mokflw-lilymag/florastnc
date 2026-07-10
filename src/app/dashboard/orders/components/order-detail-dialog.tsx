@@ -385,12 +385,19 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
       }
 
       if (contact) {
+        let customerPoint = 0;
+        if (order.customer_id) {
+          const { data: cData } = await supabase.from('customers').select('points').eq('id', order.customer_id).single();
+          if (cData) customerPoint = cData.points || 0;
+        }
+
         const { buildKakaoPcNotificationMessage } = await import('@/lib/kakao/build-kakao-pc-message');
         const { launchMessengerMessage } = await import('@/lib/messenger-helper');
         const message = buildKakaoPcNotificationMessage(type, settings, {
           customerName,
           tenantShopName,
           photoUrl,
+          customerPoint,
         });
 
         // 1. 선호 메신저 결정 (설정값 우선 -> 국가 코드에 따른 폴백)

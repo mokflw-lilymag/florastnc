@@ -20,6 +20,7 @@ export interface Customer {
   last_order_date?: string;
   created_at: string;
   updated_at: string;
+  customer_anniversaries?: { id: string }[];
 }
 
 export interface CustomerData {

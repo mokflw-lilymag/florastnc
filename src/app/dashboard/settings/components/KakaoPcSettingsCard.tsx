@@ -12,6 +12,9 @@ import type { SystemSettings } from "@/hooks/use-settings";
 import {
   DEFAULT_KAKAO_TEMPLATE_DELIVERY_COMPLETE,
   DEFAULT_KAKAO_TEMPLATE_PRODUCTION_COMPLETE,
+  DEFAULT_KAKAO_TEMPLATE_MARKETING_DAY_OF,
+  DEFAULT_KAKAO_TEMPLATE_MARKETING_DAYS_BEFORE_7,
+  DEFAULT_KAKAO_TEMPLATE_MARKETING_FIRST_PURCHASE,
 } from "@/lib/kakao/default-pc-templates";
 import { pickUiText } from "@/i18n/pick-ui-text";
 import { toBaseLocale } from "@/i18n/config";
@@ -34,6 +37,12 @@ export function KakaoPcSettingsCard({ settings, saveSettings }: KakaoPcSettingsC
       settings.kakaoTemplateProductionComplete || DEFAULT_KAKAO_TEMPLATE_PRODUCTION_COMPLETE,
     kakaoTemplateDeliveryComplete:
       settings.kakaoTemplateDeliveryComplete || DEFAULT_KAKAO_TEMPLATE_DELIVERY_COMPLETE,
+    marketingKakaoTemplateDayOf:
+      settings.marketingKakaoTemplateDayOf || DEFAULT_KAKAO_TEMPLATE_MARKETING_DAY_OF,
+    marketingKakaoTemplateDaysBefore7:
+      settings.marketingKakaoTemplateDaysBefore7 || DEFAULT_KAKAO_TEMPLATE_MARKETING_DAYS_BEFORE_7,
+    marketingKakaoTemplateFirstPurchase:
+      settings.marketingKakaoTemplateFirstPurchase || DEFAULT_KAKAO_TEMPLATE_MARKETING_FIRST_PURCHASE,
   });
 
   useEffect(() => {
@@ -43,6 +52,12 @@ export function KakaoPcSettingsCard({ settings, saveSettings }: KakaoPcSettingsC
         settings.kakaoTemplateProductionComplete || DEFAULT_KAKAO_TEMPLATE_PRODUCTION_COMPLETE,
       kakaoTemplateDeliveryComplete:
         settings.kakaoTemplateDeliveryComplete || DEFAULT_KAKAO_TEMPLATE_DELIVERY_COMPLETE,
+      marketingKakaoTemplateDayOf:
+        settings.marketingKakaoTemplateDayOf || DEFAULT_KAKAO_TEMPLATE_MARKETING_DAY_OF,
+      marketingKakaoTemplateDaysBefore7:
+        settings.marketingKakaoTemplateDaysBefore7 || DEFAULT_KAKAO_TEMPLATE_MARKETING_DAYS_BEFORE_7,
+      marketingKakaoTemplateFirstPurchase:
+        settings.marketingKakaoTemplateFirstPurchase || DEFAULT_KAKAO_TEMPLATE_MARKETING_FIRST_PURCHASE,
     });
   }, [settings]);
 
@@ -54,6 +69,9 @@ export function KakaoPcSettingsCard({ settings, saveSettings }: KakaoPcSettingsC
         preferredMessenger: local.preferredMessenger,
         kakaoTemplateProductionComplete: local.kakaoTemplateProductionComplete.trim(),
         kakaoTemplateDeliveryComplete: local.kakaoTemplateDeliveryComplete.trim(),
+        marketingKakaoTemplateDayOf: local.marketingKakaoTemplateDayOf.trim(),
+        marketingKakaoTemplateDaysBefore7: local.marketingKakaoTemplateDaysBefore7.trim(),
+        marketingKakaoTemplateFirstPurchase: local.marketingKakaoTemplateFirstPurchase.trim(),
       });
       if (!saved) throw new Error("save failed");
       toast.success(tr("알림 메신저 및 문구가 저장되었습니다.", "Messenger settings saved."));
@@ -65,8 +83,8 @@ export function KakaoPcSettingsCard({ settings, saveSettings }: KakaoPcSettingsC
   };
 
   const varHint = tr(
-    "변수: {고객명}, {회사명}(또는 {지점명}), {사진링크}(완성사진 URL — 카톡은 링크 텍스트로 삽입)",
-    "Variables: {고객명}, {회사명}, {사진링크} (photo URL as text link for Kakao PC)",
+    "변수: {고객명}, {회사명}(또는 {지점명}), {사진링크}, {보유포인트}, {포인트안내}",
+    "Variables: {고객명}, {회사명}, {사진링크}, {보유포인트}, {포인트안내}",
   );
 
   return (
@@ -155,6 +173,94 @@ export function KakaoPcSettingsCard({ settings, saveSettings }: KakaoPcSettingsC
               setLocal((p) => ({
                 ...p,
                 kakaoTemplateDeliveryComplete: DEFAULT_KAKAO_TEMPLATE_DELIVERY_COMPLETE,
+              }))
+            }
+          >
+            <RotateCcw className="h-3 w-3 mr-1" />
+            {tr("기본 문구로 복원", "Restore default")}
+          </Button>
+        </div>
+        <div className="space-y-2 mt-6 border-t pt-4 border-slate-100">
+          <h4 className="text-sm font-bold text-slate-800">{tr("스마트 마케팅 발송 문구", "Smart Marketing Messages")}</h4>
+          <p className="text-[10px] text-muted-foreground">{tr("변수: {고객명}, {기념일명}, {보유포인트}, {포인트안내}, {매장명}, {설명}", "Variables: {고객명}, {기념일명}, {보유포인트}, {포인트안내}, {매장명}, {설명}")}</p>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="kakao-template-marketing-day-of" className="text-xs font-semibold text-pink-600">
+            {tr("[당일 기념일] 전송 문구", "[Anniversary (Day Of)] message")}
+          </Label>
+          <Textarea
+            id="kakao-template-marketing-day-of"
+            value={local.marketingKakaoTemplateDayOf}
+            onChange={(e) => setLocal((p) => ({ ...p, marketingKakaoTemplateDayOf: e.target.value }))}
+            className="min-h-[88px] text-sm border-pink-100 focus-visible:ring-pink-300 bg-pink-50/10"
+            spellCheck={false}
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs text-pink-600 hover:text-pink-700 hover:bg-pink-50"
+            onClick={() =>
+              setLocal((p) => ({
+                ...p,
+                marketingKakaoTemplateDayOf: DEFAULT_KAKAO_TEMPLATE_MARKETING_DAY_OF,
+              }))
+            }
+          >
+            <RotateCcw className="h-3 w-3 mr-1" />
+            {tr("기본 문구로 복원", "Restore default")}
+          </Button>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="kakao-template-marketing-d7" className="text-xs font-semibold text-pink-600">
+            {tr("[기념일 D-7] 전송 문구", "[Anniversary D-7] message")}
+          </Label>
+          <Textarea
+            id="kakao-template-marketing-d7"
+            value={local.marketingKakaoTemplateDaysBefore7}
+            onChange={(e) => setLocal((p) => ({ ...p, marketingKakaoTemplateDaysBefore7: e.target.value }))}
+            className="min-h-[88px] text-sm border-pink-100 focus-visible:ring-pink-300 bg-pink-50/10"
+            spellCheck={false}
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs text-pink-600 hover:text-pink-700 hover:bg-pink-50"
+            onClick={() =>
+              setLocal((p) => ({
+                ...p,
+                marketingKakaoTemplateDaysBefore7: DEFAULT_KAKAO_TEMPLATE_MARKETING_DAYS_BEFORE_7,
+              }))
+            }
+          >
+            <RotateCcw className="h-3 w-3 mr-1" />
+            {tr("기본 문구로 복원", "Restore default")}
+          </Button>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="kakao-template-marketing-first" className="text-xs font-semibold text-pink-600">
+            {tr("[첫 구매 감사] 전송 문구", "[First Purchase] message")}
+          </Label>
+          <Textarea
+            id="kakao-template-marketing-first"
+            value={local.marketingKakaoTemplateFirstPurchase}
+            onChange={(e) => setLocal((p) => ({ ...p, marketingKakaoTemplateFirstPurchase: e.target.value }))}
+            className="min-h-[88px] text-sm border-pink-100 focus-visible:ring-pink-300 bg-pink-50/10"
+            spellCheck={false}
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs text-pink-600 hover:text-pink-700 hover:bg-pink-50"
+            onClick={() =>
+              setLocal((p) => ({
+                ...p,
+                marketingKakaoTemplateFirstPurchase: DEFAULT_KAKAO_TEMPLATE_MARKETING_FIRST_PURCHASE,
               }))
             }
           >

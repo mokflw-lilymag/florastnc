@@ -8,6 +8,8 @@ import { DeliveryFactory } from "@/services/delivery/DeliveryFactory";
 import { DeliveryStatusBadge } from "@/components/ui/DeliveryStatusBadge";
 import { useOrders } from "@/hooks/use-orders";
 import { useUiText } from "@/hooks/use-ui-text";
+import { useSettings } from "@/hooks/use-settings";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 
 export function DeliveryTableAssigner({ order }: { order: Order }) {
@@ -16,6 +18,7 @@ export function DeliveryTableAssigner({ order }: { order: Order }) {
   const [cancelLoading, setCancelLoading] = useState(false);
   const { updateOrder } = useOrders(false);
   const { tr } = useUiText();
+  const { settings } = useSettings();
 
   const kakaoTAffiliation = tr(
     "카카오T 배송",
@@ -247,38 +250,78 @@ export function DeliveryTableAssigner({ order }: { order: Order }) {
     }
   };
 
+  const currentAgency = localOrder.delivery_info?.driverAffiliation || "";
+  const isKakaoTEnabled = settings?.useKakaoTDelivery && !!settings?.kakaoTDeliveryApiKey;
+  const showKakaoTButton = isKakaoTEnabled && currentAgency === kakaoTAffiliation;
+
+  const handleAgencyChange = async (val: string | null) => {
+    if (!val) return;
+    const newAgency = val === "none" ? "" : val;
+    setLocalOrder((prev) => ({
+      ...prev,
+      delivery_info: {
+        ...((prev.delivery_info as any) || {}),
+        driverAffiliation: newAgency,
+      },
+    }));
+    await updateOrder(localOrder.id, {
+      delivery_info: {
+        ...((localOrder.delivery_info as any) || {}),
+        driverAffiliation: newAgency,
+      },
+    } as any);
+  };
+
   if (
     !localOrder.delivery_tracking_id ||
     localOrder.delivery_provider_status === "cancelled" ||
     localOrder.delivery_provider_status === "failed"
   ) {
     return (
-      <div className="flex flex-col gap-1 items-start">
+      <div className="flex flex-col gap-1 items-start w-full">
         {localOrder.delivery_provider_status && (
           <div className="mb-1">
             <DeliveryStatusBadge status={localOrder.delivery_provider_status} provider={localOrder.delivery_provider} />
           </div>
         )}
-        <Button
-          size="sm"
-          onClick={handleRequestDelivery}
-          disabled={loading}
-          className="h-8 text-xs font-bold bg-[#FFDF00] text-black hover:bg-[#E5C800] border-none shadow-sm gap-1 w-full"
-        >
-          {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Truck className="w-3.5 h-3.5" />}
-          {tr(
-            "카카오T 호출",
-            "Request Kakao T",
-            "Gọi Kakao T",
-            "Kakao Tを手配",
-            "呼叫 Kakao T",
-            "Solicitar Kakao T",
-            "Chamar Kakao T",
-            "Demander Kakao T",
-            "Kakao T anfordern",
-            "Вызвать Kakao T",
-          )}
-        </Button>
+        
+        <Select value={currentAgency || "none"} onValueChange={handleAgencyChange}>
+          <SelectTrigger className="h-8 text-xs font-medium border-gray-300 bg-white w-full">
+            <SelectValue placeholder={tr("배송업체 선택", "Select Agency", "Chọn đơn vị vận chuyển", "配送業者を選択", "选择配送公司", "Seleccionar agencia", "Selecionar agência", "Sélectionner une agence", "Agentur auswählen", "Выбрать агентство")} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">{tr("미지정", "Unassigned", "Chưa chỉ định", "未指定", "未指定", "No asignado", "Não atribuído", "Non assigné", "Nicht zugewiesen", "Не назначено")}</SelectItem>
+            {isKakaoTEnabled && <SelectItem value={kakaoTAffiliation}>{kakaoTAffiliation}</SelectItem>}
+            {(settings?.deliveryCarriers || []).map((carrier: string) => (
+              carrier !== kakaoTAffiliation && (
+                <SelectItem key={carrier} value={carrier}>{carrier}</SelectItem>
+              )
+            ))}
+          </SelectContent>
+        </Select>
+
+        {showKakaoTButton && (
+          <Button
+            size="sm"
+            onClick={handleRequestDelivery}
+            disabled={loading}
+            className="h-8 text-xs font-bold bg-[#FFDF00] text-black hover:bg-[#E5C800] border-none shadow-sm gap-1 w-full mt-1"
+          >
+            {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Truck className="w-3.5 h-3.5" />}
+            {tr(
+              "카카오T 호출",
+              "Request Kakao T",
+              "Gọi Kakao T",
+              "Kakao Tを手配",
+              "呼叫 Kakao T",
+              "Solicitar Kakao T",
+              "Chamar Kakao T",
+              "Demander Kakao T",
+              "Kakao T anfordern",
+              "Вызвать Kakao T",
+            )}
+          </Button>
+        )}
       </div>
     );
   }

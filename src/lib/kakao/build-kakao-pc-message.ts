@@ -1,5 +1,5 @@
 import { resolveEmailShopName } from '@/lib/email/resolve-shop-name';
-import { formatKakaoPcMessage } from '@/lib/kakaotalk-helper';
+import { formatMarketingMessage } from '@/lib/marketing-helper';
 import {
   DEFAULT_KAKAO_TEMPLATE_DELIVERY_COMPLETE,
   DEFAULT_KAKAO_TEMPLATE_PRODUCTION_COMPLETE,
@@ -10,6 +10,8 @@ type KakaoTemplateSettings = {
   kakaoTemplateDeliveryComplete?: string;
   smtpSenderName?: string;
   siteName?: string;
+  pointRate?: number;
+  minPointUsage?: number;
 };
 
 export function buildKakaoPcNotificationMessage(
@@ -19,6 +21,7 @@ export function buildKakaoPcNotificationMessage(
     customerName: string;
     tenantShopName?: string | null;
     photoUrl?: string | null;
+    customerPoint?: number;
   },
 ): string {
   const shopName = resolveEmailShopName(settings, params.tenantShopName);
@@ -27,9 +30,13 @@ export function buildKakaoPcNotificationMessage(
       ? settings.kakaoTemplateProductionComplete || DEFAULT_KAKAO_TEMPLATE_PRODUCTION_COMPLETE
       : settings.kakaoTemplateDeliveryComplete || DEFAULT_KAKAO_TEMPLATE_DELIVERY_COMPLETE;
 
-  let message = formatKakaoPcMessage(template, {
+  let message = formatMarketingMessage(template, {
     customerName: params.customerName,
-    shopName,
+    branchName: shopName,
+    customerPoint: params.customerPoint || 0,
+    pointRate: settings.pointRate,
+    minPointUsage: settings.minPointUsage,
+    isPlainText: true,
   });
 
   const photoUrl = params.photoUrl?.trim();
@@ -39,5 +46,5 @@ export function buildKakaoPcNotificationMessage(
     message = message.replace(/{사진링크}/g, '');
   }
 
-  return message.replace(/\s{2,}/g, ' ').trim();
+  return message.trim();
 }

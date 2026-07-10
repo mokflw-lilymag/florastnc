@@ -13,7 +13,7 @@ import { EstimateDialog } from "./components/estimate-dialog";
 import { DocumentRegistryDialog } from "./components/document-registry-dialog";
 import { useCustomers } from "@/hooks/use-customers";
 import { Customer, CustomerData } from "@/types/customer";
-import { Plus, Search, RefreshCw, Users, UserCheck, Star, Clock, Download, History as HistoryIcon, Trophy, Medal, Archive, Upload } from "lucide-react";
+import { Plus, Search, RefreshCw, Users, UserCheck, Star, Clock, Download, History as HistoryIcon, Trophy, Medal, Archive, Upload, Gift, ShoppingBag } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
@@ -92,6 +92,14 @@ export default function CustomersPage() {
       );
     });
   }, [customers, searchTerm, customerDisplayNames]);
+
+  const anniversaryCustomers = useMemo(() => {
+    return customers.filter(c => (c.customer_anniversaries?.length ?? 0) > 0);
+  }, [customers]);
+
+  const firstPurchaseCustomers = useMemo(() => {
+    return customers.filter(c => c.order_count === 1);
+  }, [customers]);
 
   const stats = useMemo(() => {
     return {
@@ -513,27 +521,106 @@ export default function CustomersPage() {
         </Card>
       </div>
 
-      {/* Filters & Actions */}
-      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-        <div className="relative w-full sm:w-96">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <Input
-            placeholder={tf.f00077}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 border-slate-200 bg-white shadow-sm focus:ring-blue-500/20"
+      {/* Customer List and Side Panels */}
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 items-start mt-6">
+        {/* Main Customer Table */}
+        <div className="xl:col-span-3 flex flex-col gap-4">
+          {/* Filters & Actions */}
+          <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+            <div className="relative w-full sm:w-96">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder={tf.f00077}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 border-slate-200 bg-white shadow-sm focus:ring-blue-500/20"
+              />
+            </div>
+          </div>
+
+          <CustomerTable
+            customers={filteredCustomers}
+            displayNames={customerDisplayNames}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onRowClick={handleRowClick}
           />
         </div>
-      </div>
 
-      {/* Customer Table */}
-      <CustomerTable
-        customers={filteredCustomers}
-        displayNames={customerDisplayNames}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        onRowClick={handleRowClick}
-      />
+        {/* Side Panels */}
+        <div className="xl:col-span-1 flex flex-col gap-6">
+          {/* Anniversary Registered Customers */}
+          <Card className="border-none shadow-sm overflow-hidden bg-white">
+            <div className="bg-gradient-to-r from-pink-500 to-rose-500 p-4 flex items-center justify-between">
+              <h3 className="text-white font-bold flex items-center gap-2">
+                <Gift className="h-5 w-5 text-white" />
+                기념일 등록 고객
+              </h3>
+            </div>
+            <CardContent className="p-0">
+              <div className="divide-y divide-slate-50 max-h-[350px] overflow-y-auto">
+                {anniversaryCustomers.map((c) => (
+                  <div key={c.id} className="p-3 flex items-center justify-between hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => handleRowClick(c)}>
+                    <div className="flex items-center gap-3">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-bold text-slate-800">
+                          {getCustomerDisplayName(c, customerDisplayNames)}
+                        </span>
+                        <span className="text-[10px] text-slate-500">{c.contact}</span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xs font-bold text-pink-600 bg-pink-50 px-2 py-1 rounded-full">
+                        {c.customer_anniversaries?.length}건 등록
+                      </span>
+                    </div>
+                  </div>
+                ))}
+                {anniversaryCustomers.length === 0 && (
+                  <div className="p-8 text-center text-slate-400 text-sm">등록된 고객이 없습니다</div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* First Purchase Customers */}
+          <Card className="border-none shadow-sm overflow-hidden bg-white">
+            <div className="bg-gradient-to-r from-teal-500 to-emerald-500 p-4 flex items-center justify-between">
+              <h3 className="text-white font-bold flex items-center gap-2">
+                <ShoppingBag className="h-5 w-5 text-white" />
+                첫 구매 고객 (최근)
+              </h3>
+            </div>
+            <CardContent className="p-0">
+              <div className="divide-y divide-slate-50 max-h-[350px] overflow-y-auto">
+                {firstPurchaseCustomers.map((c) => (
+                  <div key={c.id} className="p-3 flex items-center justify-between hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => handleRowClick(c)}>
+                    <div className="flex items-center gap-3">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-bold text-slate-800">
+                          {getCustomerDisplayName(c, customerDisplayNames)}
+                        </span>
+                        <span className="text-[10px] text-slate-500">{c.contact}</span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs font-bold text-teal-600">
+                        {(Number(c.total_spent) || 0).toLocaleString()}원
+                      </p>
+                      <p className="text-[10px] text-slate-400 font-medium">
+                        {c.last_order_date ? format(new Date(c.last_order_date), 'MM-dd') : ''}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+                {firstPurchaseCustomers.length === 0 && (
+                  <div className="p-8 text-center text-slate-400 text-sm">첫 구매 고객이 없습니다</div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
       <CustomerDetailDialog
         customer={selectedCustomer}

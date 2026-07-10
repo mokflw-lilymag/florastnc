@@ -23,7 +23,7 @@ export function useCustomers(initialFetch = true) {
 
       const { data, error } = await supabase
         .from('customers')
-        .select('*')
+        .select('*, customer_anniversaries(id)')
         .eq('tenant_id', tenantId)
         .eq('is_deleted', false)
         .order('name', { ascending: true });

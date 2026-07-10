@@ -13,7 +13,7 @@ export const DEFAULT_EMAIL_TEMPLATE_PRODUCTION_COMPLETE = `<!DOCTYPE html>
       <h1 style="margin: 0; font-size: 28px; color: #be185d; font-weight: 800; letter-spacing: -0.5px;">{회사명}</h1>
       <p style="margin: 8px 0 0 0; font-size: 13px; color: #db2777; font-weight: 600; letter-spacing: 1px;">제작 완료 안내</p>
     </div>
-    <div style="padding: 40px 32px;">
+    <div style="padding: 40px 32px; text-align: center;">
       <h2 style="margin: 0 0 20px 0; font-size: 20px; color: #2d2525; font-weight: bold; line-height: 1.5;">
         안녕하세요, {고객명}님!<br>
         주문하신 꽃이 아름답게 제작되었습니다.
@@ -36,6 +36,7 @@ export const DEFAULT_EMAIL_TEMPLATE_PRODUCTION_COMPLETE = `<!DOCTYPE html>
           </tr>
         </table>
       </div>
+      {포인트안내}
       <div style="margin-top: 40px; text-align: center; border-top: 1px solid #f5ebeb; padding-top: 24px;">
         <p style="margin: 0; font-size: 11px; color: #b5a6a6; line-height: 1.6;">본 메일은 발신전용입니다. 문의는 매장으로 연락해 주세요.</p>
         <p style="margin: 6px 0 0 0; font-size: 12px; color: #9c8485; font-weight: bold;">© {회사명}</p>
@@ -58,7 +59,7 @@ export const DEFAULT_EMAIL_TEMPLATE_DELIVERY_COMPLETE = `<!DOCTYPE html>
       <h1 style="margin: 0; font-size: 28px; color: #be185d; font-weight: 800; letter-spacing: -0.5px;">{회사명}</h1>
       <p style="margin: 8px 0 0 0; font-size: 13px; color: #db2777; font-weight: 600; letter-spacing: 1px;">배송 완료 안내</p>
     </div>
-    <div style="padding: 40px 32px;">
+    <div style="padding: 40px 32px; text-align: center;">
       <h2 style="margin: 0 0 20px 0; font-size: 20px; color: #2d2525; font-weight: bold; line-height: 1.5;">
         안녕하세요, {고객명}님!<br>
         소중한 마음을 담은 꽃이 배송되었습니다.
@@ -85,6 +86,7 @@ export const DEFAULT_EMAIL_TEMPLATE_DELIVERY_COMPLETE = `<!DOCTYPE html>
           </tr>
         </table>
       </div>
+      {포인트안내}
       <div style="margin-top: 40px; text-align: center; border-top: 1px solid #f5ebeb; padding-top: 24px;">
         <p style="margin: 0; font-size: 11px; color: #b5a6a6; line-height: 1.6;">본 메일은 발신전용입니다. 문의는 매장으로 연락해 주세요.</p>
         <p style="margin: 6px 0 0 0; font-size: 12px; color: #9c8485; font-weight: bold;">© {회사명}</p>
@@ -107,7 +109,7 @@ export const DEFAULT_EMAIL_TEMPLATE_ANNIVERSARY_D7 = `<!DOCTYPE html>
       <h1 style="margin: 0; font-size: 24px; color: #be185d;">{회사명}</h1>
       <p style="margin: 8px 0 0; font-size: 13px; color: #db2777;">기념일 7일 전 안내</p>
     </div>
-    <div style="padding: 32px 28px;">
+    <div style="padding: 32px 28px; text-align: center;">
       <h2 style="margin: 0 0 16px; font-size: 18px; color: #2d2525;">안녕하세요, {고객명}님!</h2>
       <p style="margin: 0 0 24px; font-size: 14px; color: #665b5b; line-height: 1.8;">
         <strong>{기념일명}</strong>({기념일})이 일주일 앞으로 다가왔습니다.<br>
@@ -116,8 +118,67 @@ export const DEFAULT_EMAIL_TEMPLATE_ANNIVERSARY_D7 = `<!DOCTYPE html>
       <div style="text-align: center; margin: 28px 0;">
         <a href="{주문링크}" style="display: inline-block; padding: 14px 28px; background: #db2777; color: #fff; text-decoration: none; border-radius: 999px; font-weight: bold; font-size: 14px;">1클릭 주문하기</a>
       </div>
-      <p style="margin: 0; font-size: 11px; color: #b5a6a6; text-align: center;">본 메일은 발신전용입니다.</p>
+      {포인트안내}
+      <div style="margin-top: 32px; text-align: center; border-top: 1px solid #f5ebeb; padding-top: 24px;">
+        <p style="margin: 0; font-size: 11px; color: #b5a6a6;">본 메일은 발신전용입니다.</p>
     </div>
   </div>
 </body>
 </html>`;
+
+export const DEFAULT_EMAIL_TEMPLATE_ANNIVERSARY_DAY_OF = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>기념일 축하 안내</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #faf7f7; font-family: 'Noto Sans KR', sans-serif;">
+  <div style="max-width: 600px; margin: 40px auto; background-color: #ffffff; border-radius: 20px; overflow: hidden; border: 1px solid #f5ebeb;">
+    <div style="background: linear-gradient(135deg, #fdf2f2 0%, #fce7f3 100%); padding: 32px 24px; text-align: center;">
+      {{shop_logo}}
+      <h1 style="margin: 0; font-size: 24px; color: #be185d;">{회사명}</h1>
+      <p style="margin: 8px 0 0; font-size: 13px; color: #db2777;">기념일 축하 안내</p>
+    </div>
+    <div style="padding: 32px 28px; text-align: center;">
+      <h2 style="margin: 0 0 16px; font-size: 18px; color: #2d2525;">안녕하세요, {고객명}님!</h2>
+      <p style="margin: 0 0 24px; font-size: 14px; color: #665b5b; line-height: 1.8;">
+        오늘 <strong>{기념일명}</strong>을 진심으로 축하드립니다.<br>
+        소중한 분들과 행복한 하루 보내시길 바랍니다.
+      </p>
+      {포인트안내}
+      <div style="margin-top: 32px; text-align: center; border-top: 1px solid #f5ebeb; padding-top: 24px;">
+        <p style="margin: 0; font-size: 11px; color: #b5a6a6;">본 메일은 발신전용입니다.</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+
+export const DEFAULT_EMAIL_TEMPLATE_FIRST_PURCHASE = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>첫 구매 감사 인사</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #faf7f7; font-family: 'Noto Sans KR', sans-serif;">
+  <div style="max-width: 600px; margin: 40px auto; background-color: #ffffff; border-radius: 20px; overflow: hidden; border: 1px solid #f5ebeb;">
+    <div style="background: linear-gradient(135deg, #fdf2f2 0%, #fce7f3 100%); padding: 32px 24px; text-align: center;">
+      {{shop_logo}}
+      <h1 style="margin: 0; font-size: 24px; color: #be185d;">{회사명}</h1>
+      <p style="margin: 8px 0 0; font-size: 13px; color: #db2777;">첫 구매 감사 인사</p>
+    </div>
+    <div style="padding: 32px 28px; text-align: center;">
+      <h2 style="margin: 0 0 16px; font-size: 18px; color: #2d2525;">안녕하세요, {고객명}님!</h2>
+      <p style="margin: 0 0 24px; font-size: 14px; color: #665b5b; line-height: 1.8;">
+        저희 {회사명}을 이용해주셔서 진심으로 감사드립니다.<br>
+        앞으로도 정성을 다하는 모습 보여드리겠습니다. 감사합니다!
+      </p>
+      {포인트안내}
+      <div style="margin-top: 32px; text-align: center; border-top: 1px solid #f5ebeb; padding-top: 24px;">
+        <p style="margin: 0; font-size: 11px; color: #b5a6a6;">본 메일은 발신전용입니다.</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+
