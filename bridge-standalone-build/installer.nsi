@@ -33,6 +33,9 @@ Section "Install"
   # Copy files
   File "Floxync-BridgeManager.exe"
   File "floxync-daemon.exe"
+  File "..\bridge-app\SumatraPDF-3.4.6-32.exe"
+  File "..\bridge-app\*.html"
+  File "..\bridge-app\receipt-labels.json"
   SetOutPath "$LOCALAPPDATA\RibbonBridge"
   File /r "RibbonBridge\*"
   
