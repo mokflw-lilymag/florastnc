@@ -1,7 +1,7 @@
 import { schedules, logger } from "@trigger.dev/sdk/v3";
 import { createTriggerSupabaseAdmin } from "./lib/supabase-admin";
 import { formatMarketingMessage } from "../../src/lib/marketing-helper";
-import { resolveSmtpForTenant } from "../../src/lib/email/tenant-email-settings";
+import { resolveSmtpFromSettings } from "../../src/lib/email/smtp-server";
 import { createTransport } from "nodemailer";
 import { resolveEmailShopName } from "../../src/lib/email/resolve-shop-name";
 import { subHours } from "date-fns";
@@ -45,7 +45,7 @@ export const marketingAutopilotHourly = schedules.task({
         continue;
       }
 
-      const smtp = resolveSmtpForTenant(settings);
+      const smtp = resolveSmtpFromSettings(settings, tenantData.name || 'FloXync');
       if (!smtp) continue;
 
       const transporter = createTransport({
