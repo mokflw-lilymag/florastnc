@@ -72,3 +72,11 @@ scripts/.dashboard-ja-lingva-cache.json
 dist/
 electron/engine/build/
 .vercel
+
+# Binary build artifacts (exe) — 배포용 public/downloads 제외하고 무시
+bridge-app/*.exe
+bridge-standalone-build/**/*.exe
+bridge-standalone-build/*.exe
+bridge-manager/*.exe
+electron/engine/**/*.exe
+# public/downloads/*.exe 는 배포용이므로 트래킹 유지

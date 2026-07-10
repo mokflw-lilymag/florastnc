@@ -1769,43 +1769,46 @@ export default function SettingsPage() {
 
                   {/* Bridge Toggles */}
                   <div className="space-y-6">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label className="text-base">{pickUiText(baseLocale, '영수증/라벨 브릿지 사용', 'Enable POS/Label Bridge', 'Sử dụng Bridge cho POS/Nhãn')}</Label>
-                        <p className="text-sm text-slate-500">
-                          {pickUiText(
-                            baseLocale,
-                            '모바일·외부 접수 주문도 이 PC에서 자동 인쇄됩니다. 웹 탭을 닫아도 브릿지 데몬만 실행 중이면 됩니다.',
-                            'Mobile and remote orders print here automatically. You can close the web tab if the bridge daemon is running.',
-                            'Đơn mobile/xa tự in trên PC này. Có thể đóng tab web nếu bridge đang chạy.',
-                          )}
-                        </p>
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label className="text-base">{pickUiText(baseLocale, '통합 프린터 브릿지 사용', 'Enable Integrated Printer Bridge', 'Sử dụng Bridge in tích hợp')}</Label>
+                          <p className="text-sm text-slate-500">
+                            {pickUiText(
+                              baseLocale,
+                              '영수증/라벨 및 리본 프린터를 웹앱과 연결합니다. 모바일·외부 접수 주문도 자동 인쇄됩니다.',
+                              'Connects POS/Label and Ribbon printers to the web app. Mobile and remote orders print automatically.',
+                              'Kết nối máy in POS/Nhãn và Ruy băng với ứng dụng web. Đơn mobile/xa tự in.',
+                            )}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <Button variant="outline" size="sm" onClick={handlePrintTest}>
+                            <Printer className="mr-2 h-4 w-4" />
+                            {pickUiText(baseLocale, '프린트 테스트', 'Print Test', 'In thử')}
+                          </Button>
+                          <a 
+                            href="/api/downloads/bridge"
+                            className={buttonVariants({ variant: "outline", size: "sm" })}
+                          >
+                            <Download className="mr-2 h-4 w-4" />
+                            {pickUiText(baseLocale, '통합브릿지 다운로드', 'Download Integrated Bridge', 'Tải Bridge Tích hợp')}
+                          </a>
+                          <Switch 
+                            checked={settings.ppBridgeEnabled} 
+                            onCheckedChange={(v) => saveSettings({ ...settings, ppBridgeEnabled: v })} 
+                          />
+                        </div>
                       </div>
-                      <div className="flex items-center gap-4">
-                        <Button variant="outline" size="sm" onClick={handlePrintTest}>
-                          <Printer className="mr-2 h-4 w-4" />
-                          {pickUiText(baseLocale, '프린트 테스트', 'Print Test', 'In thử')}
-                        </Button>
-                        <a 
-                          href="/api/downloads/bridge"
-                          className={buttonVariants({ variant: "outline", size: "sm" })}
-                        >
-                          <Download className="mr-2 h-4 w-4" />
-                          {pickUiText(baseLocale, '브릿지 다운로드', 'Download Bridge', 'Tải Bridge')}
-                        </a>
-                        <Switch 
-                          checked={settings.ppBridgeEnabled} 
-                          onCheckedChange={(v) => saveSettings({ ...settings, ppBridgeEnabled: v })} 
-                        />
-                      </div>
-                      <p className="text-xs text-slate-500 leading-relaxed w-full basis-full">
+                      <div className="rounded-lg bg-slate-50 p-3 text-xs leading-relaxed text-slate-600 dark:bg-slate-900/50 dark:text-slate-400">
+                        <span className="font-semibold text-slate-700 dark:text-slate-300">💡 {pickUiText(baseLocale, '통합브릿지 사용안내', 'Integrated Bridge Instructions', 'Hướng dẫn Bridge Tích hợp')}: </span>
                         {pickUiText(
                           baseLocale,
-                          '설치: ZIP 압축 해제 → install.bat 관리자 실행 → 웹앱 한 번 로그인(매장 페어링). 이후 모바일·외부 접수도 자동 인쇄됩니다.',
-                          'Install: extract ZIP → run install.bat as admin → log in to the web app once (store pairing). Then mobile/remote orders print automatically.',
-                          'Cài: giải nén ZIP → chạy install.bat quyền admin → đăng nhập web một lần (ghép cửa hàng). Sau đó đơn mobile/xa tự in.',
+                          '다운로드 버튼을 눌러 설치 프로그램(Floxync-Bridge-Setup.exe)을 실행하세요. 이 프로그램 하나로 영수증(PP) 프린터와 리본 프린터를 모두 지원합니다. 웹앱에서 최초 1회 로그인하여 매장을 페어링하면, 이후에는 웹 탭을 닫아도 백그라운드에서 자동 인쇄가 동작합니다.',
+                          'Run the downloaded setup file (Floxync-Bridge-Setup.exe). This single program supports both POS and ribbon printers. After logging in once to pair your store, automatic printing will work in the background even if the web tab is closed.',
+                          'Chạy tệp cài đặt đã tải xuống (Floxync-Bridge-Setup.exe). Chương trình duy nhất này hỗ trợ cả máy in POS và ruy băng. Sau khi đăng nhập một lần để ghép cửa hàng, tính năng in tự động sẽ hoạt động ngầm ngay cả khi đóng tab web.',
                         )}
-                      </p>
+                      </div>
                     </div>
                     
                     <div className="flex items-center justify-between">
