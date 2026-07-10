@@ -145,6 +145,7 @@ export default function MobileNewOrderPage() {
   const [scheduleTime, setScheduleTime] = useState("10:00");
   const [recipientName, setRecipientName] = useState("");
   const [recipientContact, setRecipientContact] = useState("");
+  const [isSameAsOrderer, setIsSameAsOrderer] = useState(false);
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [memo, setMemo] = useState("");
   const [messageType, setMessageType] = useState<MessageType>("card");
@@ -160,6 +161,64 @@ export default function MobileNewOrderPage() {
   const supabase = useMemo(() => createClient(), []);
   const [paymentMethod, setPaymentMethod] = useState<OrderData["payment"]["method"]>("card");
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>("paid");
+
+  // 직접입력 Dialog 상태
+  const [isCustomProductDialogOpen, setIsCustomProductDialogOpen] = useState(false);
+  const [customProductName, setCustomProductName] = useState("");
+  const [customProductPrice, setCustomProductPrice] = useState("");
+  const [customProductQuantity, setCustomProductQuantity] = useState(1);
+
+  const similarProducts = useMemo(() => {
+    const q = customProductName.replace(/\s+/g, "").toLowerCase().trim();
+    if (!q) return [];
+    return products
+      .filter((p) => p.name.replace(/\s+/g, "").toLowerCase().includes(q) && p.status === "active")
+      .slice(0, 8);
+  }, [products, customProductName]);
+
+  const handleAddCustomProduct = useCallback(async () => {
+    const price = parseInt(customProductPrice) || 0;
+    if (!customProductName.trim() || price <= 0) {
+      toast.error("상품명과 가격을 올바르게 입력해주세요.");
+      return;
+    }
+    if (!tenantId) { toast.error("매장 정보를 확인할 수 없습니다."); return; }
+    try {
+      const { data: newProd, error } = await supabase
+        .from("products")
+        .insert([{
+          id: crypto.randomUUID(),
+          tenant_id: tenantId,
+          name: customProductName.trim(),
+          price,
+          main_category: "기타",
+          mid_category: "직접입력",
+          supplier: "직접입력",
+          status: "active",
+          code: `D${Date.now().toString(36).toUpperCase()}`,
+          stock: 9999,
+        }])
+        .select()
+        .single();
+      if (error) throw error;
+      if (newProd) {
+        const p = newProd as unknown as Product;
+        setCart((prev) => {
+          const ex = prev.find((i) => i.id === p.id);
+          if (ex) return prev.map((i) => i.id === p.id ? { ...i, quantity: i.quantity + customProductQuantity } : i);
+          return [...prev, { ...p, quantity: customProductQuantity }];
+        });
+        toast.success(`[${newProd.name}] 상품이 추가되었습니다.`);
+      }
+    } catch (err: any) {
+      toast.error(`상품 등록 오류: ${err.message}`);
+      return;
+    }
+    setCustomProductName("");
+    setCustomProductPrice("");
+    setCustomProductQuantity(1);
+    setIsCustomProductDialogOpen(false);
+  }, [customProductName, customProductPrice, customProductQuantity, tenantId, supabase]);
 
   const mobilePaymentMethods = useMemo(() => buildMobilePaymentMethods(tf), [tf]);
 
@@ -216,6 +275,9 @@ export default function MobileNewOrderPage() {
   };
 
   const openProductSheet = () => {
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
     if (productCategories.length > 0) {
       setSelectedProductCategory(
         resolveMobileProductCategory(
@@ -518,6 +580,7 @@ export default function MobileNewOrderPage() {
       />
 
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 pb-28">
+        {/* 1. 주문자·고객 */}
         <MobileCustomerSection
           customers={customers}
           customersLoading={customersLoading}
@@ -545,68 +608,7 @@ export default function MobileNewOrderPage() {
           pointRate={settings?.pointRate}
         />
 
-        <section className="space-y-2 rounded-2xl border bg-white p-4 shadow-sm">
-          <h2 className="text-sm font-bold text-gray-800">{m.order.receiveMethod}</h2>
-          <div className="grid grid-cols-3 gap-2">
-            {receiptOptions.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => setReceiptType(opt.value)}
-                className={`rounded-xl py-2 text-xs font-bold ${
-                  receiptType === opt.value
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 text-gray-600"
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <Label className="text-xs text-gray-500">{m.order.scheduleDate}</Label>
-              <Input
-                type="date"
-                value={scheduleDate}
-                onChange={(e) => setScheduleDate(e.target.value)}
-                className="mt-1 h-10"
-              />
-            </div>
-            <div>
-              <Label className="text-xs text-gray-500">{m.order.scheduleTime}</Label>
-              <Input
-                type="time"
-                value={scheduleTime}
-                onChange={(e) => setScheduleTime(e.target.value)}
-                className="mt-1 h-10"
-              />
-            </div>
-          </div>
-          {receiptType === "delivery_reservation" && (
-            <>
-              <Input
-                placeholder={m.order.deliveryAddress}
-                value={deliveryAddress}
-                onChange={(e) => setDeliveryAddress(e.target.value)}
-                className="h-10"
-              />
-              <Input
-                placeholder={m.order.recipientName}
-                value={recipientName}
-                onChange={(e) => setRecipientName(e.target.value)}
-                className="h-10"
-              />
-              <Input
-                placeholder={m.order.recipientContact}
-                value={recipientContact}
-                onChange={(e) => setRecipientContact(formatPhoneNumber(e.target.value))}
-                className="h-10"
-              />
-            </>
-          )}
-        </section>
-
+        {/* 2. 주문 상품 */}
         <section className="rounded-2xl border bg-white p-4 shadow-sm">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-sm font-bold text-gray-800">{m.order.orderItems}</h2>
@@ -667,6 +669,135 @@ export default function MobileNewOrderPage() {
           </p>
         </section>
 
+        {/* 3. 수령 방식 */}
+        <section className="space-y-3 rounded-2xl border bg-white p-4 shadow-sm">
+          <h2 className="text-sm font-bold text-gray-800">{m.order.receiveMethod}</h2>
+          <div className="grid grid-cols-3 gap-2">
+            {receiptOptions.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => {
+                  setReceiptType(opt.value);
+                  if (opt.value !== "delivery_reservation") {
+                    setIsSameAsOrderer(false);
+                  }
+                }}
+                className={`rounded-xl py-2 text-xs font-bold ${
+                  receiptType === opt.value
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-100 text-gray-600"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label className="text-xs text-gray-500">{m.order.scheduleDate}</Label>
+              <Input
+                type="date"
+                value={scheduleDate}
+                onChange={(e) => setScheduleDate(e.target.value)}
+                className="mt-1 h-10"
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-gray-500">{m.order.scheduleTime}</Label>
+              <Input
+                type="time"
+                value={scheduleTime}
+                onChange={(e) => setScheduleTime(e.target.value)}
+                className="mt-1 h-10"
+              />
+            </div>
+          </div>
+
+          {/* 픽업/픽업예약: 받는 분 정보 */}
+          {(receiptType === "store_pickup" || receiptType === "pickup_reservation") && (
+            <div className="space-y-2 pt-1">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold text-gray-700">받는 분 정보</Label>
+                <label className="flex cursor-pointer items-center gap-1.5 text-xs text-gray-500">
+                  <input
+                    type="checkbox"
+                    className="h-3.5 w-3.5 rounded border-gray-300 accent-blue-600"
+                    checked={isSameAsOrderer}
+                    onChange={(e) => {
+                      setIsSameAsOrderer(e.target.checked);
+                      if (e.target.checked) {
+                        setRecipientName(ordererName);
+                        setRecipientContact(ordererContact);
+                      }
+                    }}
+                  />
+                  받는 분과 동일
+                </label>
+              </div>
+              <Input
+                placeholder={m.order.recipientName}
+                value={recipientName}
+                onChange={(e) => { setRecipientName(e.target.value); setIsSameAsOrderer(false); }}
+                className="h-10"
+                disabled={isSameAsOrderer}
+              />
+              <Input
+                placeholder={m.order.recipientContact}
+                value={recipientContact}
+                onChange={(e) => { setRecipientContact(formatPhoneNumber(e.target.value)); setIsSameAsOrderer(false); }}
+                className="h-10"
+                disabled={isSameAsOrderer}
+              />
+            </div>
+          )}
+
+          {/* 배송: 배송지 + 받는 분 정보 */}
+          {receiptType === "delivery_reservation" && (
+            <div className="space-y-2 pt-1">
+              <Input
+                placeholder={m.order.deliveryAddress}
+                value={deliveryAddress}
+                onChange={(e) => setDeliveryAddress(e.target.value)}
+                className="h-10"
+              />
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold text-gray-700">받는 분 정보</Label>
+                <label className="flex cursor-pointer items-center gap-1.5 text-xs text-gray-500">
+                  <input
+                    type="checkbox"
+                    className="h-3.5 w-3.5 rounded border-gray-300 accent-blue-600"
+                    checked={isSameAsOrderer}
+                    onChange={(e) => {
+                      setIsSameAsOrderer(e.target.checked);
+                      if (e.target.checked) {
+                        setRecipientName(ordererName);
+                        setRecipientContact(ordererContact);
+                      }
+                    }}
+                  />
+                  받는 분과 동일
+                </label>
+              </div>
+              <Input
+                placeholder={m.order.recipientName}
+                value={recipientName}
+                onChange={(e) => { setRecipientName(e.target.value); setIsSameAsOrderer(false); }}
+                className="h-10"
+                disabled={isSameAsOrderer}
+              />
+              <Input
+                placeholder={m.order.recipientContact}
+                value={recipientContact}
+                onChange={(e) => { setRecipientContact(formatPhoneNumber(e.target.value)); setIsSameAsOrderer(false); }}
+                className="h-10"
+                disabled={isSameAsOrderer}
+              />
+            </div>
+          )}
+        </section>
+
+        {/* 5. 메시지 */}
         <section className="space-y-3 rounded-2xl border bg-white p-4 shadow-sm">
           <div>
             <h2 className="text-sm font-bold text-gray-800">{m.order.messageSection}</h2>
@@ -797,8 +928,52 @@ export default function MobileNewOrderPage() {
           )}
         </section>
 
+        {/* 6. 요청사항 */}
         <section className="space-y-2 rounded-2xl border bg-white p-4 shadow-sm">
-          <h2 className="text-sm font-bold text-gray-800">{tf.f00446 ?? tf.f00046 ?? "Payment"}</h2>
+          <h2 className="text-sm font-bold text-gray-800">{m.order.requestPlaceholder ? "요청사항" : "요청사항"}</h2>
+          <Input
+            placeholder={m.order.requestPlaceholder}
+            value={memo}
+            onChange={(e) => setMemo(e.target.value)}
+            className="h-10"
+          />
+        </section>
+
+        {/* 7. 포인트 사용 (고객 선택 시 표시) */}
+        {selectedCustomer && maxUsablePoints > 0 && (
+          <section className="space-y-2 rounded-2xl border border-amber-200 bg-amber-50/50 p-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-bold text-amber-900">{m.customer.usePoints}</h2>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs text-amber-800"
+                onClick={() => setUsedPoints(maxUsablePoints)}
+              >
+                {m.customer.useAllPoints}
+              </Button>
+            </div>
+            <Input
+              type="number"
+              min={0}
+              max={maxUsablePoints}
+              value={usedPoints || ""}
+              onChange={(e) => {
+                const n = parseInt(e.target.value, 10) || 0;
+                setUsedPoints(Math.min(maxUsablePoints, Math.max(0, n)));
+              }}
+              className="h-10 bg-white"
+            />
+            <p className="text-[10px] text-amber-800/80">
+              {m.customer.maxPointsHint.replace("{{amount}}", maxUsablePoints.toLocaleString())}
+            </p>
+          </section>
+        )}
+
+        {/* 8. 결제수단 */}
+        <section className="space-y-2 rounded-2xl border bg-white p-4 shadow-sm">
+          <h2 className="text-sm font-bold text-gray-800">결제수단</h2>
           <div className="grid grid-cols-4 gap-1.5">
             {mobilePaymentMethods.map(({ key, label }) => (
               <button
@@ -835,12 +1010,6 @@ export default function MobileNewOrderPage() {
               {m.order.paymentPaid}
             </button>
           </div>
-          <Input
-            placeholder={m.order.requestPlaceholder}
-            value={memo}
-            onChange={(e) => setMemo(e.target.value)}
-            className="h-10"
-          />
         </section>
       </div>
 
@@ -862,7 +1031,19 @@ export default function MobileNewOrderPage() {
           <div className="shrink-0 border-b px-4 pb-3 pt-4">
             <SheetHeader className="space-y-0 p-0 pb-3">
               <div className="flex items-start justify-between gap-3 pr-8">
-                <SheetTitle>{m.order.addProduct}</SheetTitle>
+                <div className="flex items-center gap-2">
+                  <SheetTitle>{m.order.addProduct}</SheetTitle>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.currentTarget.blur();
+                      setIsCustomProductDialogOpen(true);
+                    }}
+                    className="flex items-center gap-1 rounded-full border border-violet-300 bg-violet-50 px-2.5 py-1 text-[11px] font-bold text-violet-700 active:bg-violet-100"
+                  >
+                    ✏️ 직접입력
+                  </button>
+                </div>
                 {cartItemCount > 0 ? (
                   <span className="shrink-0 rounded-full bg-blue-600 px-2.5 py-1 text-xs font-bold text-white">
                     {m.order.cartCountBadge.replace("{{count}}", String(cartItemCount))}
@@ -964,8 +1145,100 @@ export default function MobileNewOrderPage() {
               })
             )}
           </div>
+
+          {/* 선택 완료 버튼 - 상품 담은 경우만 표시 */}
+          {cartItemCount > 0 && (
+            <div className="shrink-0 border-t bg-white px-4 py-3">
+              <button
+                type="button"
+                onClick={() => setSheetOpen(false)}
+                className="flex h-12 w-full items-center justify-between rounded-2xl bg-blue-600 px-5 font-bold text-white active:bg-blue-700"
+              >
+                <span>선택 완료</span>
+                <span className="rounded-full bg-white/20 px-3 py-1 text-sm">
+                  합계 {fmt(cart.reduce((s, i) => s + i.price * i.quantity, 0).valueOf())}
+                </span>
+              </button>
+            </div>
+          )}
         </SheetContent>
       </Sheet>
+
+      {/* 직접입력 Dialog */}
+      <Dialog open={isCustomProductDialogOpen} onOpenChange={(open) => {
+        setIsCustomProductDialogOpen(open);
+        if (!open) { setCustomProductName(""); setCustomProductPrice(""); setCustomProductQuantity(1); }
+      }}>
+        <DialogContent className="max-w-xs rounded-3xl">
+          <DialogHeader>
+            <DialogTitle>직접입력</DialogTitle>
+            <DialogDescription>등록되지 않은 상품을 직접 입력해 추가합니다.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs text-gray-500">상품명</Label>
+              <Input
+                placeholder="상품명을 입력하세요"
+                value={customProductName}
+                onChange={(e) => setCustomProductName(e.target.value)}
+                className="mt-1 h-10"
+                autoFocus
+              />
+              {/* 유사 상품 목록 */}
+              {similarProducts.length > 0 && (
+                <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 p-2.5">
+                  <p className="mb-1.5 text-[11px] font-bold text-amber-800">⚠️ 유사 상품 목록 (선택하면 바로 추가)</p>
+                  <div className="flex flex-col gap-1">
+                    {similarProducts.map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => {
+                          addProduct(p);
+                          setIsCustomProductDialogOpen(false);
+                          setCustomProductName("");
+                          setCustomProductPrice("");
+                          toast.success(`[${p.name}] 추가됨`);
+                        }}
+                        className="flex items-center justify-between rounded-lg bg-white px-2.5 py-1.5 text-xs shadow-sm hover:bg-amber-100"
+                      >
+                        <span className="font-medium text-gray-800">{p.name}</span>
+                        <span className="font-bold text-blue-600">{p.price.toLocaleString()}원</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div>
+              <Label className="text-xs text-gray-500">가격 (원)</Label>
+              <Input
+                type="number"
+                placeholder="가격을 입력하세요"
+                value={customProductPrice}
+                onChange={(e) => setCustomProductPrice(e.target.value)}
+                className="mt-1 h-10"
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-gray-500">수량</Label>
+              <div className="mt-1 flex items-center gap-2">
+                <button type="button" onClick={() => setCustomProductQuantity(Math.max(1, customProductQuantity - 1))} className="rounded-full bg-gray-100 p-1.5">
+                  <Minus className="h-4 w-4" />
+                </button>
+                <span className="w-8 text-center font-bold">{customProductQuantity}</span>
+                <button type="button" onClick={() => setCustomProductQuantity(customProductQuantity + 1)} className="rounded-full bg-gray-100 p-1.5">
+                  <Plus className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-2 pt-1">
+            <Button variant="outline" className="flex-1" onClick={() => setIsCustomProductDialogOpen(false)}>취소</Button>
+            <Button className="flex-1 bg-violet-600 hover:bg-violet-700" onClick={handleAddCustomProduct}>추가</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
         <DialogContent className="max-w-sm rounded-3xl border-none">

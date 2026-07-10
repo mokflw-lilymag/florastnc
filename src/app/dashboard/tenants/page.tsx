@@ -28,6 +28,7 @@ import {
   SubscriptionOverviewCards,
   ExpiringTenantsPanel,
 } from "@/components/admin/ExpiringTenantsPanel";
+import { NewTenantsPanel } from "@/components/admin/NewTenantsPanel";
 import {
   buildSubscriptionOverview,
   matchesTenureFilter,
@@ -85,12 +86,14 @@ interface TenantWithProfile {
   created_at: string;
   pos_printer_leased?: boolean | null;
   pos_printer_model?: string | null;
+  pos_printer_serial?: string | null;
   pos_printer_date?: string | null;
-  pos_printer_history?: { date: string; model: string; memo?: string }[] | null;
+  pos_printer_history?: { date: string; model: string; serial?: string; memo?: string }[] | null;
   label_printer_leased?: boolean | null;
   label_printer_model?: string | null;
+  label_printer_serial?: string | null;
   label_printer_date?: string | null;
-  label_printer_history?: { date: string; model: string; memo?: string }[] | null;
+  label_printer_history?: { date: string; model: string; serial?: string; memo?: string }[] | null;
   // 사업자 정보 (system_settings.data 에서 로드)
   representative?: string | null;
   businessNumber?: string | null;
@@ -151,15 +154,17 @@ export default function TenantsPage() {
   const [editEnd, setEditEnd] = useState<Date | undefined>(undefined);
   const [editPrinterLeased, setEditPrinterLeased] = useState(false);
   const [editPrinterModel, setEditPrinterModel] = useState("");
+  const [editPrinterSerial, setEditPrinterSerial] = useState("");
   const [editPrinterDate, setEditPrinterDate] = useState<Date | undefined>(undefined);
   const [editPrinterMemo, setEditPrinterMemo] = useState("");
-  const [editPrinterHistory, setEditPrinterHistory] = useState<{ date: string; model: string; memo?: string }[]>([]);
+  const [editPrinterHistory, setEditPrinterHistory] = useState<{ date: string; model: string; serial?: string; memo?: string }[]>([]);
 
   const [editLabelPrinterLeased, setEditLabelPrinterLeased] = useState(false);
   const [editLabelPrinterModel, setEditLabelPrinterModel] = useState("");
+  const [editLabelPrinterSerial, setEditLabelPrinterSerial] = useState("");
   const [editLabelPrinterDate, setEditLabelPrinterDate] = useState<Date | undefined>(undefined);
   const [editLabelPrinterMemo, setEditLabelPrinterMemo] = useState("");
-  const [editLabelPrinterHistory, setEditLabelPrinterHistory] = useState<{ date: string; model: string; memo?: string }[]>([]);
+  const [editLabelPrinterHistory, setEditLabelPrinterHistory] = useState<{ date: string; model: string; serial?: string; memo?: string }[]>([]);
 
   const [editReason, setEditReason] = useState("");
   const [editGrantKind, setEditGrantKind] = useState("manual");
@@ -172,8 +177,8 @@ export default function TenantsPage() {
   const [filterPlan, setFilterPlan] = useState<string>("ALL");
   const [filterCountry, setFilterCountry] = useState<string>("ALL");
   const [filterTenure, setFilterTenure] = useState<TenureFilter>("ALL");
-  const [sortBy, setSortBy] = useState<"name" | "status" | "subscription_end" | "days_left">("days_left");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [sortBy, setSortBy] = useState<"name" | "status" | "subscription_end" | "days_left" | "created_at" | "representative" | "country">("created_at");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
@@ -311,10 +316,12 @@ export default function TenantsPage() {
     setEditLabelPrinterMemo("");
     setEditPrinterLeased(!!tenant.pos_printer_leased);
     setEditPrinterModel(tenant.pos_printer_model || "");
+    setEditPrinterSerial(tenant.pos_printer_serial || "");
     setEditPrinterDate(tenant.pos_printer_date ? new Date(tenant.pos_printer_date) : undefined);
     setEditPrinterHistory(tenant.pos_printer_history || []);
     setEditLabelPrinterLeased(!!tenant.label_printer_leased);
     setEditLabelPrinterModel(tenant.label_printer_model || "");
+    setEditLabelPrinterSerial(tenant.label_printer_serial || "");
     setEditLabelPrinterDate(tenant.label_printer_date ? new Date(tenant.label_printer_date) : undefined);
     setEditLabelPrinterHistory(tenant.label_printer_history || []);
     setIsSubscriptionOpen(true);
@@ -503,12 +510,13 @@ export default function TenantsPage() {
         ? [...currentData.pos_printer_history]
         : [];
       const posDateStr = editPrinterDate ? format(editPrinterDate, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd");
-      const posDiff = posHistory.length === 0 || posHistory[0]?.model !== editPrinterModel || posHistory[0]?.date !== posDateStr;
+      const posDiff = posHistory.length === 0 || posHistory[0]?.model !== editPrinterModel || posHistory[0]?.serial !== editPrinterSerial || posHistory[0]?.date !== posDateStr;
       if (editPrinterLeased && editPrinterModel && posDiff) {
         posHistory = [
           {
             date: posDateStr,
             model: editPrinterModel,
+            serial: editPrinterSerial,
             memo: editPrinterMemo || (posHistory.length === 0 ? "최초 포스프린터 무상 임대 출고" : "AS 포스프린터 교체 출고")
           },
           ...posHistory
@@ -520,12 +528,13 @@ export default function TenantsPage() {
         ? [...currentData.label_printer_history]
         : [];
       const labelDateStr = editLabelPrinterDate ? format(editLabelPrinterDate, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd");
-      const labelDiff = labelHistory.length === 0 || labelHistory[0]?.model !== editLabelPrinterModel || labelHistory[0]?.date !== labelDateStr;
+      const labelDiff = labelHistory.length === 0 || labelHistory[0]?.model !== editLabelPrinterModel || labelHistory[0]?.serial !== editLabelPrinterSerial || labelHistory[0]?.date !== labelDateStr;
       if (editLabelPrinterLeased && editLabelPrinterModel && labelDiff) {
         labelHistory = [
           {
             date: labelDateStr,
             model: editLabelPrinterModel,
+            serial: editLabelPrinterSerial,
             memo: editLabelPrinterMemo || (labelHistory.length === 0 ? "최초 라벨프린터 무상 임대 출고" : "AS 라벨프린터 교체 출고")
           },
           ...labelHistory
@@ -536,13 +545,18 @@ export default function TenantsPage() {
         ...currentData,
         pos_printer_leased: editPrinterLeased,
         pos_printer_model: editPrinterLeased ? editPrinterModel : null,
+        pos_printer_serial: editPrinterLeased ? editPrinterSerial : null,
         pos_printer_date: editPrinterLeased ? posDateStr : null,
         pos_printer_history: editPrinterLeased ? posHistory : null,
         label_printer_leased: editLabelPrinterLeased,
         label_printer_model: editLabelPrinterLeased ? editLabelPrinterModel : null,
+        label_printer_serial: editLabelPrinterLeased ? editLabelPrinterSerial : null,
         label_printer_date: editLabelPrinterLeased ? labelDateStr : null,
         label_printer_history: editLabelPrinterLeased ? labelHistory : null,
       };
+
+      const oldPosSerial = currentData.pos_printer_serial as string | undefined;
+      const oldLabelSerial = currentData.label_printer_serial as string | undefined;
 
       const { error: sErr } = await supabase
         .from("system_settings")
@@ -553,6 +567,34 @@ export default function TenantsPage() {
           updated_at: new Date().toISOString()
         });
       if (sErr) throw sErr;
+
+      // 3. 기기(Serial) 관리 테이블 업데이트 (printer_devices)
+      // 만약 기존에 부여되었던 시리얼이 바뀌거나 해제되었다면, 기존 시리얼은 in_stock 으로 돌리고 임대 해제.
+      const updateDevices = async (
+        oldSerial: string | undefined, 
+        newSerial: string | undefined | null, 
+        isLeased: boolean
+      ) => {
+        // 기존 기기 해제
+        if (oldSerial && oldSerial !== newSerial) {
+          await supabase.from("printer_devices").update({
+            status: "in_stock",
+            current_tenant_id: null,
+            leased_at: null
+          }).eq("serial_number", oldSerial);
+        }
+        // 새 기기 할당
+        if (isLeased && newSerial) {
+          await supabase.from("printer_devices").update({
+            status: "leased",
+            current_tenant_id: selectedTenant.id,
+            leased_at: new Date().toISOString()
+          }).eq("serial_number", newSerial);
+        }
+      };
+
+      await updateDevices(oldPosSerial, editPrinterLeased ? editPrinterSerial : null, editPrinterLeased);
+      await updateDevices(oldLabelSerial, editLabelPrinterLeased ? editLabelPrinterSerial : null, editLabelPrinterLeased);
 
       toast.success(`${selectedTenant.name} ${tf.f00981}`);
       setIsSubscriptionOpen(false);
@@ -617,6 +659,14 @@ export default function TenantsPage() {
         const dateA = a.subscription_end ? new Date(a.subscription_end).getTime() : Number.MAX_SAFE_INTEGER;
         const dateB = b.subscription_end ? new Date(b.subscription_end).getTime() : Number.MAX_SAFE_INTEGER;
         comparison = dateA - dateB;
+      } else if (sortBy === "created_at") {
+        const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+        comparison = dateA - dateB;
+      } else if (sortBy === "representative") {
+        comparison = (a.representative || "").localeCompare(b.representative || "", "ko");
+      } else if (sortBy === "country") {
+        comparison = (a.country || "").localeCompare(b.country || "", "ko");
       }
       return sortOrder === "asc" ? comparison : -comparison;
     });
@@ -695,6 +745,11 @@ export default function TenantsPage() {
         overview={subscriptionOverview}
         activeFilter={filterTenure}
         onFilter={(key) => setFilterTenure(key as TenureFilter)}
+      />
+
+      <NewTenantsPanel 
+        tenants={tenants} 
+        locale={locale} 
       />
 
       <ExpiringTenantsPanel
@@ -783,10 +838,62 @@ export default function TenantsPage() {
                       </span>
                     </div>
                   </TableHead>
-                  <TableHead className="font-medium text-slate-600 py-5 uppercase tracking-wider text-[11px]">국가</TableHead>
+                  <TableHead
+                    className="font-medium text-slate-600 py-5 uppercase tracking-wider text-[11px] cursor-pointer hover:bg-slate-100/50 transition-colors"
+                    onClick={() => {
+                      if (sortBy === "country") {
+                        setSortOrder(o => o === "asc" ? "desc" : "asc");
+                      } else {
+                        setSortBy("country");
+                        setSortOrder("asc");
+                      }
+                    }}
+                  >
+                    <div className="flex items-center gap-1">
+                      국가
+                      <span className="text-[10px] text-slate-400">
+                        {sortBy === "country" ? (sortOrder === "asc" ? "▲" : "▼") : "⇅"}
+                      </span>
+                    </div>
+                  </TableHead>
                   <TableHead className="font-medium text-slate-600 py-5 uppercase tracking-wider text-[11px]">{tf.f01401}</TableHead>
                   <TableHead className="font-medium text-slate-600 py-5 uppercase tracking-wider text-[11px]">프린터 임대</TableHead>
-                  <TableHead className="font-medium text-slate-600 py-5 uppercase tracking-wider text-[11px]">{tf.f01136}</TableHead>
+                  <TableHead 
+                    className="font-medium text-slate-600 py-5 uppercase tracking-wider text-[11px] cursor-pointer hover:bg-slate-100/50 transition-colors"
+                    onClick={() => {
+                      if (sortBy === "representative") {
+                        setSortOrder(o => o === "asc" ? "desc" : "asc");
+                      } else {
+                        setSortBy("representative");
+                        setSortOrder("asc");
+                      }
+                    }}
+                  >
+                    <div className="flex items-center gap-1">
+                      {tf.f01136}
+                      <span className="text-[10px] text-slate-400">
+                        {sortBy === "representative" ? (sortOrder === "asc" ? "▲" : "▼") : "⇅"}
+                      </span>
+                    </div>
+                  </TableHead>
+                  <TableHead
+                    className="font-medium text-slate-600 py-5 uppercase tracking-wider text-[11px] cursor-pointer hover:bg-slate-100/50"
+                    onClick={() => {
+                      if (sortBy === "created_at") {
+                        setSortOrder((o) => (o === "asc" ? "desc" : "asc"));
+                      } else {
+                        setSortBy("created_at");
+                        setSortOrder("desc");
+                      }
+                    }}
+                  >
+                    <div className="flex items-center gap-1">
+                      가입일
+                      <span className="text-[10px] text-slate-400">
+                        {sortBy === "created_at" ? (sortOrder === "asc" ? "▲" : "▼") : "⇅"}
+                      </span>
+                    </div>
+                  </TableHead>
                   {/* 잔여일 정렬 */}
                   <TableHead
                     className="font-medium text-slate-600 py-5 uppercase tracking-wider text-[11px] cursor-pointer hover:bg-slate-100/50"
@@ -832,14 +939,14 @@ export default function TenantsPage() {
                 {loading ? (
                   Array.from({ length: 3 }).map((_, i) => (
                     <TableRow key={i}>
-                      <TableCell colSpan={9} className="h-20 text-center">
+                      <TableCell colSpan={10} className="h-20 text-center">
                         <Loader2 className="h-5 w-5 animate-spin mx-auto text-slate-200 border-0" />
                       </TableCell>
                     </TableRow>
                   ))
                 ) : filteredTenants.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="h-64 text-center border-0">
+                    <TableCell colSpan={10} className="h-64 text-center border-0">
                       <div className="flex flex-col items-center justify-center text-slate-400">
                         <Store className="h-12 w-12 mb-3 opacity-10" />
                         <p className="font-normal text-slate-400">{tf.f01122}</p>
@@ -973,6 +1080,9 @@ export default function TenantsPage() {
                            </div>
                          )}
                        </div>
+                    </TableCell>
+                    <TableCell className="border-0 text-sm text-slate-600">
+                      {tenant.created_at ? format(new Date(tenant.created_at), "yyyy.MM.dd", { locale: dfLoc }) : "-"}
                     </TableCell>
                     <TableCell className="border-0">
                       <span className="text-lg font-bold tabular-nums text-slate-800">
@@ -1290,27 +1400,39 @@ export default function TenantsPage() {
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-[11px] text-slate-600 font-medium">출고/임대 일자</Label>
-                      <Popover>
-                        <PopoverTrigger className={cn(
-                            buttonVariants({ variant: "outline" }),
-                            "w-full rounded-xl h-10 justify-start text-left bg-white border-slate-200 border px-3 text-xs font-normal text-slate-900"
-                          )}>
-                            <CalendarIcon className="mr-2 h-3.5 w-3.5 text-slate-400" />
-                            {editPrinterDate ? format(editPrinterDate, "yyyy-MM-dd") : "날짜 선택"}
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0 rounded-2xl border-0 shadow-2xl bg-white" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={editPrinterDate}
-                            onSelect={setEditPrinterDate}
-                            initialFocus
-                            locale={dfLoc}
-                            className="rounded-2xl border-0"
-                          />
-                        </PopoverContent>
-                      </Popover>
+                      <Label className="text-[11px] text-slate-600 font-medium flex items-center gap-1">
+                        시리얼 번호 <span className="text-[9px] text-blue-500 font-normal ml-1">(스캐너 가능)</span>
+                      </Label>
+                      <Input 
+                        placeholder="바코드 스캐너로 입력"
+                        className="h-10 rounded-xl bg-white border-blue-200 focus-visible:ring-blue-500 text-xs font-mono"
+                        value={editPrinterSerial}
+                        onChange={(e) => setEditPrinterSerial(e.target.value)}
+                      />
                     </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-[11px] text-slate-600 font-medium">출고/임대 일자</Label>
+                    <Popover>
+                      <PopoverTrigger className={cn(
+                          buttonVariants({ variant: "outline" }),
+                          "w-full rounded-xl h-10 justify-start text-left bg-white border-slate-200 border px-3 text-xs font-normal text-slate-900"
+                        )}>
+                          <CalendarIcon className="mr-2 h-3.5 w-3.5 text-slate-400" />
+                          {editPrinterDate ? format(editPrinterDate, "yyyy-MM-dd") : "날짜 선택"}
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0 rounded-2xl border-0 shadow-2xl bg-white" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={editPrinterDate}
+                          onSelect={setEditPrinterDate}
+                          initialFocus
+                          locale={dfLoc}
+                          className="rounded-2xl border-0"
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
 
                   <div className="space-y-1.5">
@@ -1330,9 +1452,12 @@ export default function TenantsPage() {
                       <div className="max-h-36 overflow-y-auto space-y-2 pr-1">
                         {editPrinterHistory.map((item, idx) => (
                           <div key={idx} className="p-2.5 bg-white border border-slate-100 rounded-xl flex flex-col gap-1 text-[11px]">
-                            <div className="flex items-center justify-between text-slate-400">
-                              <span className="font-semibold text-slate-700">📠 {item.model}</span>
-                              <span className="font-mono text-[10px]">{item.date}</span>
+                            <div className="flex flex-col text-slate-400">
+                              <div className="flex items-center justify-between">
+                                <span className="font-semibold text-slate-700">📠 {item.model}</span>
+                                <span className="font-mono text-[10px]">{item.date}</span>
+                              </div>
+                              {item.serial && <span className="text-[10px] font-mono text-slate-500">SN: {item.serial}</span>}
                             </div>
                             {item.memo && (
                               <p className="text-slate-500 mt-0.5 leading-normal">{item.memo}</p>
@@ -1367,7 +1492,7 @@ export default function TenantsPage() {
                     <div className="space-y-1.5">
                       <Label className="text-[11px] text-slate-600 font-medium">임대 기기 기종명</Label>
                       <Input 
-                        placeholder="예: SEWOO-LK-B30 등 입력"
+                        placeholder="예: Lprint-100 등 입력"
                         className="h-10 rounded-xl bg-white border-slate-200 text-xs"
                         value={editLabelPrinterModel}
                         onChange={(e) => setEditLabelPrinterModel(e.target.value)}
@@ -1414,9 +1539,12 @@ export default function TenantsPage() {
                       <div className="max-h-36 overflow-y-auto space-y-2 pr-1">
                         {editLabelPrinterHistory.map((item, idx) => (
                           <div key={idx} className="p-2.5 bg-white border border-slate-100 rounded-xl flex flex-col gap-1 text-[11px]">
-                            <div className="flex items-center justify-between text-slate-400">
-                              <span className="font-semibold text-slate-700">🏷️ {item.model}</span>
-                              <span className="font-mono text-[10px]">{item.date}</span>
+                            <div className="flex flex-col text-slate-400">
+                              <div className="flex items-center justify-between">
+                                <span className="font-semibold text-slate-700">🏷️ {item.model}</span>
+                                <span className="font-mono text-[10px]">{item.date}</span>
+                              </div>
+                              {item.serial && <span className="text-[10px] font-mono text-slate-500">SN: {item.serial}</span>}
                             </div>
                             {item.memo && (
                               <p className="text-slate-500 mt-0.5 leading-normal">{item.memo}</p>

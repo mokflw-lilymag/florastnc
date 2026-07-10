@@ -339,7 +339,7 @@ export function CategoryManagerCard({
                     <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${selectedMain === cat ? 'bg-white/20' : 'bg-slate-100 text-slate-500'}`}>
                       {data.mid[cat]?.length || 0}
                     </span>
-                    <Button variant="ghost" size="icon" className={`h-7 w-7 ${selectedMain === cat ? 'text-white hover:bg-red-500/20' : 'text-slate-300 hover:text-red-500'}`} onClick={(e) => {
+                    <Button variant="ghost" size="icon" className={`h-7 w-7 ${selectedMain === cat ? 'text-white hover:bg-red-500/20' : 'text-slate-400 hover:text-red-500'}`} onClick={(e) => {
                       e.stopPropagation();
                       handleDeleteMain(cat);
                     }}><Trash2 className="h-3.5 w-3.5" /></Button>
@@ -403,7 +403,7 @@ export function CategoryManagerCard({
                   {data.mid[selectedMain]?.map(cat => (
                     <div key={cat} className="flex items-center justify-between p-2.5 pl-4 rounded-xl border border-slate-100 bg-slate-50/30 group hover:border-slate-200 hover:bg-white transition-all">
                       <span className="text-sm font-medium text-slate-600">{cat}</span>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-300 opacity-0 group-hover:opacity-100 hover:text-red-500 transition-all" onClick={() => handleDeleteMid(cat)}>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-red-500 transition-all" onClick={() => handleDeleteMid(cat)}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>

@@ -51,7 +51,6 @@ export function MobilePrintPoller() {
   }, [settings]);
 
   const printerNameDep = settings.printerName || settings.posPrinterName || '';
-  const labelPrinterNameDep = settings.labelPrinterName || '';
 
   useEffect(() => {
     if (
@@ -73,8 +72,7 @@ export function MobilePrintPoller() {
 
     const generalSettings = settingsRef.current;
     const printerName = generalSettings.printerName || generalSettings.posPrinterName;
-    const labelPrinterName = generalSettings.labelPrinterName;
-    if (!printerName && !labelPrinterName) {
+    if (!printerName) {
       console.warn("[MobilePrintPoller] 프린터 미설정 — 감시 생략");
       return;
     }
@@ -248,7 +246,7 @@ export function MobilePrintPoller() {
       void supabase.removeChannel(channel);
       processingIds.current.clear();
     };
-  }, [tenantId, printerNameDep, labelPrinterNameDep, settingsLoading]);
+  }, [tenantId, printerNameDep, settingsLoading]);
 
   return null;
 }

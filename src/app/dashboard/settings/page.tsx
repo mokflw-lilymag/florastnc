@@ -896,7 +896,11 @@ export default function SettingsPage() {
       } else {
         console.log('[PrintTest] Supabase insert 시도...');
         const { error } = await supabase.from('print_jobs').insert({
-          tenant_id: tenantId, user_id: tenantId, image_base64: '', width_mm: 80, length_mm: 0,
+          tenant_id: tenantId,
+          user_id: user?.id,
+          image_base64: '',
+          width_mm: 80,
+          length_mm: 0,
           type: 'print_test',
           status: 'pending',
           data: payload

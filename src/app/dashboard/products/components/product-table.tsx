@@ -167,10 +167,10 @@ export function ProductTable({
                             >
                               {pickUiText(
                                 baseLocale,
-                                "직접입력 · 분류 미정",
-                                "Direct entry · category pending",
-                                "Nhập tay · chưa phân loại",
-                                "直接入力 · 分類未設定",
+                                "새등록 · 수정필요",
+                                "New · Needs edit",
+                                "Mới · Cần chỉnh sửa",
+                                "新規 · 修正必要",
                                 "直接输入 · 分类待定",
                                 "Entrada manual · categoría pendiente",
                                 "Entrada manual · categoria pendente",

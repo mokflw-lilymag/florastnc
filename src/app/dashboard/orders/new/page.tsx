@@ -1359,7 +1359,7 @@ export default function NewOrderPage() {
       />
 
       <Dialog open={isCustomProductDialogOpen} onOpenChange={setIsCustomProductDialogOpen}>
-        <DialogContent className="rounded-3xl">
+        <DialogContent className="rounded-3xl sm:max-w-sm">
           <DialogHeader>
             <DialogTitle className="text-slate-900">{tf.f00374}</DialogTitle>
             <DialogDescription>

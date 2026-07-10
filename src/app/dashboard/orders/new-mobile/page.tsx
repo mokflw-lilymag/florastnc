@@ -1734,7 +1734,7 @@ export default function NewOrderMobilePage() {
             />
 
             <Dialog open={isCustomProductDialogOpen} onOpenChange={setIsCustomProductDialogOpen}>
-                <DialogContent className="max-w-xs">
+                <DialogContent className="max-w-xs sm:max-w-sm">
                     <DialogHeader>
                         <DialogTitle>수동 상품 추가</DialogTitle>
                         <DialogDescription>

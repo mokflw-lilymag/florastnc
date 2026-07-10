@@ -67,12 +67,22 @@ export default function ProductsPage() {
     if (showDirectInputOnly) {
       rows = rows.filter((p) => isDirectInputPendingProduct(p));
     }
-    if (!searchTerm) return rows;
-    const lowerSearch = searchTerm.toLowerCase();
-    return rows.filter(p =>
-      p.name.toLowerCase().includes(lowerSearch) ||
-      (p.code?.toLowerCase().includes(lowerSearch))
-    );
+    
+    if (searchTerm) {
+      const lowerSearch = searchTerm.toLowerCase();
+      rows = rows.filter(p =>
+        p.name.toLowerCase().includes(lowerSearch) ||
+        (p.code?.toLowerCase().includes(lowerSearch))
+      );
+    }
+
+    return [...rows].sort((a, b) => {
+      const aPending = isDirectInputPendingProduct(a);
+      const bPending = isDirectInputPendingProduct(b);
+      if (aPending && !bPending) return -1;
+      if (!aPending && bPending) return 1;
+      return 0;
+    });
   }, [products, searchTerm, showDirectInputOnly]);
 
   const directInputPendingCount = useMemo(

@@ -236,39 +236,7 @@ export function MobileCustomerSection({
         </Label>
       </div>
 
-      {selectedCustomer && maxUsablePoints > 0 && (
-        <div className="space-y-2 rounded-xl border border-amber-200 bg-amber-50/50 p-3">
-          <div className="flex items-center justify-between">
-            <Label className="text-xs font-bold text-amber-900">{m.customer.usePoints}</Label>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-7 text-xs text-amber-800"
-              onClick={() => setUsedPoints(maxUsablePoints)}
-            >
-              {m.customer.useAllPoints}
-            </Button>
-          </div>
-          <Input
-            type="number"
-            min={0}
-            max={maxUsablePoints}
-            value={usedPoints || ""}
-            onChange={(e) => {
-              const n = parseInt(e.target.value, 10) || 0;
-              setUsedPoints(Math.min(maxUsablePoints, Math.max(0, n)));
-            }}
-            className="h-10 bg-white"
-          />
-          <p className="text-[10px] text-amber-800/80">
-            {m.customer.maxPointsHint.replace(
-              "{{amount}}",
-              maxUsablePoints.toLocaleString(),
-            )}
-          </p>
-        </div>
-      )}
+
 
       <Sheet open={customerSheetOpen} onOpenChange={setCustomerSheetOpen}>
         <SheetContent side="bottom" className="h-[80vh] rounded-t-3xl">

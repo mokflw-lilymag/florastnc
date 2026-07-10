@@ -1001,8 +1001,7 @@ ipcMain.handle('get-printers', async (event) => {
   return sortPrinterNamesForUi(names);
 });
 
-const { generateHtmlReceipt } = require('./printEngine');
-const { printReceiptHtml } = require('./receiptPrint');
+const { printRawReceipt } = require('./rawReceiptPrint');
 
 const bridgeAssetsPath = app.isPackaged 
   ? path.join(process.resourcesPath, 'bridge-assets') 
@@ -1044,15 +1043,10 @@ function normalizePrintJob(job) {
 
 function resolveTargetPrinter(settings, job) {
   const posPrinter = settings?.printerName;
-  const labelPrinter = settings?.labelPrinterName || posPrinter;
   if (job?.printer_type === 'ribbon') {
     return settings?.ribbonPrinterName || posPrinter;
   }
-  // 지점 정책: POS 또는 라벨 중 하나만 활성 → job 종류와 무관하게 선택된 한 대로 출력
-  if (settings?.receiptPrinterType === 'label') {
-    return labelPrinter || posPrinter;
-  }
-  return posPrinter || labelPrinter;
+  return posPrinter;
 }
 
 /** Windows 중복 큐 "(1 복사)" / "(복사 1)" / "(1 COM…)" → 기본 이름 */
@@ -1258,90 +1252,32 @@ ipcMain.handle('print-job', async (event, { job, settings, branchName }) => {
     `ENGINE=v3 mode=${settings?.receiptPrinterType || 'pos'} configured="${configuredPrinter}" resolved="${targetPrinter}" job=${normalizedJob?.job_type}`
   );
 
-  let html = '';
   if (normalizedJob?.printer_type === 'ribbon') {
-    html = `
+    let html = `
       <html><head><meta charset="UTF-8"></head><body style="margin:0; padding:0; text-align:center;">
         <div style="writing-mode: vertical-rl; text-orientation: upright; font-family: 'Malgun Gothic', sans-serif; font-size: 80px; width: 100px; height: 1800px; padding-top: 50px;">
           ${normalizedJob?.payload?.message?.content || '축하합니다'}
         </div>
       </body></html>
     `;
-  } else {
-    html = generateHtmlReceipt(
-      normalizedJob,
-      settings || {},
-      bridgeAssetsPath,
-      branchName || '',
-      ''
-    );
-    if (!html || !html.trim()) {
-      appendPrintLog('WARN: empty HTML — skipping print');
-      throw new Error('인쇄 HTML 생성 실패');
-    }
-    if (settings?.receiptPrinterType === 'label') {
-      // 80mm 용지: POS와 동일 폭 — 패딩 대칭 + 본문 블록 가운데 정렬
-      html = html
-        .replace(/padding:\s*8px\s+16px\s+8px\s+8px/gi, 'padding: 8px')
-        .replace(/padding:\s*8px\s+2mm/gi, 'padding: 8px')
-        .replace(
-          '</head>',
-          '<style>body{margin-left:auto!important;margin-right:auto!important;}</style></head>'
-        )
-        .replace(
-          '</body>',
-          '<div style="margin-top: 15px; border-top: 1px dashed #000; padding-top: 5px; text-align: center; font-size: 11px; color: #555;">✂ 절취선 ✂</div></body>'
-        );
-    }
-  }
-
-  const isSam4s = targetPrinter.toLowerCase().includes('sam4s');
-
-  if (isSam4s) {
-    appendPrintLog('ENGINE=v4 sumatra (SAM4S는 기본 Sumatra PDF 우선 시도)');
-    try {
-      await printReceiptHtml(html, targetPrinter, {
-        appIsPackaged: app.isPackaged,
-        resourcesPath: process.resourcesPath,
-        receiptPrinterType: settings?.receiptPrinterType || 'pos',
-        logFn: (msg) => appendPrintLog(msg),
-      });
-      appendPrintLog(`OK sumatra (SAM4S) job_type=${normalizedJob?.job_type} printer=${targetPrinter}`);
-      return { ok: true, printer: targetPrinter, engine: 'sumatra' };
-    } catch (sumatraErr) {
-      appendPrintLog(`Sumatra 실패: ${sumatraErr.message} → Native 시도`);
-    }
-  }
-
-  // Sumatra PDF로 인쇄가 Xprinter/BIXOLON 등에서 안 되는 기기들은 Chromium 네이티브 우선
-  try {
-    appendPrintLog('ENGINE=v4 native (Chromium 직접 인쇄, Sumatra 생략)');
+    appendPrintLog('ENGINE=v4 native (Chromium 직접 인쇄)');
     await printHtmlToDevice(html, targetPrinter, {
-      receiptPrinterType: settings?.receiptPrinterType || 'pos',
+      receiptPrinterType: 'label'
     });
     appendPrintLog(`OK native job_type=${normalizedJob?.job_type} printer=${targetPrinter}`);
     return { ok: true, printer: targetPrinter, engine: 'native' };
-  } catch (nativeErr) {
-    appendPrintLog(`native 실패: ${nativeErr.message} → Sumatra PDF 시도`);
-  }
-
-  if (app.isPackaged || !isSam4s) {
+  } else {
+    // POS/Label -> RAW Printing
     try {
-      await printReceiptHtml(html, targetPrinter, {
-        appIsPackaged: app.isPackaged,
-        resourcesPath: process.resourcesPath,
-        receiptPrinterType: settings?.receiptPrinterType || 'pos',
-        logFn: (msg) => appendPrintLog(msg),
-      });
-      appendPrintLog(`OK sumatra fallback job_type=${normalizedJob?.job_type} printer=${targetPrinter}`);
-      return { ok: true, printer: targetPrinter, engine: 'sumatra' };
-    } catch (fallbackErr) {
-      appendPrintLog(`최종 Sumatra fallback 실패: ${fallbackErr.message}`);
-      throw new Error(`인쇄 실패: ${nativeErr?.message || '알 수 없는 오류'}`);
+      appendPrintLog('ENGINE=v5 raw (raw_print_cli)');
+      await printRawReceipt(normalizedJob, settings, targetPrinter, (msg) => appendPrintLog(msg));
+      appendPrintLog(`OK raw job_type=${normalizedJob?.job_type} printer=${targetPrinter}`);
+      return { ok: true, printer: targetPrinter, engine: 'raw' };
+    } catch (err) {
+      appendPrintLog(`RAW 인쇄 실패: ${err.message}`);
+      throw new Error(`영수증 프린터 인쇄 실패: ${err.message}`);
     }
   }
-
-  throw new Error('인쇄 엔진을 사용할 수 없습니다.');
 });
 
 let printQueue = [];

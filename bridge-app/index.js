@@ -810,17 +810,25 @@ async function start() {
       profileDir = baseProfileDir + '_' + Date.now();
     }
 
+    // Edge/Chrome 실행 엔진에 따라 headless 모드 결정
+    // Edge(msedge.exe)는 --headless=new 방식이 필요, Chrome도 동일하게 처리
+    const isEdge = executablePath && executablePath.toLowerCase().includes('edge');
     browser = await puppeteer.launch({ 
-      headless: true, // Use old headless for better stability on Windows startup
+      headless: 'shell',
       executablePath: executablePath,
       userDataDir: profileDir,
       args: [
-        '--headless',
+        '--headless=new',
         '--no-sandbox', 
         '--disable-setuid-sandbox', 
         '--disable-dev-shm-usage', 
         '--disable-gpu',
-        '--disable-software-rasterizer'
+        '--disable-software-rasterizer',
+        '--disable-extensions',
+        '--window-position=-9999,-9999',   // 화면 밖으로 강제 이동
+        '--window-size=1,1',               // 최소 크기
+        '--hide-scrollbars',
+        '--mute-audio',
       ],
       protocolTimeout: 120000,
       timeout: 120000
@@ -899,7 +907,6 @@ async function start() {
             .in('id', [`settings_${globalBranchName}`, `branch_settings_${globalBranchName}`]);
           
           let settings = {};
-          let isBridgeEnabled = true;
 
           if (settingsRows && settingsRows.length > 0) {
             const floxyncSettings = settingsRows.find(r => r.id === `settings_${globalBranchName}`);
@@ -907,24 +914,16 @@ async function start() {
             
             if (job.tenant_id && floxyncSettings) {
               settings = floxyncSettings.data || {};
-              isBridgeEnabled = settings.ppBridgeEnabled !== false;
             } else if (job.branch_id && erpSettings) {
               settings = erpSettings.data?.general || {};
-              isBridgeEnabled = settings.bridgeEnabled !== false;
             } else if (floxyncSettings) {
               settings = floxyncSettings.data || {};
-              isBridgeEnabled = settings.ppBridgeEnabled !== false;
             } else if (erpSettings) {
               settings = erpSettings.data?.general || {};
-              isBridgeEnabled = settings.bridgeEnabled !== false;
             }
           }
 
-          if (!isBridgeEnabled) {
-              console.log(`⏸️ 브릿지 전원이 OFF 상태입니다. 인쇄 작업(${job.id})을 무시하고 삭제(실패) 처리합니다.`);
-              await supabase.from('print_jobs').update({ status: 'failed' }).eq('id', job.id);
-              continue;
-          }
+          // ppBridgeEnabled 체크 제거 — 브릿지 컨트롤러에서 직접 프로세스를 켜고 끄므로 항상 실행
           // 사용자가 설정한 프린터 타입(pos/label)에 따라 출력 대상 지정
           let targetPrinter = settings.receiptPrinterType === 'label' ? settings.labelPrinterName : settings.printerName;
           

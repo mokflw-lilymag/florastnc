@@ -14,6 +14,8 @@ extraResources:
     to: ".env.local"
   - from: "electron/engine/dist/gdi_print_cli.exe"
     to: "engine/gdi_print_cli.exe"
+  - from: "electron/engine/raw_print_cli.exe"
+    to: "engine/raw_print_cli.exe"
   - from: "bridge-app/SumatraPDF-3.4.6-32.exe"
     to: "engine/SumatraPDF-3.4.6-32.exe"
   - from: "bridge-app/node_modules/pdf-to-printer"
@@ -44,6 +46,8 @@ extraResources:
     filter:
       - "receipt-*.html"
       - "receipt-labels.json"
+  - from: "bridge-manager/Floxync-BridgeManager.exe"
+    to: "bridge-installers/Floxync-BridgeManager.exe"
   - from: "vendor/ribbon-bridge/RibbonBridgePackage.zip"
     to: "bridge-installers/RibbonBridgePackage.zip"
   - from: "vendor/ribbon-bridge/RibbonBridge_Setup_v25_0.exe"

@@ -61,10 +61,12 @@ export async function GET(req: Request) {
     currency?: string; 
     pos_printer_leased?: boolean; 
     pos_printer_model?: string; 
+    pos_printer_serial?: string;
     pos_printer_date?: string; 
     pos_printer_history?: any[];
     label_printer_leased?: boolean;
     label_printer_model?: string;
+    label_printer_serial?: string;
     label_printer_date?: string;
     label_printer_history?: any[];
     // 사업자 정보
@@ -83,10 +85,12 @@ export async function GET(req: Request) {
         currency: d.currency as string ?? null,
         pos_printer_leased: !!d.pos_printer_leased,
         pos_printer_model: d.pos_printer_model as string ?? "",
+        pos_printer_serial: d.pos_printer_serial as string ?? "",
         pos_printer_date: d.pos_printer_date as string ?? null,
         pos_printer_history: Array.isArray(d.pos_printer_history) ? d.pos_printer_history : [],
         label_printer_leased: !!d.label_printer_leased,
         label_printer_model: d.label_printer_model as string ?? "",
+        label_printer_serial: d.label_printer_serial as string ?? "",
         label_printer_date: d.label_printer_date as string ?? null,
         label_printer_history: Array.isArray(d.label_printer_history) ? d.label_printer_history : [],
         // 사업자 정보 (환경설정 store 탭에서 저장)
@@ -114,10 +118,12 @@ export async function GET(req: Request) {
     profiles: byTenant.get(t.id) ?? [],
     pos_printer_leased: settingsMap[t.id]?.pos_printer_leased ?? false,
     pos_printer_model: settingsMap[t.id]?.pos_printer_model ?? null,
+    pos_printer_serial: settingsMap[t.id]?.pos_printer_serial ?? null,
     pos_printer_date: settingsMap[t.id]?.pos_printer_date ?? null,
     pos_printer_history: settingsMap[t.id]?.pos_printer_history ?? null,
     label_printer_leased: settingsMap[t.id]?.label_printer_leased ?? false,
     label_printer_model: settingsMap[t.id]?.label_printer_model ?? null,
+    label_printer_serial: settingsMap[t.id]?.label_printer_serial ?? null,
     label_printer_date: settingsMap[t.id]?.label_printer_date ?? null,
     label_printer_history: settingsMap[t.id]?.label_printer_history ?? null,
     country: settingsMap[t.id]?.country ?? null,

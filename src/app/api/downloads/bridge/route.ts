@@ -17,15 +17,15 @@ function readBridgeVersion(): string {
   }
 }
 
-/** 웹에서 PP 브릿지 ZIP — Vercel에서 60MB 실시간 압축 대신 정적 파일 제공 */
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const version = readBridgeVersion();
 
-  const staticZip = path.join(process.cwd(), "public", "downloads", "Floxync-Bridge-Setup.zip");
-  if (fs.existsSync(staticZip)) {
-    const redirect = new URL(`/downloads/Floxync-Bridge-Setup.zip`, url.origin);
+  const staticExe = path.join(process.cwd(), "public", "downloads", "Floxync-Bridge-Setup.exe");
+  if (fs.existsSync(staticExe)) {
+    const redirect = new URL(`/downloads/Floxync-Bridge-Setup.exe`, url.origin);
     redirect.searchParams.set("v", version);
+    redirect.searchParams.set("t", Date.now().toString());
     return NextResponse.redirect(redirect.toString(), 302);
   }
 
@@ -40,7 +40,7 @@ export async function GET(request: Request) {
   return NextResponse.json(
     {
       error:
-        "브릿지 ZIP이 아직 준비되지 않았습니다. npm run build:bridge 를 실행한 뒤 다시 배포해 주세요.",
+        "브릿지 설치 파일이 아직 준비되지 않았습니다. build_standalone.ps1 을 실행한 뒤 다시 배포해 주세요.",
     },
     { status: 503 },
   );
