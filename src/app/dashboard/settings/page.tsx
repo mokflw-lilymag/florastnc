@@ -1815,19 +1815,6 @@ export default function SettingsPage() {
                         )}
                       </div>
                     </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label className="text-base">{pickUiText(baseLocale, '리본 프린터 브릿지 사용', 'Enable Ribbon Bridge', 'Sử dụng Bridge cho Ruy băng')}</Label>
-                        <p className="text-sm text-slate-500">
-                          {pickUiText(baseLocale, '리본(화환) 프린터를 사용하려면 활성화하세요.', 'Enable to use ribbon printers.', 'Bật để sử dụng máy in ruy băng.')}
-                        </p>
-                      </div>
-                      <Switch 
-                        checked={settings.ribbonBridgeEnabled} 
-                        onCheckedChange={(v) => saveSettings({ ...settings, ribbonBridgeEnabled: v })} 
-                      />
-                    </div>
                   </div>
 
                   <Separator />
