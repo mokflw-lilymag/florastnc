@@ -1908,53 +1908,24 @@ export default function SettingsPage() {
 
                   <Separator />
 
-                  {/* Print Options */}
-                    <div className="space-y-4 pt-4">
-                      <h3 className="text-sm font-semibold mb-3">{pickUiText(baseLocale, '자동 출력 옵션', 'Auto-print Options', 'Tùy chọn tự động in')}</h3>
-                      
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm font-normal">{pickUiText(baseLocale, '픽업 시 메모 자동 출력', 'Auto-print memo for pickup', 'Tự động in ghi chú khi nhận hàng')}</Label>
-                        <Switch 
-                          checked={settings.printPickupMemo} 
-                          onCheckedChange={(v) => saveSettings({ ...settings, printPickupMemo: v })} 
-                        />
+                  {/* 기기별 자동 인쇄 제어 (로컬 스토리지) */}
+                  <div className="space-y-4 pt-4">
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1">
+                        <Label className="text-sm font-bold text-red-500">
+                          {pickUiText(baseLocale, '🚫 이 컴퓨터(기기)에서 자동 인쇄 끄기', '🚫 Disable Auto-print on this device', '🚫 Tắt tự động in trên thiết bị này')}
+                        </Label>
+                        <p className="text-[11px] text-slate-500 max-w-[280px]">
+                          {pickUiText(baseLocale, '여러 컴퓨터를 동시에 사용할 때, 서브 컴퓨터에서 실수로 자동 인쇄가 되지 않도록 이 옵션을 켜세요. (현재 브라우저에만 저장됨)', 'When using multiple computers, enable this on secondary devices to prevent duplicate auto-printing. (Saved only in this browser)', 'Khi sử dụng nhiều máy tính, bật tính năng này trên các thiết bị phụ để tránh in tự động trùng lặp. (Chỉ lưu trong trình duyệt này)')}
+                        </p>
                       </div>
-                      
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm font-normal">{pickUiText(baseLocale, '배송 시 매장용 주문서 출력', 'Print shop receipt for delivery', 'In hóa đơn cửa hàng khi giao hàng')}</Label>
-                        <Switch 
-                          checked={settings.printDeliveryShop} 
-                          onCheckedChange={(v) => saveSettings({ ...settings, printDeliveryShop: v })} 
-                        />
-                      </div>
-                      
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm font-normal">{pickUiText(baseLocale, '배송 시 기사용 영수증 출력', 'Print driver receipt for delivery', 'In biên lai cho tài xế khi giao hàng')}</Label>
-                        <Switch 
-                          checked={settings.printDeliveryDriver} 
-                          onCheckedChange={(v) => saveSettings({ ...settings, printDeliveryDriver: v })} 
-                        />
-                      </div>
-
-                      {/* 기기별 자동 인쇄 제어 (로컬 스토리지) */}
-                      <div className="mt-6 pt-4 border-t border-slate-100 flex items-start justify-between">
-                        <div className="space-y-1">
-                          <Label className="text-sm font-bold text-red-500">
-                            {pickUiText(baseLocale, '🚫 이 컴퓨터(기기)에서 자동 인쇄 끄기', '🚫 Disable Auto-print on this device', '🚫 Tắt tự động in trên thiết bị này')}
-                          </Label>
-                          <p className="text-[11px] text-slate-500 max-w-[280px]">
-                            {pickUiText(baseLocale, '여러 컴퓨터를 동시에 사용할 때, 서브 컴퓨터에서 실수로 자동 인쇄가 되지 않도록 이 옵션을 켜세요. (현재 브라우저에만 저장됨)', 'When using multiple computers, enable this on secondary devices to prevent duplicate auto-printing. (Saved only in this browser)', 'Khi sử dụng nhiều máy tính, bật tính năng này trên các thiết bị phụ để tránh in tự động trùng lặp. (Chỉ lưu trong trình duyệt này)')}
-                          </p>
-                        </div>
-                        <Switch 
-                          className="data-[state=checked]:bg-red-500"
-                          checked={deviceAutoPrintDisabled} 
-                          onCheckedChange={handleDeviceAutoPrintToggle} 
-                        />
-                      </div>
+                      <Switch 
+                        className="data-[state=checked]:bg-red-500"
+                        checked={deviceAutoPrintDisabled} 
+                        onCheckedChange={handleDeviceAutoPrintToggle} 
+                      />
                     </div>
                   </div>
-
                 </CardContent>
               </Card>
             </TabsContent>
