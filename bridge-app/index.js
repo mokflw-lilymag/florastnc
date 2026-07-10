@@ -810,15 +810,13 @@ async function start() {
       profileDir = baseProfileDir + '_' + Date.now();
     }
 
-    // Edge/Chrome 실행 엔진에 따라 headless 모드 결정
-    // Edge(msedge.exe)는 --headless=new 방식이 필요, Chrome도 동일하게 처리
-    const isEdge = executablePath && executablePath.toLowerCase().includes('edge');
+    // 구형 headless 모드를 사용하여 윈도우 환경에서 고스트 창(빈 화면) 노출 방지 (rollback)
     browser = await puppeteer.launch({ 
-      headless: 'shell',
+      headless: true, // Use old headless for better stability on Windows startup
       executablePath: executablePath,
       userDataDir: profileDir,
       args: [
-        '--headless=new',
+        '--headless',
         '--no-sandbox', 
         '--disable-setuid-sandbox', 
         '--disable-dev-shm-usage', 
