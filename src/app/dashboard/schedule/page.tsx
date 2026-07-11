@@ -196,7 +196,7 @@ export default function SchedulePage() {
     <div className="space-y-6 pb-10">
       <PageHeader
         title="매장 일정"
-        description="체크한 항목만 캘린더에 표시됩니다. 픽업·배송·고정비·지출·직원 근무를 한눈에 확인하세요."
+        description="체크한 항목만 캘린더에 표시됩니다. 픽업·배송·고정비·지출·직원 근무·휴가를 한눈에 확인하세요."
       />
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

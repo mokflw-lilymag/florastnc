@@ -26,6 +26,7 @@ import { Order } from "@/types/order";
 import { createClient } from "@/utils/supabase/client";
 import { Building2, Info, Loader2 } from "lucide-react";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { useCurrency } from "@/hooks/use-currency";
 
 interface OrderTransferDialogProps {
   isOpen: boolean;
@@ -40,6 +41,7 @@ export function OrderTransferDialog({
   order,
   onSuccess,
 }: OrderTransferDialogProps) {
+    const { symbol: currencySymbol } = useCurrency();
   const supabase = createClient();
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
@@ -238,7 +240,7 @@ export function OrderTransferDialog({
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-slate-500">주문 금액:</span>
-                <span className="font-bold text-indigo-600">₩{(order.summary?.total || 0).toLocaleString()}</span>
+                <span className="font-bold text-indigo-600">{currencySymbol}{(order.summary?.total || 0).toLocaleString()}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-slate-500">현재 지점:</span>
@@ -300,7 +302,7 @@ export function OrderTransferDialog({
                     />
                     <span className="text-sm font-medium text-slate-600">%</span>
                     <span className="text-xs text-muted-foreground font-mono">
-                      (₩{Math.round((order.summary?.total || 0) * (orderBranchPercent / 100)).toLocaleString()})
+                      ({currencySymbol}{Math.round((order.summary?.total || 0) * (orderBranchPercent / 100)).toLocaleString()})
                     </span>
                   </div>
                 </div>
@@ -325,7 +327,7 @@ export function OrderTransferDialog({
                     />
                     <span className="text-sm font-medium text-slate-600">%</span>
                     <span className="text-xs text-muted-foreground font-mono">
-                      (₩{Math.round((order.summary?.total || 0) * (processBranchPercent / 100)).toLocaleString()})
+                      ({currencySymbol}{Math.round((order.summary?.total || 0) * (processBranchPercent / 100)).toLocaleString()})
                     </span>
                   </div>
                 </div>

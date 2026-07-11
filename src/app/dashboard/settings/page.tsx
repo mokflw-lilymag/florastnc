@@ -39,7 +39,8 @@ import {
   LayoutGrid,
   Globe,
   MonitorPlay,
-  Mail
+  Mail,
+  Users
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -71,13 +72,17 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 import { useDeliveryFees } from "@/hooks/use-delivery-fees";
 import { defaultSettings, useSettings } from "@/hooks/use-settings";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { DeliverySettings } from "./components/DeliverySettings";
 import { PosIntegrationCard } from "./components/PosIntegrationCard";
 import { OrderPolicySettings } from "./components/OrderPolicySettings";
 import { AutomationSettings } from "./components/AutomationSettings";
 import { EmailSettingsCard } from "./components/EmailSettingsCard";
 import { DesktopElectronSettingsCard } from "@/components/desktop/desktop-electron-settings-card";
+import { StaffSettingsCard } from "./components/StaffSettingsCard";
+import { PosDeviceSettingsCard } from "./components/PosDeviceSettingsCard";
+import { OwnerPinSettingsCard } from "./components/OwnerPinSettingsCard";
+import { StaffPermissionsCard } from "./components/StaffPermissionsCard";
 import { SettingsSubNav } from "./components/settings-sub-nav";
 import { RemoteSettingsAssistBanner } from "./components/remote-settings-assist-banner";
 import { KakaoPcSettingsCard } from "./components/KakaoPcSettingsCard";
@@ -101,6 +106,8 @@ import {
 import { DASHBOARD_LOCALE_SELECT_OPTIONS, resolveDashboardSelectLocale } from "@/i18n/ui-locale-options";
 import { BridgeOnboardingDialog } from "@/components/printer/BridgeOnboardingDialog";
 import { usePersistUiLocale } from "@/hooks/use-persist-ui-locale";
+import { markLocalBridgeOnline, shouldPollLocalBridge } from "@/lib/local-bridge-probe";
+import { isElectronClient } from "@/lib/electron-env";
 import { Checkbox } from "@/components/ui/checkbox";
 
 const MAJOR_CURRENCIES = [
@@ -478,10 +485,43 @@ function majorCurrencyDisplayName(baseLocale: string, currency: MajorCurrencyRow
   );
 }
 
+const VALID_SETTINGS_TABS = [
+  "store",
+  "order-payment",
+  "delivery",
+  "categories",
+  "printer",
+  "integrations",
+  "email",
+  "partner-network",
+  "data",
+] as const;
+
+function resolveSettingsTab(tab: string | null): string {
+  if (tab && (VALID_SETTINGS_TABS as readonly string[]).includes(tab)) {
+    return tab;
+  }
+  return "store";
+}
+
 export default function SettingsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const [settingsActiveTab, setSettingsActiveTab] = useState(() =>
+    resolveSettingsTab(searchParams.get("tab")),
+  );
   const supabase = createClient();
   const { user, profile, tenantId, isLoading: authLoading } = useAuth();
+
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab === "staff") {
+      router.replace("/dashboard/staff");
+      return;
+    }
+    setSettingsActiveTab(resolveSettingsTab(tab));
+  }, [searchParams, router]);
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uiLocale, setUiLocale] = useState<AppLocale>("ko");
@@ -778,7 +818,12 @@ export default function SettingsPage() {
         return; // Electron 통신 성공 시 바로 종료
       }
 
-      // 2. Electron 외부 웹 브라우저 환경이거나 예외 발생 시 기존 8004 포트 통신 시도
+      // 2. Electron 외부 웹 브라우저 — 브릿지 미설치 시 반복 호출 생략
+      if (!isElectronClient() && !shouldPollLocalBridge()) {
+        setBridgeStatus(false);
+        return;
+      }
+
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 2000);
       
@@ -794,6 +839,7 @@ export default function SettingsPage() {
       clearTimeout(timeoutId);
       if (response.ok) {
         setBridgeStatus(true);
+        markLocalBridgeOnline();
         // 브릿지에서 최신 프린터 목록 바로 가져오기 (Supabase 동기화 대기 없이 즉시 반영)
         try {
           const pr = await fetch("http://127.0.0.1:8004/printers", { mode: 'cors' });
@@ -1335,9 +1381,16 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <SettingsSubNav />
 
-      <Tabs defaultValue="store" orientation="vertical" className="w-full">
+      <Tabs
+        value={settingsActiveTab}
+        onValueChange={(tab) => {
+          setSettingsActiveTab(tab);
+          router.replace(`/dashboard/settings?tab=${tab}`, { scroll: false });
+        }}
+        orientation="vertical"
+        className="w-full"
+      >
         <div className="flex flex-col md:flex-row gap-6 md:gap-8 lg:gap-10 w-full items-start">
           <TabsList className="flex flex-row md:flex-col overflow-x-auto whitespace-nowrap md:overflow-visible w-full md:w-56 lg:w-64 h-auto p-2 bg-slate-50/80 border border-slate-100/60 rounded-2xl gap-2 md:gap-1 items-center md:items-stretch shrink-0 md:sticky md:top-24 shadow-sm shadow-slate-100">
             <TabsTrigger value="store" className="justify-start shrink-0 text-sm py-2.5 px-4 md:py-3 data-[state=active]:bg-white rounded-xl transition-all">

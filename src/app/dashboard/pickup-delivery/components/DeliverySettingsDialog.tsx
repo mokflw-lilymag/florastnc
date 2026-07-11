@@ -10,6 +10,7 @@ import { Trash2, Plus, Edit2, Check, X, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { Branch } from "@/hooks/use-branches";
 import { AlimtalkManual } from "@/components/alimtalk-manual";
+import { useCurrency } from "@/hooks/use-currency";
 
 interface DeliverySettingsDialogProps {
     branch: Branch | null;
@@ -19,6 +20,7 @@ interface DeliverySettingsDialogProps {
 }
 
 export function DeliverySettingsDialog({ branch, isOpen, onOpenChange, onSave }: DeliverySettingsDialogProps) {
+    const { symbol: currencySymbol } = useCurrency();
       const [editingFees, setEditingFees] = useState<Array<{ district: string, fee: number }>>([]);
     const [surcharges, setSurcharges] = useState<{ mediumItem: number, largeItem: number, express: number }>({ mediumItem: 0, largeItem: 0, express: 0 });
     const [alimtalkConfig, setAlimtalkConfig] = useState({
@@ -239,7 +241,7 @@ export function DeliverySettingsDialog({ branch, isOpen, onOpenChange, onSave }:
                                                     {editingIndex === index ? (
                                                         <Input type="number" value={editingFee} onChange={(e) => setEditingFee(e.target.value)} />
                                                     ) : (
-                                                        `₩${item.fee.toLocaleString()}`
+                                                        `${currencySymbol}${item.fee.toLocaleString()}`
                                                     )}
                                                 </TableCell>
                                                 <TableCell className="text-right">

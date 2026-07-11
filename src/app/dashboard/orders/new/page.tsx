@@ -31,6 +31,7 @@ import { OrderSummarySide } from "./components/OrderSummarySide";
 import { AiOrderConcierge } from "./components/AiOrderConcierge";
 import { CardPaymentConfirmDialog } from "./components/CardPaymentConfirmDialog";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { useCurrency } from "@/hooks/use-currency";
 import {
   postOrderAnniversary,
   resolveAnniversaryDateFromSchedule,
@@ -83,6 +84,7 @@ export default function NewOrderPage() {
   const { fees: regionFees } = useDeliveryFees();
   const { settings } = useSettings();
   const locale = usePreferredLocale();
+    const { format: formatCurrency } = useCurrency();
   const tf = getMessages(locale).tenantFlows;
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -1329,7 +1331,7 @@ export default function NewOrderPage() {
                 onClick={handleCompleteOrder}
                 disabled={isSubmitting || orderItems.length === 0}
             >
-                {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : `${orderSummary.total.toLocaleString()}${tf.f00489}`}
+                {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : `${formatCurrency(orderSummary.total)} 결제`}
             </Button>
         </div>
       </div>
@@ -1387,7 +1389,7 @@ export default function NewOrderPage() {
                         className="flex items-center justify-between rounded border border-amber-100 bg-white p-1.5 text-[11px] shadow-sm"
                       >
                         <span className="font-medium text-gray-700">
-                          {product.name} ({Number(product.price).toLocaleString()}원)
+                          {product.name} ({formatCurrency(Number(product.price))})
                         </span>
                         <Button
                           size="sm"

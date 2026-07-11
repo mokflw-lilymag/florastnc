@@ -21,6 +21,7 @@ import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
 import { Skeleton } from "@/components/ui/skeleton";
 import dynamic from "next/dynamic";
+import { useCurrency } from "@/hooks/use-currency";
 
 const PieChart = dynamic(() => import("recharts").then(mod => mod.PieChart), { ssr: false });
 const Pie = dynamic(() => import("recharts").then(mod => mod.Pie), { ssr: false });
@@ -67,6 +68,7 @@ const METHOD_LABEL_KEYS: Record<string, string> = {
 const METHOD_COLORS = ["#6366f1", "#10b981", "#f59e0b"];
 
 export default function AnalyticsPage() {
+    const { symbol: currencySymbol } = useCurrency();
   const { expenses, loading: expensesLoading } = useExpenses();
   const { orders, fetchOrders, loading: ordersLoading } = useOrders(false);
   const { suppliers, loading: suppliersLoading } = useSuppliers();
@@ -236,7 +238,7 @@ export default function AnalyticsPage() {
         <p className="text-xs font-bold text-slate-700 mb-1">{label}</p>
         {payload.map((entry: any, i: number) => (
           <p key={i} className="text-xs" style={{ color: entry.color }}>
-            {entry.name}: ₩{(entry.value || 0).toLocaleString()}
+            {entry.name}: {currencySymbol}{(entry.value || 0).toLocaleString()}
           </p>
         ))}
       </div>
@@ -250,7 +252,7 @@ export default function AnalyticsPage() {
     return (
       <div className="bg-white/95 backdrop-blur-md shadow-xl rounded-xl p-3 border border-slate-100">
         <p className="text-xs font-bold text-slate-700">{d.name}</p>
-        <p className="text-xs text-slate-500">₩{d.value.toLocaleString()} ({pct}%)</p>
+        <p className="text-xs text-slate-500">{currencySymbol}{d.value.toLocaleString()} ({pct}%)</p>
       </div>
     );
   };
@@ -301,7 +303,7 @@ export default function AnalyticsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-light">₩{totalSales.toLocaleString()}</div>
+                <div className="text-2xl font-light">{currencySymbol}{totalSales.toLocaleString()}</div>
                 <p className="text-[11px] text-indigo-200 mt-1 font-light">{rangeOrders.length}{tf.f00890}</p>
               </CardContent>
             </Card>
@@ -314,7 +316,7 @@ export default function AnalyticsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-light">₩{totalExpense.toLocaleString()}</div>
+                <div className="text-2xl font-light">{currencySymbol}{totalExpense.toLocaleString()}</div>
                 <p className="text-[11px] text-rose-200 mt-1 font-light">{rangeExpenses.length}{tf.f00891}</p>
               </CardContent>
             </Card>
@@ -327,7 +329,7 @@ export default function AnalyticsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-light">₩{profit.toLocaleString()}</div>
+                <div className="text-2xl font-light">{currencySymbol}{profit.toLocaleString()}</div>
                 <p className="text-[11px] opacity-70 mt-1 font-light">{tf.f01181} {profitRate.toFixed(1)}%</p>
               </CardContent>
             </Card>
@@ -340,8 +342,8 @@ export default function AnalyticsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-light">₩{rangeExpenses.length > 0 ? Math.round(totalExpense / rangeExpenses.length).toLocaleString() : 0}</div>
-                <p className="text-[11px] text-slate-300 mt-1 font-light">{tf.f00894}: ₩{rangeOrders.length > 0 ? Math.round(totalSales / rangeOrders.length).toLocaleString() : 0}</p>
+                <div className="text-2xl font-light">{currencySymbol}{rangeExpenses.length > 0 ? Math.round(totalExpense / rangeExpenses.length).toLocaleString() : 0}</div>
+                <p className="text-[11px] text-slate-300 mt-1 font-light">{tf.f00894}: {currencySymbol}{rangeOrders.length > 0 ? Math.round(totalSales / rangeOrders.length).toLocaleString() : 0}</p>
               </CardContent>
             </Card>
           </div>
@@ -426,7 +428,7 @@ export default function AnalyticsPage() {
                           <span className="text-slate-600 font-medium">{cat.name}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-slate-800 font-bold">₩{cat.value.toLocaleString()}</span>
+                          <span className="text-slate-800 font-bold">{currencySymbol}{cat.value.toLocaleString()}</span>
                           <span className="text-slate-400 text-[10px]">{pct}%</span>
                         </div>
                       </div>
@@ -464,7 +466,7 @@ export default function AnalyticsPage() {
                           return (
                             <div className="bg-white/95 backdrop-blur-md shadow-xl rounded-xl p-3 border border-slate-100">
                               <p className="text-xs font-bold text-slate-700">{d.name}</p>
-                              <p className="text-xs text-blue-600">₩{d.amount.toLocaleString()}</p>
+                              <p className="text-xs text-blue-600">{currencySymbol}{d.amount.toLocaleString()}</p>
                               <p className="text-xs text-slate-400">{d.count}{tf.f00887}</p>
                             </div>
                           );
@@ -515,7 +517,7 @@ export default function AnalyticsPage() {
                           <span className="text-sm font-medium text-slate-700">{m.name}</span>
                         </div>
                         <div className="text-right">
-                          <span className="text-sm font-bold text-slate-800">₩{m.value.toLocaleString()}</span>
+                          <span className="text-sm font-bold text-slate-800">{currencySymbol}{m.value.toLocaleString()}</span>
                           <span className="text-xs text-slate-400 ml-2">{pct}%</span>
                         </div>
                       </div>
@@ -552,7 +554,7 @@ export default function AnalyticsPage() {
                           </div>
                         </div>
                         <div className="text-xl font-light text-slate-900 mb-1">
-                          ₩{s.amount.toLocaleString()}
+                          {currencySymbol}{s.amount.toLocaleString()}
                         </div>
                         <div className="flex items-center justify-between text-[11px] text-slate-400">
                           <span>{s.count}{tf.f00887}</span>

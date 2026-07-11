@@ -1,6 +1,6 @@
 "use client";
 
-import { Package, Truck, CreditCard, Wallet, Users, FileText, Lock } from "lucide-react";
+import { Package, Truck, CreditCard, Wallet, Users, FileText, Lock, CalendarOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ScheduleEventKind, ScheduleLayerFilters } from "@/types/schedule-calendar";
 
@@ -16,6 +16,7 @@ const LAYERS: {
   { key: "expense", label: "지출", icon: Wallet, activeClass: "border-emerald-300 bg-emerald-50 text-emerald-900" },
   { key: "staff", label: "직원 스케줄", icon: Users, activeClass: "border-purple-300 bg-purple-50 text-purple-900" },
   { key: "note", label: "특이/전달사항", icon: FileText, activeClass: "border-gray-300 bg-gray-50 text-gray-900" },
+  { key: "leave", label: "직원 휴가", icon: CalendarOff, activeClass: "border-teal-300 bg-teal-50 text-teal-900" },
 ];
 
 type Props = {

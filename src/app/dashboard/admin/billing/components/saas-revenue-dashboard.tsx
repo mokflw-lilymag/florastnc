@@ -5,8 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { Loader2, TrendingUp, Users } from "lucide-react";
 import { format, subMonths, startOfMonth } from "date-fns";
+import { useCurrency } from "@/hooks/use-currency";
 
 export function SaasRevenueDashboard({ stats }: { stats: any }) {
+    const { symbol: currencySymbol } = useCurrency();
   const supabase = createClient();
   const [loading, setLoading] = useState(true);
   const [chartData, setChartData] = useState<any[]>([]);
@@ -80,7 +82,7 @@ export function SaasRevenueDashboard({ stats }: { stats: any }) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-900">₩{mrr.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-blue-900">{currencySymbol}{mrr.toLocaleString()}</div>
             <p className="text-[10px] text-blue-500/80 mt-1">이번 달(당월) 결제 기준 합계</p>
           </CardContent>
         </Card>
@@ -90,7 +92,7 @@ export function SaasRevenueDashboard({ stats }: { stats: any }) {
             <CardTitle className="text-xs font-bold text-indigo-600 uppercase tracking-wider">국내 누적 매출 (Toss)</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-bold text-indigo-900">₩{stats.domesticSales.toLocaleString()}</div>
+            <div className="text-xl font-bold text-indigo-900">{currencySymbol}{stats.domesticSales.toLocaleString()}</div>
             <p className="text-[10px] text-indigo-500/80 mt-1">10% 부가세 과세 대상 매출액</p>
           </CardContent>
         </Card>
@@ -100,7 +102,7 @@ export function SaasRevenueDashboard({ stats }: { stats: any }) {
             <CardTitle className="text-xs font-bold text-purple-600 uppercase tracking-wider">해외 누적 매출 (Stripe)</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-bold text-purple-900">₩{stats.overseasSales.toLocaleString()}</div>
+            <div className="text-xl font-bold text-purple-900">{currencySymbol}{stats.overseasSales.toLocaleString()}</div>
             <p className="text-[10px] text-purple-500/80 mt-1">0% 영세율 면세 대상 매출액</p>
           </CardContent>
         </Card>
@@ -117,9 +119,9 @@ export function SaasRevenueDashboard({ stats }: { stats: any }) {
               <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} tickFormatter={(value) => `₩${(value / 10000).toLocaleString()}만`} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} tickFormatter={(value) => `${currencySymbol}${(value / 10000).toLocaleString()}만`} />
                 <Tooltip 
-                  formatter={(value: any) => `₩${Number(value).toLocaleString()}`}
+                  formatter={(value: any) => `${currencySymbol}${Number(value).toLocaleString()}`}
                   contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                 />
                 <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />

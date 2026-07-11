@@ -45,6 +45,7 @@ import {
 import { Customer } from "@/types/customer";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { getCustomerDisplayName } from "@/lib/customer-order-match";
+import { useCurrency } from "@/hooks/use-currency";
 
 interface CustomerTableProps {
   customers: Customer[];
@@ -55,6 +56,7 @@ interface CustomerTableProps {
 }
 
 export function CustomerTable({ customers, displayNames, onEdit, onDelete, onRowClick }: CustomerTableProps) {
+    const { symbol: currencySymbol } = useCurrency();
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
   const getGradeBadge = (grade: string | null) => {
@@ -138,7 +140,7 @@ export function CustomerTable({ customers, displayNames, onEdit, onDelete, onRow
                   <TableCell className="text-right">
                     <div className="flex flex-col items-end">
                       <span className="font-mono text-slate-700 font-medium">
-                        ₩{(customer.total_spent || 0).toLocaleString()}
+                        {currencySymbol}{(customer.total_spent || 0).toLocaleString()}
                       </span>
                       <span className="text-[10px] text-slate-400">
                          {customer.order_count || 0}{tf.f00778}

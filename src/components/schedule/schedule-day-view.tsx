@@ -6,8 +6,9 @@ import { ScheduleCalendarEvent } from "@/types/schedule-calendar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Pencil, Trash2, Plus, Package, Truck, Wallet, CreditCard, User, StickyNote, Lock } from "lucide-react";
+import { Pencil, Trash2, Plus, Package, Truck, Wallet, CreditCard, User, StickyNote, Lock, CalendarOff } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useCurrency } from "@/hooks/use-currency";
 
 const KIND_META: Record<string, { label: string; badge: string; icon: any }> = {
   pickup: { label: "픽업", badge: "bg-blue-100 text-blue-700", icon: Package },
@@ -16,6 +17,7 @@ const KIND_META: Record<string, { label: string; badge: string; icon: any }> = {
   expense: { label: "지출", badge: "bg-orange-100 text-orange-700", icon: CreditCard },
   staff: { label: "근무", badge: "bg-indigo-100 text-indigo-700", icon: User },
   note: { label: "메모", badge: "bg-slate-200 text-slate-700", icon: StickyNote },
+  leave: { label: "휴가", badge: "bg-teal-100 text-teal-800", icon: CalendarOff },
 };
 
 type Props = {
@@ -43,6 +45,7 @@ export function ScheduleDayView({
   onDeleteNote,
   onUnlockFixedCosts,
 }: Props) {
+    const { symbol: currencySymbol } = useCurrency();
   if (!dateYmd) return null;
   const dateObj = parseISO(dateYmd);
 
@@ -50,6 +53,7 @@ export function ScheduleDayView({
     { label: "픽업/배송", events: events.filter((e) => e.kind === "pickup" || e.kind === "delivery") },
     { label: "특이사항 및 전달사항", events: events.filter((e) => e.kind === "note") },
     { label: "직원 스케줄", events: events.filter((e) => e.kind === "staff") },
+    { label: "직원 휴가", events: events.filter((e) => e.kind === "leave") },
     { label: "고정비 지출", events: events.filter((e) => e.kind === "fixed_cost") },
     { label: "지출 일반", events: events.filter((e) => e.kind === "expense") },
   ].filter((group) => group.events.length > 0);
@@ -125,6 +129,7 @@ function EventItem({
   onDeleteNote?: (id: string) => void;
   onUnlockFixedCosts?: () => void;
 }) {
+    const { symbol: currencySymbol } = useCurrency();
   const [expanded, setExpanded] = React.useState(false);
 
   const meta = KIND_META[ev.kind];
@@ -205,7 +210,7 @@ function EventItem({
                 ) : null}
                 {ev.amount != null && ev.amount > 0 ? (
                   <p className="text-xs font-medium text-slate-700">
-                    ₩{Math.round(ev.amount).toLocaleString()}
+                    {currencySymbol}{Math.round(ev.amount).toLocaleString()}
                   </p>
                 ) : null}
                 {ev.href && !isStaff && !isMaskedFixed ? (

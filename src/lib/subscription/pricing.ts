@@ -1,4 +1,5 @@
 import type { Period, PlanId } from "@/app/dashboard/subscription/plan-localized";
+import { useCurrency } from "@/hooks/use-currency";
 
 /** KRW — UI 표시·토스 결제 (콤마 없는 숫자) */
 export const PLAN_KRW_TOTAL: Record<PlanId, Record<Period, number>> = {

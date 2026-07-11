@@ -23,6 +23,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Order } from "@/types/order";
 import { enqueuePrintJob } from "@/lib/print-service";
+import { useCurrency } from "@/hooks/use-currency";
 
 interface TransferRecord {
   id: string;
@@ -44,6 +45,7 @@ interface TransferRecord {
 }
 
 export default function OrderTransfersPage() {
+    const { symbol: currencySymbol } = useCurrency();
   const supabase = createClient();
   const { tenantId, user } = useAuth();
   
@@ -340,7 +342,7 @@ export default function OrderTransfersPage() {
           </div>
           <div className="space-y-1 mt-2">
             <span className="text-2xl font-bold text-slate-900">
-              ₩{stats.totalVolume.toLocaleString()}
+              {currencySymbol}{stats.totalVolume.toLocaleString()}
             </span>
             <p className="text-[10px] text-slate-400">총 {stats.totalCount}건의 지점 이관 금액</p>
           </div>
@@ -357,7 +359,7 @@ export default function OrderTransfersPage() {
           </div>
           <div className="space-y-1 mt-2">
             <span className="text-2xl font-bold text-emerald-600">
-              ₩{stats.settlementVolume.toLocaleString()}
+              {currencySymbol}{stats.settlementVolume.toLocaleString()}
             </span>
             <p className="text-[10px] text-slate-400">수주 매장 분배율 기준 정산 합계</p>
           </div>
@@ -495,7 +497,7 @@ export default function OrderTransfersPage() {
 
                       {/* 주문금액 */}
                       <td className="p-4 text-right font-bold text-slate-900 whitespace-nowrap">
-                        ₩{originalAmount.toLocaleString()}
+                        {currencySymbol}{originalAmount.toLocaleString()}
                       </td>
 
                       {/* 정산비율 */}
@@ -505,7 +507,7 @@ export default function OrderTransfersPage() {
 
                       {/* 정산 대상액 */}
                       <td className="p-4 text-right font-bold text-emerald-600 whitespace-nowrap">
-                        ₩{processShareAmount.toLocaleString()}
+                        {currencySymbol}{processShareAmount.toLocaleString()}
                       </td>
 
                       {/* 이관 사유 */}

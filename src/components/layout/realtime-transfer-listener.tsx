@@ -21,6 +21,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { enqueuePrintJob } from "@/lib/print-service";
 import { Order } from "@/types/order";
+import { useCurrency } from "@/hooks/use-currency";
 
 interface TransferNotifyData {
   id: string;
@@ -40,6 +41,7 @@ interface TransferNotifyData {
 }
 
 export function RealtimeTransferListener() {
+    const { symbol: currencySymbol } = useCurrency();
   const supabase = createClient();
   const { tenantId } = useAuth();
   
@@ -338,7 +340,7 @@ export function RealtimeTransferListener() {
           </div>
           <div className="flex justify-between">
             <span className="text-slate-400">주문 금액:</span>
-            <span className="font-bold text-indigo-300">₩{activeTransfer.original_order_amount.toLocaleString()}</span>
+            <span className="font-bold text-indigo-300">{currencySymbol}{activeTransfer.original_order_amount.toLocaleString()}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-slate-400">정산 비율 (발주 : 수주):</span>

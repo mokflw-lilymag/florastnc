@@ -52,6 +52,7 @@ import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
 import { pickUiText } from "@/i18n/pick-ui-text";
 import { createClient } from "@/utils/supabase/client";
 import { cn } from "@/lib/utils";
+import { useCurrency } from "@/hooks/use-currency";
 
 const ALL = "__ALL__";
 
@@ -93,6 +94,7 @@ function lineFromMaterial(m: Material, defaultMain: string): DraftLine {
 }
 
 export default function BranchMaterialRequestsPage() {
+    const { symbol: currencySymbol } = useCurrency();
   const { tenantId, isLoading: authLoading } = useAuth();
   const { materialCategories, loading: settingsLoading } = useSettings();
   const CATEGORIES = materialCategories || DEFAULT_MATERIAL_CATEGORIES;
@@ -879,7 +881,7 @@ export default function BranchMaterialRequestsPage() {
                       </span>
                       {m.price > 0 ? (
                         <span className="shrink-0 text-[11px] font-bold tabular-nums text-primary">
-                          ₩{m.price.toLocaleString()}
+                          {currencySymbol}{m.price.toLocaleString()}
                         </span>
                       ) : null}
                     </div>
@@ -1048,7 +1050,7 @@ export default function BranchMaterialRequestsPage() {
                   {cartLineCount}
                   {tf.f02124} · {totalQty}
                   {tf.f00033}
-                  {estTotal > 0 ? ` · ₩${estTotal.toLocaleString()}` : ""}
+                  {estTotal > 0 ? ` · ${currencySymbol}${estTotal.toLocaleString()}` : ""}
                 </CardDescription>
               ) : (
                 <CardDescription className="text-xs">{ui.cartEmpty}</CardDescription>
@@ -1084,7 +1086,7 @@ export default function BranchMaterialRequestsPage() {
             </div>
             <div className="flex items-center gap-2 shrink-0">
               {estTotal > 0 ? (
-                <span className="text-sm font-bold text-primary">₩{estTotal.toLocaleString()}</span>
+                <span className="text-sm font-bold text-primary">{currencySymbol}{estTotal.toLocaleString()}</span>
               ) : null}
               {mobileCartExpanded ? (
                 <ChevronDown className="h-4 w-4 text-muted-foreground" />
@@ -1133,6 +1135,7 @@ function HistoryCard({
   tf: Record<string, string>;
   dfLoc: Locale;
 }) {
+    const { symbol: currencySymbol } = useCurrency();
   return (
     <Card>
       <CardHeader>

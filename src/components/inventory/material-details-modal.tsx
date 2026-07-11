@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { createClient } from "@/utils/supabase/client";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
+import { useCurrency } from "@/hooks/use-currency";
 
 interface MaterialDetailsModalProps {
   material: Material | null;
@@ -21,6 +22,7 @@ interface MaterialDetailsModalProps {
 }
 
 export function MaterialDetailsModal({ material, isOpen, onClose, getSupplierName }: MaterialDetailsModalProps) {
+    const { symbol: currencySymbol } = useCurrency();
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
   const [logs, setLogs] = useState<any[]>([]);
@@ -110,7 +112,7 @@ export function MaterialDetailsModal({ material, isOpen, onClose, getSupplierNam
               <div className="grid grid-cols-2 gap-x-6 gap-y-5">
                 <DetailItem icon={<Hash />} label={tf.f00197} value={material.unit} />
                 <DetailItem icon={<Box />} label={tf.f02374} value={`${material.stock.toLocaleString()} ${material.unit}`} highlight={material.stock <= 10} />
-                <DetailItem icon={<DollarSign />} label={tf.f00021} value={`${material.price.toLocaleString()} ₩`} />
+                <DetailItem icon={<DollarSign />} label={tf.f00021} value={`${material.price.toLocaleString()} ${currencySymbol}`} />
                 <DetailItem icon={<Ruler />} label={tf.f02375} value={material.spec || '-'} />
                 <DetailItem icon={<Building2 />} label={tf.f00087} value={getSupplierName(material)} />
                 <DetailItem icon={<Palette />} label={tf.f00538} value={material.color || '-'} />
@@ -166,6 +168,7 @@ export function MaterialDetailsModal({ material, isOpen, onClose, getSupplierNam
 }
 
 function DetailItem({ icon, label, value, highlight = false }: { icon: React.ReactNode, label: string, value: string, highlight?: boolean }) {
+    const { symbol: currencySymbol } = useCurrency();
   return (
     <div className="flex items-start gap-3">
       <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 shrink-0">

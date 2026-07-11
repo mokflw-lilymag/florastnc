@@ -10,6 +10,9 @@ import { OrderService } from "@/services/order-service";
 import type { Order } from "@/types/order";
 import type { FixedCostItem } from "@/types/simple-expense";
 import type { ScheduleCalendarEvent, StaffShift, ScheduleNote } from "@/types/schedule-calendar";
+import type { StaffLeaveRequest } from "@/types/staff-salary";
+import { STAFF_LEAVE_SELECT } from "@/types/staff-salary";
+import { expandLeaveToDayMarkers } from "@/lib/staff-leave-calendar";
 import { getScheduleDate } from "@/lib/reminder-schedule-orders";
 import { DEFAULT_EXPENSE_CATEGORIES } from "@/lib/category-defaults";
 
@@ -381,24 +384,73 @@ export function scheduleNotesToEvents(notes: ScheduleNote[]): ScheduleCalendarEv
   }));
 }
 
+export async function fetchStaffLeaveForMonth(
+  supabase: SupabaseClient,
+  tenantId: string,
+  month: Date,
+): Promise<StaffLeaveRequest[]> {
+  const startStr = format(startOfMonth(month), "yyyy-MM-dd");
+  const endStr = format(endOfMonth(month), "yyyy-MM-dd");
+
+  try {
+    const { data, error } = await supabase
+      .from("staff_leave_requests")
+      .select(STAFF_LEAVE_SELECT)
+      .eq("tenant_id", tenantId)
+      .neq("status", "rejected")
+      .lte("start_date", endStr)
+      .gte("end_date", startStr)
+      .order("start_date", { ascending: true });
+
+    if (error) {
+      if (!isMissingTableError(error)) {
+        console.warn("[schedule] staff_leave_requests fetch failed", error);
+      }
+      return [];
+    }
+    return (data ?? []).map((row) => {
+      const staffRaw = row.tenant_staff;
+      const staff = Array.isArray(staffRaw) ? staffRaw[0] : staffRaw;
+      return { ...row, tenant_staff: staff } as StaffLeaveRequest;
+    });
+  } catch (e) {
+    console.warn("[schedule] staff_leave_requests fetch failed", e);
+    return [];
+  }
+}
+
+export function leaveRequestsToEvents(requests: StaffLeaveRequest[]): ScheduleCalendarEvent[] {
+  return expandLeaveToDayMarkers(requests).map((m) => ({
+    id: `leave-${m.leaveId}-${m.dateYmd}`,
+    kind: "leave" as const,
+    dateYmd: m.dateYmd,
+    title: `${m.staffName} · ${m.leaveType}`,
+    subtitle: m.status === "pending" ? "승인대기" : undefined,
+    href: "/dashboard/staff/leave",
+  }));
+}
+
 export async function loadScheduleMonthEvents(
   supabase: SupabaseClient,
   tenantId: string,
   month: Date,
 ): Promise<ScheduleCalendarEvent[]> {
-  const [ordersResult, fixedResult, expensesResult, staffResult, notesResult] = await Promise.allSettled([
-    fetchScheduleOrdersForMonth(supabase, tenantId, month),
-    fetchFixedCostTemplateItems(supabase, tenantId),
-    fetchMonthExpenses(supabase, tenantId, month),
-    fetchStaffShifts(supabase, tenantId),
-    fetchScheduleNotes(supabase, tenantId),
-  ]);
+  const [ordersResult, fixedResult, expensesResult, staffResult, notesResult, leaveResult] =
+    await Promise.allSettled([
+      fetchScheduleOrdersForMonth(supabase, tenantId, month),
+      fetchFixedCostTemplateItems(supabase, tenantId),
+      fetchMonthExpenses(supabase, tenantId, month),
+      fetchStaffShifts(supabase, tenantId),
+      fetchScheduleNotes(supabase, tenantId),
+      fetchStaffLeaveForMonth(supabase, tenantId, month),
+    ]);
 
   const orders = ordersResult.status === "fulfilled" ? ordersResult.value : [];
   const fixedItems = fixedResult.status === "fulfilled" ? fixedResult.value : [];
   const expenses = expensesResult.status === "fulfilled" ? expensesResult.value : [];
   const staff = staffResult.status === "fulfilled" ? staffResult.value : [];
   const notes = notesResult.status === "fulfilled" ? notesResult.value : [];
+  const leaves = leaveResult.status === "fulfilled" ? leaveResult.value : [];
 
   if (ordersResult.status === "rejected") {
     console.warn("[schedule] orders fetch failed", ordersResult.reason);
@@ -414,6 +466,9 @@ export async function loadScheduleMonthEvents(
   }
   if (notesResult.status === "rejected") {
     console.warn("[schedule] notes fetch failed", notesResult.reason);
+  }
+  if (leaveResult.status === "rejected") {
+    console.warn("[schedule] leave fetch failed", leaveResult.reason);
   }
 
   const staffInMonth = staff.filter((s) => {
@@ -432,5 +487,6 @@ export async function loadScheduleMonthEvents(
     ...expenses,
     ...staffShiftsToEvents(staffInMonth),
     ...scheduleNotesToEvents(notesInMonth),
+    ...leaveRequestsToEvents(leaves),
   ];
 }

@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { useCurrency } from "@/hooks/use-currency";
 import { useProductSearch } from "@/hooks/use-product-search";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useSettings, DEFAULT_PRODUCT_CATEGORIES } from "@/hooks/use-settings";
@@ -31,6 +32,7 @@ export function ProductSection({
     onTabChange
 }: ProductSectionProps) {
     const locale = usePreferredLocale();
+    const { format: formatCurrency } = useCurrency();
     const tf = getMessages(locale).tenantFlows;
     const { productCategories } = useSettings();
     
@@ -126,7 +128,7 @@ export function ProductSection({
                                 {product.name}
                             </span>
                             <span className="text-sm font-bold text-primary">
-                                {product.price.toLocaleString()}{tf.f00487}
+                                {formatCurrency(product.price)}
                             </span>
                             {product.stock <= 0 && <Badge variant="destructive" className="text-[10px] h-5 px-1 mt-1">{tf.f00747}</Badge>}
                             {product.stock > 0 && <span className="text-[10px] text-muted-foreground">{tf.f00538}: {product.stock}</span>}

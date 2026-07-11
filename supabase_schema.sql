@@ -17,8 +17,10 @@ CREATE TABLE IF NOT EXISTS public.tenants (
 CREATE TABLE IF NOT EXISTS public.profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     email TEXT NOT NULL,
-    tenant_id UUID REFERENCES public.tenants(id) ON DELETE RESTRICT, -- ✅ 삭제 방지 (RESTRICT)로 변경
-    role TEXT DEFAULT 'tenant_admin', -- 'super_admin', 'tenant_admin', 'tenant_user'
+    full_name TEXT,
+    pin_code VARCHAR(4),
+    tenant_id UUID REFERENCES public.tenants(id) ON DELETE RESTRICT, -- 고아 방지 (RESTRICT)로 변경
+    role TEXT DEFAULT 'tenant_admin', -- 'super_admin', 'tenant_admin', 'tenant_staff'
     created_at TIMESTAMPTZ DEFAULT now(),
     
     -- ✅ 제약 조건: super_admin 외에는 tenant_id가 반드시 있어야 함
@@ -79,12 +81,15 @@ DECLARE
   v_role TEXT;
   v_shop_name TEXT;
 BEGIN
-  -- 클라이언트에서 넘겨준 shop_name 추출
+  -- 클라이언트에서 넘겨준 메타데이터 추출
   v_shop_name := new.raw_user_meta_data->>'shop_name';
   
   -- ✅ 요청하신 최고 관리자 이메일 하드코딩 지정
   IF lower(new.email) IN ('lilymag0301@gmail.com', 'mokflw@gmail.com') THEN
     v_role := 'super_admin';
+  ELSIF new.raw_user_meta_data->>'role' IS NOT NULL THEN
+    -- Admin API 등으로 강제 주입된 role이 있다면 우선 사용 (예: tenant_staff)
+    v_role := new.raw_user_meta_data->>'role';
   ELSE
     v_role := 'tenant_admin';
   END IF;
@@ -92,6 +97,9 @@ BEGIN
   -- 상호명(shop_name)이 있다면, 새로운 구독자(Tenant)를 자동 생성 (최고관리자는 테넌트 없이 가입 가능)
   IF v_shop_name IS NOT NULL THEN
     INSERT INTO public.tenants (name) VALUES (v_shop_name) RETURNING id INTO v_tenant_id;
+  ELSIF new.raw_user_meta_data->>'tenant_id' IS NOT NULL THEN
+    -- 직원 생성 시 tenant_id를 강제로 주입받음
+    v_tenant_id := (new.raw_user_meta_data->>'tenant_id')::uuid;
   END IF;
 
   -- 프로필 생성
@@ -151,5 +159,29 @@ DROP POLICY IF EXISTS users_manage_phrases ON public.custom_phrases;
 CREATE POLICY users_manage_phrases ON public.custom_phrases FOR ALL USING (auth.uid() = user_id);
 DROP POLICY IF EXISTS users_view_subscriptions ON public.subscriptions;
 CREATE POLICY users_view_subscriptions ON public.subscriptions FOR SELECT USING (auth.uid() = user_id);
+
+-- 완료
+
+-- 6. Staff Attendance Logs
+CREATE TABLE IF NOT EXISTS public.staff_attendance_logs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id UUID REFERENCES public.tenants(id) ON DELETE CASCADE,
+    profile_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    type TEXT NOT NULL CHECK (type IN ('clock_in', 'clock_out')),
+    recorded_at TIMESTAMPTZ DEFAULT now(),
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.staff_attendance_logs ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can view attendance in same tenant" ON public.staff_attendance_logs;
+CREATE POLICY "Users can view attendance in same tenant" ON public.staff_attendance_logs FOR SELECT USING (
+  tenant_id = public.get_auth_user_tenant_id() OR public.is_super_admin()
+);
+
+DROP POLICY IF EXISTS "Staff can insert own attendance" ON public.staff_attendance_logs;
+CREATE POLICY "Staff can insert own attendance" ON public.staff_attendance_logs FOR INSERT WITH CHECK (
+  profile_id = auth.uid() AND tenant_id = public.get_auth_user_tenant_id()
+);
 
 -- 완료

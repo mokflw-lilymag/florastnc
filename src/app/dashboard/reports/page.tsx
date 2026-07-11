@@ -31,8 +31,10 @@ import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
 import { pickUiText } from "@/i18n/pick-ui-text";
 import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
+import { useCurrency } from "@/hooks/use-currency";
 
 export default function ReportsPage() {
+    const { symbol: currencySymbol } = useCurrency();
   const { orders, loading: ordersLoading } = useOrders();
   const { expenses, loading: expensesLoading } = useExpenses();
   const [dateRange, setDateRange] = useState("today"); // Default to today for "일일정산"
@@ -156,7 +158,7 @@ export default function ReportsPage() {
            <CardContent>
               {loading ? <Skeleton className="h-10 w-32 bg-white/20" /> : (
                 <div className="text-4xl font-extrabold tracking-tight">
-                  <span className="text-2xl mr-1 font-normal opacity-80">₩</span>
+                  <span className="text-2xl mr-1 font-normal opacity-80">{currencySymbol}</span>
                   {stats.totalRevenue.toLocaleString()}
                 </div>
               )}
@@ -176,7 +178,7 @@ export default function ReportsPage() {
            <CardContent>
               {loading ? <Skeleton className="h-10 w-32 bg-white/20" /> : (
                 <div className="text-4xl font-extrabold tracking-tight">
-                  <span className="text-2xl mr-1 font-normal opacity-80">₩</span>
+                  <span className="text-2xl mr-1 font-normal opacity-80">{currencySymbol}</span>
                   {stats.totalExpenses.toLocaleString()}
                 </div>
               )}
@@ -198,7 +200,7 @@ export default function ReportsPage() {
            <CardContent>
               {loading ? <Skeleton className="h-10 w-32 bg-white/20" /> : (
                 <div className={`text-4xl font-black tracking-tighter ${stats.netProfit < 0 ? 'text-gray-400' : 'text-white'}`}>
-                  <span className="text-2xl mr-1 font-normal opacity-70">₩</span>
+                  <span className="text-2xl mr-1 font-normal opacity-70">{currencySymbol}</span>
                   {stats.netProfit.toLocaleString()}
                 </div>
               )}
@@ -224,7 +226,7 @@ export default function ReportsPage() {
                    <span className="text-xs text-muted-foreground">{tf.f00893}</span>
                 </div>
                 <div className="text-right">
-                   <div className="text-xl font-extrabold text-blue-600">₩{Math.round(stats.avgOrderValue).toLocaleString()}</div>
+                   <div className="text-xl font-extrabold text-blue-600">{currencySymbol}{Math.round(stats.avgOrderValue).toLocaleString()}</div>
                    <div className="text-[10px] uppercase font-bold text-muted-foreground mt-0.5">AOV Metric</div>
                 </div>
              </div>
@@ -254,7 +256,7 @@ export default function ReportsPage() {
                          <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
                             <div className={`h-full bg-primary rounded-full transition-all duration-1000 ease-out`} style={{ width: `${percentage}%` }} />
                          </div>
-                         <div className="text-right text-[10px] text-gray-400 font-medium">₩{amount.toLocaleString()}</div>
+                         <div className="text-right text-[10px] text-gray-400 font-medium">{currencySymbol}{amount.toLocaleString()}</div>
                       </div>
                     );
                   }) : (
@@ -282,11 +284,11 @@ export default function ReportsPage() {
                      <div className="flex-1 min-w-0">
                         <div className="text-base font-bold text-gray-800 truncate">{p.name}</div>
                         <div className="text-xs text-muted-foreground font-medium flex items-center gap-2 mt-0.5">
-                           {tf.f00553} {p.count}{tf.f00861} <span className="opacity-20">|</span> ₩{Math.round(p.total/p.count).toLocaleString()} {tf.f00148}
+                           {tf.f00553} {p.count}{tf.f00861} <span className="opacity-20">|</span> {currencySymbol}{Math.round(p.total/p.count).toLocaleString()} {tf.f00148}
                         </div>
                      </div>
                      <div className="text-right shrink-0">
-                        <div className="text-lg font-black text-gray-900">₩{p.total.toLocaleString()}</div>
+                        <div className="text-lg font-black text-gray-900">{currencySymbol}{p.total.toLocaleString()}</div>
                         <Badge variant="secondary" className="text-[10px] font-bold h-5 px-1.5 bg-gray-200/50 text-gray-500 border-none">
                            {(stats.totalRevenue > 0 ? (p.total / stats.totalRevenue) * 100 : 0).toFixed(1)}% {tf.f01813}
                         </Badge>
@@ -327,7 +329,7 @@ export default function ReportsPage() {
                          <td className="px-6 py-4 font-bold text-gray-700">{tf.f02096}</td>
                          <td className="px-6 py-4 text-center">{orders.filter(o => isToday(new Date(o.order_date)) && (o.payment?.method === 'card' || o.payment?.method === 'mainpay')).length}</td>
                          <td className="px-6 py-4 text-right font-black text-blue-600">
-                            ₩{orders.filter(o => isToday(new Date(o.order_date)) && (o.payment?.method === 'card' || o.payment?.method === 'mainpay')).reduce((sum, o) => sum + (o.summary?.total || 0), 0).toLocaleString()}
+                            {currencySymbol}{orders.filter(o => isToday(new Date(o.order_date)) && (o.payment?.method === 'card' || o.payment?.method === 'mainpay')).reduce((sum, o) => sum + (o.summary?.total || 0), 0).toLocaleString()}
                          </td>
                          <td className="px-6 py-4 text-xs text-gray-400">{tf.f02272}</td>
                       </tr>
@@ -335,7 +337,7 @@ export default function ReportsPage() {
                          <td className="px-6 py-4 font-bold text-gray-700">{tf.f02095}</td>
                          <td className="px-6 py-4 text-center">{orders.filter(o => isToday(new Date(o.order_date)) && o.payment?.method !== 'card' && o.payment?.method !== 'mainpay').length}</td>
                          <td className="px-6 py-4 text-right font-black text-indigo-600">
-                            ₩{orders.filter(o => isToday(new Date(o.order_date)) && o.payment?.method !== 'card' && o.payment?.method !== 'mainpay').reduce((sum, o) => sum + (o.summary?.total || 0), 0).toLocaleString()}
+                            {currencySymbol}{orders.filter(o => isToday(new Date(o.order_date)) && o.payment?.method !== 'card' && o.payment?.method !== 'mainpay').reduce((sum, o) => sum + (o.summary?.total || 0), 0).toLocaleString()}
                          </td>
                          <td className="px-6 py-4 text-xs text-gray-400">{tf.f00934}</td>
                       </tr>
@@ -343,14 +345,14 @@ export default function ReportsPage() {
                          <td className="px-6 py-4 font-bold text-rose-700">{tf.f01999}</td>
                          <td className="px-6 py-4 text-center">{expenses.filter(e => isToday(new Date(e.expense_date))).length}</td>
                          <td className="px-6 py-4 text-right font-black text-rose-600">
-                            - ₩{expenses.filter(e => isToday(new Date(e.expense_date))).reduce((sum, e) => sum + (e.amount || 0), 0).toLocaleString()}
+                            - {currencySymbol}{expenses.filter(e => isToday(new Date(e.expense_date))).reduce((sum, e) => sum + (e.amount || 0), 0).toLocaleString()}
                          </td>
                          <td className="px-6 py-4 text-xs text-rose-400">{tf.f01235}</td>
                       </tr>
                       <tr className="bg-slate-900 text-white font-black text-lg">
                          <td className="px-6 py-6" colSpan={2}>{tf.f00998}</td>
                          <td className="px-6 py-6 text-right text-emerald-400">
-                            ₩{(orders.filter(o => isToday(new Date(o.order_date))).reduce((sum, o) => sum + (o.summary?.total || 0), 0) - 
+                            {currencySymbol}{(orders.filter(o => isToday(new Date(o.order_date))).reduce((sum, o) => sum + (o.summary?.total || 0), 0) - 
                                expenses.filter(e => isToday(new Date(e.expense_date))).reduce((sum, e) => sum + (e.amount || 0), 0)).toLocaleString()}
                          </td>
                          <td className="px-6 py-6 text-xs font-normal text-slate-400">{tf.f01135}: {format(new Date(), 'HH:mm')}</td>

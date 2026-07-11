@@ -5,7 +5,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DollarSign, MapPin } from "lucide-react";
-import { Order } from "@/types/order";;
+import { Order } from "@/types/order";
+import { useCurrency } from "@/hooks/use-currency";
+
+;
 
 interface DeliveryCostTableProps {
   orders: Order[];
@@ -14,6 +17,7 @@ interface DeliveryCostTableProps {
 }
 
 export function DeliveryCostTable({ orders, onCostInput, onRowClick }: DeliveryCostTableProps) {
+    const { symbol: currencySymbol } = useCurrency();
   if (orders.length === 0) {
     return (
       <div className="bg-muted/30 p-8 rounded-lg text-center border-2 border-dashed">
@@ -72,15 +76,15 @@ export function DeliveryCostTable({ orders, onCostInput, onRowClick }: DeliveryC
                 </div>
               </TableCell>
               <TableCell className="text-sm">
-                ₩{(order.summary?.deliveryFee || 0).toLocaleString()}
+                {currencySymbol}{(order.summary?.deliveryFee || 0).toLocaleString()}
               </TableCell>
               <TableCell className="text-sm font-bold">
                 {(order.actual_delivery_cost != null || order.actual_delivery_cost_cash != null) ? (
                   <div className="flex flex-col">
-                    <span>₩{((order.actual_delivery_cost || 0) + (order.actual_delivery_cost_cash || 0)).toLocaleString()}</span>
+                    <span>{currencySymbol}{((order.actual_delivery_cost || 0) + (order.actual_delivery_cost_cash || 0)).toLocaleString()}</span>
                     {order.actual_delivery_cost_cash && order.actual_delivery_cost_cash > 0 && (
                       <span className="text-[10px] text-red-500 font-normal">
-                        (현금: ₩{order.actual_delivery_cost_cash.toLocaleString()})
+                        (현금: {currencySymbol}{order.actual_delivery_cost_cash.toLocaleString()})
                       </span>
                     )}
                   </div>
@@ -91,7 +95,7 @@ export function DeliveryCostTable({ orders, onCostInput, onRowClick }: DeliveryC
               <TableCell>
                 {order.deliveryProfit != null ? (
                   <Badge variant="outline" className={`border-none px-0 font-bold ${order.deliveryProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {order.deliveryProfit >= 0 ? '+' : ''}₩{order.deliveryProfit.toLocaleString()}
+                    {order.deliveryProfit >= 0 ? '+' : ''}{currencySymbol}{order.deliveryProfit.toLocaleString()}
                   </Badge>
                 ) : (
                   <span className="text-slate-300">-</span>

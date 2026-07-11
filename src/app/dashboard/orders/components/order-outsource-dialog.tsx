@@ -43,6 +43,7 @@ import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { usePartnerOrdersEnabled } from "@/components/providers/partner-orders-feature-provider";
 import { toPng, toBlob } from "html-to-image";
 import { format } from "date-fns";
+import { useCurrency } from "@/hooks/use-currency";
 
 interface OrderOutsourceDialogProps {
   isOpen: boolean;
@@ -59,6 +60,7 @@ export function OrderOutsourceDialog({
   order,
   onSuccess,
 }: OrderOutsourceDialogProps) {
+    const { symbol: currencySymbol } = useCurrency();
   const supabase = createClient();
   const { tenantId } = useAuth();
   const partnerOrdersEnabled = usePartnerOrdersEnabled();
@@ -379,7 +381,7 @@ Floxync Automate System`;
           toast.error(
             tf.f00803.replace(
               "{amount}",
-              `₩${(requiredAmount - (walletData?.balance || 0)).toLocaleString()}`
+              `${currencySymbol}${(requiredAmount - (walletData?.balance || 0)).toLocaleString()}`
             )
           );
           setIsSubmitting(false);
@@ -514,7 +516,7 @@ Floxync Automate System`;
               </div>
               <div className="flex justify-between text-sm font-medium">
                 <span className="text-slate-500 font-light">{tf.f00059}:</span>
-                <span className="font-semibold text-blue-600">₩{orderTotal.toLocaleString()}</span>
+                <span className="font-semibold text-blue-600">{currencySymbol}{orderTotal.toLocaleString()}</span>
               </div>
             </div>
 
@@ -608,7 +610,7 @@ Floxync Automate System`;
             <div className="space-y-2">
               <Label htmlFor="partnerPrice" className="font-medium text-slate-700">{tf.f00230}</Label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 font-light text-slate-400">₩</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 font-light text-slate-400">{currencySymbol}</span>
                 <Input
                   id="partnerPrice"
                   type="number"
@@ -624,7 +626,7 @@ Floxync Automate System`;
               {selectedPartner && (
                 <p className="text-[11px] text-slate-400 flex items-center gap-1 font-light">
                   <Info className="h-3 w-3" />
-                  {tf.f00092}: ₩{Math.round(orderTotal * (1 - ((selectedPartner as any).default_margin_percent || 20) / 100)).toLocaleString()}
+                  {tf.f00092}: {currencySymbol}{Math.round(orderTotal * (1 - ((selectedPartner as any).default_margin_percent || 20) / 100)).toLocaleString()}
                 </p>
               )}
             </div>

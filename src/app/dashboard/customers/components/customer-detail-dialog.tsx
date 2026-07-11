@@ -69,6 +69,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Send, MessageSquare } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { useCurrency } from "@/hooks/use-currency";
 
 interface CustomerDetailDialogProps {
   customer: Customer | null;
@@ -91,6 +92,7 @@ export function CustomerDetailDialog({
   onIssueEstimate,
   onEdit,
 }: CustomerDetailDialogProps) {
+    const { symbol: currencySymbol } = useCurrency();
   const supabase = createClient();
   const [orders, setOrders] = useState<any[]>([]);
   const [pointTransactions, setPointTransactions] = useState<any[]>([]);
@@ -422,7 +424,7 @@ export function CustomerDetailDialog({
                   <div className="p-4 relative">
                      <TrendingUp className="absolute right-4 top-4 h-12 w-12 opacity-10" />
                      <p className="text-blue-100 text-xs font-bold uppercase tracking-wider">{tf.f00684}</p>
-                     <h3 className="text-2xl font-black mt-1">₩{stats.total.toLocaleString()}</h3>
+                     <h3 className="text-2xl font-black mt-1">{currencySymbol}{stats.total.toLocaleString()}</h3>
                      <p className="text-blue-200 text-[10px] mt-1 font-medium italic">{stats.count}{tf.f00001}</p>
                   </div>
                </Card>
@@ -563,7 +565,7 @@ export function CustomerDetailDialog({
                                              </div>
                                           </div>
                                           <div className="text-right">
-                                             <p className="text-lg font-black text-slate-900 italic">₩{(order.summary?.total || 0).toLocaleString()}</p>
+                                             <p className="text-lg font-black text-slate-900 italic">{currencySymbol}{(order.summary?.total || 0).toLocaleString()}</p>
                                              <p className="text-[10px] text-slate-400 font-medium font-mono">#{order.order_number}</p>
                                           </div>
                                        </div>

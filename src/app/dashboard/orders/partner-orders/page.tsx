@@ -35,6 +35,8 @@ import {
   type ExternalOrderRecord,
 } from "@/lib/partner-order-service";
 import { maskPartnerName, maskPartnerPhone } from "@/lib/partner-order-masking";
+import { useCurrency } from "@/hooks/use-currency";
+
 /** 회원사간 수발주 전용 — `external_orders` (지점 주문이관 `order_transfers` 와 별개) */
 type TabKey = "received" | "sent";
 
@@ -56,6 +58,7 @@ function statusBadge(status: string) {
 }
 
 export default function PartnerOrdersPage() {
+    const { symbol: currencySymbol } = useCurrency();
   const supabase = createClient();
   const { tenantId } = useAuth();
   const searchParams = useSearchParams();
@@ -327,12 +330,12 @@ export default function PartnerOrdersPage() {
                             {`${maskPartnerName(orderer?.name)} (${maskPartnerPhone(orderer?.contact)})`}
                           </TableCell>
                           <TableCell className="font-bold text-blue-700">
-                            ₩{Math.round(Number(amount || 0)).toLocaleString()}
+                            {currencySymbol}{Math.round(Number(amount || 0)).toLocaleString()}
                           </TableCell>
                         </>
                       ) : (
                         <TableCell className="font-bold">
-                          ₩{Math.round(Number(amount || 0)).toLocaleString()}
+                          {currencySymbol}{Math.round(Number(amount || 0)).toLocaleString()}
                         </TableCell>
                       )}
                       <TableCell>{statusBadge(row.status)}</TableCell>

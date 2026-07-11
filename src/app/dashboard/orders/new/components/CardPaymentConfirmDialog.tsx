@@ -13,6 +13,7 @@ import type { OrderPaymentMethod } from "@/lib/order-payment-methods";
 import { getNewOrderPaymentMethodLabel } from "@/lib/order-payment-methods";
 import { getMessages } from "@/i18n/getMessages";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { useCurrency } from "@/hooks/use-currency";
 import { CreditCard, XCircle, CheckCircle2 } from "lucide-react";
 
 type CardPaymentConfirmDialogProps = {
@@ -33,6 +34,7 @@ export function CardPaymentConfirmDialog({
   onFailed,
 }: CardPaymentConfirmDialogProps) {
   const locale = usePreferredLocale();
+    const { format: formatCurrency } = useCurrency();
   const tf = getMessages(locale).tenantFlows;
   const methodLabel = getNewOrderPaymentMethodLabel(method, tf);
 
@@ -46,7 +48,7 @@ export function CardPaymentConfirmDialog({
           </DialogTitle>
           <DialogDescription className="text-left pt-2 space-y-2">
             <span className="block">
-              단말/PG에서 <strong>{amount.toLocaleString()}원</strong> 결제를 진행한 뒤 결과를 선택해 주세요.
+              단말/PG에서 <strong>{formatCurrency(amount)}</strong> 결제를 진행한 뒤 결과를 선택해 주세요.
             </span>
             <span className="block text-amber-700 text-sm">
               승인 실패 시 주문은 저장되지 않으며, 입력한 내용은 그대로 유지됩니다.

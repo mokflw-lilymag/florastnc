@@ -40,10 +40,7 @@ export function SettingsSubNav() {
   };
 
   return (
-    <nav
-      className="flex flex-wrap gap-2 mb-6"
-      aria-label={links.settings}
-    >
+    <nav className="flex flex-wrap gap-2 mb-6" aria-label={links.settings}>
       <Link
         href={settingsItem.href}
         className={cn(

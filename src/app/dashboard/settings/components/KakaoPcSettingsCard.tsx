@@ -9,13 +9,7 @@ import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { SystemSettings } from "@/hooks/use-settings";
-import {
-  DEFAULT_KAKAO_TEMPLATE_DELIVERY_COMPLETE,
-  DEFAULT_KAKAO_TEMPLATE_PRODUCTION_COMPLETE,
-  DEFAULT_KAKAO_TEMPLATE_MARKETING_DAY_OF,
-  DEFAULT_KAKAO_TEMPLATE_MARKETING_DAYS_BEFORE_7,
-  DEFAULT_KAKAO_TEMPLATE_MARKETING_FIRST_PURCHASE,
-} from "@/lib/kakao/default-pc-templates";
+import { getDefaultKakaoTemplates } from "@/lib/messenger/localized-templates";
 import { pickUiText } from "@/i18n/pick-ui-text";
 import { toBaseLocale } from "@/i18n/config";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
@@ -29,35 +23,36 @@ export function KakaoPcSettingsCard({ settings, saveSettings }: KakaoPcSettingsC
   const locale = usePreferredLocale();
   const baseLocale = toBaseLocale(locale);
   const tr = (ko: string, en: string) => pickUiText(baseLocale, ko, en);
+  const defaultTemplates = getDefaultKakaoTemplates(baseLocale);
 
   const [saving, setSaving] = useState(false);
   const [local, setLocal] = useState({
     preferredMessenger: settings.preferredMessenger || "kakaotalk",
     kakaoTemplateProductionComplete:
-      settings.kakaoTemplateProductionComplete || DEFAULT_KAKAO_TEMPLATE_PRODUCTION_COMPLETE,
+      settings.kakaoTemplateProductionComplete || defaultTemplates.productionComplete,
     kakaoTemplateDeliveryComplete:
-      settings.kakaoTemplateDeliveryComplete || DEFAULT_KAKAO_TEMPLATE_DELIVERY_COMPLETE,
+      settings.kakaoTemplateDeliveryComplete || defaultTemplates.deliveryComplete,
     marketingKakaoTemplateDayOf:
-      settings.marketingKakaoTemplateDayOf || DEFAULT_KAKAO_TEMPLATE_MARKETING_DAY_OF,
+      settings.marketingKakaoTemplateDayOf || defaultTemplates.marketingDayOf,
     marketingKakaoTemplateDaysBefore7:
-      settings.marketingKakaoTemplateDaysBefore7 || DEFAULT_KAKAO_TEMPLATE_MARKETING_DAYS_BEFORE_7,
+      settings.marketingKakaoTemplateDaysBefore7 || defaultTemplates.marketingDaysBefore7,
     marketingKakaoTemplateFirstPurchase:
-      settings.marketingKakaoTemplateFirstPurchase || DEFAULT_KAKAO_TEMPLATE_MARKETING_FIRST_PURCHASE,
+      settings.marketingKakaoTemplateFirstPurchase || defaultTemplates.marketingFirstPurchase,
   });
 
   useEffect(() => {
     setLocal({
       preferredMessenger: settings.preferredMessenger || "kakaotalk",
       kakaoTemplateProductionComplete:
-        settings.kakaoTemplateProductionComplete || DEFAULT_KAKAO_TEMPLATE_PRODUCTION_COMPLETE,
+        settings.kakaoTemplateProductionComplete || defaultTemplates.productionComplete,
       kakaoTemplateDeliveryComplete:
-        settings.kakaoTemplateDeliveryComplete || DEFAULT_KAKAO_TEMPLATE_DELIVERY_COMPLETE,
+        settings.kakaoTemplateDeliveryComplete || defaultTemplates.deliveryComplete,
       marketingKakaoTemplateDayOf:
-        settings.marketingKakaoTemplateDayOf || DEFAULT_KAKAO_TEMPLATE_MARKETING_DAY_OF,
+        settings.marketingKakaoTemplateDayOf || defaultTemplates.marketingDayOf,
       marketingKakaoTemplateDaysBefore7:
-        settings.marketingKakaoTemplateDaysBefore7 || DEFAULT_KAKAO_TEMPLATE_MARKETING_DAYS_BEFORE_7,
+        settings.marketingKakaoTemplateDaysBefore7 || defaultTemplates.marketingDaysBefore7,
       marketingKakaoTemplateFirstPurchase:
-        settings.marketingKakaoTemplateFirstPurchase || DEFAULT_KAKAO_TEMPLATE_MARKETING_FIRST_PURCHASE,
+        settings.marketingKakaoTemplateFirstPurchase || defaultTemplates.marketingFirstPurchase,
     });
   }, [settings]);
 
@@ -143,7 +138,7 @@ export function KakaoPcSettingsCard({ settings, saveSettings }: KakaoPcSettingsC
             onClick={() =>
               setLocal((p) => ({
                 ...p,
-                kakaoTemplateProductionComplete: DEFAULT_KAKAO_TEMPLATE_PRODUCTION_COMPLETE,
+                kakaoTemplateProductionComplete: defaultTemplates.productionComplete,
               }))
             }
           >
@@ -172,7 +167,7 @@ export function KakaoPcSettingsCard({ settings, saveSettings }: KakaoPcSettingsC
             onClick={() =>
               setLocal((p) => ({
                 ...p,
-                kakaoTemplateDeliveryComplete: DEFAULT_KAKAO_TEMPLATE_DELIVERY_COMPLETE,
+                kakaoTemplateDeliveryComplete: defaultTemplates.deliveryComplete,
               }))
             }
           >
@@ -204,7 +199,7 @@ export function KakaoPcSettingsCard({ settings, saveSettings }: KakaoPcSettingsC
             onClick={() =>
               setLocal((p) => ({
                 ...p,
-                marketingKakaoTemplateDayOf: DEFAULT_KAKAO_TEMPLATE_MARKETING_DAY_OF,
+                marketingKakaoTemplateDayOf: defaultTemplates.marketingDayOf,
               }))
             }
           >
@@ -232,7 +227,7 @@ export function KakaoPcSettingsCard({ settings, saveSettings }: KakaoPcSettingsC
             onClick={() =>
               setLocal((p) => ({
                 ...p,
-                marketingKakaoTemplateDaysBefore7: DEFAULT_KAKAO_TEMPLATE_MARKETING_DAYS_BEFORE_7,
+                marketingKakaoTemplateDaysBefore7: defaultTemplates.marketingDaysBefore7,
               }))
             }
           >
@@ -260,7 +255,7 @@ export function KakaoPcSettingsCard({ settings, saveSettings }: KakaoPcSettingsC
             onClick={() =>
               setLocal((p) => ({
                 ...p,
-                marketingKakaoTemplateFirstPurchase: DEFAULT_KAKAO_TEMPLATE_MARKETING_FIRST_PURCHASE,
+                marketingKakaoTemplateFirstPurchase: defaultTemplates.marketingFirstPurchase,
               }))
             }
           >

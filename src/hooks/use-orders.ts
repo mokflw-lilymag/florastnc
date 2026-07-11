@@ -122,6 +122,11 @@ export function useOrders(initialFetch = true) {
     setLoading(true);
     try {
       await OrderService.updateOrder(supabase, tenantId, id, updates);
+      
+      // Eagerly update local state (especially important for Electron where Realtime is disabled)
+      setOrders(prev => prev.map(o => o.id === id ? { ...o, ...updates } as Order : o));
+      setPaginatedOrders(prev => prev.map(o => o.id === id ? { ...o, ...updates } as Order : o));
+      
       return true;
     } catch (error) {
       console.error('Error updating order:', error);

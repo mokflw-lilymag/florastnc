@@ -32,6 +32,7 @@ import { printDocument } from "@/lib/print-document";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
 import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
+import { useCurrency } from "@/hooks/use-currency";
 
 interface DocumentLog {
   id: string;
@@ -50,6 +51,7 @@ interface DocumentRegistryDialogProps {
 }
 
 export function DocumentRegistryDialog({ isOpen, onOpenChange, tenantId }: DocumentRegistryDialogProps) {
+    const { symbol: currencySymbol } = useCurrency();
   const supabase = createClient();
   const [logs, setLogs] = useState<DocumentLog[]>([]);
   const [loading, setLoading] = useState(false);
@@ -203,7 +205,7 @@ export function DocumentRegistryDialog({ isOpen, onOpenChange, tenantId }: Docum
                           {log.items?.map((i: any) => i.name).join(', ')}
                         </div>
                         <div className="text-right font-black text-slate-900">
-                          ₩{(log.total_amount || 0).toLocaleString()}
+                          {currencySymbol}{(log.total_amount || 0).toLocaleString()}
                         </div>
                         <div className="text-center text-[11px] font-bold text-slate-400 flex flex-col items-center">
                           <Calendar size={12} className="mb-1" />

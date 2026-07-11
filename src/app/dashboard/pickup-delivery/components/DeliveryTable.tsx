@@ -8,6 +8,7 @@ import { Calendar as CalendarIcon, CheckCircle, Phone, MapPin, X, Truck } from "
 import { Order } from "@/types/order";;
 import { DeliveryPhotoUpload } from "@/components/delivery-photo-upload";
 import { useAuth } from "@/hooks/use-auth";
+import { useCurrency } from "@/hooks/use-currency";
 
 interface DeliveryTableProps {
     orders: Order[];
@@ -28,6 +29,7 @@ export function DeliveryTable({
     formatDateTime,
     getStatusBadge
 }: DeliveryTableProps) {
+    const { symbol: currencySymbol } = useCurrency();
     const { user } = useAuth();
     const userBranch = (user as any)?.franchise || (user as any)?.tenantName;
 
@@ -108,7 +110,7 @@ export function DeliveryTable({
                                 <TableCell className="whitespace-nowrap">
                                     {order.actual_delivery_cost || order.actual_delivery_cost_cash ? (
                                         <div className="text-[11px] font-bold">
-                                            ₩{((order.actual_delivery_cost || 0) + (order.actual_delivery_cost_cash || 0)).toLocaleString()}
+                                            {currencySymbol}{((order.actual_delivery_cost || 0) + (order.actual_delivery_cost_cash || 0)).toLocaleString()}
                                         </div>
                                     ) : (
                                         <span className="text-slate-400 text-[10px]">미입력</span>
@@ -226,7 +228,7 @@ export function DeliveryTable({
                             <div className="flex justify-between items-center mb-4 p-2 bg-slate-50 rounded-lg text-xs">
                                 <span className="text-slate-500">실제 배송비 (총액)</span>
                                 <div className="text-right">
-                                    <div className="font-bold">₩{((order.actual_delivery_cost || 0) + (order.actual_delivery_cost_cash || 0)).toLocaleString()}</div>
+                                    <div className="font-bold">{currencySymbol}{((order.actual_delivery_cost || 0) + (order.actual_delivery_cost_cash || 0)).toLocaleString()}</div>
                                 </div>
                             </div>
                         ) : null}

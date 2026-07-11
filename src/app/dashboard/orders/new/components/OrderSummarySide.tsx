@@ -22,6 +22,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { useCurrency } from "@/hooks/use-currency";
 
 // Remove OrderItem import from use-orders as it may not exist there
 // import { OrderItem } from "@/hooks/use-orders"; 
@@ -137,6 +138,7 @@ export function OrderSummarySide({
     isSubmitting
 }: OrderSummarySideProps) {
     const locale = usePreferredLocale();
+    const { format: formatCurrency } = useCurrency();
     const tf = getMessages(locale).tenantFlows;
     const updateQuantity = (index: number, delta: number) => {
         const newItems = [...orderItems];
@@ -174,7 +176,7 @@ export function OrderSummarySide({
                                 <div key={`${item.id}-${index}`} className="flex items-start justify-between bg-white p-3 rounded-md border shadow-sm">
                                     <div className="flex-1 min-w-0 mr-2">
                                         <div className="font-medium text-sm truncate">{item.name}</div>
-                                        <div className="text-xs text-muted-foreground">{item.price.toLocaleString()}{tf.f00487}</div>
+                                        <div className="text-xs text-muted-foreground">{formatCurrency(item.price)}</div>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <div className="flex items-center border rounded-md">
@@ -353,7 +355,7 @@ export function OrderSummarySide({
                                         </SelectContent>
                                     </Select>
                                     <div className="flex-1 h-8 flex items-center justify-end px-3 border rounded bg-muted text-xs font-medium">
-                                        {(orderSummary.total - firstPaymentAmount).toLocaleString()}{tf.f00487}
+                                        {formatCurrency((orderSummary.total - firstPaymentAmount))}
                                     </div>
                                 </div>
                             </div>
@@ -386,28 +388,28 @@ export function OrderSummarySide({
                 <div className="w-full space-y-2 text-sm mb-4">
                     <div className="flex justify-between text-muted-foreground">
                         <span>{tf.f00336}</span>
-                        <span>{orderSummary.subtotal.toLocaleString()}{tf.f00487}</span>
+                        <span>{formatCurrency(orderSummary.subtotal)}</span>
                     </div>
                     {orderSummary.discountAmount > 0 && (
                         <div className="flex justify-between text-red-500">
                             <span>{tf.f00759}</span>
-                            <span>- {orderSummary.discountAmount.toLocaleString()}{tf.f00487}</span>
+                            <span>- {formatCurrency(orderSummary.discountAmount)}</span>
                         </div>
                     )}
                     <div className="flex justify-between text-muted-foreground">
                         <span>{tf.f00259}</span>
-                        <span>+ {orderSummary.deliveryFee.toLocaleString()}{tf.f00487}</span>
+                        <span>+ {formatCurrency(orderSummary.deliveryFee)}</span>
                     </div>
                     {orderSummary.pointsUsed > 0 && (
                         <div className="flex justify-between text-blue-500">
                             <span>{tf.f00732}</span>
-                            <span>- {orderSummary.pointsUsed.toLocaleString()}{tf.f00487}</span>
+                            <span>- {formatCurrency(orderSummary.pointsUsed)}</span>
                         </div>
                     )}
                     <Separator className="my-2" />
                     <div className="flex justify-between font-bold text-lg">
                         <span>{tf.f00692}</span>
-                        <span className="text-primary">{orderSummary.total.toLocaleString()}{tf.f00487}</span>
+                        <span className="text-primary">{formatCurrency(orderSummary.total)}</span>
                     </div>
                 </div>
 
@@ -417,7 +419,7 @@ export function OrderSummarySide({
                     onClick={onSubmit}
                     disabled={isSubmitting || orderItems.length === 0}
                 >
-                    {isSubmitting ? tf.f00677 : `${orderSummary.total.toLocaleString()}${tf.f00488}`}
+                    {isSubmitting ? tf.f00677 : `${formatCurrency(orderSummary.total)} 결제`}
                 </Button>
             </CardFooter>
         </Card>

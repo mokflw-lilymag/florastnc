@@ -10,6 +10,7 @@ import {
 } from "@/lib/subscription/subscription-events";
 import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
 import { toBaseLocale } from "@/i18n/config";
+import { useCurrency } from "@/hooks/use-currency";
 
 function formatAmount(amountCents: number | null, currency: string | null): string {
   if (amountCents == null) return "-";
@@ -35,6 +36,7 @@ export function SubscriptionEventTimeline({
   loading?: boolean;
   locale: string;
 }) {
+    const { symbol: currencySymbol } = useCurrency();
   const dfLoc = dateFnsLocaleForBase(toBaseLocale(locale as Parameters<typeof toBaseLocale>[0]));
 
   if (loading) {

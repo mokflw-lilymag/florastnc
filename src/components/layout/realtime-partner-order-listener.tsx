@@ -26,8 +26,10 @@ import {
   rejectPartnerExternalOrder,
   type ExternalOrderRecord,
 } from "@/lib/partner-order-service";
+import { useCurrency } from "@/hooks/use-currency";
 
 export function RealtimePartnerOrderListener() {
+    const { symbol: currencySymbol } = useCurrency();
   const supabase = createClient();
   const { tenantId } = useAuth();
   const { settings } = useSettings();
@@ -116,7 +118,7 @@ export function RealtimePartnerOrderListener() {
           "새 수주";
         const amount =
           row.fulfillment_amount != null
-            ? ` · ₩${Math.round(Number(row.fulfillment_amount)).toLocaleString()}`
+            ? ` · ${currencySymbol}${Math.round(Number(row.fulfillment_amount)).toLocaleString()}`
             : "";
         void notifyExternalOrderDesktop({
           title: "🌸 회원사 수주 요청",
@@ -331,7 +333,7 @@ export function RealtimePartnerOrderListener() {
           <div className="flex justify-between">
             <span className="text-slate-400">수주 금액:</span>
             <span className="font-bold text-blue-300">
-              ₩{Math.round(Number(activeOrder.fulfillment_amount || 0)).toLocaleString()}
+              {currencySymbol}{Math.round(Number(activeOrder.fulfillment_amount || 0)).toLocaleString()}
             </span>
           </div>
           {activeOrder.notes ? (

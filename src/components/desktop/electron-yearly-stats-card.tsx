@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { isElectronClient } from "@/lib/electron-env";
 import { fetchElectronYearlyStats } from "@/lib/electron-desktop-api";
 import { cn } from "@/lib/utils";
+import { useCurrency } from "@/hooks/use-currency";
 
 type Props = {
   className?: string;
@@ -15,6 +16,7 @@ type Props = {
 
 /** 로컬 SQLite 기준 올해 누적 (Windows 앱 전용) */
 export function ElectronYearlyStatsCard({ className, compact }: Props) {
+    const { symbol: currencySymbol } = useCurrency();
   const { tenantId } = useAuth();
   const [stats, setStats] = useState<{ count: number; revenue: number } | null>(null);
 
@@ -42,7 +44,7 @@ export function ElectronYearlyStatsCard({ className, compact }: Props) {
         <CardContent>
           <div className="text-2xl font-bold text-purple-900">{stats.count.toLocaleString()}건</div>
           <p className="text-xs text-purple-700 font-medium mt-1">
-            누적 매출: ₩{stats.revenue.toLocaleString()}
+            누적 매출: {currencySymbol}{stats.revenue.toLocaleString()}
           </p>
         </CardContent>
       </Card>
@@ -58,7 +60,7 @@ export function ElectronYearlyStatsCard({ className, compact }: Props) {
       <CardContent>
         <div className="text-2xl font-black text-purple-900">{stats.count.toLocaleString()}건</div>
         <p className="text-xs text-purple-700 font-medium mt-1">
-          ₩{stats.revenue.toLocaleString()}
+          {currencySymbol}{stats.revenue.toLocaleString()}
         </p>
       </CardContent>
     </Card>

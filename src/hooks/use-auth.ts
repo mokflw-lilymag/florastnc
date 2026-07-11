@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
+import { isStaffRole } from "@/lib/staff-menu-permissions";
+import { canManageTenantStaff } from "@/lib/staff-access";
 import { useAuthStore } from "@/stores/auth-store";
 
 /**
@@ -32,5 +34,15 @@ export function useAuth() {
     isOrgWorkContext: !!profile?.org_work_tenant_id,
     /** 업무 전환 전 소속 매장 (없으면 null) */
     homeTenantId: profile?.tenant_id ?? null,
+    /** 직원이 로그인한 상태인지 확인 */
+    isTenantStaff: isStaffRole(profile?.role),
+    /** 점주 (tenant_admin) 상태인지 확인 */
+    isTenantAdmin: profile?.role === "tenant_admin" || profile?.role === "org_admin",
+    /** 직원·권한·출퇴근 관리 가능 (로그인 계정 기준, PIN 전환 무관) */
+    canManageStaff: canManageTenantStaff({
+      role: profile?.role,
+      tenantId,
+      isSuperAdmin,
+    }),
   };
 }

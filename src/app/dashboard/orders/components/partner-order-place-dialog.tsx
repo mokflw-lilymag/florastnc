@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import Textarea from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { useCurrency } from "@/hooks/use-currency";
 
 interface PartnerTenant {
   id: string;
@@ -41,6 +42,7 @@ export function PartnerOrderPlaceDialog({
   order,
   onSuccess,
 }: PartnerOrderPlaceDialogProps) {
+    const { symbol: currencySymbol } = useCurrency();
   const supabase = createClient();
   const { tenantId } = useAuth();
 
@@ -181,7 +183,7 @@ export function PartnerOrderPlaceDialog({
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">주문 금액</span>
-              <span className="font-extrabold text-blue-600">₩{orderTotal.toLocaleString()}</span>
+              <span className="font-extrabold text-blue-600">{currencySymbol}{orderTotal.toLocaleString()}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">배송 희망</span>
@@ -270,8 +272,8 @@ export function PartnerOrderPlaceDialog({
               className="rounded-xl"
             />
             <p className="text-[10px] text-slate-400">
-              80% 기준 ₩{Math.round(orderTotal * 0.8).toLocaleString()} · 발주처 수익 ₩
-              {Math.max(0, orderTotal - fulfillmentAmount).toLocaleString()}
+              80% 기준 {currencySymbol}{Math.round(orderTotal * 0.8).toLocaleString()} · 발주처 수익 {currencySymbol}
+                                        {Math.max(0, orderTotal - fulfillmentAmount).toLocaleString()}
             </p>
           </div>
 

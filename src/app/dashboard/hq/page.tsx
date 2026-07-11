@@ -37,6 +37,7 @@ import { HqRevenueStackedChart } from "@/components/hq/hq-revenue-stacked-chart"
 import { cn } from "@/lib/utils";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
+import { useCurrency } from "@/hooks/use-currency";
 
 type TopMaterial = { name: string; amount: number; percent: number };
 type TopProduct = { name: string; amount: number; percent: number };
@@ -65,6 +66,7 @@ type BranchRow = {
 type HqChartPeriod = "daily" | "weekly" | "monthly" | "yearly";
 
 export default function HqDashboardPage() {
+    const { symbol: currencySymbol } = useCurrency();
   const router = useRouter();
   const { profile, isLoading } = useAuth();
   const touchUi = usePartnerTouchUi();
@@ -306,7 +308,7 @@ export default function HqDashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold tabular-nums text-slate-900 leading-none">
-                  ₩{grandRevenue.toLocaleString()}
+                  {currencySymbol}{grandRevenue.toLocaleString()}
                 </div>
                 <p className="text-[10px] text-indigo-500/70 font-semibold mt-2">{L("지점별 발생 실시간 매출 합계", "Aggregated branch sales")}</p>
               </CardContent>
@@ -319,7 +321,7 @@ export default function HqDashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold tabular-nums text-slate-900 leading-none">
-                  ₩{grandExpense.toLocaleString()}
+                  {currencySymbol}{grandExpense.toLocaleString()}
                 </div>
                 <p className="text-[10px] text-rose-500/70 font-semibold mt-2">{L("지점별 사입비 및 경비 총액", "Aggregated expenses & flower costs")}</p>
               </CardContent>
@@ -332,7 +334,7 @@ export default function HqDashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold tabular-nums text-slate-900 leading-none">
-                  ₩{grandProfit.toLocaleString()}
+                  {currencySymbol}{grandProfit.toLocaleString()}
                 </div>
                 <p className="text-[10px] text-emerald-500/70 font-semibold mt-2">{L("지점 매출에서 지출을 제외한 실순익", "Net profit margin estimate")}</p>
               </CardContent>
@@ -596,9 +598,9 @@ export default function HqDashboardPage() {
                               </div>
                             </TableCell>
 
-                            <TableCell className="text-right tabular-nums font-bold text-slate-800">₩{b.revenue.toLocaleString()}</TableCell>
-                            <TableCell className="text-right tabular-nums font-medium text-slate-400">₩{b.expense.toLocaleString()}</TableCell>
-                            <TableCell className="text-right tabular-nums font-extrabold text-indigo-700">₩{b.profit.toLocaleString()}</TableCell>
+                            <TableCell className="text-right tabular-nums font-bold text-slate-800">{currencySymbol}{b.revenue.toLocaleString()}</TableCell>
+                            <TableCell className="text-right tabular-nums font-medium text-slate-400">{currencySymbol}{b.expense.toLocaleString()}</TableCell>
+                            <TableCell className="text-right tabular-nums font-extrabold text-indigo-700">{currencySymbol}{b.profit.toLocaleString()}</TableCell>
                             <TableCell className="text-center">
                               <Badge variant="outline" className={cn("rounded-xl text-[10px] px-2 py-0.5 whitespace-nowrap", badgeClass)}>
                                 {badgeLabel}
@@ -698,7 +700,7 @@ export default function HqDashboardPage() {
                             <div key={idx} className="space-y-1">
                               <div className="flex justify-between text-[11px] font-semibold">
                                 <span className="text-slate-700">{idx + 1}. {m.name}</span>
-                                <span className="text-indigo-600 font-bold tabular-nums">₩{m.amount.toLocaleString()} ({m.percent}%)</span>
+                                <span className="text-indigo-600 font-bold tabular-nums">{currencySymbol}{m.amount.toLocaleString()} ({m.percent}%)</span>
                               </div>
                               <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
                                 <div style={{ width: `${m.percent}%` }} className="bg-indigo-500 h-full rounded-full" />
@@ -730,7 +732,7 @@ export default function HqDashboardPage() {
                             <div key={idx} className="space-y-1">
                               <div className="flex justify-between text-[11px] font-semibold">
                                 <span className="text-slate-700">{idx + 1}. {p.name}</span>
-                                <span className="text-emerald-600 font-bold tabular-nums">₩{p.amount.toLocaleString()} ({p.percent}%)</span>
+                                <span className="text-emerald-600 font-bold tabular-nums">{currencySymbol}{p.amount.toLocaleString()} ({p.percent}%)</span>
                               </div>
                               <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
                                 <div style={{ width: `${p.percent}%` }} className="bg-emerald-500 h-full rounded-full" />

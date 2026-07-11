@@ -1,6 +1,9 @@
 "use client";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
+import { pickUiText } from "@/i18n/pick-ui-text";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from "@/components/ui/dialog";
 import { Printer } from "lucide-react";
 import { Label } from "@/components/ui/label";
@@ -31,16 +34,20 @@ interface MessagePrintDialogProps {
   }) => void;
   order: Order;
 }
-const labelTypes = [
-  { value: 'formtec-3107', label: '폼텍 3107 (6칸)', cells: 6, gridCols: 'grid-cols-2', height: '93mm', className: 'gap-x-[2mm]' },
-  { value: 'formtec-3108', label: '폼텍 3108 (8칸)', cells: 8, gridCols: 'grid-cols-2', height: '67.5mm', className: 'gap-x-[2mm]' },
-  { value: 'formtec-3109', label: '폼텍 3109 (12칸)', cells: 12, gridCols: 'grid-cols-2', height: '45mm', className: 'gap-x-[2mm]' },
-  { value: 'label-90x60', label: '감열 라벨지 (90x60)', cells: 1, gridCols: 'grid-cols-1', height: '60mm', className: 'gap-x-0' },
-  { value: 'label-90x90', label: '감열 라벨지 (90x90)', cells: 1, gridCols: 'grid-cols-1', height: '90mm', className: 'gap-x-0' },
+const getLabelTypes = (baseLocale: string) => [
+  { value: 'formtec-3107', label: pickUiText(baseLocale, "폼텍 3107 (6칸)", "Formtec 3107 (6 cells)", "Formtec 3107 (6 ô)", "Formtec 3107 (6セル)", "Formtec 3107（6 芯）", "Formtec 3107（6 芯）", "Formtec 3107 (6 celdas)", "Formtec 3107 (6 células)", "Formtec 3107 (6 cellules)", "Formtec 3107 (6 Zellen)", "Formtec 3107 (6 ячеек)"), cells: 6, gridCols: 'grid-cols-2', height: '93mm', className: 'gap-x-[2mm]' },
+  { value: 'formtec-3108', label: pickUiText(baseLocale, "폼텍 3108 (8칸)", "Formtec 3108 (8 cells)", "Formtec 3108 (8 ô)", "Formtec 3108 (8セル)", "Formtec 3108（8 节电池）", "Formtec 3108（8 顆電池）", "Formtec 3108 (8 celdas)", "Formtec 3108 (8 células)", "Formtec 3108 (8 cellules)", "Formtec 3108 (8 Zellen)", "Formtec 3108 (8 ячеек)"), cells: 8, gridCols: 'grid-cols-2', height: '67.5mm', className: 'gap-x-[2mm]' },
+  { value: 'formtec-3109', label: pickUiText(baseLocale, "폼텍 3109 (12칸)", "Formtec 3109 (12 cells)", "Formtec 3109 (12 ô)", "Formtec 3109 (12 セル)", "Formtec 3109（12 节电池）", "Formtec 3109（12 顆電池）", "Formtec 3109 (12 celdas)", "Formtec 3109 (12 células)", "Formtec 3109 (12 cellules)", "Formtec 3109 (12 Zellen)", "Formtec 3109 (12 ячеек)"), cells: 12, gridCols: 'grid-cols-2', height: '45mm', className: 'gap-x-[2mm]' },
+  { value: 'label-90x60', label: pickUiText(baseLocale, "감열 라벨지 (90x60)", "Thermal Label (90x60)", "Nhãn nhiệt (90x60)", "感熱ラベル (90x60)", "热敏标签 (90x60)", "熱敏標籤 (90x60)", "Etiqueta Térmica (90x60)", "Etiqueta Térmica (90x60)", "Étiquette Thermique (90x60)", "Thermoetikett (90x60)", "Термоэтикетка (90x60)"), cells: 1, gridCols: 'grid-cols-1', height: '60mm', className: 'gap-x-0' },
+  { value: 'label-90x90', label: pickUiText(baseLocale, "감열 라벨지 (90x90)", "Thermal Label (90x90)", "Nhãn nhiệt (90x90)", "感熱ラベル (90x90)", "热敏标签 (90x90)", "熱敏標籤 (90x90)", "Etiqueta Térmica (90x90)", "Etiqueta Térmica (90x90)", "Étiquette Thermique (90x90)", "Thermoetikett (90x90)", "Термоэтикетка (90x90)"), cells: 1, gridCols: 'grid-cols-1', height: '90mm', className: 'gap-x-0' },
 ];
 
 export function MessagePrintDialog({ isOpen, onOpenChange, onSubmit, order }: MessagePrintDialogProps) {
-  const searchParams = useSearchParams();
+  
+  const locale = usePreferredLocale();
+  const baseLocale = toBaseLocale(locale);
+  const labelTypes = getLabelTypes(baseLocale);
+const searchParams = useSearchParams();
 
   const getInitialValue = (paramName: string, defaultValue: string) => {
     return searchParams.get(paramName) || defaultValue;
@@ -112,7 +119,7 @@ export function MessagePrintDialog({ isOpen, onOpenChange, onSubmit, order }: Me
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-6xl max-h-[95vh] h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
-            <DialogTitle>메시지 인쇄 옵션</DialogTitle>
+            <DialogTitle>{pickUiText(baseLocale, "메시지 인쇄 옵션", "Message Print Options", "Tùy chọn in tin nhắn", "メッセージ印刷オプション", "消息打印选项", "訊息列印選項", "Opciones de impresión de mensajes", "Opções de impressão de mensagens", "Options d'impression des messages", "Optionen zum Drucken von Nachrichten", "Параметры печати сообщений")}</DialogTitle>
             <DialogDescription>
               좌측에서 내용을 입력하고 우측에서 인쇄될 위치를 클릭하여 선택하세요. (자동 저장됨)
             </DialogDescription>
@@ -122,13 +129,13 @@ export function MessagePrintDialog({ isOpen, onOpenChange, onSubmit, order }: Me
             <div className="lg:col-span-4 space-y-4 overflow-y-auto pr-2">
 
               <div className="space-y-2 border p-4 rounded-md">
-                <Label htmlFor="label-type" className="font-bold">1. 라벨지 규격 선택</Label>
+                <Label htmlFor="label-type" className="font-bold">{pickUiText(baseLocale, "1. 라벨지 규격 선택", "1. Select Label Size", "1. Chọn Kích thước Nhãn", "1. ラベルサイズを選択します", "1. 选择标签尺寸", "1. 選擇標籤尺寸", "1. Seleccione el tamaño de la etiqueta", "1. Selecione o tamanho da etiqueta", "1. Sélectionnez la taille de l'étiquette", "1. Wählen Sie Etikettengröße", "1. Выберите размер этикетки.")}</Label>
                 <Select value={labelType} onValueChange={(value) => {
                   setLabelType(value || 'formtec-3108');
                   setSelectedPositions([]);
                 }}>
                   <SelectTrigger id="label-type">
-                    <SelectValue placeholder="라벨지 선택" />
+                    <SelectValue placeholder={pickUiText(baseLocale, "라벨지 선택", "Select Label", "Chọn Nhãn", "ラベルの選択", "选择标签", "選擇標籤", "Seleccionar etiqueta", "Selecione o rótulo", "Sélectionner une étiquette", "Wählen Sie Etikett aus", "Выберите ярлык")} />
                   </SelectTrigger>
                   <SelectContent>
                     {labelTypes.map(lt => (
@@ -140,7 +147,7 @@ export function MessagePrintDialog({ isOpen, onOpenChange, onSubmit, order }: Me
 
               <div className="space-y-4 border p-4 rounded-md bg-muted/30">
                 <div className="flex items-center justify-between">
-                  <Label className="font-bold">2. 내용 입력</Label>
+                  <Label className="font-bold">{pickUiText(baseLocale, "2. 내용 입력", "2. Enter Content", "2. Nhập nội dung", "2. コンテンツを入力します", "2. 输入内容", "2. 輸入內容", "2. Ingrese el contenido", "2. Insira o conteúdo", "2. Entrez le contenu", "2. Geben Sie den Inhalt ein", "2. Введите контент")}</Label>
                   <div className="flex gap-2">
                     <Button
                       type="button"
@@ -163,7 +170,7 @@ export function MessagePrintDialog({ isOpen, onOpenChange, onSubmit, order }: Me
                   </div>
                 </div>
                 <div>
-                  <Label htmlFor="message-content" className="text-xs text-muted-foreground mb-1 block">메시지 본문</Label>
+                  <Label htmlFor="message-content" className="text-xs text-muted-foreground mb-1 block">{pickUiText(baseLocale, "메시지 본문", "Message Body", "Nội dung tin nhắn", "メッセージ本文", "消息正文", "訊息正文", "Cuerpo del mensaje", "Corpo da mensagem", "Corps du message", "Nachrichtentext", "Тело сообщения")}</Label>
                   <TiptapEditor
                     value={messageContent}
                     onChange={setMessageContent}
@@ -172,7 +179,7 @@ export function MessagePrintDialog({ isOpen, onOpenChange, onSubmit, order }: Me
               </div>
 
               <div className="space-y-2 border p-4 rounded-md">
-                <Label className="font-bold">3. 폰트/이모지 설정</Label>
+                <Label className="font-bold">{pickUiText(baseLocale, "3. 폰트/이모지 설정", "3. Font/Emoji Settings", "3. Cài đặt phông chữ/Biểu tượng cảm xúc", "3. フォント/絵文字の設定", "3. 字体/表情符号设置", "3. 字體/表情符號設置", "3. Configuración de fuentes/emojis", "3. Configurações de fonte/emoji", "3. Paramètres de police/Emoji", "3. Schriftart-/Emoji-Einstellungen", "3. Настройки шрифта/эмодзи")}</Label>
                 <div className="pt-2">
                   <Button 
                     type="button" 

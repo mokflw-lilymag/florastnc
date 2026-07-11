@@ -32,6 +32,11 @@ import { usePersistUiLocale } from "@/hooks/use-persist-ui-locale";
 import { getMessages } from "@/i18n/getMessages";
 import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
 import { useAuthStore } from "@/stores/auth-store";
+import { markLocalBridgeOnline, shouldPollLocalBridge } from "@/lib/local-bridge-probe";
+import { useAuth } from "@/hooks/use-auth";
+import { useStaffAttendance } from "@/hooks/use-staff-attendance";
+import { usePosSession } from "@/hooks/use-pos-session";
+import { ProfileSwitcher } from "@/components/layout/profile-switcher";
 
 interface HeaderProps {
   userEmail: string;
@@ -92,6 +97,8 @@ export function Header({
   const [uiLocale, setUiLocale] = useState<AppLocale>("ko");
   const selectLocale = resolveDashboardSelectLocale(uiLocale);
   const [isElectron, setIsElectron] = useState(false);
+  const { isStaffMode, clearSession } = usePosSession();
+  const { isCheckedIn, recordAttendance, loading: attendanceLoading } = useStaffAttendance();
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -118,13 +125,15 @@ export function Header({
   };
 
   useEffect(() => {
-    const checkBridge = async () => {
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+
+    const checkBridge = async (): Promise<boolean> => {
       const isElectronEnv = typeof window !== "undefined" && !!(window as any).electronAPI;
       if (isElectronEnv) {
         setIsBridgeOnline(true);
         setIsPPBridgeOnline(true);
         setBridgeVersion('Desktop Native');
-        return;
+        return true;
       }
 
       // 1. 구형 POS 브릿지 (8002) - 레거시 호환
@@ -137,11 +146,11 @@ export function Header({
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         setIsBridgeOnline(data.status === 'success' || data.status === 'ok');
-      } catch (err) {
+      } catch {
         setIsBridgeOnline(false);
       }
 
-      // 2. 신형 범용 프린트 브릿지 (8004) - 브라우저 자동 페어링 (Hot-swap & 영구저장)
+      // 2. 신형 범용 프린트 브릿지 (8004)
       try {
         const storeState = useAuthStore.getState();
         const currentTenantId = storeState.tenantId || '';
@@ -159,13 +168,25 @@ export function Header({
         const dataPP = await resPP.json();
         setIsPPBridgeOnline(dataPP.status === 'success' || dataPP.status === 'ok' || dataPP.success === true);
         if (dataPP.version) setBridgeVersion(dataPP.version);
-      } catch (err) {
+        markLocalBridgeOnline();
+        return true;
+      } catch {
         setIsPPBridgeOnline(false);
+        return false;
       }
     };
-    checkBridge();
-    const timer = setInterval(checkBridge, 6000);
-    return () => clearInterval(timer);
+
+    void checkBridge().then((online) => {
+      if (online || shouldPollLocalBridge()) {
+        intervalId = setInterval(() => {
+          void checkBridge();
+        }, 6000);
+      }
+    });
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
   }, []);
 
   // 실시간 주문 수 로드
@@ -189,18 +210,17 @@ export function Header({
   }, [supabase, plan, isSuperAdmin, sidebarHqOnly]);
 
   const handleLogout = async () => {
+    if (isStaffMode) {
+      toast.error("직원 모드에서는 로그아웃할 수 없습니다. 작업자 전환에서 사장님 PIN으로 전환한 뒤 로그아웃해주세요.");
+      return;
+    }
+
     if (!navigator.onLine) {
       const confirmOffline = window.confirm("⚠️ 경고: 현재 인터넷이 끊긴 오프라인 상태입니다.\n\n이 상태에서 로그아웃하시면 서버로 올라가지 않은 방금 전 주문들이 모두 영구 삭제됩니다.\n\n정말로 로그아웃 하시겠습니까?");
       if (!confirmOffline) return;
     }
 
-    if (typeof window !== "undefined" && (window as any).electronAPI) {
-      try {
-        await (window as any).electronAPI.clearOfflineData();
-      } catch(e) {
-        console.error("Failed to clear local data:", e);
-      }
-    }
+    clearSession();
     await supabase.auth.signOut();
     toast.success(t.header.logoutSuccess);
     router.push("/login");
@@ -425,6 +445,32 @@ export function Header({
           </Button>
         )}
 
+        <ProfileSwitcher />
+
+        {isStaffMode && (
+          <span className="hidden sm:inline-flex items-center rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">
+            직원 모드
+          </span>
+        )}
+
+        {/* Staff Attendance Button */}
+        {isStaffMode && (
+          <Button
+            variant={isCheckedIn ? "outline" : "default"}
+            size="sm"
+            disabled={attendanceLoading}
+            onClick={() => recordAttendance(isCheckedIn ? "clock_out" : "clock_in")}
+            className={cn(
+              "font-semibold",
+              isCheckedIn 
+                ? "border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100" 
+                : "bg-blue-600 text-white hover:bg-blue-700"
+            )}
+          >
+            {attendanceLoading ? "..." : (isCheckedIn ? "퇴근하기" : "출근하기")}
+          </Button>
+        )}
+
         <NotificationBell />
 
         {/* User Dropdown Profile */}
@@ -460,10 +506,12 @@ export function Header({
               <span>{t.header.settings}</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-600 dark:text-red-400 focus:bg-red-50 dark:focus:bg-red-900/20 focus:text-red-600 dark:focus:text-red-400">
-              <LogOut className="mr-2 h-4 w-4" />
-              <span>{t.header.logout}</span>
-            </DropdownMenuItem>
+            {!isStaffMode && (
+              <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-600 dark:text-red-400 focus:bg-red-50 dark:focus:bg-red-900/20 focus:text-red-600 dark:focus:text-red-400">
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>{t.header.logout}</span>
+              </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

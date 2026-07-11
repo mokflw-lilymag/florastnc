@@ -14,6 +14,7 @@ import { createClient } from '@/utils/supabase/client';
 import { Order } from '@/types/order';
 import { useSettings } from '@/hooks/use-settings';
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { normalizeReceiptLocaleSetting } from "@/lib/receipt-locale-options";
 import { toBaseLocale } from "@/i18n/config";
 import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
 
@@ -26,9 +27,11 @@ export function PrintPreviewClient({ orderId }: PrintPreviewClientProps) {
     const supabase = createClient();
     const { profile, isLoading: authLoading, tenantId } = useAuth();
     const { settings } = useSettings();
-    const locale = usePreferredLocale();
-    const tf = getMessages(locale).tenantFlows;
-    const dfLoc = dateFnsLocaleForBase(toBaseLocale(locale));
+    const uiLocale = usePreferredLocale();
+    const receiptSetting = normalizeReceiptLocaleSetting(settings?.receiptLocale);
+    const locale = receiptSetting === "auto" ? uiLocale : receiptSetting;
+    const tf = getMessages(locale as any).tenantFlows;
+    const dfLoc = dateFnsLocaleForBase(toBaseLocale(locale as any));
     const dateTimeWeekday = (d: Date) => format(d, "Pp (EEE)", { locale: dfLoc });
     const [order, setOrder] = useState<Order | null>(null);
     const [loading, setLoading] = useState(true);

@@ -14,6 +14,7 @@ const ResponsiveContainer = dynamic(() => import("recharts").then(mod => mod.Res
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
+import { useCurrency } from "@/hooks/use-currency";
 
 interface SalesChartProps {
   chartData: Array<{ name: string; sales: number }>;
@@ -22,6 +23,7 @@ interface SalesChartProps {
 }
 
 export default function SalesChart({ chartData, height = 350 }: SalesChartProps) {
+    const { symbol: currencySymbol } = useCurrency();
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
   const baseLocale = toBaseLocale(locale);
@@ -106,10 +108,10 @@ export default function SalesChart({ chartData, height = 350 }: SalesChartProps)
               tick={{ fontSize: 10, fill: '#94a3b8' }}
               tickFormatter={(v) =>
                 baseLocale === "ko"
-                  ? `₩${(v / 10000).toFixed(0)}${tf.f02653}`
+                  ? `${currencySymbol}${(v / 10000).toFixed(0)}${tf.f02653}`
                   : baseLocale === "vi"
-                    ? `₩${(v / 1_000_000).toFixed(1)}${tf.f02655}`
-                    : `₩${(v / 1_000_000).toFixed(1)}${tf.f02654}`
+                    ? `${currencySymbol}${(v / 1_000_000).toFixed(1)}${tf.f02655}`
+                    : `${currencySymbol}${(v / 1_000_000).toFixed(1)}${tf.f02654}`
               }
             />
             <Tooltip 
@@ -125,7 +127,7 @@ export default function SalesChart({ chartData, height = 350 }: SalesChartProps)
                             <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
                             <span className="text-[11px] text-slate-600 font-medium">{entry.name}</span>
                           </div>
-                          <span className="text-[11px] font-bold text-slate-900">₩{entry.value.toLocaleString()}</span>
+                          <span className="text-[11px] font-bold text-slate-900">{currencySymbol}{entry.value.toLocaleString()}</span>
                         </div>
                       ))}
                     </div>

@@ -58,6 +58,7 @@ import {
   subscriptionDisplayMonths,
   subscriptionMonths,
 } from "@/lib/subscription/subscription-period";
+import { useCurrency } from "@/hooks/use-currency";
 
 const PLANS_BASE = [
   {
@@ -99,6 +100,7 @@ const PLANS_BASE = [
 ];
 
 export default function SubscriptionPage() {
+    const { symbol: currencySymbol } = useCurrency();
   const supabase = createClient();
   const { tenantId } = useAuth();
   const searchParams = useSearchParams();
@@ -220,7 +222,7 @@ export default function SubscriptionPage() {
                 totalRaw: totalKrw,
                 label: T(PERIOD_LABELS[k]),
                 discount: T(PLAN_DISCOUNTS[plan.id][k]),
-                currencyPrefix: "₩",
+                currencyPrefix: `${currencySymbol}`,
                 grantMonths,
               },
             ];
@@ -504,7 +506,7 @@ export default function SubscriptionPage() {
                index={i}
                tf={tf}
                perMonthLabel={perMonthLabel}
-               currencyPrefix={plan.pricing[selectedPeriod]?.currencyPrefix ?? "₩"}
+               currencyPrefix={plan.pricing[selectedPeriod]?.currencyPrefix ?? `${currencySymbol}`}
                highlightRevenue={highlightRevenue && plan.id === "pro"}
                grantMonthsNote={grantMonthsNote}
              />
@@ -585,6 +587,7 @@ export default function SubscriptionPage() {
 }
 
 function Stat({ text, value }: { text: string, value: number }) {
+    const { symbol: currencySymbol } = useCurrency();
   return (
     <div className="flex flex-col items-center">
        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{text}</span>
@@ -618,6 +621,7 @@ function TiltCard({
   highlightRevenue?: boolean;
   grantMonthsNote: (months: number) => string;
 }) {
+    const { symbol: currencySymbol } = useCurrency();
   const x = useMotionValue(0);
   const y = useMotionValue(0);
   const mouseXSpring = useSpring(x);
@@ -735,6 +739,7 @@ function TiltCard({
 }
 
 function ValueCard({ icon, title, desc }: any) {
+    const { symbol: currencySymbol } = useCurrency();
   return (
     <div className="p-10 rounded-[40px] bg-white/5 backdrop-blur-xl border border-white/10 hover:bg-white/10 transition-all group">
        <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center mb-8 border border-white/10 text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white transition-all transform group-hover:rotate-12">
@@ -747,6 +752,7 @@ function ValueCard({ icon, title, desc }: any) {
 }
 
 function Row({ label, v1, v2, v3 }: any) {
+    const { symbol: currencySymbol } = useCurrency();
   const render = (v: any, primary = false) => {
     if (typeof v === 'string') return <span className="text-[10px] font-black text-slate-500 italic">{v}</span>;
     return v ? (

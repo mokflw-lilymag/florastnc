@@ -25,6 +25,7 @@ import {
   Users,
   Lock,
   FileText,
+  CalendarOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -75,6 +76,7 @@ export function StoreScheduleCalendar({
           expenses: 0,
           staff: 0,
           notes: 0,
+          leaves: 0,
           events: [],
         };
         map.set(e.dateYmd, row);
@@ -86,6 +88,7 @@ export function StoreScheduleCalendar({
       if (e.kind === "expense") row.expenses++;
       if (e.kind === "staff") row.staff++;
       if (e.kind === "note") row.notes++;
+      if (e.kind === "leave") row.leaves++;
     }
     return map;
   }, [filtered]);
@@ -196,6 +199,9 @@ export function StoreScheduleCalendar({
                   ) : null}
                   {filters.note && row.notes > 0 ? (
                     <BadgeChip icon={FileText} label={row.notes} className="bg-gray-50 text-gray-800 border-gray-200" />
+                  ) : null}
+                  {filters.leave && row.leaves > 0 ? (
+                    <BadgeChip icon={CalendarOff} label={row.leaves} className="bg-teal-50 text-teal-800 border-teal-100" />
                   ) : null}
                 </div>
               ) : null}

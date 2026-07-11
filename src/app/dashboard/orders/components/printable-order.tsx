@@ -1,4 +1,5 @@
 "use client";
+import { useCurrency } from "@/hooks/use-currency";
 import { getMessages } from "@/i18n/getMessages";
 
 import React from 'react';
@@ -37,7 +38,7 @@ interface PrintableOrderProps {
     locale?: string;
 }
 
-export class PrintableOrder extends React.Component<PrintableOrderProps> {
+class PrintableOrderInner extends React.Component<PrintableOrderProps & {currencySymbol: string}> {
     render() {
         const { data, locale = "ko" } = this.props;
         if (!data) return null;
@@ -125,8 +126,8 @@ export class PrintableOrder extends React.Component<PrintableOrderProps> {
                                 <td className="border border-black p-1 font-bold text-center bg-slate-50/50">{tf.f02588}</td>
                                 <td className="border border-black p-1" colSpan={5}>
                                     <div className="flex items-center justify-between text-[12px]">
-                                        <span className="whitespace-nowrap overflow-hidden text-ellipsis">{tf.f02589} ₩{(data.totalAmount || 0).toLocaleString()}</span>
-                                        <span className="whitespace-nowrap overflow-hidden text-ellipsis">{tf.f02590} ₩{(data.deliveryFee || 0).toLocaleString()}</span>
+                                        <span className="whitespace-nowrap overflow-hidden text-ellipsis">{tf.f02589} {(data.totalAmount || 0).toLocaleString()}</span>
+                                        <span className="whitespace-nowrap overflow-hidden text-ellipsis">{tf.f02590} {(data.deliveryFee || 0).toLocaleString()}</span>
                                         <div className="flex items-center gap-2">
                                             <span className="whitespace-nowrap overflow-hidden text-ellipsis">{tf.f02591} {paymentMethodText}</span>
                                             <div className="flex items-center gap-2 pr-2">
@@ -224,3 +225,5 @@ export class PrintableOrder extends React.Component<PrintableOrderProps> {
         );
     }
 }
+
+export function PrintableOrder(props: PrintableOrderProps) { const { symbol: currencySymbol } = useCurrency(); return <PrintableOrderInner {...props} currencySymbol={currencySymbol} />; }

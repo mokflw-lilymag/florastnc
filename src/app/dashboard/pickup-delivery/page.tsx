@@ -43,6 +43,7 @@ import { DeliverySettingsDialog } from "./components/DeliverySettingsDialog";
 import { DeliveryStatsChart } from "./components/DeliveryStatsChart";
 import { parseDate } from "@/lib/date-utils";
 import { AlimtalkService } from "@/lib/alimtalk-service";
+import { useCurrency } from "@/hooks/use-currency";
 
 const toLocalDate = (dateVal: any): Date => {
   if (!dateVal) return new Date();
@@ -53,6 +54,7 @@ const toLocalDate = (dateVal: any): Date => {
 };
 
 export default function PickupDeliveryPage() {
+    const { symbol: currencySymbol } = useCurrency();
   const completeDelivery = async (id: string, completionPhotoUrl?: string, completedBy?: string) => {
   const order = orders.find(o => o.id === id);
   if (order) updateOrder(id, { status: "completed", delivery_info: { ...(order.delivery_info || {}), completionPhotoUrl, completedAt: new Date().toISOString(), completedBy } as any });
@@ -709,15 +711,15 @@ const { orders, loading, updateOrderStatus, updateOrder, fetchOrdersByRange } = 
               <div className="flex gap-4">
                 <div className="text-right border-r pr-4">
                   <p className="text-[10px] text-slate-400">전체 고객 배송비</p>
-                  <p className="font-bold text-slate-700">₩{completedDeliveryOrders.reduce((sum, o) => sum + (o.summary?.deliveryFee || 0), 0).toLocaleString()}</p>
+                  <p className="font-bold text-slate-700">{currencySymbol}{completedDeliveryOrders.reduce((sum, o) => sum + (o.summary?.deliveryFee || 0), 0).toLocaleString()}</p>
                 </div>
                 <div className="text-right border-r pr-4">
                   <p className="text-[10px] text-slate-400">전체 실제 지출</p>
-                  <p className="font-bold text-red-600">₩{completedDeliveryOrders.reduce((sum, o) => sum + (o.actual_delivery_cost || 0) + (o.actual_delivery_cost_cash || 0), 0).toLocaleString()}</p>
+                  <p className="font-bold text-red-600">{currencySymbol}{completedDeliveryOrders.reduce((sum, o) => sum + (o.actual_delivery_cost || 0) + (o.actual_delivery_cost_cash || 0), 0).toLocaleString()}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-[10px] text-slate-400">전체 배송 수익</p>
-                  <p className="font-bold text-emerald-600">₩{(
+                  <p className="font-bold text-emerald-600">{currencySymbol}{(
                     completedDeliveryOrders.reduce((sum, o) => sum + (o.summary?.deliveryFee || 0), 0) - 
                     completedDeliveryOrders.reduce((sum, o) => sum + (o.actual_delivery_cost || 0) + (o.actual_delivery_cost_cash || 0), 0)
                   ).toLocaleString()}</p>
@@ -786,7 +788,7 @@ const { orders, loading, updateOrderStatus, updateOrder, fetchOrdersByRange } = 
               />
             </div>
             <div className="grid gap-2 border-t pt-4">
-              <Label htmlFor="actualCost">실제 배송 비용 (₩)</Label>
+              <Label htmlFor="actualCost">실제 배송 비용 ({currencySymbol})</Label>
               <Input
                 id="actualCost"
                 type="number"

@@ -41,6 +41,7 @@ import {
   periodLabelKo,
   planIdLabel,
 } from "@/lib/subscription/subscription-events";
+import { useCurrency } from "@/hooks/use-currency";
 
 const FILTER_ALL = "__all__";
 
@@ -108,6 +109,7 @@ function exportCsv(rows: SubscriptionEventWithTenant[]) {
 }
 
 export default function SubscriptionEventsAdminPage() {
+    const { symbol: currencySymbol } = useCurrency();
   const searchParams = useSearchParams();
   const { isSuperAdmin, isLoading: authLoading } = useAuth();
   const [events, setEvents] = useState<SubscriptionEventWithTenant[]>([]);

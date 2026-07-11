@@ -11,13 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import type { SystemSettings } from "@/hooks/use-settings";
-import {
-  DEFAULT_EMAIL_TEMPLATE_ANNIVERSARY_D7,
-  DEFAULT_EMAIL_TEMPLATE_ANNIVERSARY_DAY_OF,
-  DEFAULT_EMAIL_TEMPLATE_FIRST_PURCHASE,
-  DEFAULT_EMAIL_TEMPLATE_DELIVERY_COMPLETE,
-  DEFAULT_EMAIL_TEMPLATE_PRODUCTION_COMPLETE,
-} from "@/lib/email/default-templates";
+import { getDefaultEmailTemplates } from "@/lib/messenger/localized-templates";
 import { EmailTemplateEditor } from "@/components/email-template-editor";
 import { resolveEmailShopName } from "@/lib/email/resolve-shop-name";
 import { pickUiText } from "@/i18n/pick-ui-text";
@@ -37,6 +31,7 @@ export function EmailSettingsCard({ settings, saveSettings }: EmailSettingsCardP
   const { profile } = useAuth();
   const tenantShopName = profile?.tenants?.name as string | undefined;
   const tenantLogoUrl = profile?.tenants?.logo_url as string | undefined;
+  const defaultTemplates = getDefaultEmailTemplates(baseLocale);
 
   const [saving, setSaving] = useState(false);
   const [local, setLocal] = useState({
@@ -52,13 +47,13 @@ export function EmailSettingsCard({ settings, saveSettings }: EmailSettingsCardP
     emailTemplateProductionComplete: settings.emailTemplateProductionComplete,
     emailTemplateDeliveryComplete: settings.emailTemplateDeliveryComplete,
     emailTemplateAnniversaryD7: settings.emailTemplateAnniversaryD7,
-    marketingEmailSubjectDayOf: settings.marketingEmailSubjectDayOf || '[{회사명}] 오늘 {기념일명}을 진심으로 축하드립니다!',
+    marketingEmailSubjectDayOf: settings.marketingEmailSubjectDayOf || tr('[{회사명}] 오늘 {기념일명}을 진심으로 축하드립니다!', '[{회사명}] Congratulations on your {기념일명} today!'),
     marketingEmailContentDayOf: settings.marketingEmailContentDayOf || '',
     marketingEmailAutoDayOf: settings.marketingEmailAutoDayOf ?? false,
-    marketingEmailSubjectDaysBefore7: settings.marketingEmailSubjectDaysBefore7 || '[{회사명}] {고객명}님, 일주일 앞으로 다가온 {기념일명}을 준비해보세요.',
+    marketingEmailSubjectDaysBefore7: settings.marketingEmailSubjectDaysBefore7 || tr('[{회사명}] {고객명}님, 일주일 앞으로 다가온 {기념일명}을 준비해보세요.', '[{회사명}] {고객명}, get ready for {기념일명} next week.'),
     marketingEmailContentDaysBefore7: settings.marketingEmailContentDaysBefore7 || '',
     marketingEmailAutoDaysBefore7: settings.marketingEmailAutoDaysBefore7 ?? false,
-    marketingEmailSubjectFirstPurchase: settings.marketingEmailSubjectFirstPurchase || '[{회사명}] {고객명}님, 첫 구매에 진심으로 감사드립니다!',
+    marketingEmailSubjectFirstPurchase: settings.marketingEmailSubjectFirstPurchase || tr('[{회사명}] {고객명}님, 첫 구매에 진심으로 감사드립니다!', '[{회사명}] {고객명}, thank you for your first purchase!'),
     marketingEmailContentFirstPurchase: settings.marketingEmailContentFirstPurchase || '',
     marketingEmailAutoFirstPurchase: settings.marketingEmailAutoFirstPurchase ?? false,
     marketingAdTemplates: settings.marketingAdTemplates || [],
@@ -78,13 +73,13 @@ export function EmailSettingsCard({ settings, saveSettings }: EmailSettingsCardP
       emailTemplateProductionComplete: settings.emailTemplateProductionComplete,
       emailTemplateDeliveryComplete: settings.emailTemplateDeliveryComplete,
       emailTemplateAnniversaryD7: settings.emailTemplateAnniversaryD7,
-      marketingEmailSubjectDayOf: settings.marketingEmailSubjectDayOf || '오늘 {기념일명}을 진심으로 축하드립니다!',
+      marketingEmailSubjectDayOf: settings.marketingEmailSubjectDayOf || tr('오늘 {기념일명}을 진심으로 축하드립니다!', 'Congratulations on your {기념일명} today!'),
       marketingEmailContentDayOf: settings.marketingEmailContentDayOf || '',
       marketingEmailAutoDayOf: settings.marketingEmailAutoDayOf ?? false,
-      marketingEmailSubjectDaysBefore7: settings.marketingEmailSubjectDaysBefore7 || '{기념일명}이 일주일 앞으로 다가왔습니다.',
+      marketingEmailSubjectDaysBefore7: settings.marketingEmailSubjectDaysBefore7 || tr('{기념일명}이 일주일 앞으로 다가왔습니다.', 'Your {기념일명} is coming up next week.'),
       marketingEmailContentDaysBefore7: settings.marketingEmailContentDaysBefore7 || '',
       marketingEmailAutoDaysBefore7: settings.marketingEmailAutoDaysBefore7 ?? false,
-      marketingEmailSubjectFirstPurchase: settings.marketingEmailSubjectFirstPurchase || '첫 구매를 진심으로 감사드립니다.',
+      marketingEmailSubjectFirstPurchase: settings.marketingEmailSubjectFirstPurchase || tr('첫 구매를 진심으로 감사드립니다.', 'Thank you for your first purchase.'),
       marketingEmailContentFirstPurchase: settings.marketingEmailContentFirstPurchase || '',
       marketingEmailAutoFirstPurchase: settings.marketingEmailAutoFirstPurchase ?? false,
       marketingAdTemplates: settings.marketingAdTemplates || [],
@@ -306,7 +301,7 @@ export function EmailSettingsCard({ settings, saveSettings }: EmailSettingsCardP
           value={local.emailTemplateProductionComplete}
           onChange={(v) => patch({ emailTemplateProductionComplete: v })}
           variables={["고객명", "주문번호", "회사명", "보유포인트", "포인트안내"]}
-          defaultTemplate={DEFAULT_EMAIL_TEMPLATE_PRODUCTION_COMPLETE}
+          defaultTemplate={defaultTemplates.productionComplete}
           sampleData={templatePreviewSample}
           shopLogoUrl={tenantLogoUrl}
         />
@@ -315,7 +310,7 @@ export function EmailSettingsCard({ settings, saveSettings }: EmailSettingsCardP
           value={local.emailTemplateDeliveryComplete}
           onChange={(v) => patch({ emailTemplateDeliveryComplete: v })}
           variables={["고객명", "주문번호", "배송일", "수령인", "회사명", "보유포인트", "포인트안내"]}
-          defaultTemplate={DEFAULT_EMAIL_TEMPLATE_DELIVERY_COMPLETE}
+          defaultTemplate={defaultTemplates.deliveryComplete}
           sampleData={templatePreviewSample}
           shopLogoUrl={tenantLogoUrl}
         />
@@ -348,7 +343,7 @@ export function EmailSettingsCard({ settings, saveSettings }: EmailSettingsCardP
               value={local.marketingEmailContentDayOf}
               onChange={(v) => patch({ marketingEmailContentDayOf: v })}
               variables={["고객명", "회사명", "기념일명", "기념일", "보유포인트", "포인트안내"]}
-              defaultTemplate={DEFAULT_EMAIL_TEMPLATE_ANNIVERSARY_DAY_OF}
+              defaultTemplate={defaultTemplates.marketingDayOf}
               sampleData={templatePreviewSample}
               shopLogoUrl={tenantLogoUrl}
             />
@@ -379,7 +374,7 @@ export function EmailSettingsCard({ settings, saveSettings }: EmailSettingsCardP
               value={local.marketingEmailContentDaysBefore7}
               onChange={(v) => patch({ marketingEmailContentDaysBefore7: v })}
               variables={["고객명", "회사명", "기념일명", "기념일", "주문링크", "보유포인트", "포인트안내"]}
-              defaultTemplate={DEFAULT_EMAIL_TEMPLATE_ANNIVERSARY_D7}
+              defaultTemplate={defaultTemplates.marketingDaysBefore7}
               sampleData={templatePreviewSample}
               shopLogoUrl={tenantLogoUrl}
             />
@@ -409,7 +404,7 @@ export function EmailSettingsCard({ settings, saveSettings }: EmailSettingsCardP
               value={local.marketingEmailContentFirstPurchase}
               onChange={(v) => patch({ marketingEmailContentFirstPurchase: v })}
               variables={["고객명", "회사명", "보유포인트", "포인트안내"]}
-              defaultTemplate={DEFAULT_EMAIL_TEMPLATE_FIRST_PURCHASE}
+              defaultTemplate={defaultTemplates.marketingFirstPurchase}
               sampleData={templatePreviewSample}
               shopLogoUrl={tenantLogoUrl}
             />
@@ -425,9 +420,9 @@ export function EmailSettingsCard({ settings, saveSettings }: EmailSettingsCardP
             onClick={() => {
               const newTemplate = {
                 id: crypto.randomUUID(),
-                name: '새 광고 템플릿',
-                subject: '[{회사명}] 새로운 이벤트 안내!',
-                content: DEFAULT_EMAIL_TEMPLATE_FIRST_PURCHASE // placeholder
+                name: tr('새 광고 템플릿', 'New Ad Template'),
+                subject: tr('[{회사명}] 새로운 이벤트 안내!', '[{회사명}] New Event Notification!'),
+                content: defaultTemplates.marketingFirstPurchase // fallback placeholder
               };
               patch({ marketingAdTemplates: [...(local.marketingAdTemplates || []), newTemplate] });
             }}
@@ -483,7 +478,7 @@ export function EmailSettingsCard({ settings, saveSettings }: EmailSettingsCardP
                     patch({ marketingAdTemplates: newTemplates });
                   }}
                   variables={["고객명", "회사명", "보유포인트", "포인트안내"]}
-                  defaultTemplate={DEFAULT_EMAIL_TEMPLATE_FIRST_PURCHASE}
+                  defaultTemplate={defaultTemplates.marketingFirstPurchase}
                   sampleData={templatePreviewSample}
                   shopLogoUrl={tenantLogoUrl}
                 />

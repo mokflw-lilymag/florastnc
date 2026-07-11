@@ -9,8 +9,10 @@ import { toast } from "sonner";
 import { Loader2, Plus, Trash2, ShieldAlert, Cpu, HeartHandshake, Truck, Receipt } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { useCurrency } from "@/hooks/use-currency";
 
 export function ExpenseManagement() {
+    const { symbol: currencySymbol } = useCurrency();
   const supabase = createClient();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"expense" | "devices">("expense");
@@ -353,7 +355,7 @@ export function ExpenseManagement() {
                       </div>
                       <div className="flex items-center gap-4">
                         <span className="font-extrabold text-sm text-slate-800">
-                          ₩{exp.amount.toLocaleString()}
+                          {currencySymbol}{exp.amount.toLocaleString()}
                         </span>
                         <Button 
                           variant="ghost" 

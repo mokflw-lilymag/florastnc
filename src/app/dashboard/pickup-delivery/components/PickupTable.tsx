@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar as CalendarIcon, CheckCircle, Phone } from "lucide-react";
 import { Order } from "@/types/order";;
 import { useAuth } from "@/hooks/use-auth";
+import { useCurrency } from "@/hooks/use-currency";
 
 interface PickupTableProps {
     orders: Order[];
@@ -23,6 +24,7 @@ export function PickupTable({
     formatDateTime,
     getStatusBadge
 }: PickupTableProps) {
+    const { symbol: currencySymbol } = useCurrency();
     const { user } = useAuth();
     const userBranch = (user as any)?.franchise || (user as any)?.tenantName;
 
@@ -102,7 +104,7 @@ export function PickupTable({
                                     </div>
                                 </TableCell>
                                 <TableCell>{getStatusBadge(order.status)}</TableCell>
-                                <TableCell className="font-semibold">₩{order.summary.total.toLocaleString()}</TableCell>
+                                <TableCell className="font-semibold">{currencySymbol}{order.summary.total.toLocaleString()}</TableCell>
                                 <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
                                     {order.status === 'processing' ? (
                                         <Button
@@ -174,7 +176,7 @@ export function PickupTable({
                         </div>
 
                         <div className="flex items-center justify-between pt-3 border-t">
-                            <span className="font-bold text-blue-600">₩{order.summary.total.toLocaleString()}</span>
+                            <span className="font-bold text-blue-600">{currencySymbol}{order.summary.total.toLocaleString()}</span>
                             {order.status === 'processing' && (
                                 <Button
                                     size="sm"

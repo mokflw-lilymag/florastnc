@@ -8,6 +8,7 @@ const supabase = createClient();
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import { CheckCircle, ChevronLeft, Plus, Minus, RotateCcw, Zap } from "lucide-react";
+import { useCurrency } from "@/hooks/use-currency";
 
 interface Product {
   id: string;
@@ -41,6 +42,7 @@ const PAYMENT_METHODS = [
 const PINNED_CAT_KEY = 'quickpos_pinned_category';
 
 export default function QuickPOSPage() {
+    const { symbol: currencySymbol } = useCurrency();
   const router = useRouter();
   const { user, profile, tenantId, isLoading: authLoading } = useAuth();
   const branches = tenantId ? [{ id: tenantId, name: profile?.tenants?.name || "Floxync", type: '가맹점' }] : [];
@@ -362,7 +364,7 @@ export default function QuickPOSPage() {
                 </button>
               ) : (
                 <div className="bg-orange-50 border-2 border-orange-200 rounded-xl p-3 flex items-center gap-2">
-                  <span className="text-orange-600 font-bold text-sm">₩</span>
+                  <span className="text-orange-600 font-bold text-sm">{currencySymbol}</span>
                   <input
                     type="number"
                     placeholder="판매 금액 입력"

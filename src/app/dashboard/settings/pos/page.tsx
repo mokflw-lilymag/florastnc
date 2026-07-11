@@ -46,8 +46,10 @@ import { toBaseLocale } from "@/i18n/config";
 import { pickUiText } from "@/i18n/pick-ui-text";
 import { SettingsSubNav, POS_INTEGRATION_ENABLED } from "../components/settings-sub-nav";
 import { useRouter } from "next/navigation";
+import { useCurrency } from "@/hooks/use-currency";
 
 export default function PosSettingsPage() {
+    const { symbol: currencySymbol } = useCurrency();
   const router = useRouter();
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
@@ -732,7 +734,7 @@ export default function PosSettingsPage() {
                                 </TableCell>
                                 <TableCell className="space-y-1">
                                   <div className="font-bold text-sm">{log.payload?.order_id || log.payload?.bill_no || "N/A"}</div>
-                                  <div className="text-[10px] text-slate-500">₩{(log.payload?.amount || log.payload?.total_amount || 0).toLocaleString()}</div>
+                                  <div className="text-[10px] text-slate-500">{currencySymbol}{(log.payload?.amount || log.payload?.total_amount || 0).toLocaleString()}</div>
                                 </TableCell>
                                 <TableCell className="text-center">
                                   <Badge className={cn(

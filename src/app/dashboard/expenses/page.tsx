@@ -82,6 +82,7 @@ import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
 import { pickUiText } from "@/i18n/pick-ui-text";
 import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
+import { useCurrency } from "@/hooks/use-currency";
 
 /** 미리보기와 동일한 변환을 캔버스 캡처에 적용 (모바일 카메라 방향·좌우 보정) */
 function applyVideoFrameToCanvas(
@@ -311,6 +312,7 @@ async function runPool<T, R>(items: T[], concurrency: number, worker: (item: T, 
 }
 
 export default function ExpensesPage() {
+    const { symbol: currencySymbol } = useCurrency();
   const supabase = createClient();
   const { profile, tenantId } = useAuth();
   const { expenses, loading: expensesLoading, addExpense, addExpenses, updateExpense, deleteExpense } = useExpenses();
@@ -2005,7 +2007,7 @@ export default function ExpensesPage() {
                                                 <span className="font-medium">{m.name}</span>
                                                 <span className="text-[10px] text-slate-400">{m.main_category} &gt; {m.mid_category}</span>
                                               </div>
-                                              <div className="ml-auto text-[10px] font-bold text-slate-400">₩{(m.price || 0).toLocaleString()}</div>
+                                              <div className="ml-auto text-[10px] font-bold text-slate-400">{currencySymbol}{(m.price || 0).toLocaleString()}</div>
                                             </CommandItem>
                                           ))}
                                         </CommandGroup>
@@ -2032,7 +2034,7 @@ export default function ExpensesPage() {
                               />
                             </div>
                             <div className="col-span-2 text-right font-bold text-slate-700 text-xs truncate px-1">
-                              ₩{(item.amount || 0).toLocaleString()}
+                              {currencySymbol}{(item.amount || 0).toLocaleString()}
                             </div>
                             <div className="col-span-1 flex justify-end">
                               <Button
@@ -2051,7 +2053,7 @@ export default function ExpensesPage() {
                         <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Receipt Summary</div>
                         <div className="flex items-center gap-3">
                           <span className="text-xs text-slate-500 font-medium">{tf.f01992} {formData.items.length}{tf.f00863}:</span>
-                          <span className="text-xl font-black text-indigo-700 tracking-tight">₩{totalItemsAmount.toLocaleString()}</span>
+                          <span className="text-xl font-black text-indigo-700 tracking-tight">{currencySymbol}{totalItemsAmount.toLocaleString()}</span>
                         </div>
                       </div>
                     </div>
@@ -2075,7 +2077,7 @@ export default function ExpensesPage() {
                   <div className="space-y-2">
                     <Label htmlFor="amount" className="text-sm font-bold text-slate-700">{tf.f00097}</Label>
                     <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">₩</span>
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">{currencySymbol}</span>
                       <Input
                         id="amount"
                         type="number"
@@ -2311,7 +2313,7 @@ export default function ExpensesPage() {
                     <div className="space-y-1.5">
                       <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{tf.f00097}</p>
                       <div className="rounded-lg border border-indigo-100 bg-indigo-50/50 px-3 py-3 text-xl font-black tracking-tight text-indigo-800">
-                        ₩{detailExpense.amount.toLocaleString()}
+                        {currencySymbol}{detailExpense.amount.toLocaleString()}
                       </div>
                     </div>
                     {detailExpense.purchase_id ? (
@@ -2377,7 +2379,7 @@ export default function ExpensesPage() {
                     {format(new Date(e.expense_date), "P", { locale: dfLoc })}
                   </span>
                   <span className="mx-2 text-slate-400">·</span>
-                  <span className="font-bold text-indigo-700">₩{e.amount.toLocaleString()}</span>
+                  <span className="font-bold text-indigo-700">{currencySymbol}{e.amount.toLocaleString()}</span>
                   <span className="mx-2 text-slate-400">·</span>
                   <span>{getSupplierName(e.supplier_id)}</span>
                   {e.description ? (
@@ -2429,7 +2431,7 @@ export default function ExpensesPage() {
                     {format(new Date(e.expense_date), "P", { locale: dfLoc })}
                   </span>
                   <span className="mx-2 text-slate-400">·</span>
-                  <span className="font-bold text-indigo-700">₩{e.amount.toLocaleString()}</span>
+                  <span className="font-bold text-indigo-700">{currencySymbol}{e.amount.toLocaleString()}</span>
                   <span className="mx-2 text-slate-400">·</span>
                   <span>{getSupplierName(e.supplier_id)}</span>
                   {e.description ? (
@@ -2481,7 +2483,7 @@ export default function ExpensesPage() {
                     {format(new Date(e.expense_date), "P", { locale: dfLoc })}
                   </span>
                   <span className="mx-2 text-slate-400">·</span>
-                  <span className="font-bold text-indigo-700">₩{e.amount.toLocaleString()}</span>
+                  <span className="font-bold text-indigo-700">{currencySymbol}{e.amount.toLocaleString()}</span>
                   {e.description ? (
                     <span className="mt-0.5 line-clamp-2 block text-[11px] text-slate-600">{e.description}</span>
                   ) : null}
@@ -2528,8 +2530,8 @@ export default function ExpensesPage() {
             <p className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-foreground">
               {tf.f02534}{" "}
               <span className="font-bold text-indigo-700">
-                ₩
-                {(formData.items.length > 0
+                {currencySymbol}
+                                              {(formData.items.length > 0
                   ? formData.items.reduce((s, i) => s + (i.amount || 0), 0)
                   : formData.amount
                 ).toLocaleString()}
@@ -2538,7 +2540,7 @@ export default function ExpensesPage() {
             <ul className="max-h-44 space-y-2 overflow-y-auto rounded-md border bg-muted/40 p-3 text-xs text-foreground">
               {amountMismatchExpenses.map((e) => (
                 <li key={e.id} className="border-b border-border/60 pb-2 last:border-0 last:pb-0">
-                  <span className="font-bold text-indigo-700">₩{e.amount.toLocaleString()}</span>
+                  <span className="font-bold text-indigo-700">{currencySymbol}{e.amount.toLocaleString()}</span>
                   <span className="mx-2 text-slate-400">·</span>
                   <span className="font-semibold text-slate-800">
                     {format(new Date(e.expense_date), "P", { locale: dfLoc })}
@@ -2588,7 +2590,7 @@ export default function ExpensesPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-700">₩{totalAmount.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-red-700">{currencySymbol}{totalAmount.toLocaleString()}</div>
             <p className="text-[10px] text-slate-400 mt-1">{tf.f01859}</p>
           </CardContent>
         </Card>
@@ -2605,7 +2607,7 @@ export default function ExpensesPage() {
             </div>
             {stats.topSupplier && (
               <p className="text-[10px] text-slate-500 mt-1">
-                {tf.f01051}: ₩{stats.topSupplier.amount.toLocaleString()}
+                {tf.f01051}: {currencySymbol}{stats.topSupplier.amount.toLocaleString()}
               </p>
             )}
           </CardContent>
@@ -2619,7 +2621,7 @@ export default function ExpensesPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-purple-700">
-              ₩{Math.round(stats.avgExpense).toLocaleString()}
+              {currencySymbol}{Math.round(stats.avgExpense).toLocaleString()}
             </div>
             <p className="text-[10px] text-slate-400 mt-1">{tf.f01992} {filteredExpenses.length}{tf.f00888}</p>
           </CardContent>
@@ -2835,7 +2837,7 @@ export default function ExpensesPage() {
                           </span>
                         </TableCell>
                         <TableCell className="text-right font-black text-red-600 tracking-tighter text-lg">
-                          ₩{e.amount.toLocaleString()}
+                          {currencySymbol}{e.amount.toLocaleString()}
                         </TableCell>
                         <TableCell className="text-right" onClick={(ev) => ev.stopPropagation()}>
                           <div className="flex items-center justify-end gap-1 opacity-40 group-hover:opacity-100 transition-opacity">

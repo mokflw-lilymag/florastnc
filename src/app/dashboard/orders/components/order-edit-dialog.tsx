@@ -24,14 +24,63 @@ import { useOrders } from "@/hooks/use-orders";
 import { useExpenses } from "@/hooks/use-expenses";
 import { useSettings } from "@/hooks/use-settings";
 import { Order, OrderItem } from "@/types/order";
+import { Product } from "@/types/product";
+import { useProductSearch } from "@/hooks/use-product-search";
+import { useDebounce } from "@/hooks/use-debounce";
 import { parseDate } from "@/lib/date-utils";
 import { createClient } from "@/utils/supabase/client";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
 import { pickUiText } from "@/i18n/pick-ui-text";
+import { useCurrency } from "@/hooks/use-currency";
 
 /** 지출 `sub_category` DB·기존 데이터 호환용 고정값 */
 const DELIVERY_EXPENSE_SUB_CATEGORY = "배송비" as const;
+
+function ProductSearchInput({ value, onChange, onSelectProduct }: { value: string, onChange: (v: string) => void, onSelectProduct: (p: Product) => void }) {
+  const [open, setOpen] = useState(false);
+  const { results, searchProducts } = useProductSearch();
+  const debouncedSearch = useDebounce(value, 300);
+
+  useEffect(() => {
+    if (open && debouncedSearch) {
+      searchProducts(debouncedSearch);
+    }
+  }, [debouncedSearch, open, searchProducts]);
+
+  return (
+    <div className="relative">
+      <Input 
+        value={value} 
+        onChange={(e) => {
+          onChange(e.target.value);
+          if (e.target.value.trim().length > 0) setOpen(true);
+          else setOpen(false);
+        }}
+        onFocus={() => { if (value.trim().length > 0) setOpen(true); }}
+        onBlur={() => setTimeout(() => setOpen(false), 200)}
+        placeholder="상품명 입력 및 검색..."
+      />
+      {open && results.length > 0 && (
+        <div className="absolute top-full left-0 mt-1 w-full z-50 bg-white border border-slate-200 shadow-xl rounded-md py-1 max-h-60 overflow-y-auto">
+          {results.map(p => (
+            <div 
+              key={p.id} 
+              className="px-3 py-2 text-sm hover:bg-slate-50 cursor-pointer flex flex-col gap-0.5 border-b border-slate-50 last:border-0"
+              onClick={() => {
+                onSelectProduct(p);
+                setOpen(false);
+              }}
+            >
+              <span className="font-bold text-slate-800">{p.name}</span>
+              <span className="text-xs text-blue-600 font-bold">{p.price.toLocaleString()}원</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface OrderEditDialogProps {
   isOpen: boolean;
@@ -39,9 +88,11 @@ interface OrderEditDialogProps {
   order: Order | null;
   /** 무료 ERP 체험 — 저장 불가 */
   trialMode?: boolean;
+  onSaved?: () => void;
 }
 
-export function OrderEditDialog({ isOpen, onOpenChange, order, trialMode }: OrderEditDialogProps) {
+export function OrderEditDialog({ isOpen, onOpenChange, order, trialMode = false, onSaved }: OrderEditDialogProps) {
+    const { symbol: currencySymbol } = useCurrency();
   const { updateOrder } = useOrders();
   const { settings } = useSettings();
   const { updateExpenseByOrderId, addExpense, deleteExpenseByOrderId, updateExpense, deleteExpense } = useExpenses();
@@ -62,6 +113,46 @@ export function OrderEditDialog({ isOpen, onOpenChange, order, trialMode }: Orde
     "Aufrichtige Anteilnahme",
     "Примите соболезнования",
   );
+  const scheduledDateLabel = pickUiText(
+    baseLocale,
+    "일자",
+    "Date",
+    "Ngày",
+    "日付",
+    "日期",
+    "Fecha",
+    "Data",
+    "Date",
+    "Datum",
+    "Дата"
+  );
+  
+  const scheduledTimeLabel = pickUiText(
+    baseLocale,
+    "시간",
+    "Time",
+    "Thời gian",
+    "時間",
+    "时间",
+    "Hora",
+    "Hora",
+    "Heure",
+    "Zeit",
+    "Время"
+  );
+
+  const timeOptions = React.useMemo(() => {
+    const options = [];
+    for (let h = 7; h <= 22; h++) {
+      for (let m = 0; m < 60; m += 30) {
+        if (h === 7 && m < 30) continue;
+        if (h === 22 && m > 0) continue;
+        options.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+      }
+    }
+    return options;
+  }, []);
+
   const [isLoading, setIsLoading] = useState(false);
   
   const [formData, setFormData] = useState({
@@ -73,6 +164,8 @@ export function OrderEditDialog({ isOpen, onOpenChange, order, trialMode }: Orde
     },
     receipt_type: 'store_pickup' as Order['receipt_type'],
     order_date: '',
+    receipt_date: '',
+    receipt_time: '',
     recipient: {
       name: '',
       contact: ''
@@ -123,6 +216,23 @@ export function OrderEditDialog({ isOpen, onOpenChange, order, trialMode }: Orde
         },
         receipt_type: (order.receipt_type || 'store_pickup') as Order['receipt_type'],
         order_date: order.order_date ? format(parseDate(order.order_date), "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
+        receipt_date: (() => {
+          const d = order.delivery_info?.date || order.pickup_info?.date;
+          if (!d) return '';
+          try {
+            return format(parseDate(d), 'yyyy-MM-dd');
+          } catch {
+            return d;
+          }
+        })(),
+        receipt_time: (() => {
+          const t = order.delivery_info?.time || order.pickup_info?.time;
+          if (!t) return '';
+          if (/^\d{2}:\d{2}(:\d{2})?$/.test(t)) {
+            return t.substring(0, 5);
+          }
+          return t;
+        })(),
         recipient: {
           name: order.delivery_info?.recipientName || order.pickup_info?.pickerName || '',
           contact: order.delivery_info?.recipientContact || order.pickup_info?.pickerContact || ''
@@ -211,7 +321,31 @@ export function OrderEditDialog({ isOpen, onOpenChange, order, trialMode }: Orde
     if (!order) return;
     setIsLoading(true);
     try {
+      let updatedOrderDate = order.order_date;
+      if (formData.receipt_date) {
+        try {
+          const [y, m, d] = formData.receipt_date.split('-');
+          const timeStr = formData.receipt_time || '00:00';
+          const [hh, mm] = timeStr.split(':');
+          if (y && m && d && hh && mm) {
+            const dateObj = new Date(parseInt(y), parseInt(m) - 1, parseInt(d), parseInt(hh), parseInt(mm));
+            if (!isNaN(dateObj.getTime())) {
+              updatedOrderDate = dateObj.toISOString();
+            }
+          }
+        } catch {
+          // Ignore parsing errors, keep original order_date
+        }
+      }
+
+      const newSubtotal = formData.items.reduce((acc, item) => acc + (item.price * (item.quantity || 1)), 0);
+      const deliveryFee = order.summary?.deliveryFee || 0;
+      const discountAmount = order.summary?.discountAmount || 0;
+      const pointsUsed = order.summary?.pointsUsed || 0;
+      const newTotal = newSubtotal - discountAmount - pointsUsed + deliveryFee;
+
       const updates: any = {
+        order_date: updatedOrderDate,
         orderer: formData.orderer,
         receipt_type: formData.receipt_type,
         status: formData.status,
@@ -220,6 +354,11 @@ export function OrderEditDialog({ isOpen, onOpenChange, order, trialMode }: Orde
           ...formData.payment
         },
         items: formData.items,
+        summary: {
+          ...order.summary,
+          subtotal: newSubtotal,
+          total: newTotal
+        },
         message: formData.message,
         memo: formData.memo,
         extra_data: order.extra_data || {},
@@ -234,7 +373,8 @@ export function OrderEditDialog({ isOpen, onOpenChange, order, trialMode }: Orde
           recipientName: formData.recipient.name,
           recipientContact: formData.recipient.contact,
           address: formData.address,
-          date: formData.order_date,
+          date: formData.receipt_date,
+          time: formData.receipt_time,
           driverAffiliation: formData.driverAffiliation
         };
         updates.pickup_info = null;
@@ -243,7 +383,8 @@ export function OrderEditDialog({ isOpen, onOpenChange, order, trialMode }: Orde
           ...order.pickup_info,
           pickerName: formData.recipient.name,
           pickerContact: formData.recipient.contact,
-          date: formData.order_date
+          date: formData.receipt_date,
+          time: formData.receipt_time
         };
         updates.delivery_info = null;
         updates.actual_delivery_cost = 0;
@@ -297,6 +438,9 @@ export function OrderEditDialog({ isOpen, onOpenChange, order, trialMode }: Orde
       }
 
       toast.success(tf.f00637);
+      if (onSaved) {
+        onSaved();
+      }
       onOpenChange(false);
     } catch (e) {
       console.error(e);
@@ -361,6 +505,23 @@ export function OrderEditDialog({ isOpen, onOpenChange, order, trialMode }: Orde
                   <Label className="text-slate-700">{tf.f00390}</Label>
                   <Input value={formData.recipient.contact} onChange={(e) => handleInputChange('recipient', 'contact', e.target.value)} />
                 </div>
+                <div className="space-y-2">
+                  <Label className="text-slate-700">{scheduledDateLabel}</Label>
+                  <Input type="date" value={formData.receipt_date} onChange={(e) => handleInputChange('receipt_date', '', e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-slate-700">{scheduledTimeLabel}</Label>
+                  <Select value={formData.receipt_time || "07:30"} onValueChange={(val) => handleInputChange('receipt_time', '', val)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={tf.f00411} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {timeOptions.map(t => (
+                        <SelectItem key={t} value={t}>{t}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               {formData.receipt_type === 'delivery_reservation' && (
                 <>
@@ -371,7 +532,7 @@ export function OrderEditDialog({ isOpen, onOpenChange, order, trialMode }: Orde
                     <div className="space-y-2">
                       <Label className="text-slate-700">{tf.f00060}</Label>
                       <div className="h-10 flex items-center px-3 bg-slate-50 border border-slate-200 rounded-md text-slate-600 font-medium">
-                        ₩{(formData.customer_paid_delivery_fee || 0).toLocaleString()}
+                        {currencySymbol}{(formData.customer_paid_delivery_fee || 0).toLocaleString()}
                       </div>
                     </div>
                     <div className="space-y-2">
@@ -398,13 +559,13 @@ export function OrderEditDialog({ isOpen, onOpenChange, order, trialMode }: Orde
                         {tf.f00420}
                         {formData.customer_paid_delivery_fee > 0 && formData.actual_delivery_cost > 0 && (
                           <Badge variant="outline" className={`ml-2 text-[10px] ${formData.customer_paid_delivery_fee - formData.actual_delivery_cost >= 0 ? 'text-emerald-600 border-emerald-200 bg-emerald-50' : 'text-rose-600 border-rose-200 bg-rose-50'}`}>
-                            {tf.f00367}: ₩{(formData.customer_paid_delivery_fee - formData.actual_delivery_cost).toLocaleString()}
+                            {tf.f00367}: {currencySymbol}{(formData.customer_paid_delivery_fee - formData.actual_delivery_cost).toLocaleString()}
                           </Badge>
                         )}
                       </Label>
                       <div className="flex items-center gap-2">
                         <div className="relative flex-1">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">₩</span>
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">{currencySymbol}</span>
                           <Input 
                             type="number"
                             className="pl-8"
@@ -445,7 +606,14 @@ export function OrderEditDialog({ isOpen, onOpenChange, order, trialMode }: Orde
                 <div key={item.id} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end border p-4 rounded-lg">
                   <div className="md:col-span-2 space-y-2">
                     <Label className="text-slate-700">{tf.f00338}</Label>
-                    <Input value={item.name} onChange={(e) => handleItemChange(index, 'name', e.target.value)} />
+                    <ProductSearchInput 
+                      value={item.name} 
+                      onChange={(v) => handleItemChange(index, 'name', v)} 
+                      onSelectProduct={(p) => {
+                        handleItemChange(index, 'name', p.name);
+                        handleItemChange(index, 'price', p.price);
+                      }}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-slate-700">{tf.f00377}</Label>

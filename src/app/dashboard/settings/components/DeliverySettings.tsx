@@ -10,6 +10,7 @@ import { useState } from "react";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
 import { pickUiText } from "@/i18n/pick-ui-text";
+import { useCurrency } from "@/hooks/use-currency";
 
 interface DeliverySettingsProps {
   settings: any;
@@ -30,6 +31,7 @@ export function DeliverySettings({
   updateFee,
   importFees
 }: DeliverySettingsProps) {
+    const { symbol: currencySymbol } = useCurrency();
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
   const baseLocale = toBaseLocale(locale);
@@ -66,7 +68,7 @@ export function DeliverySettings({
                 value={settings.defaultDeliveryFee} 
                 onChange={(e) => saveSettings({ ...settings, defaultDeliveryFee: parseInt(e.target.value) || 0 })}
               />
-              <span className="font-medium text-slate-400">₩</span>
+              <span className="font-medium text-slate-400">{currencySymbol}</span>
             </div>
           </div>
           <div className="space-y-2">
@@ -78,7 +80,7 @@ export function DeliverySettings({
                 value={settings.freeDeliveryThreshold}
                 onChange={(e) => saveSettings({...settings, freeDeliveryThreshold: parseInt(e.target.value) || 0})}
               />
-              <span className="font-medium text-slate-400">₩</span>
+              <span className="font-medium text-slate-400">{currencySymbol}</span>
             </div>
           </div>
         </div>
@@ -171,7 +173,7 @@ export function DeliverySettings({
                       <td className="px-4 py-2 flex items-center font-medium text-slate-600 truncate">{fee.region_name}</td>
                       <td className="px-4 py-2 text-right">
                         <div className="relative inline-block w-full">
-                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs">₩</span>
+                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs">{currencySymbol}</span>
                           <Input 
                             type="number" 
                             defaultValue={fee.fee}

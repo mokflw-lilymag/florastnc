@@ -31,6 +31,7 @@ import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
 import { HQ_EXPENSE_CATEGORY_FALLBACK } from "@/lib/hq/expense-constants";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useCurrency } from "@/hooks/use-currency";
 
 type CategoryStat = {
   category: string;
@@ -95,6 +96,7 @@ type RecentLine = {
 };
 
 export default function HqBranchExpensesPage() {
+    const { symbol: currencySymbol } = useCurrency();
   const router = useRouter();
   const { profile, isLoading: authLoading } = useAuth();
   const [forbidden, setForbidden] = useState(false);
@@ -721,7 +723,7 @@ export default function HqBranchExpensesPage() {
             <CardTitle className="text-[10px] text-indigo-600 font-bold uppercase tracking-wider">{L("올해 전 지점 총지출", "Yearly Branch Expense")}</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold tabular-nums text-slate-900 leading-none">₩{globalExpensesStats.yearly.toLocaleString()}</p>
+            <p className="text-2xl font-bold tabular-nums text-slate-900 leading-none">{currencySymbol}{globalExpensesStats.yearly.toLocaleString()}</p>
             <p className="text-[10px] text-indigo-500/70 font-semibold mt-2">올해 누적 지출 집계</p>
           </CardContent>
         </Card>
@@ -731,7 +733,7 @@ export default function HqBranchExpensesPage() {
             <CardTitle className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider">{L("이번 달 전 지점 지출", "Monthly Branch Expense")}</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold tabular-nums text-slate-900 leading-none">₩{globalExpensesStats.monthly.toLocaleString()}</p>
+            <p className="text-2xl font-bold tabular-nums text-slate-900 leading-none">{currencySymbol}{globalExpensesStats.monthly.toLocaleString()}</p>
             <p className="text-[10px] text-emerald-500/60 font-semibold mt-2">이번 달 누적 지출 집계</p>
           </CardContent>
         </Card>
@@ -741,7 +743,7 @@ export default function HqBranchExpensesPage() {
             <CardTitle className="text-[10px] text-rose-600 font-bold uppercase tracking-wider">{L("오늘 하루 전 지점 지출", "Daily Branch Expense")}</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold tabular-nums text-slate-900 leading-none">₩{globalExpensesStats.daily.toLocaleString()}</p>
+            <p className="text-2xl font-bold tabular-nums text-slate-900 leading-none">{currencySymbol}{globalExpensesStats.daily.toLocaleString()}</p>
             <p className="text-[10px] text-rose-500/60 font-semibold mt-2">오늘 실시간 발생 지출</p>
           </CardContent>
         </Card>
@@ -885,7 +887,7 @@ export default function HqBranchExpensesPage() {
                     <span>{L("올해 지출액", "Current")}</span>
                     {hasLastYear && (
                       <span className="text-slate-400 font-semibold italic">
-                        {L(`작년 동기: ${lastYearAmt.toLocaleString()}원`, `Last Year: ₩${lastYearAmt.toLocaleString()}`)}
+                        {L(`작년 동기: ${lastYearAmt.toLocaleString()}원`, `Last Year: ${currencySymbol}${lastYearAmt.toLocaleString()}`)}
                       </span>
                     )}
                   </div>
@@ -1105,15 +1107,15 @@ export default function HqBranchExpensesPage() {
                     <div className="grid grid-cols-3 gap-2 bg-slate-50/50 rounded-2xl p-3 border border-slate-100/50">
                       <div>
                         <span className="text-[9px] text-slate-400 font-bold block uppercase">{L("당일 지출", "Today")}</span>
-                        <span className="text-xs font-extrabold text-rose-600 tabular-nums">₩{branchDaily.toLocaleString()}</span>
+                        <span className="text-xs font-extrabold text-rose-600 tabular-nums">{currencySymbol}{branchDaily.toLocaleString()}</span>
                       </div>
                       <div>
                         <span className="text-[9px] text-slate-400 font-bold block uppercase">{L("당월 지출", "Month")}</span>
-                        <span className="text-xs font-extrabold text-slate-800 tabular-nums">₩{branchMonthly.toLocaleString()}</span>
+                        <span className="text-xs font-extrabold text-slate-800 tabular-nums">{currencySymbol}{branchMonthly.toLocaleString()}</span>
                       </div>
                       <div>
                         <span className="text-[9px] text-slate-400 font-bold block uppercase">{L("금년 지출", "Year")}</span>
-                        <span className="text-xs font-extrabold text-indigo-700 tabular-nums">₩{branchYearly.toLocaleString()}</span>
+                        <span className="text-xs font-extrabold text-indigo-700 tabular-nums">{currencySymbol}{branchYearly.toLocaleString()}</span>
                       </div>
                     </div>
 
@@ -1180,12 +1182,12 @@ export default function HqBranchExpensesPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <span className="text-[10px] text-slate-400 font-bold block mb-2 uppercase">⏱️ {L("작년 동기 지출 총액", "Last Year (Same Period)")}</span>
-                <span className="text-base font-extrabold text-slate-700 tabular-nums">₩{lastYearGrandTotal.toLocaleString()}</span>
+                <span className="text-base font-extrabold text-slate-700 tabular-nums">{currencySymbol}{lastYearGrandTotal.toLocaleString()}</span>
               </div>
               <div>
                 <span className="text-[10px] text-indigo-500 font-bold block mb-2 uppercase">📈 {L("올해 동기 지출 총액", "This Year (Same Period)")}</span>
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-base font-extrabold text-indigo-700 tabular-nums">₩{grandTotal.toLocaleString()}</span>
+                  <span className="text-base font-extrabold text-indigo-700 tabular-nums">{currencySymbol}{grandTotal.toLocaleString()}</span>
                   <span className={cn(
                     "text-[10px] font-bold px-1.5 py-0.5 rounded-md",
                     grandTotal >= lastYearGrandTotal ? "bg-rose-50 text-rose-600" : "bg-emerald-50 text-emerald-600"
@@ -1213,9 +1215,9 @@ export default function HqBranchExpensesPage() {
                     return (
                       <TableRow key={mat.name} className="border-b border-slate-50/50 hover:bg-slate-50/20 text-xs">
                         <TableCell className="font-bold text-slate-700">{mat.name}</TableCell>
-                        <TableCell className="text-right font-medium text-slate-400 tabular-nums">₩{lyAmt.toLocaleString()}</TableCell>
+                        <TableCell className="text-right font-medium text-slate-400 tabular-nums">{currencySymbol}{lyAmt.toLocaleString()}</TableCell>
                         <TableCell className="text-right font-extrabold text-slate-800 tabular-nums">
-                          ₩{mat.amount.toLocaleString()}
+                          {currencySymbol}{mat.amount.toLocaleString()}
                         </TableCell>
                       </TableRow>
                     );
@@ -1266,9 +1268,9 @@ export default function HqBranchExpensesPage() {
                     <div>
                       <span className="text-xs font-bold text-slate-800">🏢 {b.name}</span>
                       <div className="flex items-center gap-2 mt-0.5 text-[10px]">
-                        <span className="text-slate-400">{L("작년", "Last Y")}: ₩{b.lastYearTotal.toLocaleString()}</span>
+                        <span className="text-slate-400">{L("작년", "Last Y")}: {currencySymbol}{b.lastYearTotal.toLocaleString()}</span>
                         <span className="text-slate-300">|</span>
-                        <span className="text-indigo-600 font-bold">{L("올해", "This Y")}: ₩{b.totalAmount.toLocaleString()}</span>
+                        <span className="text-indigo-600 font-bold">{L("올해", "This Y")}: {currencySymbol}{b.totalAmount.toLocaleString()}</span>
                       </div>
                     </div>
                     

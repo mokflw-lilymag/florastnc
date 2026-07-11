@@ -74,6 +74,7 @@ import { useExpenseStorage } from "@/hooks/use-expenses";
 import { toBaseLocale } from "@/i18n/config";
 import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
 import { sortMaterialMainCategoriesForDisplay } from "@/lib/category-defaults";
+import { useCurrency } from "@/hooks/use-currency";
 
 // --- Types & Defaults ---
 const DATE_FORMAT = "yyyy-MM-dd";
@@ -146,7 +147,8 @@ const MemoizedBatchItemRow = memo(({
   updateItemInBatch,
   removeItemFromBatch,
   categories,
-  tf
+  tf,
+  currencySymbol
 }: any) => {
   const [localNotes, setLocalNotes] = useState(item.notes || "");
   const [matSearch, setMatSearch] = useState("");
@@ -519,7 +521,7 @@ const MemoizedBatchItemRow = memo(({
               });
             }}
           />
-          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-300">₩</span>
+          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-300">{currencySymbol}</span>
         </div>
       </TableCell>
 
@@ -537,7 +539,7 @@ const MemoizedBatchItemRow = memo(({
             value={item.total_price}
             onChange={e => updateItemInBatch(index, { total_price: Number(e.target.value) })}
           />
-          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-black text-indigo-300">₩</span>
+          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-black text-indigo-300">{currencySymbol}</span>
         </div>
         {(currentMaterial && Number(currentMaterial.price) > 0) && (
           <div className="text-[9px] text-slate-400 text-right pr-1 mt-1 font-medium">
@@ -709,6 +711,7 @@ const PurchaseManualDialog = ({
 );
 
 export default function PurchasesPage() {
+    const { symbol: currencySymbol } = useCurrency();
   const { tenantId } = useAuth();
   const { purchases, loading: purchasesLoading, addPurchases, updatePurchase, deletePurchase, completePurchase, completeBatch, cancelPurchaseConfirmation, cancelBatchConfirmation } = usePurchases();
   const { suppliers, loading: suppliersLoading, addSupplier } = useSuppliers();
@@ -1380,9 +1383,9 @@ export default function PurchasesPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {[
           { label: tf.f01597, val: `${stats.plannedCount}${tf.f00033}`, sub: tf.f01222, icon: CalendarIcon, color: "blue" },
-          { label: tf.f01598, val: `₩${stats.plannedAmount.toLocaleString()}`, sub: tf.f01944, icon: TrendingUp, color: "indigo" },
+          { label: tf.f01598, val: `${currencySymbol}${stats.plannedAmount.toLocaleString()}`, sub: tf.f01944, icon: TrendingUp, color: "indigo" },
           { label: tf.f01050, val: `${stats.totalCount}${tf.f00033}`, sub: tf.f01792, icon: LayoutGrid, color: "slate" },
-          { label: tf.f01052, val: `₩${stats.totalAmount.toLocaleString()}`, sub: tf.f01805, icon: FileText, color: "emerald" }
+          { label: tf.f01052, val: `${currencySymbol}${stats.totalAmount.toLocaleString()}`, sub: tf.f01805, icon: FileText, color: "emerald" }
         ].map((s, idx) => (
           <Card key={idx} className="border-slate-200/60 shadow-sm border-l-4" style={{ borderColor: s.color === 'blue' ? '#3b82f6' : s.color === 'indigo' ? '#6366f1' : s.color === 'emerald' ? '#10b981' : '#94a3b8' }}>
             <CardHeader className="pb-2 pt-4">
@@ -1479,7 +1482,7 @@ export default function PurchasesPage() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-right font-black text-slate-900">₩{batch.total.toLocaleString()}</TableCell>
+                      <TableCell className="text-right font-black text-slate-900">{currencySymbol}{batch.total.toLocaleString()}</TableCell>
                       <TableCell className="text-center">
                         <Badge variant={batch.status === 'completed' ? "default" : "outline"} className={cn("text-[9px] px-1.5 h-4", batch.status === 'completed' ? "bg-emerald-500" : "text-amber-600 border-amber-200")}>
                           {batch.status === 'completed' ? tf.f00471 : tf.f01596}
@@ -1553,7 +1556,7 @@ export default function PurchasesPage() {
                                         {item.quantity.toLocaleString()}
                                       </TableCell>
                                       <TableCell className="py-2 text-right text-xs font-black text-indigo-600">
-                                        ₩{item.total_price.toLocaleString()}
+                                        {currencySymbol}{item.total_price.toLocaleString()}
                                       </TableCell>
                                       <TableCell className="py-2 text-center">
                                         <div className={cn("inline-flex items-center gap-1 text-[9px] font-bold", item.status === 'completed' ? "text-emerald-500" : "text-amber-500")}>
@@ -1761,7 +1764,7 @@ export default function PurchasesPage() {
                       {p.quantity.toLocaleString()}
                     </TableCell>
                     <TableCell className="text-right font-black text-slate-900 tracking-tighter">
-                      ₩{p.total_price.toLocaleString()}
+                      {currencySymbol}{p.total_price.toLocaleString()}
                     </TableCell>
                     <TableCell className="text-center">
                       <Badge variant={p.status === 'completed' ? "default" : "outline"} className={cn("text-[9px] px-1.5 h-5", p.status === 'completed' ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "text-amber-600 border-amber-200")}>
@@ -2050,6 +2053,7 @@ export default function PurchasesPage() {
                             removeItemFromBatch={removeItemFromBatch}
                             categories={categories}
                             tf={tf}
+                            currencySymbol={currencySymbol}
                           />
                         ))}
                       </TableBody>
@@ -2102,7 +2106,7 @@ export default function PurchasesPage() {
               <div className="flex flex-col">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{tf.f01241}</span>
                 <span className="text-2xl font-black text-slate-800 tracking-tighter">
-                  ₩{itemsToAdd.reduce((sum, item) => sum + item.total_price, 0).toLocaleString()} <span className="text-lg font-normal text-slate-400 ml-1">{tf.f00487}</span>
+                  {currencySymbol}{itemsToAdd.reduce((sum, item) => sum + item.total_price, 0).toLocaleString()} <span className="text-lg font-normal text-slate-400 ml-1">{tf.f00487}</span>
                 </span>
               </div>
               <div className="flex gap-2">

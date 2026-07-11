@@ -9,12 +9,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Order } from "@/types/order";;
 import { format, parseISO } from "date-fns";
 import { ko } from "date-fns/locale";
+import { useCurrency } from "@/hooks/use-currency";
 
 interface DeliveryStatsChartProps {
     orders: Order[];
 }
 
 export function DeliveryStatsChart({ orders }: DeliveryStatsChartProps) {
+    const { symbol: currencySymbol } = useCurrency();
     const chartData = useMemo(() => {
         const monthlyMap = new Map<string, { month: string, rawDate: string, revenue: number, cost: number, profit: number }>();
 
@@ -130,12 +132,12 @@ export function DeliveryStatsChart({ orders }: DeliveryStatsChartProps) {
                                     axisLine={false}
                                     tickLine={false}
                                     tick={{ fontSize: 12, fill: '#64748b' }}
-                                    tickFormatter={(value) => `₩${(value / 10000).toLocaleString()}만`}
+                                    tickFormatter={(value) => `${currencySymbol}${(value / 10000).toLocaleString()}만`}
                                     dx={-10}
                                 />
                                 <Tooltip
                                     cursor={{ fill: '#f8fafc' }}
-                                    formatter={(value: any) => [`₩${(value || 0).toLocaleString()}`, ""]}
+                                    formatter={(value: any) => [`${currencySymbol}${(value || 0).toLocaleString()}`, ""]}
                                     contentStyle={{
                                         borderRadius: '12px',
                                         border: 'none',
@@ -184,7 +186,7 @@ export function DeliveryStatsChart({ orders }: DeliveryStatsChartProps) {
                     <CardHeader className="pb-2">
                         <CardDescription className="text-indigo-600 font-semibold text-xs uppercase tracking-wider">총 고객 배송비</CardDescription>
                         <CardTitle className="text-2xl font-bold text-slate-800">
-                            ₩{summary.revenue.toLocaleString()}
+                            {currencySymbol}{summary.revenue.toLocaleString()}
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -196,7 +198,7 @@ export function DeliveryStatsChart({ orders }: DeliveryStatsChartProps) {
                     <CardHeader className="pb-2">
                         <CardDescription className="text-rose-600 font-semibold text-xs uppercase tracking-wider">총 실제 지출</CardDescription>
                         <CardTitle className="text-2xl font-bold text-slate-800">
-                            ₩{summary.cost.toLocaleString()}
+                            {currencySymbol}{summary.cost.toLocaleString()}
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -208,7 +210,7 @@ export function DeliveryStatsChart({ orders }: DeliveryStatsChartProps) {
                     <CardHeader className="pb-2">
                         <CardDescription className="text-emerald-600 font-semibold text-xs uppercase tracking-wider">총 배송 순수익</CardDescription>
                         <CardTitle className="text-2xl font-bold text-emerald-700">
-                            ₩{summary.profit.toLocaleString()}
+                            {currencySymbol}{summary.profit.toLocaleString()}
                         </CardTitle>
                     </CardHeader>
                     <CardContent>

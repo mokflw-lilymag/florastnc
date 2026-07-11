@@ -13,6 +13,7 @@ import { PageHeader } from "@/components/page-header";
 import { toast } from "sonner";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
+import { useCurrency } from "@/hooks/use-currency";
 
 interface TransferRecord {
   id: string;
@@ -32,6 +33,7 @@ interface TransferRecord {
 }
 
 export default function HqOrderTransfersPage() {
+    const { symbol: currencySymbol } = useCurrency();
   const supabase = createClient();
   const { profile } = useAuth();
   const locale = usePreferredLocale();
@@ -191,16 +193,16 @@ export default function HqOrderTransfersPage() {
                         {t.process_branch_name?.replace("릴리맥", "") || "—"}
                       </TableCell>
                       <TableCell className="text-right text-xs text-slate-500 font-semibold tabular-nums">
-                        ₩{originalAmount.toLocaleString()}
+                        {currencySymbol}{originalAmount.toLocaleString()}
                       </TableCell>
                       <TableCell className="text-center text-[10px] text-slate-400 font-bold">
                         {orderBranchSharePct} : {processBranchSharePct}
                       </TableCell>
                       <TableCell className="text-right text-xs font-bold text-indigo-600 tabular-nums">
-                        ₩{orderShare.toLocaleString()}
+                        {currencySymbol}{orderShare.toLocaleString()}
                       </TableCell>
                       <TableCell className="text-right text-xs font-bold text-emerald-600 tabular-nums">
-                        ₩{processShare.toLocaleString()}
+                        {currencySymbol}{processShare.toLocaleString()}
                       </TableCell>
                       <TableCell className="text-center">
                         {t.status === "pending" && (

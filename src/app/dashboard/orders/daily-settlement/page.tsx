@@ -29,8 +29,10 @@ import { toast } from "sonner";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
 import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
+import { useCurrency } from "@/hooks/use-currency";
 
 export default function DailySettlementPage() {
+    const { symbol: currencySymbol } = useCurrency();
     const { orders, fetchOrdersByRange, loading: ordersLoading } = useOrders();
     const { expenses, fetchExpenses, loading: expensesLoading } = useExpenses();
     const { getSettlement, saveSettlement, findLastSettlementBefore, loading: settlementLoading } = useDailySettlements();
@@ -350,7 +352,7 @@ export default function DailySettlementPage() {
     const handlePrint = async () => {
         if (!tenantId) { toast.error('로그인 정보가 없습니다.'); return; }
 
-        const fmt = (n: number) => '₩' + n.toLocaleString('ko-KR');
+        const fmt = (n: number) => `${currencySymbol}` + n.toLocaleString('ko-KR');
         const fmtMethod = (m: string) => m === 'card' ? '카드' : m === 'cash' ? '현금' : m === 'transfer' ? '계좌' : '기타';
         const getTime = (o: Order, f: string) => {
             const d = o.order_date || o.created_at;
@@ -502,8 +504,8 @@ export default function DailySettlementPage() {
                         <DollarSign className="h-4 w-4 text-indigo-300" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-light">₩{(stats?.totalSales || 0).toLocaleString()}</div>
-                        <p className="text-[11px] text-indigo-200 mt-2 font-light">{tf.f00415} ₩{ ((stats?.totalSales || 0) - (stats?.prevOrderPaymentTotal || 0)).toLocaleString() } + {tf.f00508} ₩{(stats?.prevOrderPaymentTotal || 0).toLocaleString()}</p>
+                        <div className="text-2xl font-light">{currencySymbol}{(stats?.totalSales || 0).toLocaleString()}</div>
+                        <p className="text-[11px] text-indigo-200 mt-2 font-light">{tf.f00415} {currencySymbol}{ ((stats?.totalSales || 0) - (stats?.prevOrderPaymentTotal || 0)).toLocaleString() } + {tf.f00508} {currencySymbol}{(stats?.prevOrderPaymentTotal || 0).toLocaleString()}</p>
                     </CardContent>
                 </Card>
 
@@ -516,8 +518,8 @@ export default function DailySettlementPage() {
                         <ArrowRightLeft className="h-4 w-4 text-slate-400" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-light">₩{( (stats?.cashSales || 0) + (stats?.transferSales || 0) ).toLocaleString()}</div>
-                        <p className="text-[11px] text-slate-400 mt-2 font-light">{tf.f00705}: ₩{(stats?.cardSales || 0).toLocaleString()}</p>
+                        <div className="text-2xl font-light">{currencySymbol}{( (stats?.cashSales || 0) + (stats?.transferSales || 0) ).toLocaleString()}</div>
+                        <p className="text-[11px] text-slate-400 mt-2 font-light">{tf.f00705}: {currencySymbol}{(stats?.cardSales || 0).toLocaleString()}</p>
                     </CardContent>
                 </Card>
 
@@ -527,7 +529,7 @@ export default function DailySettlementPage() {
                         <Target className="h-4 w-4 text-indigo-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-light text-indigo-600">₩{(vaultCash.currentBalance || 0).toLocaleString()}</div>
+                        <div className="text-2xl font-light text-indigo-600">{currencySymbol}{(vaultCash.currentBalance || 0).toLocaleString()}</div>
                         <p className="text-[11px] text-slate-400 mt-2 font-light uppercase tracking-tighter">{tf.f00772}</p>
                     </CardContent>
                 </Card>
@@ -539,7 +541,7 @@ export default function DailySettlementPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-light text-slate-900">{stats?.orderCount || 0}{tf.f00033}</div>
-                        <p className="text-[11px] text-red-500 mt-2 font-medium uppercase tracking-tighter">{tf.f00219} {stats.pendingOrdersToday.length}{tf.f00033} / ₩{(stats.pendingAmountToday || 0).toLocaleString()}</p>
+                        <p className="text-[11px] text-red-500 mt-2 font-medium uppercase tracking-tighter">{tf.f00219} {stats.pendingOrdersToday.length}{tf.f00033} / {currencySymbol}{(stats.pendingAmountToday || 0).toLocaleString()}</p>
                     </CardContent>
                 </Card>
             </div>
@@ -570,20 +572,20 @@ export default function DailySettlementPage() {
                                     >
                                         {tf.f00396}
                                     </Button>
-                                    <span className="text-xs font-light text-slate-400">₩</span>
+                                    <span className="text-xs font-light text-slate-400">{currencySymbol}</span>
                                 </div>
                             </div>
                             <div className="flex items-center justify-between py-2 border-b border-dashed border-slate-100">
                                 <Label className="text-slate-600 font-light text-xs">{tf.f00106}</Label>
-                                <span className="text-xs font-medium text-blue-600">+ ₩{(vaultCash.cashSales || 0).toLocaleString()}</span>
+                                <span className="text-xs font-medium text-blue-600">+ {currencySymbol}{(vaultCash.cashSales || 0).toLocaleString()}</span>
                             </div>
                             <div className="flex items-center justify-between py-2 border-b border-dashed border-slate-100">
                                 <Label className="text-slate-600 font-light text-xs">{tf.f00265}</Label>
-                                <span className="text-xs font-medium text-rose-600">- ₩{(vaultCash.deliveryCostCash || 0).toLocaleString()}</span>
+                                <span className="text-xs font-medium text-rose-600">- {currencySymbol}{(vaultCash.deliveryCostCash || 0).toLocaleString()}</span>
                             </div>
                             <div className="flex items-center justify-between py-2 border-b border-dashed border-slate-100">
                                 <Label className="text-slate-600 font-light text-xs">{tf.f00118}</Label>
-                                <span className="text-xs font-medium text-rose-600">- ₩{(vaultCash.cashExpenses || 0).toLocaleString()}</span>
+                                <span className="text-xs font-medium text-rose-600">- {currencySymbol}{(vaultCash.cashExpenses || 0).toLocaleString()}</span>
                             </div>
                             <div className="flex items-center justify-between py-2 border-b border-dashed border-slate-100">
                                 <Label className="text-slate-600 font-light text-xs">{tf.f00089}</Label>
@@ -594,12 +596,12 @@ export default function DailySettlementPage() {
                                         onChange={(e) => setVaultDeposit(Number(e.target.value))}
                                         className="w-32 h-8 text-right font-light text-xs rounded-lg border-slate-200"
                                     />
-                                    <span className="text-xs font-light text-slate-400">₩</span>
+                                    <span className="text-xs font-light text-slate-400">{currencySymbol}</span>
                                 </div>
                             </div>
                             <div className="flex items-center justify-between py-5 bg-indigo-50/50 rounded-2xl px-5 mt-6 border border-indigo-100/50 shadow-inner">
                                 <Label className="text-indigo-900 font-bold text-sm uppercase tracking-wider">{tf.f00694}</Label>
-                                <span className="text-2xl font-light text-indigo-700 tracking-tight">₩{(vaultCash.currentBalance || 0).toLocaleString()}</span>
+                                <span className="text-2xl font-light text-indigo-700 tracking-tight">{currencySymbol}{(vaultCash.currentBalance || 0).toLocaleString()}</span>
                             </div>
                         </div>
                     </CardContent>
@@ -616,18 +618,18 @@ export default function DailySettlementPage() {
                             <div className="grid grid-cols-2 gap-3">
                                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 group hover:border-indigo-200 transition-colors">
                                     <span className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mb-1 block">{tf.f00486}</span>
-                                    <span className="text-lg font-light text-slate-900">₩{(vaultCash.deliveryCostCash || 0).toLocaleString()}</span>
+                                    <span className="text-lg font-light text-slate-900">{currencySymbol}{(vaultCash.deliveryCostCash || 0).toLocaleString()}</span>
                                 </div>
                                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 group hover:border-indigo-200 transition-colors">
                                     <span className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mb-1 block">{tf.f00117}</span>
-                                    <span className="text-lg font-light text-slate-900">₩{(vaultCash.cashExpenses || 0).toLocaleString()}</span>
+                                    <span className="text-lg font-light text-slate-900">{currencySymbol}{(vaultCash.cashExpenses || 0).toLocaleString()}</span>
                                 </div>
                             </div>
                             
                             <div className="p-5 bg-amber-50/50 rounded-2xl border border-amber-100">
                                 <span className="text-[11px] text-amber-700 font-bold uppercase tracking-widest mb-2 block">{tf.f00686}</span>
                                 <div className="flex justify-between items-baseline">
-                                    <span className="text-2xl font-light text-amber-900">₩{expenses.reduce((sum, e) => sum + (e.amount || 0), 0).toLocaleString()}</span>
+                                    <span className="text-2xl font-light text-amber-900">{currencySymbol}{expenses.reduce((sum, e) => sum + (e.amount || 0), 0).toLocaleString()}</span>
                                     <span className="text-xs text-amber-600">{expenses.length}{tf.f00034}</span>
                                 </div>
                             </div>
@@ -707,10 +709,10 @@ export default function DailySettlementPage() {
                                                 {order.payment?.method}
                                             </Badge>
                                         </TableCell>
-                                        <TableCell className="text-right text-xs text-slate-400 font-light">₩{(order.summary?.total || 0).toLocaleString()}</TableCell>
+                                        <TableCell className="text-right text-xs text-slate-400 font-light">{currencySymbol}{(order.summary?.total || 0).toLocaleString()}</TableCell>
                                         <TableCell className="text-right text-xs font-medium text-emerald-600">
                                             {/* To be even more precise, we check what was paid today */}
-                                            ₩{ (order.payment?.isSplitPayment && order.payment?.secondPaymentDate?.startsWith(reportDate)) ? (order.payment.secondPaymentAmount || 0).toLocaleString() : (order.summary?.total || 0).toLocaleString() }
+                                            {currencySymbol}{ (order.payment?.isSplitPayment && order.payment?.secondPaymentDate?.startsWith(reportDate)) ? (order.payment.secondPaymentAmount || 0).toLocaleString() : (order.summary?.total || 0).toLocaleString() }
                                         </TableCell>
                                         <TableCell className="text-center">
                                             <Badge variant="secondary" className="text-[11px] font-light bg-emerald-50 text-emerald-700 border-none px-2">{tf.f00371}</Badge>
@@ -763,7 +765,7 @@ export default function DailySettlementPage() {
                                             </div>
                                         </TableCell>
                                         <TableCell className="text-xs font-light tracking-tight">{order.orderer?.name}</TableCell>
-                                        <TableCell className="text-right text-xs font-medium text-rose-600">₩{(order.summary?.total || 0).toLocaleString()}</TableCell>
+                                        <TableCell className="text-right text-xs font-medium text-rose-600">{currencySymbol}{(order.summary?.total || 0).toLocaleString()}</TableCell>
                                         <TableCell className="text-center">
                                             <span className="text-[10px] text-slate-400 font-light italic">{order.payment?.method}</span>
                                         </TableCell>

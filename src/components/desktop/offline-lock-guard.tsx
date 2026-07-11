@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Lock, WifiOff } from "lucide-react";
-import { isElectron } from "@/utils/is-electron";
+import { isElectronClient as isElectron } from "@/lib/electron-env";
 
 export function OfflineLockGuard() {
   const [locked, setLocked] = useState(false);

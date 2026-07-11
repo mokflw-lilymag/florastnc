@@ -55,6 +55,7 @@ import { createClient } from "@/utils/supabase/client";
 import { cn } from "@/lib/utils";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { enqueuePrintJob } from "@/lib/print-service";
+import { useCurrency } from "@/hooks/use-currency";
 
 interface OrderDetailDialogProps {
   isOpen: boolean;
@@ -66,6 +67,7 @@ interface OrderDetailDialogProps {
 }
 
 export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage, onPrintRibbon, onUpdate }: OrderDetailDialogProps) {
+    const { symbol: currencySymbol } = useCurrency();
   const supabase = createClient();
   const { user, tenantId, profile } = useAuth();
   const { updateOrder } = useOrders();
@@ -797,20 +799,20 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
                     <div className="space-y-2">
                        <div className="flex justify-between text-xs text-slate-400 font-medium">
                          <span>{tf.f00336}</span>
-                         <span>₩{(order.summary?.subtotal || 0).toLocaleString()}</span>
+                         <span>{currencySymbol}{(order.summary?.subtotal || 0).toLocaleString()}</span>
                        </div>
                        <div className="flex justify-between text-xs text-rose-400 font-medium">
                          <span>{tf.f00760}</span>
-                         <span>- ₩{(order.summary?.discountAmount || 0).toLocaleString()}</span>
+                         <span>- {currencySymbol}{(order.summary?.discountAmount || 0).toLocaleString()}</span>
                        </div>
                        <div className="flex justify-between text-xs text-slate-400 font-medium">
                          <span>{tf.f00259}</span>
-                         <span>+ ₩{(order.summary?.deliveryFee || 0).toLocaleString()}</span>
+                         <span>+ {currencySymbol}{(order.summary?.deliveryFee || 0).toLocaleString()}</span>
                        </div>
                        <Separator className="bg-slate-800" />
                        <div className="flex justify-between items-end pt-1">
                          <span className="text-sm font-bold">{tf.f00693}</span>
-                         <span className="text-2xl font-black text-emerald-400">₩{(order.summary?.total || 0).toLocaleString()}</span>
+                         <span className="text-2xl font-black text-emerald-400">{currencySymbol}{(order.summary?.total || 0).toLocaleString()}</span>
                        </div>
                        <div className="text-[10px] text-slate-500 text-right uppercase tracking-widest mt-2">
                          Payment: {getPaymentMethodText(order.payment?.method || '')}

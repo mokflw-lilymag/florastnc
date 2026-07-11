@@ -25,6 +25,7 @@ import {
 type ElectronAPI = {
   getStartupSetting?: () => Promise<boolean>;
   setStartupSetting?: (enabled: boolean) => Promise<boolean>;
+  clearOfflineData?: () => Promise<void>;
 };
 
 export function DesktopElectronSettingsCard() {
@@ -249,6 +250,40 @@ export function DesktopElectronSettingsCard() {
           <p className="text-[10px] text-muted-foreground">
             zip 예: <code>202505_delivery.zip</code> · <code>202505_receipt.zip</code>
           </p>
+        </div>
+
+        <div className="rounded-lg border border-red-200 bg-red-50/50 p-3 space-y-3">
+          <div className="flex items-center gap-2 text-sm font-medium text-red-800">
+            <Trash2 className="h-4 w-4" />
+            오프라인 데이터 초기화 (캐시 삭제)
+          </div>
+          <p className="text-xs text-red-600/90 leading-relaxed">
+            동일한 PC에서 다른 지점 아이디로 로그인 시 기존 로컬 캐시를 
+            삭제하고 완전히 새로운 데이터를 받아오고 싶을 때 사용하세요.
+            <br />
+            초기화 시 브라우저가 새로고침됩니다.
+          </p>
+          <div className="flex items-center">
+            <Button
+              type="button"
+              size="sm"
+              variant="destructive"
+              onClick={async () => {
+                if (window.confirm("정말로 로컬 오프라인 데이터를 모두 초기화하시겠습니까?\n이 작업은 되돌릴 수 없으며 앱이 새로고침됩니다.")) {
+                  try {
+                    await api?.clearOfflineData?.();
+                    window.location.reload();
+                  } catch (e) {
+                    toast.error("데이터 초기화에 실패했습니다.");
+                    console.error(e);
+                  }
+                }
+              }}
+            >
+              <Trash2 className="h-3.5 w-3.5 mr-2" />
+              로컬 데이터 초기화
+            </Button>
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-2">

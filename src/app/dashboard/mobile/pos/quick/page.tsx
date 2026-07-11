@@ -22,10 +22,12 @@ import { formatMobileCurrency } from "@/lib/mobile/format-mobile-currency";
 import type { Product } from "@/types/product";
 import type { OrderData } from "@/types/order";
 import { toast } from "sonner";
+import { useCurrency } from "@/hooks/use-currency";
 
 type CartItem = { product: Product; quantity: number };
 
 export default function MobileQuickPosPage() {
+    const { symbol: currencySymbol } = useCurrency();
   const { m, tf, locale, dateLocale } = useMobileShopMessages();
   const { settings } = useSettings();
   const currency = settings?.currency ?? "KRW";
@@ -272,7 +274,7 @@ export default function MobileQuickPosPage() {
               </button>
             ) : (
               <div className="mb-3 flex items-center gap-2 rounded-xl border-2 border-orange-200 bg-orange-50 p-3">
-                <span className="font-bold text-orange-600">₩</span>
+                <span className="font-bold text-orange-600">{currencySymbol}</span>
                 <input
                   type="number"
                   placeholder={m.pos.saleAmountPlaceholder}

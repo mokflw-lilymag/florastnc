@@ -29,6 +29,7 @@ import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { format } from "date-fns";
 import { toBaseLocale, bcp47LangTag } from "@/i18n/config";
 import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
+import { useCurrency } from "@/hooks/use-currency";
 
 interface EstimateDialogProps {
   customer: Customer | null;
@@ -44,6 +45,7 @@ interface EstimateItem {
 }
 
 export function EstimateDialog({ customer, isOpen, onOpenChange }: EstimateDialogProps) {
+    const { symbol: currencySymbol } = useCurrency();
   const supabase = createClient();
   const [viewMode, setViewMode] = useState<'edit' | 'preview'>('edit');
   const [recipientName, setRecipientName] = useState("");
@@ -323,17 +325,17 @@ export function EstimateDialog({ customer, isOpen, onOpenChange }: EstimateDialo
                          <>
                            <div className="text-right">
                               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">{tf.f02615}</span>
-                              <span className="text-sm font-bold text-slate-600">₩{subtotal.toLocaleString()}</span>
+                              <span className="text-sm font-bold text-slate-600">{currencySymbol}{subtotal.toLocaleString()}</span>
                            </div>
                            <div className="text-right">
                               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">{tf.f02616}</span>
-                              <span className="text-sm font-bold text-slate-600">₩{vat.toLocaleString()}</span>
+                              <span className="text-sm font-bold text-slate-600">{currencySymbol}{vat.toLocaleString()}</span>
                            </div>
                          </>
                        )}
                        <div className="text-right">
                           <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest block mb-0.5">{tf.f02617}</span>
-                          <span className="text-3xl font-black text-slate-900 tracking-tighter">₩{total.toLocaleString()}</span>
+                          <span className="text-3xl font-black text-slate-900 tracking-tighter">{currencySymbol}{total.toLocaleString()}</span>
                        </div>
                     </div>
                  </div>
@@ -398,7 +400,7 @@ export function EstimateDialog({ customer, isOpen, onOpenChange }: EstimateDialo
                             }}
                           />
                           <div className="text-right text-sm font-black text-slate-900 pr-2 italic">
-                            ₩{(item.quantity * item.price).toLocaleString()}
+                            {currencySymbol}{(item.quantity * item.price).toLocaleString()}
                           </div>
                           <Button 
                             variant="ghost" 
@@ -502,8 +504,8 @@ export function EstimateDialog({ customer, isOpen, onOpenChange }: EstimateDialo
                               <tr key={idx} className="text-[11px] font-medium">
                                  <td className="p-3 pl-4 font-bold">{item.name}</td>
                                  <td className="p-3 text-center">{item.quantity}</td>
-                                 <td className="p-3 text-right">₩{item.price.toLocaleString()}</td>
-                                 <td className="p-3 text-right pr-4 font-black">₩{(item.quantity * item.price).toLocaleString()}</td>
+                                 <td className="p-3 text-right">{currencySymbol}{item.price.toLocaleString()}</td>
+                                 <td className="p-3 text-right pr-4 font-black">{currencySymbol}{(item.quantity * item.price).toLocaleString()}</td>
                               </tr>
                            ))}
                         </tbody>
@@ -512,18 +514,18 @@ export function EstimateDialog({ customer, isOpen, onOpenChange }: EstimateDialo
                               <>
                                  <tr className="text-[9px] font-bold text-slate-500">
                                     <td colSpan={3} className="p-2 text-right">{tf.f02615}</td>
-                                    <td className="p-2 text-right pr-4">₩{subtotal.toLocaleString()}</td>
+                                    <td className="p-2 text-right pr-4">{currencySymbol}{subtotal.toLocaleString()}</td>
                                  </tr>
                                  <tr className="text-[9px] font-bold text-slate-500">
                                     <td colSpan={3} className="p-2 pt-0 text-right">{tf.f02616}</td>
-                                    <td className="p-2 pt-0 text-right pr-4 border-b border-slate-200 pb-3">₩{vat.toLocaleString()}</td>
+                                    <td className="p-2 pt-0 text-right pr-4 border-b border-slate-200 pb-3">{currencySymbol}{vat.toLocaleString()}</td>
                                  </tr>
                               </>
                            )}
                            <tr className="bg-slate-100">
                               <td colSpan={2} className="p-4 pl-6 text-sm font-black uppercase tracking-widest text-slate-600">{tf.f02619}</td>
                               <td colSpan={2} className="p-4 pr-6 text-right text-2xl font-black text-slate-900 italic tracking-tighter relative">
-                                 ₩{total.toLocaleString()}
+                                 {currencySymbol}{total.toLocaleString()}
                                  {!useVat && <span className="absolute -top-3 right-6 text-[8px] font-bold text-slate-300">{tf.f02620}</span>}
                               </td>
                            </tr>

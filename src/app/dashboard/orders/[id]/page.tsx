@@ -42,8 +42,10 @@ import {
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
 import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
+import { useCurrency } from "@/hooks/use-currency";
 
 export default function OrderDetailPage() {
+    const { symbol: currencySymbol } = useCurrency();
   const { id } = useParams();
   const router = useRouter();
   const { orders, loading, updateOrder, deleteOrder } = useOrders();
@@ -169,7 +171,7 @@ export default function OrderDetailPage() {
               </div>
               <div className="md:text-right">
                 <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">{tf.f00683}</div>
-                <div className="text-2xl font-black text-indigo-600">₩{(order.summary?.total || 0).toLocaleString()}</div>
+                <div className="text-2xl font-black text-indigo-600">{currencySymbol}{(order.summary?.total || 0).toLocaleString()}</div>
               </div>
             </div>
 
@@ -219,10 +221,10 @@ export default function OrderDetailPage() {
                         </div>
                         <div>
                           <div className="font-bold text-slate-900">{item.name}</div>
-                          <div className="text-[11px] text-slate-500">{tf.f00377}: {item.quantity} | {tf.f00148}: ₩{item.price.toLocaleString()}</div>
+                          <div className="text-[11px] text-slate-500">{tf.f00377}: {item.quantity} | {tf.f00148}: {currencySymbol}{item.price.toLocaleString()}</div>
                         </div>
                       </div>
-                      <div className="text-sm font-black text-slate-900">₩{(item.price * item.quantity).toLocaleString()}</div>
+                      <div className="text-sm font-black text-slate-900">{currencySymbol}{(item.price * item.quantity).toLocaleString()}</div>
                     </div>
                   ))}
                 </div>
@@ -230,22 +232,22 @@ export default function OrderDetailPage() {
                 <div className="mt-4 p-4 rounded-2xl bg-indigo-50/30 border border-indigo-50 flex flex-col gap-2">
                    <div className="flex justify-between text-xs font-medium text-slate-600">
                       <span>{tf.f00330}</span>
-                      <span>₩{(order.summary?.subtotal || 0).toLocaleString()}</span>
+                      <span>{currencySymbol}{(order.summary?.subtotal || 0).toLocaleString()}</span>
                    </div>
                    <div className="flex justify-between text-xs font-medium text-slate-600">
                       <span>{tf.f00259}</span>
-                      <span>+ ₩{(order.summary?.deliveryFee || 0).toLocaleString()}</span>
+                      <span>+ {currencySymbol}{(order.summary?.deliveryFee || 0).toLocaleString()}</span>
                    </div>
                    {(order.summary?.discountAmount || 0) > 0 && (
                      <div className="flex justify-between text-xs font-medium text-rose-500">
                         <span>{tf.f00760}</span>
-                        <span>- ₩{(order.summary?.discountAmount || 0).toLocaleString()}</span>
+                        <span>- {currencySymbol}{(order.summary?.discountAmount || 0).toLocaleString()}</span>
                      </div>
                    )}
                    <Separator className="my-1 bg-indigo-100" />
                    <div className="flex justify-between text-sm font-black text-indigo-700">
                       <span>{tf.f00692}</span>
-                      <span>₩{(order.summary?.total || 0).toLocaleString()}</span>
+                      <span>{currencySymbol}{(order.summary?.total || 0).toLocaleString()}</span>
                    </div>
                 </div>
               </div>
@@ -342,14 +344,14 @@ export default function OrderDetailPage() {
               <div className="space-y-3">
                  <div className="bg-white/10 rounded-2xl p-4 border border-white/5">
                    <div className="text-[10px] font-bold text-indigo-200 uppercase tracking-widest mb-1">{tf.f00423}</div>
-                   <div className="text-xl font-black">₩{(order.actual_delivery_cost || 0).toLocaleString()}</div>
+                   <div className="text-xl font-black">{currencySymbol}{(order.actual_delivery_cost || 0).toLocaleString()}</div>
                    <div className="text-[10px] text-indigo-300 mt-1 italic">{tf.f00004}</div>
                  </div>
                  
                  <div className="space-y-1.5 px-1">
                    <div className="flex justify-between text-xs">
                      <span className="text-indigo-200">{tf.f00244}</span>
-                     <span className="font-bold font-mono">₩{(order.summary?.deliveryFee || 0).toLocaleString()}</span>
+                     <span className="font-bold font-mono">{currencySymbol}{(order.summary?.deliveryFee || 0).toLocaleString()}</span>
                    </div>
                    <div className="flex justify-between text-xs">
                      <span className="text-indigo-200">{tf.f00242}</span>

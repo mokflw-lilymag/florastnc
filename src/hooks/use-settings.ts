@@ -12,21 +12,14 @@ import {
   DEFAULT_EXPENSE_CATEGORIES,
 } from '@/lib/category-defaults';
 import { GWANGHWAMUN_DISTRICT_DELIVERY_FEES } from '@/lib/gwanghwamun-delivery-fees';
-import {
-  DEFAULT_EMAIL_TEMPLATE_DELIVERY_COMPLETE,
-  DEFAULT_EMAIL_TEMPLATE_PRODUCTION_COMPLETE,
-  DEFAULT_EMAIL_TEMPLATE_ANNIVERSARY_D7,
-  DEFAULT_EMAIL_TEMPLATE_ANNIVERSARY_DAY_OF,
-  DEFAULT_EMAIL_TEMPLATE_FIRST_PURCHASE,
-} from '@/lib/email/default-templates';
-import {
-  DEFAULT_KAKAO_TEMPLATE_DELIVERY_COMPLETE,
-  DEFAULT_KAKAO_TEMPLATE_PRODUCTION_COMPLETE,
-  DEFAULT_KAKAO_TEMPLATE_MARKETING_DAY_OF,
-  DEFAULT_KAKAO_TEMPLATE_MARKETING_DAYS_BEFORE_7,
-  DEFAULT_KAKAO_TEMPLATE_MARKETING_FIRST_PURCHASE,
-} from '@/lib/kakao/default-pc-templates';
 import { syncTenantBackupPathToElectron } from '@/lib/electron-desktop-api';
+import {
+  getDefaultMessageTemplate,
+  getDefaultKakaoTemplates,
+  getDefaultEmailTemplates,
+} from '@/lib/messenger/localized-templates';
+import { DEFAULT_STAFF_MENU_PERMISSIONS, normalizeStaffMenuPermissions } from '@/lib/staff-menu-permissions';
+import { useStaffPermissionsStore } from '@/stores/staff-permissions-store';
 
 export type { CategoryData } from '@/lib/category-defaults';
 export { DEFAULT_PRODUCT_CATEGORIES, DEFAULT_MATERIAL_CATEGORIES, DEFAULT_EXPENSE_CATEGORIES };
@@ -147,104 +140,139 @@ export interface SystemSettings {
   localBackupPath?: string;
   /** 기본 알림 메신저 (kakaotalk | zalo | line | whatsapp | sms) */
   preferredMessenger?: 'kakaotalk' | 'zalo' | 'line' | 'whatsapp' | 'sms';
+  /** 사장님 PIN (작업자 전환·권한 복귀) — system_settings.data.ownerPinCode */
+  ownerPinCode?: string;
+  /** 직원(tenant_staff) 계정 로그인 시 표시할 사이드바 메뉴 ID 목록 */
+  staffMenuPermissions?: string[];
+  /** 출퇴근 일별 휴게 — key: staffId:YYYY-MM-DD */
+  attendanceDayBreaks?: Record<string, { tookLunch: boolean; tookDinner: boolean }>;
+  /** 급여 관할 국가 (ISO, 기본 country와 동일) */
+  payrollJurisdiction?: string;
+  /** auto = 국가 모듈, manual = 수동 명세 */
+  payrollMode?: 'auto' | 'manual';
+  /** 정직원 기본: annual | monthly */
+  fullTimeCompensationModel?: 'annual' | 'monthly' | 'hourly' | 'project';
 }
 
-export const defaultSettings: SystemSettings = {
-  representative: "",
-  businessNumber: "",
-  contactPhone: "",
-  address: "",
-  country: "KR",
-  preferredMessenger: "kakaotalk",
-  pointRate: 0,
-  minPointUsage: 0,
-  discountRates: [5, 10, 15, 20],
-  defaultDeliveryFee: 3000,
-  freeDeliveryThreshold: 50000,
-  photoStorageType: 'supabase',
-  googleDriveFolderId: "",
-  isGalleryPublic: false,
-  galleryTheme: 'grid',
-  useKakaoTalk: false,
-  kakaoApiKey: "",
-  kakaoSenderId: "",
-  kakaoDefaultMessage: "",
-  kakaoTDeliveryApiKey: "",
-  kakaoTDeliveryBizId: "",
-  useKakaoTDelivery: false,
-  autoDeliveryBooking: false,
-  useGoogleSheets: false,
-  googleSheetId: "",
-  googleSheetName: "",
-  googleSheetOrdersId: "",
-  googleSheetExpensesId: "",
-  siteName: "FloXync",
-  siteDescription: "플라워샵 통합 관리 시스템",
-  siteWebsite: "",
-  storeEmail: "",
-  contactEmail: "",
-  messageFont: "Noto Sans KR",
-  messageFontSize: 14,
-  messageColor: "#000000",
-  messageTemplate: "안녕하세요! {고객명}님의 주문이 {상태}되었습니다. 감사합니다.",
-  availableFonts: ["Noto Sans KR", "Nanum Gothic", "Nanum Myeongjo", "Gaegu"],
-  isStorefrontPublic: false,
-  deliveryCarriers: ["자체배송"],
-  districtDeliveryFees: GWANGHWAMUN_DISTRICT_DELIVERY_FEES.map((r) => ({ ...r })),
-  revenueRecognitionBasis: 'order_date',
-  isTaxExempt: true,
-  defaultTaxRate: 10,
-  currency: 'KRW',
-  dashboardTickerEnabled: true,
-  hideDashboardTicker: false,
-  orderNotificationSound: true,
-  ppBridgeEnabled: true,
-  ribbonBridgeEnabled: false,
-  printerName: "",
-  posPrinterName: "",
-  ribbonPrinterName: "",
-  labelPrinterName: "",
-  receiptPrinterType: 'pos',
-  printPickupMemo: true,
-  printDeliveryShop: true,
-  printDeliveryDriver: true,
-  installedPrinters: [],
-  autoEmailProductionComplete: true,
-  autoEmailDeliveryComplete: true,
-  emailTemplateProductionComplete: DEFAULT_EMAIL_TEMPLATE_PRODUCTION_COMPLETE,
-  emailTemplateDeliveryComplete: DEFAULT_EMAIL_TEMPLATE_DELIVERY_COMPLETE,
-  autoEmailAnniversaryD7: false,
-  emailTemplateAnniversaryD7: DEFAULT_EMAIL_TEMPLATE_ANNIVERSARY_D7,
-  smtpEnabled: false,
-  smtpHost: 'smtp.gmail.com',
-  smtpPort: '587',
-  smtpUser: '',
-  smtpPass: '',
-  smtpSenderName: '',
-  kakaoTemplateProductionComplete: DEFAULT_KAKAO_TEMPLATE_PRODUCTION_COMPLETE,
-  kakaoTemplateDeliveryComplete: DEFAULT_KAKAO_TEMPLATE_DELIVERY_COMPLETE,
-  marketingKakaoTemplateDayOf: DEFAULT_KAKAO_TEMPLATE_MARKETING_DAY_OF,
-  marketingKakaoTemplateDaysBefore7: DEFAULT_KAKAO_TEMPLATE_MARKETING_DAYS_BEFORE_7,
-  marketingKakaoTemplateFirstPurchase: DEFAULT_KAKAO_TEMPLATE_MARKETING_FIRST_PURCHASE,
-  marketingAdTemplates: [],
-  marketingEmailSubjectDayOf: "오늘 {기념일명}을 진심으로 축하드립니다!",
-  marketingEmailContentDayOf: DEFAULT_EMAIL_TEMPLATE_ANNIVERSARY_DAY_OF,
-  marketingEmailAutoDayOf: false,
+export function getDefaultSettings(locale: string = 'en'): SystemSettings {
+  const kakao = getDefaultKakaoTemplates(locale);
+  const email = getDefaultEmailTemplates(locale);
+  const messageTemplate = getDefaultMessageTemplate(locale);
 
-  marketingEmailSubjectDaysBefore7: "{기념일명}이 일주일 앞으로 다가왔습니다.",
-  marketingEmailContentDaysBefore7: DEFAULT_EMAIL_TEMPLATE_ANNIVERSARY_D7,
-  marketingEmailAutoDaysBefore7: false,
+  return {
+    representative: "",
+    businessNumber: "",
+    contactPhone: "",
+    address: "",
+    country: "KR",
+    payrollJurisdiction: "KR",
+    payrollMode: "auto",
+    fullTimeCompensationModel: "annual",
+    preferredMessenger: "kakaotalk",
+    pointRate: 0,
+    minPointUsage: 0,
+    discountRates: [5, 10, 15, 20],
+    defaultDeliveryFee: 3000,
+    freeDeliveryThreshold: 50000,
+    photoStorageType: 'supabase',
+    googleDriveFolderId: "",
+    isGalleryPublic: false,
+    galleryTheme: 'grid',
+    useKakaoTalk: false,
+    kakaoApiKey: "",
+    kakaoSenderId: "",
+    kakaoDefaultMessage: "",
+    kakaoTDeliveryApiKey: "",
+    kakaoTDeliveryBizId: "",
+    useKakaoTDelivery: false,
+    autoDeliveryBooking: false,
+    useGoogleSheets: false,
+    googleSheetId: "",
+    googleSheetName: "",
+    googleSheetOrdersId: "",
+    googleSheetExpensesId: "",
+    siteName: "FloXync",
+    siteDescription: "플라워샵 통합 관리 시스템",
+    siteWebsite: "",
+    storeEmail: "",
+    contactEmail: "",
+    messageFont: "Noto Sans KR",
+    messageFontSize: 14,
+    messageColor: "#000000",
+    messageTemplate: messageTemplate,
+    availableFonts: ["Noto Sans KR", "Nanum Gothic", "Nanum Myeongjo", "Gaegu"],
+    isStorefrontPublic: false,
+    deliveryCarriers: ["자체배송"],
+    districtDeliveryFees: GWANGHWAMUN_DISTRICT_DELIVERY_FEES.map((r) => ({ ...r })),
+    revenueRecognitionBasis: 'order_date',
+    isTaxExempt: true,
+    defaultTaxRate: 10,
+    currency: 'KRW',
+    dashboardTickerEnabled: true,
+    hideDashboardTicker: false,
+    orderNotificationSound: true,
+    ppBridgeEnabled: true,
+    ribbonBridgeEnabled: false,
+    printerName: "",
+    posPrinterName: "",
+    ribbonPrinterName: "",
+    labelPrinterName: "",
+    receiptPrinterType: 'pos',
+    printPickupMemo: true,
+    printDeliveryShop: true,
+    printDeliveryDriver: true,
+    installedPrinters: [],
+    autoEmailProductionComplete: true,
+    autoEmailDeliveryComplete: true,
+    emailTemplateProductionComplete: email.productionComplete,
+    emailTemplateDeliveryComplete: email.deliveryComplete,
+    autoEmailAnniversaryD7: false,
+    emailTemplateAnniversaryD7: email.marketingDaysBefore7,
+    smtpEnabled: false,
+    smtpHost: 'smtp.gmail.com',
+    smtpPort: '587',
+    smtpUser: '',
+    smtpPass: '',
+    smtpSenderName: '',
+    kakaoTemplateProductionComplete: kakao.productionComplete,
+    kakaoTemplateDeliveryComplete: kakao.deliveryComplete,
+    staffMenuPermissions: [...DEFAULT_STAFF_MENU_PERMISSIONS],
+    attendanceDayBreaks: {},
+    marketingKakaoTemplateDayOf: kakao.marketingDayOf,
+    marketingKakaoTemplateDaysBefore7: kakao.marketingDaysBefore7,
+    marketingKakaoTemplateFirstPurchase: kakao.marketingFirstPurchase,
+    marketingAdTemplates: [],
+    marketingEmailSubjectDayOf: locale.startsWith("ko") ? "오늘 {기념일명}을 진심으로 축하드립니다!" : 
+                               locale.startsWith("ja") ? "本日の{기념일명}、心よりお祝い申し上げます！" :
+                               locale.startsWith("vi") ? "Chúc mừng {기념일명} của bạn hôm nay!" :
+                               "Congratulations on your {기념일명} today!",
+    marketingEmailContentDayOf: email.marketingDayOf,
+    marketingEmailAutoDayOf: false,
 
-  marketingEmailSubjectFirstPurchase: "첫 구매를 진심으로 감사드립니다.",
-  marketingEmailContentFirstPurchase: DEFAULT_EMAIL_TEMPLATE_FIRST_PURCHASE,
-  marketingEmailAutoFirstPurchase: false,
+    marketingEmailSubjectDaysBefore7: locale.startsWith("ko") ? "{기념일명}이 일주일 앞으로 다가왔습니다." :
+                                     locale.startsWith("ja") ? "{기념일명}が来週に迫ってまいりました。" :
+                                     locale.startsWith("vi") ? "{기념일명} đang đến gần vào tuần sau." :
+                                     "Your {기념일명} is approaching next week.",
+    marketingEmailContentDaysBefore7: email.marketingDaysBefore7,
+    marketingEmailAutoDaysBefore7: false,
 
-  localBackupPath: "",
-};
+    marketingEmailSubjectFirstPurchase: locale.startsWith("ko") ? "첫 구매를 진심으로 감사드립니다." :
+                                       locale.startsWith("ja") ? "初回購入、誠にありがとうございます。" :
+                                       locale.startsWith("vi") ? "Cảm ơn bạn rất nhiều vì đơn hàng đầu tiên." :
+                                       "Thank you for your first purchase.",
+    marketingEmailContentFirstPurchase: email.marketingFirstPurchase,
+    marketingEmailAutoFirstPurchase: false,
 
-function mergeTenantGeneralSettings(raw: unknown): SystemSettings {
+    localBackupPath: "",
+  };
+}
+
+// For backward compatibility in case an external file needs a static constant
+export const defaultSettings: SystemSettings = getDefaultSettings('ko');
+
+function mergeTenantGeneralSettings(raw: unknown, locale: string = 'ko'): SystemSettings {
   const partial = (raw && typeof raw === "object" ? raw : {}) as Partial<SystemSettings>;
-  const merged = { ...defaultSettings, ...partial };
+  const merged = { ...getDefaultSettings(locale), ...partial };
   if (merged.hideDashboardTicker === true) {
     merged.dashboardTickerEnabled = false;
   } else {
@@ -258,7 +286,8 @@ export function useSettings() {
   const supabase = useMemo(() => createClient(), []);
   const { tenantId, user } = useAuth();
   const { tr, baseLocale } = useUiText();
-  const [settings, setSettings] = useState<SystemSettings>(defaultSettings);
+  // Initialize with localized defaults instead of static Korean constants
+  const [settings, setSettings] = useState<SystemSettings>(() => getDefaultSettings(baseLocale));
   const [productCategories, setProductCategories] = useState<CategoryData | null>(null);
   const [materialCategories, setMaterialCategories] = useState<CategoryData | null>(null);
   const [expenseCategories, setExpenseCategories] = useState<CategoryData | null>(null);
@@ -287,9 +316,27 @@ export function useSettings() {
       if (mat) setMaterialCategories(mat.data as CategoryData);
       if (exp) setExpenseCategories(exp.data as CategoryData);
       if (general) {
-        const merged = mergeTenantGeneralSettings(general.data);
+        const merged = mergeTenantGeneralSettings(general.data, baseLocale);
         setSettings(merged);
+        useStaffPermissionsStore
+          .getState()
+          .setPermissions(
+            normalizeStaffMenuPermissions(
+              merged.staffMenuPermissions ?? [...DEFAULT_STAFF_MENU_PERMISSIONS],
+            ),
+          );
         void syncTenantBackupPathToElectron(tid, merged.localBackupPath);
+      } else {
+        // If no general settings exist, ensure we are using the localized default
+        const defaults = getDefaultSettings(baseLocale);
+        setSettings(defaults);
+        useStaffPermissionsStore
+          .getState()
+          .setPermissions(
+            normalizeStaffMenuPermissions(
+              defaults.staffMenuPermissions ?? [...DEFAULT_STAFF_MENU_PERMISSIONS],
+            ),
+          );
       }
 
     } catch (err) {
@@ -331,6 +378,13 @@ export function useSettings() {
 
       if (upsertError) throw upsertError;
       setSettings(newSettings);
+      useStaffPermissionsStore
+        .getState()
+        .setPermissions(
+          normalizeStaffMenuPermissions(
+            newSettings.staffMenuPermissions ?? [...DEFAULT_STAFF_MENU_PERMISSIONS],
+          ),
+        );
       void syncTenantBackupPathToElectron(tid, newSettings.localBackupPath);
       toast.success(
         pickUiText(

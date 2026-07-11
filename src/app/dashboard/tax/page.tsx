@@ -35,6 +35,7 @@ import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
 import { pickUiText } from "@/i18n/pick-ui-text";
 import { KoreaTaxAssistPanel } from "./components/korea-tax-assist-panel";
+import { useCurrency } from "@/hooks/use-currency";
 
 type TaxLine = "materials" | "labor" | "rent" | "utility" | "transportation" | "marketing" | "etc";
 
@@ -70,6 +71,7 @@ const MONTH_COLORS = [
 ];
 
 export default function TaxPage() {
+    const { symbol: currencySymbol } = useCurrency();
   const { expenses, loading: expensesLoading } = useExpenses();
   const { orders, fetchOrders, loading: ordersLoading } = useOrders(false);
   const { suppliers, loading: suppliersLoading } = useSuppliers();
@@ -277,7 +279,7 @@ export default function TaxPage() {
         <p className="text-xs font-bold text-slate-700 mb-1">{label}</p>
         {payload.map((entry: any, i: number) => (
           <p key={i} className="text-xs" style={{ color: entry.color }}>
-            {entry.name}: ₩{(entry.value || 0).toLocaleString()}
+            {entry.name}: {currencySymbol}{(entry.value || 0).toLocaleString()}
           </p>
         ))}
       </div>
@@ -405,7 +407,7 @@ export default function TaxPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-light tracking-tight">₩{totalRevenue.toLocaleString()}</div>
+                  <div className="text-2xl font-light tracking-tight">{currencySymbol}{totalRevenue.toLocaleString()}</div>
                   <p className="text-[11px] text-indigo-200 mt-1 font-light">{yearOrders.length}{tf.f00889}</p>
                 </CardContent>
               </Card>
@@ -419,7 +421,7 @@ export default function TaxPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-light tracking-tight">₩{totalPurchase.toLocaleString()}</div>
+                  <div className="text-2xl font-light tracking-tight">{currencySymbol}{totalPurchase.toLocaleString()}</div>
                   <p className="text-[11px] text-blue-200 mt-1 font-light">
                     {tf.f01179} {totalRevenue > 0 ? ((totalPurchase / totalRevenue) * 100).toFixed(1) : 0}%
                   </p>
@@ -435,7 +437,7 @@ export default function TaxPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-light tracking-tight">₩{totalExpenseAmount.toLocaleString()}</div>
+                  <div className="text-2xl font-light tracking-tight">{currencySymbol}{totalExpenseAmount.toLocaleString()}</div>
                   <p className="text-[11px] text-rose-200 mt-1 font-light">{yearExpenses.length}{tf.f00891}</p>
                 </CardContent>
               </Card>
@@ -449,7 +451,7 @@ export default function TaxPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-light tracking-tight">₩{income.toLocaleString()}</div>
+                  <div className="text-2xl font-light tracking-tight">{currencySymbol}{income.toLocaleString()}</div>
                   <p className="text-[11px] opacity-70 mt-1 font-light">
                     {tf.f01435} {totalRevenue > 0 ? ((income / totalRevenue) * 100).toFixed(1) : 0}%
                   </p>
@@ -517,7 +519,7 @@ export default function TaxPage() {
                             <div className="flex items-center justify-between mb-1">
                               <span className="text-xs font-medium text-slate-600">{cat.name}</span>
                               <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold text-slate-800">₩{cat.amount.toLocaleString()}</span>
+                                <span className="text-xs font-bold text-slate-800">{currencySymbol}{cat.amount.toLocaleString()}</span>
                                 <span className="text-[10px] text-slate-400">{pct.toFixed(1)}%</span>
                               </div>
                             </div>
@@ -532,7 +534,7 @@ export default function TaxPage() {
                       })}
                       <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between">
                         <span className="text-xs font-bold text-slate-700">{tf.f02156}</span>
-                        <span className="text-sm font-black text-rose-600">₩{totalExpenseAmount.toLocaleString()}</span>
+                        <span className="text-sm font-black text-rose-600">{currencySymbol}{totalExpenseAmount.toLocaleString()}</span>
                       </div>
                     </>
                   )}
@@ -576,7 +578,7 @@ export default function TaxPage() {
                               {i < 3 ? <span className="text-base">{medals[i]}</span> : <span className="text-xs text-slate-400 font-medium">{i + 1}</span>}
                             </td>
                             <td className="py-3 px-3 font-medium text-slate-800">{s.name}</td>
-                            <td className="py-3 px-3 text-right font-bold text-slate-800">₩{s.amount.toLocaleString()}</td>
+                            <td className="py-3 px-3 text-right font-bold text-slate-800">{currencySymbol}{s.amount.toLocaleString()}</td>
                             <td className="py-3 px-3 text-right text-slate-500">
                               {s.count}
                               {tf.f00033}
@@ -594,7 +596,7 @@ export default function TaxPage() {
                       <tr className="bg-slate-50">
                         <td colSpan={2} className="py-3 px-3 font-bold text-slate-700 text-xs">{tf.f02164}</td>
                         <td className="py-3 px-3 text-right font-black text-slate-800">
-                          ₩{supplierPurchases.reduce((s, p) => s + p.amount, 0).toLocaleString()}
+                          {currencySymbol}{supplierPurchases.reduce((s, p) => s + p.amount, 0).toLocaleString()}
                         </td>
                         <td className="py-3 px-3 text-right text-slate-500 font-medium">
                           {supplierPurchases.reduce((s, p) => s + p.count, 0)}
@@ -638,7 +640,7 @@ export default function TaxPage() {
                         <p className="text-[10px] text-slate-400">{tf.f02346}</p>
                       </div>
                     </div>
-                    <span className="text-lg font-light text-indigo-700">₩{totalRevenue.toLocaleString()}</span>
+                    <span className="text-lg font-light text-indigo-700">{currencySymbol}{totalRevenue.toLocaleString()}</span>
                   </div>
                   <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
                     <div className="flex items-center gap-2">
@@ -648,7 +650,7 @@ export default function TaxPage() {
                         <p className="text-[10px] text-slate-400">{tf.f02347}</p>
                       </div>
                     </div>
-                    <span className="text-lg font-light text-blue-700">₩{totalPurchase.toLocaleString()}</span>
+                    <span className="text-lg font-light text-blue-700">{currencySymbol}{totalPurchase.toLocaleString()}</span>
                   </div>
                   <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-rose-50/30">
                     <div className="flex items-center gap-2">
@@ -658,7 +660,7 @@ export default function TaxPage() {
                         <p className="text-[10px] text-slate-400">{tf.f02349}</p>
                       </div>
                     </div>
-                    <span className="text-lg font-light text-rose-700">₩{totalExpenseAmount.toLocaleString()}</span>
+                    <span className="text-lg font-light text-rose-700">{currencySymbol}{totalExpenseAmount.toLocaleString()}</span>
                   </div>
                   <div
                     className={`flex items-center justify-between px-4 py-4 ${income >= 0 ? "bg-emerald-50/50" : "bg-red-50/50"}`}
@@ -671,7 +673,7 @@ export default function TaxPage() {
                       </div>
                     </div>
                     <span className={`text-xl font-bold ${income >= 0 ? "text-emerald-700" : "text-red-700"}`}>
-                      ₩{income.toLocaleString()}
+                      {currencySymbol}{income.toLocaleString()}
                     </span>
                   </div>
                 </div>

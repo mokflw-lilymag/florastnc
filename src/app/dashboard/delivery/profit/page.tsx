@@ -14,8 +14,10 @@ import { useOrders } from "@/hooks/use-orders";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
 import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
+import { useCurrency } from "@/hooks/use-currency";
 
 export default function DeliveryProfitPage() {
+    const { symbol: currencySymbol } = useCurrency();
   const { orders, loading } = useOrders();
   const [searchTerm, setSearchTerm] = useState("");
   const locale = usePreferredLocale();
@@ -77,7 +79,7 @@ export default function DeliveryProfitPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-900">₩{stats.totalReceived.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-blue-900">{currencySymbol}{stats.totalReceived.toLocaleString()}</div>
           </CardContent>
         </Card>
 
@@ -88,7 +90,7 @@ export default function DeliveryProfitPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-rose-900">₩{stats.totalActual.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-rose-900">{currencySymbol}{stats.totalActual.toLocaleString()}</div>
           </CardContent>
         </Card>
 
@@ -100,7 +102,7 @@ export default function DeliveryProfitPage() {
           </CardHeader>
           <CardContent>
             <div className={`text-2xl font-bold ${stats.profit >= 0 ? "text-emerald-600" : "text-red-500"}`}>
-              {stats.profit > 0 ? "+" : ""}₩{stats.profit.toLocaleString()}
+              {stats.profit > 0 ? "+" : ""}{currencySymbol}{stats.profit.toLocaleString()}
             </div>
           </CardContent>
         </Card>
@@ -161,17 +163,17 @@ export default function DeliveryProfitPage() {
                              <TableCell>
                                <Badge variant="outline" className="bg-white">{order.delivery_info?.driverAffiliation || tf.f00226}</Badge>
                              </TableCell>
-                             <TableCell className="text-right font-semibold text-blue-600">₩{received.toLocaleString()}</TableCell>
+                             <TableCell className="text-right font-semibold text-blue-600">{currencySymbol}{received.toLocaleString()}</TableCell>
                              <TableCell className="text-right">
-                               <div className="font-semibold text-rose-600">₩{actualTotal.toLocaleString()}</div>
+                               <div className="font-semibold text-rose-600">{currencySymbol}{actualTotal.toLocaleString()}</div>
                                {(cardCost > 0 || cashCost > 0) && (
                                  <div className="text-[10px] text-muted-foreground mt-0.5">
-                                   (일반: ₩{cardCost.toLocaleString()} / 현금: ₩{cashCost.toLocaleString()})
+                                   (일반: {currencySymbol}{cardCost.toLocaleString()} / 현금: {currencySymbol}{cashCost.toLocaleString()})
                                  </div>
                                )}
                              </TableCell>
                              <TableCell className={`text-right font-bold tracking-tight text-lg ${profit >= 0 ? "text-emerald-600" : "text-red-500"}`}>
-                               {profit > 0 ? "+" : ""}₩{profit.toLocaleString()}
+                               {profit > 0 ? "+" : ""}{currencySymbol}{profit.toLocaleString()}
                              </TableCell>
                           </TableRow>
                         )

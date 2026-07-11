@@ -36,6 +36,7 @@ import { Order } from "@/types/order";
 import { useOrders } from "@/hooks/use-orders";;
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { useCurrency } from "@/hooks/use-currency";
 
 interface OrderDetailDialogProps {
   open: boolean;
@@ -45,6 +46,7 @@ interface OrderDetailDialogProps {
 }
 
 export function OrderDetailDialog({ open, onOpenChange, order, onPrintMessage }: OrderDetailDialogProps) {
+    const { symbol: currencySymbol } = useCurrency();
   const { user, tenantId } = useAuth();
   const { updateOrder } = useOrders();
   const { addExpense, updateExpenseByOrderId, deleteExpenseByOrderId } = useSimpleExpenses();
@@ -606,8 +608,8 @@ export function OrderDetailDialog({ open, onOpenChange, order, onPrintMessage }:
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs text-muted-foreground line-through">₩{item.price.toLocaleString()}</p>
-                      <p className="font-bold text-sm">₩{(item.price * item.quantity).toLocaleString()}</p>
+                      <p className="text-xs text-muted-foreground line-through">{currencySymbol}{item.price.toLocaleString()}</p>
+                      <p className="font-bold text-sm">{currencySymbol}{(item.price * item.quantity).toLocaleString()}</p>
                     </div>
                   </div>
                 ))}
@@ -615,23 +617,23 @@ export function OrderDetailDialog({ open, onOpenChange, order, onPrintMessage }:
               <div className="bg-slate-50/80 p-4 space-y-2 border-t">
                 <div className="flex justify-between text-xs text-slate-500">
                   <span>상품 합계</span>
-                  <span>₩{order.summary.subtotal.toLocaleString()}</span>
+                  <span>{currencySymbol}{order.summary.subtotal.toLocaleString()}</span>
                 </div>
                 {order.summary.deliveryFee > 0 && (
                   <div className="flex justify-between text-xs text-slate-500">
                     <span>배송비</span>
-                    <span>₩{order.summary.deliveryFee.toLocaleString()}</span>
+                    <span>{currencySymbol}{order.summary.deliveryFee.toLocaleString()}</span>
                   </div>
                 )}
                 {(order.summary.pointsUsed ?? 0) > 0 && (
                   <div className="flex justify-between text-xs text-red-500">
                     <span>포인트 사용</span>
-                    <span>-₩{order.summary.pointsUsed!.toLocaleString()}</span>
+                    <span>-{currencySymbol}{order.summary.pointsUsed!.toLocaleString()}</span>
                   </div>
                 )}
                 <div className="flex justify-between font-bold text-lg pt-2 border-t">
                   <span>총 결제금액</span>
-                  <span className="text-blue-600">₩{order.summary.total.toLocaleString()}</span>
+                  <span className="text-blue-600">{currencySymbol}{order.summary.total.toLocaleString()}</span>
                 </div>
               </div>
             </CardContent>
@@ -713,7 +715,7 @@ export function OrderDetailDialog({ open, onOpenChange, order, onPrintMessage }:
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-500">정산가</span>
-                      <span className="text-blue-600 font-bold">₩{order.outsource_info.partnerPrice.toLocaleString()}</span>
+                      <span className="text-blue-600 font-bold">{currencySymbol}{order.outsource_info.partnerPrice.toLocaleString()}</span>
                     </div>
                   </CardContent>
                 </Card>

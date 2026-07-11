@@ -63,6 +63,7 @@ import {
   SubscriptionOverviewCards,
 } from "@/components/admin/ExpiringTenantsPanel";
 import type { SubscriptionOverview } from "@/lib/subscription/subscription-tenure";
+import { useCurrency } from "@/hooks/use-currency";
 
 // 🚀 Recharts lazy load — 차트가 필요할 때만 ~200KB 번들 로드
 const SalesChart = dynamic(() => import('./components/sales-chart'), {
@@ -213,6 +214,7 @@ function buildTenantSalesChartData(
 }
 
 export default function DashboardPage() {
+    const { symbol: currencySymbol } = useCurrency();
   const supabase = createClient();
   const router = useRouter();
   const { profile, isLoading: authLoading, isSuperAdmin } = useAuth();
@@ -697,7 +699,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-medium text-slate-900">
-              {isDataLoading ? <Skeleton className="h-8 w-32" /> : `₩${stats?.todayRevenue?.toLocaleString() || 0}`}
+              {isDataLoading ? <Skeleton className="h-8 w-32" /> : `${currencySymbol}${stats?.todayRevenue?.toLocaleString() || 0}`}
             </div>
             <div className="text-[11px] text-slate-700 font-medium mt-1.5">{tf.f02034}</div>
           </CardContent>
@@ -816,7 +818,7 @@ export default function DashboardPage() {
                     <div className="text-xs text-slate-600 line-clamp-2">
                       {order.items[0]?.name}{order.items.length > 1 ? ` ${tf.f00475} ${order.items.length - 1}${tf.f00033}` : ""}
                     </div>
-                    <div className="text-sm font-bold text-slate-900">₩{order.summary?.total.toLocaleString()}</div>
+                    <div className="text-sm font-bold text-slate-900">{currencySymbol}{order.summary?.total.toLocaleString()}</div>
                   </Link>
                 ))}
                 {stats?.recentOrders.length === 0 && (
@@ -850,7 +852,7 @@ export default function DashboardPage() {
                               {order.items[0]?.name} {order.items.length > 1 ? `${tf.f00475} ${order.items.length - 1}${tf.f00033}` : ''}
                            </td>
                            <td className="px-6 py-4 text-right font-medium text-slate-900 text-sm">
-                              ₩{order.summary?.total.toLocaleString()}
+                              {currencySymbol}{order.summary?.total.toLocaleString()}
                            </td>
                            <td className="px-6 py-4 text-center">
                               <Badge 
@@ -932,6 +934,7 @@ export default function DashboardPage() {
 }
 
 function AdminStatCard({ icon: Icon, label, value, unit, color }: { icon: any, label: string, value: string | number, unit: string, color: string }) {
+    const { symbol: currencySymbol } = useCurrency();
   return (
     <Card className="border-none shadow-lg shadow-slate-100 bg-white overflow-hidden relative group rounded-3xl">
       <div className={`absolute top-0 right-0 p-3 opacity-10 group-hover:scale-110 transition-transform ${color.replace('bg-', 'text-')}`}>
@@ -949,6 +952,7 @@ function AdminStatCard({ icon: Icon, label, value, unit, color }: { icon: any, l
 }
 
 function DashboardIconButton({ icon: Icon, label, href, color = "bg-white/10", largeTouch }: { icon: LucideIcon; label: string; href: string; color?: string; largeTouch?: boolean }) {
+    const { symbol: currencySymbol } = useCurrency();
   return (
     <Link 
       href={href}

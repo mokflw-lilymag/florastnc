@@ -50,6 +50,7 @@ import {
   orderBelongsToCustomer,
   parseDocumentDateParam,
 } from "@/lib/customer-document-lines";
+import { useCurrency } from "@/hooks/use-currency";
 
 interface StatementDialogProps {
   customer: Customer | null;
@@ -59,6 +60,7 @@ interface StatementDialogProps {
 }
 
 export function StatementDialog({ customer, isOpen, onOpenChange, type }: StatementDialogProps) {
+    const { symbol: currencySymbol } = useCurrency();
   const supabase = createClient();
   const [viewMode, setViewMode] = useState<'edit' | 'preview'>('edit');
   const [startDate, setStartDate] = useState<Date | undefined>(
@@ -489,7 +491,7 @@ export function StatementDialog({ customer, isOpen, onOpenChange, type }: Statem
                               <span className="text-sm font-black text-slate-900">
                                 {format(new Date(order.order_date), "PP", { locale: dfLoc })}
                               </span>
-                              <span className="text-base font-black text-slate-900 italic">₩{(order.summary?.total || 0).toLocaleString()}</span>
+                              <span className="text-base font-black text-slate-900 italic">{currencySymbol}{(order.summary?.total || 0).toLocaleString()}</span>
                             </div>
                             <p className="text-xs text-slate-500 font-medium leading-relaxed truncate max-w-[450px]">
                               {order.items?.map((i: any) => i.name).join(', ')}
@@ -673,8 +675,8 @@ export function StatementDialog({ customer, isOpen, onOpenChange, type }: Statem
                                  </td>
                                  <td className="p-3 font-bold">{item.name}</td>
                                  <td className="p-3 text-center">{item.quantity}</td>
-                                 <td className="p-3 text-right">₩{item.price.toLocaleString()}</td>
-                                 <td className="p-3 text-right pr-4 font-black">₩{item.amount.toLocaleString()}</td>
+                                 <td className="p-3 text-right">{currencySymbol}{item.price.toLocaleString()}</td>
+                                 <td className="p-3 text-right pr-4 font-black">{currencySymbol}{item.amount.toLocaleString()}</td>
                               </tr>
                            )})}
                         </tbody>
@@ -682,7 +684,7 @@ export function StatementDialog({ customer, isOpen, onOpenChange, type }: Statem
                            <tr className="bg-slate-100">
                               <td colSpan={2} className="p-4 pl-6 text-sm font-black uppercase tracking-widest text-slate-600 whitespace-nowrap">{tf.f02619}</td>
                               <td colSpan={3} className="p-4 pr-6 text-right text-2xl font-black text-slate-900 italic tracking-tighter">
-                                 ₩{subtotal.toLocaleString()}
+                                 {currencySymbol}{subtotal.toLocaleString()}
                               </td>
                            </tr>
                         </tfoot>

@@ -1,9 +1,6 @@
 import { resolveEmailShopName } from '@/lib/email/resolve-shop-name';
 import { formatMarketingMessage } from '@/lib/marketing-helper';
-import {
-  DEFAULT_KAKAO_TEMPLATE_DELIVERY_COMPLETE,
-  DEFAULT_KAKAO_TEMPLATE_PRODUCTION_COMPLETE,
-} from '@/lib/kakao/default-pc-templates';
+import { getDefaultKakaoTemplates } from '@/lib/messenger/localized-templates';
 
 type KakaoTemplateSettings = {
   kakaoTemplateProductionComplete?: string;
@@ -25,10 +22,11 @@ export function buildKakaoPcNotificationMessage(
   },
 ): string {
   const shopName = resolveEmailShopName(settings, params.tenantShopName);
+  const defaultTemplates = getDefaultKakaoTemplates('ko');
   const template =
     type === 'production'
-      ? settings.kakaoTemplateProductionComplete || DEFAULT_KAKAO_TEMPLATE_PRODUCTION_COMPLETE
-      : settings.kakaoTemplateDeliveryComplete || DEFAULT_KAKAO_TEMPLATE_DELIVERY_COMPLETE;
+      ? settings.kakaoTemplateProductionComplete || defaultTemplates.productionComplete
+      : settings.kakaoTemplateDeliveryComplete || defaultTemplates.deliveryComplete;
 
   let message = formatMarketingMessage(template, {
     customerName: params.customerName,

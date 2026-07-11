@@ -66,8 +66,10 @@ import { useTenantPlanAccess } from "@/hooks/use-tenant-plan-access";
 import { ErpTrialBanner } from "@/components/subscription/erp-trial-banner";
 import { getErpTrialOrders } from "@/lib/subscription/erp-trial-sample-data";
 import { erpTrialAppliedMessage, requireErpPersist } from "@/lib/subscription/erp-trial";
+import { useCurrency } from "@/hooks/use-currency";
 
 export default function OrdersPage() {
+    const { symbol: currencySymbol } = useCurrency();
   const touchUi = usePartnerTouchUi();
   const { profile, isLoading: authLoading, tenantId } = useAuth();
   const { hasErpViewAccess, isErpTrial, ctx: planCtx } = useTenantPlanAccess();
@@ -300,7 +302,12 @@ export default function OrdersPage() {
     else if (currentPeriod === '6months') start = subDays(new Date(), 180);
     else if (currentPeriod === '1year') start = subDays(new Date(), 365);
     else if (currentPeriod === 'all') start = new Date(2000, 0, 1);
-    return { start, end: new Date() };
+    
+    // 예약 주문 등 미래 날짜 데이터도 포함되도록 end 날짜를 여유있게 설정 (1년 뒤)
+    const end = new Date();
+    end.setFullYear(end.getFullYear() + 1);
+    
+    return { start, end };
   }, [currentPeriod]);
 
   // Fetch Stats Data whenever period changes
@@ -955,7 +962,7 @@ export default function OrdersPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-black text-white">₩{(stats.totalAmount || 0).toLocaleString()}</div>
+            <div className="text-2xl font-black text-white">{currencySymbol}{(stats.totalAmount || 0).toLocaleString()}</div>
             <p className="text-xs text-slate-500 mt-2 font-medium">
               {tf.f00359}
             </p>
@@ -1206,7 +1213,7 @@ export default function OrdersPage() {
                           </TableCell>
                           <TableCell className="py-6">
                             <div className="space-y-1">
-                              <div className="text-sm font-black text-slate-900">₩{(order.summary?.total || 0).toLocaleString()}</div>
+                              <div className="text-sm font-black text-slate-900">{currencySymbol}{(order.summary?.total || 0).toLocaleString()}</div>
                               <div className="text-[10px] font-bold text-slate-400 uppercase">{order.payment?.method || "-"}</div>
                             </div>
                           </TableCell>
@@ -1431,7 +1438,7 @@ export default function OrdersPage() {
                           </div>
                           <div className="space-y-1">
                             <div className="text-[10px] font-bold text-slate-400 uppercase">{tf.f00097}</div>
-                            <div className="text-xs font-black text-slate-900">₩{(order.summary?.total || 0).toLocaleString()}</div>
+                            <div className="text-xs font-black text-slate-900">{currencySymbol}{(order.summary?.total || 0).toLocaleString()}</div>
                             <div className="text-[10px] text-slate-500 uppercase">{order.payment?.method || "-"}</div>
                           </div>
                         </div>
@@ -1647,6 +1654,7 @@ export default function OrdersPage() {
         onOpenChange={setIsOrderEditOpen}
         order={selectedOrder}
         trialMode={isErpTrial}
+        onSaved={() => refreshOrders()}
       />
       <OrderOutsourceDialog
         isOpen={isOutsourceOpen}

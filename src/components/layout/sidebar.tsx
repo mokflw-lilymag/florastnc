@@ -37,6 +37,9 @@ import { toBaseLocale } from "@/i18n/config";
 import { pickUiText } from "@/i18n/pick-ui-text";
 import { ERP_NAV_TIERS, navTierAllows } from "@/lib/subscription/plan-access";
 import { MobileAppQrButton } from "@/components/layout/mobile-app-qr-button";
+import { usePosSession } from "@/hooks/use-pos-session";
+import { isStaffMenuAllowed } from "@/lib/staff-menu-permissions";
+import { useStaffPermissionsStore } from "@/stores/staff-permissions-store";
 
 interface SidebarProps {
   isSuperAdmin: boolean;
@@ -139,18 +142,22 @@ export function Sidebar({
     "Mobiler Shop",
     "Мобильный магазин",
   );
+  
+  const { isStaffMode, clearSession } = usePosSession();
+  const staffMenuPermissions = useStaffPermissionsStore((state) => state.permissions);
 
   const handleLogout = async () => {
+    if (isStaffMode) {
+      toast.error("직원 모드에서는 로그아웃할 수 없습니다. 작업자 전환에서 사장님 PIN으로 전환한 뒤 로그아웃해주세요.");
+      return;
+    }
+
     if (!navigator.onLine) {
       const confirmOffline = window.confirm("⚠️ 경고: 현재 인터넷이 끊긴 오프라인 상태입니다.\n\n이 상태에서 로그아웃하시면 서버로 올라가지 않은 방금 전 주문들이 모두 영구 삭제됩니다.\n\n정말로 로그아웃 하시겠습니까?");
       if (!confirmOffline) return;
     }
 
-    if (typeof window !== "undefined" && (window as any).electronAPI) {
-      try {
-        await (window as any).electronAPI.clearOfflineData();
-      } catch(e) {}
-    }
+    clearSession();
     await supabase.auth.signOut();
     toast.success(t.header.logoutSuccess);
     router.push("/login");
@@ -269,10 +276,10 @@ export function Sidebar({
       label: t.sidebar.groups.adminContent,
       links: [
         { name: t.sidebar.links.faq, href: "/dashboard/admin/faq", icon: FileText },
-        { name: pickUiText(baseLocale, "고객 문의", "Support tickets", "Yêu cầu hỗ trợ"), href: "/dashboard/admin/support", icon: Headphones },
-        { name: pickUiText(baseLocale, "이메일 · SMTP", "Email hub", "Email hub"), href: "/dashboard/admin/email-hub", icon: Mail },
-        { name: pickUiText(baseLocale, "임대 장비 관리", "Leased equipment", "Thiết bị cho thuê"), href: "/dashboard/admin/printers", icon: Printer },
-        { name: pickUiText(baseLocale, "출고 · 반납", "Shipment & return", "Xuất & trả"), href: "/dashboard/admin/printer-logistics", icon: Truck },
+        { name: pickUiText(baseLocale, "고객 문의", "Support tickets", "Vé hỗ trợ", "サポートチケット", "支持票", "支援票", "Tickets de soporte", "Tíquetes de suporte", "Billets d'assistance", "Support-Tickets", "Билеты в службу поддержки"), href: "/dashboard/admin/support", icon: Headphones },
+        { name: pickUiText(baseLocale, "이메일 · SMTP", "Email hub", "Trung tâm email", "電子メールハブ", "电子邮件中心", "電子郵件中心", "Centro de correo electrónico", "Central de e-mail", "Centre de messagerie", "E-Mail-Hub", "Центр электронной почты"), href: "/dashboard/admin/email-hub", icon: Mail },
+        { name: pickUiText(baseLocale, "임대 장비 관리", "Leased equipment", "Thiết bị cho thuê", "リース機器", "租赁设备", "租賃設備", "Equipo arrendado", "Equipamento alugado", "Matériel loué", "Geleaste Ausrüstung", "Арендованное оборудование"), href: "/dashboard/admin/printers", icon: Printer },
+        { name: pickUiText(baseLocale, "출고 · 반납", "Shipment & return", "Lô hàng & trả lại", "発送と返品", "发货与退货", "出貨與退貨", "Envío y devolución", "Envio e devolução", "Expédition et retour", "Versand & Rückgabe", "Отгрузка и возврат"), href: "/dashboard/admin/printer-logistics", icon: Truck },
       ],
     },
     {
@@ -287,9 +294,9 @@ export function Sidebar({
       id: "admin-global",
       label: adminGlobalGroup,
       links: [
-        { name: pickUiText(baseLocale, "한국 연동 API", "Korea integrations", "Tích hợp Hàn Quốc"), href: "/dashboard/admin/regional-keys", icon: Key },
-        { name: pickUiText(baseLocale, "통합 운영 매뉴얼", "Operations manual", "Sổ tay vận hành"), href: "/dashboard/admin/manual/guide", icon: BookOpen },
-        { name: pickUiText(baseLocale, "번역 관리", "Translations", "Bản dịch"), href: "/dashboard/admin/translations", icon: Languages },
+        { name: pickUiText(baseLocale, "한국 연동 API", "Korea integrations", "hội nhập Hàn Quốc", "韓国の統合", "韩国一体化", "韓國一體化", "integraciones de corea", "Integrações da Coreia", "Intégrations en Corée", "Korea-Integrationen", "Интеграция Кореи"), href: "/dashboard/admin/regional-keys", icon: Key },
+        { name: pickUiText(baseLocale, "통합 운영 매뉴얼", "Operations manual", "Hướng dẫn vận hành", "操作マニュアル", "操作手册", "操作手冊", "manual de operaciones", "Manual de operações", "Manuel d'exploitation", "Betriebshandbuch", "Руководство по эксплуатации"), href: "/dashboard/admin/manual/guide", icon: BookOpen },
+        { name: pickUiText(baseLocale, "번역 관리", "Translations", "Bản dịch", "翻訳", "翻译", "翻譯", "Traducciones", "Traduções", "Traductions", "Übersetzungen", "Переводы"), href: "/dashboard/admin/translations", icon: Languages },
       ],
     },
   ];
@@ -301,13 +308,13 @@ export function Sidebar({
     links: [
       { name: t.sidebar.links.hqOverview, href: "/dashboard/hq", icon: Building2 },
       {
-        name: pickUiText(baseLocale, "본사 담당자 관리", "HQ team", "Quản lý đội HQ", "本部担当者管理"),
+        name: pickUiText(baseLocale, "본사 담당자 관리", "HQ team", "đội HQ", "本社チーム", "总部团队", "總部團隊", "equipo de la sede", "Equipe da sede", "Équipe du QG", "HQ-Team", "Штаб-квартира"),
         href: "/dashboard/hq/team",
         icon: Users,
       },
-      { name: pickUiText(baseLocale, "다매장 수발주 정산", "HQ Order Transfers", "Báo cáo điều chuyển"), href: "/dashboard/hq/transfers", icon: RefreshCw },
+      { name: pickUiText(baseLocale, "다매장 수발주 정산", "HQ Order Transfers", "Chuyển lệnh HQ", "本社注文の転送", "总部订单转移", "總部訂單轉移", "Transferencias de pedidos de la sede central", "Transferências de pedidos da sede", "Transferts de commandes du siège social", "HQ-Auftragsübertragungen", "Заказ трансфера в штаб-квартире"), href: "/dashboard/hq/transfers", icon: RefreshCw },
       { 
-        name: pickUiText(baseLocale, "공동상품/자재/카테고리관리", "Shared Products/Materials/Categories", "Quản lý sản phẩm/vật liệu/danh mục chung"), 
+        name: pickUiText(baseLocale, "공동상품/자재/카테고리관리", "Shared Products/Materials/Categories", "Sản phẩm/Tài liệu/Danh mục được chia sẻ", "共通製品/材料/カテゴリ", "共享产品/材料/类别", "共享產品/材料/類別", "Productos/materiales/categorías compartidos", "Produtos/materiais/categorias compartilhados", "Produits/Matériaux/Catégories partagés", "Geteilte Produkte/Materialien/Kategorien", "Общие продукты/материалы/категории"), 
         href: "/dashboard/hq/shared-products", 
         icon: Package 
       },
@@ -351,7 +358,7 @@ export function Sidebar({
         ...(showOrgBoardLink
           ? ([
               {
-                name: pickUiText(baseLocale, "지점 수발주 내역", "Branch Transfers", "Nhật ký điều chuyển"),
+                name: pickUiText(baseLocale, "지점 수발주 내역", "Branch Transfers", "Chuyển chi nhánh", "支店移転", "分行转账", "分行轉帳", "Transferencias de sucursales", "Transferências de filiais", "Transferts de succursales", "Filialübertragungen", "Трансферы филиалов"),
                 href: "/dashboard/orders/transfers",
                 icon: RefreshCw,
                 tier: [...ERP_NAV_TIERS],
@@ -376,14 +383,20 @@ export function Sidebar({
         { name: t.sidebar.links.crm, href: "/dashboard/customers", icon: Users, tier: [...ERP_NAV_TIERS] },
         { name: t.sidebar.links.products, href: "/dashboard/products", icon: Boxes, tier: [...ERP_NAV_TIERS] },
         { name: t.sidebar.links.inventory, href: "/dashboard/inventory", icon: Boxes, tier: [...ERP_NAV_TIERS], activeExcludePrefix: "/dashboard/inventory/barcode-scanner" },
-        { name: pickUiText(baseLocale, "바코드 스캐너", "Barcode Scanner", "Máy quét mã vạch"), href: "/dashboard/inventory/barcode-scanner", icon: ScanLine, tier: [...ERP_NAV_TIERS] },
-        { name: pickUiText(baseLocale, "입출고 내역", "Inventory Logs", "Nhật ký tồn kho"), href: "/dashboard/inventory/logs", icon: ClipboardList, tier: [...ERP_NAV_TIERS] },
+        { name: pickUiText(baseLocale, "바코드 스캐너", "Barcode Scanner", "Máy quét mã vạch", "バーコードスキャナー", "条码扫描仪", "條碼掃描儀", "Escáner de código de barras", "Leitor de código de barras", "Lecteur de codes à barres", "Barcode-Scanner", "Сканер штрих-кода"), href: "/dashboard/inventory/barcode-scanner", icon: ScanLine, tier: [...ERP_NAV_TIERS] },
+        { name: pickUiText(baseLocale, "입출고 내역", "Inventory Logs", "Nhật ký hàng tồn kho", "インベントリログ", "库存日志", "庫存日誌", "Registros de inventario", "Registros de inventário", "Journaux d'inventaire", "Inventarprotokolle", "Журналы инвентаризации"), href: "/dashboard/inventory/logs", icon: ClipboardList, tier: [...ERP_NAV_TIERS] },
         { name: t.sidebar.links.suppliers, href: "/dashboard/suppliers", icon: Store, tier: [...ERP_NAV_TIERS] },
         { name: t.sidebar.links.purchases, href: "/dashboard/purchases", icon: ShoppingCart, tier: [...ERP_NAV_TIERS] },
         { name: t.sidebar.links.reports, href: "/dashboard/reports", icon: BarChart3, tier: [...ERP_NAV_TIERS] },
         { name: t.sidebar.links.analytics, href: "/dashboard/analytics", icon: BarChart3, tier: [...ERP_NAV_TIERS] },
         { name: t.sidebar.links.expenses, href: "/dashboard/expenses", icon: CreditCard, tier: [...ERP_NAV_TIERS] },
         { name: t.sidebar.links.tax, href: "/dashboard/tax", icon: FileText, tier: [...ERP_NAV_TIERS] },
+        {
+          name: pickUiText(baseLocale, "직원 · HR", "Staff · HR", "Nhân sự", "スタッフ・HR", "员工·人事", "員工·HR", "Personal · RR. HH.", "Pessoal · RH", "Personnel · RH", "Personal · HR", "Персонал · HR"),
+          href: "/dashboard/staff",
+          icon: Users,
+          tier: [...ERP_NAV_TIERS],
+        },
       ],
     },
     {
@@ -399,7 +412,7 @@ export function Sidebar({
       label: t.sidebar.groups.tenantStore,
       hint: t.sidebar.hints.tenantStore,
       links: [
-        { name: pickUiText(baseLocale, "고객센터", "Support", "Hỗ trợ"), href: "/dashboard/support", icon: Headphones },
+        { name: pickUiText(baseLocale, "고객센터", "Support", "Ủng hộ", "サポート", "支持", "支援", "Apoyo", "Apoiar", "Soutien", "Unterstützung", "Поддерживать"), href: "/dashboard/support", icon: Headphones },
         { name: t.sidebar.links.settings, href: "/dashboard/settings", icon: Settings },
         { name: t.sidebar.links.subscription, href: "/dashboard/subscription", icon: Gem },
       ],
@@ -410,6 +423,11 @@ export function Sidebar({
     .map((g) => ({
       ...g,
       links: g.links.filter((l) => {
+        // Staff permission check — PIN 전환 또는 직원 로그인 시 허용된 메뉴만 표시
+        if (isStaffMode && !isSuperAdmin) {
+          if (!isStaffMenuAllowed(l.href, staffMenuPermissions)) return false;
+        }
+
         return filterTenantLink(l, filterCtx);
       }),
     }))
@@ -419,7 +437,7 @@ export function Sidebar({
     ? adminGroups
     : sidebarHqOnly
       ? [hqGroup]
-      : isOrgUser
+      : isOrgUser && !isStaffMode
         ? [hqGroup, ...tenantNavFiltered]
         : tenantNavFiltered;
 
@@ -520,16 +538,18 @@ export function Sidebar({
         <div className="px-3 mb-2">
           <MobileAppQrButton />
         </div>
-        <button
-          onClick={handleLogout}
-          className="w-full group flex items-center px-3 py-2.5 text-sm font-normal rounded-lg transition-all duration-200 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
-        >
-          <LogOut 
-            className="mr-3 flex-shrink-0 h-5 w-5 transition-transform duration-200 group-hover:scale-110 text-red-400 group-hover:text-red-600" 
-            aria-hidden="true" 
-          />
-          {t.sidebar.logout}
-        </button>
+        {!isStaffMode && (
+          <button
+            onClick={handleLogout}
+            className="w-full group flex items-center px-3 py-2.5 text-sm font-normal rounded-lg transition-all duration-200 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+          >
+            <LogOut 
+              className="mr-3 flex-shrink-0 h-5 w-5 transition-transform duration-200 group-hover:scale-110 text-red-400 group-hover:text-red-600" 
+              aria-hidden="true" 
+            />
+            {t.sidebar.logout}
+          </button>
+        )}
       </nav>
 
       {/* Upgrade Promo for Tenants */}

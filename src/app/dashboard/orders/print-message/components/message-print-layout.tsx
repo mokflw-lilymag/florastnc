@@ -6,6 +6,9 @@ import { Printer, ArrowLeft } from "lucide-react";
 import { useRouter } from 'next/navigation';
 import type { SerializableOrder } from '../page';
 import { cn } from "@/lib/utils";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
+import { pickUiText } from "@/i18n/pick-ui-text";
 import { FONT_CATALOG } from "@/lib/font-catalog";
 
 interface MessagePrintLayoutProps {
@@ -80,7 +83,10 @@ export function MessagePrintLayout({
   messageContent,
   selectedPositions = [startPosition],
 }: MessagePrintLayoutProps) {
-  const router = useRouter();
+  
+  const locale = usePreferredLocale();
+  const baseLocale = toBaseLocale(locale);
+const router = useRouter();
   const config = labelConfigs[labelType] || labelConfigs['formtec-3108'];
   const labels = Array(config.cells).fill(null);
 
@@ -177,13 +183,11 @@ export function MessagePrintLayout({
 
       <div className="no-print">
         <PageHeader
-          title="메시지 인쇄 미리보기"
-          description={`주문자: ${order.orderer.name} / 라벨지: ${labelType} / 출력 위치: ${selectedPositions.join(', ')}`}
+          title={pickUiText(baseLocale, "메시지 인쇄 미리보기", "Message Print Preview", "Xem trước bản in tin nhắn", "メッセージ印刷プレビュー", "留言打印预览", "留言列印預覽", "Vista previa de impresión de mensaje", "Pré-visualização da impressão da mensagem", "Aperçu avant impression des messages", "Druckvorschau der Nachricht", "Предварительный просмотр печати сообщения")}
+          description={`${pickUiText(baseLocale, "주문자:", "Orderer:", "Người đặt hàng:", "注文者:", "订购者：", "訂購者：", "Ordenante:", "Encomenda:", "Commandant :", "Besteller:", "Заказчик:")} ${order.orderer.name} / ${pickUiText(baseLocale, "라벨지:", "Label:", "Nhãn:", "ラベル：", "标签：", "標籤：", "Etiqueta:", "Rótulo:", "Étiquette:", "Etikett:", "Этикетка:")} ${labelType} / ${pickUiText(baseLocale, "출력 위치:", "Print Position:", "Vị trí in:", "印刷位置:", "打印位置：", "列印位置：", "Posición de impresión:", "Posição de impressão:", "Position d'impression :", "Druckposition:", "Позиция печати:")} ${selectedPositions.join(', ')}`}
         >
           <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2">
-            <div className="text-red-500 font-bold text-sm bg-red-50 px-3 py-1.5 rounded-md flex items-center">
-              ⚠️ 인쇄 옵션의 '여백' 설정을 반드시 '없음'으로 선택해 주세요!
-            </div>
+            <div className="text-red-500 font-bold text-sm bg-red-50 px-3 py-1.5 rounded-md flex items-center">{pickUiText(baseLocale, "⚠️ 인쇄 옵션의 '여백' 설정을 반드시 '없음'으로 선택해 주세요!", "⚠️ Please make sure to set 'Margins' to 'None' in print options!", "⚠️ Vui lòng đảm bảo đặt 'Lề' thành 'Không' trong tùy chọn in!", "⚠️ 印刷オプションで「余白」を必ず「なし」に設定してください。", "⚠️ 请确保在打印选项中将“边距”设置为“无”！", "⚠️ 請確保在列印選項中將「邊距」設為「無」！", "⚠️ ¡Asegúrese de configurar 'Márgenes' en 'Ninguno' en las opciones de impresión!", "⚠️ Certifique-se de definir 'Margens' como 'Nenhum' nas opções de impressão!", "⚠️ Veuillez vous assurer de définir « Marges » sur « Aucune » dans les options d'impression !", "⚠️ Bitte achten Sie darauf, in den Druckoptionen „Ränder“ auf „Keine“ zu setzen!", "⚠️ Обязательно установите для параметра «Поля» значение «Нет» в параметрах печати!")}</div>
             <Button
               variant="outline"
               onClick={() => {
@@ -197,18 +201,14 @@ export function MessagePrintLayout({
 
                 router.push(`/dashboard/orders?${params.toString()}`);
               }}
-              aria-label="메시지 인쇄 옵션으로 돌아가기"
+              aria-label={pickUiText(baseLocale, "메시지 인쇄 옵션으로 돌아가기", "Return to Message Print Options", "Quay lại Tùy chọn In Tin nhắn", "メッセージ印刷オプションに戻る", "返回消息打印选项", "返回訊息列印選項", "Volver a Opciones de impresión de mensajes", "Retornar às opções de impressão de mensagens", "Revenir aux options d'impression des messages", "Kehren Sie zu den Nachrichtendruckoptionen zurück", "Вернуться к параметрам печати сообщения")}
             >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              옵션 수정
-            </Button>
+              <ArrowLeft className="mr-2 h-4 w-4" />{pickUiText(baseLocale, "옵션 수정", "Edit Options", "Chỉnh sửa tùy chọn", "編集オプション", "编辑选项", "編輯選項", "Editar opciones", "Editar opções", "Modifier les options", "Optionen bearbeiten", "Редактировать параметры")}</Button>
             <Button
               onClick={() => window.print()}
-              aria-label="메시지 라벨 인쇄하기"
+              aria-label={pickUiText(baseLocale, "메시지 라벨 인쇄하기", "Print Message Label", "In nhãn tin nhắn", "メッセージラベルを印刷する", "打印消息标签", "列印訊息標籤", "Imprimir etiqueta de mensaje", "Imprimir etiqueta de mensagem", "Imprimer l'étiquette du message", "Nachrichtenetikett drucken", "Распечатать этикетку сообщения")}
             >
-              <Printer className="mr-2 h-4 w-4" />
-              인쇄하기
-            </Button>
+              <Printer className="mr-2 h-4 w-4" />{pickUiText(baseLocale, "인쇄하기", "Print", "In", "印刷する", "打印", "列印", "Imprimir", "Imprimir", "Imprimer", "Drucken", "Распечатать")}</Button>
           </div>
         </PageHeader>
       </div>
@@ -232,7 +232,7 @@ export function MessagePrintLayout({
             backgroundColor: 'white'
           }}
           role="grid"
-          aria-label={`${labelType} 라벨 그리드 (${config.cells}칸)`}
+          aria-label={`${labelType} ${pickUiText(baseLocale, "라벨 그리드", "Label Grid", "Lưới nhãn", "ラベルグリッド", "标签网格", "標籤網格", "Cuadrícula de etiquetas", "Grade de rótulos", "Grille d'étiquettes", "Beschriftungsraster", "Сетка этикеток")} (${config.cells}${pickUiText(baseLocale, "칸", "cells", "tế bào", "細胞", "细胞", "細胞", "células", "células", "cellules", "Zellen", "клетки")})`}
         >
           {labels.map((labelData, index) => (
             <div
@@ -243,7 +243,7 @@ export function MessagePrintLayout({
                 width: config.width,
               }}
               role="gridcell"
-              aria-label={labelData ? `라벨 ${index + 1}: ${labelData.content.substring(0, 50)}${labelData.content.length > 50 ? '...' : ''}` : `빈 라벨 ${index + 1}`}
+              aria-label={labelData ? `${pickUiText(baseLocale, "라벨", "Label", "Nhãn", "ラベル", "标签", "標籤", "Etiqueta", "Rótulo", "Étiquette", "Etikett", "Этикетка")} ${index + 1}: ${labelData.content.substring(0, 50)}${labelData.content.length > 50 ? '...' : ''}` : `${pickUiText(baseLocale, "빈 라벨", "Empty Label", "Nhãn trống", "空のラベル", "空标签", "空標籤", "Etiqueta vacía", "Etiqueta Vazia", "Étiquette vide", "Leeres Etikett", "Пустой ярлык")} ${index + 1}`}
             >
               {labelData ? (
                 <div className="w-full h-full p-2 flex flex-col items-center justify-center relative">
@@ -253,7 +253,7 @@ export function MessagePrintLayout({
                       lineHeight: 1.4,
                       wordBreak: 'break-word',
                     }}
-                    aria-label={`메시지 내용: ${labelData.content}`}
+                    aria-label={`${pickUiText(baseLocale, "메시지 내용:", "Message Content:", "Nội dung tin nhắn:", "メッセージの内容:", "留言内容：", "留言內容：", "Contenido del mensaje:", "Conteúdo da mensagem:", "Contenu du message :", "Nachrichteninhalt:", "Содержание сообщения:")} ${labelData.content}`}
                     dangerouslySetInnerHTML={{
                       __html: (labelData.content.includes('<p>') ? labelData.content : labelData.content.split('\n').map((line: string) => `<p style="text-align: center">${line}</p>`).join(''))
                         .replace(/<p><\/p>/g, '<p><br></p>')

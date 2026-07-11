@@ -40,8 +40,10 @@ import {
   filterOrdersForCustomer,
   getCustomerDisplayName,
 } from "@/lib/customer-order-match";
+import { useCurrency } from "@/hooks/use-currency";
 
 export default function CustomersPage() {
+    const { symbol: currencySymbol } = useCurrency();
   const supabase = createClient();
   const { profile, tenantId, isSuperAdmin, isLoading: authLoading } = useAuth();
   const plan = profile?.tenants?.plan || (isSuperAdmin ? "pro" : "free");
@@ -472,7 +474,7 @@ export default function CustomersPage() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-black text-blue-600">₩{(Number(c.total_spent) || 0).toLocaleString()}</p>
+                    <p className="text-sm font-black text-blue-600">{currencySymbol}{(Number(c.total_spent) || 0).toLocaleString()}</p>
                     <p className="text-[10px] text-slate-400 font-medium">{c.order_count || 0}{tf.f00778}</p>
                   </div>
                 </div>

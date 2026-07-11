@@ -34,6 +34,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
+import { useCurrency } from "@/hooks/use-currency";
 
 type BranchDetailResponse = {
   tenant: {
@@ -92,6 +93,7 @@ export default function HqBranchDetailPage({
 }: {
   params: Promise<{ tenantId: string }>;
 }) {
+    const { symbol: currencySymbol } = useCurrency();
   const { tenantId } = use(params);
   const router = useRouter();
   const { refreshAuth } = useAuth();
@@ -504,7 +506,7 @@ export default function HqBranchDetailPage({
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-black text-slate-900">
-                  ₩{stats.revenue.toLocaleString()}
+                  {currencySymbol}{stats.revenue.toLocaleString()}
                 </div>
                 <div className="flex items-center gap-1.5 mt-1.5">
                   <Badge className="text-[9px] bg-indigo-50 text-indigo-700 border-indigo-100 font-bold px-1.5 py-0.5 shadow-none">
@@ -522,7 +524,7 @@ export default function HqBranchDetailPage({
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-black text-slate-900">
-                  ₩{(stats.revenue * 12.4).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  {currencySymbol}{(stats.revenue * 12.4).toLocaleString(undefined, { maximumFractionDigits: 0 })}
                 </div>
                 <div className="flex items-center gap-1.5 mt-1.5">
                   <Badge className="text-[9px] bg-emerald-50 text-emerald-700 border-emerald-100 font-bold px-1.5 py-0.5 shadow-none">
@@ -540,7 +542,7 @@ export default function HqBranchDetailPage({
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-black text-rose-600">
-                  ₩{Math.round(stats.revenue * 0.12).toLocaleString()}
+                  {currencySymbol}{Math.round(stats.revenue * 0.12).toLocaleString()}
                 </div>
                 <div className="flex items-center gap-1.5 mt-1.5">
                   <Badge className="text-[9px] bg-rose-50 text-rose-700 border-rose-100 font-bold px-1.5 py-0.5 shadow-none">
@@ -558,7 +560,7 @@ export default function HqBranchDetailPage({
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-black text-slate-900">
-                  ₩{stats.avgOrderValue.toLocaleString()}
+                  {currencySymbol}{stats.avgOrderValue.toLocaleString()}
                 </div>
                 <div className="flex items-center gap-1.5 mt-1.5">
                   <span className="text-[10px] text-slate-400 font-medium">유효 주문 수:</span>
@@ -610,7 +612,7 @@ export default function HqBranchDetailPage({
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-black text-slate-900">
-                  ₩{Math.round(stats.revenue * 0.23).toLocaleString()}
+                  {currencySymbol}{Math.round(stats.revenue * 0.23).toLocaleString()}
                 </div>
                 <div className="flex items-center gap-1.5 mt-1.5">
                   <Badge className="text-[9px] bg-violet-50 text-violet-700 border-violet-100 font-bold px-1.5 py-0.5 shadow-none">
@@ -628,7 +630,7 @@ export default function HqBranchDetailPage({
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-black text-slate-900">
-                  ₩{Math.round(450000 + (tenantId.charCodeAt(0) * 1000)).toLocaleString()}
+                  {currencySymbol}{Math.round(450000 + (tenantId.charCodeAt(0) * 1000)).toLocaleString()}
                 </div>
                 <div className="flex items-center gap-1.5 mt-1.5">
                   <Badge className="text-[9px] bg-sky-50 text-sky-700 border-sky-100 font-bold px-1.5 py-0.5 shadow-none">
@@ -713,9 +715,9 @@ export default function HqBranchDetailPage({
                   <CardTitle className="text-xs font-medium opacity-80 uppercase tracking-widest">금일 총 매출액</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-light">₩{settlementStats.totalSales.toLocaleString()}</div>
+                  <div className="text-2xl font-light">{currencySymbol}{settlementStats.totalSales.toLocaleString()}</div>
                   <p className="text-[11px] text-indigo-200 mt-2 font-light">
-                    신규 ₩{(settlementStats.totalSales - settlementStats.prevOrderPaymentTotal).toLocaleString()} + 수금 ₩{settlementStats.prevOrderPaymentTotal.toLocaleString()}
+                    신규 {currencySymbol}{(settlementStats.totalSales - settlementStats.prevOrderPaymentTotal).toLocaleString()} + 수금 {currencySymbol}{settlementStats.prevOrderPaymentTotal.toLocaleString()}
                   </p>
                 </CardContent>
               </Card>
@@ -725,9 +727,9 @@ export default function HqBranchDetailPage({
                   <CardTitle className="text-xs font-medium opacity-80 uppercase tracking-widest">수금 (현금 + 계좌)</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-light">₩{(settlementStats.cashSales + settlementStats.transferSales).toLocaleString()}</div>
+                  <div className="text-2xl font-light">{currencySymbol}{(settlementStats.cashSales + settlementStats.transferSales).toLocaleString()}</div>
                   <p className="text-[11px] text-slate-400 mt-2 font-light">
-                    카드 결제: ₩{settlementStats.cardSales.toLocaleString()}
+                    카드 결제: {currencySymbol}{settlementStats.cardSales.toLocaleString()}
                   </p>
                 </CardContent>
               </Card>
@@ -737,7 +739,7 @@ export default function HqBranchDetailPage({
                   <CardTitle className="text-xs font-medium text-slate-400 uppercase tracking-widest">금고 예상 잔액</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-light text-indigo-600">₩{settlementVaultCash.currentBalance.toLocaleString()}</div>
+                  <div className="text-2xl font-light text-indigo-600">{currencySymbol}{settlementVaultCash.currentBalance.toLocaleString()}</div>
                   <p className="text-[11px] text-slate-400 mt-2 font-light uppercase tracking-tighter">현재 포스기 보유 추정액</p>
                 </CardContent>
               </Card>
@@ -749,7 +751,7 @@ export default function HqBranchDetailPage({
                 <CardContent>
                   <div className="text-2xl font-light text-slate-900">{settlementStats.orderCount}건</div>
                   <p className="text-[11px] text-red-500 mt-2 font-medium uppercase tracking-tighter">
-                    미결제 {settlementStats.pendingOrdersToday.length}건 / ₩{settlementStats.pendingAmountToday.toLocaleString()}
+                    미결제 {settlementStats.pendingOrdersToday.length}건 / {currencySymbol}{settlementStats.pendingAmountToday.toLocaleString()}
                   </p>
                 </CardContent>
               </Card>
@@ -767,27 +769,27 @@ export default function HqBranchDetailPage({
                   <div className="space-y-3.5">
                     <div className="flex items-center justify-between py-2 border-b border-dashed border-slate-100">
                       <span className="text-slate-600 font-light text-xs">이전 현금 잔액 (전일 마감 시재)</span>
-                      <span className="text-xs font-bold text-slate-800">₩{settlementVaultCash.prevBalance.toLocaleString()}</span>
+                      <span className="text-xs font-bold text-slate-800">{currencySymbol}{settlementVaultCash.prevBalance.toLocaleString()}</span>
                     </div>
                     <div className="flex items-center justify-between py-2 border-b border-dashed border-slate-100">
                       <span className="text-slate-600 font-light text-xs">금일 현금 매출 (직접 수금)</span>
-                      <span className="text-xs font-medium text-blue-600">+ ₩{settlementVaultCash.cashSales.toLocaleString()}</span>
+                      <span className="text-xs font-medium text-blue-600">+ {currencySymbol}{settlementVaultCash.cashSales.toLocaleString()}</span>
                     </div>
                     <div className="flex items-center justify-between py-2 border-b border-dashed border-slate-100">
                       <span className="text-slate-600 font-light text-xs">배송비 현금 지급액 (지출)</span>
-                      <span className="text-xs font-medium text-rose-600">- ₩{settlementVaultCash.deliveryCostCash.toLocaleString()}</span>
+                      <span className="text-xs font-medium text-rose-600">- {currencySymbol}{settlementVaultCash.deliveryCostCash.toLocaleString()}</span>
                     </div>
                     <div className="flex items-center justify-between py-2 border-b border-dashed border-slate-100">
                       <span className="text-slate-600 font-light text-xs">기타 현금 지출 (자재/경비)</span>
-                      <span className="text-xs font-medium text-rose-600">- ₩{settlementVaultCash.cashExpenses.toLocaleString()}</span>
+                      <span className="text-xs font-medium text-rose-600">- {currencySymbol}{settlementVaultCash.cashExpenses.toLocaleString()}</span>
                     </div>
                     <div className="flex items-center justify-between py-2 border-b border-dashed border-slate-100">
                       <span className="text-slate-600 font-light text-xs">관리자 자체 입금/출금 (은행 정산 등)</span>
-                      <span className="text-xs font-bold text-slate-800">₩{settlementVaultCash.vaultDeposit.toLocaleString()}</span>
+                      <span className="text-xs font-bold text-slate-800">{currencySymbol}{settlementVaultCash.vaultDeposit.toLocaleString()}</span>
                     </div>
                     <div className="flex items-center justify-between py-4 bg-indigo-50/50 rounded-2xl px-5 mt-6 border border-indigo-100/50 shadow-inner">
                       <span className="text-indigo-900 font-bold text-xs uppercase tracking-wider">최종 마감 예정 잔액</span>
-                      <span className="text-xl font-bold text-indigo-700 tracking-tight">₩{settlementVaultCash.currentBalance.toLocaleString()}</span>
+                      <span className="text-xl font-bold text-indigo-700 tracking-tight">{currencySymbol}{settlementVaultCash.currentBalance.toLocaleString()}</span>
                     </div>
                   </div>
                 </CardContent>
@@ -804,11 +806,11 @@ export default function HqBranchDetailPage({
                     <div className="grid grid-cols-2 gap-3">
                       <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                         <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1 block">운송비 (현금)</span>
-                        <span className="text-base font-bold text-slate-800">₩{settlementVaultCash.deliveryCostCash.toLocaleString()}</span>
+                        <span className="text-base font-bold text-slate-800">{currencySymbol}{settlementVaultCash.deliveryCostCash.toLocaleString()}</span>
                       </div>
                       <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                         <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1 block">기타 지출 (현금)</span>
-                        <span className="text-base font-bold text-slate-800">₩{settlementVaultCash.cashExpenses.toLocaleString()}</span>
+                        <span className="text-base font-bold text-slate-800">{currencySymbol}{settlementVaultCash.cashExpenses.toLocaleString()}</span>
                       </div>
                     </div>
                     
@@ -816,7 +818,7 @@ export default function HqBranchDetailPage({
                       <span className="text-[10px] text-amber-700 font-bold uppercase tracking-widest mb-2 block">총 지출 (카드 포함)</span>
                       <div className="flex justify-between items-baseline">
                         <span className="text-xl font-bold text-amber-900">
-                          ₩{settlementExpenses.reduce((sum, e) => sum + (e.amount || 0), 0).toLocaleString()}
+                          {currencySymbol}{settlementExpenses.reduce((sum, e) => sum + (e.amount || 0), 0).toLocaleString()}
                         </span>
                         <span className="text-xs text-amber-600 font-medium">{settlementExpenses.length}건</span>
                       </div>
@@ -900,9 +902,9 @@ export default function HqBranchDetailPage({
                               {order.payment?.method === 'card' ? '카드' : order.payment?.method === 'cash' ? '현금' : order.payment?.method === 'transfer' ? '계좌' : '기타'}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-right text-xs text-slate-500">₩{(order.summary?.total || 0).toLocaleString()}</TableCell>
+                          <TableCell className="text-right text-xs text-slate-500">{currencySymbol}{(order.summary?.total || 0).toLocaleString()}</TableCell>
                           <TableCell className="text-right text-xs font-bold text-emerald-600">
-                            ₩{((order as any).transfer_info?.isTransferred && order.tenant_id !== tenantId) 
+                            {currencySymbol}{((order as any).transfer_info?.isTransferred && order.tenant_id !== tenantId) 
                               ? "0" 
                               : ((order.payment?.isSplitPayment && order.payment?.secondPaymentDate?.startsWith(selectedDate)) ? (order.payment.secondPaymentAmount || 0).toLocaleString() : (order.summary?.total || 0).toLocaleString())}
                           </TableCell>
@@ -970,7 +972,7 @@ export default function HqBranchDetailPage({
                           </TableCell>
                           <TableCell className="text-xs font-bold text-slate-700">{order.orderer?.name || "—"}</TableCell>
                           <TableCell className="text-right text-xs font-bold text-rose-500">
-                            ₩{(order.summary?.total || 0).toLocaleString()}
+                            {currencySymbol}{(order.summary?.total || 0).toLocaleString()}
                           </TableCell>
                           <TableCell className="text-center text-xs text-slate-400 font-light">
                             {order.payment?.method || "—"}
@@ -1027,7 +1029,7 @@ export default function HqBranchDetailPage({
                             {formatPaymentMethod(exp.payment_method)}
                           </TableCell>
                           <TableCell className="text-right text-xs font-bold text-slate-800 tabular-nums">
-                            ₩{(exp.amount || 0).toLocaleString()}
+                            {currencySymbol}{(exp.amount || 0).toLocaleString()}
                           </TableCell>
                         </TableRow>
                       ))}

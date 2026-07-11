@@ -227,6 +227,7 @@ function FontSelector({
   fonts: FontItem[];
   ui: { fontSearch: string; fontNotFound: string };
 }) {
+    const { symbol: currencySymbol } = useCurrency();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [hoveredFont, setHoveredFont] = useState<string | null>(null);
@@ -534,6 +535,7 @@ const RibbonCanvas = ({
   marginLabelTop = 'Top margin',
   marginLabelBottom = 'Bottom margin'
 }: RibbonCanvasProps) => {
+    const { symbol: currencySymbol } = useCurrency();
   // Parse lines
   const lines = text.split('\n').filter(l => l.trim() !== '');
 
@@ -940,6 +942,7 @@ const RibbonCanvas = ({
 // Main Application
 // ==========================================
 import type { Session } from '@supabase/supabase-js';
+import { useCurrency } from "@/hooks/use-currency";
 
 const REQUIRED_BRIDGE_VERSION = '25.0';
 
@@ -948,6 +951,7 @@ function fontRibbonSlug(fontValue: string) {
 }
 
 export default function App({ session, isAdmin, onShowAdmin, initialLeftText, initialRightText, userPlan, tenantId, tenantLogo, canPrint = true }: { session?: any; isAdmin?: boolean; onShowAdmin?: () => void, initialLeftText?: string, initialRightText?: string, userPlan?: string, tenantId?: string, tenantLogo?: string | null, canPrint?: boolean }) {
+    const { symbol: currencySymbol } = useCurrency();
   const locale = usePreferredLocale();
   const baseLocaleUi = toBaseLocale(locale);
   const R = getMessages(locale).dashboard.ribbon;
@@ -2669,18 +2673,18 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
             <div className="grid grid-cols-3 gap-3 mb-6">
               <div className="bg-slate-700/50 rounded-xl p-4 border border-slate-600 hover:border-blue-500 cursor-pointer transition">
                 <p className="text-lg font-semibold text-white">{R.paywallMonthly}</p>
-                <p className="text-blue-400 font-semibold text-xl mt-1">₩29,900</p>
+                <p className="text-blue-400 font-semibold text-xl mt-1">{currencySymbol}29,900</p>
                 <p className="text-slate-500 text-xs mt-1">{R.paywallPerMonth}</p>
               </div>
               <div className="bg-blue-600/20 rounded-xl p-4 border-2 border-blue-500 cursor-pointer transition relative">
                 <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-blue-500 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">{R.paywallPopular}</div>
                 <p className="text-lg font-semibold text-white">{R.paywallQuarter}</p>
-                <p className="text-blue-400 font-semibold text-xl mt-1">₩79,900</p>
+                <p className="text-blue-400 font-semibold text-xl mt-1">{currencySymbol}79,900</p>
                 <p className="text-slate-500 text-xs mt-1">{R.paywallDisc11}</p>
               </div>
               <div className="bg-slate-700/50 rounded-xl p-4 border border-slate-600 hover:border-blue-500 cursor-pointer transition">
                 <p className="text-lg font-semibold text-white">{R.paywallYear}</p>
-                <p className="text-blue-400 font-semibold text-xl mt-1">₩269,900</p>
+                <p className="text-blue-400 font-semibold text-xl mt-1">{currencySymbol}269,900</p>
                 <p className="text-slate-500 text-xs mt-1">{R.paywallDisc25}</p>
               </div>
             </div>
@@ -2873,6 +2877,7 @@ export default function App({ session, isAdmin, onShowAdmin, initialLeftText, in
 // Internal Components that were lost:
 
 function SaveConfigDialog({ isOpen, onClose, onSave }: { isOpen: boolean, onClose: () => void, onSave: (name: string) => void }) {
+    const { symbol: currencySymbol } = useCurrency();
   const [name, setName] = useState('');
   const locale = usePreferredLocale();
   const R = getMessages(locale).dashboard.ribbon;
@@ -2898,6 +2903,7 @@ function SaveConfigDialog({ isOpen, onClose, onSave }: { isOpen: boolean, onClos
 }
 
 function LoadConfigDialog({ isOpen, onClose, onLoad, userId }: { isOpen: boolean, onClose: () => void, onLoad: (config: any) => void, userId?: string }) {
+    const { symbol: currencySymbol } = useCurrency();
   const [configs, setConfigs] = useState<any[]>([]);
   const locale = usePreferredLocale();
   const R = getMessages(locale).dashboard.ribbon;
@@ -2932,6 +2938,7 @@ function LoadConfigDialog({ isOpen, onClose, onLoad, userId }: { isOpen: boolean
   );
 }
 function PrintQueueMonitor({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+    const { symbol: currencySymbol } = useCurrency();
   const locale = usePreferredLocale();
   const Rq = getMessages(locale).dashboard.ribbon;
   const [queue, setQueue] = useState<any[]>([]); // Restored
@@ -3076,6 +3083,7 @@ function PrintQueueMonitor({ isOpen, onClose }: { isOpen: boolean; onClose: () =
 // Logic to show monitor automatically:
 // In App, add a button to reopen if closed manually
 function MonitorToggle({ onClick, hasJobs }: { onClick: () => void, hasJobs: boolean }) {
+    const { symbol: currencySymbol } = useCurrency();
   return (
     <button 
       onClick={onClick}

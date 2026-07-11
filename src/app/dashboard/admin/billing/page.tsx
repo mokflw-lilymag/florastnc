@@ -20,8 +20,10 @@ import { pickUiText } from "@/i18n/pick-ui-text";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ExpenseManagement } from "./components/expense-management";
 import { SaasRevenueDashboard } from "./components/saas-revenue-dashboard";
+import { useCurrency } from "@/hooks/use-currency";
 
 export default function BillingAdminPage() {
+    const { symbol: currencySymbol } = useCurrency();
     const supabase = createClient();
     const { profile, isLoading: authLoading } = useAuth();
     const isSuperAdmin = profile?.role === 'super_admin' || profile?.role === '본사 관리자';
@@ -229,7 +231,7 @@ export default function BillingAdminPage() {
                                 <CardTitle className="text-xs font-bold text-rose-600 uppercase tracking-wider">당월 본사 총 지출</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-xl font-bold text-rose-900">₩{stats.monthlyExpenses.toLocaleString()}</div>
+                                <div className="text-xl font-bold text-rose-900">{currencySymbol}{stats.monthlyExpenses.toLocaleString()}</div>
                                 <p className="text-[10px] text-rose-500/80 mt-1">인건비 · 4대보험 · 인프라비 당월 합계</p>
                             </CardContent>
                         </Card>

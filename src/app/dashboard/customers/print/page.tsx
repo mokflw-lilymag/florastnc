@@ -17,8 +17,10 @@ import {
   parseDocumentDateParam,
 } from "@/lib/customer-document-lines";
 import { signalPrintDocumentReady } from "@/lib/print-routes";
+import { useCurrency } from "@/hooks/use-currency";
 
 function PrintContent() {
+    const { symbol: currencySymbol } = useCurrency();
   const searchParams = useSearchParams();
   const supabase = createClient();
   const [items, setItems] = useState<any[]>([]);
@@ -388,8 +390,8 @@ function PrintContent() {
                 {item.order_number && <div className="text-[10px] text-slate-400 mt-0.5 font-mono">#{item.order_number}</div>}
               </td>
               <td className="p-3 text-center">{item.quantity}</td>
-              <td className="p-3 text-right">₩{item.price.toLocaleString()}</td>
-              <td className="p-3 text-right font-bold">₩{item.amount.toLocaleString()}</td>
+              <td className="p-3 text-right">{currencySymbol}{item.price.toLocaleString()}</td>
+              <td className="p-3 text-right font-bold">{currencySymbol}{item.amount.toLocaleString()}</td>
             </tr>
           ))}
         </tbody>
@@ -398,11 +400,11 @@ function PrintContent() {
             <>
               <tr className="bg-slate-50 text-[11px] font-bold">
                 <td colSpan={3} className="p-2 text-center border-t border-slate-200">{tf.f02615}</td>
-                <td colSpan={2} className="p-2 text-right border-t border-slate-200">₩{subtotal.toLocaleString()}</td>
+                <td colSpan={2} className="p-2 text-right border-t border-slate-200">{currencySymbol}{subtotal.toLocaleString()}</td>
               </tr>
               <tr className="bg-slate-50 text-[11px] font-bold">
                 <td colSpan={3} className="p-2 text-center border-t border-slate-200">{tf.f02616}</td>
-                <td colSpan={2} className="p-2 text-right border-t border-slate-200">₩{vat.toLocaleString()}</td>
+                <td colSpan={2} className="p-2 text-right border-t border-slate-200">{currencySymbol}{vat.toLocaleString()}</td>
               </tr>
             </>
           )}
@@ -412,7 +414,7 @@ function PrintContent() {
               {!useVat && <span className="text-[10px] font-medium text-slate-400 ml-2">{tf.f02620}</span>}
             </td>
             <td colSpan={2} className="p-4 text-right text-2xl italic tracking-tighter">
-              ₩{totalAmount.toLocaleString()}
+              {currencySymbol}{totalAmount.toLocaleString()}
             </td>
           </tr>
         </tfoot>
@@ -424,12 +426,14 @@ function PrintContent() {
 }
 
 function PrintSuspenseFallback() {
+    const { symbol: currencySymbol } = useCurrency();
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
   return <div className="p-10 text-center">{tf.f00513}</div>;
 }
 
 export default function PrintPage() {
+    const { symbol: currencySymbol } = useCurrency();
   return (
     <Suspense fallback={<PrintSuspenseFallback />}>
       <PrintContent />
