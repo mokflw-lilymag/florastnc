@@ -27,6 +27,9 @@ import {
 import type { StaffFinancial, StaffLeaveRequest, StaffSalaryStatement } from "@/types/staff-salary";
 import { formatKrw } from "@/lib/staff-salary-calc";
 import { formatWorkHours, summarizeStaffWorkHours, buildDailyAttendanceRows } from "@/lib/staff-attendance-hours";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
+import { pickUiText } from "@/i18n/pick-ui-text";
 
 const EMPTY_HR: TenantStaffHrInput = {
   name: "",
@@ -55,6 +58,9 @@ const EMPTY_FIN: StaffFinancial = {
 };
 
 export default function StaffDetailPage() {
+  const locale = usePreferredLocale();
+  const baseLocale = toBaseLocale(locale);
+
   const params = useParams();
   const staffId = params.staffId as string;
   const { canManageStaff, isLoading: authLoading, tenantId } = useAuth();
@@ -81,7 +87,7 @@ export default function StaffDetailPage() {
       .single();
 
     if (error || !staff) {
-      toast.error("직원 정보를 찾을 수 없습니다.");
+      toast.error(pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, "직원 정보를 찾을 수 없습니다.", "Employee information not found.", "Không tìm thấy thông tin nhân viên.", "従業員情報が見つかりません。", "未找到员工信息。", "未找到員工資料。", "No se encontró la información del empleado.", "Informações do funcionário não encontradas.", "Informations sur les employés introuvables.", "Mitarbeiterinformationen nicht gefunden.", "Информация о сотруднике не найдена."), "Employee information not found.", "Không tìm thấy thông tin nhân viên.", "従業員情報が見つかりません。", "未找到员工信息。", "未找到員工資料。", "No se encontró la información del empleado.", "Informações do funcionário não encontradas.", "Informations sur les employés introuvables.", "Mitarbeiterinformationen nicht gefunden.", "Информация о сотруднике не найдена."), "Employee information not found.", "Không tìm thấy thông tin nhân viên.", "従業員情報が見つかりません。", "未找到员工信息。", "未找到員工資料。", "No se encontró la información del empleado.", "Informações do funcionário não encontradas.", "Informations sur les employés introuvables.", "Mitarbeiterinformationen nicht gefunden.", "Информация о сотруднике не найдена."), "Employee information not found.", "Không tìm thấy thông tin nhân viên.", "従業員情報が見つかりません。", "未找到员工信息。", "未找到員工資料。", "No se encontró la información del empleado.", "Informações do funcionário não encontradas.", "Informations sur les employés introuvables.", "Mitarbeiterinformationen nicht gefunden.", "Информация о сотруднике не найдена."));
       return;
     }
 
@@ -133,7 +139,7 @@ export default function StaffDetailPage() {
 
   const saveHr = async () => {
     if (!staffId || !hrForm.name?.trim()) {
-      toast.error("이름을 입력해주세요.");
+      toast.error(pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, "이름을 입력해주세요.", "Please enter your name.", "Vui lòng nhập tên của bạn.", "名前を入力してください。", "请输入您的姓名。", "請輸入您的姓名。", "Por favor ingrese su nombre.", "Por favor, digite seu nome.", "Veuillez entrer votre nom.", "Bitte geben Sie Ihren Namen ein.", "Пожалуйста, введите свое имя."), "Please enter your name.", "Vui lòng nhập tên của bạn.", "名前を入力してください。", "请输入您的姓名。", "請輸入您的姓名。", "Por favor ingrese su nombre.", "Por favor, digite seu nome.", "Veuillez entrer votre nom.", "Bitte geben Sie Ihren Namen ein.", "Пожалуйста, введите свое имя."), "Please enter your name.", "Vui lòng nhập tên của bạn.", "名前を入力してください。", "请输入您的姓名。", "請輸入您的姓名。", "Por favor ingrese su nombre.", "Por favor, digite seu nome.", "Veuillez entrer votre nom.", "Bitte geben Sie Ihren Namen ein.", "Пожалуйста, введите свое имя."), "Please enter your name.", "Vui lòng nhập tên của bạn.", "名前を入力してください。", "请输入您的姓名。", "請輸入您的姓名。", "Por favor ingrese su nombre.", "Por favor, digite seu nome.", "Veuillez entrer votre nom.", "Bitte geben Sie Ihren Namen ein.", "Пожалуйста, введите свое имя."));
       return;
     }
     setSaving(true);
@@ -145,10 +151,10 @@ export default function StaffDetailPage() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error);
-      toast.success("인사 정보가 저장되었습니다.");
+      toast.success(pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, "인사 정보가 저장되었습니다.", "Your personnel information has been saved.", "Thông tin nhân sự của bạn đã được lưu.", "人事情報が保存されました。", "您的人事信息已保存。", "您的人事資訊已儲存。", "Su información personal ha sido guardada.", "Suas informações pessoais foram salvas.", "Vos informations personnelles ont été enregistrées.", "Ihre Personaldaten wurden gespeichert.", "Ваша персональная информация сохранена."), "Your personnel information has been saved.", "Thông tin nhân sự của bạn đã được lưu.", "人事情報が保存されました。", "您的人事信息已保存。", "您的人事資訊已儲存。", "Su información personal ha sido guardada.", "Suas informações pessoais foram salvas.", "Vos informations personnelles ont été enregistrées.", "Ihre Personaldaten wurden gespeichert.", "Ваша персональная информация сохранена."), "Your personnel information has been saved.", "Thông tin nhân sự của bạn đã được lưu.", "人事情報が保存されました。", "您的人事信息已保存。", "您的人事資訊已儲存。", "Su información personal ha sido guardada.", "Suas informações pessoais foram salvas.", "Vos informations personnelles ont été enregistrées.", "Ihre Personaldaten wurden gespeichert.", "Ваша персональная информация сохранена."), "Your personnel information has been saved.", "Thông tin nhân sự của bạn đã được lưu.", "人事情報が保存されました。", "您的人事信息已保存。", "您的人事資訊已儲存。", "Su información personal ha sido guardada.", "Suas informações pessoais foram salvas.", "Vos informations personnelles ont été enregistrées.", "Ihre Personaldaten wurden gespeichert.", "Ваша персональная информация сохранена."));
       void load();
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : "저장 실패");
+      toast.error(e instanceof Error ? e.message : pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, "저장 실패", "save failed", "lưu không thành công", "保存失敗", "保存失败", "保存失敗", "guardar falló", "falha ao salvar", "échec de la sauvegarde", "Speichern fehlgeschlagen", "сохранить не удалось"), "save failed", "lưu không thành công", "保存失敗", "保存失败", "保存失敗", "guardar falló", "falha ao salvar", "échec de la sauvegarde", "Speichern fehlgeschlagen", "сохранить не удалось"), "save failed", "lưu không thành công", "保存失敗", "保存失败", "保存失敗", "guardar falló", "falha ao salvar", "échec de la sauvegarde", "Speichern fehlgeschlagen", "сохранить не удалось"), "save failed", "lưu không thành công", "保存失敗", "保存失败", "保存失敗", "guardar falló", "falha ao salvar", "échec de la sauvegarde", "Speichern fehlgeschlagen", "сохранить не удалось"));
     } finally {
       setSaving(false);
     }
@@ -165,17 +171,17 @@ export default function StaffDetailPage() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error);
       setFinancial(json.financial);
-      toast.success("급여 계약이 저장되었습니다.");
+      toast.success(pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, "급여 계약이 저장되었습니다.", "Your salary contract has been saved.", "Hợp đồng tiền lương của bạn đã được lưu.", "給与契約が保存されました。", "您的工资合同已保存。", "您的工資合約已保存。", "Tu contrato salarial ha sido guardado.", "Seu contrato salarial foi salvo.", "Votre contrat salarial a été sauvegardé.", "Ihr Gehaltsvertrag wurde gespeichert.", "Ваш договор о зарплате сохранен."), "Your salary contract has been saved.", "Hợp đồng tiền lương của bạn đã được lưu.", "給与契約が保存されました。", "您的工资合同已保存。", "您的工資合約已保存。", "Tu contrato salarial ha sido guardado.", "Seu contrato salarial foi salvo.", "Votre contrat salarial a été sauvegardé.", "Ihr Gehaltsvertrag wurde gespeichert.", "Ваш договор о зарплате сохранен."), "Your salary contract has been saved.", "Hợp đồng tiền lương của bạn đã được lưu.", "給与契約が保存されました。", "您的工资合同已保存。", "您的工資合約已保存。", "Tu contrato salarial ha sido guardado.", "Seu contrato salarial foi salvo.", "Votre contrat salarial a été sauvegardé.", "Ihr Gehaltsvertrag wurde gespeichert.", "Ваш договор о зарплате сохранен."), "Your salary contract has been saved.", "Hợp đồng tiền lương của bạn đã được lưu.", "給与契約が保存されました。", "您的工资合同已保存。", "您的工資合約已保存。", "Tu contrato salarial ha sido guardado.", "Seu contrato salarial foi salvo.", "Votre contrat salarial a été sauvegardé.", "Ihr Gehaltsvertrag wurde gespeichert.", "Ваш договор о зарплате сохранен."));
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : "저장 실패");
+      toast.error(e instanceof Error ? e.message : pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, "저장 실패", "save failed", "lưu không thành công", "保存失敗", "保存失败", "保存失敗", "guardar falló", "falha ao salvar", "échec de la sauvegarde", "Speichern fehlgeschlagen", "сохранить не удалось"), "save failed", "lưu không thành công", "保存失敗", "保存失败", "保存失敗", "guardar falló", "falha ao salvar", "échec de la sauvegarde", "Speichern fehlgeschlagen", "сохранить не удалось"), "save failed", "lưu không thành công", "保存失敗", "保存失败", "保存失敗", "guardar falló", "falha ao salvar", "échec de la sauvegarde", "Speichern fehlgeschlagen", "сохранить не удалось"), "save failed", "lưu không thành công", "保存失敗", "保存失败", "保存失敗", "guardar falló", "falha ao salvar", "échec de la sauvegarde", "Speichern fehlgeschlagen", "сохранить не удалось"));
     } finally {
       setSaving(false);
     }
   };
 
-  if (authLoading) return <div className="p-8 text-slate-500">불러오는 중...</div>;
-  if (!canManageStaff) return <div className="p-8 text-slate-600">접근 권한이 없습니다.</div>;
-  if (!profile) return <div className="p-8 text-slate-500">불러오는 중...</div>;
+  if (authLoading) return <div className="p-8 text-slate-500">{pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, "불러오는 중...", "Loading...", "Đang tải...", "読み込み中...", "加载中...", "載入中...", "Cargando...", "Carregando...", "Chargement...", "Laden...", "Загрузка..."), "Loading...", "Đang tải...", "読み込み中...", "加载中...", "載入中...", "Cargando...", "Carregando...", "Chargement...", "Laden...", "Загрузка..."), "Loading...", "Đang tải...", "読み込み中...", "加载中...", "載入中...", "Cargando...", "Carregando...", "Chargement...", "Laden...", "Загрузка..."), "Loading...", "Đang tải...", "読み込み中...", "加载中...", "載入中...", "Cargando...", "Carregando...", "Chargement...", "Laden...", "Загрузка...")}</div>;
+  if (!canManageStaff) return <div className="p-8 text-slate-600">{pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, "접근 권한이 없습니다.", "You do not have access permission.", "Bạn không có quyền truy cập.", "アクセス権がありません。", "您没有访问权限。", "您沒有存取權限。", "No tienes permiso de acceso.", "Você não tem permissão de acesso.", "Vous n'avez pas d'autorisation d'accès.", "Sie haben keine Zugriffsberechtigung.", "У вас нет разрешения на доступ."), "You do not have access permission.", "Bạn không có quyền truy cập.", "アクセス権がありません。", "您没有访问权限。", "您沒有存取權限。", "No tienes permiso de acceso.", "Você não tem permissão de acesso.", "Vous n'avez pas d'autorisation d'accès.", "Sie haben keine Zugriffsberechtigung.", "У вас нет разрешения на доступ."), "You do not have access permission.", "Bạn không có quyền truy cập.", "アクセス権がありません。", "您没有访问权限。", "您沒有存取權限。", "No tienes permiso de acceso.", "Você não tem permissão de acesso.", "Vous n'avez pas d'autorisation d'accès.", "Sie haben keine Zugriffsberechtigung.", "У вас нет разрешения на доступ."), "You do not have access permission.", "Bạn không có quyền truy cập.", "アクセス権がありません。", "您没有访问权限。", "您沒有存取權限。", "No tienes permiso de acceso.", "Você não tem permissão de acesso.", "Vous n'avez pas d'autorisation d'accès.", "Sie haben keine Zugriffsberechtigung.", "У вас нет разрешения на доступ.")}</div>;
+  if (!profile) return <div className="p-8 text-slate-500">{pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, "불러오는 중...", "Loading...", "Đang tải...", "読み込み中...", "加载中...", "載入中...", "Cargando...", "Carregando...", "Chargement...", "Laden...", "Загрузка..."), "Loading...", "Đang tải...", "読み込み中...", "加载中...", "載入中...", "Cargando...", "Carregando...", "Chargement...", "Laden...", "Загрузка..."), "Loading...", "Đang tải...", "読み込み中...", "加载中...", "載入中...", "Cargando...", "Carregando...", "Chargement...", "Laden...", "Загрузка..."), "Loading...", "Đang tải...", "読み込み中...", "加载中...", "載入中...", "Cargando...", "Carregando...", "Chargement...", "Laden...", "Загрузка...")}</div>;
 
   return (
     <div className="flex flex-col h-full bg-gray-50/30">
@@ -185,7 +191,7 @@ export default function StaffDetailPage() {
         </Link>
         <div>
           <h1 className="text-2xl font-bold">{profile.name}</h1>
-          <p className="text-sm text-slate-500">{profile.position || "직원 상세"}</p>
+          <p className="text-sm text-slate-500">{profile.position || pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, "직원 상세", "staff details", "chi tiết nhân viên", "スタッフ詳細", "员工详细信息", "員工詳細資訊", "detalles del personal", "detalhes da equipe", "détails du personnel", "Angaben zum Personal", "данные о персонале"), "staff details", "chi tiết nhân viên", "スタッフ詳細", "员工详细信息", "員工詳細資訊", "detalles del personal", "detalhes da equipe", "détails du personnel", "Angaben zum Personal", "данные о персонале"), "staff details", "chi tiết nhân viên", "スタッフ詳細", "员工详细信息", "員工詳細資訊", "detalles del personal", "detalhes da equipe", "détails du personnel", "Angaben zum Personal", "данные о персонале"), "staff details", "chi tiết nhân viên", "スタッフ詳細", "员工详细信息", "員工詳細資訊", "detalles del personal", "detalhes da equipe", "détails du personnel", "Angaben zum Personal", "данные о персонале")}</p>
         </div>
       </div>
 
@@ -197,7 +203,7 @@ export default function StaffDetailPage() {
             <CardContent className="p-4 flex items-center gap-3">
               <Clock className="w-8 h-8 text-indigo-400" />
               <div>
-                <p className="text-xs text-slate-500">이번 달 근무</p>
+                <p className="text-xs text-slate-500">{pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, "이번 달 근무", "working this month", "làm việc trong tháng này", "今月の勤務", "这个月工作", "這個月工作", "trabajando este mes", "trabalhando este mês", "je travaille ce mois-ci", "Ich arbeite diesen Monat", "работаю в этом месяце"), "working this month", "làm việc trong tháng này", "今月の勤務", "这个月工作", "這個月工作", "trabajando este mes", "trabalhando este mês", "je travaille ce mois-ci", "Ich arbeite diesen Monat", "работаю в этом месяце"), "working this month", "làm việc trong tháng này", "今月の勤務", "这个月工作", "這個月工作", "trabajando este mes", "trabalhando este mês", "je travaille ce mois-ci", "Ich arbeite diesen Monat", "работаю в этом месяце"), "working this month", "làm việc trong tháng này", "今月の勤務", "这个月工作", "這個月工作", "trabajando este mes", "trabalhando este mês", "je travaille ce mois-ci", "Ich arbeite diesen Monat", "работаю в этом месяце")}</p>
                 <p className="font-bold">{formatWorkHours(monthMinutes)}</p>
               </div>
             </CardContent>
@@ -206,7 +212,7 @@ export default function StaffDetailPage() {
             <CardContent className="p-4 flex items-center gap-3">
               <Wallet className="w-8 h-8 text-emerald-400" />
               <div>
-                <p className="text-xs text-slate-500">고용 형태</p>
+                <p className="text-xs text-slate-500">{pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, "고용 형태", "employment type", "loại việc làm", "雇用形態", "就业类型", "就業類型", "tipo de empleo", "tipo de emprego", "type d'emploi", "Beschäftigungsart", "тип занятости"), "employment type", "loại việc làm", "雇用形態", "就业类型", "就業類型", "tipo de empleo", "tipo de emprego", "type d'emploi", "Beschäftigungsart", "тип занятости"), "employment type", "loại việc làm", "雇用形態", "就业类型", "就業類型", "tipo de empleo", "tipo de emprego", "type d'emploi", "Beschäftigungsart", "тип занятости"), "employment type", "loại việc làm", "雇用形態", "就业类型", "就業類型", "tipo de empleo", "tipo de emprego", "type d'emploi", "Beschäftigungsart", "тип занятости")}</p>
                 <p className="font-bold">{financial.employment_type}</p>
               </div>
             </CardContent>
@@ -215,7 +221,7 @@ export default function StaffDetailPage() {
             <CardContent className="p-4 flex items-center gap-3">
               <CalendarOff className="w-8 h-8 text-amber-400" />
               <div>
-                <p className="text-xs text-slate-500">휴가 신청</p>
+                <p className="text-xs text-slate-500">{pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, "휴가 신청", "leave application", "rời khỏi ứng dụng", "休暇申請", "请假申请", "請假申請", "dejar la solicitud", "deixar o aplicativo", "demande de congé", "Antrag verlassen", "оставить заявку"), "leave application", "rời khỏi ứng dụng", "休暇申請", "请假申请", "請假申請", "dejar la solicitud", "deixar o aplicativo", "demande de congé", "Antrag verlassen", "оставить заявку"), "leave application", "rời khỏi ứng dụng", "休暇申請", "请假申请", "請假申請", "dejar la solicitud", "deixar o aplicativo", "demande de congé", "Antrag verlassen", "оставить заявку"), "leave application", "rời khỏi ứng dụng", "休暇申請", "请假申请", "請假申請", "dejar la solicitud", "deixar o aplicativo", "demande de congé", "Antrag verlassen", "оставить заявку")}</p>
                 <p className="font-bold">{leaves.length}건</p>
               </div>
             </CardContent>
@@ -224,19 +230,19 @@ export default function StaffDetailPage() {
 
         <Tabs defaultValue="hr">
           <TabsList>
-            <TabsTrigger value="hr">인사 정보</TabsTrigger>
-            <TabsTrigger value="salary">급여·보험</TabsTrigger>
-            <TabsTrigger value="leave">휴가</TabsTrigger>
-            <TabsTrigger value="payslip">급여 이력</TabsTrigger>
+            <TabsTrigger value="hr">{pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, "인사 정보", "personnel information", "thông tin nhân sự", "人事情報", "人员信息", "人員資訊", "información del personal", "informações pessoais", "informations personnelles", "Personalinformationen", "информация о персонале"), "personnel information", "thông tin nhân sự", "人事情報", "人员信息", "人員資訊", "información del personal", "informações pessoais", "informations personnelles", "Personalinformationen", "информация о персонале"), "personnel information", "thông tin nhân sự", "人事情報", "人员信息", "人員資訊", "información del personal", "informações pessoais", "informations personnelles", "Personalinformationen", "информация о персонале"), "personnel information", "thông tin nhân sự", "人事情報", "人员信息", "人員資訊", "información del personal", "informações pessoais", "informations personnelles", "Personalinformationen", "информация о персонале")}</TabsTrigger>
+            <TabsTrigger value="salary">{pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, "급여·보험", "Salary/Insurance", "Lương/Bảo hiểm", "給与・保険", "薪资/保险", "薪資/保險", "Salario/Seguro", "Salário/Seguro", "Salaire/Assurance", "Gehalt/Versicherung", "Зарплата/страховка"), "Salary/Insurance", "Lương/Bảo hiểm", "給与・保険", "薪资/保险", "薪資/保險", "Salario/Seguro", "Salário/Seguro", "Salaire/Assurance", "Gehalt/Versicherung", "Зарплата/страховка"), "Salary/Insurance", "Lương/Bảo hiểm", "給与・保険", "薪资/保险", "薪資/保險", "Salario/Seguro", "Salário/Seguro", "Salaire/Assurance", "Gehalt/Versicherung", "Зарплата/страховка"), "Salary/Insurance", "Lương/Bảo hiểm", "給与・保険", "薪资/保险", "薪資/保險", "Salario/Seguro", "Salário/Seguro", "Salaire/Assurance", "Gehalt/Versicherung", "Зарплата/страховка")}</TabsTrigger>
+            <TabsTrigger value="leave">{pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, "휴가", "vacation", "kì nghỉ", "休暇", "假期", "假期", "vacaciones", "férias", "vacances", "Urlaub", "отпуск"), "vacation", "kì nghỉ", "休暇", "假期", "假期", "vacaciones", "férias", "vacances", "Urlaub", "отпуск"), "vacation", "kì nghỉ", "休暇", "假期", "假期", "vacaciones", "férias", "vacances", "Urlaub", "отпуск"), "vacation", "kì nghỉ", "休暇", "假期", "假期", "vacaciones", "férias", "vacances", "Urlaub", "отпуск")}</TabsTrigger>
+            <TabsTrigger value="payslip">{pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, "급여 이력", "salary history", "lịch sử tiền lương", "給与履歴", "薪资历史", "薪資歷史", "historial salarial", "histórico salarial", "historique de salaire", "Gehaltsverlauf", "история зарплат"), "salary history", "lịch sử tiền lương", "給与履歴", "薪资历史", "薪資歷史", "historial salarial", "histórico salarial", "historique de salaire", "Gehaltsverlauf", "история зарплат"), "salary history", "lịch sử tiền lương", "給与履歴", "薪资历史", "薪資歷史", "historial salarial", "histórico salarial", "historique de salaire", "Gehaltsverlauf", "история зарплат"), "salary history", "lịch sử tiền lương", "給与履歴", "薪资历史", "薪資歷史", "historial salarial", "histórico salarial", "historique de salaire", "Gehaltsverlauf", "история зарплат")}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="hr" className="mt-4">
             <Card>
               <CardHeader className="flex flex-row justify-between">
-                <CardTitle className="text-base">인사 정보</CardTitle>
+                <CardTitle className="text-base">{pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, "인사 정보", "personnel information", "thông tin nhân sự", "人事情報", "人员信息", "人員資訊", "información del personal", "informações pessoais", "informations personnelles", "Personalinformationen", "информация о персонале"), "personnel information", "thông tin nhân sự", "人事情報", "人员信息", "人員資訊", "información del personal", "informações pessoais", "informations personnelles", "Personalinformationen", "информация о персонале"), "personnel information", "thông tin nhân sự", "人事情報", "人员信息", "人員資訊", "información del personal", "informações pessoais", "informations personnelles", "Personalinformationen", "информация о персонале"), "personnel information", "thông tin nhân sự", "人事情報", "人员信息", "人員資訊", "información del personal", "informações pessoais", "informations personnelles", "Personalinformationen", "информация о персонале")}</CardTitle>
                 <Button size="sm" onClick={() => void saveHr()} disabled={saving}>
                   <Save className="w-4 h-4 mr-1" />
-                  저장
+                 {pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, "저장", "save", "cứu", "保存", "节省", "節省", "ahorrar", "salvar", "sauvegarder", "speichern", "сохранять"), "save", "cứu", "保存", "节省", "節省", "ahorrar", "salvar", "sauvegarder", "speichern", "сохранять"), "save", "cứu", "保存", "节省", "節省", "ahorrar", "salvar", "sauvegarder", "speichern", "сохранять"), "save", "cứu", "保存", "节省", "節省", "ahorrar", "salvar", "sauvegarder", "speichern", "сохранять")}장
                 </Button>
               </CardHeader>
               <CardContent>
@@ -248,14 +254,14 @@ export default function StaffDetailPage() {
           <TabsContent value="salary" className="mt-4">
             <Card>
               <CardHeader className="flex flex-row justify-between items-center">
-                <CardTitle className="text-base">급여 계약·4대보험</CardTitle>
+                <CardTitle className="text-base">{pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, "급여 계약·4대보험", "Salary contract, 4 major insurances", "Hợp đồng lương, 4 bảo hiểm chính", "給与契約・4大保険", "薪资合同、4大保险", "薪資契約、4大保險", "Contrato de sueldo, 4 seguros importantes.", "Contrato salarial, 4 grandes seguros", "Contrat salarial, 4 grandes assurances", "Gehaltsvertrag, 4 große Versicherungen", "Контракт о заработной плате, 4 основные страховки"), "Salary contract, 4 major insurances", "Hợp đồng lương, 4 bảo hiểm chính", "給与契約・4大保険", "薪资合同、4大保险", "薪資契約、4大保險", "Contrato de sueldo, 4 seguros importantes.", "Contrato salarial, 4 grandes seguros", "Contrat salarial, 4 grandes assurances", "Gehaltsvertrag, 4 große Versicherungen", "Контракт о заработной плате, 4 основные страховки"), "Salary contract, 4 major insurances", "Hợp đồng lương, 4 bảo hiểm chính", "給与契約・4大保険", "薪资合同、4大保险", "薪資契約、4大保險", "Contrato de sueldo, 4 seguros importantes.", "Contrato salarial, 4 grandes seguros", "Contrat salarial, 4 grandes assurances", "Gehaltsvertrag, 4 große Versicherungen", "Контракт о заработной плате, 4 основные страховки"), "Salary contract, 4 major insurances", "Hợp đồng lương, 4 bảo hiểm chính", "給与契約・4大保険", "薪资合同、4大保险", "薪資契約、4大保險", "Contrato de sueldo, 4 seguros importantes.", "Contrato salarial, 4 grandes seguros", "Contrat salarial, 4 grandes assurances", "Gehaltsvertrag, 4 große Versicherungen", "Контракт о заработной плате, 4 основные страховки")}</CardTitle>
                 <div className="flex gap-2">
                   <Link href="/dashboard/staff/salary">
-                    <Button size="sm" variant="outline">급여 정산 →</Button>
+                    <Button size="sm" variant="outline">{pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, "급여 정산 →", "Salary settlement →", "Quyết toán lương →", "給与決済 →", "工资结算 →", "薪資結算 →", "Liquidación de salario →", "Liquidação salarial →", "Règlement des salaires →", "Gehaltsabrechnung →", "Расчет заработной платы →"), "Salary settlement →", "Quyết toán lương →", "給与決済 →", "工资结算 →", "薪資結算 →", "Liquidación de salario →", "Liquidação salarial →", "Règlement des salaires →", "Gehaltsabrechnung →", "Расчет заработной платы →"), "Salary settlement →", "Quyết toán lương →", "給与決済 →", "工资结算 →", "薪資結算 →", "Liquidación de salario →", "Liquidação salarial →", "Règlement des salaires →", "Gehaltsabrechnung →", "Расчет заработной платы →"), "Salary settlement →", "Quyết toán lương →", "給与決済 →", "工资结算 →", "薪資結算 →", "Liquidación de salario →", "Liquidação salarial →", "Règlement des salaires →", "Gehaltsabrechnung →", "Расчет заработной платы →")}</Button>
                   </Link>
                   <Button size="sm" onClick={() => void saveFin()} disabled={saving}>
                     <Save className="w-4 h-4 mr-1" />
-                    저장
+                   {pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, "저장", "save", "cứu", "保存", "节省", "節省", "ahorrar", "salvar", "sauvegarder", "speichern", "сохранять"), "save", "cứu", "保存", "节省", "節省", "ahorrar", "salvar", "sauvegarder", "speichern", "сохранять"), "save", "cứu", "保存", "节省", "節省", "ahorrar", "salvar", "sauvegarder", "speichern", "сохранять"), "save", "cứu", "保存", "节省", "節省", "ahorrar", "salvar", "sauvegarder", "speichern", "сохранять")}장
                   </Button>
                 </div>
               </CardHeader>
@@ -273,14 +279,14 @@ export default function StaffDetailPage() {
           <TabsContent value="leave" className="mt-4">
             <Card>
               <CardHeader className="flex flex-row justify-between">
-                <CardTitle className="text-base">휴가 내역</CardTitle>
+                <CardTitle className="text-base">{pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, "휴가 내역", "vacation details", "chi tiết kỳ nghỉ", "休暇履歴", "假期历史", "假期詳情", "historial de vacaciones", "história de férias", "détails des vacances", "Urlaubsdetails", "история отпуска"), "vacation details", "chi tiết kỳ nghỉ", "休暇履歴", "假期历史", "假期詳情", "historial de vacaciones", "história de férias", "détails des vacances", "Urlaubsdetails", "история отпуска"), "vacation details", "chi tiết kỳ nghỉ", "休暇履歴", "假期历史", "假期詳情", "historial de vacaciones", "história de férias", "détails des vacances", "Urlaubsdetails", "история отпуска"), "vacation details", "chi tiết kỳ nghỉ", "休暇履歴", "假期历史", "假期詳情", "historial de vacaciones", "história de férias", "détails des vacances", "Urlaubsdetails", "история отпуска")}</CardTitle>
                 <Link href="/dashboard/staff/leave">
-                  <Button size="sm" variant="outline">휴가 관리 →</Button>
+                  <Button size="sm" variant="outline">{pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, "휴가 관리 →", "Vacation Management →", "Quản lý kỳ nghỉ →", "休暇管理→", "假期管理 →", "假期管理 →", "Gestión de vacaciones →", "Gestão de férias →", "Gestion des vacances →", "Urlaubsmanagement →", "Управление отпуском →"), "Vacation Management →", "Quản lý kỳ nghỉ →", "休暇管理→", "假期管理 →", "假期管理 →", "Gestión de vacaciones →", "Gestão de férias →", "Gestion des vacances →", "Urlaubsmanagement →", "Управление отпуском →"), "Vacation Management →", "Quản lý kỳ nghỉ →", "休暇管理→", "假期管理 →", "假期管理 →", "Gestión de vacaciones →", "Gestão de férias →", "Gestion des vacances →", "Urlaubsmanagement →", "Управление отпуском →"), "Vacation Management →", "Quản lý kỳ nghỉ →", "休暇管理→", "假期管理 →", "假期管理 →", "Gestión de vacaciones →", "Gestão de férias →", "Gestion des vacances →", "Urlaubsmanagement →", "Управление отпуском →")}</Button>
                 </Link>
               </CardHeader>
               <CardContent className="space-y-2">
                 {leaves.length === 0 ? (
-                  <p className="text-slate-500 text-sm">휴가 신청이 없습니다.</p>
+                  <p className="text-slate-500 text-sm">{pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, "휴가 신청이 없습니다.", "There are no leave requests.", "Không có yêu cầu nghỉ phép.", "休暇申請はありません。", "没有请假请求。", "沒有請假請求。", "No hay solicitudes de licencia.", "Não há pedidos de licença.", "Il n'y a aucune demande de congé.", "Es liegen keine Urlaubsanträge vor.", "Заявок на отпуск нет."), "There are no leave requests.", "Không có yêu cầu nghỉ phép.", "休暇申請はありません。", "没有请假请求。", "沒有請假請求。", "No hay solicitudes de licencia.", "Não há pedidos de licença.", "Il n'y a aucune demande de congé.", "Es liegen keine Urlaubsanträge vor.", "Заявок на отпуск нет."), "There are no leave requests.", "Không có yêu cầu nghỉ phép.", "休暇申請はありません。", "没有请假请求。", "沒有請假請求。", "No hay solicitudes de licencia.", "Não há pedidos de licença.", "Il n'y a aucune demande de congé.", "Es liegen keine Urlaubsanträge vor.", "Заявок на отпуск нет."), "There are no leave requests.", "Không có yêu cầu nghỉ phép.", "休暇申請はありません。", "没有请假请求。", "沒有請假請求。", "No hay solicitudes de licencia.", "Não há pedidos de licença.", "Il n'y a aucune demande de congé.", "Es liegen keine Urlaubsanträge vor.", "Заявок на отпуск нет.")}</p>
                 ) : (
                   leaves.map((l) => (
                     <div key={l.id} className="flex items-center justify-between border rounded-lg p-3 text-sm">
@@ -299,11 +305,11 @@ export default function StaffDetailPage() {
           <TabsContent value="payslip" className="mt-4">
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">급여 명세 이력</CardTitle>
+                <CardTitle className="text-base">{pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, "급여 명세 이력", "pay stub history", "lịch sử cuống phiếu lương", "給与仕様履歴", "工资单历史记录", "薪資歷史記錄", "historial de recibo de pago", "histórico de recibo de pagamento", "historique des fiches de paie", "Gehaltsabrechnungsverlauf", "история квитанций о платежах"), "pay stub history", "lịch sử cuống phiếu lương", "給与仕様履歴", "工资单历史记录", "薪資歷史記錄", "historial de recibo de pago", "histórico de recibo de pagamento", "historique des fiches de paie", "Gehaltsabrechnungsverlauf", "история квитанций о платежах"), "pay stub history", "lịch sử cuống phiếu lương", "給与仕様履歴", "工资单历史记录", "薪資歷史記錄", "historial de recibo de pago", "histórico de recibo de pagamento", "historique des fiches de paie", "Gehaltsabrechnungsverlauf", "история квитанций о платежах"), "pay stub history", "lịch sử cuống phiếu lương", "給与仕様履歴", "工资单历史记录", "薪資歷史記錄", "historial de recibo de pago", "histórico de recibo de pagamento", "historique des fiches de paie", "Gehaltsabrechnungsverlauf", "история квитанций о платежах")}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 {statements.length === 0 ? (
-                  <p className="text-slate-500 text-sm">급여 명세가 없습니다.</p>
+                  <p className="text-slate-500 text-sm">{pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, "급여 명세가 없습니다.", "There are no pay stubs.", "Không có cuống phiếu lương.", "給与指定はありません。", "没有工资单。", "沒有薪資單。", "No hay recibos de pago.", "Não há recibos de pagamento.", "Il n’y a pas de fiches de paie.", "Es gibt keine Gehaltsabrechnungen.", "Квитанций о заработной плате нет."), "There are no pay stubs.", "Không có cuống phiếu lương.", "給与指定はありません。", "没有工资单。", "沒有薪資單。", "No hay recibos de pago.", "Não há recibos de pagamento.", "Il n’y a pas de fiches de paie.", "Es gibt keine Gehaltsabrechnungen.", "Квитанций о заработной плате нет."), "There are no pay stubs.", "Không có cuống phiếu lương.", "給与指定はありません。", "没有工资单。", "沒有薪資單。", "No hay recibos de pago.", "Não há recibos de pagamento.", "Il n’y a pas de fiches de paie.", "Es gibt keine Gehaltsabrechnungen.", "Квитанций о заработной плате нет."), "There are no pay stubs.", "Không có cuống phiếu lương.", "給与指定はありません。", "没有工资单。", "沒有薪資單。", "No hay recibos de pago.", "Não há recibos de pagamento.", "Il n’y a pas de fiches de paie.", "Es gibt keine Gehaltsabrechnungen.", "Квитанций о заработной плате нет.")}</p>
                 ) : (
                   statements.map((s) => (
                     <div key={s.id} className="flex items-center justify-between border rounded-lg p-3 text-sm">
@@ -318,7 +324,7 @@ export default function StaffDetailPage() {
                           onClick={() => setPreviewStatementId(s.id!)}
                         >
                           <Eye className="w-4 h-4 mr-1" />
-                          미리보기
+                         {pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, "미리보기", "Preview", "Xem trước", "プレビュー", "预览", "預覽", "Avance", "Visualização", "Aperçu", "Vorschau", "Предварительный просмотр"), "Preview", "Xem trước", "プレビュー", "预览", "預覽", "Avance", "Visualização", "Aperçu", "Vorschau", "Предварительный просмотр"), "Preview", "Xem trước", "プレビュー", "预览", "預覽", "Avance", "Visualização", "Aperçu", "Vorschau", "Предварительный просмотр"), "Preview", "Xem trước", "プレビュー", "预览", "預覽", "Avance", "Visualização", "Aperçu", "Vorschau", "Предварительный просмотр")}기
                         </Button>
                       )}
                     </div>

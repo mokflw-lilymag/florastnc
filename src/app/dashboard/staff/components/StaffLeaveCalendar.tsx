@@ -19,6 +19,9 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { StaffLeaveRequest } from "@/types/staff-salary";
+import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
+import { pickUiText } from "@/i18n/pick-ui-text";
 import {
   expandLeaveToDayMarkers,
   leaveStatusColor,
@@ -40,6 +43,9 @@ export function StaffLeaveCalendar({
   onDayClick,
   onLeaveClick,
 }: Props) {
+  const locale = usePreferredLocale();
+  const baseLocale = toBaseLocale(locale);
+
   const monthStart = startOfMonth(month);
   const gridStart = startOfWeek(monthStart, { weekStartsOn: 0 });
   const gridEnd = endOfWeek(endOfMonth(monthStart), { weekStartsOn: 0 });
@@ -59,15 +65,15 @@ export function StaffLeaveCalendar({
       <div className="flex items-center justify-between border-b p-4">
         <div>
           <h2 className="text-lg font-bold text-slate-800">
-            {format(month, "yyyy년 M월", { locale: ko })}
+            {format(month, pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, "yyyy년 M월", "yyyy year M month", "năm M tháng", "yyyy年M月", "yyyy 年 M 月", "yyyy 年 M 月", "aaaa año M mes", "aaaa ano M mês", "aaaa année M mois", "JJJJ Jahr M Monat", "гггг год М месяц"), "yyyy year M month", "năm M tháng", "yyyy年M月", "yyyy 年 M 月", "yyyy 年 M 月", "aaaa año M mes", "aaaa ano M mês", "aaaa année M mois", "JJJJ Jahr M Monat", "гггг год М месяц"), "yyyy year M month", "năm M tháng", "yyyy年M月", "yyyy 年 M 月", "yyyy 年 M 月", "aaaa año M mes", "aaaa ano M mês", "aaaa année M mois", "JJJJ Jahr M Monat", "гггг год М месяц"), "yyyy year M month", "năm M tháng", "yyyy年M月", "yyyy 年 M 月", "yyyy 年 M 月", "aaaa año M mes", "aaaa ano M mês", "aaaa année M mois", "JJJJ Jahr M Monat", "гггг год М месяц"), { locale: ko })}
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            날짜를 클릭하면 휴가 등록 창이 열립니다
+           {pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, "날짜를 클릭하면 휴가 등록 창이 열립니다", "Clicking on the date will open the vacation registration window", "Bấm vào ngày sẽ mở ra cửa sổ đăng ký kỳ nghỉ", "日付をクリックすると休暇登録ウィンドウが開きます", "点击日期将打开假期登记窗口", "點擊日期將開啟假期登記窗口", "Al hacer clic en la fecha se abrirá la ventana de registro de vacaciones.", "Clicar na data abrirá a janela de registro de férias", "En cliquant sur la date, vous ouvrirez la fenêtre d'inscription aux vacances", "Durch Klicken auf das Datum öffnet sich das Fenster zur Urlaubsanmeldung", "При нажатии на дату откроется окно регистрации на отпуск."), "Clicking on the date will open the vacation registration window", "Bấm vào ngày sẽ mở ra cửa sổ đăng ký kỳ nghỉ", "日付をクリックすると休暇登録ウィンドウが開きます", "点击日期将打开假期登记窗口", "點擊日期將開啟假期登記窗口", "Al hacer clic en la fecha se abrirá la ventana de registro de vacaciones.", "Clicar na data abrirá a janela de registro de férias", "En cliquant sur la date, vous ouvrirez la fenêtre d'inscription aux vacances", "Durch Klicken auf das Datum öffnet sich das Fenster zur Urlaubsanmeldung", "При нажатии на дату откроется окно регистрации на отпуск."), "Clicking on the date will open the vacation registration window", "Bấm vào ngày sẽ mở ra cửa sổ đăng ký kỳ nghỉ", "日付をクリックすると休暇登録ウィンドウが開きます", "点击日期将打开假期登记窗口", "點擊日期將開啟假期登記窗口", "Al hacer clic en la fecha se abrirá la ventana de registro de vacaciones.", "Clicar na data abrirá a janela de registro de férias", "En cliquant sur la date, vous ouvrirez la fenêtre d'inscription aux vacances", "Durch Klicken auf das Datum öffnet sich das Fenster zur Urlaubsanmeldung", "При нажатии на дату откроется окно регистрации на отпуск."), "Clicking on the date will open the vacation registration window", "Bấm vào ngày sẽ mở ra cửa sổ đăng ký kỳ nghỉ", "日付をクリックすると休暇登録ウィンドウが開きます", "点击日期将打开假期登记窗口", "點擊日期將開啟假期登記窗口", "Al hacer clic en la fecha se abrirá la ventana de registro de vacaciones.", "Clicar na data abrirá a janela de registro de férias", "En cliquant sur la date, vous ouvrirez la fenêtre d'inscription aux vacances", "Durch Klicken auf das Datum öffnet sich das Fenster zur Urlaubsanmeldung", "При нажатии на дату откроется окно регистрации на отпуск.")}다
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Button type="button" variant="outline" size="sm" onClick={() => onMonthChange(new Date())}>
-            오늘
+           {pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, "오늘", "today", "Hôm nay", "今日", "今天", "今天", "hoy", "hoje", "aujourd'hui", "Heute", "сегодня"), "today", "Hôm nay", "今日", "今天", "今天", "hoy", "hoje", "aujourd'hui", "Heute", "сегодня"), "today", "Hôm nay", "今日", "今天", "今天", "hoy", "hoje", "aujourd'hui", "Heute", "сегодня"), "today", "Hôm nay", "今日", "今天", "今天", "hoy", "hoje", "aujourd'hui", "Heute", "сегодня")}늘
           </Button>
           <div className="flex border rounded-md overflow-hidden">
             <Button
@@ -95,11 +101,11 @@ export function StaffLeaveCalendar({
       <div className="flex flex-wrap gap-3 px-4 py-2 border-b bg-slate-50 text-xs text-slate-600">
         <span className="inline-flex items-center gap-1">
           <span className="w-3 h-3 rounded bg-emerald-200 border border-emerald-300" />
-          승인
+         {pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, "승인", "approval", "sự chấp thuận", "承認", "赞同", "贊同", "aprobación", "aprovação", "approbation", "Genehmigung", "одобрение"), "approval", "sự chấp thuận", "承認", "赞同", "贊同", "aprobación", "aprovação", "approbation", "Genehmigung", "одобрение"), "approval", "sự chấp thuận", "承認", "赞同", "贊同", "aprobación", "aprovação", "approbation", "Genehmigung", "одобрение"), "approval", "sự chấp thuận", "承認", "赞同", "贊同", "aprobación", "aprovação", "approbation", "Genehmigung", "одобрение")}인
         </span>
         <span className="inline-flex items-center gap-1">
           <span className="w-3 h-3 rounded bg-amber-200 border border-amber-300" />
-          승인대기
+         {pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, pickUiText(baseLocale, "승인대기", "Waiting for approval", "Đang chờ phê duyệt", "承認待ち", "等待批准", "等待批准", "Esperando aprobación", "Aguardando aprovação", "En attente d'approbation", "Warten auf Genehmigung", "Ожидание одобрения"), "Waiting for approval", "Đang chờ phê duyệt", "承認待ち", "等待批准", "等待批准", "Esperando aprobación", "Aguardando aprovação", "En attente d'approbation", "Warten auf Genehmigung", "Ожидание одобрения"), "Waiting for approval", "Đang chờ phê duyệt", "承認待ち", "等待批准", "等待批准", "Esperando aprobación", "Aguardando aprovação", "En attente d'approbation", "Warten auf Genehmigung", "Ожидание одобрения"), "Waiting for approval", "Đang chờ phê duyệt", "承認待ち", "等待批准", "等待批准", "Esperando aprobación", "Aguardando aprovação", "En attente d'approbation", "Warten auf Genehmigung", "Ожидание одобрения")}기
         </span>
       </div>
 
