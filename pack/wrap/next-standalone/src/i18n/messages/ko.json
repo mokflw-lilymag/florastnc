@@ -2405,7 +2405,7 @@
     "f02091": "파일을 읽는 중 오류가 발생했습니다.",
     "f02092": "파트",
     "f02093": "파트와 주기를 선택하면 해당 조건의 업무만 필터링되어 나타납니다.",
-    "f02094": "판매 가격 (₩)",
+    "f02094": "판매 가격 ({currencySymbol})",
     "f02095": "판매 매출 (기타/현금)",
     "f02096": "판매 매출 (카드)",
     "f02097": "판매 상태",
@@ -2639,7 +2639,7 @@
     "f02325": "매입: {date}",
     "f02326": "상세수정",
     "f02327": "매입확정",
-    "f02328": "기본 단가 ₩{price}",
+    "f02328": "기본 단가 {currencySymbol}{price}",
     "f02329": "{date} 매입 내역",
     "f02330": "시장",
     "f02331": "매입내역",
@@ -2862,7 +2862,7 @@
     "f02549": "AI 비서가 분석 중입니다...",
     "f02550": "마이크로 말할 때 예시",
     "f02551": "000님 주문, 0만 원 꽃다발, 0월 0일 0시 픽업 또는 배송.\n\n주소: 도로명주소, 수령인 이름, 연락처.\n\n카드/리본 메시지 — 메시지 블라블라 등 원하시는 문구.",
-    "f02552": "[name]님 주문, 꽃다발 ₩00,000, YYYY-MM-DD HH:mm 픽업 또는 배달.\n\n주소: 상세 주소, 받는 분 성함, 연락처.\n\n카드·리본 문구 — 원하시는 문구를 적어주세요.",
+    "f02552": "[name]님 주문, 꽃다발 {currencySymbol}00,000, YYYY-MM-DD HH:mm 픽업 또는 배달.\n\n주소: 상세 주소, 받는 분 성함, 연락처.\n\n카드·리본 문구 — 원하시는 문구를 적어주세요.",
     "f02553": "Đơn cho [tên], bó hoa x triệu VND, lấy tại cửa hoặc giao vào ngày DD/MM lúc HH:mm.\n\nĐịa chỉ: đường, tên người nhận, số điện thoại.\n\nThiệp/ruy băng — nội dung bạn muốn.",
     "f02554": "배송 예약",
     "f02555": "픽업 예약",
@@ -3020,7 +3020,12 @@
       "deviceWebDesc": "주문 흐름부터 매입 재고 분석",
       "deviceWebSub": "어디서든 브라우저 정산 관리",
       "altBackground": "꽃집 AI 비서 FloXync 배경",
-      "altDashboard": "FloXync 대시보드 미리보기"
+      "altDashboard": "FloXync 대시보드 미리보기",
+      "description": "Floxync는 주문, 재고, 인쇄, 정산을 하나의 흐름으로 연결하여 반복 작업을 줄여줍니다.",
+      "statStudios": "액티브 스튜디오",
+      "statDaily": "일일 처리량",
+      "statRealtime": "실시간 동기화",
+      "statStability": "안정"
     },
     "features": {
       "badge": "꽃집운영에 필요한 핵심기능",
@@ -3054,7 +3059,14 @@
           "title": "주문 일정 & 알림 자동화",
           "description": "모바일 예약 3시간 전 리마인드 알림톡 발송은 물론, 카운터 윈도우 앱에서는 로그인 후 매 4시간마다 오늘과 내일의 픽업·배송 일정을 정리해 띄워드려요."
         }
-      }
+      },
+      "integratedBadge": "통합지능",
+      "integratedTitleLeft": "통합",
+      "integratedTitleHighlight": "커머스 AI 네트워크",
+      "integratedDescription": "Floxync는 선도적인 상거래 플랫폼과 통합되어 실시간 동기화를 통해 주문, 재고 및 카탈로그 흐름을 자동화합니다.",
+      "integratedItem1": "네이버 커머스 API 통합",
+      "integratedItem2": "카페24 API 인벤토리/상품 동기화",
+      "integratedItem3": "계절별 최대 수요 모델링"
     },
     "philosophy": {
       "badge": "FloXync 철학",
@@ -3199,7 +3211,7 @@
       "cash": "현금",
       "transfer": "이체",
       "mainpay": "메인",
-      "epay": "e-Pay",
+      "epay": "간편결제",
       "kakao": "카카오",
       "prepaid": "선결제"
     },

@@ -77,12 +77,13 @@ export function PosDeviceSettingsCard() {
         <div>
           <CardTitle className="text-xl flex items-center gap-2">
             <MonitorSmartphone className={cn("h-5 w-5", isRegistered ? "text-emerald-500" : "text-slate-500")} />
-            출퇴근용 POS 기기 지정
+            출퇴근용 기기로 지정
           </CardTitle>
           <CardDescription className="mt-1">
             웹 브라우저에서 출퇴근을 허용하려면 이 기기를 POS로 지정하세요.
             윈도우 앱(Floxync Desktop)은 매장 POS로 자동 인식됩니다.
             웹과 윈도우 앱의 지정 상태는 서로 공유되지 않습니다.
+            모바일기기는 지원되지 않습니다.
           </CardDescription>
         </div>
       </CardHeader>
@@ -120,7 +121,7 @@ export function PosDeviceSettingsCard() {
               variant={isRegistered ? "outline" : "default"}
               className={isRegistered ? "border-rose-200 text-rose-600 hover:bg-rose-50" : "bg-emerald-600 hover:bg-emerald-700"}
             >
-              {loading ? "처리중..." : isRegistered ? "POS 기기 해제" : "이 기기를 POS로 지정"}
+              {loading ? "처리중..." : isRegistered ? "기기해제" : "기기지정"}
             </Button>
           )}
         </div>
