@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MonitorSmartphone, ShieldCheck } from "lucide-react";
+import { MonitorSmartphone, ShieldCheck, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { isElectronClient } from "@/lib/electron-env";
@@ -83,7 +83,10 @@ export function PosDeviceSettingsCard() {
             웹 브라우저에서 출퇴근을 허용하려면 이 기기를 POS로 지정하세요.
             윈도우 앱(Floxync Desktop)은 매장 POS로 자동 인식됩니다.
             웹과 윈도우 앱의 지정 상태는 서로 공유되지 않습니다.
-            모바일기기는 지원되지 않습니다.
+            <div className="mt-2 text-rose-600 font-medium bg-rose-50/80 px-2.5 py-1 rounded-md flex items-center gap-1.5 w-fit border border-rose-100">
+              <AlertCircle className="h-4 w-4" />
+              모바일 기기는 지원되지 않습니다.
+            </div>
           </CardDescription>
         </div>
       </CardHeader>
