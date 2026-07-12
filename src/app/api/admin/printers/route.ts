@@ -8,7 +8,8 @@ import {
   errAdminServerMisconfigured,
 } from "@/lib/admin/admin-api-errors";
 
-// GET /api/admin/printers - 전체 장비 보유 대수 리스트 및 임대 통계 가져오기
+// GET /api/admin/printers
+// printer_devices 테이블에서 실시간 집계하여 기종별 재고 요약 반환
 export async function GET(req: Request) {
   const gate = await requireAuthenticated(req);
   if (!gate.ok) return gate.response;
@@ -24,143 +25,77 @@ export async function GET(req: Request) {
   }
 
   try {
-    // 1. printer_inventory 조회
-    const { data: inventory, error: iErr } = await admin
-      .from("printer_inventory")
-      .select("*")
-      .order("device_type", { ascending: true })
-      .order("model_name", { ascending: true });
+    // 1. printer_devices 전체 조회 (시리얼 단위 실물 기기)
+    const { data: devices, error: dErr } = await admin
+      .from("printer_devices")
+      .select("id, device_type, model_name, status, current_tenant_id, leased_at, memo, created_at");
 
-    if (iErr) throw iErr;
+    if (dErr) throw dErr;
 
-    // 2. 전체 테넌트 settings 조회하여 기종별 실제 임대 수량 파악
-    const { data: settings, error: sErr } = await admin
-      .from("system_settings")
-      .select("tenant_id, data");
-
-    if (sErr) throw sErr;
-
-    // 3. 임대 현황 세부 분석 매퍼
-    const posLeaseCounts: Record<string, number> = {};
-    const labelLeaseCounts: Record<string, number> = {};
-    
-    // 테넌트 매핑을 위한 리스트
-    const leasedTenants: any[] = [];
-
-    for (const s of settings ?? []) {
-      if (s.data && typeof s.data === "object") {
-        const d = s.data as Record<string, any>;
-        
-        // 포스프린터 체크
-        if (d.pos_printer_leased && d.pos_printer_model) {
-          const model = d.pos_printer_model;
-          posLeaseCounts[model] = (posLeaseCounts[model] || 0) + 1;
-        }
-
-        // 라벨프린터 체크
-        if (d.label_printer_leased && d.label_printer_model) {
-          const model = d.label_printer_model;
-          labelLeaseCounts[model] = (labelLeaseCounts[model] || 0) + 1;
-        }
-
-        // 전체 교환 이력 타임라인 리스트화 (통합 AS 히스토리용)
-        if (d.pos_printer_history && Array.isArray(d.pos_printer_history)) {
-          for (const h of d.pos_printer_history) {
-            if (h && typeof h === "object") {
-              leasedTenants.push({
-                tenant_id: s.tenant_id,
-                device_type: "pos",
-                model: h.model || "알 수 없음",
-                date: h.date || "",
-                memo: h.memo || "",
-              });
-            }
-          }
-        }
-        if (d.label_printer_history && Array.isArray(d.label_printer_history)) {
-          for (const h of d.label_printer_history) {
-            if (h && typeof h === "object") {
-              leasedTenants.push({
-                tenant_id: s.tenant_id,
-                device_type: "label",
-                model: h.model || "알 수 없음",
-                date: h.date || "",
-                memo: h.memo || "",
-              });
-            }
-          }
-        }
-      }
-    }
-
-    // 테넌트 ID -> 테넌트 이름 맵핑
-    const { data: tenants } = await admin
-      .from("tenants")
-      .select("id, name");
-    const tenantNameMap: Record<string, string> = {};
-    for (const t of tenants ?? []) {
-      tenantNameMap[t.id] = t.name;
-    }
-
-    const resolvedLeasedTenants = leasedTenants.map((item) => ({
-      ...item,
-      tenant_name: tenantNameMap[item.tenant_id] || "알 수 없는 회원사",
-    })).sort((a, b) => {
-      const dateA = a.date || "";
-      const dateB = b.date || "";
-      return dateB.localeCompare(dateA);
-    }); // 최신 날짜순 정렬
-
-    // 현재 임대 현황: 각 테넌트가 실제로 임대 중인 장비 목록
-    const currentLeases: Array<{
-      tenant_id: string;
-      tenant_name: string;
+    // 2. 기종별 집계
+    const modelMap: Record<string, {
       device_type: "pos" | "label";
       model_name: string;
-    }> = [];
+      total_stock: number;
+      leased_count: number;
+      available_count: number;
+      repair_count: number;
+      disposed_count: number;
+    }> = {};
 
-    for (const s of settings ?? []) {
-      if (s.data && typeof s.data === "object") {
-        const d = s.data as Record<string, any>;
-        const tName = tenantNameMap[s.tenant_id] || "알 수 없는 회원사";
+    for (const d of devices ?? []) {
+      const key = `${d.device_type}::${d.model_name}`;
+      if (!modelMap[key]) {
+        modelMap[key] = {
+          device_type: d.device_type,
+          model_name: d.model_name,
+          total_stock: 0,
+          leased_count: 0,
+          available_count: 0,
+          repair_count: 0,
+          disposed_count: 0,
+        };
+      }
+      const m = modelMap[key];
+      m.total_stock++;
+      if (d.status === "leased") m.leased_count++;
+      else if (d.status === "repair") m.repair_count++;
+      else if (d.status === "disposed") m.disposed_count++;
+      else m.available_count++; // in_stock
+    }
 
-        if (d.pos_printer_leased && d.pos_printer_model) {
-          currentLeases.push({
-            tenant_id: s.tenant_id,
-            tenant_name: tName,
-            device_type: "pos",
-            model_name: d.pos_printer_model,
-          });
-        }
-        if (d.label_printer_leased && d.label_printer_model) {
-          currentLeases.push({
-            tenant_id: s.tenant_id,
-            tenant_name: tName,
-            device_type: "label",
-            model_name: d.label_printer_model,
-          });
-        }
+    const inventory = Object.values(modelMap).sort((a, b) => {
+      if (a.device_type !== b.device_type) return a.device_type.localeCompare(b.device_type);
+      return a.model_name.localeCompare(b.model_name);
+    });
+
+    // 3. 현재 임대 중인 기기의 테넌트 정보
+    const leasedDevices = (devices ?? []).filter(d => d.status === "leased" && d.current_tenant_id);
+    const tenantIds = [...new Set(leasedDevices.map(d => d.current_tenant_id!))];
+
+    let tenantNameMap: Record<string, string> = {};
+    if (tenantIds.length > 0) {
+      const { data: tenants } = await admin
+        .from("tenants")
+        .select("id, name")
+        .in("id", tenantIds);
+      for (const t of tenants ?? []) {
+        tenantNameMap[t.id] = t.name;
       }
     }
 
-    // 재고 리스트에 임대 수량과 가용 수량 병합
-    const mergedInventory = (inventory ?? []).map((item) => {
-      const isPos = item.device_type === "pos";
-      const leased = isPos 
-        ? (posLeaseCounts[item.model_name] || 0)
-        : (labelLeaseCounts[item.model_name] || 0);
-      const available = Math.max(0, item.total_stock - leased);
-
-      return {
-        ...item,
-        leased_count: leased,
-        available_count: available,
-      };
-    });
+    const currentLeases = leasedDevices.map(d => ({
+      tenant_id: d.current_tenant_id!,
+      tenant_name: tenantNameMap[d.current_tenant_id!] || "알 수 없는 회원사",
+      device_type: d.device_type as "pos" | "label",
+      model_name: d.model_name,
+      leased_at: d.leased_at,
+      memo: d.memo,
+    }));
 
     return NextResponse.json({
-      inventory: mergedInventory,
-      history: resolvedLeasedTenants,
+      inventory,
+      history: [],      // AS 이력은 별도 관리 (추후 확장)
       currentLeases,
     });
   } catch (err: any) {
@@ -169,7 +104,9 @@ export async function GET(req: Request) {
   }
 }
 
-// POST /api/admin/printers - 본사 신규 장비 등록 또는 재고량 추가/수정
+// POST /api/admin/printers — 기종 수동 추가는 더 이상 사용하지 않음
+// (printer_devices에 시리얼 단위로 등록하면 자동 집계됨)
+// 하위 호환을 위해 204 반환
 export async function POST(req: Request) {
   const gate = await requireAuthenticated(req);
   if (!gate.ok) return gate.response;
@@ -178,39 +115,11 @@ export async function POST(req: Request) {
   if (!effectiveIsSuperAdmin(gate.profile, gate.email)) {
     return NextResponse.json({ error: errAdminForbidden(bl) }, { status: 403 });
   }
-
-  const admin = createAdminClient();
-  if (!admin) {
-    return NextResponse.json({ error: errAdminServerMisconfigured(bl) }, { status: 500 });
-  }
-
-  try {
-    const { id, device_type, model_name, total_stock } = await req.json();
-
-    if (!device_type || !model_name || total_stock === undefined) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-    }
-
-    const { error: upsertErr } = await admin
-      .from("printer_inventory")
-      .upsert({
-        ...(id ? { id } : {}),
-        device_type,
-        model_name,
-        total_stock: Number(total_stock),
-        updated_at: new Date().toISOString(),
-      }, { onConflict: "model_name" });
-
-    if (upsertErr) throw upsertErr;
-
-    return NextResponse.json({ success: true });
-  } catch (err: any) {
-    console.error("POST /api/admin/printers error:", err);
-    return NextResponse.json({ error: "저장 실패: " + err.message }, { status: 500 });
-  }
+  // 이제 printer_devices 기반 집계이므로 수동 재고 추가 불필요
+  return NextResponse.json({ success: true, message: "기종별 재고는 printer_devices 시리얼 등록 시 자동 집계됩니다." });
 }
 
-// DELETE /api/admin/printers - 기종 삭제
+// DELETE /api/admin/printers — 마찬가지로 printer_devices에서 직접 삭제 사용
 export async function DELETE(req: Request) {
   const gate = await requireAuthenticated(req);
   if (!gate.ok) return gate.response;
@@ -219,28 +128,5 @@ export async function DELETE(req: Request) {
   if (!effectiveIsSuperAdmin(gate.profile, gate.email)) {
     return NextResponse.json({ error: errAdminForbidden(bl) }, { status: 403 });
   }
-
-  const admin = createAdminClient();
-  if (!admin) {
-    return NextResponse.json({ error: errAdminServerMisconfigured(bl) }, { status: 500 });
-  }
-
-  try {
-    const { id } = await req.json();
-    if (!id) {
-      return NextResponse.json({ error: "Missing id" }, { status: 400 });
-    }
-
-    const { error: delErr } = await admin
-      .from("printer_inventory")
-      .delete()
-      .eq("id", id);
-
-    if (delErr) throw delErr;
-
-    return NextResponse.json({ success: true });
-  } catch (err: any) {
-    console.error("DELETE /api/admin/printers error:", err);
-    return NextResponse.json({ error: "삭제 실패: " + err.message }, { status: 500 });
-  }
+  return NextResponse.json({ success: true, message: "printer_devices 탭에서 개별 기기를 직접 삭제하세요." });
 }

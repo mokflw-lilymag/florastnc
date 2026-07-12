@@ -232,12 +232,7 @@ export default function PrintersAdminPage() {
         </TabsContent>
 
         <TabsContent value="summary" className="space-y-6 mt-0 outline-none">
-          <div className="flex justify-end mb-4">
-            <Button onClick={handleOpenCreate} className="bg-blue-600 hover:bg-blue-700 text-white gap-1 text-xs px-3 h-9 rounded-xl font-bold border-0">
-              <Plus className="w-4 h-4" />
-              신규 기종 추가
-            </Button>
-          </div>
+          {/* printer_devices 시리얼 등록 시 자동 집계 - 수동 추가 불필요 */}
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card className="border-0 shadow-sm ring-1 ring-slate-100 bg-slate-50/50">
@@ -300,22 +295,27 @@ export default function PrintersAdminPage() {
                       <TableRow className="bg-slate-50 hover:bg-slate-50">
                         <TableHead className="text-xs font-bold text-slate-700 py-3.5">구분</TableHead>
                         <TableHead className="text-xs font-bold text-slate-700 py-3.5">기종명</TableHead>
-                        <TableHead className="text-xs font-bold text-slate-700 py-3.5 text-right">총 보유대수</TableHead>
+                        <TableHead className="text-xs font-bold text-slate-700 py-3.5 text-right">원래 보유대수</TableHead>
                         <TableHead className="text-xs font-bold text-slate-700 py-3.5 text-right">임대중</TableHead>
                         <TableHead className="text-xs font-bold text-slate-700 py-3.5 text-right">본사 재고</TableHead>
-                        <TableHead className="text-xs font-bold text-slate-700 py-3.5 text-center w-24">관리</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {inventory.length === 0 ? (
+                      {loading ? (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center py-12 text-slate-400 text-xs">
-                            보유 자산 기종 정보가 등록되어 있지 않습니다.
+                          <TableCell colSpan={5} className="text-center py-12">
+                            <Loader2 className="h-5 w-5 animate-spin mx-auto text-slate-300" />
+                          </TableCell>
+                        </TableRow>
+                      ) : inventory.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center py-12 text-slate-400 text-xs">
+                            등록된 기기가 없습니다. ‘개별 기기(시리얼) 관리’ 탭에서 기기를 등록하면 자동 집계됩니다.
                           </TableCell>
                         </TableRow>
                       ) : (
                         inventory.map((item) => (
-                          <TableRow key={item.id} className="hover:bg-slate-50/50">
+                          <TableRow key={`${item.device_type}-${item.model_name}`} className="hover:bg-slate-50/50">
                             <TableCell className="py-3">
                               {item.device_type === "pos" ? (
                                 <Badge className="bg-emerald-100 text-emerald-800 text-[10px] hover:bg-emerald-100 font-bold px-1.5 py-0.5 rounded-md">
@@ -350,26 +350,6 @@ export default function PrintersAdminPage() {
                               <span className={item.available_count === 0 ? "text-rose-600 font-black" : "text-slate-800"}>
                                 {item.available_count}대
                               </span>
-                            </TableCell>
-                            <TableCell className="py-2 text-center">
-                              <div className="flex items-center justify-center gap-1">
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-7 w-7 p-0 rounded-lg hover:bg-slate-100 border-0"
-                                  onClick={() => handleOpenEdit(item)}
-                                >
-                                  <Edit2 className="w-3.5 h-3.5 text-slate-500" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-7 w-7 p-0 rounded-lg hover:bg-rose-50 border-0"
-                                  onClick={() => handleDelete(item.id)}
-                                >
-                                  <Trash2 className="w-3.5 h-3.5 text-rose-500" />
-                                </Button>
-                              </div>
                             </TableCell>
                           </TableRow>
                         ))
