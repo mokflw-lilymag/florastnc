@@ -101,8 +101,10 @@ export default function AdminSupportPage() {
               />
             </div>
             <Select value={status} onValueChange={(v) => setStatus(v ?? "__all__")}>
-              <SelectTrigger className="w-full sm:w-36">
-                <SelectValue placeholder="상태" />
+              <SelectTrigger className="w-full sm:w-36 bg-white">
+                <SelectValue placeholder="상태">
+                  {status === "__all__" ? "전체 상태" : status === "open" ? "접수중" : "답변완료"}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__all__">전체 상태</SelectItem>
@@ -111,11 +113,13 @@ export default function AdminSupportPage() {
               </SelectContent>
             </Select>
             <Select value={category} onValueChange={(v) => setCategory(v ?? "__all__")}>
-              <SelectTrigger className="w-full sm:w-44">
-                <SelectValue placeholder="카테고리" />
+              <SelectTrigger className="w-full sm:w-44 bg-white">
+                <SelectValue placeholder="카테고리">
+                  {category === "__all__" ? "전체 카테고리" : supportCategoryLabel(category as any, baseLocale)}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__all__">전체</SelectItem>
+                <SelectItem value="__all__">전체 카테고리</SelectItem>
                 {SUPPORT_TICKET_CATEGORIES.map((c) => (
                   <SelectItem key={c.id} value={c.id}>
                     {supportCategoryLabel(c.id, baseLocale)}
