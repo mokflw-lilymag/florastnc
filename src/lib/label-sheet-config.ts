@@ -105,18 +105,18 @@ export const LABEL_SHEET_CONFIGS: Record<string, LabelSheetConfig> = {
     hGapMm: 2.5,
     vGapMm: 0,
   },
-  // LS-3106 — 4열×6행=24칸 (65×33.9mm)
+  // LS-3106 — 4열×6행=24칸 (48.5×45mm) · A4 완전충전 검증: 13.5+6×45+13.5=297mm ✓
   'formtec-3106': {
     formtecProductCode: 'LS-3106',
     cells: 24,
     cols: 4,
     rows: 6,
     labelWidthMm: 48.5,
-    labelHeightMm: 25.4,
+    labelHeightMm: 45,
     pageWidthMm: A4_WIDTH_MM,
     pageHeightMm: A4_HEIGHT_MM,
-    marginTopMm: 21.5,
-    marginBottomMm: 21.1,
+    marginTopMm: 13.5,
+    marginBottomMm: 13.5,
     marginLeftMm: 5.0,
     marginRightMm: 5.0,
     hGapMm: 2.0,
