@@ -359,6 +359,7 @@ export function PrinterDevicesPanel() {
       <div className="flex flex-wrap gap-2 items-center">
         {/* 상태 필터 */}
         <div className="flex items-center gap-1 flex-wrap">
+          <span className="text-xs text-slate-400 mr-1">상태</span>
           {ALL_STATUSES.map(s => (
             <button
               key={s}
