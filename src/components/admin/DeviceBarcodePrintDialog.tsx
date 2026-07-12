@@ -113,13 +113,13 @@ function DeviceBarcodeLabel({ serial, modelName, deviceType, widthMm, heightMm, 
   return (
     <div style={outerStyle}>
       <div style={innerStyle}>
-        {/* ① 헤더: 브랜드명 + 사이트 */}
+        {/* ① 헤더: 브랜드명(크게) + 회사명(작게) */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", lineHeight: 1 }}>
           <span style={{ fontSize: FS.brand, fontWeight: 900, letterSpacing: "0.04em", color: "#000" }}>
-            LILYMAG LAB
-          </span>
-          <span style={{ fontSize: FS.site, fontWeight: 700, color: "#444", letterSpacing: "0.02em" }}>
             FLOXYNC.COM
+          </span>
+          <span style={{ fontSize: FS.site, fontWeight: 600, color: "#666", letterSpacing: "0.02em" }}>
+            LILYMAG LAB
           </span>
         </div>
 
@@ -231,7 +231,7 @@ function buildPrintHtml(
       }
       .hdr { display:flex; justify-content:space-between; align-items:baseline; line-height:1; }
       .brand { font-size:${FS.brand}; font-weight:900; letter-spacing:0.04em; }
-      .site  { font-size:${FS.site};  font-weight:700; color:#444; }
+      .site  { font-size:${FS.site};  font-weight:600; color:#666; }
       .model { font-size:${FS.model}; color:#555; line-height:1; ${tier === "xs" ? "display:none;" : ""} }
       .bc-wrap { display:flex; flex-direction:column; gap:0; }
       .bc-wrap svg { width:100%; display:block; }
@@ -284,8 +284,8 @@ function singleLabelHtml(
     <div class="label-outer">
       <div class="label-inner">
         <div class="hdr">
-          <span class="brand">LILYMAG LAB</span>
-          <span class="site">FLOXYNC.COM</span>
+          <span class="brand">FLOXYNC.COM</span>
+          <span class="site">LILYMAG LAB</span>
         </div>
         ${hideModel ? "" : `<p class="model">${cell.device_type === "pos" ? "POS" : "LABEL"} · ${cell.model_name}</p>`}
         <div class="bc-wrap">
