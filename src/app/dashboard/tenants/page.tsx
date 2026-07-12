@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
 import { AccessDenied } from "@/components/access-denied";
 import { createClient } from "@/utils/supabase/client";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format, addMonths, addDays, isAfter } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -760,7 +761,16 @@ export default function TenantsPage() {
       />
 
       <Card className="border-none shadow-xl shadow-slate-100 bg-white/70 backdrop-blur-md rounded-3xl overflow-hidden">
-        <CardHeader className="pb-4 pt-8 px-8 border-0">
+        <CardHeader className="pb-4 pt-6 px-8 border-0">
+          <Tabs value={filterTenure} onValueChange={(v) => setFilterTenure(v as TenureFilter)} className="mb-6">
+            <TabsList className="bg-slate-100/50 h-12 p-1 rounded-2xl">
+              <TabsTrigger value="ALL" className="rounded-xl px-5 h-full data-[state=active]:bg-white data-[state=active]:shadow-sm">전체 (All)</TabsTrigger>
+              <TabsTrigger value="HEALTHY" className="rounded-xl px-5 h-full data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-sm font-medium">이용 중 (Active)</TabsTrigger>
+              <TabsTrigger value="WARNING" className="rounded-xl px-5 h-full data-[state=active]:bg-white data-[state=active]:text-amber-700 data-[state=active]:shadow-sm font-medium">만료 임박 (Expiring Soon)</TabsTrigger>
+              <TabsTrigger value="EXPIRED" className="rounded-xl px-5 h-full data-[state=active]:bg-white data-[state=active]:text-slate-700 data-[state=active]:shadow-sm font-medium">만료 (Expired)</TabsTrigger>
+              <TabsTrigger value="SUSPENDED" className="rounded-xl px-5 h-full data-[state=active]:bg-white data-[state=active]:text-red-700 data-[state=active]:shadow-sm font-medium">정지/휴면 (Suspended)</TabsTrigger>
+            </TabsList>
+          </Tabs>
           <div className="flex flex-col md:flex-row gap-6 justify-between items-center">
              <div className="relative w-full md:w-96">
                 <Search className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
@@ -962,13 +972,18 @@ export default function TenantsPage() {
                       "group hover:bg-slate-50/50 transition-colors border-slate-50 border-0 cursor-pointer",
                       tenure.bucket === "critical" && "bg-red-50/40",
                       tenure.bucket === "warning" && "bg-amber-50/30",
-                      tenure.isExpired && "bg-slate-50/80",
+                      tenure.isExpired && "bg-slate-50 opacity-60 grayscale-[0.2]",
                     )}
                     onClick={() => openSubscriptionDialog(tenant)}
                   >
                     <TableCell className="px-8 py-5 border-0">
                        <div className="flex flex-col">
-                         <span className="font-normal text-slate-900 leading-tight text-base font-semibold">{tenant.name}</span>
+                         <div className="flex items-center gap-2">
+                           <span className={cn("font-normal leading-tight text-base font-semibold", tenure.isExpired ? "text-slate-500" : "text-slate-900")}>{tenant.name}</span>
+                           {tenure.isExpired && (
+                             <span className="text-[10px] bg-slate-200/80 text-slate-500 px-1.5 py-0.5 rounded font-medium">만료됨</span>
+                           )}
+                         </div>
                          {tenant.representative && (
                            <span className="text-[10px] text-slate-500 mt-0.5">대표 {tenant.representative}</span>
                          )}
