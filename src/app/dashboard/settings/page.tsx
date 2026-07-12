@@ -90,7 +90,7 @@ import { MallIntegrationCard } from "./components/MallIntegrationCard";
 import { RegionalIntegrationPanel } from "./components/RegionalIntegrationPanel";
 import { applyCountryPreset, getCountryPreset, getCountryPresetDiff } from "@/lib/country-preset";
 import { AppLocale, resolveLocale, toBaseLocale } from "@/i18n/config";
-import { readUiLocaleCookie } from "@/i18n/apply-ui-locale";
+import { applyUiLocaleCookie, readUiLocaleCookie } from "@/i18n/apply-ui-locale";
 import { getDashboardSettingsMessages } from "@/i18n/dashboard-settings-messages";
 import { pickUiText } from "@/i18n/pick-ui-text";
 import {
@@ -528,7 +528,6 @@ export default function SettingsPage() {
   
   // Settings & Fees Hooks
   const { settings, saveSettings, loading: settingsLoading } = useSettings();
-  const { persistUiLocale } = usePersistUiLocale();
   const { fees: regionFees, addFee, deleteFee, updateFee, importFees, loading: feesLoading } = useDeliveryFees();
 
   // Subscription Cancellation Local States
@@ -895,7 +894,9 @@ export default function SettingsPage() {
 
   const handleLocaleChange = async (nextLocale: AppLocale) => {
     setUiLocale(nextLocale);
-    const saved = await persistUiLocale(nextLocale);
+    applyUiLocaleCookie(nextLocale);
+    const newSettings = { ...settings, uiLocale: nextLocale };
+    const saved = await saveSettings(newSettings);
     if (!saved) {
       toast.error(
         pickUiText(
