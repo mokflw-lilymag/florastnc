@@ -14,11 +14,8 @@ import { getLabelSheetConfig, A4_WIDTH_MM, A4_HEIGHT_MM } from "@/lib/label-shee
 import JsBarcode from "jsbarcode";
 
 const PAPER_OPTIONS = [
-  { value: "formtec-3105", label: "폼텍 LS-3105 (21칸 · 63.5×38mm)" },
   { value: "formtec-3106", label: "폼텍 LS-3106 (24칸 · 48.5×25mm)" },
   { value: "formtec-3213", label: "폼텍 LS-3213 (27칸 · 63.5×30mm)" },
-  { value: "formtec-3109", label: "폼텍 LS-3212 (12칸 · 100×45mm)" },
-  { value: "formtec-3108", label: "폼텍 LS-3114  (8칸 · 99×68mm)" },
   { value: "label-50x80",  label: "감열 라벨 50×80mm" },
   { value: "label-60x70",  label: "감열 라벨 60×70mm" },
   { value: "label-50x30",  label: "감열 라벨 50×30mm" },
@@ -307,7 +304,7 @@ interface Props {
 }
 
 export function DeviceBarcodePrintDialog({ open, onClose, devices }: Props) {
-  const [paperType, setPaperType] = useState<PaperValue>("formtec-3108");
+  const [paperType, setPaperType] = useState<PaperValue>("formtec-3106");
   const [startCell, setStartCell] = useState(1);
   const [previewPage, setPreviewPage] = useState(0);
   // 기기별 수량 (device.id => 수량)
@@ -373,9 +370,16 @@ export function DeviceBarcodePrintDialog({ open, onClose, devices }: Props) {
 
   const lw = config.labelWidthMm;
   const lh = config.labelHeightMm;
+
+  // A4 미리보기: 스케일된 크기를 wrapper에 명시해야 flex 정렬이 정확함
+  // transformOrigin: top left + 래퍼 크기 = 스케일×원본
+  const MM_TO_PX = 3.7795;
+  const a4Wpx = A4_WIDTH_MM * MM_TO_PX;   // ~793px
+  const a4Hpx = A4_HEIGHT_MM * MM_TO_PX;  // ~1122px
+  const MAX_H = 460; // 미리보기 최대 높이(px)
   const previewScale = isThermal
     ? Math.min(200 / lw, 250 / lh)
-    : 0.52;
+    : MAX_H / a4Hpx;  // A4 높이 기준으로 스케일 계산
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -477,14 +481,15 @@ export function DeviceBarcodePrintDialog({ open, onClose, devices }: Props) {
         </div>
 
         {/* 미리보기 */}
-        <div className="flex justify-center overflow-auto py-4 bg-slate-100 rounded-lg min-h-[320px]">
-          <div style={{
-            transform: `scale(${previewScale})`,
-            transformOrigin: "top center",
-            width: isThermal ? `${lw}mm` : `${A4_WIDTH_MM}mm`,
-            marginBottom: isThermal ? `-${lh * previewScale * 0.4}mm` : undefined,
-          }}>
-            {isThermal ? (
+        <div className="flex justify-center items-start overflow-hidden py-4 bg-slate-100 rounded-lg" style={{ minHeight: '480px' }}>
+          {isThermal ? (
+            <div style={{
+              transform: `scale(${previewScale})`,
+              transformOrigin: "top center",
+              width: `${lw}mm`, height: `${lh}mm`,
+              marginBottom: `-${lh * previewScale * 0.4}mm`,
+              flexShrink: 0,
+            }}>
               <div style={{ width: `${lw}mm`, height: `${lh}mm`, boxShadow: "0 2px 8px rgba(0,0,0,0.15)" }}>
                 {currentPage[0] && (
                   <DeviceBarcodeLabel
@@ -495,9 +500,22 @@ export function DeviceBarcodePrintDialog({ open, onClose, devices }: Props) {
                   />
                 )}
               </div>
-            ) : (
+            </div>
+          ) : (
+            /* A4: 래퍼를 스케일된 크기로 고정 → flex 정렬 정확 */
+            <div style={{
+              width: `${a4Wpx * previewScale}px`,
+              height: `${a4Hpx * previewScale}px`,
+              position: "relative",
+              flexShrink: 0,
+            }}>
               <div style={{
-                width: `${A4_WIDTH_MM}mm`, height: `${A4_HEIGHT_MM}mm`,
+                width: `${A4_WIDTH_MM}mm`,
+                height: `${A4_HEIGHT_MM}mm`,
+                position: "absolute",
+                top: 0, left: 0,
+                transform: `scale(${previewScale})`,
+                transformOrigin: "top left",
                 paddingTop: `${config.marginTopMm}mm`,
                 paddingBottom: `${config.marginBottomMm}mm`,
                 paddingLeft: `${config.marginLeftMm}mm`,
@@ -507,34 +525,66 @@ export function DeviceBarcodePrintDialog({ open, onClose, devices }: Props) {
                 gridTemplateRows: `repeat(${config.rows}, ${lh}mm)`,
                 columnGap: `${config.hGapMm}mm`,
                 rowGap: `${config.vGapMm}mm`,
-                background: "#f3f4f6",   // 연한 회색 배경 → 흰 라벨 셀 구분
-                boxShadow: "0 2px 12px rgba(0,0,0,0.12)",
+                background: "#f3f4f6",
+                boxShadow: "0 2px 12px rgba(0,0,0,0.14)",
+                boxSizing: "border-box",
               }}>
-                {currentPage.map((cell, idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      width: `${lw}mm`,
-                      height: `${lh}mm`,
-                      overflow: "hidden",
-                      background: "white",
-                      border: cell ? "0.8px solid #94a3b8" : "0.8px dashed #cbd5e1",
-                      boxSizing: "border-box",
-                    }}
-                  >
-                    {cell && (
-                      <DeviceBarcodeLabel
-                        serial={cell.serial_number}
-                        modelName={cell.model_name}
-                        deviceType={cell.device_type}
-                        widthMm={lw} heightMm={lh}
-                      />
-                    )}
-                  </div>
-                ))}
+                {currentPage.map((cell, idx) => {
+                  // 실제 칸 번호 = 페이지 오프셋 + idx + 1
+                  const cellNo = previewPage * totalCells + idx + 1;
+                  return (
+                    <div
+                      key={idx}
+                      style={{
+                        width: `${lw}mm`,
+                        height: `${lh}mm`,
+                        overflow: "hidden",
+                        background: "white",
+                        border: cell ? "0.8px solid #94a3b8" : "0.8px dashed #cbd5e1",
+                        boxSizing: "border-box",
+                        position: "relative",
+                      }}
+                    >
+                      {cell ? (
+                        <>
+                          {/* 내용 있는 셀: 좌상단 작은 번호 뱃지 */}
+                          <div style={{
+                            position: "absolute", top: "0.5mm", left: "0.5mm",
+                            background: "#3b82f6", color: "white",
+                            fontSize: "3px", fontWeight: 900, lineHeight: 1,
+                            padding: "0.4mm 0.6mm", borderRadius: "0.5mm",
+                            zIndex: 10,
+                          }}>
+                            {cellNo}
+                          </div>
+                          <DeviceBarcodeLabel
+                            serial={cell.serial_number}
+                            modelName={cell.model_name}
+                            deviceType={cell.device_type}
+                            widthMm={lw} heightMm={lh}
+                          />
+                        </>
+                      ) : (
+                        /* 빈 셀: 중앙에 번호 크게 */
+                        <div style={{
+                          width: "100%", height: "100%",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                        }}>
+                          <span style={{
+                            fontSize: `${Math.min(lw, lh) * 0.3}mm`,
+                            fontWeight: 900, color: "#d1d5db",
+                            lineHeight: 1,
+                          }}>
+                            {cellNo}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
