@@ -69,9 +69,10 @@ function DeviceBarcodeLabel({ serial, modelName, deviceType, widthMm, heightMm, 
         height: FS.bh * 3.78, // mm → approx px (96dpi)
         background: "transparent",
       });
-      // 너비를 100% 채우도록 강제
-      svgRef.current.removeAttribute("width");
+      // 너비를 100% 채우되 높이는 고정하여 비율 팽창에 의한 잘림 방지
+      svgRef.current.setAttribute("preserveAspectRatio", "none");
       svgRef.current.style.width = "100%";
+      svgRef.current.style.height = `${FS.bh}mm`;
       svgRef.current.style.display = "block";
     } catch (e) {
       console.warn("JsBarcode:", e);
@@ -100,9 +101,10 @@ function DeviceBarcodeLabel({ serial, modelName, deviceType, widthMm, heightMm, 
     ...(isPortrait
       ? {
           position: "absolute",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%) rotate(90deg)",
+          top: 0,
+          left: `${widthMm}mm`,
+          transformOrigin: "top left",
+          transform: "rotate(90deg)",
         }
       : {}),
   };
@@ -219,19 +221,19 @@ function buildPrintHtml(
       ${pageStyle}
       * { box-sizing:border-box; margin:0; padding:0; }
       html,body { background:white; }
-      .label-outer { width:${lw}mm; height:${lh}mm; overflow:hidden; position:relative; background:white; }
+      .label-outer { width:${lw}mm; height:${lh}mm; overflow:hidden; position:relative; background:white; ${isThermal ? "page-break-after:always; page-break-inside:avoid;" : ""} }
       .label-inner {
         width:${cW}mm; height:${cH}mm;
         display:flex; flex-direction:column; justify-content:space-between;
         padding:${pad};
-        ${isPortrait ? `position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) rotate(90deg);` : ""}
+        ${isPortrait ? `position:absolute; top:0; left:${lw}mm; transform-origin:top left; transform:rotate(90deg);` : ""}
       }
       .hdr { display:flex; justify-content:space-between; align-items:baseline; line-height:1; }
       .brand { font-size:${FS.brand}; font-weight:900; letter-spacing:0.04em; }
       .site  { font-size:${FS.site};  font-weight:600; color:#666; }
       .model { font-size:${FS.model}; color:#555; line-height:1; ${tier === "xs" ? "display:none;" : ""} }
       .bc-wrap { display:flex; flex-direction:column; gap:0; }
-      .bc-wrap svg { width:100%; display:block; }
+      .bc-wrap svg { width:100%; height:${FS.bh}mm; display:block; }
       .serial { font-size:${FS.serial}; font-family:monospace; font-weight:700; text-align:center; line-height:1; }
       .note { font-size:${FS.note}; color:#cc0000; font-weight:700; line-height:1.3; border-top:0.3pt solid #ddd; padding-top:0.4mm; }
       @media print { body { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }
@@ -250,10 +252,10 @@ function buildPrintHtml(
               height:${FS.bh * 3.78},
               background:'transparent'
             });
-            el.removeAttribute('width');
-            el.style.width='100%';
-            el.style.display='block';
-          } catch(e) {}
+            el.setAttribute('preserveAspectRatio', 'none');
+            el.style.width = '100%';
+            el.style.height = '${FS.bh}mm';
+          } catch(e){ console.error(e); }
         });
         setTimeout(function(){ window.print(); }, 800);
       });
@@ -481,16 +483,22 @@ export function DeviceBarcodePrintDialog({ open, onClose, devices }: Props) {
         </div>
 
         {/* 미리보기 */}
-        <div className="flex justify-center items-start overflow-hidden py-4 bg-slate-100 rounded-lg" style={{ minHeight: '480px' }}>
+        <div className="flex justify-center items-start overflow-auto py-4 bg-slate-100 rounded-lg" style={{ minHeight: '480px' }}>
           {isThermal ? (
             <div style={{
-              transform: `scale(${previewScale})`,
-              transformOrigin: "top center",
-              width: `${lw}mm`, height: `${lh}mm`,
-              marginBottom: `-${lh * previewScale * 0.4}mm`,
+              width: `${lw * previewScale}mm`,
+              height: `${lh * previewScale}mm`,
+              position: "relative",
               flexShrink: 0,
             }}>
-              <div style={{ width: `${lw}mm`, height: `${lh}mm`, boxShadow: "0 2px 8px rgba(0,0,0,0.15)" }}>
+              <div style={{
+                width: `${lw}mm`, height: `${lh}mm`,
+                transform: `scale(${previewScale})`,
+                transformOrigin: "top left",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                position: "absolute",
+                top: 0, left: 0,
+              }}>
                 {currentPage[0] && (
                   <DeviceBarcodeLabel
                     serial={currentPage[0].serial_number}
