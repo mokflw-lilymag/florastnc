@@ -310,18 +310,44 @@ export function DeviceBarcodePrintDialog({ open, onClose, devices }: Props) {
   const [paperType, setPaperType] = useState<PaperValue>("formtec-3108");
   const [startCell, setStartCell] = useState(1);
   const [previewPage, setPreviewPage] = useState(0);
+  // 기기별 수량 (device.id => 수량)
+  const [qtys, setQtys] = useState<Record<string, number>>({});
+
+  // 다이얼로그 열릴 때 수량 초기화
+  const prevOpenRef = useRef(false);
+  useEffect(() => {
+    if (open && !prevOpenRef.current) {
+      const init: Record<string, number> = {};
+      devices.forEach(d => { init[d.id] = 1; });
+      setQtys(init);
+      setPreviewPage(0);
+    }
+    prevOpenRef.current = open;
+  }, [open, devices]);
+
+  const setQty = (id: string, val: number) =>
+    setQtys(prev => ({ ...prev, [id]: Math.max(1, Math.min(99, val)) }));
+
+  const totalLabels = devices.reduce((s, d) => s + (qtys[d.id] ?? 1), 0);
 
   const config = getLabelSheetConfig(paperType);
   const isThermal = config.isThermal ?? false;
   const totalCells = config.cells;
 
+  // 수량 반영: 기기마다 qty만큼 반복
+  const expandedDevices: DeviceItem[] = [];
+  devices.forEach(d => {
+    const n = qtys[d.id] ?? 1;
+    for (let i = 0; i < n; i++) expandedDevices.push(d);
+  });
+
   // 페이지 배열 계산
   const filledCells: (DeviceItem | null)[] = [];
   if (isThermal) {
-    devices.forEach(d => filledCells.push(d));
+    expandedDevices.forEach(d => filledCells.push(d));
   } else {
     for (let i = 0; i < startCell - 1; i++) filledCells.push(null);
-    devices.forEach(d => filledCells.push(d));
+    expandedDevices.forEach(d => filledCells.push(d));
     while (filledCells.length % totalCells !== 0) filledCells.push(null);
   }
 
@@ -357,7 +383,7 @@ export function DeviceBarcodePrintDialog({ open, onClose, devices }: Props) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Printer className="w-5 h-5 text-blue-600" />
-            바코드 라벨 출력 — {devices.length}대
+            바코드 라벨 출력 — {devices.length}대 / 총 {totalLabels}장
           </DialogTitle>
         </DialogHeader>
 
@@ -403,6 +429,51 @@ export function DeviceBarcodePrintDialog({ open, onClose, devices }: Props) {
               <Printer className="w-4 h-4 mr-1.5" />인쇄
             </Button>
           </div>
+        </div>
+
+        {/* 기기별 수량 입력 */}
+        <div className="border border-slate-100 rounded-lg overflow-hidden">
+          <table className="w-full text-xs">
+            <thead className="bg-slate-50">
+              <tr>
+                <th className="text-left px-3 py-2 font-bold text-slate-600">구분</th>
+                <th className="text-left px-3 py-2 font-bold text-slate-600">시리얼</th>
+                <th className="text-left px-3 py-2 font-bold text-slate-600">기종</th>
+                <th className="text-center px-3 py-2 font-bold text-slate-600 w-32">출력 수량</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {devices.map(d => (
+                <tr key={d.id} className="hover:bg-slate-50/60">
+                  <td className="px-3 py-1.5">
+                    <span className={`font-bold text-[10px] px-1.5 py-0.5 rounded ${
+                      d.device_type === "pos" ? "bg-blue-50 text-blue-700" : "bg-purple-50 text-purple-700"
+                    }`}>{d.device_type === "pos" ? "POS" : "LABEL"}</span>
+                  </td>
+                  <td className="px-3 py-1.5 font-mono font-bold text-slate-700">{d.serial_number}</td>
+                  <td className="px-3 py-1.5 text-slate-600">{d.model_name}</td>
+                  <td className="px-3 py-1.5">
+                    <div className="flex items-center justify-center gap-1.5">
+                      <button
+                        className="w-6 h-6 rounded border border-slate-200 hover:bg-slate-100 font-bold text-slate-600 flex items-center justify-center"
+                        onClick={() => setQty(d.id, (qtys[d.id] ?? 1) - 1)}
+                      >−</button>
+                      <input
+                        type="number" min={1} max={99}
+                        value={qtys[d.id] ?? 1}
+                        onChange={e => setQty(d.id, parseInt(e.target.value) || 1)}
+                        className="w-12 h-6 text-center border border-slate-200 rounded text-xs font-bold"
+                      />
+                      <button
+                        className="w-6 h-6 rounded border border-slate-200 hover:bg-slate-100 font-bold text-slate-600 flex items-center justify-center"
+                        onClick={() => setQty(d.id, (qtys[d.id] ?? 1) + 1)}
+                      >+</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
 
         {/* 미리보기 */}
