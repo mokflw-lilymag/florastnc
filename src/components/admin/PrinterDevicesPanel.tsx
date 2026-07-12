@@ -388,7 +388,9 @@ export function PrinterDevicesPanel() {
           <span className="text-xs text-slate-400">기종</span>
           <Select value={modelFilter} onValueChange={(v: string | null) => setModelFilter(v ?? "all")}>
             <SelectTrigger className="h-8 text-xs w-44 bg-white">
-              <SelectValue placeholder="전체 기종" />
+              <SelectValue placeholder="전체 기종">
+                {modelFilter === "all" ? "전체 기종" : modelFilter}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">전체 기종</SelectItem>
@@ -661,7 +663,11 @@ export function PrinterDevicesPanel() {
               <div className="space-y-2">
                 <Label>구분</Label>
                 <Select value={formDeviceType} onValueChange={(v: any) => setFormDeviceType(v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue>
+                      {formDeviceType === "pos" ? "포스 프린터 (POS)" : "라벨 프린터 (LABEL)"}
+                    </SelectValue>
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="pos">포스 프린터 (POS)</SelectItem>
                     <SelectItem value="label">라벨 프린터 (LABEL)</SelectItem>
@@ -738,7 +744,14 @@ export function PrinterDevicesPanel() {
             <div className="space-y-2">
               <Label>기기 상태</Label>
               <Select value={formStatus} onValueChange={(val) => setFormStatus(val || "in_stock")} disabled={!!selectedDevice?.current_tenant_id}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue>
+                    {formStatus === "in_stock" ? "재고(보관중)" :
+                     formStatus === "leased" ? "임대중" :
+                     formStatus === "repair" ? "A/S 진행중" :
+                     formStatus === "disposed" ? "폐기" : formStatus}
+                  </SelectValue>
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="in_stock">재고(보관중)</SelectItem>
                   <SelectItem value="leased">임대중</SelectItem>
