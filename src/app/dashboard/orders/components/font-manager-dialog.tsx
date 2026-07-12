@@ -1,5 +1,6 @@
 "use client";
 import { getMessages } from "@/i18n/getMessages";
+import { toast } from "sonner";
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,9 @@ import {
     FONT_CATEGORIES,
     FontCatalogItem,
     getActiveFonts,
-    setActiveFonts,
+    getDiscoveredLocalFonts,
+    setDiscoveredLocalFonts,
+    updateActiveFonts,
 } from "@/lib/font-catalog";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 
@@ -29,30 +32,90 @@ export function FontManagerDialog({ isOpen, onOpenChange, onFontsChanged }: Font
     const [activeFonts, setActiveFontsState] = useState<string[]>([]);
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
     const [search, setSearch] = useState("");
+    const [localFonts, setLocalFonts] = useState<FontCatalogItem[]>([]);
 
     useEffect(() => {
         if (isOpen) {
             setActiveFontsState(getActiveFonts());
+            setLocalFonts(getDiscoveredLocalFonts());
         }
     }, [isOpen]);
 
-    const toggleFont = (family: string) => {
-        setActiveFontsState(prev => {
-            if (prev.includes(family)) {
-                return prev.filter(f => f !== family);
-            } else {
-                return [...prev, family];
+    const loadLocalFonts = async () => {
+        try {
+            if (!('queryLocalFonts' in window)) {
+                toast.error("이 브라우저에서는 로컬 폰트 접근을 지원하지 않습니다.");
+                return;
             }
-        });
+            // @ts-ignore
+            const fonts = await window.queryLocalFonts();
+            const uniqueFamilies = new Set<string>();
+            const newLocalFonts: FontCatalogItem[] = [];
+            
+            for (const font of fonts) {
+                if (!uniqueFamilies.has(font.family)) {
+                    uniqueFamilies.add(font.family);
+                    newLocalFonts.push({
+                        name: font.family,
+                        family: font.family,
+                        url: '',
+                        source: 'local',
+                        category: 'local',
+                        preview: '내 PC 설치 폰트'
+                    });
+                }
+            }
+            
+            setLocalFonts(newLocalFonts);
+            setDiscoveredLocalFonts(newLocalFonts);
+            toast.success(`${newLocalFonts.length}개의 로컬 폰트를 불러왔습니다.`);
+        } catch (error) {
+            console.error(error);
+            toast.error("로컬 폰트를 불러오는데 실패했습니다. 권한을 확인해주세요.");
+        }
+    };
+
+    const toggleFont = (family: string) => {
+        const next = activeFonts.includes(family)
+            ? activeFonts.filter(f => f !== family)
+            : [...activeFonts, family];
+        setActiveFontsState(next);
+        updateActiveFonts(next);
     };
 
     const handleSave = () => {
-        setActiveFonts(activeFonts);
-        onFontsChanged?.();
+        updateActiveFonts(activeFonts);
         onOpenChange(false);
     };
 
-    const filteredFonts = FONT_CATALOG.filter(font => {
+    const activeLocalFonts = activeFonts
+        .filter(family => !FONT_CATALOG.find(f => f.family === family))
+        .filter(family => !localFonts.find(f => f.family === family))
+        .map(family => ({
+            name: family,
+            family: family,
+            url: '',
+            source: 'local' as const,
+            category: 'local',
+            preview: '내 PC 설치 폰트'
+        }));
+
+    const dedupeByFamily = (fonts: FontCatalogItem[]) => {
+        const seen = new Set<string>();
+        return fonts.filter(font => {
+            if (seen.has(font.family)) return false;
+            seen.add(font.family);
+            return true;
+        });
+    };
+
+    const allFonts = dedupeByFamily([
+        ...FONT_CATALOG,
+        ...activeLocalFonts,
+        ...localFonts.filter(f => !activeLocalFonts.find(af => af.family === f.family)),
+    ]);
+
+    const filteredFonts = allFonts.filter(font => {
         const matchCategory = selectedCategory === 'all' || font.category === selectedCategory;
         const matchSearch = search === '' ||
             font.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -62,7 +125,7 @@ export function FontManagerDialog({ isOpen, onOpenChange, onFontsChanged }: Font
 
     const activeCounts = FONT_CATEGORIES.reduce((acc, cat) => {
         acc[cat.id] = activeFonts.filter(af =>
-            FONT_CATALOG.find(f => f.family === af && f.category === cat.id)
+            allFonts.find(f => f.family === af && f.category === cat.id)
         ).length;
         return acc;
     }, {} as Record<string, number>);
@@ -98,11 +161,23 @@ export function FontManagerDialog({ isOpen, onOpenChange, onFontsChanged }: Font
                     <div className="flex gap-1 flex-wrap">
                         <Button
                             type="button"
+                            variant="secondary"
+                            size="sm"
+                            onClick={loadLocalFonts}
+                        >
+                            <Plus className="h-4 w-4 mr-1" />
+                            내 PC 폰트 불러오기
+                        </Button>
+                    </div>
+
+                    <div className="flex gap-1 flex-wrap">
+                        <Button
+                            type="button"
                             variant={selectedCategory === 'all' ? 'default' : 'outline'}
                             size="sm"
                             onClick={() => setSelectedCategory('all')}
                         >
-                            {tf.f00553} ({FONT_CATALOG.length})
+                            {tf.f00553} ({allFonts.length})
                         </Button>
                         {FONT_CATEGORIES.map(cat => (
                             <Button

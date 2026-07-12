@@ -1,15 +1,16 @@
 "use client";
 import { getMessages } from "@/i18n/getMessages";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Printer, Loader2 } from "lucide-react";
+import { ArrowLeft, Printer, Loader2, Eye, EyeOff } from "lucide-react";
 import { useRouter } from 'next/navigation';
 import { PrintableOrder, OrderPrintData } from '../../../components/printable-order';
 import { useAuth } from '@/hooks/use-auth';
 import { PageHeader } from '@/components/page-header';
 import { format } from "date-fns";
+import { ko } from "date-fns/locale";
 import { createClient } from '@/utils/supabase/client';
 import { Order } from '@/types/order';
 import { useSettings } from '@/hooks/use-settings';
@@ -17,6 +18,8 @@ import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { normalizeReceiptLocaleSetting } from "@/lib/receipt-locale-options";
 import { toBaseLocale } from "@/i18n/config";
 import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
+import { signalPrintDocumentReady } from '@/lib/print-routes';
+import { useReactToPrint } from 'react-to-print';
 
 interface PrintPreviewClientProps {
     orderId: string;
@@ -32,10 +35,30 @@ export function PrintPreviewClient({ orderId }: PrintPreviewClientProps) {
     const locale = receiptSetting === "auto" ? uiLocale : receiptSetting;
     const tf = getMessages(locale as any).tenantFlows;
     const dfLoc = dateFnsLocaleForBase(toBaseLocale(locale as any));
-    const dateTimeWeekday = (d: Date) => format(d, "Pp (EEE)", { locale: dfLoc });
+    // 한국어 날짜: 2026년 7월 20일 (월) 오후 2:00
+    const dateTimeWeekday = (d: Date) => format(d, "yyyy년 M월 d일 (EEE) a h:mm", { locale: ko });
     const [order, setOrder] = useState<Order | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [isEmbed, setIsEmbed] = useState(false);
+    const [maskPersonalInfo, setMaskPersonalInfo] = useState(true);
+    const printRef = useRef<HTMLDivElement>(null);
+
+    const handlePrint = useReactToPrint({
+        contentRef: printRef,
+        documentTitle: `주문서_${order?.order_number || orderId}`,
+        pageStyle: `
+            @media print {
+                @page { size: A4; margin: 10mm 15mm; }
+                body { margin: 0 !important; padding: 0 !important; }
+                * { transition: none !important; box-shadow: none !important; }
+            }
+        `,
+    });
+
+    useEffect(() => {
+        setIsEmbed(window.self !== window.top);
+    }, []);
 
     useEffect(() => {
         async function fetchOrder() {
@@ -66,18 +89,32 @@ export function PrintPreviewClient({ orderId }: PrintPreviewClientProps) {
         }
     }, [orderId, authLoading, tenantId]);
 
-    // Added auto-print logic to handle both direct access and silent printing
+    // 숨김 iframe에서 로드될 때 부모가 인쇄 대화상자를 띄우도록 준비 신호만 보냄
     useEffect(() => {
-        if (!loading && order) {
-            const isIframe = window.self !== window.top;
-            if (!isIframe) {
-                // If it's a direct browser tab, trigger print automatically
-                const timer = setTimeout(() => {
-                    window.print();
-                }, 1000);
-                return () => clearTimeout(timer);
+        if (loading || !order) return;
+
+        let cancelled = false;
+
+        const notifyReady = async () => {
+            try {
+                await document.fonts?.ready;
+            } catch {
+                /* ignore */
             }
-        }
+            if (cancelled) return;
+
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    if (cancelled) return;
+                    signalPrintDocumentReady();
+                });
+            });
+        };
+
+        void notifyReady();
+        return () => {
+            cancelled = true;
+        };
     }, [loading, order]);
 
     if (authLoading || loading) {
@@ -124,6 +161,7 @@ export function PrintPreviewClient({ orderId }: PrintPreviewClientProps) {
 
     // Mapping order to PrintableOrder format
     const printData: OrderPrintData = {
+        orderNumber: order.order_number || '',
         orderDate: dateTimeWeekday(orderDateObject),
         ordererName: order.orderer?.name || tf.f00224,
         ordererCompany: order.orderer?.company || '',
@@ -145,6 +183,7 @@ export function PrintPreviewClient({ orderId }: PrintPreviewClientProps) {
             : tf.f00192,
         message: order.message?.content || "",
         messageType: order.message?.type === 'ribbon' ? 'ribbon' : 'card',
+        memo: order.memo || '',
         isAnonymous: order.outsource_info?.hideCustomerInfo || false,
         shopInfo: {
             name: order.outsource_info?.sender_branding?.name || settings?.siteName || profile?.tenants?.name || "Floxync",
@@ -192,27 +231,44 @@ export function PrintPreviewClient({ orderId }: PrintPreviewClientProps) {
             `}</style>
             
             <div className="max-w-4xl mx-auto p-4 md:p-8 no-print">
+                {!isEmbed && (
                 <PageHeader
                     title={tf.f00630}
                     description={`${tf.f00624}: ${order.order_number}`}
                 >
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setMaskPersonalInfo(prev => !prev)}
+                            className={maskPersonalInfo
+                                ? "font-light border-amber-400 text-amber-700 bg-amber-50 hover:bg-amber-100"
+                                : "font-light border-green-400 text-green-700 bg-green-50 hover:bg-green-100"
+                            }
+                        >
+                            {maskPersonalInfo
+                                ? <><EyeOff className="mr-2 h-4 w-4" /> 마스킹 ON (인쇄 시 개인정보 가림)</>
+                                : <><Eye className="mr-2 h-4 w-4" /> 마스킹 OFF (원본 표시)</>}
+                        </Button>
                         <Button variant="outline" size="sm" onClick={() => router.back()} className="font-light">
                             <ArrowLeft className="mr-2 h-4 w-4" />
                             {tf.f00214}
                         </Button>
-                        <Button size="sm" onClick={() => window.print()} className="font-light">
+                        <Button size="sm" onClick={() => handlePrint()} className="font-light">
                             <Printer className="mr-2 h-4 w-4" />
                             {tf.f00785}
                         </Button>
                     </div>
                 </PageHeader>
+                )}
             </div>
 
             <div id="printable-area" className="flex items-center justify-center p-4">
                 <Card className="border-none shadow-none w-full max-w-4xl mx-auto">
                     <CardContent className="p-0">
-                        <PrintableOrder data={printData} locale={locale} />
+                        <div ref={printRef}>
+                            <PrintableOrder data={printData} locale={locale} maskPersonalInfo={maskPersonalInfo} />
+                        </div>
                     </CardContent>
                 </Card>
             </div>

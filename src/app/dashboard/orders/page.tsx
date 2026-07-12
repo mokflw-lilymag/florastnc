@@ -55,7 +55,7 @@ import {
   DropdownMenuSubTrigger, 
   DropdownMenuPortal 
 } from "@/components/ui/dropdown-menu";
-import { printDocument } from "@/lib/print-document";
+// printDocument는 미리보기 페이지 직접 이동으로 대체됨
 import { usePartnerTouchUi } from "@/hooks/use-partner-touch-ui";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { ElectronYearlyStatsCard } from "@/components/desktop/electron-yearly-stats-card";
@@ -673,11 +673,8 @@ export default function OrdersPage() {
   
   const handleOrderPrint = (orderId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    toast.promise(printDocument(`/dashboard/orders/print-preview/${orderId}`), {
-      loading: tf.f00632,
-      success: tf.f00519,
-      error: tf.f00518
-    });
+    // 미리보기 페이지로 직접 이동 (마스킹 토글 버튼 포함)
+    router.push(`/dashboard/orders/print-preview/${orderId}`);
   };
 
   const handleStatusUpdate = async (id: string, status: Order['status']) => {

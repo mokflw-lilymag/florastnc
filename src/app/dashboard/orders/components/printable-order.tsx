@@ -6,6 +6,7 @@ import React from 'react';
 import Image from 'next/image';
 
 export interface OrderPrintData {
+    orderNumber: string;
     orderDate: string;
     ordererName: string;
     ordererCompany?: string;
@@ -21,6 +22,7 @@ export interface OrderPrintData {
     deliveryAddress: string;
     message: string;
     messageType: 'card' | 'ribbon';
+    memo?: string;
     isAnonymous: boolean;
     shopInfo: {
         name: string;
@@ -36,12 +38,32 @@ export interface OrderPrintData {
 interface PrintableOrderProps {
     data: OrderPrintData | null;
     locale?: string;
+    maskPersonalInfo?: boolean;
 }
 
 class PrintableOrderInner extends React.Component<PrintableOrderProps & {currencySymbol: string}> {
     render() {
-        const { data, locale = "ko" } = this.props;
+        const { data, locale = "ko", maskPersonalInfo = true } = this.props;
         if (!data) return null;
+
+        // 마스킹 함수 — isReceipt && maskPersonalInfo 일 때만 실제 마스킹 적용
+        // (renderSection 내에서 shouldMask로 제어)
+        const maskName = (name: string, shouldMask: boolean) => {
+            if (!shouldMask) return name;
+            if (!name) return '';
+            return '***';
+        };
+
+        const maskPhone = (phone: string, shouldMask: boolean) => {
+            if (!shouldMask) return phone;
+            if (!phone) return '';
+            // 한국 전화번호 정확 매칭: 010/011/016~019, 02, 031~099
+            // 010-1234-5678 → 010-****-5678 (3자리 prefix만 노출)
+            return phone.replace(
+                /(01[016789]|0[2-9]\d{0,2})-?(\d{3,4})-?(\d{4})/,
+                (_match, p1, _p2, p3) => `${p1}-****-${p3}`
+            );
+        };
         const tf = getMessages(locale).tenantFlows;
         const paymentMethodText = (() => {
             const m = data.paymentMethod;
@@ -72,49 +94,79 @@ class PrintableOrderInner extends React.Component<PrintableOrderProps & {currenc
             </span>
         );
 
-        const renderSection = (title: string, isReceipt: boolean) => (
+        const renderSection = (title: string, isReceipt: boolean) => {
+            // 인수증(isReceipt=true)이고 마스킹 설정이 ON일 때만 마스킹 적용
+            // 주문서(isReceipt=false)는 항상 원본 표시
+            const shouldMask = isReceipt && maskPersonalInfo;
+
+            return (
             <div className="mb-4">
-                <div className="flex flex-col items-center mb-4">
+                <div className="flex flex-col items-center mb-3">
                     {data.logoUrl && (
-                        <div className="mb-3 max-h-16 flex items-center justify-center">
+                        <div className="mb-2 max-h-16 flex items-center justify-center">
                             <img 
                                 src={data.logoUrl} 
                                 alt="Store Logo" 
                                 className="h-14 w-auto object-contain" 
                                 onError={(e) => {
-                                    // Hide the logo container if image fails to load
                                     (e.target as HTMLImageElement).style.display = 'none';
                                 }}
                             />
                         </div>
                     )}
-                    <h1 className="text-2xl font-black tracking-tight text-slate-900">
-                        {data.shopInfo.name} {title}
-                    </h1>
+                    {/* 제목: 매장명 제외, 자간 넓게, 좌우 spacer 균형으로 가운데 정렬 */}
+                    <div className="flex items-center justify-center gap-4 w-full">
+                        {/* 왼쪽 spacer — 항상 동일 너비로 가운데 균형 */}
+                        <div style={{width: '90px', flexShrink: 0}} />
+                        <h1
+                            style={{ letterSpacing: '0.5em', fontWeight: 900, fontSize: '22px' }}
+                            className="text-slate-900 flex-1 text-center"
+                        >
+                            {title}
+                        </h1>
+                        {/* 주문서에만 제작완료 체크박스, 인수증은 빈 spacer */}
+                        {!isReceipt ? (
+                            <div
+                                className="flex items-center gap-1 text-[11px] font-bold"
+                                style={{width: '90px', flexShrink: 0, whiteSpace: 'nowrap'}}
+                            >
+                                <Checkbox checked={false} />
+                                <span>제작완료</span>
+                            </div>
+                        ) : (
+                            <div style={{width: '90px', flexShrink: 0}} />
+                        )}
+                    </div>
+                    {/* 주문번호 표기 */}
+                    <div className="text-[11px] text-gray-500 mt-1 font-mono tracking-wide">
+                        #{data.orderNumber}
+                    </div>
                 </div>
                 <table className="w-full border-collapse border border-black text-sm">
                     <tbody>
                         <tr>
-                            <td className="border border-black p-1 font-bold w-[12%] text-center bg-slate-50/50">{tf.f00638}</td>
+                            <td className="border border-black p-1 font-bold w-[12%] text-center bg-slate-50/50 whitespace-nowrap">{tf.f00638}</td>
                             <td className="border border-black p-1 w-[20%]" style={{ fontSize: '11px' }}>
                                 <div className="whitespace-nowrap overflow-hidden text-ellipsis">{data.orderDate}</div>
                             </td>
-                            <td className="border border-black p-1 font-bold w-[8%] text-center bg-slate-50/50">{tf.f00640}</td>
+                            <td className="border border-black p-1 font-bold w-[8%] text-center bg-slate-50/50 whitespace-nowrap">{tf.f00640}</td>
                             <td className="border border-black p-1 w-[28%]">
                                 <div className="whitespace-nowrap overflow-hidden text-ellipsis text-[12px]">
                                     {(() => {
                                         if (data.isAnonymous && isReceipt) return '';
-                                        return data.ordererCompany ? `${data.ordererCompany} / ${data.ordererName}` : data.ordererName;
+                                        const displayName = maskName(data.ordererName, shouldMask);
+                                        return data.ordererCompany ? `${data.ordererCompany} / ${displayName}` : displayName;
                                     })()}
                                 </div>
                             </td>
-                            <td className="border border-black p-1 font-bold w-[8%] text-center bg-slate-50/50">{tf.f00444}</td>
+                            <td className="border border-black p-1 font-bold w-[8%] text-center bg-slate-50/50 whitespace-nowrap">{tf.f00444}</td>
                             <td className="border border-black p-1 w-[24%]" style={{ fontSize: '12px' }}>
-                                <div className="whitespace-nowrap overflow-hidden text-ellipsis">{data.isAnonymous && isReceipt ? '' : data.ordererContact}</div>
+                                {/* 인수증에서만 주문자 연락처 마스킹 */}
+                                <div className="whitespace-nowrap overflow-hidden text-ellipsis">{data.isAnonymous && isReceipt ? '' : maskPhone(data.ordererContact, shouldMask)}</div>
                             </td>
                         </tr>
                         <tr>
-                            <td className="border border-black p-1 font-bold align-middle h-8 text-center bg-slate-50/50">{tf.f00765}</td>
+                            <td className="border border-black p-1 font-bold align-middle h-8 text-center bg-slate-50/50 whitespace-nowrap">{tf.f00765}</td>
                             <td className="border border-black p-1 align-middle" colSpan={5}>
                                 <div className="whitespace-nowrap overflow-hidden text-ellipsis text-[11px] leading-tight">
                                     {data.items}
@@ -140,21 +192,23 @@ class PrintableOrderInner extends React.Component<PrintableOrderProps & {currenc
                             </tr>
                         )}
                         <tr>
-                            <td className="border border-black p-1 font-bold text-center bg-slate-50/50">{tf.f00274}</td>
+                            <td className="border border-black p-1 font-bold text-center bg-slate-50/50 whitespace-nowrap">{tf.f00274}</td>
                             <td className="border border-black p-1">
                                 <div className="whitespace-nowrap overflow-hidden text-ellipsis text-[11px]">{data.deliveryDate}</div>
                             </td>
-                            <td className="border border-black p-1 font-bold text-center bg-slate-50/50">{tf.f00228}</td>
+                            <td className="border border-black p-1 font-bold text-center bg-slate-50/50 whitespace-nowrap">{tf.f00228}</td>
                             <td className="border border-black p-1">
+                                {/* 받으시는 분 이름 — 마스킹 없음 */}
                                 <div className="whitespace-nowrap overflow-hidden text-ellipsis text-[12px]">{data.recipientName}</div>
                             </td>
-                            <td className="border border-black p-1 font-bold text-center bg-slate-50/50">{tf.f00444}</td>
+                            <td className="border border-black p-1 font-bold text-center bg-slate-50/50 whitespace-nowrap">{tf.f00444}</td>
                             <td className="border border-black p-1">
-                                <div className="whitespace-nowrap overflow-hidden text-ellipsis text-[12px]">{data.recipientContact}</div>
+                                {/* 인수증에서만 받는 분 연락처 마스킹 */}
+                                <div className="whitespace-nowrap overflow-hidden text-ellipsis text-[12px]">{maskPhone(data.recipientContact, shouldMask)}</div>
                             </td>
                         </tr>
                         <tr>
-                            <td className="border border-black p-1 font-bold align-middle text-center bg-slate-50/50 h-8">{tf.f00277}</td>
+                            <td className="border border-black p-1 font-bold align-middle text-center bg-slate-50/50 h-8 whitespace-nowrap">{tf.f00277}</td>
                             <td colSpan={5} className="border border-black p-1 align-middle">
                                 <div className="whitespace-nowrap overflow-hidden text-ellipsis text-[11px]">
                                     {data.deliveryAddress}
@@ -163,7 +217,7 @@ class PrintableOrderInner extends React.Component<PrintableOrderProps & {currenc
                         </tr>
                         {!isReceipt && (
                             <tr>
-                                <td className="border border-black p-1 font-bold align-middle text-center bg-slate-50/50 h-8">
+                                <td className="border border-black p-1 font-bold align-middle text-center bg-slate-50/50 h-8 whitespace-nowrap">
                                     <div className="flex flex-col items-center justify-center leading-tight">
                                         <span>{tf.f00198}</span>
                                         <div className="flex items-center gap-1 mt-0.5 text-[9px] font-normal">
@@ -175,6 +229,19 @@ class PrintableOrderInner extends React.Component<PrintableOrderProps & {currenc
                                 <td colSpan={5} className="border border-black p-1 align-middle">
                                     <div className="whitespace-nowrap overflow-hidden text-ellipsis text-[11px]">
                                         {data.message}
+                                    </div>
+                                </td>
+                            </tr>
+                        )}
+                        {/* 주문서에만 요청사항 행 추가 */}
+                        {!isReceipt && (
+                            <tr>
+                                <td className="border border-black p-1 font-bold align-middle text-center bg-slate-50/50 h-8 whitespace-nowrap">
+                                    요청사항
+                                </td>
+                                <td colSpan={5} className="border border-black p-1 align-middle">
+                                    <div className="whitespace-nowrap overflow-hidden text-ellipsis text-[11px]">
+                                        {data.memo || ''}
                                     </div>
                                 </td>
                             </tr>
@@ -214,11 +281,14 @@ class PrintableOrderInner extends React.Component<PrintableOrderProps & {currenc
                     </div>
                 )}
             </div>
-        );
-
+            );
+        };
         return (
             <div className="p-4 bg-white text-black font-sans px-[15mm]">
-                {renderSection(tf.f00628, false)}
+                {/* 주문서 상단 여백 2cm */}
+                <div style={{ paddingTop: '2cm' }}>
+                    {renderSection(tf.f00628, false)}
+                </div>
                 <div className="border-t-2 border-dashed border-gray-400 my-8"></div>
                 {renderSection(tf.f00521, true)}
             </div>
@@ -226,4 +296,4 @@ class PrintableOrderInner extends React.Component<PrintableOrderProps & {currenc
     }
 }
 
-export function PrintableOrder(props: PrintableOrderProps) { const { symbol: currencySymbol } = useCurrency(); return <PrintableOrderInner {...props} currencySymbol={currencySymbol} />; }
+export function PrintableOrder(props: PrintableOrderProps) { const { symbol: currencySymbol } = useCurrency(); return <PrintableOrderInner {...props} currencySymbol={currencySymbol} />; }

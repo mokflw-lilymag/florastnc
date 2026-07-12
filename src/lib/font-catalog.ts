@@ -3,7 +3,7 @@ export interface FontCatalogItem {
     name: string;         // 표시 이름 (한글)
     family: string;       // CSS font-family
     url: string;          // CSS URL
-    source: 'google' | 'naver' | 'noonnu';  // 출처
+    source: 'google' | 'naver' | 'noonnu' | 'local';  // 출처
     category: string;     // 분류
     preview: string;      // 미리보기 텍스트
 }
@@ -13,8 +13,9 @@ export const FONT_CATEGORIES = [
     { id: 'myeongjo', label: '명조체', icon: '📜' },
     { id: 'handwriting', label: '손글씨', icon: '✏️' },
     { id: 'design', label: '디자인체', icon: '🎨' },
-    { id: 'round', label: '둥근체', icon: '⭕' },
+    { id: 'round', label: '둥근체', icon: '☁' },
     { id: 'coding', label: '코딩체', icon: '💻' },
+    { id: 'local', label: '내 PC 폰트', icon: '🖥️' },
 ] as const;
 
 export const FONT_CATALOG: FontCatalogItem[] = [
@@ -54,9 +55,57 @@ export function setActiveFonts(fonts: string[]) {
     }
 }
 
+export function notifyFontsChanged() {
+    if (typeof window !== 'undefined') {
+        queueMicrotask(() => {
+            window.dispatchEvent(new Event('floxync_fonts_changed'));
+        });
+    }
+}
+
+export function updateActiveFonts(fonts: string[]) {
+    setActiveFonts(fonts);
+    notifyFontsChanged();
+}
+
+const LOCAL_FONTS_KEY = 'floxync_discovered_local_fonts';
+
+export function getDiscoveredLocalFonts(): FontCatalogItem[] {
+    if (typeof window === 'undefined') return [];
+    const stored = localStorage.getItem(LOCAL_FONTS_KEY);
+    if (!stored) return [];
+    try {
+        return JSON.parse(stored) as FontCatalogItem[];
+    } catch {
+        return [];
+    }
+}
+
+export function setDiscoveredLocalFonts(fonts: FontCatalogItem[]) {
+    if (typeof window !== 'undefined') {
+        localStorage.setItem(LOCAL_FONTS_KEY, JSON.stringify(fonts));
+    }
+}
+
 export function getActiveFontItems(): FontCatalogItem[] {
     const active = getActiveFonts();
+    const seen = new Set<string>();
     return active
-        .map(family => FONT_CATALOG.find(f => f.family === family))
-        .filter((f): f is FontCatalogItem => !!f);
+        .map(family => {
+            const found = FONT_CATALOG.find(f => f.family === family);
+            if (found) return found;
+            return {
+                name: family,
+                family: family,
+                url: '',
+                source: 'local' as const,
+                category: 'local',
+                preview: '내 PC 설치 폰트'
+            };
+        })
+        .filter(item => {
+            if (seen.has(item.family)) return false;
+            seen.add(item.family);
+            return true;
+        });
 }

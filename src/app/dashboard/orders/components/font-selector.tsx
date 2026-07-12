@@ -37,6 +37,8 @@ export function FontSelector({ value, onValueChange, className, label }: FontSel
 
     useEffect(() => {
         loadFonts();
+        window.addEventListener('floxync_fonts_changed', loadFonts);
+        return () => window.removeEventListener('floxync_fonts_changed', loadFonts);
     }, [loadFonts]);
 
     const selectedLabel = fonts.find((font) => font.family === value)?.name || value;
