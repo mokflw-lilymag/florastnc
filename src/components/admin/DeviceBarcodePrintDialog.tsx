@@ -507,17 +507,27 @@ export function DeviceBarcodePrintDialog({ open, onClose, devices }: Props) {
                 gridTemplateRows: `repeat(${config.rows}, ${lh}mm)`,
                 columnGap: `${config.hGapMm}mm`,
                 rowGap: `${config.vGapMm}mm`,
-                background: "white",
+                background: "#f3f4f6",   // 연한 회색 배경 → 흰 라벨 셀 구분
                 boxShadow: "0 2px 12px rgba(0,0,0,0.12)",
               }}>
                 {currentPage.map((cell, idx) => (
-                  <div key={idx} style={{ width: `${lw}mm`, height: `${lh}mm`, overflow: "hidden" }}>
+                  <div
+                    key={idx}
+                    style={{
+                      width: `${lw}mm`,
+                      height: `${lh}mm`,
+                      overflow: "hidden",
+                      background: "white",
+                      border: cell ? "0.8px solid #94a3b8" : "0.8px dashed #cbd5e1",
+                      boxSizing: "border-box",
+                    }}
+                  >
                     {cell && (
                       <DeviceBarcodeLabel
                         serial={cell.serial_number}
                         modelName={cell.model_name}
                         deviceType={cell.device_type}
-                        widthMm={lw} heightMm={lh} border
+                        widthMm={lw} heightMm={lh}
                       />
                     )}
                   </div>
