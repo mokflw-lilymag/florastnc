@@ -35,7 +35,7 @@ export const DEFAULT_PLATFORM_EMAIL_TEMPLATES: Omit<
   <li>용도: 주문서·픽업증·인수증 자동 출력</li>
   <li>연락처: {연락처} / {이메일}</li>
 </ul>
-<p><strong>첨부:</strong> 포스프린터 무상 임대 계약서 (PDF) — 검토 후 서명·회신 부탁드립니다.</p>
+<p><strong>프린터 수령을 위해 배송받으실 주소를 본 메일의 답장으로 회신해 주시면</strong>, 신속히 출고를 진행하고 전자 계약서 서명 링크를 보내드리겠습니다.</p>
 <p>감사합니다.<br/>FloXync 운영팀</p>`,
     ),
   },
