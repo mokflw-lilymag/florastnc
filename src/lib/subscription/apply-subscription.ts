@@ -96,8 +96,6 @@ export async function applySubscriptionToTenant(
       await supabase
         .from("tenants")
         .update({
-          plan: "pro_plus",
-          status: "active",
           subscription_end: newReferrerEnd,
           next_billing_date: newReferrerNextBilling,
         })
@@ -107,11 +105,11 @@ export async function applySubscriptionToTenant(
       await recordSubscriptionEvent({
         tenantId: pendingReferral.referrer_tenant_id,
         eventType: "referral_reward",
-        planId: "pro_plus",
+        planId: (referrerTenant.plan as string) || "free",
         planBefore: (referrerTenant.plan as string) || "free",
-        planAfter: "pro_plus",
+        planAfter: (referrerTenant.plan as string) || "free",
         period: "monthly",
-        description: `친구 추천 보상 (Pro Plus 승급 및 ${referrerBonus}개월 연장)`,
+        description: `친구 추천 보상 (${referrerBonus}개월 연장)`,
       });
     }
 
