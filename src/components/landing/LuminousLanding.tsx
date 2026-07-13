@@ -1121,7 +1121,7 @@ export function LuminousLanding({ locale = 'ko' }: { locale?: AppLocale }) {
                       </div>
                     </div>
                   </div>
-                  <div className="mt-6 text-sm text-indigo-600 font-medium bg-indigo-50 px-4 py-3 rounded-xl inline-block">
+                  <div className="mt-6 text-sm text-indigo-600 font-medium bg-indigo-50 px-4 py-3 rounded-xl inline-block whitespace-nowrap">
                     💡 추천한 사장님께는 플로싱크에서 가장 높은 플러스 등급(66,000원)으로 1달을 추가하여 드립니다!
                   </div>
                 </div>
