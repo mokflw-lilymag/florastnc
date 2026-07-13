@@ -113,11 +113,11 @@ export async function applySubscriptionToTenant(
       await recordSubscriptionEvent({
         tenantId: pendingReferral.referrer_tenant_id,
         eventType: "referral_reward",
-        planId: (referrerTenant.plan as string) || "free",
+        source: "admin",
         planBefore: (referrerTenant.plan as string) || "free",
         planAfter: (referrerTenant.plan as string) || "free",
         period: "1m",
-        description: `친구 추천 보상 (${referrerBonus}개월 연장)`,
+        reason: `친구 추천 보상 (${referrerBonus}개월 연장)`,
       });
     }
 
