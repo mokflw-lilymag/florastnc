@@ -146,12 +146,25 @@ export function EmailHubClient() {
     } else {
       setSchemaWarning(null);
     }
-    if (!selectedSlug && data.templates?.[0]) {
-      setSelectedSlug(data.templates[0].slug);
-      setEditSubject(data.templates[0].subject);
-      setEditBody(data.templates[0].body_html);
+  }, []);
+
+  useEffect(() => {
+    if (templates.length > 0) {
+      if (!selectedSlug) {
+        setSelectedSlug(templates[0].slug);
+        setEditSubject(templates[0].subject);
+        setEditBody(templates[0].body_html);
+      }
+      if (!sendSlug) {
+        const sendableTemplates = templates.filter(
+          (t) => t.category === "contract" || t.category === "marketing" || t.category === "hardware"
+        );
+        if (sendableTemplates.length > 0) {
+          setSendSlug(sendableTemplates[0].slug);
+        }
+      }
     }
-  }, [selectedSlug]);
+  }, [templates, selectedSlug, sendSlug]);
 
   const loadBeta = useCallback(async () => {
     const res = await fetch("/api/admin/email-hub/beta-applications?limit=200");

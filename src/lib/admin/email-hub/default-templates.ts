@@ -40,6 +40,31 @@ export const DEFAULT_PLATFORM_EMAIL_TEMPLATES: Omit<
     ),
   },
   {
+    slug: "beta-tier-only-upgrade",
+    category: "contract",
+    name_ko: "베타 테스터 — 프로플러스 요금제 혜택 안내",
+    name_en: "Beta tier only upgrade",
+    description: "장비 임대 없이 티어 승급 혜택만 제공하는 경우",
+    subject: "[FloXync] 베타 테스터 선정 및 프로플러스 요금제 혜택 안내 — {상호}",
+    variables: ["이름", "상호", "연락처", "이메일"],
+    sort_order: 15,
+    is_active: true,
+    body_html: wrap(
+      "베타 테스터 혜택 안내",
+      `<h2 style="color:#047857;">축하합니다, {이름} 사장님! 🌸</h2>
+<p><strong>{상호}</strong> 매장이 FloXync 베타 테스터에 <strong>선정</strong>되었습니다.</p>
+<p>대표님께서는 장비 임대 없이 <strong>[프로플러스 요금제] 무료 이용 혜택</strong>을 적용받게 되셨습니다.</p>
+<p>플로싱크에 로그인하시면 곧바로 최고 등급의 모든 기능(고객 관리, 판매 분석, 단골 타겟 마케팅 등)을 무제한으로 이용하실 수 있습니다.</p>
+<ul>
+  <li>적용 혜택: 프로플러스 요금제 (월 66,000원 상당)</li>
+  <li>이용 방법: 플로싱크 로그인 후 모든 기능 즉시 사용 가능</li>
+  <li>연락처: {연락처} / {이메일}</li>
+</ul>
+<p>이용하시면서 필요한 기능이나 개선 의견이 있으시면 언제든지 편하게 고객센터로 말씀해 주세요.</p>
+<p>감사합니다.<br/>FloXync 운영팀</p>`,
+    ),
+  },
+  {
     slug: "subscription-renewal-reminder",
     category: "extension",
     name_ko: "구독 갱신·연장 안내",

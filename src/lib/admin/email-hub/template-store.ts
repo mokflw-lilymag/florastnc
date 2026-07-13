@@ -32,20 +32,24 @@ export async function ensurePlatformEmailTemplatesSeeded(db: SupabaseClient): Pr
   const ready = await isEmailHubSchemaReady(db);
   if (!ready) return false;
 
-  const { count, error: countErr } = await db
+  const { data: existing, error: fetchErr } = await db
     .from("platform_email_templates")
-    .select("slug", { count: "exact", head: true });
+    .select("slug");
 
-  if (countErr) throw countErr;
-  if ((count ?? 0) > 0) return true;
+  if (fetchErr) throw fetchErr;
 
-  const rows = DEFAULT_PLATFORM_EMAIL_TEMPLATES.map((t) => ({
-    ...t,
-    updated_at: new Date().toISOString(),
-  }));
+  const existingSet = new Set(existing?.map((r) => r.slug) ?? []);
+  const missing = DEFAULT_PLATFORM_EMAIL_TEMPLATES.filter((t) => !existingSet.has(t.slug));
 
-  const { error } = await db.from("platform_email_templates").insert(rows);
-  if (error) throw error;
+  if (missing.length > 0) {
+    const rows = missing.map((t) => ({
+      ...t,
+      updated_at: new Date().toISOString(),
+    }));
+    const { error } = await db.from("platform_email_templates").insert(rows);
+    if (error) throw error;
+  }
+
   return true;
 }
 
