@@ -1,6 +1,6 @@
 import type { Period, PlanId } from "@/app/dashboard/subscription/plan-localized";
 
-export type SubscriptionEventType = "payment" | "admin_grant";
+export type SubscriptionEventType = "payment" | "admin_grant" | "referral_reward";
 export type SubscriptionEventSource = "toss" | "stripe" | "admin";
 
 export interface TenantSubscriptionEventRow {

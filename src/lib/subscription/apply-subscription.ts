@@ -116,7 +116,7 @@ export async function applySubscriptionToTenant(
         planId: (referrerTenant.plan as string) || "free",
         planBefore: (referrerTenant.plan as string) || "free",
         planAfter: (referrerTenant.plan as string) || "free",
-        period: "monthly",
+        period: "1m",
         description: `친구 추천 보상 (${referrerBonus}개월 연장)`,
       });
     }
