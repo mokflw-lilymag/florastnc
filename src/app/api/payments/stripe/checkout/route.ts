@@ -84,9 +84,16 @@ export async function POST(request: Request) {
 
     const { data: tenant } = await supabase
       .from("tenants")
-      .select("name")
+      .select("name, stripe_customer_id")
       .eq("id", profile.tenant_id)
       .maybeSingle();
+
+    if (!tenant) {
+      return NextResponse.json(
+        { message: tr(bl, "테넌트 정보가 없습니다.", "Tenant not found.") },
+        { status: 404 },
+      );
+    }
 
     const amountCents = PLAN_USD_TOTAL_CENTS[planId][period];
     const orderId = buildSubscriptionOrderId(profile.tenant_id, planId, period);
@@ -95,29 +102,49 @@ export async function POST(request: Request) {
     const periodLabelEn = PERIOD_LABELS[period][1];
     const productName = `${planDisplayName(planId)} (${periodLabelEn})`;
 
+    const hqRes = await supabase.from("system_settings").select("data").eq("id", "hq").maybeSingle();
+    const discountSettings = hqRes.data?.data as any;
+    
+    // Calculate discount using helper (assuming we can import or implement getActiveDiscountRate)
+    let discountRate = 0;
+    if (discountSettings?.promotion?.enabled) {
+      const now = new Date();
+      const p = discountSettings.promotion;
+      const started = !p.startDate || new Date(p.startDate) <= now;
+      const notEnded = !p.endDate || new Date(p.endDate) >= now;
+      const targetTiers = p.targetTiers || [];
+      const targetPeriods = p.targetPeriods || [];
+
+      if (started && notEnded && targetTiers.includes(planId) && targetPeriods.includes(period)) {
+        discountRate = p.discountRate || 0;
+      }
+    }
+
+    // Check or create Stripe Customer
+    let stripeCustomerId = tenant.stripe_customer_id;
+    if (!stripeCustomerId) {
+      const customer = await stripe.customers.create({
+        email: user.email ?? undefined,
+        name: tenant.name ?? undefined,
+        metadata: { tenant_id: profile.tenant_id },
+      });
+      stripeCustomerId = customer.id;
+      await supabase.from("tenants").update({ stripe_customer_id: stripeCustomerId }).eq("id", profile.tenant_id);
+    }
+
     const session = await stripe.checkout.sessions.create({
-      mode: "payment",
+      mode: "setup",
+      customer: stripeCustomerId,
       client_reference_id: profile.tenant_id,
-      customer_email: user.email ?? undefined,
-      line_items: [
-        {
-          quantity: 1,
-          price_data: {
-            currency: "usd",
-            unit_amount: amountCents,
-            product_data: {
-              name: productName,
-              description: "FloXync subscription",
-            },
-          },
-        },
-      ],
+      payment_method_types: ["card"],
       metadata: {
         tenant_id: profile.tenant_id,
         plan_id: planId,
         period,
         order_id: orderId,
         ui_locale: uiLocale ?? "",
+        amount_cents: amountCents.toString(),
+        discount_rate: discountRate.toString(),
       },
       success_url: `${origin}/dashboard/subscription/success?provider=stripe&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/dashboard/subscription/fail?provider=stripe`,

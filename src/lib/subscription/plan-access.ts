@@ -7,7 +7,7 @@ import { hasRegisteredStoreTenant } from "@/lib/subscription/guest-trial";
  * - `ribbon_only` | `light` | `pro` | `pro_plus`: 유료 (구독 만료 시 free로 소프트 다운그레이드)
  */
 
-export const PAID_PLAN_IDS = ["ribbon_only", "light", "pro", "pro_plus"] as const;
+export const PAID_PLAN_IDS = ["ribbon_only", "mini", "light", "pro", "pro_plus"] as const;
 export type PaidPlanId = (typeof PAID_PLAN_IDS)[number];
 
 /** 결제·구독 페이지에서 판매하는 플랜 */
@@ -23,6 +23,7 @@ export type AccessContext = {
   isExpired?: boolean;
   isSuspended?: boolean;
   isSuperAdmin?: boolean;
+  createdAt?: string | null;
 };
 
 export function normalizePlanId(plan?: string | null): string {
@@ -47,24 +48,43 @@ export function isPaidPlan(plan?: string | null): boolean {
   return (PAID_PLAN_IDS as readonly string[]).includes(p);
 }
 
+/** 무료 계정이면서 가입 후 7일 이내인지 확인 (리버스 트라이얼) */
+export function isReverseTrial(ctx: AccessContext): boolean {
+  if (resolveAccessPlan(ctx.plan, ctx) !== "free") return false;
+  if (!ctx.createdAt) return false;
+  
+  const createdDate = new Date(ctx.createdAt);
+  const now = new Date();
+  const diffDays = (now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24); 
+  return diffDays <= 7 && diffDays >= 0;
+}
+
 export function hasRibbonAccess(ctx: AccessContext): boolean {
   if (ctx.isSuperAdmin) return true;
   const access = resolveAccessPlan(ctx.plan, ctx);
-  return access === "free" || access === "ribbon_only" || access === "light" || access === "pro" || access === "pro_plus";
+  return access === "free" || access === "ribbon_only" || access === "mini" || access === "light" || access === "pro" || access === "pro_plus";
 }
 
 /** 유료 ERP — DB 저장·연동 */
 export function hasErpAccess(ctx: AccessContext): boolean {
   if (ctx.isSuperAdmin) return true;
+  if (isReverseTrial(ctx)) return true;
   const access = resolveAccessPlan(ctx.plan, ctx);
-  return access === "light" || access === "pro" || access === "pro_plus";
+  return access === "ribbon_only" || access === "mini" || access === "light" || access === "pro" || access === "pro_plus";
+}
+
+/** AI 자동 파싱 기능 (주문, 지출 등) - 무료 티어 전면 차단 (트라이얼 포함) */
+export function hasAiParseAccess(ctx: AccessContext): boolean {
+  if (ctx.isSuperAdmin) return true;
+  const access = resolveAccessPlan(ctx.plan, ctx);
+  return access === "ribbon_only" || access === "mini" || access === "light" || access === "pro" || access === "pro_plus";
 }
 
 /** ERP 메뉴 열람·체험 (무료 포함) */
 export function hasErpViewAccess(ctx: AccessContext): boolean {
   if (ctx.isSuperAdmin) return true;
   const access = resolveAccessPlan(ctx.plan, ctx);
-  return access === "free" || access === "light" || access === "pro" || access === "pro_plus";
+  return access === "free" || access === "ribbon_only" || access === "mini" || access === "light" || access === "pro" || access === "pro_plus";
 }
 
 export function canPersistErp(ctx: AccessContext): boolean {
@@ -76,7 +96,7 @@ export function isErpTrialMode(ctx: AccessContext): boolean {
 }
 
 /** 사이드바 ERP 메뉴 tier */
-export const ERP_NAV_TIERS = ["pro_plus", "pro", "light", "free"] as const;
+export const ERP_NAV_TIERS = ["pro_plus", "pro", "light", "mini", "ribbon_only", "free"] as const;
 
 export function isFreeAccessTier(ctx: AccessContext): boolean {
   if (ctx.isSuperAdmin) return false;

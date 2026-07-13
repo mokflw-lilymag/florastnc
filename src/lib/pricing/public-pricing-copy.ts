@@ -3,7 +3,9 @@ import type { PublicPaidPlanId } from "@/lib/pricing/public-pricing";
 import {
   publicFreePriceLabel,
   publicMonthlyPriceLabel,
+  publicAnnualTotal,
 } from "@/lib/pricing/public-pricing";
+import { getActiveDiscountRate, type GlobalDiscountSettings } from "@/lib/subscription/discount-helper";
 
 export type PublicPricingFeature = {
   text: string;
@@ -19,7 +21,9 @@ export type PublicPricingPlanCard = {
   name: string;
   description: string;
   monthlyPrice: string;
+  originalMonthlyPrice?: string;
   annualNote: string;
+  originalAnnualNote?: string;
   annualNoteClass: string;
   features: PublicPricingFeature[];
   footer: string;
@@ -65,9 +69,14 @@ const ANNUAL_NOTES: Record<
   { ko: string; en: string; vi: string }
 > = {
   ribbon_only: {
-    ko: "연 결제 시: 120,000원 (대폭 즉시할인!)",
-    en: "Annual prepay: $120 (save vs monthly)",
-    vi: "Trả trước năm: $120 (tiết kiệm so với tháng)",
+    ko: "연 결제 시: 180,000원 (할인 없음)",
+    en: "Annual prepay: $180 (no discount)",
+    vi: "Trả trước năm: $180 (không giảm giá)",
+  },
+  mini: {
+    ko: "연 결제 시: 180,000원 (할인 없음)",
+    en: "Annual prepay: $180 (no discount)",
+    vi: "Trả trước năm: $180 (không giảm giá)",
   },
   light: {
     ko: "연 결제 시: 300,000원 (1달 추가연장!)",
@@ -75,14 +84,14 @@ const ANNUAL_NOTES: Record<
     vi: "Trả năm $300 — thêm 1 tháng (13 tháng)",
   },
   pro: {
-    ko: "연 결제 시: 440,000원 (1달 할인 + 1달 연장!)",
-    en: "Annual $440 — 1 bonus month (13 months)",
-    vi: "Trả năm $440 — thêm 1 tháng (13 tháng)",
+    ko: "연 결제 시: 480,000원 (1달 연장!)",
+    en: "Annual $480 — 1 bonus month (13 months)",
+    vi: "Trả năm $480 — thêm 1 tháng (13 tháng)",
   },
   pro_plus: {
-    ko: "연 결제 시: 660,000원 (1달 할인 + 2달 연장!)",
-    en: "Annual $660 — 2 bonus months (14 months)",
-    vi: "Trả năm $660 — thêm 2 tháng (14 tháng)",
+    ko: "연 결제 시: 720,000원 (2달 연장!)",
+    en: "Annual $720 — 2 bonus months (14 months)",
+    vi: "Trả năm $720 — thêm 2 tháng (14 tháng)",
   },
 };
 
@@ -90,6 +99,7 @@ export function buildPublicPricingPageCopy(
   baseLocale: string,
   useKrw: boolean,
   showKoreaOnlyPerks: boolean,
+  discountSettings?: GlobalDiscountSettings | null,
 ): PublicPricingPageCopy {
   const posLoan = T(
     baseLocale,
@@ -138,27 +148,19 @@ export function buildPublicPricingPageCopy(
         {
           text: T(
             baseLocale,
-            "월 5건 주문 저장 가능",
-            "Up to 5 orders/month saved",
-            "Lưu tối đa 5 đơn/tháng",
-          ),
-        },
-        {
-          text: T(
-            baseLocale,
-            "장부/ERP 기능 조회 및 체험",
-            "Browse ERP features (trial mode)",
-            "Xem thử tính năng ERP",
-          ),
-        },
-        {
-          text: T(
-            baseLocale,
-            "리본 인쇄 아이디당 총 5회 테스트 제공",
-            "5 ribbon print tests per account",
-            "5 lần in ruy băng thử/account",
+            "가입 후 1주일 간 모든 기능 무료 (AI 제외, 10건 한도)",
+            "1-week full trial for all features (No AI, up to 10 orders)",
+            "Dùng thử miễn phí mọi tính năng trong 1 tuần (Không AI, tối đa 10 đơn)",
           ),
           bold: true,
+        },
+        {
+          text: T(
+            baseLocale,
+            "1주일 후 기존 무료 티어로 자동 전환 (월 5건/인쇄 제한)",
+            "Reverts to basic free tier after 1 week (5 orders/mo)",
+            "Trở về gói miễn phí cơ bản sau 1 tuần (5 đơn/tháng)",
+          ),
         },
         {
           text: T(
@@ -171,55 +173,52 @@ export function buildPublicPricingPageCopy(
         },
         { text: posExcluded, strikethrough: true },
       ],
-      footer: T(baseLocale, "기한 제한 없음", "No time limit", "Không giới hạn thời gian"),
+      footer: T(baseLocale, "가입 후 1주일 혜택 제공", "Special benefits for 1st week", "Ưu đãi trong tuần đầu"),
     },
     {
       id: "ribbon_only",
-      badge: T(baseLocale, "리본 전용", "Print only", "Chỉ in"),
+      badge: T(baseLocale, "소규모 미니", "Mini shop", "Tiệm nhỏ"),
       badgeClass: "bg-[#fdcada]/40 text-[#795260]",
-      name: T(baseLocale, "리본 라이센스", "Print License", "Giấy phép in"),
+      name: T(baseLocale, "플로비서 미니", "FloSecretary Mini", "FloSecretary Mini"),
       description: T(
         baseLocale,
-        "장부는 필요 없고 오직 화환 및 경조사 리본 인쇄만 무제한으로 사용하실 매장",
-        "Unlimited ribbon printing — no full shop ledger",
-        "In ruy băng không giới hạn — không có sổ sách đầy đủ",
+        "주문량이 많지 않아 부담 없는 가격에 모든 비서 기능을 입문하고 싶으신 1인 숍 (월 50건 한도)",
+        "Entry plan for solo florists with small order volume (up to 50/mo)",
+        "Gói nhập môn cho tiệm hoa nhỏ (tối đa 50 đơn/tháng)",
       ),
-      monthlyPrice: publicMonthlyPriceLabel("ribbon_only", useKrw),
-      annualNote: T(
-        baseLocale,
-        ANNUAL_NOTES.ribbon_only.ko,
-        ANNUAL_NOTES.ribbon_only.en,
-        ANNUAL_NOTES.ribbon_only.vi,
-      ),
+      monthlyPrice: publicMonthlyPriceLabel("ribbon_only", useKrw, getActiveDiscountRate(discountSettings, "ribbon_only", "1m")).text,
+      originalMonthlyPrice: publicMonthlyPriceLabel("ribbon_only", useKrw, getActiveDiscountRate(discountSettings, "ribbon_only", "1m")).originalText,
+      annualNote: getActiveDiscountRate(discountSettings, "ribbon_only", "12m") > 0 
+        ? T(baseLocale, `연 결제 시: ${publicAnnualTotal("ribbon_only", useKrw, getActiveDiscountRate(discountSettings, "ribbon_only", "12m")).text} (첫 결제 할인!)`, `Annual prepay: ${publicAnnualTotal("ribbon_only", useKrw, getActiveDiscountRate(discountSettings, "ribbon_only", "12m")).text}`, `Trả trước năm: ${publicAnnualTotal("ribbon_only", useKrw, getActiveDiscountRate(discountSettings, "ribbon_only", "12m")).text}`)
+        : T(baseLocale, ANNUAL_NOTES.ribbon_only.ko, ANNUAL_NOTES.ribbon_only.en, ANNUAL_NOTES.ribbon_only.vi),
+      originalAnnualNote: getActiveDiscountRate(discountSettings, "ribbon_only", "12m") > 0 
+        ? T(baseLocale, ANNUAL_NOTES.ribbon_only.ko, ANNUAL_NOTES.ribbon_only.en, ANNUAL_NOTES.ribbon_only.vi) : undefined,
       annualNoteClass: "text-[#795260]",
       features: [
         {
-          text: T(baseLocale, "리본 출력 무제한", "Unlimited ribbon prints", "In ruy băng không giới hạn"),
+          text: T(
+            baseLocale,
+            "월 주문 등록 50건 한도",
+            "Up to 50 orders/month",
+            "Tối đa 50 đơn/tháng",
+          ),
+          bold: true,
         },
         {
           text: T(
             baseLocale,
-            "주문 저장 테스트 월 10건",
-            "Up to 10 orders/mo (save test)",
-            "Lưu thử 10 đơn/tháng",
+            "매장 관리/리본 출력 모든 기능 제공",
+            "Full shop assistant + ribbon printing",
+            "Đầy đủ trợ lý + in ruy băng",
           ),
         },
         {
           text: T(
             baseLocale,
-            "다양한 감열 프린터 지원",
-            "Thermal printer support",
-            "Hỗ trợ máy in nhiệt",
+            "모바일 앱 사진 전송",
+            "Mobile photo upload",
+            "Gửi ảnh qua app di động",
           ),
-        },
-        {
-          text: T(
-            baseLocale,
-            "매장 장부 및 고객 관리 제외",
-            "No shop ledger / CRM",
-            "Không có sổ sách / CRM",
-          ),
-          strikethrough: true,
         },
         { text: posExcluded, strikethrough: true },
       ],
@@ -241,13 +240,13 @@ export function buildPublicPricingPageCopy(
         "Entry plan for solo florists with moderate order volume",
         "Gói nhập môn cho tiệm hoa nhỏ",
       ),
-      monthlyPrice: publicMonthlyPriceLabel("light", useKrw),
-      annualNote: T(
-        baseLocale,
-        ANNUAL_NOTES.light.ko,
-        ANNUAL_NOTES.light.en,
-        ANNUAL_NOTES.light.vi,
-      ),
+      monthlyPrice: publicMonthlyPriceLabel("light", useKrw, getActiveDiscountRate(discountSettings, "light", "1m")).text,
+      originalMonthlyPrice: publicMonthlyPriceLabel("light", useKrw, getActiveDiscountRate(discountSettings, "light", "1m")).originalText,
+      annualNote: getActiveDiscountRate(discountSettings, "light", "12m") > 0 
+        ? T(baseLocale, `연 결제 시: ${publicAnnualTotal("light", useKrw, getActiveDiscountRate(discountSettings, "light", "12m")).text} (첫 결제 할인!)`, `Annual prepay: ${publicAnnualTotal("light", useKrw, getActiveDiscountRate(discountSettings, "light", "12m")).text}`, `Trả trước năm: ${publicAnnualTotal("light", useKrw, getActiveDiscountRate(discountSettings, "light", "12m")).text}`)
+        : T(baseLocale, ANNUAL_NOTES.light.ko, ANNUAL_NOTES.light.en, ANNUAL_NOTES.light.vi),
+      originalAnnualNote: getActiveDiscountRate(discountSettings, "light", "12m") > 0 
+        ? T(baseLocale, ANNUAL_NOTES.light.ko, ANNUAL_NOTES.light.en, ANNUAL_NOTES.light.vi) : undefined,
       annualNoteClass: "text-emerald-700",
       features: [
         {
@@ -295,13 +294,13 @@ export function buildPublicPricingPageCopy(
         "For shops scaling order volume",
         "Cho tiệm hoa quản lý đơn hàng chuyên nghiệp",
       ),
-      monthlyPrice: publicMonthlyPriceLabel("pro", useKrw),
-      annualNote: T(
-        baseLocale,
-        ANNUAL_NOTES.pro.ko,
-        ANNUAL_NOTES.pro.en,
-        ANNUAL_NOTES.pro.vi,
-      ),
+      monthlyPrice: publicMonthlyPriceLabel("pro", useKrw, getActiveDiscountRate(discountSettings, "pro", "1m")).text,
+      originalMonthlyPrice: publicMonthlyPriceLabel("pro", useKrw, getActiveDiscountRate(discountSettings, "pro", "1m")).originalText,
+      annualNote: getActiveDiscountRate(discountSettings, "pro", "12m") > 0 
+        ? T(baseLocale, `연 결제 시: ${publicAnnualTotal("pro", useKrw, getActiveDiscountRate(discountSettings, "pro", "12m")).text} (첫 결제 할인!)`, `Annual prepay: ${publicAnnualTotal("pro", useKrw, getActiveDiscountRate(discountSettings, "pro", "12m")).text}`, `Trả trước năm: ${publicAnnualTotal("pro", useKrw, getActiveDiscountRate(discountSettings, "pro", "12m")).text}`)
+        : T(baseLocale, ANNUAL_NOTES.pro.ko, ANNUAL_NOTES.pro.en, ANNUAL_NOTES.pro.vi),
+      originalAnnualNote: getActiveDiscountRate(discountSettings, "pro", "12m") > 0 
+        ? T(baseLocale, ANNUAL_NOTES.pro.ko, ANNUAL_NOTES.pro.en, ANNUAL_NOTES.pro.vi) : undefined,
       annualNoteClass: "text-[#61508b]",
       features: [
         {
@@ -346,18 +345,18 @@ export function buildPublicPricingPageCopy(
       nameClass: "text-[#006b5c]",
       description: T(
         baseLocale,
-        "한도 걱정 없는 주문 처리와 모든 VIP 혜택을 집약해서 누리고 싶은 프리미엄 매장",
+        "주문량이 아주 많아 무제한 등록이 필요한 대형 매장을 위한 프리미엄 플랜",
         "Unlimited orders and premium benefits",
         "Đơn không giới hạn và quyền lợi cao cấp",
       ),
-      monthlyPrice: publicMonthlyPriceLabel("pro_plus", useKrw),
-      annualNote: T(
-        baseLocale,
-        ANNUAL_NOTES.pro_plus.ko,
-        ANNUAL_NOTES.pro_plus.en,
-        ANNUAL_NOTES.pro_plus.vi,
-      ),
-      annualNoteClass: "text-emerald-700",
+      monthlyPrice: publicMonthlyPriceLabel("pro_plus", useKrw, getActiveDiscountRate(discountSettings, "pro_plus", "1m")).text,
+      originalMonthlyPrice: publicMonthlyPriceLabel("pro_plus", useKrw, getActiveDiscountRate(discountSettings, "pro_plus", "1m")).originalText,
+      annualNote: getActiveDiscountRate(discountSettings, "pro_plus", "12m") > 0 
+        ? T(baseLocale, `연 결제 시: ${publicAnnualTotal("pro_plus", useKrw, getActiveDiscountRate(discountSettings, "pro_plus", "12m")).text} (첫 결제 할인!)`, `Annual prepay: ${publicAnnualTotal("pro_plus", useKrw, getActiveDiscountRate(discountSettings, "pro_plus", "12m")).text}`, `Trả trước năm: ${publicAnnualTotal("pro_plus", useKrw, getActiveDiscountRate(discountSettings, "pro_plus", "12m")).text}`)
+        : T(baseLocale, ANNUAL_NOTES.pro_plus.ko, ANNUAL_NOTES.pro_plus.en, ANNUAL_NOTES.pro_plus.vi),
+      originalAnnualNote: getActiveDiscountRate(discountSettings, "pro_plus", "12m") > 0 
+        ? T(baseLocale, ANNUAL_NOTES.pro_plus.ko, ANNUAL_NOTES.pro_plus.en, ANNUAL_NOTES.pro_plus.vi) : undefined,
+      annualNoteClass: "text-amber-700",
       features: [
         {
           text: T(
@@ -426,10 +425,10 @@ export function buildPublicPricingPageCopy(
     ),
     disclaimer: T(
       baseLocale,
-      "표시 요금은 안내용입니다. 가입 후 매장 운영 국가 설정에 따라 청구됩니다.",
-      "Prices shown are indicative. After signup, billing follows your store operating country setting.",
-      "Giá hiển thị chỉ mang tính tham khảo. Sau khi đăng ký, thanh toán theo cài đặt quốc gia vận hành cửa hàng của bạn.",
-      "表示料金は参考用です。ご登録後、店舗の運営国設定に応じて請求されます。",
+      "표시 요금은 안내용입니다. 가입 후 매장 운영 국가 설정에 따라 청구됩니다. (모든 티어 부가세 별도)",
+      "Prices shown are indicative. After signup, billing follows your store operating country setting. (VAT excluded for all tiers)",
+      "Giá hiển thị chỉ mang tính tham khảo. Sau khi đăng ký, thanh toán theo cài đặt quốc gia vận hành cửa hàng của bạn. (Chưa bao gồm VAT cho tất cả các gói)",
+      "表示料金は参考用です。ご登録後、店舗の運営国設定に応じて請求されます。（全プラン消費税別）",
     ),
     plans,
     ctaTitle: T(

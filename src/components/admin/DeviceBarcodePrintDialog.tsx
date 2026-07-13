@@ -112,11 +112,18 @@ function DeviceBarcodeLabel({ serial, modelName, deviceType, widthMm, heightMm, 
   return (
     <div style={outerStyle}>
       <div style={innerStyle}>
-        {/* ① 헤더: 브랜드명(크게) + 회사명(작게) */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", lineHeight: 1 }}>
-          <span style={{ fontSize: FS.brand, fontWeight: 900, letterSpacing: "0.04em", color: "#000" }}>
-            FLOXYNC.COM
-          </span>
+        {/* ① 헤더: 플로싱크 로고 + 회사명 */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", lineHeight: 1 }}>
+          <img
+            src="/images/floxync-logo-dark.png"
+            alt="Floxync"
+            style={{
+              height: `calc(${FS.brand} * 1.6)`,
+              width: "auto",
+              objectFit: "contain",
+              display: "block",
+            }}
+          />
           <span style={{ fontSize: FS.site, fontWeight: 600, color: "#666", letterSpacing: "0.02em" }}>
             LILYMAG LAB
           </span>
@@ -169,6 +176,7 @@ function buildPrintHtml(
   pages: (DeviceItem | null)[][],
   config: ReturnType<typeof getLabelSheetConfig>,
   isThermal: boolean,
+  origin: string,
 ): string {
   const { labelWidthMm: lw, labelHeightMm: lh } = config;
   const isPortrait = lh > lw;
@@ -190,10 +198,10 @@ function buildPrintHtml(
 
   const sheets = pages.map(page => {
     const cells = isThermal
-      ? page.filter(Boolean).map(cell => cell ? singleLabelHtml(cell, lw, lh, isPortrait, cW, cH, pad, FS) : "").join("")
+      ? page.filter(Boolean).map(cell => cell ? singleLabelHtml(cell, lw, lh, isPortrait, cW, cH, pad, FS, origin) : "").join("")
       : `<div class="sheet">
           ${page.map(cell => cell
-            ? `<div class="cell">${singleLabelHtml(cell, lw, lh, isPortrait, cW, cH, pad, FS)}</div>`
+            ? `<div class="cell">${singleLabelHtml(cell, lw, lh, isPortrait, cW, cH, pad, FS, origin)}</div>`
             : `<div class="cell"></div>`
           ).join("")}
         </div>`;
@@ -221,7 +229,7 @@ function buildPrintHtml(
       ${pageStyle}
       * { box-sizing:border-box; margin:0; padding:0; }
       html,body { background:white; }
-      .label-outer { width:${lw}mm; height:${lh}mm; overflow:hidden; position:relative; background:white; ${isThermal ? "page-break-after:always; page-break-inside:avoid;" : ""} }
+      .label-outer { margin:0 auto; width:${lw}mm; height:${lh}mm; overflow:hidden; position:relative; background:white; ${isThermal ? "page-break-after:always; page-break-inside:avoid;" : ""} }
       .label-inner {
         width:${cW}mm; height:${cH}mm;
         display:flex; flex-direction:column; justify-content:space-between;
@@ -276,14 +284,16 @@ function singleLabelHtml(
   isPortrait: boolean, cW: number, cH: number,
   pad: string,
   FS: { brand:string; site:string; model:string; serial:string; note:string; bh:number },
+  origin: string,
 ): string {
-  const tier = cH <= 26 ? "xs" : "?";
   const hideModel = cH <= 26;
+  // 인쇄 HTML: 절대 URL 사용 (popup window에서도 로고 로드 보장)
+  const logoHtml = `<img src="${origin}/images/floxync-logo-dark.png" alt="Floxync" style="height:${FS.brand};width:auto;object-fit:contain;display:block;vertical-align:middle;" />`;
   return `
     <div class="label-outer">
       <div class="label-inner">
         <div class="hdr">
-          <span class="brand">FLOXYNC.COM</span>
+          <div style="display:flex;align-items:center;">${logoHtml}</div>
           <span class="site">LILYMAG LAB</span>
         </div>
         ${hideModel ? "" : `<p class="model">${cell.device_type === "pos" ? "POS" : "LABEL"} · ${cell.model_name}</p>`}
@@ -363,7 +373,7 @@ export function DeviceBarcodePrintDialog({ open, onClose, devices }: Props) {
   const currentPage = pages[Math.min(previewPage, pages.length - 1)] ?? [];
 
   const handlePrint = () => {
-    const html = buildPrintHtml(pages, config, isThermal);
+    const html = buildPrintHtml(pages, config, isThermal, window.location.origin);
     const w = window.open("", "_blank", "width=900,height=700");
     if (!w) return;
     w.document.write(html);

@@ -2994,7 +2994,7 @@
       "logoAlt": "FloXync 로고"
     },
     "hero": {
-      "status": "꽃집 사장님 AI 비서 · 베타 무료",
+      "status": "시스템 상태: 최적화됨",
       "line1": "로스율을 줄이는",
       "line2": "스마트 사입 및",
       "line3": "자재 관리",
@@ -3060,7 +3060,7 @@
           "description": "모바일 예약 3시간 전 리마인드 알림톡 발송은 물론, 카운터 윈도우 앱에서는 로그인 후 매 4시간마다 오늘과 내일의 픽업·배송 일정을 정리해 띄워드려요."
         }
       },
-      "integratedBadge": "통합지능",
+      "integratedBadge": "통합 인텔리전스",
       "integratedTitleLeft": "통합",
       "integratedTitleHighlight": "커머스 AI 네트워크",
       "integratedDescription": "Floxync는 선도적인 상거래 플랫폼과 통합되어 실시간 동기화를 통해 주문, 재고 및 카탈로그 흐름을 자동화합니다.",
@@ -3127,27 +3127,27 @@
       "contactSales": "도입 상담",
       "contactLabel": "연락처",
       "printBridge": "자동 인쇄",
-      "supportLine": "지원",
+      "supportLine": "지원 연락처",
       "officialMail": "공식 메일",
-      "architecture": "기능 안내",
+      "architecture": "아키텍처",
       "ecosystem": "에코시스템",
-      "legal": "약관 및 개인정보",
-      "coreEngine": "자동 인쇄",
-      "aiModules": "ERP 운영",
-      "cloudPrinting": "모바일 접수",
+      "legal": "법무 및 개인정보",
+      "coreEngine": "코어 엔진",
+      "aiModules": "AI 모듈",
+      "cloudPrinting": "클라우드 인쇄",
       "ribbonSupply": "리본 소모품",
       "inkToners": "잉크·토너",
       "hardwarePartner": "하드웨어 파트너",
       "terms": "이용약관",
       "privacy": "개인정보 처리방침",
       "rights": "모든 권리 보유.",
-      "securityStatus": "서비스 상태",
-      "apiStatus": "업데이트 소식"
+      "securityStatus": "보안 상태",
+      "apiStatus": "API 상태"
     },
     "featureDetail": {
       "back": "기능 목록으로",
-      "capability": "FloXync 기능",
-      "comingSoon": "준비 중",
+      "capability": "Floxync 기능",
+      "comingSoon": "곧 제공",
       "startFree": "무료로 시작하기",
       "viewOthers": "다른 기능 보기"
     }

@@ -17,9 +17,10 @@ export interface TenantLimitStatus {
 export function getPlanLimits(plan: string): { limit: number; softLimit: number } {
   switch (plan) {
     case "free":
-      return { limit: 5, softLimit: 4 };
-    case "ribbon_only":
       return { limit: 10, softLimit: 8 };
+    case "mini":
+    case "ribbon_only":
+      return { limit: 55, softLimit: 40 }; // 미니 50건 (Soft 40, Hard 55)
     case "light":
       return { limit: 105, softLimit: 80 }; // 라이트 100건 (Soft 80, Hard 105)
     case "pro":

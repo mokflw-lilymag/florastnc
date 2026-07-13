@@ -37,6 +37,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useStaffAttendance } from "@/hooks/use-staff-attendance";
 import { usePosSession } from "@/hooks/use-pos-session";
 import { ProfileSwitcher } from "@/components/layout/profile-switcher";
+import { isReverseTrial } from "@/lib/subscription/plan-access";
 
 interface HeaderProps {
   userEmail: string;
@@ -55,6 +56,7 @@ interface HeaderProps {
   isOrgUser?: boolean;
   showOrgBoardLink?: boolean;
   showBranchMaterialRequestLink?: boolean;
+  referralCode?: string | null;
 }
 
 function planBadgeLabel(plan: string) {
@@ -82,6 +84,7 @@ export function Header({
   isOrgUser = false,
   showOrgBoardLink = false,
   showBranchMaterialRequestLink = false,
+  referralCode,
 }: HeaderProps) {
   const sidebarHqOnly = hqMenuOnly ?? isOrgOnly;
   const router = useRouter();
@@ -298,11 +301,37 @@ export function Header({
                   <span className="truncate">{subscriptionLine}</span>
                 </Link>
               )}
+              {referralCode && !isSuperAdmin && (
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(referralCode);
+                    toast.success("추천인 코드가 복사되었습니다: " + referralCode);
+                  }}
+                  title="내 추천인 코드 (클릭하여 복사)"
+                  className="inline-flex max-w-full items-center rounded-lg border border-indigo-200 bg-indigo-50 px-2 py-1 text-[10px] font-bold leading-tight text-indigo-700 transition-colors hover:bg-indigo-100 sm:shrink-0 md:text-[11px] cursor-pointer"
+                >
+                  <span className="truncate">추천인 코드: {referralCode}</span>
+                </button>
+              )}
 
               {/* 주문 사용량 실시간 게이지 프로그레스 바 노출 */}
               {(() => {
                 if (isSuperAdmin || sidebarHqOnly) return null;
                 const limits = (() => {
+                  const state = useAuthStore.getState();
+                  const ctx = {
+                    plan,
+                    isExpired,
+                    isSuspended,
+                    isSuperAdmin,
+                    createdAt: (state.profile?.tenants as any)?.created_at
+                  };
+                  
+                  // 리버스 트라이얼 (1주일 무료 체험) 상태인 경우 10건 허용
+                  if (plan === "free" && isReverseTrial(ctx)) {
+                    return { max: 10, soft: 8 };
+                  }
+
                   switch (plan) {
                     case "free": return { max: 5, soft: 4 };
                     case "light": return { max: 100, soft: 80 };

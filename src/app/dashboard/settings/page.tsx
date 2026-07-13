@@ -88,6 +88,7 @@ import { RemoteSettingsAssistBanner } from "./components/remote-settings-assist-
 import { KakaoPcSettingsCard } from "./components/KakaoPcSettingsCard";
 import { MallIntegrationCard } from "./components/MallIntegrationCard";
 import { RegionalIntegrationPanel } from "./components/RegionalIntegrationPanel";
+import { AccountConsentCard } from "./components/AccountConsentCard";
 import { applyCountryPreset, getCountryPreset, getCountryPresetDiff } from "@/lib/country-preset";
 import { AppLocale, resolveLocale, toBaseLocale } from "@/i18n/config";
 import { applyUiLocaleCookie, readUiLocaleCookie } from "@/i18n/apply-ui-locale";
@@ -1705,6 +1706,8 @@ export default function SettingsPage() {
                   </div>
                 </CardContent>
               </Card>
+
+              <AccountConsentCard />
             </TabsContent>
 
             <TabsContent value="order-payment" className="space-y-4">

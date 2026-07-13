@@ -8,43 +8,57 @@ import { buildPublicPricingPageCopy } from "@/lib/pricing/public-pricing-copy";
 import { isPublicPricingKrw } from "@/lib/pricing/public-pricing";
 import { cn } from "@/lib/utils";
 
+import type { GlobalDiscountSettings } from "@/lib/subscription/discount-helper";
+
 type Props = {
   locale: AppLocale;
+  hqSettings?: GlobalDiscountSettings | null;
+  isDashboard?: boolean;
+  forceUseKrw?: boolean;
+  onSelectPlan?: (planId: string, period: "1m" | "12m") => void;
+  currentPlanId?: string;
+  selectedPeriod?: "1m" | "12m";
 };
 
-export function PublicPricingView({ locale }: Props) {
+export function PublicPricingView({ locale, hqSettings, isDashboard, forceUseKrw, onSelectPlan, currentPlanId, selectedPeriod = "12m" }: Props) {
   const baseLocale = toBaseLocale(locale);
-  const useKrw = isPublicPricingKrw(locale);
-  const copy = buildPublicPricingPageCopy(baseLocale, useKrw, baseLocale === "ko");
+  const useKrw = forceUseKrw !== undefined ? forceUseKrw : isPublicPricingKrw(locale);
+  const copy = buildPublicPricingPageCopy(baseLocale, useKrw, baseLocale === "ko", hqSettings);
 
   return (
     <main className="min-h-screen bg-[#fbf9f7] text-[#1b1c1b] selection:bg-[#86e3ce] selection:text-[#006657] overflow-x-hidden relative">
       <div className="absolute top-0 -left-64 w-[600px] h-[600px] bg-[#86e3ce]/20 rounded-full blur-[100px] pointer-events-none -z-10" />
       <div className="absolute bottom-0 -right-32 w-[500px] h-[500px] bg-[#fdcada]/20 rounded-full blur-[100px] pointer-events-none -z-10" />
 
-      <article className="pt-16 pb-24 md:pt-20 md:pb-32 relative z-10">
+      <article className={cn("relative z-10", isDashboard ? "pt-8 pb-12" : "pt-16 pb-24 md:pt-20 md:pb-32")}>
         <div className="container mx-auto px-6 md:px-12 max-w-6xl">
-          <Link
-            href={`/${locale}`}
-            className="inline-flex items-center gap-2 text-sm font-bold text-[#3e4946] hover:text-[#006b5c] transition-colors mb-10 uppercase tracking-widest"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            {copy.backHome}
-          </Link>
+          {!isDashboard && (
+            <Link
+              href={`/${locale}`}
+              className="inline-flex items-center gap-2 text-sm font-bold text-[#3e4946] hover:text-[#006b5c] transition-colors mb-10 uppercase tracking-widest"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              {copy.backHome}
+            </Link>
+          )}
 
-          <header className="text-center mb-10">
-            <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-[#86e3ce]/50 text-[#006657] font-bold text-xs mb-6 border border-[#006b5c]/10 uppercase tracking-[0.2em] shadow-sm">
-              {copy.badge}
-            </div>
-            <h1 className="text-3xl md:text-5xl font-black mb-6 text-gradient bg-clip-text">
+          <header className={cn("text-center", isDashboard ? "mb-6" : "mb-10")}>
+            {!isDashboard && (
+              <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-[#86e3ce]/50 text-[#006657] font-bold text-xs mb-6 border border-[#006b5c]/10 uppercase tracking-[0.2em] shadow-sm">
+                {copy.badge}
+              </div>
+            )}
+            <h1 className={cn("font-black mb-6 text-gradient bg-clip-text", isDashboard ? "text-2xl md:text-3xl" : "text-3xl md:text-5xl")}>
               {copy.h1}
             </h1>
-            <p className="text-[#3e4946] text-lg md:text-xl leading-relaxed max-w-2xl mx-auto font-medium">
-              {copy.subtitle}
-            </p>
+            {!isDashboard && (
+              <p className="text-[#3e4946] text-lg md:text-xl leading-relaxed max-w-2xl mx-auto font-medium">
+                {copy.subtitle}
+              </p>
+            )}
           </header>
 
-          <p className="text-center text-xs md:text-sm text-[#3e4946]/90 max-w-3xl mx-auto mb-12 px-4 py-3 rounded-2xl bg-white/60 border border-[#bdc9c5]/30">
+          <p className={cn("text-center text-xs md:text-sm text-[#3e4946]/90 max-w-3xl mx-auto px-4 py-3 rounded-2xl bg-white/60 border border-[#bdc9c5]/30", isDashboard ? "mb-8" : "mb-12")}>
             {copy.disclaimer}
           </p>
 
@@ -81,14 +95,26 @@ export function PublicPricingView({ locale }: Props) {
                   >
                     {plan.name}
                   </h3>
-                  <p className="text-slate-500 text-xs mb-6 h-10">{plan.description}</p>
+                  <p className="text-slate-500 text-xs mb-6 h-20">{plan.description}</p>
                   <div className="mb-6">
-                    <span className="text-2xl font-extrabold text-slate-900">
-                      {plan.monthlyPrice}
-                    </span>
+                    <div className="flex flex-col">
+                      {plan.originalMonthlyPrice && (
+                        <span className="text-sm font-medium text-slate-400 line-through">
+                          {plan.originalMonthlyPrice}
+                        </span>
+                      )}
+                      <span className="text-2xl font-extrabold text-slate-900">
+                        {plan.monthlyPrice}
+                      </span>
+                    </div>
                     <div
                       className={cn("text-[11px] font-bold mt-1", plan.annualNoteClass)}
                     >
+                      {plan.originalAnnualNote && (
+                        <span className="text-slate-400 line-through mr-1 font-normal block">
+                          {plan.originalAnnualNote}
+                        </span>
+                      )}
                       {plan.annualNote}
                     </div>
                   </div>
@@ -120,63 +146,82 @@ export function PublicPricingView({ locale }: Props) {
                     </ul>
                   </div>
                 </div>
-                <div className="mt-8 pt-4 border-t border-slate-100/50">
-                  <div className="text-[11px] text-slate-500 text-center font-bold">
-                    {plan.footer}
-                  </div>
+                <div className="mt-8 pt-4 border-t border-slate-100/50 flex flex-col justify-end h-full">
+                  {isDashboard && plan.id !== "free" ? (
+                    <button
+                      onClick={() => onSelectPlan?.(plan.id, selectedPeriod)}
+                      disabled={currentPlanId === plan.id}
+                      className={cn(
+                        "w-full py-2.5 rounded-full font-bold text-sm transition-all text-center",
+                        currentPlanId === plan.id
+                          ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+                          : plan.highlighted
+                          ? "bg-[#006b5c] text-white shadow-md hover:bg-[#005a4d]"
+                          : "bg-slate-800 text-white shadow-md hover:bg-slate-700"
+                      )}
+                    >
+                      {currentPlanId === plan.id ? (baseLocale === "ko" ? "현재 이용 중" : "Current Plan") : (baseLocale === "ko" ? "선택하기" : "Select Plan")}
+                    </button>
+                  ) : (
+                    <div className="text-[11px] text-slate-500 text-center font-bold">
+                      {plan.footer}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
           </div>
 
-          <div className="p-8 md:p-12 rounded-[2.5rem] bg-gradient-to-r from-[#006b5c]/10 to-[#665590]/10 border border-[#006b5c]/20 shadow-lg text-center">
-            <h3 className="text-xl md:text-2xl font-black mb-4 text-[#006b5c]">
-              {copy.ctaTitle}
-            </h3>
-            <p className="text-sm md:text-base text-[#3e4946] mb-8 max-w-lg mx-auto">
-              {copy.ctaBody}
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-              <Link
-                href={`/${locale}#test-user-apply`}
-                className="bg-[#006b5c] text-white font-bold px-8 py-4 rounded-full shadow-lg shadow-[#006b5c]/20 hover:scale-105 transition-all text-center"
-              >
-                {copy.ctaApply}
-              </Link>
-              <a
-                href="mailto:admin@floxync.com"
-                className="bg-white text-[#1b1c1b] border border-[#bdc9c5]/30 font-bold px-8 py-4 rounded-full flex items-center justify-center gap-2 hover:bg-slate-50 transition-all"
-              >
-                <Mail className="w-5 h-5" />
-                {copy.ctaEmail}
-              </a>
-            </div>
-
-            <div className="border-t border-[#bdc9c5]/30 pt-8 mt-8">
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">
-                {copy.downloadTitle}
+          {!isDashboard && (
+            <div className="p-8 md:p-12 rounded-[2.5rem] bg-gradient-to-r from-[#006b5c]/10 to-[#665590]/10 border border-[#006b5c]/20 shadow-lg text-center">
+              <h3 className="text-xl md:text-2xl font-black mb-4 text-[#006b5c]">
+                {copy.ctaTitle}
+              </h3>
+              <p className="text-sm md:text-base text-[#3e4946] mb-8 max-w-lg mx-auto">
+                {copy.ctaBody}
               </p>
-              <div className="flex flex-col lg:flex-row gap-6 justify-center items-center lg:items-stretch">
-                <a
-                  href="/api/downloads/windows-app"
-                  className="w-full sm:w-auto bg-[#665590] text-white font-bold px-6 py-3 rounded-full flex items-center justify-center gap-2 hover:bg-[#524475] transition-all shadow-md text-sm self-center"
+              <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
+                <Link
+                  href={`/${locale}#test-user-apply`}
+                  className="bg-[#006b5c] text-white font-bold px-8 py-4 rounded-full shadow-lg shadow-[#006b5c]/20 hover:scale-105 transition-all text-center"
                 >
-                  <span className="material-symbols-outlined text-[20px]">download</span>
-                  {copy.downloadWindows}
+                  {copy.ctaApply}
+                </Link>
+                <a
+                  href="mailto:admin@floxync.com"
+                  className="bg-white text-[#1b1c1b] border border-[#bdc9c5]/30 font-bold px-8 py-4 rounded-full flex items-center justify-center gap-2 hover:bg-slate-50 transition-all"
+                >
+                  <Mail className="w-5 h-5" />
+                  {copy.ctaEmail}
                 </a>
-                <AndroidApkQrCard
-                  buttonLabel={copy.downloadAndroid}
-                  qrCaption={copy.androidQrCaption}
-                  qrAlt={copy.androidQrAlt}
-                  guidanceItems={copy.androidGuidanceItems}
-                />
+              </div>
+
+              <div className="border-t border-[#bdc9c5]/30 pt-8 mt-8">
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">
+                  {copy.downloadTitle}
+                </p>
+                <div className="flex flex-col lg:flex-row gap-6 justify-center items-center lg:items-stretch">
+                  <a
+                    href="/api/downloads/windows-app"
+                    className="w-full sm:w-auto bg-[#665590] text-white font-bold px-6 py-3 rounded-full flex items-center justify-center gap-2 hover:bg-[#524475] transition-all shadow-md text-sm self-center"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">download</span>
+                    {copy.downloadWindows}
+                  </a>
+                  <AndroidApkQrCard
+                    buttonLabel={copy.downloadAndroid}
+                    qrCaption={copy.androidQrCaption}
+                    qrAlt={copy.androidQrAlt}
+                    guidanceItems={copy.androidGuidanceItems}
+                  />
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </article>
 
-      <Footer locale={locale} />
+      {!isDashboard && <Footer locale={locale} />}
     </main>
   );
 }

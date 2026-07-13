@@ -27,6 +27,8 @@ import { cn } from "@/lib/utils";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { speechRecognitionLangTag, toBaseLocale } from "@/i18n/config";
 import { pickUiText } from "@/i18n/pick-ui-text";
+import { useAuthStore } from "@/stores/auth-store";
+import { hasAiParseAccess } from "@/lib/subscription/plan-access";
 
 interface AiOrderConciergeProps {
   onApply: (data: any) => void;
@@ -163,6 +165,12 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
   /** AI 분석 결과 — 검토 화면에서 사용자가 직접 수정한 뒤 적용 */
   const [aiReviewDraft, setAiReviewDraft] = useState<Record<string, unknown> | null>(null);
   const [portalReady, setPortalReady] = useState(false);
+
+  const { profile, isSuperAdmin } = useAuthStore();
+  const plan = (profile?.tenants as any)?.plan;
+  const createdAt = (profile?.tenants as any)?.created_at;
+  const ctx = { plan, isSuperAdmin, createdAt };
+  const aiAllowed = hasAiParseAccess(ctx);
 
   useEffect(() => {
     setPortalReady(true);
@@ -500,7 +508,13 @@ export function AiOrderConcierge({ onApply }: AiOrderConciergeProps) {
     <div className="relative z-20 shrink-0">
       {/* Trigger Button */}
       <Button 
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          if (!aiAllowed) {
+            toast.error(pickUiText(baseLocale, "AI 자동 입력 기능은 유료 플랜 전용입니다.", "AI auto-fill is available for paid plans.", "Tính năng tự động điền AI chỉ dành cho gói trả phí.", "AI自動入力機能は有料プラン専用です。"));
+            return;
+          }
+          setIsOpen(!isOpen);
+        }}
         className="relative overflow-hidden group bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-2xl h-14 px-6 shadow-lg shadow-indigo-200"
       >
         <motion.div 

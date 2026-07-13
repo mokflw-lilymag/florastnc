@@ -108,15 +108,17 @@ interface TenantWithProfile {
     id: string;
     email: string;
     role: string;
+    marketing_agreed?: boolean;
+    third_party_agreed?: boolean;
   }[];
 }
 
 const PRICING = {
   free: { "1m": 0, "12m": 0 },
-  ribbon_only: { "1m": 15000, "12m": 120000 },
+  ribbon_only: { "1m": 15000, "12m": 180000 },
   light: { "1m": 25000, "12m": 300000 },
-  pro: { "1m": 40000, "12m": 440000 },
-  pro_plus: { "1m": 60000, "12m": 660000 },
+  pro: { "1m": 40000, "12m": 480000 },
+  pro_plus: { "1m": 60000, "12m": 720000 },
 };
 
 export default function TenantsPage() {
@@ -235,6 +237,40 @@ export default function TenantsPage() {
     [tenants],
   );
 
+  const toggleMarketingConsent = async (e: React.MouseEvent, profileId: string, userId: string, currentVal: boolean) => {
+    e.stopPropagation();
+    try {
+      toast.loading("마케팅 동의 상태를 변경 중입니다...");
+      
+      const res = await fetch("/api/admin/tenants/marketing-consent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, marketingAgreed: !currentVal }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to update");
+      }
+
+      toast.dismiss();
+      toast.success("마케팅 수신 동의 상태가 변경되었습니다.");
+      
+      // Update local state
+      setTenants(prev => prev.map(t => ({
+        ...t,
+        profiles: t.profiles?.map(p => 
+          p.id === profileId 
+            ? { ...p, marketing_agreed: !currentVal }
+            : p
+        )
+      })));
+    } catch (err: any) {
+      toast.dismiss();
+      toast.error("상태 변경 실패: " + err.message);
+    }
+  };
+
   const handleExportCsv = () => {
     const headers = [
       "매장명",
@@ -249,11 +285,13 @@ export default function TenantsPage() {
       "만료일",
       "잔여일",
       "상태",
+      "마케팅 동의",
+      "제3자 동의"
     ];
     const rows = filteredTenants.map((t) => {
       const tenure = resolveSubscriptionTenure(t);
-      const adminEmail =
-        t.profiles?.find((p) => p.role === "tenant_admin")?.email ?? t.profiles?.[0]?.email ?? "";
+      const adminProfile = t.profiles?.find((p) => p.role === "tenant_admin") ?? t.profiles?.[0];
+      const adminEmail = adminProfile?.email ?? "";
       return [
         t.name,
         planIdLabel(t.plan),
@@ -266,7 +304,9 @@ export default function TenantsPage() {
         format(parseISO(t.created_at), "yyyy-MM-dd"),
         t.subscription_end ? format(parseISO(t.subscription_end), "yyyy-MM-dd") : "",
         tenureDaysLabelKo(tenure),
-        tenure.isSuspended ? "정지" : tenure.isExpired ? "만료" : "정상",
+        t.status,
+        adminProfile?.marketing_agreed ? "O" : "X",
+        adminProfile?.third_party_agreed ? "O" : "X"
       ];
     });
     const csv = [headers, ...rows]
@@ -965,6 +1005,7 @@ export default function TenantsPage() {
                   </TableRow>
                 ) : filteredTenants.map((tenant) => {
                   const tenure = resolveSubscriptionTenure(tenant);
+                  const adminProfile = tenant.profiles?.find(p => p.role === 'tenant_admin') || tenant.profiles?.[0];
                   return (
                   <TableRow 
                     key={tenant.id} 
@@ -1080,7 +1121,17 @@ export default function TenantsPage() {
                        <div className="flex flex-col gap-1">
                          <div className="flex items-center gap-2">
                            <Mail className="h-3.5 w-3.5 opacity-20 shrink-0" />
-                           <span className="text-slate-700 font-normal text-sm">{tenant.profiles?.find(p => p.role === 'tenant_admin')?.email || tenant.profiles?.[0]?.email || tf.f00224}</span>
+                           <span className="text-slate-700 font-normal text-sm">{adminProfile?.email || tf.f00224}</span>
+                         </div>
+                         <div className="flex items-center gap-1.5 mt-0.5">
+                           <button 
+                             onClick={(e) => adminProfile ? toggleMarketingConsent(e, adminProfile.id, adminProfile.id, !!adminProfile.marketing_agreed) : e.stopPropagation()}
+                             className={cn("text-[9px] px-1.5 py-0.5 rounded-sm font-medium transition-colors border-0", adminProfile?.marketing_agreed ? "bg-emerald-50 text-emerald-600 hover:bg-emerald-100 cursor-pointer" : "bg-slate-100 text-slate-400 hover:bg-slate-200 cursor-pointer")}
+                             title="클릭하여 마케팅 수신 동의 상태 변경"
+                           >
+                             마케팅 {adminProfile?.marketing_agreed ? "O" : "X"}
+                           </button>
+                           <span className={cn("text-[9px] px-1.5 py-0.5 rounded-sm font-medium", adminProfile?.third_party_agreed ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-400")}>제3자 {adminProfile?.third_party_agreed ? "O" : "X"}</span>
                          </div>
                          {tenant.contactPhone && (
                            <div className="flex items-center gap-2">

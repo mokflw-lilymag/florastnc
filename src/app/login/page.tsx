@@ -16,7 +16,7 @@ import {
   DialogHeader, 
   DialogTitle 
 } from "@/components/ui/dialog";
-import { Loader2, Eye, EyeOff, Lock, Mail, Building, Info, Shield } from 'lucide-react';
+import { Loader2, Eye, EyeOff, Lock, Mail, Building, Info, Shield, Gift, ChevronDown, ChevronUp } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePreferredLocale } from '@/hooks/use-preferred-locale';
@@ -87,8 +87,22 @@ export default function LoginPage() {
   const [regPassword, setRegPassword] = useState('');
   const [regShopName, setRegShopName] = useState('');
   const [showRegPassword, setShowRegPassword] = useState(false);
+  const [regReferralCode, setRegReferralCode] = useState("");
+  const [agreeAge, setAgreeAge] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
+  const [agreePrivacy, setAgreePrivacy] = useState(false);
+  const [agreeMarketing, setAgreeMarketing] = useState(false);
+  const [isConsentExpanded, setIsConsentExpanded] = useState(false);
   const [regLoading, setRegLoading] = useState(false);
+
+  const isAllAgreed = agreeAge && agreeTerms && agreePrivacy && agreeMarketing;
+  const toggleAllAgreements = (checked: boolean) => {
+    setAgreeAge(checked);
+    setAgreeTerms(checked);
+    setAgreePrivacy(checked);
+    setAgreeMarketing(checked);
+    setIsConsentExpanded(true);
+  };
 
   // Forgot Password State
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
@@ -266,11 +280,11 @@ export default function LoginPage() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!agreeTerms) {
+    if (!agreeAge || !agreeTerms || !agreePrivacy) {
       const errTermsMsg = pickUiText(
         baseLocale,
-        "서비스 이용약관 및 개인정보 처리방침에 동의해 주셔야 가입이 가능합니다.",
-        "You must agree to the Terms of Service and Privacy Policy to register.",
+        "필수 항목(연령, 이용약관, 개인정보)에 모두 동의해 주셔야 가입이 가능합니다.",
+        "You must agree to all required terms (Age, Terms of Service, Privacy Policy) to register.",
       );
       toast.error(errTermsMsg);
       return;
@@ -284,7 +298,11 @@ export default function LoginPage() {
         options: {
           data: {
             shop_name: regShopName,
-            role: 'tenant_admin'
+            role: 'tenant_admin',
+            terms_agreed_at: agreeTerms ? new Date().toISOString() : null,
+            privacy_agreed_at: agreePrivacy ? new Date().toISOString() : null,
+            age_agreed_at: agreeAge ? new Date().toISOString() : null,
+            marketing_agreed_at: agreeMarketing ? new Date().toISOString() : null,
           },
           emailRedirectTo: `${window.location.origin}/login`
         }
@@ -292,7 +310,13 @@ export default function LoginPage() {
 
       if (error) throw error;
 
-      if (data.user) {
+      if (data.session) {
+        toast.success(
+          pickUiText(baseLocale, "회원가입 성공!", "Signup Successful!"), 
+          { description: pickUiText(baseLocale, "가입이 완료되었습니다. 환영합니다!", "Account created. Welcome!") }
+        );
+        finishLoginRedirect();
+      } else if (data.user) {
         toast.success(L.toastSignupOk, {
           description: L.toastSignupOkDesc,
         });
@@ -423,24 +447,7 @@ export default function LoginPage() {
                   </Button>
                 </form>
 
-                <Link
-                  href="/try"
-                  className="mt-3 flex w-full items-center justify-center rounded-md border border-dashed border-slate-300 bg-slate-50/80 px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800"
-                >
-                  {pickUiText(
-                    baseLocale,
-                    "회원가입 없이 메뉴만 둘러보기",
-                    "Browse menus without signing up",
-                    "Xem menu không cần đăng ký",
-                    "登録せずメニューを見る",
-                    "不注册，仅浏览菜单",
-                    "Explorar menús sin registrarse",
-                    "Ver menus sem cadastro",
-                    "Parcourir sans inscription",
-                    "Menüs ohne Anmeldung ansehen",
-                    "Смотреть меню без регистрации",
-                  )}
-                </Link>
+
 
                 <div className="relative my-4">
                   <div className="absolute inset-0 flex items-center">
@@ -547,34 +554,93 @@ export default function LoginPage() {
                       </Button>
                     </div>
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="reg-referral" className="text-slate-600 dark:text-slate-300">
+                      {pickUiText(baseLocale, "추천인 코드 (선택)", "Referral Code (Optional)")}
+                    </Label>
+                    <div className="relative">
+                      <Gift className="absolute left-3 top-3.5 h-4 w-4 text-slate-400" />
+                      <Input
+                        id="reg-referral"
+                        type="text"
+                        value={regReferralCode}
+                        onChange={(e) => setRegReferralCode(e.target.value)}
+                        placeholder="ABCDE"
+                        className="pl-10 h-11 bg-white/50 dark:bg-slate-950/50 uppercase"
+                      />
+                    </div>
+                    <p className="text-xs text-indigo-500 font-medium mt-1.5 ml-1 flex items-center">
+                      <Gift className="w-3 h-3 mr-1 inline-block" />
+                      {pickUiText(baseLocale, "추천인 입력 후 첫 결제 시 모두 1개월 무료 연장!", "Get 1 month free for both upon first payment!")}
+                    </p>
+                  </div>
                   
                   {/* Terms and conditions check guard */}
-                  <div className="flex items-start space-x-2 py-1.5">
-                    <Checkbox 
-                      id="agree-terms" 
-                      checked={agreeTerms} 
-                      onCheckedChange={(checked) => setAgreeTerms(!!checked)}
-                      className="mt-1"
-                    />
-                    <label 
-                      htmlFor="agree-terms" 
-                      className="text-xs font-medium text-slate-500 leading-snug cursor-pointer select-none"
-                    >
-                      {pickUiText(
-                        baseLocale,
-                        "서비스 이용약관 및 개인정보 처리방침에 동의합니다. (필수)",
-                        "I agree to the Terms of Service and Privacy Policy. (Required)",
-                      )}
-                      <span className="block text-[10px] text-slate-400 mt-0.5">
-                        <Link href="/legal/terms" target="_blank" className="text-indigo-500 underline hover:text-indigo-600">
-                          {pickUiText(baseLocale, "이용약관 보기", "View Terms")}
-                        </Link>
-                        {" · "}
-                        <Link href="/legal/privacy" target="_blank" className="text-indigo-500 underline hover:text-indigo-600">
-                          {pickUiText(baseLocale, "개인정보 처리방침 보기", "View Privacy")}
-                        </Link>
-                      </span>
-                    </label>
+                  <div className="flex flex-col space-y-3 py-2 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-md border border-slate-100 dark:border-slate-800 transition-all duration-200">
+                    <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="agree-all" 
+                          checked={isAllAgreed} 
+                          onCheckedChange={(c) => toggleAllAgreements(!!c)}
+                        />
+                        <label 
+                          htmlFor="agree-all" 
+                          className="text-sm font-bold text-slate-700 dark:text-slate-200 cursor-pointer select-none"
+                        >
+                          {pickUiText(baseLocale, "모두 동의합니다", "I agree to all")}
+                        </label>
+                      </div>
+                      <button 
+                        type="button" 
+                        onClick={() => setIsConsentExpanded(!isConsentExpanded)}
+                        className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1"
+                      >
+                        {isConsentExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                      </button>
+                    </div>
+                    
+                    {isConsentExpanded && (
+                      <div className="flex flex-col space-y-3 animate-in fade-in slide-in-from-top-1">
+                        <div className="flex items-center space-x-2">
+                          <Checkbox id="agree-age" checked={agreeAge} onCheckedChange={(c) => setAgreeAge(!!c)} />
+                          <label htmlFor="agree-age" className="text-xs font-medium text-slate-500 cursor-pointer select-none flex-1">
+                            {pickUiText(baseLocale, "(필수) 만 14세 이상입니다.", "(Required) I am 14 years or older.")}
+                          </label>
+                        </div>
+
+                        <div className="flex items-center justify-between space-x-2">
+                          <div className="flex items-center space-x-2">
+                            <Checkbox id="agree-terms-detail" checked={agreeTerms} onCheckedChange={(c) => setAgreeTerms(!!c)} />
+                            <label htmlFor="agree-terms-detail" className="text-xs font-medium text-slate-500 cursor-pointer select-none">
+                              {pickUiText(baseLocale, "(필수) 서비스 이용약관 동의", "(Required) I agree to the Terms of Service")}
+                            </label>
+                          </div>
+                          <Link href="/terms" target="_blank" className="text-[10px] text-indigo-500 underline hover:text-indigo-600 shrink-0">
+                            {pickUiText(baseLocale, "전문 보기", "View")}
+                          </Link>
+                        </div>
+
+                        <div className="flex items-center justify-between space-x-2">
+                          <div className="flex items-center space-x-2">
+                            <Checkbox id="agree-privacy-detail" checked={agreePrivacy} onCheckedChange={(c) => setAgreePrivacy(!!c)} />
+                            <label htmlFor="agree-privacy-detail" className="text-xs font-medium text-slate-500 cursor-pointer select-none">
+                              {pickUiText(baseLocale, "(필수) 개인정보 수집 및 이용 동의", "(Required) I agree to the Privacy Policy")}
+                            </label>
+                          </div>
+                          <Link href="/privacy" target="_blank" className="text-[10px] text-indigo-500 underline hover:text-indigo-600 shrink-0">
+                            {pickUiText(baseLocale, "전문 보기", "View")}
+                          </Link>
+                        </div>
+
+                        <div className="flex items-center space-x-2">
+                          <Checkbox id="agree-marketing" checked={agreeMarketing} onCheckedChange={(c) => setAgreeMarketing(!!c)} />
+                          <label htmlFor="agree-marketing" className="text-xs font-medium text-slate-500 cursor-pointer select-none flex-1 leading-tight">
+                            {pickUiText(baseLocale, "(선택) 이벤트 및 할인 혜택 안내 동의 (이메일, 문자 등)", "(Optional) I agree to receive marketing updates.")}
+                          </label>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <Button type="submit" className="w-full h-11 mt-2 text-md font-medium" disabled={regLoading}>
@@ -582,24 +648,6 @@ export default function LoginPage() {
                   </Button>
                 </form>
 
-                <Link
-                  href="/try"
-                  className="mt-3 flex w-full items-center justify-center rounded-md border border-dashed border-slate-300 bg-slate-50/80 px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800"
-                >
-                  {pickUiText(
-                    baseLocale,
-                    "회원가입 없이 메뉴만 둘러보기",
-                    "Browse menus without signing up",
-                    "Xem menu không cần đăng ký",
-                    "登録せずメニューを見る",
-                    "不注册，仅浏览菜单",
-                    "Explorar menús sin registrarse",
-                    "Ver menus sem cadastro",
-                    "Parcourir sans inscription",
-                    "Menüs ohne Anmeldung ansehen",
-                    "Смотреть меню без регистрации",
-                  )}
-                </Link>
 
                 <div className="relative my-4">
                   <div className="absolute inset-0 flex items-center">

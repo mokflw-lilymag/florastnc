@@ -112,6 +112,10 @@ export function CustomerForm({ isOpen, onOpenChange, onSubmit, customer, isSavin
   });
   const [baselinePoints, setBaselinePoints] = useState(0);
 
+  // Mandatory Consents (only needed when creating a new customer)
+  const [ageConsent, setAgeConsent] = useState(false);
+  const [privacyConsent, setPrivacyConsent] = useState(false);
+
   useEffect(() => {
     const t = getMessages(locale).tenantFlows;
     const resetForm = (anniversaries: CustomerAnniversaryInput[] = []) => ({
@@ -169,6 +173,8 @@ export function CustomerForm({ isOpen, onOpenChange, onSubmit, customer, isSavin
     } else {
       setBaselinePoints(0);
       setFormData(resetForm());
+      setAgeConsent(false);
+      setPrivacyConsent(false);
     }
   }, [customer, isOpen, locale]);
 
@@ -199,6 +205,17 @@ export function CustomerForm({ isOpen, onOpenChange, onSubmit, customer, isSavin
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSaving) return;
+
+    if (!customer) {
+      if (!ageConsent) {
+        toast.error("만 14세 이상 확인에 동의해주세요.");
+        return;
+      }
+      if (!privacyConsent) {
+        toast.error("개인정보 수집 및 이용에 동의해주세요.");
+        return;
+      }
+    }
 
     const currentPoints = formData.points ?? 0;
     const pointDelta = currentPoints - baselinePoints;
@@ -458,6 +475,40 @@ export function CustomerForm({ isOpen, onOpenChange, onSubmit, customer, isSavin
                   )}
                 </p>
               </div>
+
+              {!customer && (
+                <div className="flex flex-col gap-3 pt-2 mt-4 border-t border-emerald-100/50">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="age-consent"
+                      checked={ageConsent}
+                      onCheckedChange={(v) => setAgeConsent(v === true)}
+                    />
+                    <Label htmlFor="age-consent" className="text-sm font-medium cursor-pointer">
+                      (필수) 만 14세 이상입니다.
+                    </Label>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Checkbox
+                      id="privacy-consent"
+                      checked={privacyConsent}
+                      onCheckedChange={(v) => setPrivacyConsent(v === true)}
+                      className="mt-0.5"
+                    />
+                    <div className="space-y-1">
+                      <Label htmlFor="privacy-consent" className="text-sm font-medium cursor-pointer">
+                        (필수) 개인정보 수집 및 이용 동의
+                      </Label>
+                      <p className="text-[11px] text-slate-500">
+                        수집 항목: 이름, 연락처 (선택 시 이메일, 생년월일 등)<br />
+                        수집 목적: 고객 식별, 예약/주문 내역 관리 및 서비스 제공<br />
+                        보유 기간: 회원 탈퇴 또는 동의 철회 시까지
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {(formData.anniversaries ?? []).length === 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {anniversaryPresets.slice(0, 4).map((label) => (

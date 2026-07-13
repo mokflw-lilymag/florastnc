@@ -380,16 +380,27 @@ export default function RegionalKeysPage() {
   }, [authLoading, isSuperAdmin, loadKeys]);
 
   const handleSave = async (countryCode: string) => {
-    if (countryCode === "GLOBAL") return;
     setSaving(true);
-    const config = COUNTRY_KEY_CONFIGS.find((c) => c.countryCode === countryCode);
-    if (!config) {
-      setSaving(false);
-      return;
+    let allFields: KeyField[] = [];
+    let flag = "";
+    let name = "";
+
+    if (countryCode === "GLOBAL") {
+      allFields = [{ id: "google_maps_api_key", label: "Google Maps API Key", placeholder: "GCP Console에서 발급", isSecret: true, helpUrl: "https://console.cloud.google.com" }];
+      flag = "🌍";
+      name = "공통(글로벌)";
+    } else {
+      const config = COUNTRY_KEY_CONFIGS.find((c) => c.countryCode === countryCode);
+      if (!config) {
+        setSaving(false);
+        return;
+      }
+      allFields = config.sections.flatMap((s) => s.fields);
+      flag = config.flag;
+      name = config.name;
     }
 
     try {
-      const allFields = config.sections.flatMap((s) => s.fields);
       const upserts = allFields.map((f) => ({
         key: `regional_key_${f.id}`,
         value: { v: keyValues[f.id] ?? "", country: countryCode },
@@ -399,7 +410,7 @@ export default function RegionalKeysPage() {
         .from("platform_config")
         .upsert(upserts, { onConflict: "key" });
       if (error) throw error;
-      toast.success(`✅ ${config.flag} ${config.name} API 키 저장 완료!`);
+      toast.success(`✅ ${flag} ${name} API 키 저장 완료!`);
     } catch (e: any) {
       toast.error("저장 실패: " + e.message);
     } finally {
@@ -457,7 +468,7 @@ export default function RegionalKeysPage() {
             <li>각 공급사 <strong>개발자/비즈니스 콘솔</strong>에서 앱·채널을 생성하고 심사(필요 시)까지 완료합니다.</li>
             <li>이 화면의 <strong>필드 ID</strong>와 콘솔에서 복사한 값이 같은 종류인지 확인합니다 (REST 키 vs Client Secret 혼동 주의).</li>
             <li>프로덕션·샌드박스 키를 섞지 않았는지, <strong>IP 제한·웹훅 URL</strong>이 있다면 FloXync 서버 환경에 맞게 콘솔에 반영합니다.</li>
-            <li>키 회전 시에는 <strong>다운타임</strong>을 고려해 새 키를 먼저 저장한 뒤 구 키를 폐기합니다.</li>
+            <li>키 회전 시에는 <strong>다운타임</strong>을 고려해 새 키를 먼저 저장한 뒤 구 키 소스를 폐기합니다.</li>
             <li>가이드는 매장 관리자에게도 공유해, 장애 시 &quot;키 만료 vs 앱 버그&quot;를 빨리 가릴 수 있게 합니다.</li>
           </ul>
         </CardContent>
@@ -493,36 +504,42 @@ export default function RegionalKeysPage() {
             <CardHeader className="py-4 px-5 border-b border-indigo-100/80 bg-indigo-50/40">
               <CardTitle className="text-sm font-bold flex items-center gap-2">
                 <Globe2 className="h-4 w-4 text-indigo-600" />
-                공통(글로벌) 자격증명 — Meta, Google, TikTok, N8N 등
+                공통(글로벌) 자격증명 — Meta, Google Maps 등
               </CardTitle>
             </CardHeader>
             <CardContent className="p-5 space-y-4 text-sm text-slate-700 leading-relaxed">
               <p>
-                이 탭에서는 값을 저장하지 않습니다. <strong>여러 국가·여러 매장이 공유하는 앱 수준</strong> OAuth/웹훅은{" "}
-                <code className="rounded bg-white px-1 text-xs ring-1 ring-slate-200">platform_config</code>에{" "}
-                <strong className="text-slate-900">regional_key_ 접두사 없이</strong> 다른 키 이름으로 들어갑니다.
+                <strong>여러 국가·여러 매장이 공유하는 글로벌 API 키</strong>를 설정합니다. 해외 배송비 산정에 쓰이는 구글 맵스 API가 이곳에 저장됩니다.
               </p>
-              <ul className="list-disc pl-5 space-y-1.5 text-xs text-slate-600">
-                <li>
-                  <strong className="text-slate-800">관리자(플랫폼)</strong>: Meta·Google·TikTok·Naver 등 SNS OAuth는{" "}
-                  <strong>별도 홍보 앱</strong>에서 연동합니다. FloXync ERP에서는 제거되었습니다.
-                </li>
-                <li>
-                  <strong className="text-slate-800">국가별 SNS·배달·몰 API</strong>(LINE JP, Zalo, Grab, Shopee 국가별 파트너 키 등): 오른쪽{" "}
-                  <strong>국가 탭</strong>에서 <code className="rounded bg-white px-0.5 text-[11px]">regional_key_*</code>로 저장합니다.
-                </li>
-                <li>
-                  <strong className="text-slate-800">매장(사용자)</strong>가 자기 스마트스토어·카페24에 연결할 <strong>클라이언트 ID/시크릿</strong>은{" "}
-                  <strong>설정 → 연동</strong>에서 <code className="rounded bg-white px-0.5 text-[11px]">shop_integrations</code> 테이블에 저장됩니다. 플랫폼 마스터 키와 역할이 다릅니다.
-                </li>
-              </ul>
-              <p className="text-[11px] text-slate-500 border-t border-indigo-100/80 pt-3">
-                국가 탭이 6개국만 있는 이유: 화면 필드가 <code className="text-[10px]">regional-keys/page.tsx</code>의{" "}
-                <code className="text-[10px]">COUNTRY_KEY_CONFIGS</code>에 정의된 국가만 노출됩니다. 다른 나라는 개발에서 배열·
-                <code className="text-[10px]">regional-integrations.ts</code>를 추가해야 합니다.
-              </p>
+              
+              <div className="pt-4 pb-2">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-extrabold shadow-sm shrink-0 bg-[#4285F4] text-white">
+                    G
+                  </div>
+                  <h3 className="font-bold text-slate-900">Google Maps Platform</h3>
+                </div>
+                <div className="bg-white p-4 rounded-xl border shadow-sm">
+                  <KeyFieldInput
+                    field={{ id: "google_maps_api_key", label: "Google Maps API Key", placeholder: "GCP Console에서 발급", isSecret: true, helpUrl: "https://console.cloud.google.com" }}
+                    value={keyValues["google_maps_api_key"] ?? ""}
+                    onChange={(v) => setKeyValues((prev) => ({ ...prev, ["google_maps_api_key"]: v }))}
+                  />
+                </div>
+              </div>
             </CardContent>
           </Card>
+          
+          <div className="flex justify-end pt-2">
+            <Button
+              className="gap-2 bg-slate-800 hover:bg-slate-700 text-white"
+              onClick={() => handleSave("GLOBAL")}
+              disabled={saving}
+            >
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              🌍 공통(글로벌) API 키 저장
+            </Button>
+          </div>
         </TabsContent>
 
         {COUNTRY_KEY_CONFIGS.map((countryConfig) => (

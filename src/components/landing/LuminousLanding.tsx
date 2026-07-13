@@ -342,7 +342,7 @@ export function LuminousLanding({ locale = 'ko' }: { locale?: AppLocale }) {
   };
 
   return (
-    <div className="bg-[#fbf9f7] text-[#1b1c1b] font-sans antialiased selection:bg-[#86e3ce] selection:text-[#006657]">
+    <div className="bg-[#fbf9f7] text-[#1b1c1b] font-sans antialiased selection:bg-[#86e3ce] selection:text-[#006657] overflow-x-hidden">
       {/* Google Fonts / Material Icons link decoration is handled in layout, but icons are referenced below */}
       <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
       <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
@@ -942,7 +942,7 @@ export function LuminousLanding({ locale = 'ko' }: { locale?: AppLocale }) {
 
         {/* Platform Specific System */}
         <section className="py-24 bg-[#f5f3f1]/30 scroll-mt-20" id="details">
-          <div className="max-w-7xl mx-auto px-6">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 pr-16 sm:pr-6 w-full min-w-0 box-border">
             <div className="text-center mb-20">
               <h2 className="text-3xl lg:text-4xl font-extrabold mb-4 text-[#1b1c1b]">안정적인 매장 운영 시스템</h2>
               <p className="text-base text-[#3e4946] max-w-xl mx-auto">PC 대시보드와 모바일 앱이 유기적으로 연결되어 최적의 업무 환경을 제공합니다.</p>
@@ -973,43 +973,90 @@ export function LuminousLanding({ locale = 'ko' }: { locale?: AppLocale }) {
             </div>
 
             {/* Android Mobile */}
-            <div className="flex flex-col lg:flex-row-reverse items-center gap-12 lg:gap-24">
-              <div className="flex-1">
+            <div className="flex flex-col lg:flex-row-reverse items-center gap-8 lg:gap-12 w-full min-w-0">
+              <div className="flex-1 w-full min-w-0 max-w-full">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#fdcada] text-[#795260] text-xs font-bold mb-6">Android Mobile App</div>
                 <h3 className="text-2xl lg:text-3xl font-extrabold mb-6">꽃 제작대에서도, 시장에서도!<br />사장님 손안의 비서</h3>
                 <p className="text-base lg:text-lg text-[#3e4946] mb-8 leading-relaxed">언제 어디서든 주문을 확인하고 완료 사진을 전송하세요. (iOS 추후 지원 예정)</p>
-                <div className="space-y-4 w-full">
+                <div className="space-y-4 w-full max-w-full">
                   <div className="flex items-center gap-4 p-4 rounded-3xl bg-white border border-[#bdc9c5]/20 shadow-sm hover:translate-y-[-2px] transition-transform duration-300">
-                    <span className="material-symbols-outlined text-[#7a5361] text-[32px]">add_a_photo</span>
-                    <div>
+                    <span className="material-symbols-outlined text-[#7a5361] text-[32px] shrink-0">add_a_photo</span>
+                    <div className="min-w-0">
                       <h4 className="font-bold text-sm text-[#1b1c1b]">제작 완료 사진 촬영 및 저장</h4>
                       <p className="text-xs text-[#3e4946]">완성 사진을 찍어 주문 내역에 자동 매칭합니다.</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-4 p-4 rounded-3xl bg-[#86e3ce]/10 border border-[#86e3ce]/30 shadow-sm hover:translate-y-[-2px] transition-transform duration-300">
-                    <span className="material-symbols-outlined text-[#006b5c] text-[32px]">send_and_archive</span>
-                    <div>
+                    <span className="material-symbols-outlined text-[#006b5c] text-[32px] shrink-0">send_and_archive</span>
+                    <div className="min-w-0">
                       <h4 className="font-bold text-sm text-[#1b1c1b]">고객 안심 실시간 전송</h4>
                       <p className="text-xs text-[#3e4946]">제작 완료 알림을 고객에게 즉시 전송합니다.</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-4 p-4 rounded-3xl bg-white border border-[#bdc9c5]/20 shadow-sm hover:translate-y-[-2px] transition-transform duration-300">
-                    <span className="material-symbols-outlined text-[#7a5361] text-[32px]">photo_camera</span>
-                    <div>
-                      <h4 className="font-bold text-sm text-[#1b1c1b]">꽃시장에서 영수증촬영으로 영수증 저장및 지출관리 자동입력</h4>
+                    <span className="material-symbols-outlined text-[#7a5361] text-[32px] shrink-0">photo_camera</span>
+                    <div className="min-w-0">
+                      <h4 className="font-bold text-sm text-[#1b1c1b] break-keep">꽃시장에서 영수증 촬영으로 저장 및 지출관리 자동입력</h4>
                       <p className="text-xs text-[#3e4946]">영수증을 카메라로 찍으면 자동으로 내역을 분석해 장부에 기록합니다.</p>
                     </div>
                   </div>
                 </div>
               </div>
-              <div className="flex-1 w-full max-w-[280px] flex justify-center relative">
-                <div className="rounded-[3rem] border-[8px] border-[#30302f] shadow-2xl overflow-hidden aspect-[9/19.5] w-full bg-white">
-                  <img alt="Mobile App Screen" className="w-full h-full object-cover object-top" src={LANDING_IMAGES.androidMobile} />
-                </div>
-                <div className="absolute -bottom-6 -right-6 bg-white/90 border border-[#fdcada]/50 backdrop-blur-md p-4 rounded-2xl shadow-xl z-10">
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[#7a5361] animate-bounce">check_circle</span>
-                    <span className="text-xs font-bold text-[#7a5361]">완료 알림 전송됨!</span>
+              <div className="flex-1 w-full min-w-0 max-w-full flex justify-center lg:justify-start">
+                <div className="relative w-full max-w-[220px] md:max-w-[440px] mx-auto box-border pb-16">
+                  {/* 세로 스택(기본) — 폰 프레임·스크린 가로 잘림 방지 */}
+                  <div className="flex flex-col items-center gap-6 md:hidden">
+                    <div className="w-full max-w-[200px]">
+                      <div className="rounded-[1.75rem] border-4 border-[#30302f] shadow-xl overflow-hidden w-full bg-[#30302f] box-border max-h-[min(52vh,380px)]">
+                        <img
+                          alt="FloXync 지출·영수증 OCR"
+                          className="block w-full h-auto"
+                          src={LANDING_IMAGES.androidMobileExpense}
+                        />
+                      </div>
+                      <p className="mt-2 text-center text-[10px] font-bold text-[#3e4946]">영수증 OCR · 지출 등록</p>
+                    </div>
+                    <div className="w-full max-w-[220px]">
+                      <div className="rounded-[1.75rem] border-4 border-[#30302f] shadow-2xl overflow-hidden w-full bg-[#30302f] box-border max-h-[min(52vh,400px)]">
+                        <img
+                          alt="FloXync 픽업·배송 관리"
+                          className="block w-full h-auto"
+                          src={LANDING_IMAGES.androidMobile}
+                        />
+                      </div>
+                      <p className="mt-2 text-center text-[10px] font-bold text-[#3e4946]">픽업 · 배송 관리</p>
+                    </div>
+                  </div>
+
+                  {/* md 이상: 나란히 — 스크린은 contain(가로 전체), 하단만 잘림 */}
+                  <div className="hidden md:grid md:grid-cols-2 md:gap-3 md:items-start w-full box-border">
+                    <div className="min-w-0">
+                      <div className="rounded-[1.75rem] border-4 border-[#30302f] shadow-xl overflow-hidden w-full bg-[#30302f] box-border max-h-[min(58vh,420px)]">
+                        <img
+                          alt="FloXync 지출·영수증 OCR"
+                          className="block w-full h-auto"
+                          src={LANDING_IMAGES.androidMobileExpense}
+                        />
+                      </div>
+                      <p className="mt-2 text-center text-[10px] font-bold text-[#3e4946] leading-tight">영수증 OCR · 지출 등록</p>
+                    </div>
+                    <div className="min-w-0">
+                      <div className="rounded-[1.75rem] border-4 border-[#30302f] shadow-2xl overflow-hidden w-full bg-[#30302f] box-border max-h-[min(58vh,420px)]">
+                        <img
+                          alt="FloXync 픽업·배송 관리"
+                          className="block w-full h-auto"
+                          src={LANDING_IMAGES.androidMobile}
+                        />
+                      </div>
+                      <p className="mt-2 text-center text-[10px] font-bold text-[#3e4946] leading-tight">픽업 · 배송 관리</p>
+                    </div>
+                  </div>
+
+                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[200px] bg-white/90 border border-[#fdcada]/50 backdrop-blur-md px-3 py-2 rounded-2xl shadow-xl">
+                    <div className="flex items-center justify-center gap-1.5">
+                      <span className="material-symbols-outlined text-[#7a5361] text-base animate-bounce">check_circle</span>
+                      <span className="text-[10px] font-bold text-[#7a5361]">완료 알림 전송됨!</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1025,6 +1072,75 @@ export function LuminousLanding({ locale = 'ko' }: { locale?: AppLocale }) {
             <div className="relative mx-auto max-w-5xl">
               <div className="bg-white/70 border border-[#bdc9c5]/30 backdrop-blur-md rounded-[40px] p-3 shadow-2xl overflow-hidden">
                 <img alt="Dashboard Full View" className="w-full h-auto rounded-[30px]" src={LANDING_IMAGES.platformOverview} />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Referral Program Section */}
+        <section className="py-24 bg-gradient-to-br from-indigo-50 via-white to-blue-50 border-y border-indigo-100/50 scroll-mt-20">
+          <div className="max-w-5xl mx-auto px-6">
+            <div className="bg-white/80 backdrop-blur-xl rounded-[40px] p-8 md:p-16 shadow-2xl border border-white/50 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-blue-400/10 rounded-full blur-[80px] pointer-events-none" />
+              <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-400/10 rounded-full blur-[80px] pointer-events-none" />
+              
+              <div className="relative z-10 flex flex-col md:flex-row items-center gap-12">
+                <div className="flex-1 text-center md:text-left">
+                  <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold mb-6 shadow-sm">
+                    <span className="material-symbols-outlined text-[18px]">handshake</span>
+                    플로싱크 추천 프로그램
+                  </div>
+                  <h2 className="text-3xl lg:text-4xl font-extrabold mb-6 text-slate-800 leading-tight">
+                    친구 추천하고 <br className="hidden md:block" />
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-blue-500">1개월 무료 혜택</span> 받으세요!
+                  </h2>
+                  <p className="text-base text-slate-600 mb-8 leading-relaxed max-w-lg mx-auto md:mx-0">
+                    주변 화훼업계 사장님들께 FloXync를 추천해주세요. 추천받은 사장님이 내 코드로 가입하시면, <strong>신청하신 분과 추천하신 분 모두에게 구독 기간 1개월 무료 연장 혜택</strong>을 드립니다.
+                  </p>
+                  
+                  <div className="flex flex-col sm:flex-row items-center gap-4 justify-center md:justify-start">
+                    <div className="flex items-center gap-3 bg-slate-50 px-5 py-3 rounded-2xl border border-slate-100 w-full sm:w-auto">
+                      <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
+                        <span className="material-symbols-outlined font-bold">person_add</span>
+                      </div>
+                      <div className="text-left">
+                        <p className="text-xs text-slate-500 font-medium">추천한 사장님</p>
+                        <p className="font-bold text-slate-800">+1개월 연장</p>
+                      </div>
+                    </div>
+                    <div className="hidden sm:flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 text-slate-400">
+                      <span className="material-symbols-outlined text-[16px]">add</span>
+                    </div>
+                    <div className="flex items-center gap-3 bg-slate-50 px-5 py-3 rounded-2xl border border-slate-100 w-full sm:w-auto">
+                      <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+                        <span className="material-symbols-outlined font-bold">group_add</span>
+                      </div>
+                      <div className="text-left">
+                        <p className="text-xs text-slate-500 font-medium">가입한 사장님</p>
+                        <p className="font-bold text-slate-800">+1개월 연장</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex-1 w-full max-w-sm">
+                  <div className="bg-gradient-to-br from-indigo-500 to-blue-600 rounded-3xl p-8 text-white shadow-xl relative transform transition-transform hover:scale-105 duration-300">
+                    <div className="absolute top-4 right-4 text-white/20">
+                      <span className="material-symbols-outlined text-6xl">loyalty</span>
+                    </div>
+                    <h3 className="text-xl font-bold mb-2">무제한 연장 가능!</h3>
+                    <p className="text-indigo-100 text-sm mb-6 leading-relaxed">
+                      추천 인원 수에 제한이 없습니다. 10명에게 추천하면 10개월이 무료로 연장됩니다. 지금 바로 대시보드에서 내 추천인 코드를 확인해보세요.
+                    </p>
+                    <Link
+                      href={loginHref}
+                      className="inline-flex items-center justify-center w-full gap-2 bg-white text-indigo-600 px-6 py-3 rounded-xl font-bold hover:bg-indigo-50 transition-colors shadow-sm"
+                    >
+                      내 추천인 코드 확인하기
+                      <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                    </Link>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

@@ -16,6 +16,7 @@ import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
 import Textarea from "@/components/ui/textarea";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
+import { GoogleAddressSearch } from "./GoogleAddressSearch";
 
 // Type definitions should be imported or redefined if they are local
 type ReceiptType = "store_pickup" | "pickup_reservation" | "delivery_reservation";
@@ -65,6 +66,11 @@ interface FulfillmentSectionProps {
     setItemSize: (size: 'small' | 'medium' | 'large') => void;
     isExpress: boolean;
     setIsExpress: (isExpress: boolean) => void;
+
+    // Google Maps
+    useGoogleSearch?: boolean;
+    googleMapsApiKey?: string;
+    onGoogleAddressSelect?: (address: string, district: string, zipCode: string) => void;
 }
 
 export function FulfillmentSection({
@@ -97,7 +103,10 @@ export function FulfillmentSection({
     itemSize,
     setItemSize,
     isExpress,
-    setIsExpress
+    setIsExpress,
+    useGoogleSearch,
+    googleMapsApiKey,
+    onGoogleAddressSelect
 }: FulfillmentSectionProps) {
     const locale = usePreferredLocale();
     const tf = getMessages(locale).tenantFlows;
@@ -273,18 +282,33 @@ export function FulfillmentSection({
                         <div className="space-y-4 pt-2 border-t">
                             <Label className="text-base font-semibold">{tf.f00275}</Label>
                             <div className="space-y-2">
-                                <div className="flex gap-2">
-                                    <Input
-                                        value={deliveryAddress}
-                                        onChange={(e: any) => setDeliveryAddress(e.target.value)}
+                                {useGoogleSearch ? (
+                                    <GoogleAddressSearch
+                                        apiKey={googleMapsApiKey || ""}
+                                        onAddressSelect={(address, district, zipCode) => {
+                                            setDeliveryAddress(address);
+                                            if (onGoogleAddressSelect) {
+                                                onGoogleAddressSelect(address, district, zipCode);
+                                            }
+                                        }}
+                                        defaultValue={deliveryAddress}
                                         placeholder={tf.f00652}
-                                        className="flex-1"
+                                        className="w-full"
                                     />
-                                    <Button type="button" onClick={onAddressSearch} variant="secondary">
-                                        <Search className="w-4 h-4 mr-2" />
-                                        {tf.f00651}
-                                    </Button>
-                                </div>
+                                ) : (
+                                    <div className="flex gap-2">
+                                        <Input
+                                            value={deliveryAddress}
+                                            onChange={(e: any) => setDeliveryAddress(e.target.value)}
+                                            placeholder={tf.f00652}
+                                            className="flex-1"
+                                        />
+                                        <Button type="button" onClick={onAddressSearch} variant="secondary">
+                                            <Search className="w-4 h-4 mr-2" />
+                                            {tf.f00651}
+                                        </Button>
+                                    </div>
+                                )}
                                 <Input
                                     value={deliveryAddressDetail}
                                     onChange={(e: any) => setDeliveryAddressDetail(e.target.value)}

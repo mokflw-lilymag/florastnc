@@ -165,10 +165,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
     subscription_end?: string | null;
     subscription_start?: string | null;
     status?: string | null;
+    referral_code?: string | null;
   };
 
   const tenantSelect =
-    "plan, logo_url, name, subscription_end, subscription_start, status" as const;
+    "plan, logo_url, name, subscription_end, subscription_start, status, referral_code" as const;
   const tenantIds = [
     profile?.tenant_id,
     hasOrgWorkContext ? profile?.org_work_tenant_id : null,
@@ -287,6 +288,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             isOrgUser={isOrgUser}
             showOrgBoardLink={showOrgBoardLink}
             showBranchMaterialRequestLink={showBranchMaterialRequestLink}
+            referralCode={tenantData?.referral_code ?? null}
           />
           <AnnualRenewalReminder
             userId={user.id}

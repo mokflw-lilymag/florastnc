@@ -14,7 +14,8 @@ export const LANDING_IMAGES = {
   settlement: "/images/landing/reports.png",
   notificationMobile: "/images/landing/mobile-dashboard.png",
   windowsDesktop: "/images/landing/dashboard-hero.png",
-  androidMobile: "/images/landing/mobile-order-new.png",
+  androidMobile: "/images/landing/android-app-home.png",
+  androidMobileExpense: "/images/landing/android-app-expense.png",
   platformOverview: "/images/landing/orders-list.png",
   /** 사장님 촬영 필요 — public/images/landing/ 에 넣으면 자동 반영 */
   electronTray: "/images/landing/electron-tray.png",

@@ -13,6 +13,7 @@ import { Plus, Search, RefreshCw, Package, Tag, AlertCircle, ChevronLeft, Chevro
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
+import { useTenantPlanAccess } from "@/hooks/use-tenant-plan-access";
 import { AccessDenied } from "@/components/access-denied";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -53,7 +54,9 @@ export default function ProductsPage() {
 
   const { productCategories } = useSettings();
 
-  const hasAccess = authLoading || isSuperAdmin || ['light', 'pro', 'pro_plus'].includes(plan);
+  const { hasErpViewAccess } = useTenantPlanAccess();
+
+  const hasAccess = authLoading || isSuperAdmin || hasErpViewAccess;
   const [searchTerm, setSearchTerm] = useState("");
   const [showDirectInputOnly, setShowDirectInputOnly] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);

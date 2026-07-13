@@ -13,6 +13,20 @@ const dir = path.join(root, "src/i18n/messages");
 
 const LOCALES = ["ko", "vi", "zh", "ja", "es", "pt", "fr", "de", "ru"];
 
+const IGNORE_PATHS = [
+  "mobileShop.pos.total",
+  "mobileShop.order.totalLine",
+  "mobileShop.pos.subtotal",
+  "mobileShop.payment.mainpay",
+  "mobileShop.payment.kakao",
+  "mobileShop.common.productFallback",
+  "mobileShop.order.scheduleDate",
+  "mobileShop.pickup.prepaid",
+  "mobileShop.payment.prepaid",
+  "mobileShop.customer.name",
+  "mobileShop.layout.storeTitle"
+];
+
 /**
  * @param {unknown} en
  * @param {unknown} loc
@@ -21,6 +35,8 @@ const LOCALES = ["ko", "vi", "zh", "ja", "es", "pt", "fr", "de", "ru"];
  * @param {number} minLen
  */
 function walk(en, loc, p, out, minLen) {
+  if (IGNORE_PATHS.includes(p)) return;
+
   if (typeof en === "string" && typeof loc === "string" && en === loc && en.trim().length >= minLen && /[a-zA-Z]{3}/.test(en)) {
     if (!p.startsWith("tenantFlows")) out.push(p);
     return;

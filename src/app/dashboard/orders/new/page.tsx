@@ -264,6 +264,8 @@ export default function NewOrderPage() {
   const [ordererEmail, setOrdererEmail] = useState("");
   const [registerCustomer, setRegisterCustomer] = useState(true);
   const [marketingConsent, setMarketingConsent] = useState(true);
+  const [ageConsent, setAgeConsent] = useState(false);
+  const [privacyConsent, setPrivacyConsent] = useState(false);
   const [registerAnniversaryFromOrder, setRegisterAnniversaryFromOrder] = useState(false);
   const lastHasInfoRef = useRef(false);
   const [customerSearchQuery, setCustomerSearchQuery] = useState("");
@@ -842,6 +844,17 @@ export default function NewOrderPage() {
       setIsSubmitting(false); return;
     }
 
+    if (registerCustomer && !selectedCustomer) {
+      if (!ageConsent) {
+        toast.error("만 14세 이상 확인에 동의해주세요.");
+        setIsSubmitting(false); return;
+      }
+      if (!privacyConsent) {
+        toast.error("개인정보 수집 및 이용에 동의해주세요.");
+        setIsSubmitting(false); return;
+      }
+    }
+
     // POS 연동 + 카드·페이: 승인 후에만 저장 (실패 시 DB 미저장, 입력값 유지)
     if (
       !existingOrder &&
@@ -1162,6 +1175,10 @@ export default function NewOrderPage() {
             setRegisterAnniversaryFromOrder={setRegisterAnniversaryFromOrder}
             marketingConsent={marketingConsent}
             setMarketingConsent={setMarketingConsent}
+            ageConsent={ageConsent}
+            setAgeConsent={setAgeConsent}
+            privacyConsent={privacyConsent}
+            setPrivacyConsent={setPrivacyConsent}
             selectedCustomer={selectedCustomer}
             hasOrdererIdentity={hasOrdererIdentity}
             formatPhoneNumber={formatPhoneNumber}

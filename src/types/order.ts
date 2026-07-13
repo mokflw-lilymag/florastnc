@@ -64,6 +64,7 @@ export interface Order {
     recipientContact: string;
     address: string;
     district: string;
+    zipCode?: string;
     itemSize?: 'small' | 'medium' | 'large';
     isExpress?: boolean;
     driverAffiliation?: string;

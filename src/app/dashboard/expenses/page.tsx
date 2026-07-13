@@ -83,6 +83,8 @@ import { toBaseLocale } from "@/i18n/config";
 import { pickUiText } from "@/i18n/pick-ui-text";
 import { dateFnsLocaleForBase } from "@/lib/date-fns-locale";
 import { useCurrency } from "@/hooks/use-currency";
+import { useAuthStore } from "@/stores/auth-store";
+import { hasAiParseAccess } from "@/lib/subscription/plan-access";
 
 /** 미리보기와 동일한 변환을 캔버스 캡처에 적용 (모바일 카메라 방향·좌우 보정) */
 function applyVideoFrameToCanvas(
@@ -315,6 +317,13 @@ export default function ExpensesPage() {
     const { symbol: currencySymbol } = useCurrency();
   const supabase = createClient();
   const { profile, tenantId } = useAuth();
+  
+  const authStore = useAuthStore();
+  const plan = (authStore.profile?.tenants as any)?.plan;
+  const createdAt = (authStore.profile?.tenants as any)?.created_at;
+  const ctx = { plan, isSuperAdmin: authStore.isSuperAdmin, createdAt };
+  const aiAllowed = hasAiParseAccess(ctx);
+
   const { expenses, loading: expensesLoading, addExpense, addExpenses, updateExpense, deleteExpense } = useExpenses();
   const { uploadReceipt } = useExpenseStorage();
   const { suppliers, fetchSuppliers } = useSuppliers();
@@ -1181,6 +1190,11 @@ export default function ExpensesPage() {
 
   // AI OCR: 여러 파일을 동시에(제한적 병렬) 분석하고, 품목·합계는 한 건 폼에 합산
   const processReceiptFiles = async (originalFiles: File[]) => {
+    if (!aiAllowed) {
+      toast.error(pickUiText(baseLocale, "AI 영수증 분석은 유료 플랜 전용입니다.", "AI receipt parsing is available for paid plans.", "Tính năng phân tích biên lai bằng AI chỉ dành cho gói trả phí.", "AIレシート分析は有料プラン専用です。"));
+      return;
+    }
+
     const imageFiles = originalFiles.filter((f) => f.type.startsWith("image/"));
     if (imageFiles.length === 0) {
       toast.error(tf.f02484);

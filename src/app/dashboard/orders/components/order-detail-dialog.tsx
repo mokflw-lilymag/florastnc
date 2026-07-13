@@ -54,6 +54,7 @@ import { Order } from "@/types/order";
 import { createClient } from "@/utils/supabase/client";
 import { cn } from "@/lib/utils";
 import { usePreferredLocale } from "@/hooks/use-preferred-locale";
+import { toBaseLocale } from "@/i18n/config";
 import { enqueuePrintJob } from "@/lib/print-service";
 import { useCurrency } from "@/hooks/use-currency";
 
@@ -87,6 +88,7 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
 
   const locale = usePreferredLocale();
   const tf = getMessages(locale).tenantFlows;
+  const baseLocale = toBaseLocale(locale);
   const [isDateEditing, setIsDateEditing] = useState(false);
   const [editOrderDate, setEditOrderDate] = useState("");
   const [editPaymentDate, setEditPaymentDate] = useState("");
@@ -645,7 +647,26 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
                   {isDelivery && (
                     <div className="pt-2">
                        <Label className="text-[10px] font-bold text-slate-400 uppercase">{tf.f00254}</Label>
-                       <div className="text-xs font-medium mt-1 leading-relaxed">{order.delivery_info?.address}</div>
+                       <div className="flex items-start justify-between gap-2 mt-1">
+                         <div className="text-xs font-medium leading-relaxed">{order.delivery_info?.address}</div>
+                         {order.delivery_info?.address && (
+                           <Button
+                             variant="outline"
+                             size="sm"
+                             className="h-6 text-[10px] px-2 shrink-0"
+                             onClick={() => {
+                               const addr = encodeURIComponent(order.delivery_info?.address || '');
+                               const url = baseLocale === 'ko' 
+                                 ? `https://map.naver.com/v5/search/${addr}` 
+                                 : `https://www.google.com/maps/search/?api=1&query=${addr}`;
+                               window.open(url, '_blank');
+                             }}
+                           >
+                             <MapPin className="w-3 h-3 mr-1" />
+                             {baseLocale === 'ko' ? '네이버 지도' : 'Google Maps'}
+                           </Button>
+                         )}
+                       </div>
                     </div>
                   )}
                 </div>

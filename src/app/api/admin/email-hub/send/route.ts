@@ -44,12 +44,32 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "TEMPLATE_NOT_FOUND" }, { status: 404 });
   }
 
+  // Marketing consent check
+  const isMarketing = template.category === "marketing";
+  let optedOutEmails = new Set<string>();
+
+  if (isMarketing) {
+    const authUsersRes = await auth.admin.auth.admin.listUsers();
+    if (authUsersRes.data?.users) {
+      for (const u of authUsersRes.data.users) {
+        if (u.user_metadata?.marketing_agreed === false) {
+          optedOutEmails.add(u.email ?? "");
+        }
+      }
+    }
+  }
+
   const smtp = await resolveSmtpForHq(auth.admin);
   const results: { email: string; status: string; error?: string }[] = [];
 
   for (const r of recipients) {
     const email = r.email.trim();
     if (!email) continue;
+
+    if (isMarketing && optedOutEmails.has(email)) {
+      results.push({ email, status: "skipped_marketing_opt_out" });
+      continue;
+    }
 
     const vars: Record<string, string> = {
       이름: r.name || r.variables?.이름 || "사장님",

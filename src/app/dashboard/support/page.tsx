@@ -228,7 +228,14 @@ export default function SupportPage() {
             </div>
             <Select value={categoryFilter} onValueChange={(v) => setCategoryFilter(v ?? "__all__")}>
               <SelectTrigger className="w-full sm:w-48">
-                <SelectValue placeholder="카테고리" />
+                <SelectValue placeholder="카테고리">
+                  {categoryFilter === "__all__" ? "전체 카테고리" : (
+                    <span className="flex items-center gap-1.5">
+                      {SUPPORT_TICKET_CATEGORIES.find(c => c.id === categoryFilter)?.icon}
+                      <span>{supportCategoryLabel(categoryFilter, baseLocale)}</span>
+                    </span>
+                  )}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__all__">전체 카테고리</SelectItem>
@@ -370,8 +377,14 @@ export default function SupportPage() {
                 }}
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue>
+                    <span className="flex items-center gap-1.5">
+                      {SUPPORT_TICKET_CATEGORIES.find(c => c.id === category)?.icon}
+                      <span>{supportCategoryLabel(category, baseLocale)}</span>
+                    </span>
+                  </SelectValue>
                 </SelectTrigger>
+
                 <SelectContent>
                   {SUPPORT_TICKET_CATEGORIES.map((c) => (
                     <SelectItem key={c.id} value={c.id}>

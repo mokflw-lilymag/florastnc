@@ -8,6 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { PageHeader } from "@/components/page-header";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
 import { AccessDenied } from "@/components/access-denied";
@@ -62,6 +64,23 @@ export default function SystemSettingsPage() {
 
   const updateSetting = (key: string, value: any) => {
     setSettings((prev: any) => ({ ...prev, [key]: value }));
+  };
+
+  const toggleDiscountTarget = (planId: string, period: string) => {
+    setSettings((prev: any) => {
+      const targets = prev.globalDiscountTargets || {};
+      const planTargets = targets[planId] || {};
+      return {
+        ...prev,
+        globalDiscountTargets: {
+          ...targets,
+          [planId]: {
+            ...planTargets,
+            [period]: !planTargets[period]
+          }
+        }
+      };
+    });
   };
 
   if (isLoading || isFetching) return <div className="flex items-center justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-slate-400" /></div>;
@@ -147,6 +166,87 @@ export default function SystemSettingsPage() {
                     onChange={(e) => updateSetting("contactEmail", e.target.value)}
                     className="rounded-xl bg-slate-50/50"
                   />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-3xl shadow-sm border-indigo-100 bg-white">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-indigo-900">글로벌 프로모션 / 할인 설정</CardTitle>
+                  <CardDescription>지정된 기간 동안 전체 플랫폼에 적용되는 할인 이벤트를 설정합니다. (단건 결제에 한함)</CardDescription>
+                </div>
+                <Switch 
+                  checked={settings.globalDiscountEnabled || false} 
+                  onCheckedChange={(c) => updateSetting("globalDiscountEnabled", c)} 
+                />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <Label>할인율 (%)</Label>
+                  <div className="flex items-center gap-2">
+                    <Input 
+                      type="number" 
+                      value={settings.globalDiscountRate ?? 50} 
+                      onChange={(e) => updateSetting("globalDiscountRate", Number(e.target.value))}
+                      className="font-bold text-indigo-600 rounded-xl bg-indigo-50/50 border-indigo-100" 
+                    />
+                    <span className="text-slate-400">%</span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>시작 일시</Label>
+                  <Input 
+                    type="datetime-local" 
+                    value={settings.globalDiscountStartDate || ""} 
+                    onChange={(e) => updateSetting("globalDiscountStartDate", e.target.value)}
+                    className="rounded-xl bg-slate-50/50" 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>종료 일시</Label>
+                  <Input 
+                    type="datetime-local" 
+                    value={settings.globalDiscountEndDate || ""} 
+                    onChange={(e) => updateSetting("globalDiscountEndDate", e.target.value)}
+                    className="rounded-xl bg-slate-50/50" 
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-3 pt-2">
+                <Label>할인 적용 대상 요금제</Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
+                  {[
+                    { id: 'ribbon_only', label: '미니' },
+                    { id: 'light', label: '라이트' },
+                    { id: 'pro', label: '프로' },
+                    { id: 'pro_plus', label: '프로 플러스' }
+                  ].map(plan => (
+                    <div key={plan.id} className="space-y-2">
+                      <div className="font-semibold text-sm text-slate-700">{plan.label}</div>
+                      <div className="flex items-center gap-2">
+                        <Checkbox 
+                          id={`${plan.id}-1m`}
+                          checked={settings.globalDiscountTargets?.[plan.id]?.['1m'] || false}
+                          onCheckedChange={() => toggleDiscountTarget(plan.id, '1m')}
+                        />
+                        <Label htmlFor={`${plan.id}-1m`} className="font-normal text-xs cursor-pointer">월간 결제 (1개월)</Label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Checkbox 
+                          id={`${plan.id}-12m`}
+                          checked={settings.globalDiscountTargets?.[plan.id]?.['12m'] || false}
+                          onCheckedChange={() => toggleDiscountTarget(plan.id, '12m')}
+                        />
+                        <Label htmlFor={`${plan.id}-12m`} className="font-normal text-xs cursor-pointer">연간 결제 (12개월)</Label>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </CardContent>

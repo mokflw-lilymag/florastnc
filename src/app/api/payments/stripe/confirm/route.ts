@@ -78,14 +78,13 @@ export async function POST(request: Request) {
       );
     }
 
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    const session = await stripe.checkout.sessions.retrieve(sessionId, {
+      expand: ["setup_intent"],
+    });
 
-    if (session.payment_status !== "paid") {
+    if (session.status !== "complete") {
       return NextResponse.json(
-        {
-          message: tr(bl, "결제가 완료되지 않았습니다.", "Payment is not completed."),
-          status: session.payment_status,
-        },
+        { message: tr(bl, "결제 설정이 완료되지 않았습니다.", "Payment setup is not completed.") },
         { status: 400 },
       );
     }
@@ -117,6 +116,52 @@ export async function POST(request: Request) {
       );
     }
 
+    const setupIntent = session.setup_intent as any;
+    if (!setupIntent || setupIntent.status !== "succeeded") {
+      return NextResponse.json(
+        { message: tr(bl, "카드 등록에 실패했습니다.", "Card registration failed.") },
+        { status: 400 },
+      );
+    }
+
+    const paymentMethodId = typeof setupIntent.payment_method === "string" 
+      ? setupIntent.payment_method 
+      : setupIntent.payment_method?.id;
+
+    // Read amounts from metadata
+    const amountCents = Number(session.metadata?.amount_cents ?? "0");
+    const discountRate = Number(session.metadata?.discount_rate ?? "0");
+    const finalAmount = discountRate > 0 ? Math.floor(amountCents * (1 - discountRate / 100)) : amountCents;
+
+    let paymentIntentId: string | undefined;
+
+    // 1. First payment using PaymentIntent
+    if (finalAmount > 0) {
+      try {
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount: finalAmount,
+          currency: "usd",
+          customer: typeof session.customer === "string" ? session.customer : session.customer?.id,
+          payment_method: paymentMethodId,
+          off_session: true,
+          confirm: true,
+          description: `Subscription ${orderId}`,
+          metadata: session.metadata ?? undefined,
+        });
+        paymentIntentId = paymentIntent.id;
+      } catch (err: any) {
+        console.error("Stripe first payment failed:", err);
+        return NextResponse.json(
+          {
+            message: tr(bl, "첫 결제 승인에 실패했습니다. 카드를 확인해주세요.", "First payment failed. Please check your card."),
+            code: err.code ?? "STRIPE_CONFIRM_FAILED",
+          },
+          { status: 400 },
+        );
+      }
+    }
+
+    // 2. Apply subscription (get expiry for stacked next_billing_date)
     const result = await applySubscriptionToTenant(
       supabase,
       profile.tenant_id,
@@ -126,12 +171,21 @@ export async function POST(request: Request) {
         actorUserId: user.id,
         actorEmail: user.email ?? undefined,
         source: "stripe",
-        externalRef: sessionId,
-        amountCents: session.amount_total ?? undefined,
-        currency: (session.currency ?? "usd").toUpperCase(),
+        externalRef: paymentIntentId ?? sessionId,
+        amountCents: finalAmount,
+        currency: "USD",
         orderId: orderId ?? undefined,
       },
     );
+
+    // 3. Update tenant with billing info
+    await supabase.from("tenants").update({
+      stripe_payment_method_id: paymentMethodId,
+      stripe_customer_id: typeof session.customer === "string" ? session.customer : session.customer?.id,
+      auto_billing_enabled: true,
+      next_billing_date: result.expiry,
+      cancel_at_period_end: false,
+    }).eq("id", profile.tenant_id);
 
     return NextResponse.json({
       success: true,

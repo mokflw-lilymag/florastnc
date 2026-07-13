@@ -28,7 +28,7 @@ export async function GET(req: Request) {
   }
 
   // 🚀 [PERFORMANCE OPTIMIZATION] Execute database queries in parallel
-  const [tenantsRes, profilesRes, settingsRes] = await Promise.all([
+  const [tenantsRes, profilesRes, settingsRes, authUsersRes] = await Promise.all([
     admin
       .from("tenants")
       .select("id, name, plan, status, subscription_start, subscription_end, created_at, organization_id")
@@ -40,7 +40,8 @@ export async function GET(req: Request) {
     admin
       .from("system_settings")
       .select("tenant_id, data")
-      .like("id", "settings_%")
+      .like("id", "settings_%"),
+    admin.auth.admin.listUsers({ perPage: 1000 })
   ]);
 
   if (tenantsRes.error) {
@@ -104,12 +105,25 @@ export async function GET(req: Request) {
     }
   }
 
-  const byTenant = new Map<string, { id: string; email: string; role: string }[]>();
+  const authUsers = authUsersRes.data?.users ?? [];
+  const userMetaMap = new Map<string, Record<string, any>>();
+  for (const u of authUsers) {
+    userMetaMap.set(u.id, u.user_metadata || {});
+  }
+
+  const byTenant = new Map<string, { id: string; email: string; role: string; marketing_agreed?: boolean; third_party_agreed?: boolean }[]>();
   for (const p of profiles ?? []) {
     const tid = p.tenant_id as string;
     if (!tid) continue;
     const list = byTenant.get(tid) ?? [];
-    list.push({ id: String(p.id ?? ""), email: String(p.email ?? ""), role: String(p.role ?? "") });
+    const meta = userMetaMap.get(String(p.id)) || {};
+    list.push({ 
+      id: String(p.id ?? ""), 
+      email: String(p.email ?? ""), 
+      role: String(p.role ?? ""),
+      marketing_agreed: !!meta.marketing_agreed,
+      third_party_agreed: !!meta.third_party_agreed
+    });
     byTenant.set(tid, list);
   }
 

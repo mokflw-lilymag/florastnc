@@ -82,25 +82,27 @@ export default function PaymentSuccessPage() {
           return;
         }
 
-        const paymentKey = searchParams.get("paymentKey");
+        const authKey = searchParams.get("authKey");
+        const customerKey = searchParams.get("customerKey");
+        const paymentKey = searchParams.get("paymentKey"); // Fallback for old flows if any
         const orderId = searchParams.get("orderId");
         const amount = searchParams.get("amount");
 
-        if (!paymentKey || !orderId || !amount) {
+        if ((!authKey && !paymentKey) || !orderId || !amount) {
           setStatus("error");
           setMessage(tf.f00919);
           return;
         }
 
-        const response = await fetch("/api/payments/confirm", {
+        const endpoint = authKey ? "/api/payments/billing/issue" : "/api/payments/confirm";
+        const bodyPayload = authKey 
+          ? { authKey, customerKey, orderId, amount: Number(amount), uiLocale: locale }
+          : { paymentKey, orderId, amount: Number(amount), uiLocale: locale };
+
+        const response = await fetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            paymentKey,
-            orderId,
-            amount: Number(amount),
-            uiLocale: locale,
-          }),
+          body: JSON.stringify(bodyPayload),
         });
 
         const data = await response.json();

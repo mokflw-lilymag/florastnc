@@ -62,6 +62,7 @@ export async function sendMarketingEmail(
       subject,
       content,
       tenantId,
+      isMarketing: true,
     }),
   });
 

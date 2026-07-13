@@ -48,6 +48,10 @@ interface CustomerSectionProps {
     setRegisterAnniversaryFromOrder: (v: boolean) => void;
     marketingConsent: boolean;
     setMarketingConsent: (consent: boolean) => void;
+    ageConsent: boolean;
+    setAgeConsent: (consent: boolean) => void;
+    privacyConsent: boolean;
+    setPrivacyConsent: (consent: boolean) => void;
     selectedCustomer: Customer | null;
     hasOrdererIdentity: boolean;
 
@@ -82,6 +86,10 @@ export function CustomerSection({
     setRegisterAnniversaryFromOrder,
     marketingConsent,
     setMarketingConsent,
+    ageConsent,
+    setAgeConsent,
+    privacyConsent,
+    setPrivacyConsent,
     selectedCustomer,
     hasOrdererIdentity,
     formatPhoneNumber
@@ -264,15 +272,49 @@ export function CustomerSection({
                 </div>
 
                 {!isAnonymous && (
-                    <div className="flex items-center space-x-2 pt-1">
-                        <Checkbox
-                            id="marketingConsent"
-                            checked={marketingConsent}
-                            onCheckedChange={(checked) => setMarketingConsent(checked === true)}
-                        />
-                        <Label htmlFor="marketingConsent" className="leading-none cursor-pointer text-sm">
-                            {pickUiText(baseLocale, "마케팅 및 문자 수신 동의", "Marketing & SMS opt-in")}
-                        </Label>
+                    <div className="flex flex-col gap-2 pt-1">
+                        <div className="flex items-center space-x-2">
+                            <Checkbox
+                                id="marketingConsent"
+                                checked={marketingConsent}
+                                onCheckedChange={(checked) => setMarketingConsent(checked === true)}
+                            />
+                            <Label htmlFor="marketingConsent" className="leading-none cursor-pointer text-sm">
+                                {pickUiText(baseLocale, "마케팅 및 문자 수신 동의 (선택)", "Marketing & SMS opt-in")}
+                            </Label>
+                        </div>
+                        {registerCustomer && !selectedCustomer && (
+                            <div className="flex flex-col gap-3 pt-2 mt-2 border-t border-slate-100">
+                                <div className="flex items-center space-x-2">
+                                    <Checkbox
+                                        id="ageConsent"
+                                        checked={ageConsent}
+                                        onCheckedChange={(checked) => setAgeConsent(checked === true)}
+                                    />
+                                    <Label htmlFor="ageConsent" className="leading-none cursor-pointer text-sm font-medium">
+                                        (필수) 만 14세 이상입니다.
+                                    </Label>
+                                </div>
+                                <div className="flex items-start space-x-2">
+                                    <Checkbox
+                                        id="privacyConsent"
+                                        checked={privacyConsent}
+                                        onCheckedChange={(checked) => setPrivacyConsent(checked === true)}
+                                        className="mt-0.5"
+                                    />
+                                    <div className="space-y-1">
+                                        <Label htmlFor="privacyConsent" className="leading-none cursor-pointer text-sm font-medium">
+                                            (필수) 개인정보 수집 및 이용 동의
+                                        </Label>
+                                        <p className="text-[10px] text-slate-500">
+                                            수집 항목: 이름, 연락처 (선택 시 이메일)<br />
+                                            수집 목적: 고객 식별, 예약/주문 내역 관리 및 서비스 제공<br />
+                                            보유 기간: 회원 탈퇴 또는 동의 철회 시까지
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
             </CardContent>

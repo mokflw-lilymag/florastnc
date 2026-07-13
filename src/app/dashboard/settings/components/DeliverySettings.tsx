@@ -88,8 +88,12 @@ export function DeliverySettings({
         <div className="space-y-4">
           <div className="flex items-center justify-between">
              <div className="space-y-1">
-                <Label className="text-sm font-bold">{tf.f01905}</Label>
-                <p className="text-xs text-slate-400">{tf.f00990}</p>
+                <Label className="text-sm font-bold">
+                  {baseLocale !== "ko" ? tf.f01905 + " / Zip Code" : tf.f01905}
+                </Label>
+                <p className="text-xs text-slate-400">
+                  {baseLocale !== "ko" ? "Set delivery fees based on Zip Code or District name." : tf.f00990}
+                </p>
              </div>
              {regionFees.length === 0 && settings.districtDeliveryFees && settings.districtDeliveryFees.length > 0 && (
                 <Button 
@@ -106,9 +110,11 @@ export function DeliverySettings({
             <div className="bg-slate-50 border-b p-4 space-y-3 sticky top-0 z-20">
               <div className="flex items-end gap-3">
                 <div className="grid gap-1.5 flex-1">
-                  <Label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{tf.f01380}</Label>
+                  <Label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                    {baseLocale !== "ko" ? tf.f01380 + " / Zip Code" : tf.f01380}
+                  </Label>
                   <Input 
-                    placeholder={tf.f01904} 
+                    placeholder={baseLocale !== "ko" ? "e.g. 10000, Cau Giay" : tf.f01904} 
                     value={newRegion} 
                     onChange={e => setNewRegion(e.target.value)}
                     className="h-9 bg-white"
