@@ -1080,6 +1080,12 @@ export function LuminousLanding({ locale = 'ko' }: { locale?: AppLocale }) {
         {/* Referral Program Section */}
         <section className="py-24 bg-gradient-to-br from-indigo-50 via-white to-blue-50 border-y border-indigo-100/50 scroll-mt-20">
           <div className="max-w-5xl mx-auto px-6">
+            <div className="text-center mb-10 bg-indigo-600 rounded-3xl py-6 px-4 shadow-lg transform -rotate-1 hover:rotate-0 transition-transform duration-300">
+              <h2 className="text-xl md:text-2xl font-black text-white tracking-tight drop-shadow-sm">
+                💡 추천한 사장님께는 플로싱크에서 가장 높은 <span className="text-yellow-300">플러스 등급(66,000원)</span>으로 1달을 추가하여 드립니다!
+              </h2>
+            </div>
+
             <div className="bg-white/80 backdrop-blur-xl rounded-[40px] p-8 md:p-16 shadow-2xl border border-white/50 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-64 h-64 bg-blue-400/10 rounded-full blur-[80px] pointer-events-none" />
               <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-400/10 rounded-full blur-[80px] pointer-events-none" />
@@ -1120,9 +1126,6 @@ export function LuminousLanding({ locale = 'ko' }: { locale?: AppLocale }) {
                         <p className="font-bold text-slate-800">+1개월 무료 혜택</p>
                       </div>
                     </div>
-                  </div>
-                  <div className="mt-6 text-sm text-indigo-600 font-medium bg-indigo-50 px-4 py-3 rounded-xl inline-block whitespace-nowrap">
-                    💡 추천한 사장님께는 플로싱크에서 가장 높은 플러스 등급(66,000원)으로 1달을 추가하여 드립니다!
                   </div>
                 </div>
 
