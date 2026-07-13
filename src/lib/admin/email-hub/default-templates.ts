@@ -30,12 +30,18 @@ export const DEFAULT_PLATFORM_EMAIL_TEMPLATES: Omit<
       `<h2 style="color:#047857;">축하합니다, {이름} 사장님! 🌸</h2>
 <p><strong>{상호}</strong> 매장이 FloXync 베타 테스터(포스프린터 무상 임대)에 <strong>선정</strong>되었습니다.</p>
 <p>아래 내용을 확인하신 뒤, <strong>회신 주시면</strong> 포스프린터 출고(새 영수증 용지 장착) 및 자동 인쇄 연동 안내를 드리겠습니다.</p>
+<p><strong>[무상 임대 주요 조건]</strong></p>
 <ul>
   <li>임대 장비: USB 포스 영수증 프린터 1대</li>
-  <li>용도: 주문서·픽업증·인수증 자동 출력</li>
-  <li>연락처: {연락처} / {이메일}</li>
+  <li>용도: FloXync 주문서·픽업증·인수증 자동 출력용</li>
+  <li>유지 조건: 플로싱크 요금제 이용 기간 동안 무상 대여 (서비스 해지 시 장비 반납)</li>
+  <li>기기 파손/분실 시 수리비 또는 배상 책임이 발생할 수 있습니다.</li>
 </ul>
-<p><strong>프린터 수령을 위해 배송받으실 주소를 본 메일의 답장으로 회신해 주시면</strong>, 신속히 출고를 진행하고 전자 계약서 서명 링크를 보내드리겠습니다.</p>
+<p style="background-color:#f3f4f6;padding:12px;border-radius:4px;margin-top:16px;">
+  <strong>[장비 수령 및 임대 계약 동의]</strong><br/>
+  위 임대 조건에 동의하실 경우, 본 메일의 <strong>답장으로 "동의합니다."라는 문구와 함께 프린터를 배송받으실 주소</strong>를 남겨주세요.<br/>
+  (본 메일에 대한 동의 답장은 포스프린터 무상 임대 계약서 서명과 동일한 법적 효력을 갖습니다.)
+</p>
 <p>감사합니다.<br/>FloXync 운영팀</p>`,
     ),
   },
