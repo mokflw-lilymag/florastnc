@@ -15,14 +15,15 @@ export function useTenantPlanAccess() {
   const { profile, isSuperAdmin, tenantId, isLoading } = useAuth();
   const plan = profile?.tenants?.plan ?? "free";
   const subEnd = profile?.tenants?.subscription_end as string | null | undefined;
+  const proPlusUntil = profile?.tenants?.pro_plus_until as string | null | undefined;
   const isExpired = !subEnd || new Date(subEnd) < new Date();
   const isSuspended = profile?.tenants?.status === "suspended";
-  const ctx = { plan, isExpired, isSuspended, isSuperAdmin };
+  const ctx = { plan, isExpired, isSuspended, isSuperAdmin, proPlusUntil };
 
   return {
     isLoading,
     plan,
-    accessPlan: resolveAccessPlan(plan, { isExpired, isSuspended }),
+    accessPlan: resolveAccessPlan(plan, ctx),
     isExpired,
     isSuspended,
     isFreeTier: isFreeAccessTier(ctx),

@@ -23,9 +23,12 @@ import {
   FileSpreadsheet, X, Package, Truck, Wrench, Archive,
   ChevronRight, CalendarDays, Building2, CheckSquare2,
 } from "lucide-react";
+import { Smartphone, Wifi } from "lucide-react";
 import * as XLSX from "xlsx";
 import { cn } from "@/lib/utils";
 import { DeviceBarcodePrintDialog } from "./DeviceBarcodePrintDialog";
+import { useAuth } from "@/hooks/use-auth";
+import { createClient } from "@/utils/supabase/client";
 
 type PrinterDevice = {
   id: string;
@@ -73,6 +76,9 @@ const eventLabels: Record<string, { label: string; color: string }> = {
 const ALL_STATUSES = ["all", "in_stock", "leased", "repair", "disposed"] as const;
 
 export function PrinterDevicesPanel() {
+  const { tenantId } = useAuth();
+  const supabase = createClient();
+  const [isMobileScannerLinked, setIsMobileScannerLinked] = useState(false);
   const [devices, setDevices] = useState<PrinterDevice[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -148,6 +154,29 @@ export function PrinterDevicesPanel() {
   };
 
   useEffect(() => { loadDevices(); }, []);
+
+  // Supabase Realtime Mobile Scanner Link
+  useEffect(() => {
+    if (!isMobileScannerLinked || !tenantId) return;
+
+    const channelName = `scanner_sync_${tenantId}`;
+    const channel = supabase
+      .channel(channelName)
+      .on("broadcast", { event: "admin_barcode_scanned" }, (payload) => {
+        if (payload.payload?.barcode) {
+          setFormSerial(payload.payload.barcode);
+          toast.success("모바일 스캐너에서 바코드가 수신되었습니다.");
+          if (scannerInputRef.current) {
+            scannerInputRef.current.focus();
+          }
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isMobileScannerLinked, tenantId, supabase]);
 
   const handleRowClick = (d: PrinterDevice) => {
     setDetailDevice(d);
@@ -703,9 +732,20 @@ export function PrinterDevicesPanel() {
             </div>
 
             <div className="space-y-2 p-4 bg-slate-50 rounded-xl border border-slate-100">
-              <Label className="text-blue-600 flex items-center gap-1">
-                <Barcode className="w-3.5 h-3.5" /> 시리얼 번호 스캔
-              </Label>
+              <div className="flex items-center justify-between mb-1">
+                <Label className="text-blue-600 flex items-center gap-1">
+                  <Barcode className="w-3.5 h-3.5" /> 시리얼 번호 스캔
+                </Label>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className={cn("h-7 text-[10px] px-2", isMobileScannerLinked ? "bg-blue-100 text-blue-700 border-blue-300" : "text-slate-500")}
+                  onClick={() => setIsMobileScannerLinked(!isMobileScannerLinked)}
+                >
+                  {isMobileScannerLinked ? <Wifi className="w-3 h-3 mr-1" /> : <Smartphone className="w-3 h-3 mr-1" />}
+                  {isMobileScannerLinked ? "모바일 스캐너 연동 중" : "모바일 앱 연결"}
+                </Button>
+              </div>
               <Input
                 ref={scannerInputRef}
                 placeholder="바코드 스캐너로 스캔하세요..."

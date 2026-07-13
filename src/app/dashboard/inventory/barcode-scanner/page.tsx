@@ -14,13 +14,18 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ScanLine, Camera, Keyboard, CheckCircle2, AlertCircle } from "lucide-react";
 import { Html5QrcodeScanner, Html5QrcodeScanType } from "html5-qrcode";
 import { motion, AnimatePresence } from "framer-motion";
+import { Smartphone, Wifi } from "lucide-react";
+import { createClient } from "@/utils/supabase/client";
+import { cn } from "@/lib/utils";
 
 export default function BarcodeScannerPage() {
   const { tenantId } = useAuth();
+  const supabase = createClient();
   const { toast } = useToast();
   const { materials, updateMaterial } = useMaterials();
   const [barcodeInput, setBarcodeInput] = useState("");
   const [scanMode, setScanMode] = useState<"manual" | "camera">("manual");
+  const [isMobileScannerLinked, setIsMobileScannerLinked] = useState(false);
   const [scannedLogs, setScannedLogs] = useState<any[]>([]);
   
   const barcodeInputRef = useRef<HTMLInputElement>(null);
@@ -31,6 +36,29 @@ export default function BarcodeScannerPage() {
       barcodeInputRef.current.focus();
     }
   }, [scanMode]);
+
+  // Supabase Realtime Mobile Scanner Link
+  useEffect(() => {
+    if (!isMobileScannerLinked || !tenantId) return;
+
+    const channelName = `scanner_sync_${tenantId}`;
+    const channel = supabase
+      .channel(channelName)
+      .on("broadcast", { event: "material_barcode_scanned" }, (payload) => {
+        if (payload.payload?.barcode) {
+          toast({
+            title: "모바일 스캐너 수신",
+            description: "바코드가 성공적으로 수신되었습니다."
+          });
+          processBarcode(payload.payload.barcode);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isMobileScannerLinked, tenantId, supabase, materials]);
 
 
 
@@ -161,11 +189,20 @@ export default function BarcodeScannerPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="h-[600px] flex flex-col">
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="flex items-center gap-2">
               <ScanLine className="h-5 w-5" />
               스캔 모드 선택
             </CardTitle>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className={cn("h-8 text-xs px-2.5 transition-colors", isMobileScannerLinked ? "bg-blue-100 text-blue-700 border-blue-300 hover:bg-blue-200" : "text-slate-500 hover:bg-slate-100")}
+              onClick={() => setIsMobileScannerLinked(!isMobileScannerLinked)}
+            >
+              {isMobileScannerLinked ? <Wifi className="w-3.5 h-3.5 mr-1.5" /> : <Smartphone className="w-3.5 h-3.5 mr-1.5" />}
+              {isMobileScannerLinked ? "모바일 스캐너 연동 중" : "모바일 앱 연결"}
+            </Button>
           </CardHeader>
           <CardContent className="flex-1 flex flex-col">
             <Tabs value={scanMode} onValueChange={(v) => setScanMode(v as any)} className="flex-1 flex flex-col">

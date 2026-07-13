@@ -19,7 +19,7 @@ import {
 let authListenerRegistered = false;
 
 const TENANT_PROFILE_SELECT =
-  "plan, name, logo_url, contact_phone, address, subscription_end, subscription_start, status, created_at" as const;
+  "plan, name, logo_url, contact_phone, address, subscription_end, subscription_start, status, created_at, pro_plus_until" as const;
 
 async function enrichTenantProfile(
   supabase: ReturnType<typeof createClient>,

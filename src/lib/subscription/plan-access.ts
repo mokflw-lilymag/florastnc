@@ -24,6 +24,7 @@ export type AccessContext = {
   isSuspended?: boolean;
   isSuperAdmin?: boolean;
   createdAt?: string | null;
+  proPlusUntil?: string | null;
 };
 
 export function normalizePlanId(plan?: string | null): string {
@@ -33,8 +34,12 @@ export function normalizePlanId(plan?: string | null): string {
 /** 사이드바·라우트 권한에 쓰는 실효 플랜 */
 export function resolveAccessPlan(
   plan?: string | null,
-  opts?: Pick<AccessContext, "isExpired" | "isSuspended">,
+  opts?: Pick<AccessContext, "isExpired" | "isSuspended" | "proPlusUntil">,
 ): string {
+  if (opts?.proPlusUntil && new Date(opts.proPlusUntil) > new Date()) {
+    return "pro_plus";
+  }
+
   const p = normalizePlanId(plan);
   if (p === "free") return "free";
   if (opts?.isExpired && (PAID_PLAN_IDS as readonly string[]).includes(p)) {

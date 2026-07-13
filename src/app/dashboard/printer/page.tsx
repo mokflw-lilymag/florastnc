@@ -25,10 +25,11 @@ function PrinterContent() {
   
   const plan = profile?.tenants?.plan || "free";
   const subEnd = profile?.tenants?.subscription_end as string | null | undefined;
+  const proPlusUntil = profile?.tenants?.pro_plus_until as string | null | undefined;
   const isExpired = !subEnd || new Date(subEnd) < new Date();
   const isSuperAdmin = profile?.role === 'super_admin';
-  const accessCtx = { plan, isExpired, isSuperAdmin };
-  const accessPlan = resolveAccessPlan(plan, { isExpired });
+  const accessCtx = { plan, isExpired, isSuperAdmin, proPlusUntil };
+  const accessPlan = resolveAccessPlan(plan, accessCtx);
   const hasAccess = authLoading || hasRibbonAccess(accessCtx);
   const isFreeTier = !authLoading && isFreeAccessTier(accessCtx);
   

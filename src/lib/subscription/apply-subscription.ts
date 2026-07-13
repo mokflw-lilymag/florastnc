@@ -75,7 +75,7 @@ export async function applySubscriptionToTenant(
     // Grant bonus to the referrer
     const { data: referrerTenant } = await supabase
       .from("tenants")
-      .select("subscription_end, next_billing_date")
+      .select("plan, subscription_end, next_billing_date, pro_plus_until")
       .eq("id", pendingReferral.referrer_tenant_id)
       .maybeSingle();
 
@@ -93,11 +93,19 @@ export async function applySubscriptionToTenant(
         newReferrerNextBilling = addMonths(refNext > now ? refNext : now, referrerBonus).toISOString();
       }
 
+      let proPlusBase = now;
+      if (referrerTenant.pro_plus_until) {
+        const currentProPlusUntil = new Date(referrerTenant.pro_plus_until);
+        if (currentProPlusUntil > now) proPlusBase = currentProPlusUntil;
+      }
+      const newProPlusUntil = addMonths(proPlusBase, referrerBonus).toISOString();
+
       await supabase
         .from("tenants")
         .update({
           subscription_end: newReferrerEnd,
           next_billing_date: newReferrerNextBilling,
+          pro_plus_until: newProPlusUntil,
         })
         .eq("id", pendingReferral.referrer_tenant_id);
 
