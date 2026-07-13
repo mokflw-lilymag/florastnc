@@ -1136,7 +1136,7 @@ export function LuminousLanding({ locale = 'ko' }: { locale?: AppLocale }) {
                     </div>
                     <h3 className="text-xl font-bold mb-2">무제한 누적 연장!</h3>
                     <p className="text-indigo-100 text-sm mb-6 leading-relaxed">
-                      현재 사용 중이신 요금제 그대로, 추천 인원 수에 제한 없이 1개월씩 끝없이 추가 연장해 드립니다! (예: 10명 추천 시 10개월 꽁짜)
+                      가장 높은 <strong className="text-white">프로플러스 요금제로</strong>, 추천 인원 수에 제한 없이 1개월씩 끝없이 추가 연장해 드립니다! (예: 10명 추천 시 10개월 꽁짜)
                     </p>
                     <Link
                       href={loginHref}
