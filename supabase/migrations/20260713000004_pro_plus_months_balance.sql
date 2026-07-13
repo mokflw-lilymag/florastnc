@@ -1,1 +1,0 @@
-ALTER TABLE public.tenants ADD COLUMN IF NOT EXISTS pro_plus_months_balance integer DEFAULT 0;
