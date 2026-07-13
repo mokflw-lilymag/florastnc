@@ -1092,10 +1092,10 @@ export function LuminousLanding({ locale = 'ko' }: { locale?: AppLocale }) {
                   </div>
                   <h2 className="text-3xl lg:text-4xl font-extrabold mb-6 text-slate-800 leading-tight">
                     친구 추천하고 <br className="hidden md:block" />
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-blue-500">통크게 1개월 무료 연장</span> 받으세요!
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-blue-500">1개월 무료 연장</span> 받으세요!
                   </h2>
                   <p className="text-base text-slate-600 mb-8 leading-relaxed max-w-lg mx-auto md:mx-0">
-                    주변 화훼업계 사장님들께 FloXync를 추천해주세요. 추천받은 사장님이 내 코드로 가입하시면, <strong>신청하신 분과 추천하신 분 모두에게 조건 없이 구독 기간 1개월을 통크게 쏩니다!</strong>
+                    주변 화훼업계 사장님들께 FloXync를 추천해주세요. 추천받은 사장님이 내 코드로 가입하시면, <strong>신청하신 분과 추천하신 분 모두에게 구독 기간 1개월 무료 연장 혜택</strong>을 드립니다.
                   </p>
                   
                   <div className="flex flex-col sm:flex-row items-center gap-4 justify-center md:justify-start">
@@ -1120,6 +1120,9 @@ export function LuminousLanding({ locale = 'ko' }: { locale?: AppLocale }) {
                         <p className="font-bold text-slate-800">+1개월 무료 혜택</p>
                       </div>
                     </div>
+                  </div>
+                  <div className="mt-6 text-sm text-indigo-600 font-medium bg-indigo-50 px-4 py-3 rounded-xl inline-block">
+                    💡 추천한 사장님께는 플로싱크에서 가장 높은 플러스 등급(66,000원)으로 1달을 추가하여 드립니다!
                   </div>
                 </div>
 
