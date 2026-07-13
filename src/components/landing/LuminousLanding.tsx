@@ -1092,10 +1092,10 @@ export function LuminousLanding({ locale = 'ko' }: { locale?: AppLocale }) {
                   </div>
                   <h2 className="text-3xl lg:text-4xl font-extrabold mb-6 text-slate-800 leading-tight">
                     친구 추천하고 <br className="hidden md:block" />
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-blue-500">1개월 무료 혜택</span> 받으세요!
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-blue-500">통크게 1개월 무료 연장</span> 받으세요!
                   </h2>
                   <p className="text-base text-slate-600 mb-8 leading-relaxed max-w-lg mx-auto md:mx-0">
-                    주변 화훼업계 사장님들께 FloXync를 추천해주세요. 추천받은 사장님이 내 코드로 가입하시면, <strong>신청하신 분과 추천하신 분 모두에게 구독 기간 1개월 무료 연장 혜택</strong>을 드립니다.
+                    주변 화훼업계 사장님들께 FloXync를 추천해주세요. 추천받은 사장님이 내 코드로 가입하시면, <strong>신청하신 분과 추천하신 분 모두에게 조건 없이 구독 기간 1개월을 통크게 쏩니다!</strong>
                   </p>
                   
                   <div className="flex flex-col sm:flex-row items-center gap-4 justify-center md:justify-start">
@@ -1105,7 +1105,7 @@ export function LuminousLanding({ locale = 'ko' }: { locale?: AppLocale }) {
                       </div>
                       <div className="text-left">
                         <p className="text-xs text-slate-500 font-medium">추천한 사장님</p>
-                        <p className="font-bold text-slate-800">+1개월 연장</p>
+                        <p className="font-bold text-slate-800">+1개월 무료 혜택</p>
                       </div>
                     </div>
                     <div className="hidden sm:flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 text-slate-400">
@@ -1117,7 +1117,7 @@ export function LuminousLanding({ locale = 'ko' }: { locale?: AppLocale }) {
                       </div>
                       <div className="text-left">
                         <p className="text-xs text-slate-500 font-medium">가입한 사장님</p>
-                        <p className="font-bold text-slate-800">+1개월 연장</p>
+                        <p className="font-bold text-slate-800">+1개월 무료 혜택</p>
                       </div>
                     </div>
                   </div>
@@ -1128,9 +1128,9 @@ export function LuminousLanding({ locale = 'ko' }: { locale?: AppLocale }) {
                     <div className="absolute top-4 right-4 text-white/20">
                       <span className="material-symbols-outlined text-6xl">loyalty</span>
                     </div>
-                    <h3 className="text-xl font-bold mb-2">무제한 연장 가능!</h3>
+                    <h3 className="text-xl font-bold mb-2">무제한 누적 연장!</h3>
                     <p className="text-indigo-100 text-sm mb-6 leading-relaxed">
-                      추천 인원 수에 제한이 없습니다. 10명에게 추천하면 10개월이 무료로 연장됩니다. 지금 바로 대시보드에서 내 추천인 코드를 확인해보세요.
+                      현재 사용 중이신 요금제 그대로, 추천 인원 수에 제한 없이 1개월씩 끝없이 추가 연장해 드립니다! (예: 10명 추천 시 10개월 꽁짜)
                     </p>
                     <Link
                       href={loginHref}
