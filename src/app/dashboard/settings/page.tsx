@@ -48,6 +48,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { IntegrationsTab } from "./components/integrations-tab";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -76,7 +77,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { DeliverySettings } from "./components/DeliverySettings";
 import { PosIntegrationCard } from "./components/PosIntegrationCard";
 import { OrderPolicySettings } from "./components/OrderPolicySettings";
-import { AutomationSettings } from "./components/AutomationSettings";
 import { EmailSettingsCard } from "./components/EmailSettingsCard";
 import { DesktopElectronSettingsCard } from "@/components/desktop/desktop-electron-settings-card";
 import { StaffSettingsCard } from "./components/StaffSettingsCard";
@@ -86,8 +86,6 @@ import { StaffPermissionsCard } from "./components/StaffPermissionsCard";
 import { SettingsSubNav } from "./components/settings-sub-nav";
 import { RemoteSettingsAssistBanner } from "./components/remote-settings-assist-banner";
 import { KakaoPcSettingsCard } from "./components/KakaoPcSettingsCard";
-import { MallIntegrationCard } from "./components/MallIntegrationCard";
-import { RegionalIntegrationPanel } from "./components/RegionalIntegrationPanel";
 import { AccountConsentCard } from "./components/AccountConsentCard";
 import { applyCountryPreset, getCountryPreset, getCountryPresetDiff } from "@/lib/country-preset";
 import { AppLocale, resolveLocale, toBaseLocale } from "@/i18n/config";
@@ -493,6 +491,7 @@ const VALID_SETTINGS_TABS = [
   "categories",
   "printer",
   "integrations",
+  "google-sheets",
   "email",
   "partner-network",
   "data",
@@ -1411,10 +1410,13 @@ export default function SettingsPage() {
               <Printer className="h-4 w-4 mr-3 text-slate-500" /> {t.tabs.printer}
             </TabsTrigger>
 
-            <TabsTrigger value="integrations" disabled className="justify-start shrink-0 text-sm py-2.5 px-4 md:py-3 data-[state=active]:bg-white rounded-xl transition-all opacity-60 cursor-not-allowed">
-              <LinkIcon className="h-4 w-4 mr-3 text-slate-400" /> 
+            <TabsTrigger value="integrations" className="justify-start shrink-0 text-sm py-2.5 px-4 md:py-3 data-[state=active]:bg-white rounded-xl transition-all">
+              <LinkIcon className="h-4 w-4 mr-3 text-slate-500" /> 
               <span>{t.tabs.integrations}</span>
-              <Badge variant="secondary" className="ml-auto bg-slate-100 text-slate-500 font-bold text-[9px] border-none shadow-none">준비중</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="google-sheets" className="justify-start shrink-0 text-sm py-2.5 px-4 md:py-3 data-[state=active]:bg-green-50 text-green-700 bg-green-50/10 rounded-xl transition-all">
+              <FileSpreadsheet className="h-4 w-4 mr-3 text-green-600" /> 
+              <span>구글 시트 연동</span>
             </TabsTrigger>
             <TabsTrigger value="email" className="justify-start shrink-0 text-sm py-2.5 px-4 md:py-3 data-[state=active]:bg-white rounded-xl transition-all">
               <Mail className="h-4 w-4 mr-3 text-blue-500" /> {pickUiText(baseLocale, "이메일", "Email")}
@@ -1746,21 +1748,8 @@ export default function SettingsPage() {
             </TabsContent>
 
             <TabsContent value="integrations" className="space-y-6">
-              {/* 국가별 연동 앱 패널 (국가 설정에 따라 자동 교체) */}
-              <RegionalIntegrationPanel
-                countryCode={localCountry}
-                tenantId={tenantId || ''}
-              />
-              <MallIntegrationCard tenantId={tenantId || ''} />
               
-              <AutomationSettings 
-                settings={settings}
-                saveSettings={saveSettings}
-                tenantId={tenantId || ''}
-                posIntegration={posIntegration}
-                isPosLoading={isPosLoading}
-              />
-
+              
               <Card className="border-0 shadow-sm ring-1 ring-amber-500 bg-amber-50/5 overflow-hidden">
                 <CardHeader className="bg-amber-600 text-white">
                   <div className="flex items-center justify-between">
@@ -2142,12 +2131,20 @@ export default function SettingsPage() {
             <TabsContent value="data" className="space-y-4">
               <DesktopElectronSettingsCard />
               <Card className="border-0 shadow-sm ring-1 ring-rose-100">
-                <CardHeader><CardTitle>{tf.f01088}</CardTitle></CardHeader>
+                <CardHeader>
+                  <CardTitle>{tf.f01088}</CardTitle>
+                  <CardDescription className="text-[13px] leading-relaxed text-slate-600 mt-2">
+                    <strong className="text-slate-800">💡 FloXync 데이터 백업 안내</strong><br />
+                    • <strong>월별 자동 백업 (Windows 앱):</strong> FloXync Desktop을 설치하고 경로를 설정해두면 매월 1일~3일 사이에 전월 영수증과 사진 이미지가 지정된 내 PC 로컬 폴더에 자동으로 압축(zip) 백업됩니다.<br />
+                    • <strong>실시간 백업 (Google 시트):</strong> 좌측 '구글 시트 연동' 메뉴를 설정하시면 매 주문과 지출, 고객 데이터가 내 개인 구글 스프레드시트에 행 단위로 영구 자동 기록됩니다.<br />
+                    • <strong>전체 수동 백업:</strong> 아래 '전체 데이터 백업' 버튼을 누르면 현재까지의 전체 데이터를 PC(다운로드 폴더)에 바로 저장할 수 있습니다.
+                  </CardDescription>
+                </CardHeader>
                 <CardContent className="grid grid-cols-2 gap-4">
                   <Button variant="outline" className="h-20" onClick={handleBackup}>{tf.f01797}</Button>
                   <label htmlFor="restore-backup-input" className="block">
                     <input id="restore-backup-input" type="file" accept=".json" className="hidden" onChange={handleRestore} />
-                    <div className="inline-flex h-20 w-full items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground">
+                    <div className="inline-flex h-20 w-full items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground cursor-pointer">
                       백업 파일 복구
                     </div>
                   </label>
@@ -2172,6 +2169,10 @@ export default function SettingsPage() {
                   </CardFooter>
                 )}
               </Card>
+            </TabsContent>
+
+            <TabsContent value="google-sheets" className="space-y-6">
+              <IntegrationsTab tenantId={tenantId || ''} />
             </TabsContent>
           </div>
         </div>

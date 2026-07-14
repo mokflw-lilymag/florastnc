@@ -1,0 +1,1 @@
+ALTER TABLE public.tenants ADD COLUMN IF NOT EXISTS gsheet_orders_webhook_url TEXT; ALTER TABLE public.tenants ADD COLUMN IF NOT EXISTS gsheet_orders_sheet_url TEXT; ALTER TABLE public.tenants ADD COLUMN IF NOT EXISTS gsheet_customers_webhook_url TEXT; ALTER TABLE public.tenants ADD COLUMN IF NOT EXISTS gsheet_customers_sheet_url TEXT;

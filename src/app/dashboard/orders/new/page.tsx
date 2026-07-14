@@ -934,10 +934,19 @@ export default function NewOrderPage() {
       }
     }
 
+    let newOrderDate = new Date();
+    if (scheduleDate) {
+      newOrderDate = new Date(scheduleDate);
+      if (scheduleTime) {
+        const [hh, mm] = scheduleTime.split(':');
+        newOrderDate.setHours(Number(hh), Number(mm), 0, 0);
+      }
+    }
+
     const orderPayload: OrderData = {
       status: existingOrder?.status || 'processing',
       receipt_type,
-      order_date: existingOrder ? existingOrder.order_date : new Date().toISOString(),
+      order_date: existingOrder ? existingOrder.order_date : newOrderDate.toISOString(),
       items: orderItems.map(({ id, name, quantity, price }) => ({ id, name, quantity, price })),
       summary: {
         ...orderSummary,

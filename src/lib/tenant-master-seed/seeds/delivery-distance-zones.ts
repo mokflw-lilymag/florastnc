@@ -25,7 +25,7 @@ export function buildDistanceZoneDelivery(locale: "en" | "vi"): TenantMasterSeed
   const zones = locale === "vi" ? VI_DISTANCE_ZONES : EN_DISTANCE_ZONES;
   return {
     districtDeliveryFees: zones.map((z) => ({ ...z })),
-    defaultDeliveryFee: locale === "vi" ? 25000 : 5,
-    freeDeliveryThreshold: locale === "vi" ? 500000 : 50,
+    defaultDeliveryFee: 0,
+    freeDeliveryThreshold: 0,
   };
 }

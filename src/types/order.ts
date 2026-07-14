@@ -75,6 +75,8 @@ export interface Order {
     completedBy?: string;
   } | null;
   memo?: string;
+  memo_image_url?: string | null;
+  memo_image_path?: string | null;
   delivery_provider?: string;
   delivery_tracking_id?: string;
   delivery_tracking_url?: string;

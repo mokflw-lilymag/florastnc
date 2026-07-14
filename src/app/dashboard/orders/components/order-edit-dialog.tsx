@@ -6,7 +6,7 @@ import { format } from "date-fns";
 import { 
   User, Phone, Mail, Building, MapPin, Calendar, Clock, 
   Package, MessageSquare, FileText, CreditCard, Truck, 
-  Save, X, Plus, Minus 
+  Save, X, Plus, Minus, Camera, Loader2, XCircle, Image as ImageIcon
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -18,6 +18,8 @@ import Textarea from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 
 import { useOrders } from "@/hooks/use-orders";
@@ -33,6 +35,7 @@ import { usePreferredLocale } from "@/hooks/use-preferred-locale";
 import { toBaseLocale } from "@/i18n/config";
 import { pickUiText } from "@/i18n/pick-ui-text";
 import { useCurrency } from "@/hooks/use-currency";
+import { uploadWithOptimalStorage } from "@/lib/storage-manager";
 
 /** 지출 `sub_category` DB·기존 데이터 호환용 고정값 */
 const DELIVERY_EXPENSE_SUB_CATEGORY = "배송비" as const;
@@ -183,11 +186,15 @@ export function OrderEditDialog({ isOpen, onOpenChange, order, trialMode = false
       status: 'pending' as Order['payment']['status']
     },
     memo: '',
+    memo_image_url: '',
+    memo_image_path: '',
     driverAffiliation: '',
     actual_delivery_cost: 0,
     actual_delivery_payment_method: 'card' as Order['actual_delivery_payment_method'],
     customer_paid_delivery_fee: 0
   });
+
+  const [isUploadingMemoImage, setIsUploadingMemoImage] = useState(false);
 
   const kakaoTAffiliation = pickUiText(
     baseLocale,
@@ -250,6 +257,8 @@ export function OrderEditDialog({ isOpen, onOpenChange, order, trialMode = false
           status: (order.payment?.status || 'pending') as Order['payment']['status']
         },
         memo: order.memo || '',
+        memo_image_url: order.memo_image_url || '',
+        memo_image_path: order.memo_image_path || '',
         driverAffiliation: order.delivery_info?.driverAffiliation || '',
         actual_delivery_cost: order.actual_delivery_cost || 0,
         actual_delivery_payment_method: order.actual_delivery_payment_method || 'card',
@@ -361,6 +370,8 @@ export function OrderEditDialog({ isOpen, onOpenChange, order, trialMode = false
         },
         message: formData.message,
         memo: formData.memo,
+        memo_image_url: formData.memo_image_url || null,
+        memo_image_path: formData.memo_image_path || null,
         extra_data: order.extra_data || {},
         actual_delivery_cost: formData.actual_delivery_cost,
         actual_delivery_payment_method: formData.actual_delivery_payment_method,
@@ -487,14 +498,20 @@ export function OrderEditDialog({ isOpen, onOpenChange, order, trialMode = false
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label className="text-slate-700">{tf.f00380}</Label>
-                <Select value={formData.receipt_type} onValueChange={(val) => val && handleInputChange('receipt_type', '', val)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="store_pickup">{tf.f00196}</SelectItem>
-                    <SelectItem value="pickup_reservation">{tf.f00756}</SelectItem>
-                    <SelectItem value="delivery_reservation">{tf.f00271}</SelectItem>
-                  </SelectContent>
-                </Select>
+                  <Select value={formData.receipt_type} onValueChange={(val) => val && handleInputChange('receipt_type', '', val)}>
+                    <SelectTrigger>
+                      <SelectValue>
+                        {formData.receipt_type === 'store_pickup' && (tf.f00196 || '매장 픽업')}
+                        {formData.receipt_type === 'pickup_reservation' && (tf.f00756 || '방문 수령')}
+                        {formData.receipt_type === 'delivery_reservation' && (tf.f00271 || '배송')}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="store_pickup">{tf.f00196 || '매장 픽업'}</SelectItem>
+                      <SelectItem value="pickup_reservation">{tf.f00756 || '방문 수령'}</SelectItem>
+                      <SelectItem value="delivery_reservation">{tf.f00271 || '배송'}</SelectItem>
+                    </SelectContent>
+                  </Select>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -636,11 +653,17 @@ export function OrderEditDialog({ isOpen, onOpenChange, order, trialMode = false
               <div className="space-y-2">
                 <Label className="text-slate-700">{tf.f00209}</Label>
                 <Select value={formData.message.type} onValueChange={(val) => handleInputChange('message', 'type', val)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue>
+                      {formData.message.type === 'none' && (tf.f00441 || '선택 안함')}
+                      {formData.message.type === 'card' && (tf.f00207 || '카드')}
+                      {formData.message.type === 'ribbon' && (tf.f00179 || '리본')}
+                    </SelectValue>
+                  </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">{tf.f00441}</SelectItem>
-                    <SelectItem value="card">{tf.f00207}</SelectItem>
-                    <SelectItem value="ribbon">{tf.f00179}</SelectItem>
+                    <SelectItem value="none">{tf.f00441 || '선택 안함'}</SelectItem>
+                    <SelectItem value="card">{tf.f00207 || '카드'}</SelectItem>
+                    <SelectItem value="ribbon">{tf.f00179 || '리본'}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -694,6 +717,87 @@ export function OrderEditDialog({ isOpen, onOpenChange, order, trialMode = false
                 />
               </div>
             </CardContent>
+            <CardContent>
+                <div className="space-y-2">
+                  <div className="flex items-start justify-between">
+                    <div className="flex flex-col gap-0.5">
+                      <Label className="text-slate-700">요청사항(메모)</Label>
+                      <span className="text-[10px] text-slate-400">첨부한 이미지는 배송완료 3일후 자동 삭제 됩니다.</span>
+                    </div>
+                    <div className="relative">
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        className="hidden" 
+                        id="memo-image-upload" 
+                        disabled={isUploadingMemoImage}
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          
+                          try {
+                            setIsUploadingMemoImage(true);
+                            const uniquePath = `memo/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+                            const result = await uploadWithOptimalStorage(file, uniquePath, {
+                              bucket: "order-memos",
+                              optimize: true
+                            });
+                            
+                            const pathUrl = new URL(result.url);
+                            const pathParts = pathUrl.pathname.split('/order-memos/');
+                            const objectPath = pathParts.length > 1 ? pathParts[1] : uniquePath;
+
+                            handleInputChange('memo_image_url', '', result.url);
+                            handleInputChange('memo_image_path', '', objectPath);
+                            toast.success("이미지가 첨부되었습니다.");
+                          } catch (error) {
+                            console.error("Image upload failed:", error);
+                            toast.error("이미지 업로드에 실패했습니다.");
+                          } finally {
+                            setIsUploadingMemoImage(false);
+                            // reset file input
+                            e.target.value = '';
+                          }
+                        }}
+                      />
+                      <label 
+                        htmlFor="memo-image-upload" 
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-slate-200 bg-white text-sm font-medium text-slate-600 cursor-pointer hover:bg-slate-50 transition-colors ${isUploadingMemoImage ? 'opacity-50 pointer-events-none' : ''}`}
+                      >
+                        {isUploadingMemoImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
+                        사진 첨부
+                      </label>
+                    </div>
+                  </div>
+                  
+                  {formData.memo_image_url && (
+                    <div className="relative inline-block mt-2 mb-2 group">
+                      <img 
+                        src={formData.memo_image_url} 
+                        alt="Memo attached" 
+                        className="h-24 w-auto rounded-md border border-slate-200 object-cover" 
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleInputChange('memo_image_url', '', '');
+                          handleInputChange('memo_image_path', '', '');
+                        }}
+                        className="absolute -top-2 -right-2 bg-white rounded-full text-slate-400 hover:text-red-500 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <XCircle className="w-5 h-5" />
+                      </button>
+                    </div>
+                  )}
+
+                  <Textarea 
+                    value={formData.memo || ""} 
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleInputChange('memo', '', e.target.value)} 
+                    placeholder="배송 요청사항이나 기타 메모를 입력하세요." 
+                    className="min-h-[80px]"
+                  />
+                </div>
+            </CardContent>
           </Card>
 
           <Card>
@@ -702,22 +806,34 @@ export function OrderEditDialog({ isOpen, onOpenChange, order, trialMode = false
               <div className="space-y-2">
                 <Label className="text-slate-700">{tf.f00597}</Label>
                 <Select value={formData.status} onValueChange={(val) => val && handleInputChange('status', '', val)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue>
+                      {formData.status === 'processing' && (tf.f00678 || '처리중')}
+                      {formData.status === 'completed' && (tf.f00471 || '완료')}
+                      {formData.status === 'canceled' && (tf.f00702 || '취소')}
+                    </SelectValue>
+                  </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="processing">{tf.f00678}</SelectItem>
-                    <SelectItem value="completed">{tf.f00471}</SelectItem>
-                    <SelectItem value="canceled">{tf.f00702}</SelectItem>
+                    <SelectItem value="processing">{tf.f00678 || '처리중'}</SelectItem>
+                    <SelectItem value="completed">{tf.f00471 || '완료'}</SelectItem>
+                    <SelectItem value="canceled">{tf.f00702 || '취소'}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
                 <Label className="text-slate-700">{tf.f00046}</Label>
                 <Select value={formData.payment.method} onValueChange={(val) => val && handleInputChange('payment', 'method', val)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue>
+                      {formData.payment.method === 'card' && (tf.f00704 || '카드')}
+                      {formData.payment.method === 'cash' && (tf.f00769 || '현금')}
+                      {formData.payment.method === 'transfer' && (tf.f00057 || '계좌이체')}
+                    </SelectValue>
+                  </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="card">{tf.f00704}</SelectItem>
-                    <SelectItem value="cash">{tf.f00769}</SelectItem>
-                    <SelectItem value="transfer">{tf.f00057}</SelectItem>
+                    <SelectItem value="card">{tf.f00704 || '카드'}</SelectItem>
+                    <SelectItem value="cash">{tf.f00769 || '현금'}</SelectItem>
+                    <SelectItem value="transfer">{tf.f00057 || '계좌이체'}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

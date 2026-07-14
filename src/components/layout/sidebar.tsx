@@ -294,7 +294,6 @@ export function Sidebar({
       id: "admin-global",
       label: adminGlobalGroup,
       links: [
-        { name: pickUiText(baseLocale, "한국 연동 API", "Korea integrations", "hội nhập Hàn Quốc", "韓国の統合", "韩国一体化", "韓國一體化", "integraciones de corea", "Integrações da Coreia", "Intégrations en Corée", "Korea-Integrationen", "Интеграция Кореи"), href: "/dashboard/admin/regional-keys", icon: Key },
         { name: pickUiText(baseLocale, "통합 운영 매뉴얼", "Operations manual", "Hướng dẫn vận hành", "操作マニュアル", "操作手册", "操作手冊", "manual de operaciones", "Manual de operações", "Manuel d'exploitation", "Betriebshandbuch", "Руководство по эксплуатации"), href: "/dashboard/admin/manual/guide", icon: BookOpen },
         { name: pickUiText(baseLocale, "번역 관리", "Translations", "Bản dịch", "翻訳", "翻译", "翻譯", "Traducciones", "Traduções", "Traductions", "Übersetzungen", "Переводы"), href: "/dashboard/admin/translations", icon: Languages },
       ],

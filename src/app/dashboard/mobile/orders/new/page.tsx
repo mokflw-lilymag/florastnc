@@ -474,10 +474,19 @@ export default function MobileNewOrderPage() {
         scheduleDate ? new Date(`${scheduleDate}T12:00:00`) : undefined,
       );
 
+      let newOrderDate = new Date();
+      if (scheduleDate) {
+        newOrderDate = new Date(scheduleDate);
+        if (scheduleTime) {
+          const [hh, mm] = scheduleTime.split(':');
+          newOrderDate.setHours(Number(hh), Number(mm), 0, 0);
+        }
+      }
+
       const payload: OrderData = {
         status: "processing",
         receipt_type: receiptType,
-        order_date: new Date().toISOString(),
+        order_date: newOrderDate.toISOString(),
         items: cart.map(({ id, name, quantity, price }) => ({
           id,
           name,

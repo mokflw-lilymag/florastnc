@@ -285,7 +285,7 @@ export default function OnboardingPage() {
                     </>
                   ) : (
                     tr(
-                      "플록싱크 시작하기",
+                      "플로싱크 시작하기",
                       "Start Floxync",
                       "Bắt đầu với Floxync",
                       "Floxync を始める",

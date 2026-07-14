@@ -18,6 +18,7 @@ import { SimpleExpenseCategory } from '@/types/simple-expense';
 import { isElectronClient } from '@/lib/electron-env';
 import { onElectronSyncStatus } from '@/lib/electron-sync-listener';
 import { uploadWithOptimalStorage } from '@/lib/storage-manager';
+import { syncExpenseToGoogleSheets } from '@/lib/integrations/google-sheets';
 
 interface MaterialRequest {
   id: string;
@@ -261,6 +262,8 @@ export function useSimpleExpenses({ enableRealtime = false }: { enableRealtime?:
         else await supabase.from('supplier_suggestions').update({ frequency: (sugg.frequency || 0) + 1, last_used: new Date().toISOString() }).eq('id', sugg.id);
       }
 
+      syncExpenseToGoogleSheets(branchId, payload).catch(e => console.error('Failed to sync expense to sheets', e));
+
       toast.success("지출이 등록되었습니다.");
       await fetchExpenses();
       return true;
@@ -295,8 +298,13 @@ export function useSimpleExpenses({ enableRealtime = false }: { enableRealtime?:
       if (data.description) updatePayload.description = data.description;
       if (data.date) updatePayload.expense_date = data.date instanceof Date ? data.date.toISOString() : data.date;
 
-      const { error } = await supabase.from('simple_expenses').update(updatePayload).eq('id', expenseId);
+      const { data: updatedExpense, error } = await supabase.from('simple_expenses').update(updatePayload).eq('id', expenseId).select().single();
       if (error) throw error;
+      
+      if (updatedExpense) {
+        syncExpenseToGoogleSheets(updatedExpense.tenant_id, updatedExpense).catch(e => console.error('Failed to sync expense to sheets', e));
+      }
+      
       toast.success("지출 정보가 수정되었습니다.");
       await fetchExpenses();
       return true;

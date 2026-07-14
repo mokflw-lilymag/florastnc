@@ -11,7 +11,7 @@ import {
   Package, MessageSquare, FileText, CreditCard, Truck, 
   Printer, Settings, CheckCircle2, Trash2, RefreshCw, 
   Camera, Send, Image as ImageIcon, Loader2,
-  AlertCircle, Check,
+  AlertCircle, Check, X,
   MoreHorizontal, MessageCircle
 } from "lucide-react";
 
@@ -43,6 +43,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 
 import { parseDate } from "@/lib/date-utils";
@@ -73,6 +74,7 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
   const { user, tenantId, profile } = useAuth();
   const { updateOrder } = useOrders();
   const { settings } = useSettings();
+  const [enlargedMemoImage, setEnlargedMemoImage] = useState<string | null>(null);
   const resolvedMessenger =
     settings?.preferredMessenger ||
     (settings?.country === 'VN' ? 'zalo' : settings?.country === 'JP' ? 'line' : 'kakaotalk');
@@ -505,9 +507,10 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
   const info = isDelivery ? order.delivery_info : order.pickup_info;
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl p-0 border-none shadow-2xl">
-        <DialogHeader className="p-8 pb-0">
+    <Dialog open={isOpen} onOpenChange={onOpen => { !onOpen && onOpenChange(false); }}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden rounded-3xl p-0 border-none shadow-2xl flex flex-col">
+        <ScrollArea className="flex-1 overflow-y-auto p-8">
+        <div className="pb-4">
           <div className="flex items-center justify-between">
             <div>
               <DialogTitle className="text-xl font-bold tracking-tight flex items-center gap-3 text-slate-900">
@@ -574,9 +577,9 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
                {getPaymentStatusBadge(order)}
             </div>
           </div>
-        </DialogHeader>
+        </div>
 
-        <div className="p-8 space-y-8">
+        <div className="space-y-8">
           {/* Admin Correction Section */}
           {isAdmin && (
             <Card className="border-red-100 bg-red-50/30 overflow-hidden rounded-2xl">
@@ -682,13 +685,21 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
                     <span className="text-slate-500">{tf.f00382}</span>
                     <span className="font-bold text-blue-600">{info?.date || '-'} {info?.time || '-'}</span>
                   </div>
-                  {order.memo && (
+                  {(order.memo || order.memo_image_url) && (
                     <div className="pt-2">
                        <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
                          <FileText className="h-3 w-3" /> {tf.f00065}
                        </Label>
-                       <div className="mt-1 p-3 bg-white rounded-xl border border-blue-100 text-xs font-medium text-slate-700 shadow-sm">
-                         {order.memo}
+                       <div className="mt-1 p-3 bg-white rounded-xl border border-blue-100 text-xs font-medium text-slate-700 shadow-sm flex flex-col gap-2">
+                         {order.memo && <div>{order.memo}</div>}
+                         {order.memo_image_url && (
+                           <img 
+                             src={order.memo_image_url} 
+                             alt="Memo Reference" 
+                             className="h-24 w-auto rounded-md object-cover border border-slate-200 cursor-pointer hover:opacity-90 transition-opacity"
+                             onClick={() => setEnlargedMemoImage(order.memo_image_url || null)}
+                           />
+                         )}
                        </div>
                     </div>
                   )}
@@ -728,7 +739,7 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
                          </div>
                        </div>
                        {order.completionPhotoUrl ? (
-                         <div className="rounded-xl overflow-hidden shadow-sm aspect-video bg-black/5">
+                         <div className="rounded-xl overflow-hidden shadow-sm aspect-video bg-black/5 cursor-pointer" onClick={() => setEnlargedMemoImage(order.completionPhotoUrl || null)}>
                            <img src={order.completionPhotoUrl} alt="Completion" className="w-full h-full object-cover" />
                          </div>
                        ) : (
@@ -844,8 +855,9 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
             </div>
           </div>
         </div>
+        </ScrollArea>
 
-        <div className="p-8 pt-0 flex justify-end gap-3 sticky bottom-0 bg-white/80 backdrop-blur-md rounded-b-3xl">
+        <div className="p-8 pt-4 flex justify-end gap-3 border-t bg-white/50 backdrop-blur-md rounded-b-3xl">
           <DialogClose render={<Button variant="ghost" className="rounded-2xl h-12 px-8 font-semibold text-slate-500 hover:bg-slate-100" />}>
             {tf.f00149}
           </DialogClose>
@@ -922,6 +934,30 @@ export function OrderDetailDialog({ isOpen, onOpenChange, order, onPrintMessage,
           </Button>
         </div>
       </DialogContent>
+
+      <Dialog open={!!enlargedMemoImage} onOpenChange={(open) => !open && setEnlargedMemoImage(null)}>
+        <DialogContent className="sm:max-w-[800px] p-0 border-0 bg-transparent shadow-none" style={{ backgroundColor: 'transparent' }} aria-describedby="memo-image-dialog-description">
+          <DialogTitle className="sr-only">상세 이미지</DialogTitle>
+          <DialogDescription id="memo-image-dialog-description" className="sr-only">
+            첨부된 원본 이미지입니다.
+          </DialogDescription>
+          {enlargedMemoImage && (
+            <div className="relative flex items-center justify-center w-full h-[80vh]">
+              <img 
+                src={enlargedMemoImage} 
+                alt="Enlarged image" 
+                className="max-w-full max-h-full object-contain rounded-lg"
+              />
+              <button 
+                onClick={() => setEnlargedMemoImage(null)}
+                className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }

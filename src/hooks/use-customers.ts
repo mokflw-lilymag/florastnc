@@ -6,6 +6,7 @@ import { useAuth } from './use-auth';
 import { Customer, CustomerData } from '@/types/customer';
 import { isElectronClient } from '@/lib/electron-env';
 import { onElectronSyncStatus } from '@/lib/electron-sync-listener';
+import { syncCustomerToGoogleSheets } from '@/lib/integrations/google-sheets';
 
 export function useCustomers(initialFetch = true) {
   const supabase = useMemo(() => createClient(), []);
@@ -53,6 +54,9 @@ export function useCustomers(initialFetch = true) {
 
       const newCustomer = data as Customer;
       setCustomers((prev) => [newCustomer, ...prev].sort((a, b) => a.name.localeCompare(b.name)));
+      
+      syncCustomerToGoogleSheets(tenantId, newCustomer).catch(e => console.error('Failed to sync customer to sheets', e));
+      
       return newCustomer.id;
     } catch (error) {
       console.error('Error adding customer:', error);
@@ -76,7 +80,9 @@ export function useCustomers(initialFetch = true) {
       if (error) throw error;
 
       if (data) {
-        setCustomers((prev) => prev.map((c) => (c.id === id ? { ...c, ...(data as Customer) } : c)));
+        const updatedCustomer = data as Customer;
+        setCustomers((prev) => prev.map((c) => (c.id === id ? { ...c, ...updatedCustomer } : c)));
+        syncCustomerToGoogleSheets(tenantId, updatedCustomer).catch(e => console.error('Failed to sync customer to sheets', e));
       }
       return true;
     } catch (error) {

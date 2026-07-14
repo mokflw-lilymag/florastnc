@@ -32,6 +32,8 @@ export const OrderService = {
       delivery_provider_status: row.delivery_provider_status,
       delivery_provider_fee: row.delivery_provider_fee,
       memo: row.memo,
+        memo_image_url: row.memo_image_url,
+        memo_image_path: row.memo_image_path,
       message: row.message || {},
       extra_data: row.extra_data,
       actual_delivery_cost: row.actual_delivery_cost,
@@ -57,7 +59,7 @@ export const OrderService = {
         id, tenant_id, order_number, status, receipt_type, order_date, 
         orderer, summary, payment, items, message, pickup_info, delivery_info, 
         delivery_provider, delivery_tracking_id, delivery_tracking_url, delivery_provider_status, delivery_provider_fee,
-        memo, actual_delivery_cost, actual_delivery_cost_cash, 
+        memo, memo_image_url, memo_image_path, actual_delivery_cost, actual_delivery_cost_cash, 
         actual_delivery_payment_method, actual_delivery_payment_status,
         outsource_info, created_at, completionphotourl, transfer_info, tenant_name
       `)
@@ -76,7 +78,7 @@ export const OrderService = {
         id, tenant_id, order_number, status, receipt_type, order_date, 
         orderer, summary, payment, items, message, pickup_info, delivery_info, 
         delivery_provider, delivery_tracking_id, delivery_tracking_url, delivery_provider_status, delivery_provider_fee,
-        memo, actual_delivery_cost, actual_delivery_cost_cash, 
+        memo, memo_image_url, memo_image_path, actual_delivery_cost, actual_delivery_cost_cash, 
         actual_delivery_payment_method, actual_delivery_payment_status,
         outsource_info, created_at, completionphotourl, transfer_info, tenant_name
       `)
@@ -105,7 +107,7 @@ export const OrderService = {
         id, tenant_id, order_number, status, receipt_type, order_date, 
         orderer, summary, payment, items, message, pickup_info, delivery_info, 
         delivery_provider, delivery_tracking_id, delivery_tracking_url, delivery_provider_status, delivery_provider_fee,
-        memo, actual_delivery_cost, actual_delivery_cost_cash, 
+        memo, memo_image_url, memo_image_path, actual_delivery_cost, actual_delivery_cost_cash, 
         actual_delivery_payment_method, actual_delivery_payment_status,
         outsource_info, created_at, completionphotourl, transfer_info, tenant_name
       `, { count: 'exact' })
