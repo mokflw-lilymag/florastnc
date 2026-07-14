@@ -9,7 +9,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Trash2, Plus, Edit2, Check, X, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { Branch } from "@/hooks/use-branches";
-import { AlimtalkManual } from "@/components/alimtalk-manual";
 import { useCurrency } from "@/hooks/use-currency";
 
 interface DeliverySettingsDialogProps {
@@ -114,7 +113,6 @@ export function DeliverySettingsDialog({ branch, isOpen, onOpenChange, onSave }:
                                 <MessageSquare className="w-4 h-4 text-yellow-500 fill-yellow-500" />
                                 카카오 알림톡 자동 발송 설정
                             </h3>
-                            <AlimtalkManual />
                         </div>
                         
                         <div className="grid grid-cols-2 gap-4">
