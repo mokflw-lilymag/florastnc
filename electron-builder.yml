@@ -73,5 +73,5 @@ nsis:
   uninstallDisplayName: Floxync
 publish:
   provider: github
-  owner: mokflw-lilymag
+  owner: lilymagnc
   repo: floxync-releases
