@@ -42,7 +42,6 @@ import { CalendarView } from "./components/CalendarView";
 import { DeliverySettingsDialog } from "./components/DeliverySettingsDialog";
 import { DeliveryStatsChart } from "./components/DeliveryStatsChart";
 import { parseDate } from "@/lib/date-utils";
-import { AlimtalkService } from "@/lib/alimtalk-service";
 import { useCurrency } from "@/hooks/use-currency";
 
 const toLocalDate = (dateVal: any): Date => {
@@ -237,7 +236,7 @@ const { orders, loading, updateOrderStatus, updateOrder, fetchOrdersByRange } = 
         
         // 배송 완료 알림톡 자동 발송
         try {
-          await AlimtalkService.sendDeliveryComplete(orderId, completionPhotoUrl);
+//          await AlimtalkService.sendDeliveryComplete(orderId, completionPhotoUrl);
         } catch (alimtalkError) {
           console.error('알림톡 발송 중 오류:', alimtalkError);
           // 알림톡 실패해도 배송 완료 처리는 유지
